@@ -17,6 +17,7 @@ import type { LingerieDraft, LingerieMeasurements } from './lingerie';
 import { INSEAM, SLANT } from './pockets';
 import { BACK_WELT, weltWidth } from './trouserBack';
 import { DROP } from './sleeveCut';
+import { FLAP } from './jacketPockets';
 
 const r1 = (v: number) => Math.round(v * 10) / 10;
 const row = (label: string, body: number | undefined, finished: number): SpecRow =>
@@ -228,5 +229,7 @@ export function outerSpec(m: OuterMeasurements, d: OuterDraft): SpecRow[] {
     row('Extension beyond the centre front', undefined, d.ext),
     ...(d.pads ? [row('Shoulder pad, drafted in', undefined, d.pads)] : []),
     ...(d.vent ? [row('Centre back vent', undefined, d.vent.length)] : []),
+    ...(d.pocket?.kind === 'flap' ? [{ label: 'Flap pockets, opening x flap', finished: `${d.pocket.w} x ${FLAP.depth[d.kind]}` }] : []),
+    ...(d.chest ? [{ label: 'Chest welt pocket, left front', finished: `${weltWidth(d.chest)} x ${d.chest.depth}` }] : []),
   ];
 }

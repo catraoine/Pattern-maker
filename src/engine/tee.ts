@@ -88,10 +88,10 @@ export const TANK = { strap: 6, raise: 1.5, scoop: 2.5, bandRatio: 0.9 };
 export const BOXY_EASE: Record<Stretch, number> = { low: 0.16, medium: 0.14, high: 0.12 };
 
 /** Ease at the bust as drafted: the fit's, or a boxy body's room when the shoulder is dropped. */
-export const teeEase = (s: { fit: TeeFit; stretch: Stretch; shoulder?: TeeShoulder; sleeve?: TeeSleeve }) =>
+const teeEase = (s: { fit: TeeFit; stretch: Stretch; shoulder?: TeeShoulder; sleeve?: TeeSleeve }) =>
   boxyOf(s) ? Math.max(TEE_EASE[s.fit][s.stretch], BOXY_EASE[s.stretch]) : TEE_EASE[s.fit][s.stretch];
 /** Whether the shoulder is dropped: a tank has no sleeve to drop it to. */
-export const boxyOf = (s: { shoulder?: TeeShoulder; sleeve?: TeeSleeve }) => s.shoulder === 'dropped' && s.sleeve !== 'none';
+const boxyOf = (s: { shoulder?: TeeShoulder; sleeve?: TeeSleeve }) => s.shoulder === 'dropped' && s.sleeve !== 'none';
 
 export const DEFAULT_TEE: TeeStyle = { fit: 'regular', stretch: 'medium', neckline: 'crew', sleeve: 'short', length: 'hip' };
 

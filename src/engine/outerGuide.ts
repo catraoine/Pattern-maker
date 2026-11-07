@@ -35,6 +35,11 @@ export function outerGuide(
   const sleevesWord = raglan ? 'raglan sleeve fronts and backs' : tailoredWord(names);
   const pockets = names.includes('Patch pocket');
   const welts = names.includes('Welt');
+  // Flap pockets and the chest welt (In testing).
+  const flaps = names.includes('Pocket flap');
+  const chest = names.includes('Chest welt');
+  const bagCount = (welts || flaps ? 4 : 0) + (chest ? 2 : 0);
+  const bagWords = bagCount ? `, and ${bagCount === 2 ? 'two' : bagCount === 4 ? 'four' : 'six'} pocket bags${flaps ? ' and the two flap linings' : ''}` : '';
   const tailored = names.includes('Top sleeve');
   // Sleeveless (a waistcoat, In testing): no sleeves to cut, set in or line; the armholes are bagged out with the lining.
   const bare = !!d.sleeveless;
@@ -56,7 +61,7 @@ export function outerGuide(
       : [`${count} buttons, ${n1(d.buttons.sizeCm)} across${d.buttons.columns.length > 1 ? `, plus one small button for the inside` : ''}`]),
     ...(rib ? [`0.3 m of rib knit (tubular or 2x2 rib) for the hem band${bare ? '' : ' and cuffs'}`] : []),
     ...(d.pads ? [`A pair of set-in shoulder pads, ${d.pads < 1 ? `${Math.round(d.pads * 10)} mm` : n1(d.pads)} thick: the shoulders are drafted for them`] : []),
-    ...(welts ? ['A strip of lining or pocketing for the pocket bags'] : []),
+    ...(bagCount ? ['A strip of lining or pocketing for the pocket bags'] : []),
     zip ? 'Matching thread' : 'Matching thread, and silk thread for the buttonholes if you sew them by hand',
   ];
 
@@ -67,17 +72,17 @@ export function outerGuide(
     },
     {
       title: 'Cut the fabric',
-      text: `Fold the fabric in half with the selvedges together. Cut the ${princess ? 'centre fronts, side fronts, side backs' : 'fronts'}${vent ? ', the backs' : ''}${bare ? '' : ` and the ${sleevesWord}`} on both layers so you get pairs${vent ? '' : ', and the back on the fold'}. Cut the front facings${collar === 'hood' ? ' and the two hood pieces' : collar !== 'none' ? ' and the collar' : ''}${rib ? `, and the hem band${bare ? '' : ' and cuff bands'} from rib knit, the ribs running across the band` : ''}${pockets ? ' and the pockets' : ''}${welts ? ', the welts and the pocket facings' : ''} too. Keep each grain arrow parallel to the selvedge. Snip the notches and chalk-mark the ${darts || waistDarts ? 'darts, the ' : ''}${zip ? 'centre front' : 'buttonholes'}${d.lapel ? ', the roll line' : ''}${pockets ? ' and the pocket corners' : ''}${welts ? ' and the welt pocket boxes' : ''}${vent ? ' and the top of the vent' : ''}.`,
+      text: `Fold the fabric in half with the selvedges together. Cut the ${princess ? 'centre fronts, side fronts, side backs' : 'fronts'}${vent ? ', the backs' : ''}${bare ? '' : ` and the ${sleevesWord}`} on both layers so you get pairs${vent ? '' : ', and the back on the fold'}. Cut the front facings${collar === 'hood' ? ' and the two hood pieces' : collar !== 'none' ? ' and the collar' : ''}${rib ? `, and the hem band${bare ? '' : ' and cuff bands'} from rib knit, the ribs running across the band` : ''}${pockets ? ' and the pockets' : ''}${welts ? ', the welts and the pocket facings' : ''}${flaps ? ', the pocket flaps, the jets and the pocket facings' : ''}${chest ? ', the chest welt and its facing' : ''} too. Keep each grain arrow parallel to the selvedge. Snip the notches and chalk-mark the ${darts || waistDarts ? 'darts, the ' : ''}${zip ? 'centre front' : 'buttonholes'}${d.lapel ? ', the roll line' : ''}${pockets ? ' and the pocket corners' : ''}${welts || flaps ? ' and the pocket boxes' : ''}${chest ? ', the chest pocket box on the left front only' : ''}${vent ? ' and the top of the vent' : ''}.`,
     },
     {
       title: 'Cut the lining',
       text: vent
-        ? `Cut the ${panelFacing ? '' : 'front linings, '}${princess ? 'side front linings, ' : ''}two back linings${princess ? ', side back linings' : ''}${bare ? '' : ` and the ${raglan ? 'raglan sleeve linings' : tailored ? 'top and under sleeve linings' : 'sleeve linings'}`} from the lining fabric${welts ? ', and four pocket bags' : ''}. Cut the left back lining on the main line and the right one on the second line, which stops short at the vent. Each back lining is wider at the centre back for a pleat that gives you room to reach forward.${panelFacing ? ' There is no front lining: the front facing is the whole centre front panel, cut to the princess seam.' : ''}`
-        : `Cut the ${panelFacing ? '' : 'front linings, '}${princess ? 'side front linings, ' : ''}the back lining on the fold${princess ? ', side back linings' : ''}${bare ? '' : ` and the ${raglan ? 'raglan sleeve linings' : tailored ? 'top and under sleeve linings' : 'sleeve linings'}`} from the lining fabric${welts ? ', and four pocket bags' : ''}. The back lining is wider at the centre back for a pleat that gives you room to reach forward.${panelFacing ? ' There is no front lining: the front facing is the whole centre front panel, cut to the princess seam.' : ''}`,
+        ? `Cut the ${panelFacing ? '' : 'front linings, '}${princess ? 'side front linings, ' : ''}two back linings${princess ? ', side back linings' : ''}${bare ? '' : ` and the ${raglan ? 'raglan sleeve linings' : tailored ? 'top and under sleeve linings' : 'sleeve linings'}`} from the lining fabric${bagWords}. Cut the left back lining on the main line and the right one on the second line, which stops short at the vent. Each back lining is wider at the centre back for a pleat that gives you room to reach forward.${panelFacing ? ' There is no front lining: the front facing is the whole centre front panel, cut to the princess seam.' : ''}`
+        : `Cut the ${panelFacing ? '' : 'front linings, '}${princess ? 'side front linings, ' : ''}the back lining on the fold${princess ? ', side back linings' : ''}${bare ? '' : ` and the ${raglan ? 'raglan sleeve linings' : tailored ? 'top and under sleeve linings' : 'sleeve linings'}`} from the lining fabric${bagWords}. The back lining is wider at the centre back for a pleat that gives you room to reach forward.${panelFacing ? ' There is no front lining: the front facing is the whole centre front panel, cut to the princess seam.' : ''}`,
     },
     {
       title: 'Interface',
-      text: `Fuse interfacing to the wrong side of the front facings${collar === 'hood' ? ", a 3 cm strip along each hood piece's face edge" : collar !== 'none' ? ', both collar pieces' : ''}, and the top 10 cm of each ${princess ? 'centre front' : 'front'} and the back${pockets ? ', and the top fold of each pocket' : ''}${welts ? ', the welts, and a 5 cm strip behind each welt pocket box' : ''}${vent ? ', and the vent underlaps' : ''}. ${rib ? `The hem${bare ? '' : ' and sleeve edges'} take${bare ? 's a rib band' : ' rib bands'}, so ${bare ? 'it needs' : 'they need'} no strip.` : `Fuse a 5 cm strip along the hem of every shell piece${bare ? '' : ' and the sleeve hems'}.`} Use a press cloth and hold the iron still for 10 seconds at a time; let each piece cool flat before you move it.`,
+      text: `Fuse interfacing to the wrong side of the front facings${collar === 'hood' ? ", a 3 cm strip along each hood piece's face edge" : collar !== 'none' ? ', both collar pieces' : ''}, and the top 10 cm of each ${princess ? 'centre front' : 'front'} and the back${pockets ? ', and the top fold of each pocket' : ''}${welts ? ', the welts, and a 5 cm strip behind each welt pocket box' : ''}${flaps ? ', the pocket flaps and jets, and a 5 cm strip behind each pocket box' : ''}${chest ? ', the chest welt and a strip behind its box' : ''}${vent ? ', and the vent underlaps' : ''}. ${rib ? `The hem${bare ? '' : ' and sleeve edges'} take${bare ? 's a rib band' : ' rib bands'}, so ${bare ? 'it needs' : 'they need'} no strip.` : `Fuse a 5 cm strip along the hem of every shell piece${bare ? '' : ' and the sleeve hems'}.`} Use a press cloth and hold the iron still for 10 seconds at a time; let each piece cool flat before you move it.`,
     },
     ...(darts || waistDarts
       ? [
@@ -108,6 +113,22 @@ export function outerGuide(
           {
             title: 'Make the welt pockets',
             text: `Fold each welt in half lengthwise, right side out, and press. Lay it on the front below its box, raw edges up to the box's lower line, and stitch along that line from end to end. Lay a pocket facing, edge to the box's upper line, and stitch along it, stopping 0.5 cm short of each end. Cut through the front between the lines and into each corner in a small V, stopping just short of the stitching. Push the facing through, flip the welt up over the opening and press. Sew a pocket bag to the welt's seam allowance and another to the facing's, then sew the two bags together round their edges, catching the little triangles at the ends. Slip-stitch the welt's ends down by hand.`,
+          },
+        ]
+      : []),
+    ...(flaps
+      ? [
+          {
+            title: 'Make the flap pockets',
+            text: `Sew each flap to its lining round the sides and the rounded foot, right sides together, 0.6 cm from the edge. Trim, turn, and press with the lining rolled just out of sight; topstitch 0.5 cm in if you like. Fold each jet in half lengthwise, right side out, and press. Lay one jet on the front above the box's centre line and one below it, raw edges meeting on the line, and stitch each down its middle, 0.6 cm from the line, stopping exactly at the box's ends. Cut through the front along the line and into each corner in a small V. Push the jets through, press them so they meet in the middle of the opening, and stitch the little triangles to the jet ends. Slip the flap into the top jet, raw edge up, and stitch through the top jet's seam to hold it. Sew a pocket bag to the lower jet and a facing and a bag to the upper one, then sew the bags together round their edges.`,
+          },
+        ]
+      : []),
+    ...(chest
+      ? [
+          {
+            title: 'Make the chest pocket',
+            text: `On the left front only. The box rises a little toward the side, as a chest pocket does: keep the welt on that slant. Fold the chest welt in half lengthwise, right side out, and press. Lay it below the box, raw edges up to the box's lower line, and stitch along that line. Lay the facing, edge to the upper line, and stitch along it, stopping 0.5 cm short of each end. Cut between the lines and into each corner, push the facing through, flip the welt up over the opening and press. Sew a bag to the welt's allowance and one to the facing's, sew the bags together, and slip-stitch the welt's ends down by hand.`,
           },
         ]
       : []),

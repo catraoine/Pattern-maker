@@ -12,6 +12,7 @@ import { backOnFold, collarPieces } from './collar';
 import { SleeveDraft, SleeveMeasurements, draftSleeve } from './sleeve';
 import { DraftError } from './skirt';
 import { patchPocket, spanAt, weltPieces } from './pocketPieces';
+import { ChestPlace, ChestPocket, FLAP, chestWelt, flapPieces } from './jacketPockets';
 
 export type OuterKind = 'jacket' | 'coat';
 export type OuterFit = 'fitted' | 'regular' | 'relaxed' | 'oversized';
@@ -26,7 +27,8 @@ export type OuterCollar = 'notched' | 'peak' | 'shawl' | 'stand' | 'funnel' | 'c
 export type OuterLapel = 'classic' | 'wide' | 'plunge';
 /** The collars that roll back as lapels from the break point. */
 export const lapelled = (c: OuterCollar | undefined) => c === 'notched' || c === 'peak' || c === 'shawl';
-export type OuterPockets = 'none' | 'patch' | 'welt';
+/** 'flap' (In testing, Cat's styling options round 1, Nov 7 2026): jetted pockets with a flap (jacketPockets.ts). */
+export type OuterPockets = 'none' | 'patch' | 'welt' | 'flap';
 /** 'tailored' is the two-piece sleeve, top and under sleeve; 'fitted' the one-piece with an elbow dart;
  *  'raglan' runs up to the neck, the shoulders cut off the body and on to the sleeve; 'none' a jacket without sleeves,
  *  a waistcoat (In testing, from Cat's SS27 vest picture, 2026-11-06), its armholes bagged out with the lining. */
@@ -48,6 +50,8 @@ interface OuterStyle {
   front: OuterFront;
   collar: OuterCollar;
   pockets: OuterPockets;
+  /** A welt pocket on the left chest (In testing). Older saves have none. */
+  chest?: ChestPocket;
   sleeve: OuterSleeve;
   /** Below the hip: straight, or flaring out to the hem. */
   flare: OuterFlare;
@@ -173,7 +177,9 @@ export interface OuterDraft {
   lapsLeft?: boolean;
   lapel?: Lapel;
   /** Where the pockets sit on the front, as drafted: a patch pocket's outline, or a welt's opening. */
-  pocket?: { x: number; y: number; w: number; h: number; kind: 'patch' | 'welt' };
+  pocket?: { x: number; y: number; w: number; h: number; kind: 'patch' | 'welt' | 'flap' };
+  /** The chest welt pocket on the left front, where it was placed (In testing). */
+  chest?: ChestPlace;
   /** The pad thickness drafted into the shoulders, in cm (0 for none). */
   pads: number;
   /** The centre back vent: where it starts below the neck and how far the underlap reaches. */
@@ -1254,15 +1260,17 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
   let pocketPieces: Piece[] = [];
   let pocket: OuterDraft['pocket'];
   if (s.pockets !== 'none') {
-    const welt = s.pockets === 'welt';
-    let w = welt ? (s.kind === 'coat' ? 16 : 14) : s.kind === 'coat' ? 18 : 15;
+    // A flap pocket sits where a welt would, its opening two narrow jets.
+    const flapped = s.pockets === 'flap';
+    const welt = s.pockets === 'welt' || flapped;
+    let w = welt ? (s.kind === 'coat' ? 16 : 14) + (flapped ? 1 : 0) : s.kind === 'coat' ? 18 : 15;
     // A patch pocket on a short jacket is shallower, so its top sits no higher than 2 cm above the waist.
-    const h = welt ? (s.kind === 'coat' ? 3 : 2.5) : s.kind === 'coat' ? 19 : length === 'cropped' ? 12 : Math.max(12, Math.min(16, foot - 4 - (waistY - 2)));
-    const lowest = welt ? foot - 8 : foot - h - 4;
+    const h = flapped ? 2 * FLAP.jet : welt ? (s.kind === 'coat' ? 3 : 2.5) : s.kind === 'coat' ? 19 : length === 'cropped' ? 12 : Math.max(12, Math.min(16, foot - 4 - (waistY - 2)));
+    const lowest = flapped ? foot - FLAP.depth[s.kind] - 6 : welt ? foot - 8 : foot - h - 4;
     const y = s.pocketAt
       ? Math.max(waistY - 4, Math.min(lowest, s.pocketAt.y))
       : welt
-        ? Math.min(waistY + (m.waist_to_hip ?? 20) * (s.kind === 'coat' ? 0.5 : 0.4), foot - 8)
+        ? Math.min(waistY + (m.waist_to_hip ?? 20) * (s.kind === 'coat' ? 0.5 : 0.4), lowest)
         : Math.min(waistY + (m.waist_to_hip ?? 20) * 0.35, foot - h - 4);
     const carrier = fronts.reduce((best, pc) => {
       const [lo, hi] = spanAt(pc, y + h / 2);
@@ -1275,14 +1283,28 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     // less than 11 cm, so it stays 2 cm clear of the side seam. (Fable fit check of the SS27 looks, 2026-10-29.)
     w = r1(Math.max(Math.min(w, 11), Math.min(w, hi - from - 2)));
     const x = Math.max(from, Math.min(hi - w - 2, s.pocketAt ? s.pocketAt.x - w / 2 : (from + hi) / 2 - w / 2));
-    pocket = { x, y, w, h, kind: welt ? 'welt' : 'patch' };
-    pocketPieces = welt ? weltPieces(w, h, s.kind === 'coat' ? 22 : 17, sa) : [patchPocket(w, h, sa)];
+    pocket = { x, y, w, h, kind: flapped ? 'flap' : welt ? 'welt' : 'patch' };
+    const bagDepth = s.kind === 'coat' ? 22 : 17;
+    pocketPieces = flapped ? flapPieces(w, s.kind, bagDepth, sa) : welt ? weltPieces(w, h, bagDepth, sa) : [patchPocket(w, h, sa)];
     const i = fronts.indexOf(carrier);
+    // A flap's outline is marked below its opening, where it hangs.
+    const D = FLAP.depth[s.kind];
+    const flapLine = flapped ? [new Path(p(x, y + h / 2)).line(p(x, y + h / 2 + D)).line(p(x + w, y + h / 2 + D)).line(p(x + w, y + h / 2))] : [];
     fronts[i] = {
       ...carrier,
-      lines: [...carrier.lines, new Path(p(x, y)).line(p(x, y + h)).line(p(x + w, y + h)).line(p(x + w, y)).line(p(x, y))],
-      labels: [...carrier.labels, { at: p(x + w / 2, welt ? y - 0.8 : y + 1.2), text: welt ? 'WELT POCKET' : 'POCKET', size: 0.5 }],
+      lines: [...carrier.lines, new Path(p(x, y)).line(p(x, y + h)).line(p(x + w, y + h)).line(p(x + w, y)).line(p(x, y)), ...flapLine],
+      labels: [...carrier.labels, { at: p(x + w / 2, welt ? y - 0.8 : y + 1.2), text: flapped ? 'FLAP POCKET' : welt ? 'WELT POCKET' : 'POCKET', size: 0.5 }],
     };
+  }
+  // A chest welt pocket on the left front, clear of the lapel.
+  let chest: ChestPlace | undefined;
+  if (s.chest === 'welt') {
+    const c = chestWelt(fronts, { kind: s.kind, ext, lapel: opening.lapel?.worn, sa });
+    if (c) {
+      fronts.splice(0, fronts.length, ...c.fronts);
+      pocketPieces = [...pocketPieces, ...c.pieces];
+      chest = c.place;
+    }
   }
 
   const backPiece = backs.find((pc) => pc.fold) ?? backs[0];
@@ -1306,6 +1328,7 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     lapel: opening.lapel,
     ...(opening.piece.meta.cutaway ? { cutaway: opening.piece.meta.cutaway as { up: number; along: number } } : {}),
     pocket,
+    ...(chest ? { chest } : {}),
     pads: pad,
     vent,
     ...(rib ? { rib: { hem: RIB.hem, cuff: RIB.cuff } } : {}),

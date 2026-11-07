@@ -26,6 +26,7 @@ import { CAPE_NECKS, RUFFLE_NECKS } from './engine/collar';
 import { WRAP_BUST_DARTS } from './engine/wrap';
 import type { RangeChoices } from './garmentRange';
 import type { Panel, SeamKind, Yoke } from './engine/seams';
+import type { ChestPocket } from './engine/jacketPockets';
 import { type OuterCollar, type OuterFit, type OuterFlare, type OuterFront, type OuterKind, type OuterLapel, type OuterLength, lapelled, type OuterPads, type OuterPockets, type OuterShaping, type OuterSleeve, type OuterTrim, type OuterVent } from './engine/outerwear';
 
 export interface BodiceChoices {
@@ -337,12 +338,14 @@ export interface OuterChoices {
   buttons?: number;
   buttonGapCm?: number;
   shoulderCm?: number;
+  /** A welt pocket on the left chest (In testing). Older saves have none. */
+  chest?: ChestPocket;
 }
 
 export const DEFAULT_JACKET_CHOICES: OuterChoices = { garment: 'jacket', fit: 'regular', length: 'hip', shaping: 'darts', front: 'single', collar: 'notched', pockets: 'patch', sleeve: 'tailored', flare: 'straight', pads: 'soft', vent: 'centre', trim: 'none' };
 export const DEFAULT_COAT_CHOICES: OuterChoices = { garment: 'coat', fit: 'regular', length: 'knee', shaping: 'princess', front: 'single', collar: 'notched', pockets: 'welt', sleeve: 'tailored', flare: 'straight', pads: 'soft', vent: 'centre', trim: 'none' };
 
-type OuterGroupId = 'fit' | 'length' | 'shaping' | 'front' | 'collar' | 'lapel' | 'sleeve' | 'pads' | 'pockets' | 'vent' | 'trim' | 'flare';
+type OuterGroupId = 'fit' | 'length' | 'shaping' | 'front' | 'collar' | 'lapel' | 'sleeve' | 'pads' | 'pockets' | 'chest' | 'vent' | 'trim' | 'flare';
 
 /** The style groups for a jacket or a coat: a coat has its own lengths and a flare below the hip. */
 export function outerGroups(kind: OuterKind): { id: OuterGroupId; label: string; options: [string, string][] }[] {
@@ -363,7 +366,8 @@ export function outerGroups(kind: OuterKind): { id: OuterGroupId; label: string;
     { id: 'lapel', label: 'Lapels', options: [['classic', 'Classic'], ['wide', 'Wide'], ['plunge', 'Plunging']] },
     { id: 'sleeve', label: 'Sleeves', options: [['tailored', 'Two-piece, tailored'], ['fitted', 'One-piece, elbow dart'], ['straight', 'Straight'], ['raglan', 'Raglan'], ['none', 'Sleeveless']] },
     { id: 'pads', label: 'Shoulder pads', options: [['soft', kind === 'coat' ? 'Soft, 8 mm' : 'Soft, 6 mm'], ['structured', kind === 'coat' ? 'Structured, 1.5 cm' : 'Structured, 1.2 cm'], ['none', 'None']] },
-    { id: 'pockets', label: 'Pockets', options: [['patch', 'Patch pockets'], ['welt', 'Welt pockets'], ['none', 'None']] },
+    { id: 'pockets', label: 'Pockets', options: [['patch', 'Patch pockets'], ['welt', 'Welt pockets'], ['flap', 'Flap pockets'], ['none', 'None']] },
+    { id: 'chest', label: 'Chest pocket', options: [['none', 'None'], ['welt', 'Welt pocket']] },
     { id: 'vent', label: 'Back vent', options: [['centre', 'Centre vent'], ['none', 'None']] },
     { id: 'trim', label: 'Hem and cuffs', options: [['none', 'Plain hems'], ['rib', 'Rib bands']] },
     // Flared (In testing): out from the waist like a basque, on a jacket or a coat.

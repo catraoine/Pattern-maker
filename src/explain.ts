@@ -358,7 +358,12 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
     pockets: {
       patch: ['Pockets sewn on top of the front, the simplest kind.', 'easy'],
       welt: ['Pockets set into a slit with a neat strip of fabric along the opening.', 'skill'],
+      flap: ['A slit pocket with two narrow piped edges and a lined flap over it, as on a tailored jacket.', 'skill'],
       none: ['No pockets.'],
+    },
+    chest: {
+      none: ['No chest pocket.', 'easy'],
+      welt: ['A welt pocket on the left chest, rising a little toward the side. Needs room clear of the lapel and darts.', 'skill'],
     },
     vent: {
       centre: ['An opening at the back hem so it sits smoothly when you move or sit.'],
@@ -460,6 +465,9 @@ const SHORT: Record<string, string> = {
   'pockets.patch': 'Sewn on top. The simplest.',
   'pockets.slant': 'Slanted at the front hip, like chinos.',
   'pockets.welt': 'Set into a slit with a neat strip.',
+  'pockets.flap': 'A slit pocket with a flap over it.',
+  'chest.none': 'No chest pocket.',
+  'chest.welt': 'A welt pocket on the left chest.',
   'belt.sash': 'A sash in your fabric, tied.',
   'belt.sash_loops': 'The sash, held by a loop each side.',
   'belt.loops': 'Loops for your own belt, up to 3 cm.',

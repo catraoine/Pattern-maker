@@ -67,7 +67,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const onChoices = undo.change;
   const can = (t: ProTool) => shows(mode, t);
   /** The picked option of a group; lapels read classic when not chosen yet. */
-  const pick = (id: string): string | undefined => (id === 'lapel' ? choices.lapel ?? 'classic' : (choices[id as keyof OuterChoices] as string | undefined));
+  const pick = (id: string): string | undefined => (id === 'lapel' ? choices.lapel ?? 'classic' : id === 'chest' ? choices.chest ?? 'none' : (choices[id as keyof OuterChoices] as string | undefined));
   const [view, setView] = useState<'sketch' | 'flat' | 'round' | 'pattern'>('sketch');
   /** Drawing on the form: the choices from before, to keep or go back to. */
   const [onForm, setOnForm] = useState<OuterChoices>();
@@ -239,12 +239,17 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                     {((g.id === 'collar' && (id === 'peak' || id === 'shawl' || id === 'funnel')) || (g.id === 'lapel' && id !== 'classic')) && <TestingTag tool="jacket_collars" />}
                     {g.id === 'flare' && id === 'flared' && <TestingTag tool="flared_jacket" />}
                     {g.id === 'sleeve' && id === 'none' && <TestingTag tool="sleeveless_outer" />}
+                    {g.id === 'pockets' && id === 'flap' && <TestingTag tool="flap_pockets" />}
+                    {g.id === 'chest' && id === 'welt' && <TestingTag tool="chest_pocket" />}
                   </button>
                 );
               })}
             </div>
             <Explain set="outer" group={g.id} options={g.options} pick={pick(g.id)} />
             {g.id === 'shaping' && choices.fit === 'fitted' && <p className="muted small">A fitted {kind} keeps its waist shaping, so boxy needs a regular or relaxed fit.</p>}
+            {g.id === 'chest' && choices.chest === 'welt' && draft && !draft.chest && (
+              <p className="muted small">There is no room for a chest pocket on this front: the bust darts run where it would go. Princess seams leave room for one.</p>
+            )}
           </Group>
         ))}
         {can('insideFinish') && (

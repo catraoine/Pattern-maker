@@ -266,7 +266,13 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
       structured: on('M8 10L15 6L20 14L25 6L32 10L30.5 22L31 38H9L9.5 22z', 'M8 10L15 6M32 10L25 6M9.5 10.5h4.5v1.5h-4.5zM26 10.5h4.5v1.5H26z'),
       none: on('M10 12L15 6L20 14L25 6L30 12L30 22L31 38H9L10 22z'),
     },
-    pockets: { patch: on(JACKET, 'M11 27h6.5v6.5H11zM22.5 27H29v6.5h-6.5z'), welt: on(JACKET, 'M11 28h6.5v1.3H11zM22.5 28H29v1.3h-6.5z'), none: on(JACKET) },
+    pockets: {
+      patch: on(JACKET, 'M11 27h6.5v6.5H11zM22.5 27H29v6.5h-6.5z'),
+      welt: on(JACKET, 'M11 28h6.5v1.3H11zM22.5 28H29v1.3h-6.5z'),
+      flap: on(JACKET, 'M11 28h6.5v0.6H11zM22.5 28H29v0.6h-6.5zM11 28.3v2.6q0 0.6 0.6 0.6h5.3q0.6 0 0.6-0.6v-2.6M22.5 28.3v2.6q0 0.6 0.6 0.6h5.3q0.6 0 0.6-0.6v-2.6'),
+      none: on(JACKET),
+    },
+    chest: { none: on(JACKET), welt: on(JACKET, 'M23 17.6L27.5 16.9v1.2L23 18.8z') },
     vent: {
       centre: on('M9 11L15 7Q20 9 25 7L31 11L30 22L31 38H9L10 22z', 'M20 9V38M20 29L21.5 31V38'),
       none: on('M9 11L15 7Q20 9 25 7L31 11L30 22L31 38H9L10 22z', 'M20 9V38'),

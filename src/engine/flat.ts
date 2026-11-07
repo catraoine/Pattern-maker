@@ -15,6 +15,7 @@ import type { DressDraft } from './dress';
 import type { TrousersDraft } from './trousers';
 import { LOOP_PLACES, loopShape } from './trouserPleats';
 import { BACK_WELT, weltWidth } from './trouserBack';
+import { FLAP } from './jacketPockets';
 import { TeeDraft } from './tee';
 import { INSEAM, SLANT } from './pockets';
 import type { OuterDraft } from './outerwear';
@@ -1636,10 +1637,25 @@ export function outerFlat(d: OuterDraft): Flat {
         const { x, y, w, h: ph } = d.pocket;
         const box = [p(x, y), p(x, y + ph), p(x + w, y + ph), p(x + w, y), p(x, y)].map(h.move);
         if (d.pocket.kind === 'welt') for (const pts of both(box)) lines.push({ pts, kind: 'seam' });
-        else {
+        else if (d.pocket.kind === 'flap') {
+          // The jets, and the flap hanging over the opening below them, rounded at its foot.
+          const D = FLAP.depth[d.kind];
+          const R = FLAP.round;
+          const top = y + ph / 2;
+          const flap = [p(x, top), p(x, top + D - R), p(x + R * 0.3, top + D - R * 0.3), p(x + R, top + D), p(x + w - R, top + D), p(x + w - R * 0.3, top + D - R * 0.3), p(x + w, top + D - R), p(x + w, top)].map(h.move);
+          for (const pts of [...both(box), ...both(flap)]) lines.push({ pts, kind: 'seam' });
+        } else {
           for (const pts of both(box.slice(0, 4))) lines.push({ pts, kind: 'stitch' });
           for (const pts of both([h.move(p(x, y + 3)), h.move(p(x + w, y + 3))])) lines.push({ pts, kind: 'stitch' });
         }
+      }
+      // The chest welt, on the left front only: the wearer's left, on the right as the flat is seen.
+      if (d.chest) {
+        const { a, b, depth } = d.chest;
+        const u = unit(sub(b, a));
+        const dn = p(-u.y, u.x).y > 0 ? p(-u.y, u.x) : p(u.y, -u.x);
+        const box = [a, b, add(b, mul(dn, depth)), add(a, mul(dn, depth)), a].map(h.move);
+        lines.push({ pts: box[0].x < 0 ? mirror(box) : box, kind: 'seam' });
       }
     } else {
       shapes.push(whole(h.run));
