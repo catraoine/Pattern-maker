@@ -45,7 +45,7 @@ export interface DrapedLite {
    *  the body keeps the scale of where it last touched, so it hangs plumb on the form (see hang.ts). 0 = the level's. */
   hang?: Float32Array;
   lines: { kind: string; ids: number[] }[];
-  buttons: { at: [number, number, number]; r: number; hole?: [number, number] }[];
+  buttons: { at: [number, number, number]; r: number }[];
   /** Shadow inside pressed pleats, per point (0 to 1). */
   shade?: Float32Array;
   contrastCollar?: string;
@@ -225,7 +225,7 @@ export function runDrape(job: DrapeJob): DrapedLite {
     ...(posMirror ? { posMirror } : {}),
     ...(hang ? { hang } : {}),
     lines: d.lines,
-    buttons: d.buttons.map((b) => ({ at: [b.at[0], b.at[1], b.at[2]], r: b.r, ...(b.hole ? { hole: b.hole } : {}) })),
+    buttons: d.buttons.map((b) => ({ at: [b.at[0], b.at[1], b.at[2]], r: b.r })),
     ...(d.shade ? { shade: d.shade } : {}),
     contrastCollar: cc,
     quality,

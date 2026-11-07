@@ -55,8 +55,7 @@ export interface Draped {
   pos: Float64Array;
   /** Seams to draw: runs of points, by kind. */
   lines: { kind: string; ids: number[] }[];
-  /** Buttons, each with its buttonhole running from it (cm across and down), where there is one. */
-  buttons: { at: V3; r: number; hole?: [number, number] }[];
+  buttons: { at: V3; r: number }[];
   /** How much each point lies in shadow its mesh is too coarse to cast (inside a pressed pleat), 0 to 1. */
   shade?: Float32Array;
   /** The seams as sewn: point i on the line between j and k, a share t along it (for the quality check). */
@@ -249,7 +248,7 @@ export interface DrapeOptions {
   thick?: number;
   bendK?: number;
   /** Buttons at these levels (cm in the front's own frame), at the centre front. */
-  buttons?: { y: number[]; r: number; waistY: number; holes?: 'horizontal' | 'vertical' };
+  buttons?: { y: number[]; r: number; waistY: number };
   pad?: number;
   /** A front closed all the way down (buttons, a shirt): its centre front held on the centre plane. */
   closedFront?: boolean;
@@ -5698,8 +5697,8 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
           best = i + f0.base;
         }
       });
-      // (Its buttonhole beside it, on the front that laps over: across into the front, or down the centre front.)
-      if (best >= 0) buttons.push({ at: [0, res[best * 3 + 1], res[best * 3 + 2] + 0.4], r: o.buttons.r, hole: o.buttons.holes === 'vertical' ? [0, 2 * o.buttons.r + 0.3] : [-(2 * o.buttons.r + 0.3), 0] });
+      // (Buttoned, its buttonhole lies closed under it, out of sight, so none is drawn.)
+      if (best >= 0) buttons.push({ at: [0, res[best * 3 + 1], res[best * 3 + 2] + 0.4], r: o.buttons.r });
     }
   }
   setKnob("__seams", seams);
@@ -6387,7 +6386,7 @@ export function drapeOuter(sp: Space, d: OuterDraft, o: DrapeOptions = {}): Drap
     { sleeve: shell.filter((pc) => /sleeve/i.test(pc.name)), collars: collarsOf(d.pieces).map((c) => ((d as { popped?: boolean }).popped ? { ...c, roll: undefined } : c)) },
     // A lapel that breaks high (a coat or jacket buttoned over the chest) is pressed onto the front; a plunging one,
     // breaking near the waist, is left to hang (pressing drags its long front down).
-    { pad: d.pads, stiff: !!o.crisp, lieLapel: !!d.lapel && base.front.waistCentre.y - d.lapel.breakPt.y > 10, ...o, buttons: { y: d.buttons.at, r: d.buttons.sizeCm / 2, waistY: base.front.waistCentre.y, holes: d.buttons.holes }, ...(o.crisp ? { boxy: false } : {}), pinFront: knob("__pinAll") ? [{ y: 52, span: 12 }] : knob('__oldPins') || d.hood ? d.buttons.at.map((y) => ({ y, span: 2 })) : frontPins(d.buttons.at, shell) },
+    { pad: d.pads, stiff: !!o.crisp, lieLapel: !!d.lapel && base.front.waistCentre.y - d.lapel.breakPt.y > 10, ...o, buttons: { y: d.buttons.at, r: d.buttons.sizeCm / 2, waistY: base.front.waistCentre.y }, ...(o.crisp ? { boxy: false } : {}), pinFront: knob("__pinAll") ? [{ y: 52, span: 12 }] : knob('__oldPins') || d.hood ? d.buttons.at.map((y) => ({ y, span: 2 })) : frontPins(d.buttons.at, shell) },
   );
   if (cs)
     for (const pnl of out.panels) {
