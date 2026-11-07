@@ -45,6 +45,9 @@ export interface MyFabric {
   matchEase?: boolean;
   /** The partner shop fabric it was picked from (shopFabrics.ts). */
   shop?: string;
+  /** The maker's own photo of it, kept on this device only (fabricPhoto.ts): the tile's id in the photo store and how
+   * wide one tile shows on the garment, in cm. The drawings show it over the fabric type picked. */
+  photo?: { id: string; size: number };
 }
 
 export interface FabricPick {

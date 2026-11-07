@@ -197,6 +197,37 @@
 .swatch.none.on .card-tex {
   border-color: var(--gild);
 }
+/* Your photo (Design: Fabric, Nov 7): a camera drawn in a fine line on a paper card until a photo is in, then the
+   photo itself, whole, on the card. */
+.swatch.photo .card-tex {
+  position: relative;
+  border: 1px solid var(--guide);
+  border-bottom: 0;
+  background-color: var(--paper);
+  background-size: cover;
+  color: var(--muted);
+}
+.swatch.photo.on .card-tex {
+  border-color: var(--gild);
+}
+.swatch.photo .card-tex svg {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 26px;
+  height: 26px;
+  transform: translate(-50%, -50%);
+}
+.photosize {
+  margin: 6px 0 12px;
+}
+.photosize .chips {
+  margin: 0 0 8px;
+}
+.photo-fail {
+  flex-basis: 100%;
+  color: var(--ink);
+}
 /* Fabrics or Shop: two small tabs above the swatches. */
 .fabtabs {
   display: flex;
@@ -299,6 +330,7 @@
   margin: 6px 0 12px;
 }
 .colourbars-q,
+.photosize-q,
 .colourmatch-q {
   font-family: var(--mono);
   font-size: var(--caps-size);
@@ -307,7 +339,8 @@
   color: var(--muted);
   margin: 0 0 8px;
 }
-.colourbars-q .testing-tag {
+.colourbars-q .testing-tag,
+.photosize-q .testing-tag {
   display: inline-block;
   min-height: 0;
   margin: 0 0 0 8px;

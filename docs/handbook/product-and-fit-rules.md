@@ -334,6 +334,14 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    being tucked into a skirt that held it closed; Cat: "R2 has changed"). Its stay tape now brings each edge 90% of
    the way back to its cut distance from the centre front (50% on a sleeveless one, whose narrow strap stretched
    twice its cut), the cloth within 12 cm coming with it; all the way tore the cloth beside it 2.1 times its cut.
+54. **Your own fabric, photographed, stays on the device** (Nov 7, Design: Fabric, In testing): Your photo on the Fabric
+   step takes a photo (or picks one) of the maker's own cloth and dresses Front, Flat, the palette card and All round
+   in it. The photo is made into a tile on the phone (the middle square, its window light lifted out, its edges
+   blended so it repeats with no line) and kept in this browser's photo store; saved work holds only its id, so on
+   another device the drawing falls back to the fabric type picked. It is never sent. Small, Medium and Large show one
+   tile 10, 20 or 40 cm wide (a photo from about 30 cm away is Medium); a big-repeat print reads best on Large. The
+   fabric type stays, as what the cloth is made of, for the advice and the cutting; a colour or shop fabric comes off.
+   Code: `src/fabricPhoto.ts`, `src/engine/fabricTile.ts`, `PhotoSwatch` in `src/ui/FabricFill.tsx`.
 
 ## Style steps
 

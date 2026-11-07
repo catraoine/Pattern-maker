@@ -60,7 +60,8 @@ export type TestingTool =
   | 'full_sleeve'
   | 'lace'
   | 'cropped_top'
-  | 'sleeveless_outer';
+  | 'sleeveless_outer'
+  | 'fabric_photo';
 
 export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; proof: string }> = {
   draw_lines: { name: 'Draw your lines', where: 'Style, Draw on your form', proof: 'fit testers draw a hem, a neckline and a side and the pattern follows' },
@@ -68,6 +69,8 @@ export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; p
   body_double: { name: 'Body Double', where: 'Account and the form page', proof: 'one padded form checked against its person' },
   prints: { name: 'Prints beyond checks', where: "What's the print?, About your fabric", proof: 'three testers cut a one-way or border print from the lay plan' },
   any_colour: { name: 'Any colour', where: 'the colour dots on the Fabric tab', proof: 'shop colourways match the picked colour on five fabrics' },
+  // Cat broke the freeze for it (2026-11-07, every gap in the design flexibility rating).
+  fabric_photo: { name: 'Your own fabric, photographed', where: 'Your photo on the Fabric tab', proof: 'five testers photograph their own fabric and say the drawing looks like their cloth' },
   exact_colour: { name: 'Exact colour', where: 'under Any colour', proof: 'the first custom-dyed order delivered and matched' },
   pro_files: { name: 'Pro files', where: 'More files on Print', proof: 'one factory or dressmaker cuts from the pack' },
   size_run: { name: 'Size run', where: 'Print, For production', proof: 'a graded run sewn in two sizes' },

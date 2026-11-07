@@ -17,6 +17,7 @@ handoff, and this table is updated.
 | Media: All Round intro | Film opening | — |
 | All round quality | Making every design look right in All round: nightly sweep, weekly Fable eye check, the Front-drawing safety net, the option check on every PR | `src/drapeSweep.ts`, `src/drapeOptions.json`, project files `all-round-quality/` |
 | Quality: Automated checks | The six checks Cat asked for on Nov 4, each on every PR and nightly: pattern geometry on every option, fit sweep on 300 bodies, print check, DXF round trip, Front drawing check, screen check | `src/patternSweep.ts`, `src/patternOptions.json`, `src/fitSweep.ts`, `src/fitKnown.json`, `src/printCheck.ts`, `src/printKnown.json`, `src/dxfRoundTrip.ts`, `src/dxfKnown.json`, `src/frontCheck.ts`, `src/frontKnown.json`, `e2e/front-drawing.spec.ts`, `e2e/screen-check.spec.ts`, `e2e/screenAudit.ts`, `src/screenKnown.json`, `.github/workflows/quality-nightly.yml` |
+| Design: Fabric | What the maker's own cloth looks like in the app: Your photo (photograph your fabric), and with Fabric rendering, how it drapes | Product and fit rules 54 |
 | Design: The Collection | Seasonal collections (SS27), drops path, open calls | Collection calendar, drop path doc |
 | Design: Garment range | New garment types: jumpsuit, knit dress, hoodie (freeze broken Nov 7). Page: [garment-range.md](garment-range.md) | Round 1 option sheet in project files `garment-range/` |
 | Design: Collection Preview | Pieces Cat sews from the coming collection before launch | Capsule doc, preview sheet |

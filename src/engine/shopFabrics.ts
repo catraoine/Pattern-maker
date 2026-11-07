@@ -199,6 +199,18 @@ export const SHOP_FABRICS: ShopFabric[] = [
 
 export const shopFabric = (id: string | undefined) => SHOP_FABRICS.find((f) => f.id === id);
 
+/** The shop lists (the fabrics you can buy under each type, and the closest shop colourways under Any colour) are
+ * hidden until a shop's whole catalogue is loaded from its affiliate feed (Cat, Nov 7: "the whole fabric shop feature
+ * is pointless if there are only 7 fabrics"). The code stays; a browser with localStorage `shops` set to `on` still
+ * sees them, to test the shop flow and preview a feed. A shop fabric already picked in saved work still shows. */
+export function shopListsOn(): boolean {
+  try {
+    return localStorage.getItem('shops') === 'on';
+  } catch {
+    return false;
+  }
+}
+
 /** Shop fabrics for this garment. */
 export const shopFabricsFor = (garment: string) => SHOP_FABRICS.filter((f) => f.suits.includes(garment));
 
@@ -221,6 +233,7 @@ export function withShopFabric(now: MyFabric, f: ShopFabric): MyFabric {
   return {
     ...now,
     shop: f.id,
+    photo: undefined,
     name: f.name,
     fibre: f.fibre,
     special: f.special,

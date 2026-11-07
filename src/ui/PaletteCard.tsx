@@ -7,13 +7,13 @@ import { GarmentFabric, fabricLabel, fabricPaint } from './FabricFill';
 import { shopFabric } from '../engine/shopFabrics';
 
 /** Whether there is a fabric to show: a cloth, a shop fabric or a print. None leaves the form in lines, and no card. */
-export const showsPalette = (fabric: MyFabric | undefined) => !!fabricPaint(fabric, import.meta.env.BASE_URL);
+export const showsPalette = (fabric: MyFabric | undefined) => !!fabric?.photo || !!fabricPaint(fabric, import.meta.env.BASE_URL);
 
 /** The card's name: the cloth (or shop fabric), the print if one is picked, then the colour. */
 export function paletteName(fabric: MyFabric | undefined): string {
   const kind = printOf(fabric);
   const print = kind && kind !== 'plain' ? PRINTS[kind].label : undefined;
-  const colour = fabric?.colour?.trim();
+  const colour = fabric?.photo ? undefined : fabric?.colour?.trim();
   return [fabricLabel(fabric) ?? print, fabricLabel(fabric) && print, colour].filter(Boolean).join(' · ');
 }
 

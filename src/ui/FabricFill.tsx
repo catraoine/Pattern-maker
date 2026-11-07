@@ -1,18 +1,19 @@
 // The style sketch drawn in the maker's fabric. The fabric lies flat and on the grain: corduroy ribs,
 // velvet pile and satin sheen run down the garment, and a waistband, cut lengthwise, has them running
 // along it. The tiles are drawn by scripts/fabric-textures.py.
-import { CSSProperties, ReactNode, useContext, useId, useState } from 'react';
+import { CSSProperties, ReactNode, useContext, useId, useRef, useState } from 'react';
 import type { Finish } from '../savedWork';
 import { FIBRES, FIBRE_IDS, FabricGarment, MyFabric, clothFor, printRepeat } from '../engine/fabrics';
 import { PRINTS, printImage, printOf, printTileCm } from '../engine/prints';
 import { FabricDetails } from './FabricDetails';
 import { SPECIALS, Special } from '../engine/specialFabrics';
 import { KNITS, KNIT_IDS, isKnit } from '../engine/knitFabrics';
-import { CLOSENESS, ShopFabric, buyAmount, buyLink, closestShopColours, colourHex, coloursFor, hexToHsl, hslToHex, isHex, shopFabric, shopFabricsFor, shopPrice, withShopFabric } from '../engine/shopFabrics';
+import { CLOSENESS, ShopFabric, buyAmount, buyLink, closestShopColours, colourHex, coloursFor, hexToHsl, hslToHex, isHex, shopFabric, shopFabricsFor, shopListsOn, shopPrice, withShopFabric } from '../engine/shopFabrics';
 import { FabricMetres } from './FabricCard';
 import { ExactColour } from './ExactColour';
 import { TestingTag } from './TestingTag';
 import { FabricLook, FabricLookContext } from './ClothLook';
+import { fabricPhotoUrl, saveFabricPhoto, useFabricPhoto } from '../fabricPhoto';
 
 /** One tile, in the sketch's own centimetres: larger than life, so ribs and twill read on a phone. */
 const TILE = 16;
@@ -31,7 +32,7 @@ const printShown = (f: MyFabric | undefined) => {
 };
 
 export const fabricLabel = (f: MyFabric | undefined): string | undefined =>
-  shopFabric(f?.shop)?.name ?? (f?.special ? SPECIALS[f.special].label : f?.knit ? KNITS[f.knit].label : f?.fibre ? FIBRES[f.fibre].label : undefined);
+  f?.photo ? 'Your fabric' : shopFabric(f?.shop)?.name ?? (f?.special ? SPECIALS[f.special].label : f?.knit ? KNITS[f.knit].label : f?.fibre ? FIBRES[f.fibre].label : undefined);
 
 const withFabric = (finish: Finish, fabric: MyFabric): Finish => ({ ...finish, fabric, cloth: clothFor(fabric, finish.cloth) });
 
@@ -41,7 +42,7 @@ const withFabric = (finish: Finish, fabric: MyFabric): Finish => ({ ...finish, f
 export function pickFabric(finish: Finish, id: string | undefined): Finish {
   const { shop, ...rest } = finish.fabric ?? {};
   const now: MyFabric = shop ? { ...rest, name: undefined } : rest;
-  if (!id) return withFabric(finish, { ...now, fibre: undefined, special: undefined, knit: undefined });
+  if (!id) return withFabric(finish, { ...now, fibre: undefined, special: undefined, knit: undefined, photo: undefined });
   if (isKnit(id)) {
     if (now.knit === id && !shop) return withFabric(finish, { ...now, knit: undefined, fibre: undefined });
     const k = KNITS[id];
@@ -51,6 +52,22 @@ export function pickFabric(finish: Finish, id: string | undefined): Finish {
     ? { ...now, knit: undefined, special: now.special === id && !shop ? undefined : (id as Special) }
     : { ...now, knit: undefined, special: undefined, fibre: now.fibre === id && !now.special && !shop ? undefined : (id as MyFabric['fibre']) };
   return withFabric(finish, fabric);
+}
+
+/** How wide one tile of a fabric photo shows on the garment, in cm: a photo taken from about 30 cm away. */
+const PHOTO_SIZES: { cm: number; label: string }[] = [
+  { cm: 10, label: 'Small' },
+  { cm: 20, label: 'Medium' },
+  { cm: 40, label: 'Large' },
+];
+const PHOTO_CM = 20;
+
+/** The maker's own fabric photo, kept: the drawings show it, in place of a shop fabric or a colour. The fabric type
+ * picked stays, as what the cloth is, for the advice and the cutting. */
+export function pickPhoto(finish: Finish, id: string): Finish {
+  const { shop, ...rest } = finish.fabric ?? {};
+  const now: MyFabric = shop ? { ...rest, name: undefined } : rest;
+  return withFabric(finish, { ...now, colour: undefined, photo: { id, size: finish.fabric?.photo?.size ?? PHOTO_CM } });
 }
 
 /** A colour dot tapped: the sketch and the PDF take it. Tapping the chosen one again goes back to the swatch's own colour. */
@@ -142,6 +159,12 @@ export interface FabricPaint {
 
 /** The paint for a fabric, or undefined when the garment is left in lines. */
 export function fabricPaint(fabric: MyFabric | undefined, base: string): FabricPaint | undefined {
+  // The maker's own photo, once loaded: in its own colours, at the size picked, over whatever else is picked.
+  const photo = fabricPhotoUrl(fabric?.photo?.id);
+  if (photo && fabric?.photo) {
+    const special = fabric.special;
+    return { href: photo, size: fabric.photo.size, tone: INK, ground: IVORY, half: mix(INK, IVORY, 0.5), plain: IVORY, look: special ? { special, sheer: special === 'sheer' || special === 'lace' } : undefined };
+  }
   const id = flatId(fabric);
   const kind = printShown(fabric);
   if (!id && !kind) return undefined;
@@ -170,6 +193,8 @@ export function fabricPaint(fabric: MyFabric | undefined, base: string): FabricP
  * picked against near black (a camel check reads black and gold). With no fabric chosen nothing changes. */
 export function GarmentFabric({ fabric, children }: { fabric: MyFabric | undefined; children: ReactNode }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
+  // Loads a fabric photo from this device's store; the drawing redraws in it once it's there.
+  useFabricPhoto(fabric?.photo?.id);
   const paint = fabricPaint(fabric, import.meta.env.BASE_URL);
   if (!paint) return <>{children}</>;
   const body = `fab${uid}`;
@@ -234,7 +259,7 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
   const fabric = finish.fabric;
   const chosen = flatId(fabric);
   const label = fabricLabel(fabric);
-  const shopItems = shopFabricsFor(garment);
+  const shopItems = shopListsOn() ? shopFabricsFor(garment) : [];
   const metres = useContext(FabricMetres);
   // The T-shirt is drafted for stretch, so it offers knits; every other garment offers woven fibres and special cloths.
   const knits = garment === 'tee';
@@ -251,12 +276,14 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
   const toBuy = shopItems.filter((f) => under(f, type));
   // A picked print is what the sketch shows, so it names the cloth in place of the colour.
   const printed = printShown(fabric);
-  const colour = printed ? (printed === 'checks' ? (fabric?.checks?.stripes ? 'Stripes' : fabric?.checks?.gingham ? 'Gingham' : 'Checks') : PRINTS[printed].label) : fabric?.colour?.trim();
+  const colour = fabric?.photo ? (chosen ? ids.find((i) => i.id === chosen)?.label : undefined) : printed ? (printed === 'checks' ? (fabric?.checks?.stripes ? 'Stripes' : fabric?.checks?.gingham ? 'Gingham' : 'Checks') : PRINTS[printed].label) : fabric?.colour?.trim();
   const colours = coloursFor(fabric);
   const picked = isHex(fabric?.colour) ? fabric!.colour!.trim().toUpperCase() : undefined;
   const [anyOpen, setAnyOpen] = useState(!!picked);
+  // A photo of the maker's own fabric carries its own colour, so no colours are offered under it.
+  const photoOn = !!fabric?.photo;
   // Any colour is for the fabric types: a shop fabric comes only in its own colourways.
-  const anyColour = !fabric?.shop && !printed;
+  const anyColour = !fabric?.shop && !printed && !photoOn;
   return (
     <div className="swatch-row">
       <p className="fabric-now">
@@ -273,15 +300,16 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
         <button
           type="button"
           role="radio"
-          aria-checked={!chosen}
+          aria-checked={!chosen && !photoOn}
           aria-label="None"
           title="None"
-          className={!chosen ? 'swatch none on' : 'swatch none'}
+          className={!chosen && !photoOn ? 'swatch none on' : 'swatch none'}
           onClick={() => onFinish(pickFabric(finish, undefined))}
         >
           <span className="card-tex" aria-hidden="true" />
           <span className="card-name" aria-hidden="true">None</span>
         </button>
+        <PhotoSwatch finish={finish} onFinish={onFinish} />
         {ids.map((s) => {
           const on = type === s.id;
           return (
@@ -337,7 +365,8 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
           )}
         </div>
       )}
-      {chosen && (
+      {photoOn && <PhotoSize finish={finish} onFinish={onFinish} named={!!chosen} />}
+      {chosen && !photoOn && (
         <div className="colourdots" role="radiogroup" aria-label="Colour">
           {colours.map((c) => {
             const on = colour?.toLowerCase() === c.name.toLowerCase();
@@ -376,6 +405,96 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
       {chosen && anyColour && anyOpen && <ColourBars finish={finish} onFinish={onFinish} garment={garment} onShop={() => setTapped(undefined)} />}
       {shop && <BuyStrip shop={shop} colour={fabric?.colour} metres={metres} garment={garment} />}
       {details && <FabricDetails fabric={fabric} garment={garment} onFabric={(f) => onFinish({ ...finish, fabric: f, cloth: clothFor(f, finish.cloth) })} />}
+    </div>
+  );
+}
+
+/** "Your photo" (Design: Fabric, Nov 7): a photo of the maker's own fabric, taken now or picked from the phone's photos,
+ * shown on the drawings. The photo is made into a tile here and kept on this device; it is never sent. */
+function PhotoSwatch({ finish, onFinish }: { finish: Finish; onFinish: (f: Finish) => void }) {
+  const input = useRef<HTMLInputElement>(null);
+  // The finish as it is when the photo is ready, not when it was picked: other taps made while it is read are kept.
+  const latest = useRef(finish);
+  latest.current = finish;
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const id = finish.fabric?.photo?.id;
+  const url = useFabricPhoto(id);
+  const on = !!id;
+  return (
+    <>
+      <button
+        type="button"
+        aria-pressed={on}
+        aria-label={on ? 'Your photo: take or pick another' : 'Your photo: photograph your own fabric'}
+        title="Your photo"
+        className={on ? 'swatch photo on' : 'swatch photo'}
+        disabled={busy}
+        onClick={() => input.current?.click()}
+      >
+        <span className="card-tex" style={url ? { backgroundImage: `url(${url})` } : undefined} aria-hidden="true">
+          {!url && (
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M4 8h3l2-2.5h6L17 8h3v11H4z M12 10.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+            </svg>
+          )}
+        </span>
+        <span className="card-name" aria-hidden="true">{busy ? 'Reading' : 'Your photo'}</span>
+      </button>
+      <input
+        ref={input}
+        type="file"
+        accept="image/*"
+        hidden
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          e.target.value = '';
+          if (!file) return;
+          setBusy(true);
+          const got = await saveFabricPhoto(file);
+          setBusy(false);
+          setFailed(!got);
+          if (got) onFinish(pickPhoto(latest.current, got));
+        }}
+      />
+      {failed && (
+        <p className="photo-fail small" role="alert">
+          That photo couldn't be read. Try another, or take a new one.
+        </p>
+      )}
+    </>
+  );
+}
+
+/** Under the swatches once a photo is in: how big it shows, a way to take it off, and where it is kept. */
+function PhotoSize({ finish, onFinish, named }: { finish: Finish; onFinish: (f: Finish) => void; named: boolean }) {
+  const photo = finish.fabric?.photo;
+  if (!photo) return null;
+  return (
+    <div className="photosize">
+      <p className="photosize-q">
+        Size on the garment <TestingTag tool="fabric_photo" />
+      </p>
+      <div className="chips" role="radiogroup" aria-label="Size on the garment">
+        {PHOTO_SIZES.map((s) => (
+          <button
+            key={s.cm}
+            type="button"
+            role="radio"
+            aria-checked={photo.size === s.cm}
+            className={photo.size === s.cm ? 'chip on' : 'chip'}
+            onClick={() => onFinish(withFabric(finish, { ...finish.fabric, photo: { ...photo, size: s.cm } }))}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+      <p className="muted small">
+        {named ? 'Lay it flat in daylight and fill the frame for the truest match.' : 'Tap what it is made of above, so the advice and the cutting suit it.'} Your photo stays on this device and is never sent.
+      </p>
+      <button type="button" className="later" onClick={() => onFinish(withFabric(finish, { ...finish.fabric, photo: undefined }))}>
+        Take the photo off
+      </button>
     </div>
   );
 }
@@ -431,7 +550,7 @@ function ColourBars({ finish, onFinish, garment, onShop }: { finish: Finish; onF
   // A grey has no colour to turn, so turning the colour bar gives it some.
   const sat = Math.max(hsl.s, 35);
   const [typed, setTyped] = useState<string | undefined>();
-  const matches = hex ? closestShopColours(hex, garment) : [];
+  const matches = hex && shopListsOn() ? closestShopColours(hex, garment) : [];
   const set = (h: number, s: number, l: number) => {
     setTyped(undefined);
     onFinish(pickHex(finish, hslToHex(h, s, l)));

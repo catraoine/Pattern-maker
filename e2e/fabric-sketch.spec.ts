@@ -55,6 +55,8 @@ for (const g of ['Dress', 'Trousers'] as GarmentName[]) {
 
 // None takes the fabric off, a colour dot tints the swatch, and a shop fabric fills in the print screen's fabric card.
 test('None, a colour and a shop fabric on the skirt sketch', async ({ page }) => {
+  // The shop lists are hidden until a shop's feed is loaded (Nov 7); this browser has them on.
+  await page.addInitScript(() => localStorage.setItem('shops', 'on'));
   await startWithExample(page);
   const main = page.getByRole('main');
   await goTab(page, 'Fabric');
@@ -89,6 +91,8 @@ test('None, a colour and a shop fabric on the skirt sketch', async ({ page }) =>
 
 // Any colour (Cat's W2 + W4): the bars and the hex box tint the sketch, and the shops' nearest colourway is one tap away.
 test('any colour tints the sketch and finds the closest shop colourway', async ({ page }) => {
+  // The shop lists are hidden until a shop's feed is loaded (Nov 7); this browser has them on.
+  await page.addInitScript(() => localStorage.setItem('shops', 'on'));
   await startWithExample(page);
   const main = page.getByRole('main');
   await goTab(page, 'Fabric');
@@ -142,6 +146,18 @@ test('a colour the shops lack can be printed or dyed exactly', async ({ page }) 
 });
 
 // The T-shirt is drafted for stretch, so its Fabric step offers knits, not wovens, and the drawing wears the knit.
+// Hidden until a shop's whole catalogue is loaded (Cat, Nov 7): no fabrics to buy under a type, no shop matches.
+test('the shop lists stay hidden until a shop feed is loaded', async ({ page }) => {
+  await startWithExample(page);
+  const main = page.getByRole('main');
+  await goTab(page, 'Fabric');
+  await main.getByRole('radiogroup', { name: 'Fabric for the sketch' }).getByRole('radio', { name: 'Cotton' }).click();
+  await expect(main.getByRole('radiogroup', { name: 'Cotton you can buy' })).toHaveCount(0);
+  await main.getByRole('button', { name: 'Any colour' }).click();
+  await main.getByLabel('Hex').fill('#b8613f');
+  await expect(main.locator('.colourmatch-row')).toHaveCount(0);
+});
+
 test('the T-shirt offers knit swatches and its drawing wears the knit', async ({ page }) => {
   await startWithExample(page);
   await switchGarment(page, 'Tee');
