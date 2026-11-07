@@ -50,6 +50,22 @@ interface TeeStyle {
   /** Drawn on the form: a shaped hem. `sides` raises it at the side seams for a shirttail, `back`
    * lowers the centre back for a high-low hem, in cm (see TEE_HEM_SHAPE). A level hem has neither. */
   hemShape?: { sides?: number; back?: number };
+  /** A knit dress or a hoodie built on this block (knitDress.ts, hoodie.ts). Left out, a T-shirt as always. */
+  carry?: TeeCarry;
+  /** The sleeve's length from the crown point, in cm, in place of the named one's: shortened by a rib cuff's depth. */
+  sleeveCm?: number;
+}
+
+/**
+ * How a garment built on the T-shirt carries the body on past the T-shirt's own lengths.
+ * - `belowWaist`: the hem this many cm below the waist at the side, in place of the named length. 0 cuts the body
+ *   at the waist for a skirt to be sewn on (a skater dress), fitted in to the waist all the way whatever the fit.
+ * - `hemFlare`: cm added to each quarter at the hem over the hip's width (negative narrows it to hug the leg);
+ *   the side seam runs through the hip at its full width first, so the hem can never pinch the seat.
+ */
+export interface TeeCarry {
+  belowWaist: number;
+  hemFlare?: number;
 }
 
 /** How far a drawn T-shirt hem can rise at the sides and fall at the back, in cm. */
@@ -196,6 +212,7 @@ export function draftTee(m: TeeMeasurements, style: Partial<TeeStyle> = {}): Tee
     seamAllowance: KNIT_SEAM,
     armholeAllowance: KNIT_SEAM,
     hemAllowance: KNIT_SLEEVE_HEM,
+    ...(s.sleeveCm !== undefined ? { lengthCm: s.sleeveCm } : {}),
     ease: { bicep: m.upper_arm * TEE_SLEEVE_EASE[s.fit][s.stretch], crown: CROWN_EASE },
   });
   // A relaxed tee's wide body makes a long armhole, and a wide sleeve to fill it is part of the look.
@@ -278,8 +295,11 @@ function build(m: TeeMeasurements, s: TeeStyle, scye: number, warnings: string[]
   const share = WAIST_SHAPING[s.fit];
   const named = s.length === 'cropped' ? NW + 1 : s.length === 'hip' ? NW + WH : NW + WH + 15;
   // A dragged length sits anywhere from cropped to a little past tunic; from 7 cm below the hip it is cut as a tunic.
-  const hemY = s.lengthCm !== undefined ? Math.min(NW + WH + 25, Math.max(NW + 1, s.lengthCm + nl.backDepth)) : named;
-  const tunic = s.lengthCm !== undefined ? hemY >= NW + WH + 7 : s.length === 'tunic';
+  const carry = s.carry;
+  const hemY = carry ? NW + Math.max(0, carry.belowWaist) : s.lengthCm !== undefined ? Math.min(NW + WH + 25, Math.max(NW + 1, s.lengthCm + nl.backDepth)) : named;
+  const tunic = carry ? hemY >= NW + WH + 7 : s.lengthCm !== undefined ? hemY >= NW + WH + 7 : s.length === 'tunic';
+  /** A carried body long enough to pass the hip runs its side seam through the hip at the hip's width. */
+  const throughHip = !!carry && hemY > NW + WH + 3;
   const relaxed = s.fit === 'relaxed';
 
   // ---- neck and shoulder --------------------------------------------------
@@ -308,22 +328,44 @@ function build(m: TeeMeasurements, s: TeeStyle, scye: number, warnings: string[]
   const sideOf = (bq: number) => {
     let hemQ: number;
     let waistQ: number;
-    if (!withWaist) {
+    if (carry && carry.belowWaist === 0) {
+      // Cut at the waist for a skirt: in to the waist whatever the fit, so the skirt's seam sits on the body.
+      hemQ = Math.min(bq, waistQ0);
+      waistQ = hemQ;
+    } else if (!withWaist) {
       hemQ = Math.max(bq - share * Math.max(0, bq - waistQ0), waistQ0);
       waistQ = hemQ;
+    } else if (throughHip) {
+      const hipW = Math.max(hipQ, relaxed ? bq : 0);
+      hemQ = Math.max(hipW + (carry!.hemFlare ?? 0), hipQ - 4);
+      const straight = bq + (hipW - bq) * ((NW - scye) / (NW + WH - scye));
+      waistQ = straight - share * Math.max(0, straight - waistQ0);
     } else {
       hemQ = Math.max(tunic ? hipQ + 1.5 : hipQ, relaxed ? bq + (tunic ? 1 : 0) : 0);
       const straight = bq + (hemQ - bq) * ((NW - scye) / (hemY - scye));
       waistQ = straight - share * Math.max(0, straight - waistQ0);
     }
-    return { U: p(bq, scye), Wt: p(waistQ, NW), waistQ, hemQ };
+    const hipW = throughHip ? Math.max(hipQ, relaxed ? bq : 0) : undefined;
+    return { U: p(bq, scye), Wt: p(waistQ, NW), waistQ, hemQ, hip: hipW !== undefined ? p(hipW, NW + WH) : undefined };
   };
   type Side = ReturnType<typeof sideOf>;
   /** The side seam, underarm to hem, ending `rise` cm above the hem line. Returns the hem corner. */
   const sideSeam = (path: Path, side: Side, rise: number) => {
     const { U, Wt } = side;
     const Hm = p(side.hemQ, hemY - rise);
-    if (withWaist) {
+    if (side.hip) {
+      // Waist, out to the hip at its full width, then on to the hem: straight below the hip when it hugs or flares.
+      const Hp = side.hip;
+      const d1 = Wt.y - U.y;
+      const d2 = Hp.y - Wt.y;
+      const d3 = Hm.y - Hp.y;
+      // Upright at the hip (its widest), so the seam is smooth through it whether the hem hugs or flares.
+      const slope = (Hm.x - Hp.x) / d3;
+      path
+        .curve(add(U, p(0, d1 * 0.35)), sub(Wt, p(0, d1 * 0.35)), Wt, 'side')
+        .curve(add(Wt, p(0, d2 * 0.4)), sub(Hp, p(0, d2 * 0.4)), Hp, 'side')
+        .curve(add(Hp, p(0, d3 * 0.35)), sub(Hm, p(slope * d3 * 0.35, d3 * 0.35)), Hm, 'side');
+    } else if (withWaist) {
       const d1 = Wt.y - U.y;
       const d2 = Hm.y - Wt.y;
       path.curve(add(U, p(0, d1 * 0.35)), sub(Wt, p(0, d1 * 0.35)), Wt, 'side').curve(add(Wt, p(0, d2 * 0.35)), sub(Hm, p(0, d2 * 0.4)), Hm, 'side');
@@ -368,6 +410,15 @@ function build(m: TeeMeasurements, s: TeeStyle, scye: number, warnings: string[]
       .curve(add(sp, mul(perp(u), 2.5)), sub(A, p(0, 3)), A, 'armhole')
       .curve(add(A, p(0, (scye - A.y) * 0.55)), sub(U, p((U.x - A.x) * kUnder, 0)), U, 'armhole');
     const Hm = sideSeam(path, side, sideRise);
+    if (side.hip) {
+      // A carried skirt's side seam slants in or out below the hip: the hem leaves it square and curves to meet
+      // the fold square, dropping (or rising) at the centre by about the slant over half the hem's width.
+      const slope = (Hm.x - side.hip.x) / (Hm.y - side.hip.y);
+      const cf = hemCf + slope * Hm.x * 0.5;
+      const k = Hm.x * 0.4;
+      const n = Math.hypot(1, slope);
+      return path.curve(add(Hm, p((-1 / n) * k, (slope / n) * k)), p(Hm.x * 0.35, cf), p(0, cf), 'hem');
+    }
     if (Math.abs(hemCf - Hm.y) < 1e-6) return path.line(p(0, hemCf), 'hem');
     // The curve leaves the side and meets the fold square, so the hem runs smooth across both when sewn.
     return path.curve(p(Hm.x * 0.6, Hm.y), p(Hm.x * 0.45, hemCf), p(0, hemCf), 'hem');
