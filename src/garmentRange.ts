@@ -151,7 +151,7 @@ export function validJumpsuit(c: JumpsuitChoices): JumpsuitChoices {
 }
 
 const KNIT_NECK: Record<TeeNeck, string> = { crew: 'crew-neck', scoop: 'scoop-neck', v: 'V-neck', mock: 'mock-neck' };
-const KNIT_SLEEVE: Record<TeeSleeve, string> = { short: 'short sleeves', elbow: 'elbow sleeves', long: 'long sleeves' };
+const KNIT_SLEEVE: Record<TeeSleeve, string> = { short: 'short sleeves', elbow: 'elbow sleeves', long: 'long sleeves', none: 'no sleeves' };
 const DRESS_LENGTH: Record<KnitDressLength, string> = { mini: 'mini', above_knee: 'above-knee', knee: 'knee-length', midi: 'midi', maxi: 'maxi' };
 const DRESS_SKIRT: Record<KnitDressSkirt, string> = { straight: '', hugging: 'close-fitting ', aline: 'A-line ', skater: 'skater ' };
 
@@ -175,7 +175,7 @@ export function describeHoodie(c: HoodieChoices) {
 }
 
 const JUMP_NECK: Record<JumpsuitNeck, string> = { crew: 'crew-neck', scoop: 'scoop-neck', v: 'V-neck', square: 'square-neck', boat: 'boat-neck', cami: 'cami', halter: 'halter' };
-const JUMP_LEG: Record<Leg, string> = { straight: 'straight-leg', wide: 'wide-leg', tapered: 'tapered', flare: 'flared', bootcut: 'bootcut', culotte: 'culotte' };
+const JUMP_LEG: Record<Leg, string> = { straight: 'straight-leg', wide: 'wide-leg', tapered: 'tapered', flare: 'flared', bootcut: 'bootcut', culotte: 'culotte', barrel: 'barrel-leg' };
 
 /** "Cami wide-leg jumpsuit", "Square-neck playsuit with short puff sleeves", "Boiler suit with long sleeves". */
 export function describeJumpsuit(choices: JumpsuitChoices) {
