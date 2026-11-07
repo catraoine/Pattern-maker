@@ -3183,6 +3183,16 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
         }
         return dw > 1 ? Math.max(1, pw / dw) : 1;
       });
+      // (Not past the line of the levels above it at the hem: the hem's free edge draws in narrower in the sim than the
+      // cloth above it, its ratio leapt there, and the hem was drawn turned out in a ring, Cat 2026-11-07 "why does the
+      // edge turn out so much at the bottom".)
+      const tail = knob('__hemTail') ?? 6;
+      if (tail > 0 && nb > 3 * tail) {
+        const a = nb - 1 - 2 * tail;
+        const b = nb - 1 - tail;
+        const slope = (ratio[b] - ratio[a]) / tail;
+        for (let k = b + 1; k < nb; k++) ratio[k] = Math.min(ratio[k], ratio[b] + Math.max(0, slope) * (k - b));
+      }
       // (Eased over its neighbours, so one level doesn't stand out from the next.)
       const sm = ratio.map((_, k) => {
         let a = 0;
