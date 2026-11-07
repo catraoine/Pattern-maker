@@ -1936,8 +1936,10 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
         // its gathered bulk stands it round whatever the fibre, and laid close a full silk bishop crumpled into 15 to 29
         // sharp folds down the arm, 2026-11-06. Nor a puff's: its crown is gathered to stand out, and drawn in to the
         // silk's tube a short puff in silk or viscose tore at the sleeve and failed the drawing check, 2026-11-07. Nor a knit
-        // tee's: jersey holds its round, and drawn in a relaxed silk tee's sleeve bunched at its hem, 2026-11-07.)
-        let r = (widthAt(q.y) / TAU) * 0.92 * ((o.bendK ?? 0.05) < 0.04 && !p.pc.meta.full && !p.pc.meta.gatheredCrown && !p.pc.meta.knit ? knob('__silkR') ?? 0.72 : 1);
+        // tee's: jersey holds its round, and drawn in a relaxed silk tee's sleeve bunched at its hem, 2026-11-07. Drawn in to 0.72 of
+        // its round, an elbow cap sleeve went jagged and a three-quarter one folded into fins in silk; 0.85 still lets it
+        // fall close, 2026-11-07.)
+        let r = (widthAt(q.y) / TAU) * 0.92 * ((o.bendK ?? 0.05) < 0.04 && !p.pc.meta.full && !p.pc.meta.gatheredCrown && !p.pc.meta.knit ? knob('__silkR') ?? 0.85 : 1);
         if (cuffR && !knob('__noCuffDraw')) {
           const t = Math.min(1, Math.max(0, (yHem - q.y) / zone));
           const s2 = t * t * (3 - 2 * t);
@@ -2142,11 +2144,13 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
     B.panels.forEach((p, n) => {
       // (Not a pleated skirt's, whose pressed folds lie on each other, nor a balloon's, gathered onto its underskirt.)
       if (p.hidden || !/^Skirt/.test(p.pc.name) || !/peplum/.test(p.role) || p.mesh.runs.pleat?.length || p.pc.meta.pleatFolds || p.mesh.runs.balloon?.length) return;
-      // (Only a skirt that flares far out from its waist, a circle's or a trumpet's: its hem half as long again as its waist or more. A
-      // straighter skirt's cloth hangs apart on its own, and held apart a dropped waist's skirt stood out past its bodice
-      // in a ledge.)
+      // (Only a skirt that flares out from its waist, a circle's or a trumpet's: its hem a quarter as long again as its waist
+      // or more; or a gathered one, whose fullness is in its waist. A straighter skirt's cloth hangs apart on its own. At
+      // half as long again, trumpet and gathered skirts were left out and folded through themselves, 2026-11-07.)
       const runLen = (tag: string) => (p.mesh.runs[tag] ?? []).reduce((sum, r) => sum + r.slice(1).reduce((a, m, k) => a + Math.hypot(p.mesh.pts[m].x - p.mesh.pts[r[k]].x, p.mesh.pts[m].y - p.mesh.pts[r[k]].y), 0), 0);
-      if (runLen('hem') < (knob('__selfFlare') ?? 1.5) * runLen('waist')) return;
+      const gathered = ((p.pc.meta.gathered as number | undefined) ?? 1) > 1.05 && !knob('__noSelfGather');
+      // (Under a waist seam dropped onto the hip, only the circle's: held apart, a flared skirt there stood out in a ledge.)
+      if (!gathered && runLen('hem') < (knob('__selfFlare') ?? ((extra.drop ?? 0) > 1 ? 1.5 : 1.25)) * runLen('waist')) return;
       p.mesh.pts.forEach((q, i) => {
         ids.push(p.base + i);
         u.push(q.x);
