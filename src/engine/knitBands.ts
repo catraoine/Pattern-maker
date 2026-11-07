@@ -59,12 +59,12 @@ export interface Bands {
 
 /** The hem band and two cuffs for a body with this hem round it and sleeves this round at the hem. The band must
  *  pass the bust (or the hip, when it sits below it); a cuff the hand. */
-export function ribBands(b: Bands, hemCm: number, sleeveHemCm: number | undefined, passage: number): { pieces: Piece[]; hemBand?: number; cuff?: number } {
+export function ribBands(b: Bands, hemCm: number, sleeveHemCm: number | undefined, passage: number, hemRatio = RIB_RATIO.hem): { pieces: Piece[]; hemBand?: number; cuff?: number } {
   const pieces: Piece[] = [];
   let hemBand: number | undefined;
   let cuff: number | undefined;
   if (b.hem > 0) {
-    hemBand = ribLength(hemCm, RIB_RATIO.hem, passage);
+    hemBand = ribLength(hemCm, hemRatio, passage);
     pieces.push(ribPiece('Hem band', hemBand, b.hem));
   }
   if (b.cuff > 0 && sleeveHemCm) {

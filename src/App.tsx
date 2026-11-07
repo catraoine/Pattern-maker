@@ -74,7 +74,7 @@ import { Mode, finishFor, keepFinish, modeOf } from './mode';
 
 import { printableFor } from './printable';
 import { GARMENT_DRAFTING, dressOf, hoodieChoicesOf, jumpsuitChoicesOf, knitDressChoicesOf, lingerieChoicesOf, outerChoicesOf, skirtStyleOf, teeChoicesOf, trousersChoicesOf, type DraftInputs, type Drafts } from './garmentDrafts';
-import { isRangeGarment, rangeSlot } from './garmentRange';
+import { isRangeGarment, rangeSlot, teeFitOf } from './garmentRange';
 import { DEFAULT_FINISH, INITIAL, choicesPatch, type Finish, type Saved } from './savedWork';
 import { PhotoCheck } from './ui/PhotoCheck';
 import type { PhotoSource } from './photo/check';
@@ -1098,7 +1098,7 @@ export default function App() {
                       : garment === 'tee'
                         ? { garment, fit: teeChoices.fit, stretch: teeChoices.stretch, neckline: teeChoices.neckline }
                       : rangeChoices.garment !== 'jumpsuit' && isRangeGarment(garment)
-                        ? { garment: 'tee', fit: rangeChoices.fit, stretch: rangeChoices.stretch, neckline: 'neckline' in rangeChoices ? rangeChoices.neckline : 'crew' }
+                        ? { garment: 'tee', fit: teeFitOf(rangeChoices.fit), stretch: rangeChoices.stretch, neckline: 'neckline' in rangeChoices ? rangeChoices.neckline : 'crew' }
                       : rangeChoices.garment === 'jumpsuit' && garment === 'jumpsuit'
                         ? { garment: 'trousers', fit: rangeChoices.legFit, leg: rangeChoices.leg }
                       : garment === 'lingerie'

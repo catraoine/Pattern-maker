@@ -3,7 +3,7 @@
 // from the round 1 option sheet (all fifteen, 2026-11-07). All three are In testing until testers sew them.
 import type { Stretch, TeeFit, TeeNeck, TeeSleeve } from './engine/tee';
 import type { KnitDressLength, KnitDressSkirt } from './engine/knitDress';
-import type { HoodieFront, HoodieLength, HoodiePocket, HoodSize } from './engine/hoodie';
+import type { HoodieFit, HoodieFront, HoodieLength, HoodiePocket, HoodSize } from './engine/hoodie';
 import type { BodiceFit, Neckline } from './engine/bodice';
 import type { SleeveLength, SleeveShape } from './engine/sleeve';
 import type { Leg, TrouserLength } from './engine/trousers';
@@ -30,7 +30,7 @@ export interface KnitDressChoices {
 
 export interface HoodieChoices {
   garment: 'hoodie';
-  fit: TeeFit;
+  fit: HoodieFit;
   stretch: Stretch;
   length: HoodieLength;
   front: HoodieFront;
@@ -88,7 +88,7 @@ export const HOODIE_LOOKS: RangeLook<HoodieChoices>[] = [
   { code: 'H1', name: 'Classic', choices: { garment: 'hoodie', fit: 'relaxed', stretch: 'low', length: 'hip', front: 'pullover', pocket: 'kangaroo', hood: 'standard', hemBand: true } },
   { code: 'H2', name: 'Zip-up', choices: { garment: 'hoodie', fit: 'regular', stretch: 'low', length: 'hip', front: 'zip', pocket: 'split', hood: 'standard', hemBand: true } },
   { code: 'H3', name: 'Cropped', choices: { garment: 'hoodie', fit: 'relaxed', stretch: 'low', length: 'cropped', front: 'pullover', pocket: 'none', hood: 'standard', hemBand: false } },
-  { code: 'H4', name: 'Oversized', choices: { garment: 'hoodie', fit: 'relaxed', stretch: 'low', length: 'long', front: 'pullover', pocket: 'kangaroo', hood: 'big', hemBand: true } },
+  { code: 'H4', name: 'Oversized', choices: { garment: 'hoodie', fit: 'boxy', stretch: 'low', length: 'hip', front: 'pullover', pocket: 'kangaroo', hood: 'big', hemBand: true } },
   { code: 'H5', name: 'Half-zip', choices: { garment: 'hoodie', fit: 'regular', stretch: 'low', length: 'hip', front: 'half_zip', pocket: 'none', hood: 'standard', hemBand: true } },
 ];
 
@@ -118,7 +118,7 @@ export const KNIT_DRESS_GROUPS: Groups<KnitDressChoices> = [
 
 export const HOODIE_GROUPS: Groups<HoodieChoices> = [
   { id: 'stretch', label: 'Your knit’s stretch', options: [['low', 'Low 20–30%'], ['medium', 'Medium 30–50%'], ['high', 'High 50%+']] },
-  { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed']] },
+  { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed'], ['boxy', 'Boxy']] },
   { id: 'front', label: 'Front', options: [['pullover', 'Pullover'], ['zip', 'Zip-up'], ['half_zip', 'Half-zip']] },
   { id: 'pocket', label: 'Pocket', options: [['kangaroo', 'Front pocket'], ['split', 'Two pockets'], ['none', 'None']] },
   { id: 'hood', label: 'Hood', options: [['standard', 'Standard'], ['big', 'Big']] },
@@ -194,6 +194,8 @@ export const knitDressStyleOf = (c: KnitDressChoices, flatFront: boolean) => {
   const { garment: _g, ...style } = c;
   return { ...style, ...(flatFront ? { flatFront: true } : {}) };
 };
+/** The hoodie's fit in the T-shirt's words: boxy is relaxed with more room (for the form drawing and fabric advice). */
+export const teeFitOf = (fit: HoodieFit): TeeFit => (fit === 'boxy' ? 'relaxed' : fit);
 export const hoodieStyleOf = (c: HoodieChoices, flatFront: boolean) => {
   const { garment: _g, ...style } = c;
   return { ...style, ...(flatFront ? { flatFront: true } : {}) };

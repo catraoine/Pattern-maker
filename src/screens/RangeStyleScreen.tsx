@@ -4,6 +4,7 @@
 import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
 import { bounds } from '../engine/piece';
+import type { P } from '../engine/geometry';
 import { wornLines, wornShapes } from '../engine/flat';
 import type { KnitDressDraft } from '../engine/knitDress';
 import type { HoodieDraft } from '../engine/hoodie';
@@ -32,6 +33,7 @@ import {
   isHoodie,
   isJumpsuit,
   isKnitDress,
+  teeFitOf,
   validJumpsuit,
 } from '../garmentRange';
 import type { MeasurementValues } from '../measurements';
@@ -100,6 +102,31 @@ function friendly(w: string) {
   return `One of your measurements looks unusual (${w}). Please double-check it.`;
 }
 
+/** A boxy hoodie on the form: its dropped armhole is filled in straight from the shoulder down to the underarm, so the
+ *  body reads as the box it is cut as, with the sleeves hanging in front of it. */
+function boxed(shapes: P[][]): P[][] {
+  const [body, ...rest] = shapes;
+  if (!body?.length) return shapes;
+  const top = Math.min(...body.map((q) => q.y));
+  const widest = (pts: P[]) => pts.reduce((a, b) => (Math.abs(b.x) > Math.abs(a.x) + 0.3 ? b : a));
+  const corners = [1, -1].map((sign) => {
+    const side = body.filter((q) => Math.sign(q.x) === sign);
+    // The shoulder tip near the top, and the underarm: the widest point in the armhole's reach below it.
+    const tipPts = side.filter((q) => q.y < top + 8);
+    if (!tipPts.length) return undefined;
+    const tip = widest(tipPts);
+    const underPts = side.filter((q) => q.y > tip.y + 8 && q.y < tip.y + 35);
+    return underPts.length ? { sign, tip, under: widest(underPts) } : undefined;
+  });
+  const out = body.filter((q) => {
+    const k = corners.find((c) => c && c.sign === Math.sign(q.x));
+    if (!k || q.y <= k.tip.y + 0.3 || q.y >= k.under.y - 0.3) return true;
+    const chord = Math.abs(k.tip.x) + ((Math.abs(k.under.x) - Math.abs(k.tip.x)) * (q.y - k.tip.y)) / (k.under.y - k.tip.y);
+    return Math.abs(q.x) >= chord - 0.05;
+  });
+  return [out, ...rest];
+}
+
 type Group = { id: string; label: string; options: [string, string][] };
 
 /** The page's words and drawings for each garment. */
@@ -133,7 +160,8 @@ export function RangeStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   }, [draft, values]);
   // On the form the hoodie's hood is worn down, so the face shows; the flat draws it up.
   const worn = useMemo(() => (draft && 'hood' in draft ? hoodieFlat(draft, true) : flat), [draft, flat]);
-  const cloth = useMemo(() => (worn ? wornShapes(worn) : undefined), [worn]);
+  const boxy = isHoodie(c) && c.fit === 'boxy';
+  const cloth = useMemo(() => (worn ? (boxy ? boxed(wornShapes(worn)) : wornShapes(worn)) : undefined), [worn, boxy]);
   const flatLines = useMemo(() => (worn ? wornLines(worn) : undefined), [worn]);
   const metres = draft ? ('trousers' in draft ? jumpsuitMetres(draft) : 'hood' in draft ? hoodieMetres(draft) : knitDressMetres(draft)) : undefined;
   const spec = draft
@@ -149,7 +177,7 @@ export function RangeStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
     if (!draft || 'trousers' in draft || isJumpsuit(c)) return undefined;
     const tee: TeeDraft = draft.tee;
     const k = c as KnitDressChoices | HoodieChoices;
-    const form = teeForm(values as TeeFormMeasurements, { garment: 'tee', fit: k.fit, stretch: k.stretch, neckline: 'neckline' in k ? k.neckline : 'crew', sleeve: 'sleeve' in k ? k.sleeve : 'long', length: 'tunic' }, tee);
+    const form = teeForm(values as TeeFormMeasurements, { garment: 'tee', fit: teeFitOf(k.fit), stretch: k.stretch, neckline: 'neckline' in k ? k.neckline : 'crew', sleeve: 'sleeve' in k ? k.sleeve : 'long', length: 'tunic' }, tee);
     // The skater skirt is a piece of its own below the waist seam, so its length is added to the bodice's.
     const hemY = bounds(draft.pieces[0])[3] + ('skater' in draft && draft.skater ? draft.skater.length : 0);
     return { form, lines: teeLines(tee, form), bottom: hemY + 16 };
@@ -168,7 +196,7 @@ export function RangeStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const offered = (g: Group) => (isJumpsuit(c) ? g.options.filter(([id]) => String((validJumpsuit({ ...c, [g.id]: id } as JumpsuitChoices) as unknown as Record<string, unknown>)[g.id]) === id) : g.options);
   const label = `The ${a.title.toLowerCase()} on your form`;
   const knitFabric = isJumpsuit(c) ? undefined : (c as KnitDressChoices | HoodieChoices);
-  const advice = knitFabric ? { ...teeFabrics(knitFabric), style: `a ${a.noun}` } : { ...trousersFabrics({ leg: (c as JumpsuitChoices).leg }), style: 'a jumpsuit' };
+  const advice = knitFabric ? { ...teeFabrics({ ...knitFabric, fit: teeFitOf(knitFabric.fit) }), style: `a ${a.noun}` } : { ...trousersFabrics({ leg: (c as JumpsuitChoices).leg }), style: 'a jumpsuit' };
 
   return (
     <StyleLayout
@@ -257,7 +285,7 @@ export function RangeStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           {error && <p className="msg error">{error}</p>}
           {view === 'sketch' && knitForm && draft && 'tee' in draft && (
             <GarmentFabric fabric={fabric}>
-              <FormSketch body={knitForm.form.body} m={values as TeeFormMeasurements} legs={isKnitDress(c)} bottom={knitForm.bottom} arms={knitForm.form.arm} lines={knitForm.lines} cloth={cloth} flatLines={flatLines} sleeve={draft.tee.sleeve} label={label} />
+              <FormSketch body={knitForm.form.body} m={values as TeeFormMeasurements} legs={isKnitDress(c)} bottom={knitForm.bottom} arms={knitForm.form.arm} lines={knitForm.lines} cloth={cloth} flatLines={flatLines} sleeve={draft.tee.sleeve} sleevesOver={boxy} label={label} />
             </GarmentFabric>
           )}
           {view === 'sketch' && jumpForm && draft && 'trousers' in draft && (

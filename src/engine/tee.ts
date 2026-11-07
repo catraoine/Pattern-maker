@@ -62,6 +62,9 @@ interface TeeStyle {
   sleeveCm?: number;
   /** A dropped shoulder on a boxy body; left out, set in. */
   shoulder?: TeeShoulder;
+  /** Room on top of a boxy body's, as a share of the bust: the oversized hoodie's (Cat, 2026-11-07, "should be more
+   *  boxy"). Only with a dropped shoulder; left out, none. */
+  boxyExtra?: number;
 }
 
 /**
@@ -88,8 +91,8 @@ export const TANK = { strap: 6, raise: 1.5, scoop: 2.5, bandRatio: 0.9 };
 export const BOXY_EASE: Record<Stretch, number> = { low: 0.16, medium: 0.14, high: 0.12 };
 
 /** Ease at the bust as drafted: the fit's, or a boxy body's room when the shoulder is dropped. */
-const teeEase = (s: { fit: TeeFit; stretch: Stretch; shoulder?: TeeShoulder; sleeve?: TeeSleeve }) =>
-  boxyOf(s) ? Math.max(TEE_EASE[s.fit][s.stretch], BOXY_EASE[s.stretch]) : TEE_EASE[s.fit][s.stretch];
+const teeEase = (s: { fit: TeeFit; stretch: Stretch; shoulder?: TeeShoulder; sleeve?: TeeSleeve; boxyExtra?: number }) =>
+  boxyOf(s) ? Math.max(TEE_EASE[s.fit][s.stretch], BOXY_EASE[s.stretch]) + (s.boxyExtra ?? 0) : TEE_EASE[s.fit][s.stretch];
 /** Whether the shoulder is dropped: a tank has no sleeve to drop it to. */
 const boxyOf = (s: { shoulder?: TeeShoulder; sleeve?: TeeSleeve }) => s.shoulder === 'dropped' && s.sleeve !== 'none';
 

@@ -21,8 +21,11 @@ export const HOODIE_LENGTHS: HoodieLength[] = ['cropped', 'hip', 'long'];
 export const HOODIE_FRONTS: HoodieFront[] = ['pullover', 'zip', 'half_zip'];
 export const HOODIE_POCKETS: HoodiePocket[] = ['kangaroo', 'split', 'none'];
 
+/** The T-shirt's fits, and boxy: the oversized hoodie, wide and straight with dropped shoulders (Cat, 2026-11-07). */
+export type HoodieFit = TeeFit | 'boxy';
+
 export interface HoodieStyle {
-  fit: TeeFit;
+  fit: HoodieFit;
   stretch: Stretch;
   length: HoodieLength;
   front: HoodieFront;
@@ -32,6 +35,11 @@ export interface HoodieStyle {
   hemBand: boolean;
   flatFront?: boolean;
 }
+
+/** A boxy hoodie's room over the T-shirt's boxy body, as a share of the bust (about 34% in all on a sweatshirt knit). */
+const BOXY_EXTRA = 0.18;
+/** A boxy hoodie's hem band, as a share of the hem: nearly its full width. */
+const BOXY_HEM_RATIO = 0.95;
 
 const DEFAULT_HOODIE: HoodieStyle = { fit: 'relaxed', stretch: 'low', length: 'hip', front: 'pullover', pocket: 'kangaroo', hood: 'standard', hemBand: true };
 
@@ -71,16 +79,22 @@ export function draftHoodie(m: TeeMeasurements, style: Partial<HoodieStyle> = {}
   const rib = HOODIE_RIB[s.length];
   const band = s.hemBand ? rib.hem : 0;
   const total = hoodieBelowWaist(m, s.length);
-  const full = draftTee(m, { fit: s.fit, stretch: s.stretch, neckline: 'crew', sleeve: 'long', flatFront: s.flatFront }).sleeve;
+  const boxy = s.fit === 'boxy';
+  const fit: TeeFit = s.fit === 'boxy' ? 'relaxed' : s.fit;
+  // Boxy: the T-shirt's dropped-shoulder boxy body, with an oversized hoodie's extra room on top.
+  const boxyBody = boxy ? { shoulder: 'dropped' as const, boxyExtra: BOXY_EXTRA } : {};
+  const full = draftTee(m, { fit, ...boxyBody, stretch: s.stretch, neckline: 'crew', sleeve: 'long', flatFront: s.flatFront }).sleeve;
   const sleeveCm = Math.max(full.length.min, full.length.cm - rib.cuff);
   const tee = draftTee(m, {
-    fit: s.fit,
+    fit,
+    ...boxyBody,
     stretch: s.stretch,
     neckline: 'crew',
     sleeve: 'long',
     length: 'tunic',
     flatFront: s.flatFront,
-    // A band pulls the hem in, so the body stays straight to it; a long relaxed hoodie hangs a little wider.
+    // A band pulls the hem in, so the body stays straight to it; a long relaxed hoodie hangs a little wider. A boxy one
+    // drops straight from the underarm.
     carry: { belowWaist: Math.max(1, total - band), hemFlare: s.fit === 'relaxed' ? 1 : 0 },
     sleeveCm,
   });
@@ -124,7 +138,8 @@ export function draftHoodie(m: TeeMeasurements, style: Partial<HoodieStyle> = {}
   if (s.pocket === 'kangaroo') pieces.push(kangaroo(front, hemY));
   else if (s.pocket === 'split') pieces.push(splitPocket(front, hemY));
   const hemCm = tee.finishedHem;
-  const rb = ribBands({ hem: band, cuff: rib.cuff }, hemCm, tee.sleeve.hemCm, m.full_bust * 1.02);
+  // A boxy hoodie's band barely pulls in, so the body stays square to the hem instead of blousing over it.
+  const rb = ribBands({ hem: band, cuff: rib.cuff }, hemCm, tee.sleeve.hemCm, m.full_bust * 1.02, boxy ? BOXY_HEM_RATIO : undefined);
   // A zip-up's band is cut in two, one each side of the zip; the length is the same.
   pieces.push(...rb.pieces.map((pc) => (s.front === 'zip' && pc.name === 'Hem band' ? { ...pc, cut: 'Cut 2 from rib', fold: undefined, allowances: { fold: ZIP_SEAM } } : pc)));
   return {

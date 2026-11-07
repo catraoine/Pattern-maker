@@ -203,7 +203,9 @@ const BAND_ON_FORM = 3;
  *  A puff sleeve's crown balloons over the shoulder; a sleeve gathered into a band or cuff stays full and
  *  then draws in sharply above it; a flutter or bell flares. `head` is the garment's own shoulder point,
  *  which the sleeve's crown reaches up to. The right sleeve; the left mirrors it. */
-function sleeveShape(arm: FormArm, sleeve: WornSleeve, head: P = arm.tip, cloth?: P[][], body?: FormBody): P[] {
+/** `over`: the sleeve hangs in front of a body wider than the arms (a boxy, dropped-shoulder hoodie), so it neither
+ *  meets the body's side seam nor tucks under it: its seam runs up the arm's inner edge to the crown. */
+function sleeveShape(arm: FormArm, sleeve: WornSleeve, head: P = arm.tip, cloth?: P[][], body?: FormBody, over = false): P[] {
   const { end, puff, bandTop, extra, bandShare, crownGathers } = sleeveRun(arm, sleeve);
   const ys = (a: number, b: number) => Array.from({ length: 33 }, (_, i) => a + ((b - a) * i) / 32);
   // The crown sits at the garment's shoulder point. Worn, the sleeve falls close to the arm: its ease hangs
@@ -233,7 +235,7 @@ function sleeveShape(arm: FormArm, sleeve: WornSleeve, head: P = arm.tip, cloth?
     return { x: on + Math.max(0, crown.x - on) * Math.cos((c * Math.PI) / 2), y };
   });
   // Just under the arm the sleeve's underarm seam meets the body's side seam: no form shows between them there.
-  const side = cloth ? clothEdge(cloth) : undefined;
+  const side = cloth && !over ? clothEdge(cloth) : undefined;
   const inner = ys(arm.under.y, end)
     .map((y) => {
       const base = armAt(arm, y).inner - 0.3;
@@ -247,7 +249,17 @@ function sleeveShape(arm: FormArm, sleeve: WornSleeve, head: P = arm.tip, cloth?
     })
     .reverse();
   // Back inside the armhole, under the body's cloth.
-  const back = cloth && body ? tuckedUnder(arm, crown, cloth, body) : [{ x: arm.under.x - 4, y: arm.under.y }, { x: crown.x - 4, y: crown.y + 1.2 }];
+  const back = over
+    ? Array.from({ length: 12 }, (_, i) => {
+        // Up the inside of the arm, curving out to the crown at the top: the dropped armhole seam.
+        const u = (i + 1) / 12;
+        const y = arm.under.y + (crown.y - arm.under.y) * u;
+        const x = armAt(arm, Math.max(y, arm.tip.y)).inner;
+        return { x: x + (crown.x - x) * u * u, y };
+      })
+    : cloth && body
+      ? tuckedUnder(arm, crown, cloth, body)
+      : [{ x: arm.under.x - 4, y: arm.under.y }, { x: crown.x - 4, y: crown.y + 1.2 }];
   // The hem falls a little at its middle, seen a touch from above, like every hem on the form: not a flat cut.
   const o = outer[outer.length - 1];
   const n = inner[0];
@@ -669,6 +681,9 @@ interface Props {
   /** Where the sleeves end, down the arms (needs `arms`): sleeves are drawn hanging on them, in the cloth. */
   /** The drafted sleeve, to hang on the arms; none for a sleeveless garment. */
   sleeve?: WornSleeve;
+  /** A body wider than the arms (a boxy, dropped-shoulder hoodie): the sleeves hang in front of it, as worn, instead
+   *  of tucking under it. Left out, the sleeves go under the body as always. */
+  sleevesOver?: boolean;
   /** Where the underarm is: below it a fitted piece's sides follow the form. Shoulders and armholes stay as drafted. */
   underarmY?: number;
   /** The length, set with a dot on the hem and named marks beside the body. */
@@ -743,7 +758,7 @@ export const SHADE_STOPS: [number, string, number][] = [
 export const CLOTH_EDGES: FormLine[] = ['neckline', 'fit', 'hem', 'sleeve'];
 
 /** The garment drawn on the dress form, front on. */
-export function FormSketch({ body, m, legs, bottom, arms, lines, outline = [], cloth, sleeve, underarmY, hem, flatLines, label, sewn }: Props) {
+export function FormSketch({ body, m, legs, bottom, arms, lines, outline = [], cloth, sleeve, sleevesOver, underarmY, hem, flatLines, label, sewn }: Props) {
   const svg = useRef<SVGSVGElement>(null);
   const worn = useMemo(() => (cloth ? wornCloth(cloth, body, underarmY ?? arms?.under.y, sewn) : undefined), [cloth, body, underarmY, arms, sewn]);
   const onCloth = useMemo(() => {
@@ -782,7 +797,7 @@ export function FormSketch({ body, m, legs, bottom, arms, lines, outline = [], c
   return (
     // With a hem dot it is a group, not an image: an image hides the dot inside it from screen readers.
     <svg ref={svg} viewBox={`${f(-side)} ${f(view.top)} ${f(2 * cx + 2 * side)} ${f(view.bottom - view.top)}`} role={hem ? 'group' : 'img'} aria-label={label} className="preview-svg sketch shape form-still">
-      <FormLayers body={body} m={m} legs={legs} cx={cx} top={big ? frame.top : top} bottom={big ? frame.bottom : cropped} arms={arms} lines={onCloth} outline={outline} worn={worn} folds={folds} sleeve={sleeve} />
+      <FormLayers body={body} m={m} legs={legs} cx={cx} top={big ? frame.top : top} bottom={big ? frame.bottom : cropped} arms={arms} lines={onCloth} outline={outline} worn={worn} folds={folds} sleeve={sleeve} sleevesOver={sleevesOver} />
       {hem && <HemMarks {...hem} svg={svg} cx={cx} k={k} hemAt={hemAt} bare={!ladder} />}
     </svg>
   );
@@ -808,7 +823,7 @@ interface LayerProps extends Omit<Props, 'cloth' | 'underarmY' | 'label' | 'outl
  * the arms, the form's contours, the cloth with its sleeves, and the garment's lines over it. The still Form
  * view and the skirt's and top's draggable sketches all draw the garment this way, so it looks the same everywhere.
  */
-export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outline = [], worn, folds = [], sleeve }: LayerProps) {
+export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outline = [], worn, folds = [], sleeve, sleevesOver }: LayerProps) {
   const head = useMemo(() => formHead(body, cx), [body, cx]);
   const armLines = useMemo(() => formArmLines(arms, cx), [arms, cx]);
   const at = (pts: P[]) => formPath(pts.map((q) => ({ x: cx + SQUEEZE * q.x, y: q.y })));
@@ -816,9 +831,9 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
   const cloth = !!worn;
   // The cloth: sleeves first, then the body over their heads, then collars and lapels over that. Each piece is
   // its own path: pieces overlap (a lapel on its front, a sleeve on the body) and one path would punch holes there.
-  const sleeves = useMemo(() => (arms && sleeve && worn ? [sleeveShape(arms, sleeve, shoulderPoint(worn, arms), worn, body)].flatMap((s) => [s, s.map((q) => ({ x: -q.x, y: q.y }))]) : []), [arms, sleeve, worn, body]);
+  const sleeves = useMemo(() => (arms && sleeve && worn ? [sleeveShape(arms, sleeve, shoulderPoint(worn, arms), worn, body, sleevesOver)].flatMap((s) => [s, s.map((q) => ({ x: -q.x, y: q.y }))]) : []), [arms, sleeve, worn, body, sleevesOver]);
   const marks = useMemo(() => (arms && sleeve && worn ? sleeveMarks(arms, sleeve, shoulderPoint(worn, arms)).flatMap((s) => [s, s.map((q) => ({ x: -q.x, y: q.y }))]) : []), [arms, sleeve, worn]);
-  const onForm = worn ? [...sleeves, ...worn] : [];
+  const onForm = worn ? (sleevesOver ? [...worn, ...sleeves] : [...sleeves, ...worn]) : [];
   const pieces = onForm.map((s) => `${at(s)} Z`);
   const look = useFabricLook();
   // Plain cloth is drawn crisp (Cat's C1 Clean Edge): lighter shade, no fold bands, sharp edges and seams.
