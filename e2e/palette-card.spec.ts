@@ -2,6 +2,8 @@ import { expect, goTab, startWithExample, switchGarment, test } from './fixtures
 
 // The picked fabric stands beside the form as one tall palette card (Cat's D1, 2026-11-02), and follows each swatch.
 test('the palette card shows the picked fabric, and a shop fabric with its shop and price', async ({ page }) => {
+  // The shop lists are hidden until a shop's feed is loaded (Nov 7); this browser has them on.
+  await page.addInitScript(() => localStorage.setItem('shops', 'on'));
   await startWithExample(page);
   await switchGarment(page, 'Dress');
   const main = page.getByRole('main');

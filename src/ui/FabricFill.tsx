@@ -8,7 +8,7 @@ import { PRINTS, printImage, printOf, printTileCm } from '../engine/prints';
 import { FabricDetails } from './FabricDetails';
 import { SPECIALS, Special } from '../engine/specialFabrics';
 import { KNITS, KNIT_IDS, isKnit } from '../engine/knitFabrics';
-import { CLOSENESS, ShopFabric, buyAmount, buyLink, closestShopColours, colourHex, coloursFor, hexToHsl, hslToHex, isHex, shopFabric, shopFabricsFor, shopPrice, withShopFabric } from '../engine/shopFabrics';
+import { CLOSENESS, ShopFabric, buyAmount, buyLink, closestShopColours, colourHex, coloursFor, hexToHsl, hslToHex, isHex, shopFabric, shopFabricsFor, shopListsOn, shopPrice, withShopFabric } from '../engine/shopFabrics';
 import { FabricMetres } from './FabricCard';
 import { ExactColour } from './ExactColour';
 import { TestingTag } from './TestingTag';
@@ -259,7 +259,7 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
   const fabric = finish.fabric;
   const chosen = flatId(fabric);
   const label = fabricLabel(fabric);
-  const shopItems = shopFabricsFor(garment);
+  const shopItems = shopListsOn() ? shopFabricsFor(garment) : [];
   const metres = useContext(FabricMetres);
   // The T-shirt is drafted for stretch, so it offers knits; every other garment offers woven fibres and special cloths.
   const knits = garment === 'tee';
@@ -550,7 +550,7 @@ function ColourBars({ finish, onFinish, garment, onShop }: { finish: Finish; onF
   // A grey has no colour to turn, so turning the colour bar gives it some.
   const sat = Math.max(hsl.s, 35);
   const [typed, setTyped] = useState<string | undefined>();
-  const matches = hex ? closestShopColours(hex, garment) : [];
+  const matches = hex && shopListsOn() ? closestShopColours(hex, garment) : [];
   const set = (h: number, s: number, l: number) => {
     setTyped(undefined);
     onFinish(pickHex(finish, hslToHex(h, s, l)));
