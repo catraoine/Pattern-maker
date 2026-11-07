@@ -13,6 +13,7 @@ import { catalogueVersion, loadCatalogue, matchesSearch, rememberPicked, subscri
 import { FabricMetres } from './FabricCard';
 import { ExactColour } from './ExactColour';
 import { TestingTag } from './TestingTag';
+import { DemoButton } from './DemoButton';
 import { FabricLook, FabricLookContext } from './ClothLook';
 import { fabricPhotoUrl, saveFabricPhoto, useFabricPhoto } from '../fabricPhoto';
 
@@ -368,9 +369,15 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
       </div>
       {allToBuy.length > 0 && typeLabel && (
         <div className="shopwrap">
-          <p className="shopwrap-q">
-            {typeLabel} you can buy <span className="muted">· {allToBuy.length.toLocaleString('en-US')}</span>
-          </p>
+          <div className="row between shopwrap-head">
+            <p className="shopwrap-q">
+              {typeLabel} you can buy <span className="muted">· {allToBuy.length.toLocaleString('en-US')}</span>
+            </p>
+            {/* Shop the fabric's own Watch demo (Cat, 2026-11-07). */}
+            <div className="demo-inline">
+              <DemoButton demo="shop" />
+            </div>
+          </div>
           {allToBuy.length > SHOP_PAGE && (
             <input
               type="search"

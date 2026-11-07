@@ -737,6 +737,42 @@ Object.assign(DEMOS, {
     await cap('', '');
     await card('Maison Tracé', 'Cut it your way.', 2200, true);
   },
+  // Shop the fabric (Cat, 2026-11-07: a demo for the partner shops' catalogues): a fabric type tapped, the shops'
+  // own swatches, a search, a pick on the drawing with how much to buy, and Buy.
+  shop: async (h) => {
+    const { wait, card, cap, focus, veil, uncard, R, press, label, f } = h;
+    const LIST = { w: 392, h: 500, top: 210 };
+    await card('Maison Tracé', 'Shop the fabric', 1200, true);
+    await press(R('tab', 'Fabric'), 700);
+    await press(R('radio', 'Silk'), 2600);
+    await f.locator('.shopfab-tile.photo').first().waitFor({ state: 'attached', timeout: 20000 });
+    await wait(1500);
+    await focus('.shopwrap', LIST);
+    await uncard();
+    await cap('Shops', 'Pick a kind of fabric. Thousands from our partner shops show, with their own swatches.');
+    await label('Silk');
+    await wait(2400);
+    await cap('Search', 'Looking for something? Search. Here, emerald.');
+    await wait(1200);
+    const search = f.locator('input.shopsearch');
+    await search.pressSequentially('emerald', { delay: 140 });
+    await wait(1600);
+    await focus('.shopwrap', LIST);
+    await wait(1800);
+    await cap('Pick', 'Pick one. The drawing shows it, and how much to buy for your size.');
+    await wait(900);
+    const pick = f.locator('.shopfabs [role=radio]').first();
+    await label((await pick.getAttribute('aria-label')) ?? '');
+    await veil(async () => {
+      await press(pick, 1200);
+      await focus(['svg.preview-svg', '.buystrip'], { ...SKETCH, w: 392, h: 470, top: 200 });
+    });
+    await wait(2400);
+    await cap('Buy', 'Buy opens that fabric at the shop.');
+    await wait(2400);
+    await cap('', '');
+    await card('Maison Tracé', 'Find the cloth. Buy just what you need.', 2200, true);
+  },
 
 });
 

@@ -9,6 +9,7 @@
 // (engine/pieceEdit.ts). A spread or fullness opens by dragging the handle at its far end, or with the slider.
 import { PointerEvent, ReactNode, createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { TestingTag } from './TestingTag';
+import { DemoButton } from './DemoButton';
 import { P, add, len, mul, sub } from '../engine/geometry';
 import type { Piece } from '../engine/piece';
 import { CutEdit, CutKind, PatternEdit, START_BY, applyPatternEdits, cutEnds, isCut, openHandle, pointsOn } from '../engine/pieceEdit';
@@ -78,6 +79,12 @@ export function PatternPane({ children, onPlay }: { children: ReactNode; onPlay?
         </button>
       </div>
       {on ? <PointEditor {...ctx} /> : children}
+      {/* Its own Watch demo while the tools are open (Cat, 2026-11-07). */}
+      {on && (
+        <div className="demo-inline">
+          <DemoButton demo="patterns" />
+        </div>
+      )}
       {watch}
     </div>
   );

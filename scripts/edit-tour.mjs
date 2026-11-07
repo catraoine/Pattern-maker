@@ -173,8 +173,8 @@ function tapeAcross(t) {
   return out;
 }
 const MARKS = WIDE
-  ? { fabric: 1.4, enlarge: 6.8, draw: 8.8, hem: 10.3, side: 15.6, done: 19.9 }
-  : { fabric: 1.4, enlarge: 7.2, draw: 7.2, hem: 8.7, side: 14.3, done: 18.6 };
+  ? { fabric: 1.4, enlarge: 6.7, draw: 8.6, hem: 11.1, side: 16.2, done: 20.1 }
+  : { fabric: 1.4, enlarge: 6.9, draw: 6.9, hem: 9.3, side: 14.4, done: 18.3 };
 // Played at 1.4 times its speed, however long the take (Cat, 2026-11-01: less time on the dress page, no enlarge).
 // Ends as Done is tapped, on the drawing: Shop the fabric follows, not the pattern sheet (Cat, 2026-11-02).
 const JOURNEY = { from: 0.6, to: MARKS.done - 0.2, dur: Math.round(((MARKS.done + 0.3) / 1.4) * 10) / 10 };
@@ -182,13 +182,20 @@ const atOut = (t) => ((t - JOURNEY.from) * JOURNEY.dur) / (JOURNEY.to - JOURNEY.
 // [shot time, zoom, x, y]: on a computer, the whole page, then in on the enlarged form to draw, and back as the
 // pattern comes up. A phone shows the whole screen throughout. Both end framed as the pattern shot opens, so the
 // sheet doesn't jump as one dissolves into the other (Cat, 2026-10-25).
+// With the drawing shown as just the form (Cat, 2026-11-07), the computer's film stays on the whole frame too.
 const STYLE_CAM = (WIDE
-  ? [[0.6, 1, 0.5, 0.5], [MARKS.draw, 1, 0.5, 0.5], [MARKS.hem - 0.2, 1.25, 0.5, 0.44], [JOURNEY.to, 1.25, 0.5, 0.44]]
+  ? [[0.6, 1, 0.5, 0.5], [JOURNEY.to, 1, 0.5, 0.5]]
   : [[0.6, 1, 0.5, 0.5], [JOURNEY.to, 1.05, 0.5, 0.47]]).map(([t, ...r]) => [atOut(t), ...r]);
 // No step words over the Style journey: what each move does is left to show itself (Cat, 2026-10-24: "take out
 // these headings, just leave it implied"), nor over the pattern: after the photo's own line, the next words are
 // "Drafted to your body".
+// Except over just the form as it is drawn on (Cat's W3, 2026-11-07): "Draw on your form." from the draw, and "The
+// pattern follows." fading in under it as the hem is drawn. Each [lines, from, to] in shot time.
 const STYLE_NOTES = [];
+const DRAW_NOTES = [[['Draw on your form.'], MARKS.draw + 0.9, MARKS.done - 0.2], [['Draw on your form.', 'The pattern follows.'], MARKS.hem + 2.5, MARKS.done - 0.2]];
+const note2 = (lines) => words(WIDE
+  ? `<div class="f" style="padding:44px 0 0 96px"><h1 class="n" style="font-size:34px">${lines.join('<br>')}</h1></div>`
+  : `<div class="f" style="padding:38px 0 0 22px"><h1 class="n" style="font-size:29px">${lines.join('<br>')}</h1></div>`);
 // D1 One Palette Card (Cat, 2026-11-02): as the dress takes the new cloth, one tall swatch card of it, the app's cream
 // label strip under it, glides in beside the form and holds still, gone before the drawing tool opens. Its swatch is
 // cut from the dress itself once the cloth is on, so it is the very cloth on the form. CARD_AT: shot time the cloth
@@ -209,6 +216,7 @@ const styleJourney = async () => {
   // One at a time: the words are all drawn on the one page.
   const notes = [];
   for (const [line, on, off, where] of STYLE_NOTES) notes.push([await note(line, where), atOut(on), atOut(off)]);
+  if (process.env.TOUR_DRAW_FOCUS !== '0') for (const [lines, on, off] of DRAW_NOTES) notes.push([await note2(lines), atOut(on), atOut(off)]);
   // The app now draws its own palette card beside the form (Release 53), so the film's card is off unless CARD=1.
   const cards = process.env.CARD !== '1' ? [] : [[await clothCard(), atOut(CARD.at), atOut(CARD_OFF)]];
   return piece({ shot: 'style', from: JOURNEY.from, dur: JOURNEY.dur, speed: (JOURNEY.to - JOURNEY.from) / JOURNEY.dur, cam: STYLE_CAM, fadeIn: 0.5, notes, cards, ...(LIFT && { lift: [LIFT, JOURNEY.dur - 2.4, 1.6] }) });

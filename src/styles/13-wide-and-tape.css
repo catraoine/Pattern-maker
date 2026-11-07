@@ -500,6 +500,14 @@ body:has(.tape-band.carried) {
   white-space: nowrap;
   cursor: pointer;
 }
+/* A Watch demo in a row of its own, or beside a heading, where there is no box corner to sit in. */
+.demo-inline {
+  display: flex;
+  justify-content: flex-end;
+}
+.demo-inline .demo-play {
+  position: static;
+}
 .demo-play-words {
   background: linear-gradient(100deg, #8a6d3b 0 38%, var(--ink) 50%, #8a6d3b 62% 100%) 0 0 / 300% 100% no-repeat;
   -webkit-background-clip: text;

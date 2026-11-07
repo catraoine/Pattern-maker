@@ -106,6 +106,18 @@ const DEMOS = {
     ],
     length: '0:34',
   },
+  patterns: {
+    title: 'How drawing a line on your pattern works',
+    base: '/demos/patterns',
+    parts: [],
+    length: '0:00',
+  },
+  shop: {
+    title: 'How shopping the fabric works',
+    base: '/demos/shop',
+    parts: [],
+    length: '0:00',
+  },
 } satisfies Record<string, Demo>;
 
 type DemoName = keyof typeof DEMOS;

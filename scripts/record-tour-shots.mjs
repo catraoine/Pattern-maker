@@ -601,6 +601,14 @@ const drawOn = main.getByRole('button', { name: 'Draw on your form' }).first();
 const db = await drawOn.boundingBox();
 await pen(db.x + db.width / 2, db.y + db.height / 2, 1);
 await wait(380);
+// Into just the form through a short dip to black, so the cut from the whole screen to the form isn't a jump.
+const dip = (o) => p.evaluate((o) => {
+  let d = document.getElementById('dip');
+  if (!d) { d = document.createElement('div'); d.id = 'dip'; Object.assign(d.style, { position: 'fixed', inset: 0, background: '#000000', zIndex: 99997, pointerEvents: 'none', opacity: 0, transition: 'opacity .35s', visibility: 'visible' }); document.body.appendChild(d); }
+  d.style.setProperty('visibility', 'visible', 'important');
+  d.style.opacity = o;
+}, o);
+if (process.env.TOUR_DRAW_FOCUS !== '0') { await dip(1); await wait(450); }
 cut(true);
 await drawOn.evaluate((el) => el.click());
 await p.evaluate(() => { const d = document.getElementById('pen'); d.style.opacity = 0; d.style.visibility = 'hidden'; });
@@ -618,7 +626,7 @@ if (DRAW_FOCUS) {
   await form.evaluate((svg) => {
     const st = document.createElement('style');
     st.id = 'draw-focus';
-    st.textContent = 'body{background:#000000!important} body *{visibility:hidden!important} #pen,svg.form-svg,svg.form-svg *,defs,defs *,pattern,pattern *,mask,mask *,clipPath,clipPath *{visibility:visible!important} svg.form-svg .hem-ghost text,svg.form-svg text.hint{visibility:hidden!important}';
+    st.textContent = 'body{background:#000000!important} body *{visibility:hidden!important} #pen,#dip,svg.form-svg,svg.form-svg *,defs,defs *,pattern,pattern *,mask,mask *,clipPath,clipPath *{visibility:visible!important} svg.form-svg .hem-ghost text,svg.form-svg text.hint{visibility:hidden!important}';
     document.head.appendChild(st);
     const h = innerHeight * (innerHeight > innerWidth ? 0.8 : 0.86);
     const b = svg.getBoundingClientRect();
@@ -630,6 +638,7 @@ if (DRAW_FOCUS) {
 const pickKind = (name, ms) => (DRAW_FOCUS ? p.locator('main .form-kinds button', { hasText: new RegExp(`^${name}$`) }).first().dispatchEvent('click').then(() => wait(ms)) : tap(kinds.getByRole('button', { name, exact: true }), ms));
 await p.evaluate(() => { document.getElementById('pen').style.visibility = ''; });
 cut(false);
+if (DRAW_FOCUS) { await dip(0); await wait(450); }
 await wait(1100);
 const before = await viewBox(form);
 if (process.env.TOUR_PROBE2) {
