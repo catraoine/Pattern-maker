@@ -1,0 +1,131 @@
+/* One steady drawing box on Style (Cat, Nov 7: "the switch between view options should feel smooth and not jarring,
+   with elements staying at a consistent height"). Front, Flat, All round and Pattern each used to size the box to
+   their own drawing, so Flat (wide and short) pulled the view line and the step up the page, and Pattern pushed them
+   down. Now the box is the Front drawing's height in every view and each view fits inside it; the view line and the
+   step under it never move when you switch. The tools in the corner (Enlarge, Draw) get their own room, so their words
+   never sit on a drawing or on the pattern's how-to line. */
+
+/* A phone: the box is the Front drawing's height (44% of the screen, 32% once the page scrolls into the choices). */
+@media (max-width: 760px) {
+  .style-layout .style-pin > section:not(.live-big) > .preview {
+    --view-h: 44dvh;
+    flex: none;
+    height: calc(var(--view-h) + 6px);
+    box-sizing: border-box;
+    align-items: center;
+    transition: height 0.25s ease;
+  }
+  .style-layout.compact .style-pin > section:not(.live-big) > .preview {
+    --view-h: 32dvh;
+  }
+  /* Flat: the two drawings sit under the corner's tools, not behind them, and shrink to fit what's left. */
+  .style-layout .style-pin > section:not(.live-big) > .preview:has(> .techflat) {
+    padding-top: 76px;
+  }
+  .style-layout .style-pin > section:not(.live-big) > .preview > .techflat {
+    max-height: 100%;
+  }
+}
+@media (max-width: 760px) and (max-height: 700px) {
+  .style-layout .style-pin > section:not(.live-big) > .preview {
+    --view-h: 36dvh;
+  }
+  .style-layout.compact .style-pin > section:not(.live-big) > .preview {
+    --view-h: 26dvh;
+  }
+}
+
+/* A computer or tablet: the box is as tall as the column allows (as the Front drawing already was), in every view. */
+@media (min-width: 761px) {
+  .style-layout .style-pin > section:not(.live-big) > .preview {
+    flex: none;
+    height: max(420px, calc(100vh - var(--pin-top, 0px) - 194px));
+    box-sizing: border-box;
+    align-items: center;
+  }
+  .style-layout .style-pin > section:not(.live-big) > .preview > :is(.preview-svg, .techflat) {
+    max-height: 100%;
+  }
+  .style-layout .style-pin > section:not(.live-big) > .preview:has(> .techflat) {
+    padding-top: 56px;
+  }
+}
+
+/* All round fills the box: the turning view takes what the checked line and its note under it leave. */
+.style-layout .style-pin > section:not(.live-big) > .preview > .all-round {
+  height: 100%;
+  min-height: 0;
+}
+.style-layout .style-pin > section:not(.live-big) > .preview > .all-round > .all-round-canvas {
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: none;
+  width: auto;
+  max-width: 100%;
+  align-self: center;
+}
+.style-layout .style-pin > section:not(.live-big) > .preview > .all-round > .all-round-quiet {
+  flex: none;
+}
+/* Its Front drawing standing in, when the turning view of a design is still in testing: fitted to the same box. */
+.style-layout .style-pin > section:not(.live-big) > .preview > .all-round-stand-in > svg {
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: 100%;
+}
+
+/* Pattern fills the box: its how-to line and Move points on top, the paper under them taking the rest. */
+.style-layout .style-pin > section:not(.live-big) > .preview > .pattern-pane,
+.style-layout .style-pin > section:not(.live-big) > .preview > :is(.paper-sheet, .easerows) {
+  height: 100%;
+  min-height: 0;
+}
+.style-layout .style-pin > section:not(.live-big) > .preview > .pattern-pane > :is(.paper-sheet, .pe-wrap, .easerows) {
+  flex: 1 1 0;
+  min-height: 0;
+}
+.style-layout .style-pin > section:not(.live-big) > .preview .paper-sheet {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.style-layout .style-pin > section:not(.live-big) > .preview .paper-sheet > .preview-svg {
+  width: auto;
+  max-width: 100%;
+  height: 100%;
+  max-height: 100%;
+}
+/* The how-to line starts after Draw in the corner, so the two never print over each other. */
+.style-layout .style-pin > section:not(.live-big) > .preview > .pattern-pane > .point-switch {
+  padding-left: 64px;
+  min-height: 32px;
+}
+
+/* Print: Watch demo stands just under the pages, not on their grid lines (found by the screen check's new overlap look,
+   Nov 7). */
+.print-sheet > .preview.tiles:has(> .demo-play) {
+  margin-bottom: 30px;
+}
+.print-sheet > .preview.tiles > .demo-play {
+  top: 100%;
+  bottom: auto;
+  right: 0;
+  padding: 8px 4px;
+}
+
+/* A phone held sideways keeps its own big look at the garment (23-phone-sideways.css), in every view alike. */
+@media (max-height: 500px) and (orientation: landscape) and (pointer: coarse) {
+  .style-layout .style-pin > section:not(.live-big) > .preview {
+    height: calc(100svh - 112px);
+  }
+}
+
+/* A small phone (an iPhone SE or mini, 375px across): the three view words fit whole beside Pattern ("All round" was
+   cut to "All roun"). */
+@media (max-width: 400px) {
+  .style-layout .style-pin > section:not(.live-big) .seg button {
+    padding: 0 8px;
+  }
+}

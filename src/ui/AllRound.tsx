@@ -21,6 +21,7 @@ import { makeSpace } from '../engine/drape/space';
 import { placeOnForm } from './allRoundShape';
 import { cachedDrape, drapeKey, requestDrape, sewnAnyway } from './drapeClient';
 import { GILD, GLOW, GROUND, MUTED, SHADOW } from './palette';
+import { inTestingNote } from './allRoundWhy';
 
 // Matching --gild, --gild-glow, --guide, --muted and --ok in styles.css.
 const OK = '#a9c49b';
@@ -1344,7 +1345,7 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
             <span className="all-round-mark" aria-hidden="true" />
             {checked(rows)}
           </p>
-          <p className="all-round-note">{standIn ? 'The turning view of this design is still in testing, so this is its drawing.' : inTesting ? 'The cloth view of this design is still in testing, so this is its shape preview.' : 'A shape preview, not a cloth simulation.'}</p>
+          <p className="all-round-note">{inTesting ? inTestingNote(sewnNow && sewnNow !== 'pending' ? sewnNow.d.quality?.problems : undefined, standIn, gaveUp) : 'A shape preview, not a cloth simulation.'}</p>
         </div>
       )}
     </div>

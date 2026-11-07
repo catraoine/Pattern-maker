@@ -34,8 +34,10 @@ export async function auditScreen(page: Page): Promise<string[]> {
       if (el.closest('[aria-hidden="true"], [hidden], svg, details:not([open]) > :not(summary)')) return false;
       // Kept for screen readers only: a box a pixel across, or clipped away to nothing, round it.
       for (let a: Element | null = el; a && a !== document.body; a = a.parentElement) {
-        const ar = a.getBoundingClientRect();
         const acs = getComputedStyle(a);
+        // A box drawn as its children only (display: contents, as the drawing's row on a phone) has no size of its own.
+        if (acs.display === 'contents') continue;
+        const ar = a.getBoundingClientRect();
         if (ar.width <= 2 || ar.height <= 2 || (acs.clipPath !== 'none' && /inset\(50%/.test(acs.clipPath)) || acs.clip.startsWith('rect(0')) return false;
       }
       return true;
@@ -70,6 +72,101 @@ export async function auditScreen(page: Page): Promise<string[]> {
         }
       }
       if (!scrolls && (r.right > vw + 1 || r.left < -1) && getComputedStyle(el).position !== 'fixed') out.add(`off the screen: ${name(el, text)} stands past the screen's edge`);
+    }
+
+    // Words printed over other words, or over a drawing (Cat, Nov 7: Enlarge and Draw sat on the Flat drawing, Draw on
+    // the pattern's how-to line). Measured by the words' own lines, not their boxes, and against a drawing's lines and
+    // fills themselves, not the empty box round it.
+    const lines: { el: Element; text: string; rects: DOMRect[] }[] = [];
+    for (const el of document.querySelectorAll('body *')) {
+      if (el.closest('svg')) continue;
+      const nodes = [...el.childNodes].filter((n) => n.nodeType === Node.TEXT_NODE && (n.textContent ?? '').trim());
+      if (!nodes.length) continue;
+      const text = ownText(el);
+      const box = el.getBoundingClientRect();
+      if (!visible(el, box)) continue;
+      const rects: DOMRect[] = [];
+      for (const n of nodes) {
+        const range = document.createRange();
+        range.selectNodeContents(n);
+        rects.push(...[...range.getClientRects()].filter((q) => q.width > 2 && q.height > 2));
+      }
+      if (rects.length) lines.push({ el, text, rects });
+    }
+    // Shrunk a little, so letters that only touch (a tight line height, an underline) don't count.
+    const meet = (a: DOMRect, b: DOMRect) => Math.min(a.right, b.right) - Math.max(a.left, b.left) > 3 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 3;
+    // Only what is on the screen as it stands: the page's own scroll puts words under the pinned header, the pinned
+    // drawing and the bar at the foot, and a sheet (the list of steps) opens over the page on purpose. Those hide the
+    // words under them; they don't print over them.
+    const vh = window.innerHeight;
+    const onScreen = (q: DOMRect) => q.top >= 0 && q.bottom <= vh;
+    const layer = (el: Element) => {
+      for (let a: Element | null = el; a && a !== document.body; a = a.parentElement) {
+        const cs = getComputedStyle(a);
+        if (cs.position === 'fixed' || cs.position === 'sticky' || a.matches('[role=dialog], dialog, .sheet, [role=tablist]')) return a;
+      }
+      return document.body;
+    };
+    for (let i = 0; i < lines.length; i++)
+      for (let j = i + 1; j < lines.length; j++) {
+        const a = lines[i];
+        const b = lines[j];
+        if (a.el.contains(b.el) || b.el.contains(a.el) || layer(a.el) !== layer(b.el)) continue;
+        if (a.rects.some((p) => onScreen(p) && b.rects.some((q) => meet(p, q)))) out.add(`overlap: ${name(a.el, a.text)} prints over ${name(b.el, b.text)}`);
+      }
+    // Over a drawing: the words' lines against the drawing's own painted lines and fills (a backdrop filling most of
+    // its drawing, such as pattern paper, is the ground the drawing sits on, not the drawing).
+    const shapes = [...document.querySelectorAll<SVGGeometryElement>('svg path, svg polygon, svg polyline, svg line, svg circle, svg ellipse, svg rect')].filter((s) => {
+      if (s.closest('defs, clipPath, mask, pattern, marker, symbol, [aria-hidden="true"]:not(svg)')) return false;
+      const cs = getComputedStyle(s);
+      if (cs.visibility === 'hidden' || cs.display === 'none' || Number(cs.opacity) === 0) return false;
+      if (cs.fill === 'none' && cs.stroke === 'none') return false;
+      const svg = s.ownerSVGElement;
+      if (!svg || svg.closest('[hidden]')) return false;
+      const sr = s.getBoundingClientRect();
+      const vr = svg.getBoundingClientRect();
+      if (sr.width < 1 && sr.height < 1) return false;
+      return sr.width * sr.height < 0.6 * vr.width * vr.height;
+    });
+    for (const l of lines) {
+      if (l.el.closest('.all-round-quiet, .all-round')) continue;
+      const hits = new Set<SVGSVGElement>();
+      for (const q of l.rects)
+        for (const s of shapes) {
+          const svg = s.ownerSVGElement!;
+          if (hits.has(svg) || svg.contains(l.el) || l.el.contains(svg)) continue;
+          // An icon inside the same button or link as the words is part of that button.
+          const own = l.el.closest('button, a, label, summary');
+          if (own && own.contains(svg)) continue;
+          const sr = s.getBoundingClientRect();
+          if (!onScreen(q) || !meet(sr, q)) continue;
+          // Cut away by a box round the drawing (the form's head above the drawing's box), it isn't painted there.
+          let shown = true;
+          for (let a: Element | null = svg; a && a !== document.body; a = a.parentElement) {
+            const acs = getComputedStyle(a);
+            if (acs.overflowX !== 'visible' || acs.overflowY !== 'visible') {
+              const ar = a.getBoundingClientRect();
+              if (!meet(ar, q)) shown = false;
+            }
+          }
+          if (!shown) continue;
+          // Words pinned at the top or foot, with the page's drawing scrolled under them.
+          if (layer(l.el) !== layer(svg) && !layer(l.el).contains(svg)) continue;
+          const m = s.getScreenCTM()?.inverse();
+          if (!m) continue;
+          const cs = getComputedStyle(s);
+          let painted = 0;
+          for (let x = 1; x < 6; x++)
+            for (let y = 1; y < 4; y++) {
+              const pt = new DOMPoint(q.left + (q.width * x) / 6, q.top + (q.height * y) / 4).matrixTransform(m);
+              if ((cs.fill !== 'none' && s.isPointInFill(pt)) || (cs.stroke !== 'none' && s.isPointInStroke(pt))) painted++;
+            }
+          if (painted >= 2) {
+            hits.add(svg);
+            const what = svg.getAttribute('aria-label') ?? svg.querySelector('title')?.textContent ?? svg.getAttribute('class') ?? 'a drawing';
+            out.add(`overlap: ${name(l.el, l.text)} prints over the drawing "${what.length > 40 ? `${what.slice(0, 40)}…` : what}"`);
+          }
+        }
     }
     return [...out];
   });

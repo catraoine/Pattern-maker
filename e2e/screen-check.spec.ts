@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import type { Page } from '@playwright/test';
-import { GarmentName, MEASUREMENTS, expect, goPrint, measureMe, openAccount, openFresh, startWithExample, stepTabs, switchGarment, test } from './fixtures';
+import { GarmentName, MEASUREMENTS, expect, expectStyle, goPrint, measureMe, openAccount, openFresh, startWithExample, stepTabs, switchGarment, test } from './fixtures';
 import { auditScreen } from './screenAudit';
 
 // Not part of the ordinary end-to-end run: the screen check (Quality: Automated checks, Cat 2026-11-04). Every screen
@@ -119,6 +119,39 @@ for (const g of GARMENTS)
     await l.look(`print ${name}`);
     l.save();
   });
+
+// A dress with sleeves and a full skirt reaches the edges of the Flat drawing, where the corner's tools stand (Cat's
+// dress of Nov 7: V neck, circle skirt, elbow sleeves). Each view, and the box's height in it: switching views must
+// not move the view line (Cat, Nov 7).
+test('screens: a full dress in every view', async ({ page }, info) => {
+  test.setTimeout(300_000);
+  const l = looker(page, info.project.name, 'full dress');
+  await startWithExample(page);
+  await switchGarment(page, 'Dress');
+  await page.evaluate(() => {
+    const key = 'pattern-maker:skirt';
+    const s = JSON.parse(localStorage.getItem(key) ?? '{}');
+    localStorage.setItem(key, JSON.stringify({ ...s, choices: { ...s.choices, silhouette: 'circle' }, bodice: { ...s.bodice, neckline: 'v', sleeve: 'elbow' } }));
+  });
+  await page.reload();
+  await page.keyboard.press('Escape').catch(() => {});
+  const carry = main(page).getByRole('button', { name: /^Carry on with your dress/i });
+  if (await carry.isVisible().catch(() => false)) await carry.click();
+  await expectStyle(page, 'Dress');
+  const box = () => page.locator('.style-pin .preview').first().evaluate((el) => Math.round(el.getBoundingClientRect().height));
+  const heights: number[] = [];
+  const views = main(page).getByRole('group', { name: 'Garment view' });
+  for (const v of ['Front', 'Flat', 'All round']) {
+    await views.getByRole('button', { name: v, exact: true }).click();
+    await l.look(`style full dress: ${v} view`);
+    heights.push(await box());
+  }
+  await main(page).getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Pattern/ }).click();
+  await l.look('style full dress: Pattern view');
+  heights.push(await box());
+  l.save();
+  expect(new Set(heights).size, `the drawing's box the same height in every view (${heights.join(', ')} px)`).toBe(1);
+});
 
 test('screens: account', async ({ page }, info) => {
   test.setTimeout(300_000);
