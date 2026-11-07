@@ -307,6 +307,8 @@ export interface DrapeOptions {
 interface CollarPart {
   pc: Piece;
   roll?: [P, P];
+  /** A tailored collar's roll line where it bends down toward the gorge, past the neck point (see bentRoll). */
+  roll2?: [P, P];
   /** Sewn to the top of a collar stand, not to the neck. */
   onStand?: boolean;
 }
@@ -1338,7 +1340,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
         pc,
         'collar',
         (q, turned) => {
-          const r = turned && roll ? reflect(q, roll[0], roll[1]) : q;
+          const r = turned && roll ? reflectRoll(q, roll, c.roll2) : q;
           if (popped) {
             // Round the neck as a cone: each point at the angle of the neck point below it (centre back to the
             // gorge), rising by its height above the neck edge and leaning out a little as it rises.
@@ -1419,7 +1421,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
           return ringAt(sp, key(q) * (knob("__ck") ?? 1), cc, true, 1 + funnel + (turned ? 1.2 + beyond * 0.25 + flare * (knob('__fallOut') ?? 0.7) : 0));
         },
         thick,
-        roll ? [roll] : [],
+        roll ? (c.roll2 ? [roll, c.roll2] : [roll]) : [],
         1.2,
       );
       if (popped) poppedPanels.push(p);
@@ -4277,7 +4279,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
           } else {
             // Turned: laid over whatever its mirror at the roll line would be, the stand or (cut wider than the stand)
             // the piece below the seam, a cloth's thickness out.
-            const r = reflect(q, fold[0], fold[1]);
+            const r = reflectRoll(q, fold, p.folds?.[1]);
             const at0 = onSeam(r);
             const body = at0.h < 0 ? onBody(at0.seg, -at0.h) : undefined;
             const U0 = body ?? standAt(r).X;
@@ -6171,12 +6173,22 @@ function poloRoll(pc: Piece): [P, P] | undefined {
   ];
 }
 
-/** A tailored collar's roll line run down toward the gorge, where the lapel's roll line meets the neck seam: its stand
- *  dies away to 1.5 cm there, as the lapel's does, instead of standing its full height (4 to 5 cm) at the front end,
- *  where it stood up beside the neck in a point (Cat's "lay them from the pattern", 2026-11-07). */
-function wornRollEnd(pc: Piece): P {
-  const E = (pc.meta.fromFront as { E: P }).E;
-  return { x: E.x, y: E.y - (knob('__wornStand') ?? 1.5) };
+/** A tailored collar's roll line, as worn, holds the stand's height round the back neck to just past the neck point,
+ *  then bends down toward the gorge, where the lapel's roll line meets the neck seam: there its stand dies away to
+ *  1.5 cm, as the lapel's does. (Run straight on as drafted, it stood 4 to 5 cm at the front end, up beside the neck in a
+ *  point; run straight to the gorge, the stand was only 1.5 cm at the side of the neck.) The bend is a second fold line,
+ *  from the drafted roll line past the neck point to the gorge end (Cat's "lay them from the pattern", 2026-11-07). */
+function bentRoll(pc: Piece, roll: [P, P]): [P, P] {
+  const f = pc.meta.fromFront as { E: P; hpsX: number };
+  const x = f.hpsX + (f.E.x - f.hpsX) * (knob('__bendAt') ?? 0.25);
+  const t = (x - roll[0].x) / (roll[1].x - roll[0].x || 1);
+  return [{ x, y: roll[0].y + (roll[1].y - roll[0].y) * t }, { x: f.E.x, y: f.E.y - (knob('__wornStand') ?? 1.5) }];
+}
+
+/** A turned collar point's mirror at the roll line it is turned at: past the bend toward the gorge, the bent line. */
+function reflectRoll(q: P, roll: [P, P], roll2?: [P, P]): P {
+  if (roll2 && q.x > roll2[0].x && (roll2[1].x - roll2[0].x) * (q.y - roll2[0].y) - (roll2[1].y - roll2[0].y) * (q.x - roll2[0].x) < -1e-6) return reflect(q, roll2[0], roll2[1]);
+  return reflect(q, roll[0], roll[1]);
 }
 
 export function collarsOf(pieces: Piece[], jacketRoll?: [P, P]): CollarPart[] {
@@ -6196,9 +6208,10 @@ export function collarsOf(pieces: Piece[], jacketRoll?: [P, P]): CollarPart[] {
         const xs = pc.outline.points(2).map((q) => q.x);
         return [pt(Math.min(...xs) - 1, y), pt(Math.max(...xs) + 1, y)];
       };
-      const roll: [P, P] | undefined = pc.outline.tags.includes('gorge') && cl ? [cl[0], knob('__rollEnd') !== undefined ? { x: cl[cl.length - 1].x, y: -knob('__rollEnd')! } : !knob('__noWornLay') && pc.meta.fromFront ? wornRollEnd(pc) : cl[cl.length - 1]] : onStand ? shirtCollar(pc) : pc.meta.polo ? poloRoll(pc) : ruffleFold();
+      const roll: [P, P] | undefined = pc.outline.tags.includes('gorge') && cl ? [cl[0], knob('__rollEnd') !== undefined ? { x: cl[cl.length - 1].x, y: -knob('__rollEnd')! } : cl[cl.length - 1]] : onStand ? shirtCollar(pc) : pc.meta.polo ? poloRoll(pc) : ruffleFold();
       void jacketRoll;
-      return { pc, roll, onStand };
+      const roll2 = roll && pc.meta.fromFront && !knob('__noWornLay') ? bentRoll(pc, roll) : undefined;
+      return { pc, roll, onStand, ...(roll2 ? { roll2 } : {}) };
     })
     .sort((x, y) => Number(!!x.onStand) - Number(!!y.onStand));
 }
