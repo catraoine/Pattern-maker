@@ -693,7 +693,8 @@ function openFront(pc: Piece, s: OuterStyle, ext: number, buttons: OuterDraft['b
     const at = (sAlong: number, t: number) => add(B, add(mul(u, sAlong), mul(nrm, t)));
     // A wide lapel (In testing) is 3 cm broader (half that on a double front, already broad); a plunging one a little broader to carry its longer roll.
     const high = highLapel(s);
-    const W =
+    // (A single high lapel is narrow, 5.5 cm, as the picture's is beside its long collar.)
+    const W = high && s.front === 'single' && s.collar === 'notched' ? HIGH_LAPEL.width :
       (s.front === 'double' ? (s.kind === 'coat' ? 10 : 9) : s.kind === 'coat' ? 8.5 : 7.5) +
       // (Not a high lapel's: it stays a third of the front across, as the picture's does, however big the vest.)
       (s.fit === 'oversized' && !high ? OVERSIZED_LAPEL.wider : 0) +
@@ -981,7 +982,7 @@ const plunges = (s: Pick<OuterStyle, 'lapel' | 'collar' | 'front'>) => s.lapel =
 /** A high lapel breaks this far below the neck at the centre front, its gorge this share of the way down its roll: short, the front
  *  buttoned up over the bust with three buttons well apart, as a tailored waistcoat is (measured off Cat's SS27 vest
  *  picture against the wearer: the break a head's length below the neck, the buttons about 14 cm apart). */
-const HIGH_LAPEL = { breakBelowNeck: 17, gorge: 0.5, buttons: 3, gap: 14 };
+const HIGH_LAPEL = { breakBelowNeck: 17, gorge: 0.5, width: 5.5, buttons: 3, gap: 14 };
 const highLapel = (s: Pick<OuterStyle, 'lapel' | 'collar'>) => s.lapel === 'high' && lapelled(s.collar);
 
 /** Buttons down the front: from the break point (or just below the neck) to above the hem, about 10 cm apart. */
