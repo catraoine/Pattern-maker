@@ -804,11 +804,20 @@ function notchedCollar(front: Piece, backNeck: number, frontNeck: number, s: Out
   const tags = [...neckPts.slice(1).map(() => 'neck'), 'gorge', 'collar', ...outer.slice(1, -1).map(() => 'collar'), 'fold'];
   const cut = 'Cut 2 on fold';
   const mid = p(L * 0.45, -(stand + fall) / 2 + 0.4);
+  // The roll line. A single-breasted high lapel's collar rolls low at the front, its stand coming down to about two
+  // thirds of its height at the back near the gorge, so its roll runs on into the lapel's: kept rising with the neck's
+  // spring there, it stood nearly 5 cm straight up the sides of the neck like a wall and twisted where it met the lapel
+  // (Cat, SS27 vest, 2026-11-07). (Lower still, or on a peak or double front, the laid collar tears at its fall; those keep
+  // their height, the roll carried on nearer the gorge, which their short high gorge needs to lie without tearing.)
+  const low = highLapel(s) && s.front === 'single' && s.collar === 'notched';
+  const xEnd = L * (low ? 0.88 : highLapel(s) ? 0.95 : 0.8);
+  const kEnd = Math.max(0, (xEnd - backNeck * 0.6) / (L - backNeck * 0.6));
+  const rollEnd = low ? p(xEnd, spring * kEnd * kEnd - stand * 0.6) : p(xEnd, -stand + spring * 0.3);
   return {
     name: 'Collar',
     kind: 'collar',
     outline: pathOf({ pts, tags }),
-    lines: [new Path(p(0, -stand)).line(p(L * 0.8, -stand + spring * 0.3))],
+    lines: [new Path(p(0, -stand)).line(rollEnd)],
     grain: [p(1.5, -stand - fall + 1), p(1.5, -1)],
     fold: [p(0, -(stand + fall) + 0.6), p(0, -0.6)],
     notches: [[neckPts[Math.round((40 * backNeck) / L)], p(0, 1)]],
