@@ -700,6 +700,43 @@ Object.assign(DEMOS, {
     await cap('', '');
     await card('Maison Tracé', 'Fitted to you.', 2200, true);
   },
+  // Draw a line on the pattern (Design: Pattern tools, Cat's P2; Cat, 2026-11-07: a demo for it): the skirt's pieces
+  // alone, big, a line drawn down the front to spread it open, the handle dragged to open it more, then a line across
+  // the back's hip cut off as a yoke.
+  patterns: async (h) => {
+    const { wait, card, cap, focus, veil, uncard, R, press, label, drag, draw, f } = h;
+    const PIECES = { h: 470, top: 220, w: 392 };
+    const piece = (n) => f.locator(`path.pe-piece[data-piece="${n}"]`);
+    await card('Maison Tracé', 'Draw a line on your pattern', 1200, true);
+    await press(R('group', 'Preview view').getByRole('button', { name: /^Pattern/, includeHidden: true }), 900);
+    await press(R('button', 'Move points'), 1200);
+    await focus('svg.point-svg', PIECES);
+    await uncard();
+    await cap('Pattern', 'Your pattern pieces. Draw a line across one to change its shape.');
+    await wait(1400);
+    await draw(piece('Skirt front'), [[0.62, 0.3], [0.61, 0.6], [0.6, 0.9]], 900);
+    await cap('Spread', 'Choose what the line does. Here, spread it open.');
+    await label('Spread it open');
+    await press(R('button', /Spread it open/), 1600);
+    await focus('svg.point-svg', PIECES);
+    await cap('Spread', 'Drag the round handle to open it more. The hem gets fuller.');
+    await wait(1200);
+    await drag(f.locator('circle.pe-open'), [60, 0], 1800);
+    await press(f.locator('.pe-done').first(), 600);
+    await cap('New piece', 'Or draw across the hip, and cut it off as a new piece. Here, a yoke.');
+    await wait(1200);
+    await draw(piece('Skirt back'), [[0.12, 0.33], [0.45, 0.35], [0.75, 0.36]], 800);
+    await label('Make a new piece');
+    await press(R('button', 'Make a new piece'), 1800);
+    await veil(async () => {
+      await press(f.locator('.pe-done').first(), 400);
+      await focus('svg.point-svg', PIECES);
+    });
+    await cap('Edited', 'Notched to match, ready to print. Back to drafted undoes it all.');
+    await wait(1800);
+    await cap('', '');
+    await card('Maison Tracé', 'Cut it your way.', 2200, true);
+  },
 
 });
 
