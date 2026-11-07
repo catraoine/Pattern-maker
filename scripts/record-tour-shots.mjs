@@ -590,7 +590,8 @@ if (process.env.TOUR_PROBE_FABRIC) {
 mark('enlarge');
 if (!QUICK) await press(main.getByRole('button', { name: /^Enlarge the drawing/ }), 1300);
 mark('draw');
-const form = main.getByRole('img', { name: /Your dress form from the/ });
+// By class, so it is still found with the rest of the screen hidden (out of the accessibility tree).
+const form = p.locator('main svg.form-svg').first();
 const kinds = main.getByRole('group', { name: 'What you are drawing' });
 // The drawing tool takes the dress from as short as the photo's, so the hem drawn to the knee is seen to lengthen it
 // (Cat, 2026-10-26: the hem edit should go from a mini, as in the photo, to longer, not start where the dress already
@@ -610,6 +611,23 @@ await tap(kinds.getByRole('button', { name: 'Hem', exact: true }), 300);
 // The dress already opens at the photo's length (TOUR_START_MINI); drawn again only when it doesn't.
 if (process.env.TOUR_START_MINI === '0') await draw(form, LINES.photo, 600);
 await tap(kinds.getByRole('button', { name: 'Neckline', exact: true }), 600);
+// Just the form, as in the Draw Watch demo (Cat, 2026-11-07: "less cluttered"): the rest of the screen hidden, the
+// form drawn large in the middle of the frame, only the pen moving on it. TOUR_DRAW_FOCUS=0 shows the whole screen.
+const DRAW_FOCUS = process.env.TOUR_DRAW_FOCUS !== '0';
+if (DRAW_FOCUS) {
+  await form.evaluate((svg) => {
+    const st = document.createElement('style');
+    st.id = 'draw-focus';
+    st.textContent = 'body{background:#000000!important} body *{visibility:hidden!important} #pen,svg.form-svg,svg.form-svg *,defs,defs *,pattern,pattern *,mask,mask *,clipPath,clipPath *{visibility:visible!important} svg.form-svg .hem-ghost text,svg.form-svg text.hint{visibility:hidden!important}';
+    document.head.appendChild(st);
+    const h = innerHeight * (innerHeight > innerWidth ? 0.8 : 0.86);
+    const b = svg.getBoundingClientRect();
+    const w = (b.width / b.height) * h;
+    Object.assign(svg.style, { position: 'fixed', zIndex: 9990, left: `${innerWidth / 2 - w / 2}px`, top: `${innerHeight / 2 - h / 2 + (innerHeight > innerWidth ? 34 : 0)}px`, width: `${w}px`, height: `${h}px`, maxWidth: 'none', maxHeight: 'none' });
+  });
+  await wait(600);
+}
+const pickKind = (name, ms) => (DRAW_FOCUS ? p.locator('main .form-kinds button', { hasText: new RegExp(`^${name}$`) }).first().dispatchEvent('click').then(() => wait(ms)) : tap(kinds.getByRole('button', { name, exact: true }), ms));
 await p.evaluate(() => { document.getElementById('pen').style.visibility = ''; });
 cut(false);
 await wait(1100);
@@ -622,11 +640,11 @@ if (process.env.TOUR_PROBE2) {
 }
 // The hem first, then the side, drawn on the picture as it was measured, as it grows with the longer hem.
 mark('hem');
-await tap(kinds.getByRole('button', { name: 'Hem', exact: true }), 500);
+await pickKind('Hem', 500);
 await draw(form, LINES.hem, 3000);
 if (process.env.TOUR_PROBE3) { await p.screenshot({ path: `${OUT}/probe3a.png` }); console.log('HEM', JSON.stringify(before), JSON.stringify(await viewBox(form)), JSON.stringify(await form.boundingBox())); }
 mark('side');
-await tap(kinds.getByRole('button', { name: 'Side', exact: true }), 500);
+await pickKind('Side', 500);
 await draw(form, LINES.side, 1800, before);
 if (process.env.TOUR_PROBE3) {
   await p.screenshot({ path: `${OUT}/probe3.png` });
@@ -634,6 +652,7 @@ if (process.env.TOUR_PROBE3) {
 }
 // Done lands on the pattern sheet, and the film stays there (Cat, 2026-10-24: no flash back to the dress).
 mark('done');
+if (DRAW_FOCUS) await form.evaluate((svg) => { document.getElementById('draw-focus')?.remove(); svg.removeAttribute('style'); });
 if (WIDE) {
   // On a computer Done now leaves the page scrolled to the summary: back up to the pattern straight away.
   await press(main.getByRole('button', { name: 'Done', exact: true }), 0);
