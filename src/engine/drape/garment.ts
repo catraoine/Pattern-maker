@@ -16,6 +16,7 @@ import { dartsOf } from '../marks';
 import { SimInput, simulate } from './sim';
 import { trouserDetails } from './trouserLines';
 import { levelSkirtHem } from './levelHem';
+import { closeHemCorners } from './hemCorners';
 import { Space, boxed } from './space';
 import { knob, setKnob } from './knob';
 import { frontPins, tapeRollLines } from './rollLine';
@@ -4727,6 +4728,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
       }
     }
   }
+  if (o.shapedHem && !knob('__noHemCorners')) closeHemCorners(B.panels, seams, res);
   // A side slit parts a little as she stands: its edges a little apart, more toward the hem, each turned round the
   // body away from the other (the front edge forward, the back edge back), the cloth within a few cm turning with it.
   // They hang straight: turned, not flared out.
