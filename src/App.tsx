@@ -227,7 +227,7 @@ export default function App() {
     if (access) return;
     linkCode.current = code;
     void checkLink(code);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once on opening: the tester link is read and then taken out of the address
   }, []);
   // Where Plans goes back to: the screen it was opened from.
   const [beforePlans, setBeforePlans] = useState<View>('account');
@@ -320,7 +320,7 @@ export default function App() {
   useEffect(() => {
     if (!drafts.crash) return;
     if (Object.keys(drafting.reset).length) setSaved({ ...saved, ...drafting.reset });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when a new draft comes back, so resetting the saved choices never loops
   }, [drafts]);
 
   // The drafts with any points moved or pieces cut on the flat pattern, so the preview, print and files all follow.
@@ -335,7 +335,7 @@ export default function App() {
     const { skirt, bodice, dress: d, trousers, tee, knitDress, hoodie, jumpsuit, lingerie, outer } = drafts;
     const base = (bodice ?? d ?? trousers ?? tee ?? knitDress ?? hoodie ?? jumpsuit ?? lingerie ?? outer ?? skirt)?.pieces.filter((pc) => !pc.kind) ?? [];
     return { base, edits: moved ?? [], setEdits: (e: PatternEdit[]) => setPointEdits({ ...pointEdits, [garment]: e }) };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- setPointEdits is the saved-work setter, the same on every render
   }, [drafts, moved, garment, pointEdits]);
 
   /** Room over the body at every level of the drafted pieces, for the ease map. */
@@ -383,7 +383,7 @@ export default function App() {
 
   const drafted = useMemo(
     () => printableFor({ result, values, finish, fabric, garment, ownFitting, carriedNotes, saved, dress, skirtStyle, trousersChoices }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only the saved and finish fields the printable reads, so it is not rebuilt on every unrelated change
     [result, saved.choices, saved.bodice, dress, skirtStyle, values, finish.allowances, finish.skirtLined, finish.bodiceEdges, finish.fabricWidth, finish.nap, finish.route, finish.cloth, fabric, fitting, ownFitting, carriedNotes, garment],
   );
   // An Archive cut keeps its credit while it's the same garment; its details can still be changed.

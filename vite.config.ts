@@ -12,6 +12,9 @@ export default defineConfig({
   },
   // Unit tests only: the Playwright click-throughs in e2e/ run with `npm run test:e2e`.
   test: {
+    // The random-body sweeps run for 10 to 40 seconds each. The old test runner (Vitest 2) never stopped a test that
+    // didn't pause, so its 5 second default was never applied to them; Vitest 4 applies it. Two minutes keeps them as they were.
+    testTimeout: 120_000,
     exclude: [...configDefaults.exclude, '.claude/**', 'e2e/**', 'playwright-report/**', 'test-results/**'],
   },
   // Sign-in's library, and the 3D drawing's, get names of their own, so the phone's offline copy can leave them out

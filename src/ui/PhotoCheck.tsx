@@ -55,7 +55,7 @@ export function PhotoCheck({ source, current, body, headers, onChoices }: { sour
     })();
     return () => ctrl.abort();
     // Once per photo: the source is new each time a photo is drafted.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per photo: the source is new each time a photo is drafted
   }, [source]);
 
   if (state.kind === 'quiet') return null;

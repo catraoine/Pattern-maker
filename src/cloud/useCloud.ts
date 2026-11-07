@@ -134,7 +134,7 @@ export function useCloud<S>(backup: Backup<S>, apply: (b: Backup<S>) => void, en
     }
     if (joined === user.id) return;
     void sync(user);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per signed-in person: joining runs when the account changes, not on every status change
   }, [user?.id]);
 
   // After that, each change goes up a moment after it's made.
@@ -143,7 +143,7 @@ export function useCloud<S>(backup: Backup<S>, apply: (b: Backup<S>) => void, en
     if (key === firstKey.current) return;
     const t = setTimeout(() => void sync(user), WAIT_MS);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- each saved change and the first join start a sync; user is read fresh inside it
   }, [key, joined]);
 
   // Coming back to the app, or back online: read the account again, in case another device saved meanwhile.
@@ -160,7 +160,7 @@ export function useCloud<S>(backup: Backup<S>, apply: (b: Backup<S>) => void, en
       window.removeEventListener('online', on);
       window.removeEventListener('focus', on);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- listeners set up once per signed-in person and joined account
   }, [user?.id, joined]);
 
   return {

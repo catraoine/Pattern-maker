@@ -187,7 +187,7 @@ function Corners({ lineUp, unit, view, fresh, onChange, onSeat, onNext, onClose 
         : { left: box.right + 16, top: 0, right: view.w, bottom: view.h };
     onSeat({ ...lineUp, corners: startCorners(view.w, view.h, lineUp.mat, free, paper ? (beside && !atLeft ? 0.6 : 0.45) : 0.7) });
     // Only when the screen, the paper or the mat size changes, not on every drag.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when the screen, the paper or the mat size changes, not on every drag
   }, [fresh, ref, view.w, view.h, lineUp.mat.w, lineUp.mat.h]);
   const { corners, mat } = lineUp;
   const pickRef = (r: Ref) => {

@@ -342,7 +342,7 @@ function useCanvas(paintAt: (g: CanvasRenderingContext2D, w: number, h: number, 
       cancelAnimationFrame(frame);
       ro.disconnect();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the caller passes the redraw list (deps); paintAt and wait are read fresh each frame
   }, deps);
   return ref;
 }
