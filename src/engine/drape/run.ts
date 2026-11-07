@@ -19,6 +19,8 @@ import { makeSpace } from './space';
 import { closeSeams, hangScales } from './hang';
 import { sideTie, type SideTieSpec } from './tie';
 import { camiStraps } from './strap';
+import { knob } from './knob';
+import { fairDroppedSeam } from './seamFair';
 
 export type DrapeJob = { m: RoundMeasurements; armhole: RoundGarment['armhole']; fibre?: Fibre; crisp?: boolean; /** A side tie knotted at the left side seam at the waist (belt.ts). */ sideTie?: SideTieSpec } & (
   | { kind: 'skirt'; draft: SkirtDraft }
@@ -122,6 +124,8 @@ export function runDrape(job: DrapeJob): DrapedLite {
     quality.problems.push({ check: 'missing', part: pc.name, worst: 1 });
     quality.ok = false;
   }
+  // A dress's waist seam dropped onto the hip: run straight through, without the ledge the sim leaves there.
+  if (job.kind === 'dress' && (job.draft.seamDrop ?? 0) > 1 && !knob('__noSeamFair')) fairDroppedSeam(d, sp);
   closeSeams(d);
   // (Trouser legs hang round the form's own legs, not the body's axis: measured against the body's round, the leg's
   // points read as touching and clear by turns down each leg, and were drawn at their scales by turns, a sawtooth.)
