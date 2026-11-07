@@ -111,7 +111,7 @@ export function readTrouserRise(stroke: P[], m: TrousersMeasurements, c: Trouser
   const y = median(stroke.map((q) => q.y));
   if (y < RISE_RANGE.min - 6 || y > -RISE_RANGE.min + 6) return { said: 'Draw the waistband near your waist: up to 5 cm above it, or down to 8 cm below.' };
   const rise = round(riseFor(m, -y));
-  if (Math.abs(rise) < 1) return { choices: { ...c, riseCm: undefined }, said: 'At your waist: a mid rise.' };
+  if (Math.abs(rise) < 1) return { choices: { ...c, riseCm: undefined, rise: undefined }, said: 'At your waist: a mid rise.' };
   const lowest = rise > -y + 0.5 ? ` (as low as it goes on you: lower, the body is nearly as wide as your hip)` : '';
   return {
     choices: { ...c, riseCm: rise },

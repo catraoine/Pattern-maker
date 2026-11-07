@@ -64,6 +64,7 @@ export type TestingTool =
   | 'fabric_photo'
   | 'front_pockets'
   | 'barrel_leg'
+  | 'trouser_rise'
   | 'back_welts'
   | 'tank_tee'
   | 'boxy_tee'
@@ -128,6 +129,8 @@ export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; p
   // Cat's styling options round 1 (Nov 7 2026: "Apply your picks", P1 and P3).
   front_pockets: { name: 'Patch and slant pockets on skirts and dresses', where: 'the Patch and Slant front chips under Pockets on a skirt or dress', proof: 'two testers sew patch pockets and two sew slant pockets, and each lies flat on the hip without gaping, the slant opening staying closed when standing' },
   barrel_leg: { name: 'Barrel-leg trousers', where: 'the Barrel chip under Leg on trousers', proof: 'two testers sew barrel-leg trousers and the leg curves out evenly round the knee and in to the ankle, with no break in the side seam' },
+  // Cat, 2026-11-07: "Yes add rise picker" (low rise was only drawn on the form before).
+  trouser_rise: { name: 'Low and high rise trousers', where: 'the Low and High chips under Rise on trousers', proof: 'two testers sew a low rise and two a high rise, and each waistband sits where they picked, level all round, without gaping at the back' },
   back_welts: { name: 'Back welt pockets on trousers', where: 'the Welt pockets chip under Back pockets on trousers', proof: 'two testers sew back welt pockets and they lie flat and level with the waist, the corners clean, the shortened darts smooth over the seat' },
   tank_tee: { name: 'Tank', where: 'the None (tank) chip under Sleeves on the T-shirt', proof: 'two testers sew a tank and the armhole bands lie flat against the body with no gaping at the front or under the arm' },
   boxy_tee: { name: 'Boxy drop-shoulder T-shirt', where: 'the Dropped, boxy chip under Shoulder on the T-shirt', proof: 'two testers sew a boxy tee and the shoulder seam sits evenly down the arm, the sleeve going in with no puckers' },

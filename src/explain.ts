@@ -295,6 +295,11 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       inseam: ['Pockets hidden in the side seams.'],
       slant: ['Pockets that open on a slant at the front hip, like chinos.', 'skill'],
     },
+    rise: {
+      low: ['The waistband sits low, on the top of your hips, about 6 cm below your waist.'],
+      mid: ['The waistband sits at your natural waist.', 'easy'],
+      high: ['The waistband sits a little above your waist, about 4 cm, for a long leg line.'],
+    },
     backPockets: {
       none: ['A plain back.', 'easy'],
       welt: ['A neat slit pocket on each side of the seat, finished with a narrow welt, as on tailored trousers.', 'skill'],
@@ -572,6 +577,8 @@ const SHORT: Record<string, string> = {
   'tiers.drop_yoke': 'Fitted over the hip, full below.',
   'rise.natural': 'At your natural waist.',
   'rise.low': 'Low on the hip.',
+  'rise.mid': 'At your natural waist.',
+  'rise.high': 'Above the waist, long legged.',
   'trim.rib': 'Rib bands at hem and cuffs.',
   'flare.flared': 'Cinched, then flaring over the hips.',
 };

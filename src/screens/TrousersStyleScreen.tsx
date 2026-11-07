@@ -108,7 +108,7 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
   const pockets = choices.pockets ?? 'none';
   // A leg or length picked from the chips replaces one drawn on the form.
   const pickFrom = (id: string, opt: string): TrousersChoices =>
-    validTrousers({ ...choices, [id]: opt, ...(id === 'leg' ? { legCm: undefined } : {}), ...(id === 'length' ? { lengthCm: undefined } : {}) });
+    validTrousers({ ...choices, [id]: opt, ...(id === 'leg' ? { legCm: undefined } : {}), ...(id === 'length' ? { lengthCm: undefined } : {}), ...(id === 'rise' ? { riseCm: undefined, rise: opt === 'mid' ? undefined : (opt as TrousersChoices['rise']) } : {}) });
   const m = values as unknown as TrousersMeasurements;
 
   const sketch =
@@ -210,6 +210,7 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
                   {g.id === 'loops' && id !== 'none' && <TestingTag tool="belt_loops" />}
                   {g.id === 'leg' && id === 'barrel' && <TestingTag tool="barrel_leg" />}
                   {g.id === 'backPockets' && id !== 'none' && <TestingTag tool="back_welts" />}
+                  {g.id === 'rise' && id !== 'mid' && <TestingTag tool="trouser_rise" />}
                 </button>
               ))}
             </div>

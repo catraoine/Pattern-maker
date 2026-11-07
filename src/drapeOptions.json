@@ -360,6 +360,9 @@
  "trousers pockets=inseam": "passes",
  "trousers pockets=none": "passes",
  "trousers pockets=slant": "passes",
+ "trousers rise=high": "passes",
+ "trousers rise=low": "passes",
+ "trousers rise=mid": "passes",
  "trousers waist=band": "passes",
  "trousers waist=elastic": "passes"
 }

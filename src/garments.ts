@@ -7,7 +7,7 @@ import { SHAPES_FOR_LENGTH, SleeveLength, SleeveShape } from './engine/sleeve';
 import { SLEEVE_CUTS, SleeveCut, sleeveCutBlocked, sleeveCutOf } from './engine/sleeveCut';
 import type { DartPlace, PrincessLine } from './engine/manipulate';
 import type { Closure, Collar } from './engine/collar';
-import { LEG_WORDS, Leg, TrouserClosure, TrouserLength } from './engine/trousers';
+import { LEG_WORDS, Leg, TrouserClosure, TrouserLength, TrouserRise } from './engine/trousers';
 import type { TrouserLoops, TrouserPleats } from './engine/trouserPleats';
 import type { BackPockets } from './engine/trouserBack';
 import type { Fit, WaistStyle } from './engine/skirt';
@@ -147,6 +147,8 @@ export interface TrousersChoices {
   legCm?: { knee: number; hem: number };
   lengthCm?: number;
   riseCm?: number;
+  /** The rise picked from the chips (In testing, Nov 7 2026); a drawn riseCm wins. Older saves have none: mid. */
+  rise?: TrouserRise;
   /** A gathered ruffle at each hem (In testing). Not on shorts. */
   hemRuffle?: boolean;
   /** Front pleats and belt loops (In testing, SS27 Bermuda 2026-11-05). Older saves have neither. */
@@ -158,7 +160,7 @@ export interface TrousersChoices {
 
 export const DEFAULT_TROUSERS_CHOICES: TrousersChoices = { garment: 'trousers', fit: 'regular', leg: 'straight', length: 'full', closure: 'fly', pleats: 'none', loops: 'none' };
 
-type TrouserGroupId = 'fit' | 'leg' | 'length' | 'waist' | 'closure' | 'pockets' | 'backPockets' | 'pleats' | 'loops';
+type TrouserGroupId = 'fit' | 'leg' | 'length' | 'waist' | 'closure' | 'pockets' | 'backPockets' | 'pleats' | 'loops' | 'rise';
 
 export const TROUSER_GROUPS: { id: TrouserGroupId; label: string; options: [string, string][] }[] = [
   { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed']] },
@@ -170,11 +172,15 @@ export const TROUSER_GROUPS: { id: TrouserGroupId; label: string; options: [stri
   { id: 'backPockets', label: 'Back pockets', options: [['none', 'None'], ['welt', 'Welt pockets']] },
   { id: 'pleats', label: 'Front pleats', options: [['none', 'None'], ['single', 'One pleat'], ['double', 'Two pleats']] },
   { id: 'loops', label: 'Belt loops', options: [['none', 'None'], ['loops', 'Belt loops']] },
+  { id: 'rise', label: 'Rise', options: [['low', 'Low'], ['mid', 'Mid, at the waist'], ['high', 'High']] },
 ];
 
 /** A trouser choice as saved, older saves falling back to no pockets, no pleats, no loops and a zipped waistband. */
 export const trouserChoice = (c: TrousersChoices, id: TrouserGroupId): string =>
-  id === 'pockets' ? (c.pockets ?? 'none') : id === 'waist' ? (c.waist ?? 'band') : id === 'pleats' ? (c.pleats ?? 'none') : id === 'loops' ? (c.loops ?? 'none') : id === 'backPockets' ? (c.backPockets ?? 'none') : c[id];
+  id === 'pockets' ? (c.pockets ?? 'none') : id === 'waist' ? (c.waist ?? 'band') : id === 'pleats' ? (c.pleats ?? 'none') : id === 'loops' ? (c.loops ?? 'none') : id === 'backPockets' ? (c.backPockets ?? 'none') : id === 'rise' ? riseOf(c) : c[id];
+
+/** The rise as picked, or as drawn on the form (within a cm of the waist reads as mid). */
+const riseOf = (c: TrousersChoices): TrouserRise => (c.riseCm !== undefined && Math.abs(c.riseCm) >= 1 ? (c.riseCm > 0 ? 'high' : 'low') : c.rise ?? 'mid');
 
 /**
  * Whether a trouser choice can be picked with the rest, and why not: a pull-on waist has no opening
@@ -199,7 +205,7 @@ export function validTrousers(c: TrousersChoices): TrousersChoices {
 export function describeTrousers(c: TrousersChoices) {
   const shorts = c.leg !== 'culotte' && c.length === 'shorts';
   const drawn = c.leg !== 'culotte' && c.lengthCm !== undefined && !shorts ? `${Math.round(c.lengthCm)} cm ` : undefined;
-  const rise = !c.riseCm ? '' : c.riseCm > 0 ? 'high-rise ' : 'low-rise ';
+  const rise = { low: 'low-rise ', mid: '', high: 'high-rise ' }[riseOf(c)];
   const length = (drawn ?? (c.leg === 'culotte' || shorts ? '' : { full: '', ankle: 'Ankle-length ', cropped: 'Cropped ', capri: 'Capri ', knee: 'Knee-length ', shorts: '' }[c.length])) + rise;
   const pockets = c.pockets === 'slant' ? 'slant pockets' : c.pockets === 'inseam' ? 'in-seam pockets' : '';
   const opening = c.waist === 'elastic' ? 'an elastic waist' : `a ${c.closure === 'fly' ? 'fly front' : 'side zip'}`;

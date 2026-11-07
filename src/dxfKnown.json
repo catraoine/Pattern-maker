@@ -461,6 +461,9 @@
  "trousers pockets=inseam": [],
  "trousers pockets=none": [],
  "trousers pockets=slant": [],
+ "trousers rise=high": [],
+ "trousers rise=low": [],
+ "trousers rise=mid": [],
  "trousers waist=band": [],
  "trousers waist=elastic": [],
  "trousers waist=elastic pockets=slant": []

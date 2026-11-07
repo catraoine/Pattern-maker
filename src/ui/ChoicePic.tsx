@@ -197,6 +197,22 @@ const PICS: Record<PicSet, Record<string, Record<string, ReactNode>>> = {
       bootcut: <path d="M11 4h18l-1 24 2 18h-8l-2-28-2 28h-8l2-18z" />,
       barrel: <path d="M11 4h18Q35 26 28 46h-7l-1-28-1 28h-7Q5 26 11 4z" />,
     },
+    // (The waist as a faint line: the waistband drawn below it, on it, or above it.)
+    rise: {
+      low: (
+        <>
+          <path d="M10.5 10h19l.5 36h-8l-2-28-2 28h-8z" />
+          <path className="pic-faint" d="M6 5H34" />
+        </>
+      ),
+      mid: <path d="M11 5h18l1 41h-8l-2-28-2 28h-8z" />,
+      high: (
+        <>
+          <path d="M11.5 1h17l1.5 45h-8l-2-28-2 28h-8z" />
+          <path className="pic-faint" d="M6 5H34" />
+        </>
+      ),
+    },
     length: {
       shorts: <path d="M11 4h18l2 16h-9l-2-6-2 6h-9z" />,
       knee: <path d="M11 4h18l1 26h-8l-2-12-2 12h-8z" />,
