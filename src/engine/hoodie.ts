@@ -38,6 +38,8 @@ export interface HoodieStyle {
 
 /** A boxy hoodie's room over the T-shirt's boxy body, as a share of the bust (about 34% in all on a sweatshirt knit). */
 const BOXY_EXTRA = 0.18;
+/** How much longer a boxy hoodie hangs than its named length, in cm. */
+const BOXY_LONGER = 5;
 /** A boxy hoodie's hem band, as a share of the hem: nearly its full width. */
 const BOXY_HEM_RATIO = 0.95;
 
@@ -78,8 +80,9 @@ export function draftHoodie(m: TeeMeasurements, style: Partial<HoodieStyle> = {}
   if (!m.arm_length) throw new DraftError('Add your arm length for the sleeves.');
   const rib = HOODIE_RIB[s.length];
   const band = s.hemBand ? rib.hem : 0;
-  const total = hoodieBelowWaist(m, s.length);
   const boxy = s.fit === 'boxy';
+  // A boxy hoodie hangs a little longer than its named length (Cat, 2026-11-07: "slightly longer").
+  const total = hoodieBelowWaist(m, s.length) + (boxy ? BOXY_LONGER : 0);
   const fit: TeeFit = s.fit === 'boxy' ? 'relaxed' : s.fit;
   // Boxy: the T-shirt's dropped-shoulder boxy body, with an oversized hoodie's extra room on top.
   const boxyBody = boxy ? { shoulder: 'dropped' as const, boxyExtra: BOXY_EXTRA } : {};

@@ -89,6 +89,10 @@ export const TANK = { strap: 6, raise: 1.5, scoop: 2.5, bandRatio: 0.9 };
 /** A boxy dropped-shoulder body: at least this much ease at the bust for each stretch, the side seams straight
  * from underarm to hem. The shoulder goes DROP.out past the shoulder point, the underarm DROP.down lower. */
 export const BOXY_EASE: Record<Stretch, number> = { low: 0.16, medium: 0.14, high: 0.12 };
+/** How much of `boxyExtra` the sleeve takes at the bicep, as a share of the arm, for each share of the bust. */
+const SLEEVE_SHARE = 2;
+/** How much deeper the underarm is cut, in cm, for each share of the bust of `boxyExtra` (0.18 is 4.5 cm). */
+const DEEPER_PER_EXTRA = 25;
 
 /** Ease at the bust as drafted: the fit's, or a boxy body's room when the shoulder is dropped. */
 const teeEase = (s: { fit: TeeFit; stretch: Stretch; shoulder?: TeeShoulder; sleeve?: TeeSleeve; boxyExtra?: number }) =>
@@ -245,8 +249,10 @@ export function draftTee(m: TeeMeasurements, style: Partial<TeeStyle> = {}): Tee
   if (boxy) {
     // Carried out past the shoulder point, the armhole comes out shorter for the same depth: the underarm goes down
     // DROP.down, and further until the seam goes round the arm with DROP.room to spare, as the bodice's does.
-    const want = m.armscye !== undefined ? m.armscye + DROP.room : 0;
-    let lower = DROP.down;
+    // An oversized hoodie's extra room (boxyExtra) cuts the underarm deeper still, for the wider sleeve it asks for.
+    const deeper = (s.boxyExtra ?? 0) * DEEPER_PER_EXTRA;
+    const want = m.armscye !== undefined ? m.armscye + DROP.room + 2 * deeper : 0;
+    let lower = DROP.down + deeper;
     for (; lower < 10 && build(m, s, setIn.scye + lower, []).armhole < want; lower += 0.25);
     shape = build(m, s, setIn.scye + lower, []);
   }
@@ -261,7 +267,8 @@ export function draftTee(m: TeeMeasurements, style: Partial<TeeStyle> = {}): Tee
     armholeAllowance: KNIT_SEAM,
     hemAllowance: KNIT_SLEEVE_HEM,
     ...(s.sleeveCm !== undefined ? { lengthCm: s.sleeveCm } : {}),
-    ease: { bicep: m.upper_arm * TEE_SLEEVE_EASE[boxy ? 'relaxed' : s.fit][s.stretch], crown: CROWN_EASE },
+    // An oversized hoodie's extra room goes into its sleeves too, more of it, so they read wide (Cat, 2026-11-07).
+    ease: { bicep: m.upper_arm * (TEE_SLEEVE_EASE[boxy ? 'relaxed' : s.fit][s.stretch] + (boxy ? SLEEVE_SHARE * (s.boxyExtra ?? 0) : 0)), crown: CROWN_EASE },
     ...(boxy ? { cut: 'drop' as const } : {}),
   });
   // A relaxed tee's wide body makes a long armhole, and a wide sleeve to fill it is part of the look.
