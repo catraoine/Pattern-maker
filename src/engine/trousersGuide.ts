@@ -61,7 +61,7 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
     },
     {
       title: 'Cut out',
-      text: `Fold the fabric in half with the selvedges together. Place the trousers front and back on both layers so you get a pair of each, with the crease line on each parallel to the selvedge. Cut along the solid outer line, snip the notches${darts ? ' and chalk-mark the darts' : ''}. Mark the crease line on the wrong side with tailor's chalk.${pleats ? ' Snip the notches for the pleat folds and placement lines on each front, and chalk the fold lines.' : ''}${fly ? ' Cut the fly facing and the fly shield, and the fly facing again from fusible interfacing.' : ''}${pocketCut}${loops ? ' Cut the belt loop strip with the grain along its length.' : ''}`,
+      text: `Fold the fabric in half with the selvedges together. Place the trousers front and back on both layers so you get a pair of each, with the crease line on each parallel to the selvedge. Cut along the solid outer line, snip the notches${darts ? ' and chalk-mark the darts' : ''}. Mark the crease line on the wrong side with tailor's chalk.${pleats ? ' Snip the notches for the pleat folds and placement lines on each front, and chalk the fold lines.' : ''}${fly ? ' Cut the fly facing and the fly shield, and the fly facing again from fusible interfacing.' : ''}${pocketCut}${loops ? ' Cut the belt loop strip with the grain along its length.' : ''}${d.backWelt ? ' Cut the two back welts and the two back pocket facings from the fabric, the welts again from fusible interfacing, and the four back pocket bags from lining or pocketing.' : ''}`,
     },
     {
       title: 'Cut the waistband',
@@ -87,6 +87,14 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
           {
             title: `Fold the front pleat${pleats > 1 ? 's' : ''}`,
             text: `On each front, fold along the chalked fold line${pleats > 1 ? 's' : ''} with wrong sides together and bring the fold over to its placement notch, so the pleat faces the centre front${pleats > 1 ? ', the pleat nearer the crease first' : ''}. Pin, then stitch each pleat down ${PLEAT_STITCH_CM} cm from the waist edge, just inside the fold, and tack across the top inside the seam allowance so it stays put under the waistband. Press the folded part flat toward the centre front; below the stitching the pleat hangs free.`,
+          },
+        ]
+      : []),
+    ...(d.backWelt
+      ? [
+          {
+            title: 'Make the back welt pockets',
+            text: `On the right side of each back, chalk the BACK POCKET box from the pattern. Fuse a strip of interfacing behind it on the wrong side. Fold each back welt in half lengthwise, right side out, and press. Lay it on the back below the box, raw edges up to the box's lower line, and stitch along that line from end to end. Lay a back pocket facing, edge to the box's upper line, and stitch along it, stopping 0.5 cm short of each end. Cut through the back between the lines and into each corner in a small V, stopping just short of the stitching. Push the facing through, flip the welt up over the opening and press. Sew a back pocket bag to the welt's seam allowance and another to the facing's, then sew the two bags together round their edges, catching the little triangles at the ends. Tack the top of the bags to the waist edge inside the seam allowance so the waistband holds them.`,
           },
         ]
       : []),

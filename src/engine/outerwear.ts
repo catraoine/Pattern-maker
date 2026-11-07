@@ -11,7 +11,7 @@ import { Ring, pathOf, ringOf } from './manipulate';
 import { backOnFold, collarPieces } from './collar';
 import { SleeveDraft, SleeveMeasurements, draftSleeve } from './sleeve';
 import { DraftError } from './skirt';
-import { patchPocket, spanAt } from './patchPocket';
+import { patchPocket, spanAt, weltPieces } from './pocketPieces';
 
 export type OuterKind = 'jacket' | 'coat';
 export type OuterFit = 'fitted' | 'regular' | 'relaxed' | 'oversized';
@@ -950,57 +950,6 @@ function ventLining(pc: Piece, top: number, w: number, pleat: number): Piece {
     alt[fi2] = p(w, foot);
   }
   return { ...lining, alternate: { outline: pathOf({ pts: alt, tags }), label: 'RIGHT BACK LINING' } };
-}
-
-/** A single welt pocket: the welt, folded in half, the pocket facing and the two pocket bags. */
-function weltPieces(w: number, depth: number, bag: number, sa: number): Piece[] {
-  const rect = (W: number, H: number, name: string, tag: string, over: Partial<Piece>): Piece => {
-    const outline = pathOf({ pts: [p(0, 0), p(W, 0), p(W, H), p(0, H)], tags: [tag, `${tag}-end`, tag, `${tag}-end`] });
-    const cut = over.cut ?? 'Cut 2';
-    return {
-      name,
-      kind: 'facing',
-      outline,
-      lines: [],
-      grain: [p(W * 0.2, H * 0.2), p(W * 0.2, Math.max(H * 0.8, H * 0.2 + 2))],
-      notches: [],
-      labels: [
-        { at: p(W / 2, H / 2 - 0.2), text: name.toUpperCase(), size: H < 6 ? 0.55 : 0.8 },
-        { at: p(W / 2, H / 2 + (H < 6 ? 0.8 : 1.2)), text: cut, size: H < 6 ? 0.45 : 0.55 },
-      ],
-      cut,
-      seamAllowance: sa,
-      allowances: { [tag]: 1, [`${tag}-end`]: 1 },
-      meta: {},
-      ...over,
-    };
-  };
-  const welt = rect(w, 2 * depth, 'Welt', 'welt', { fabric: 'Self + interfacing', balance: [{ pts: [p(0, depth), p(w, depth)], label: 'FOLD' }] });
-  const facing = rect(w + 3, 7, 'Pocket facing', 'pocket', { grain: [p(2, 1.5), p(2, 5.5)] });
-  // The bag: rounded at the bottom so lint does not collect in its corners.
-  const W = w + 3;
-  const R = 3;
-  const arc = (c: P, from: number) => Array.from({ length: 7 }, (_, i) => add(c, mul(p(Math.cos(from - (i / 6) * (Math.PI / 2)), Math.sin(from - (i / 6) * (Math.PI / 2))), R)));
-  const bagPts = [p(0, 0), ...arc(p(R, bag - R), Math.PI), ...arc(p(W - R, bag - R), Math.PI / 2), p(W, 0)];
-  const bagCut = 'Cut 4 (2 pairs)';
-  const bagPiece: Piece = {
-    name: 'Pocket bag',
-    kind: 'lining',
-    fabric: 'Lining or pocketing',
-    outline: pathOf({ pts: bagPts, tags: [...bagPts.slice(1).map(() => 'bag'), 'bag-top'] }),
-    lines: [],
-    grain: [p(W * 0.2, 3), p(W * 0.2, bag - 4)],
-    notches: [],
-    labels: [
-      { at: p(W / 2, bag * 0.45), text: 'POCKET BAG', size: 0.8 },
-      { at: p(W / 2, bag * 0.45 + 1.2), text: bagCut, size: 0.55 },
-    ],
-    cut: bagCut,
-    seamAllowance: sa,
-    allowances: { bag: 1, 'bag-top': 1 },
-    meta: {},
-  };
-  return [welt, facing, bagPiece];
 }
 
 /** A wide lapel is this much broader, in cm. */

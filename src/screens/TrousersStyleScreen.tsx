@@ -198,6 +198,8 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
                   {label}
                   {g.id === 'pleats' && id !== 'none' && <TestingTag tool="trouser_pleats" />}
                   {g.id === 'loops' && id !== 'none' && <TestingTag tool="belt_loops" />}
+                  {g.id === 'leg' && id === 'barrel' && <TestingTag tool="barrel_leg" />}
+                  {g.id === 'backPockets' && id !== 'none' && <TestingTag tool="back_welts" />}
                 </button>
               ))}
             </div>

@@ -267,6 +267,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       culotte: ['Wide, short legs that end at mid-calf, almost like a skirt.'],
       flare: ['Close to the knee, then flaring out to a wide hem that swings over the shoe.'],
       bootcut: ['Close to the knee, then a little wider at the hem, to sit over a boot.'],
+      barrel: ['Curves out round the knee and back in to a narrow ankle, like a barrel. Relaxed and sculptural.'],
     },
     length: {
       shorts: ['Shorts, ending at mid-thigh.'],
@@ -288,6 +289,10 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       none: ['No pockets.', 'easy'],
       inseam: ['Pockets hidden in the side seams.'],
       slant: ['Pockets that open on a slant at the front hip, like chinos.', 'skill'],
+    },
+    backPockets: {
+      none: ['A plain back.', 'easy'],
+      welt: ['A neat slit pocket on each side of the seat, finished with a narrow welt, as on tailored trousers.', 'skill'],
     },
     pleats: {
       none: ['A flat front, shaped with a dart.', 'easy'],
@@ -418,6 +423,7 @@ const SHORT: Record<string, string> = {
   'trousers.pleats.single': 'One pleat each front, pressed to centre.',
   'trousers.pleats.double': 'Two pleats each front, loose and easy.',
   'trousers.loops.loops': 'Five loops on the waistband.',
+  'trousers.backPockets.welt': 'A welt pocket each side of the seat.',
   'noSeam.seam': 'Bodice and skirt joined at the waist.',
   'noSeam.sheath': 'One piece, close at waist and hips.',
   'noSeam.shift': 'One piece, straight from the bust.',
@@ -538,6 +544,7 @@ const SHORT: Record<string, string> = {
   'leg.culotte': 'Wide and short, to mid-calf.',
   'leg.flare': 'Close to the knee, then a wide flare.',
   'leg.bootcut': 'Close to the knee, wider over a boot.',
+  'leg.barrel': 'Curved out round the knee, narrow ankle.',
   'shaping.darts': 'Darts shape it in at the waist.',
   'shaping.princess': 'Curved seams shape it to you.',
   'shaping.boxy': 'No waist shaping: straight and square.',

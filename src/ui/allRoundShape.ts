@@ -344,8 +344,10 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
   // belling out above it, Cat 2026-10-28: "why are pants like this?"). Each leg stands on its own axis, out at half
   // its width so the two touch, and back on the form's leg once the cloth is narrower than the legs are apart.
   const thighTop = lg ? Math.max(thighR, hipWide / 2) : 0;
+  // A barrel leg swells out to the knee and holds its width a while below it before curving in to the hem.
+  const bow = (t: number, out: boolean) => (lg?.barrel ? (out ? Math.sin((t * Math.PI) / 2) : t * t) : t);
   const legR = (y: number) =>
-    y <= yK ? thighTop + (kneeR - thighTop) * clamp((y - yC) / (yK - yC || 1), 0, 1) : kneeR + (legHemR - kneeR) * clamp((y - yK) / (yH - yK || 1), 0, 1);
+    y <= yK ? thighTop + (kneeR - thighTop) * bow(clamp((y - yC) / (yK - yC || 1), 0, 1), true) : kneeR + (legHemR - kneeR) * bow(clamp((y - yK) / (yH - yK || 1), 0, 1), false);
   const legAxis = (y: number) => (lg ? Math.max(FORM_LEG_X, legR(y) * 0.97) : FORM_LEG_X);
 
   // Trousers from the waist to the crotch are the body's own cross-section with the ease over it, hung as a skirt

@@ -15,6 +15,7 @@ import { STRETCH_WORDS } from './knits';
 import type { TeeDraft, TeeMeasurements } from './tee';
 import type { LingerieDraft, LingerieMeasurements } from './lingerie';
 import { INSEAM, SLANT } from './pockets';
+import { BACK_WELT, weltWidth } from './trouserBack';
 
 const r1 = (v: number) => Math.round(v * 10) / 10;
 const row = (label: string, body: number | undefined, finished: number): SpecRow =>
@@ -165,6 +166,7 @@ export function trousersSpec(m: TrousersMeasurements, d: TrousersDraft): SpecRow
     ...(d.pockets !== 'none' ? [{ label: d.pockets === 'slant' ? 'Slant pockets' : d.pocketSides === 'right' ? 'In-seam pocket, right side' : 'In-seam pockets', finished: d.pockets === 'slant' ? `opening ${SLANT.in} in, ${SLANT.down} down` : `opening ${INSEAM.opening}` }] : []),
     ...(d.pleats ? [{ label: `Front pleat${d.pleats.count > 1 ? 's' : ''}, each front`, finished: d.pleats.lines.map((l) => `${Math.round((l.place - l.fold) * 10) / 10} deep`).join(', ') }] : []),
     ...(d.loops ? [{ label: 'Belt loops', finished: `${d.loops}` }] : []),
+    ...(d.backWelt ? [{ label: 'Back welt pockets, wide x deep', finished: `${weltWidth(d.backWelt)} x ${d.backWelt.depth}, ${BACK_WELT.below} below the waist` }] : []),
     ...waistRows(d, d.closure === 'fly' ? 'Trouser zip, fly front' : 'Invisible zip, left side'),
   ];
 }

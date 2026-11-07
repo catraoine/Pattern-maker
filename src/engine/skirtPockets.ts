@@ -4,7 +4,7 @@
 import { Path, p } from './geometry';
 import type { Piece } from './piece';
 import { slantPocket } from './pockets';
-import { patchPocket, spanAt } from './patchPocket';
+import { patchPocket, spanAt } from './pocketPieces';
 
 /** A skirt's patch pocket, finished: 14 cm across and 15 deep, a little smaller than a jacket's, its top
  * 9 cm below the waist seam (clear of the band and level with the end of the front dart). */

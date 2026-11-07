@@ -9,6 +9,7 @@ import type { Piece } from './piece';
 import { DraftError, Elastic, Fit, PULL_ON_EASE, SkirtFitting, WaistStyle, Waistband, WAISTBAND_CM, cm, elasticFor } from './skirt';
 import { PocketStyle, inseamPocket, markSeam, notchesAlong, slantPocket } from './pockets';
 import { casingPiece } from './finishing';
+import { BACK_WELT, BackPockets, BackWeltPlace, backWelts } from './trouserBack';
 import { BELT_LOOPS, PleatedFront, TrouserLoops, TrouserPleats, beltLoopsPiece, pleatedFront } from './trouserPleats';
 
 export interface TrousersMeasurements {
@@ -26,7 +27,8 @@ export interface TrousersMeasurements {
 }
 
 /** Flare and bootcut are narrow at the knee and wider at the hem: bootcut a little, flare a lot. */
-export type Leg = 'straight' | 'wide' | 'tapered' | 'culotte' | 'flare' | 'bootcut';
+/** Barrel (In testing, Nov 7 2026): the side seam curves out round the knee and back in to a narrow hem. */
+export type Leg = 'straight' | 'wide' | 'tapered' | 'culotte' | 'flare' | 'bootcut' | 'barrel';
 export type TrouserLength = 'shorts' | 'knee' | 'capri' | 'cropped' | 'ankle' | 'full';
 /** Shortest to longest, as the hem dot meets them going down the leg. */
 export const TROUSER_LENGTHS: TrouserLength[] = ['shorts', 'knee', 'capri', 'cropped', 'ankle', 'full'];
@@ -66,6 +68,8 @@ export interface TrousersStyle {
    * bodice's front and back waist, quarter widths in cm, with no waistband. Only a fly opens it; otherwise the
    * bodice's zip runs on down the back seam. */
   joinTo?: { front: number; back: number };
+  /** A welt pocket on each back (In testing, see trouserBack.ts). Older saves have none. */
+  backPockets?: BackPockets;
 }
 
 /**
@@ -91,9 +95,10 @@ export const LEG_WIDTHS: Record<Leg, { knee: number; hem: number }> = {
   culotte: { knee: 0.68, hem: 0.76 },
   flare: { knee: 0.41, hem: 0.62 },
   bootcut: { knee: 0.43, hem: 0.5 },
+  barrel: { knee: 0.62, hem: 0.4 },
 };
 
-export const LEG_WORDS: Record<Leg, string> = { straight: 'straight-leg trousers', wide: 'wide-leg trousers', tapered: 'tapered trousers', culotte: 'culottes', flare: 'flared trousers', bootcut: 'bootcut trousers' };
+export const LEG_WORDS: Record<Leg, string> = { straight: 'straight-leg trousers', wide: 'wide-leg trousers', tapered: 'tapered trousers', culotte: 'culottes', flare: 'flared trousers', bootcut: 'bootcut trousers', barrel: 'barrel-leg trousers' };
 
 /** A drawn leg's widths, round the leg in cm: the knee from snug to culotte-wide, the hem from the
  * narrowest a foot goes through to a wide flare, as shares of the finished hip. */
@@ -185,6 +190,8 @@ export interface TrousersDraft {
   block: Piece[];
   /** The hem ruffle, when there is one: its finished depth, and its cut strip, one for each leg. */
   ruffle?: { depth: number; cutLength: number; cutWidth: number };
+  /** Back welt pockets as placed on the back (In testing). */
+  backWelt?: BackWeltPlace;
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -349,7 +356,13 @@ function half(f: Frame, a: HalfArgs): Half {
   out.segs.push(...toHip.segs);
   out.tags.push(...toHip.tags);
   if (f.short) out.curve(p(0, hd + (ho.y - hd) * 0.35), sub(ho, mul(kDir, (ho.y - hd) * 0.3)), ho, 'side');
-  else {
+  else if (f.s.leg === 'barrel' && !f.s.legCm) {
+    // A barrel leg: the side seam runs plumb through the knee, its widest, so it bows out round it and curves back in
+    // to the narrow hem instead of breaking at the knee.
+    const below = ho.y - ko.y;
+    out.curve(p(0, hd + (ko.y - hd) * 0.35), p(ko.x, ko.y - (ko.y - hd) * 0.35), ko, 'side');
+    out.curve(p(ko.x, ko.y + below * 0.4), sub(ho, mul(kDir, below * 0.3)), ho, 'side');
+  } else {
     out.curve(p(0, hd + (ko.y - hd) * 0.35), sub(ko, mul(kDir, (ko.y - hd) * 0.3)), ko, 'side');
     out.line(ho, 'side');
   }
@@ -550,7 +563,7 @@ export function draftTrousers(body: TrousersMeasurements, style: Partial<Trouser
   const build = (k: number, f: Frame) => {
     const frontArgs: HalfArgs = { isFront: true, hipQ: H / 4 - 1, waistQ: s.joinTo?.front ?? W / 4 - 0.5, centreIn: frontIn, centreUp: frontUp, fork: fork0.front * k, legShift: 0, forkDrop: 0, dartMax: 2.5, dartLens: [9], zipCm: fly ? zipCm : 0 };
     const front = half(f, frontArgs);
-    const base = { isFront: false, hipQ: H / 4 + 1, waistQ: s.joinTo?.back ?? W / 4 + 0.5, centreIn: backIn, centreUp: backUp, fork: fork0.back * k, legShift: 0, forkDrop: 0.75, dartMax: 3, dartLens: [13, 11], zipCm: 0 };
+    const base = { isFront: false, hipQ: H / 4 + 1, waistQ: s.joinTo?.back ?? W / 4 + 0.5, centreIn: backIn, centreUp: backUp, fork: fork0.back * k, legShift: 0, forkDrop: 0.75, dartMax: 3, dartLens: s.backPockets === 'welt' ? BACK_WELT.darts : [13, 11], zipCm: 0 };
     // A wide back fork pulls the inside leg long: set the back crease so it runs as the front's does,
     // then true the side seams by moving the back leg up or down, then the inside legs by dropping the
     // back fork the last few millimetres.
@@ -619,6 +632,9 @@ export function draftTrousers(body: TrousersMeasurements, style: Partial<Trouser
   else if (closure === 'side_zip') zipCm = markSideZip(front.piece, back.piece, zipCm);
   const pocketed = withPockets(pieces, s.pockets ?? 'none', closure, hemAllowance);
   pieces = pocketed.pieces;
+  // Back welt pockets, on the back as finally cut.
+  const welted = s.backPockets === 'welt' ? backWelts(pieces[1], s.seamAllowance) : undefined;
+  if (welted) pieces = [pieces[0], welted.back, ...pieces.slice(2), ...welted.pieces];
   if (loops) pieces.push(beltLoopsPiece(s.seamAllowance));
 
   const r = (v: number) => Math.round(v * 10) / 10;
@@ -653,6 +669,7 @@ export function draftTrousers(body: TrousersMeasurements, style: Partial<Trouser
     ...(pocketed.sides ? { pocketSides: pocketed.sides } : {}),
     ...(pleated ? { pleats: pleated.pleats } : {}),
     ...(loops ? { loops: BELT_LOOPS } : {}),
+    ...(welted ? { backWelt: welted.place } : {}),
     block,
   };
 }

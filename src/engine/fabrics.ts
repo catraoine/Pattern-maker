@@ -434,9 +434,17 @@ const TROUSERS: Record<Leg, { picks: FabricPick[]; avoid: string }> = {
     ],
     avoid: 'Very fluid fabrics. The small flare collapses and the leg just looks long.',
   },
+  barrel: {
+    picks: [
+      pick('Cotton twill or denim', ['medium', 'heavy'], 'crisp', 'Holds the curve out round the knee.'),
+      pick('Wool suiting or gabardine', ['medium'], 'crisp', 'Sharp, with a clean curve to the ankle.'),
+      pick('Linen, heavier weights', ['medium'], 'crisp', 'Relaxed, the curve softening as it wears.'),
+    ],
+    avoid: 'Fluid fabrics. The curve falls in and the leg just looks tapered.',
+  },
 };
 
-const LEG_WORDS: Record<Leg, string> = { straight: 'straight-leg trousers', wide: 'wide-leg trousers', tapered: 'tapered trousers', culotte: 'culottes', flare: 'flared trousers', bootcut: 'bootcut trousers' };
+const LEG_WORDS: Record<Leg, string> = { straight: 'straight-leg trousers', wide: 'wide-leg trousers', tapered: 'tapered trousers', culotte: 'culottes', flare: 'flared trousers', bootcut: 'bootcut trousers', barrel: 'barrel-leg trousers' };
 
 /** Fabrics for trousers. */
 export function trousersFabrics(style: { leg: Leg }): FabricAdvice {

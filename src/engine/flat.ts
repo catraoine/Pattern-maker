@@ -14,6 +14,7 @@ import { BAND_CM, SleeveDraft } from './sleeve';
 import type { DressDraft } from './dress';
 import type { TrousersDraft } from './trousers';
 import { LOOP_PLACES, loopShape } from './trouserPleats';
+import { BACK_WELT, weltWidth } from './trouserBack';
 import { TeeDraft } from './tee';
 import { INSEAM, SLANT } from './pockets';
 import type { OuterDraft } from './outerwear';
@@ -1436,6 +1437,8 @@ export function trousersView(d: TrousersDraft, m: { waist_to_hip: number; crotch
       p(W, 0),
       ...bend(p(W, 0), p(hw, hd * 0.45), p(hw, hd)).slice(1),
       ...bend(p(hw, hd), p(hw, (hd + kn) / 2), p(xk + knee, kn)).slice(1),
+      // A barrel leg bows out round the knee and curves back in to the hem.
+      ...(d.leg === 'barrel' ? bend(p(xk + knee, kn), p(xk + knee + (L - kn) * 0.04, kn + (L - kn) * 0.55), p(xh + hem, L)).slice(1, -1) : []),
       p(xh + hem, L),
       p(xh - hem, L),
       p(xk - knee, kn),
@@ -1459,6 +1462,14 @@ export function trousersView(d: TrousersDraft, m: { waist_to_hip: number; crotch
         lines.push(...both([p(x, 0), p(xc, hd + 2)]).map((pts) => ({ pts, kind: 'seam' as const })));
         lines.push(...both([p(x - w, 0), p(x - w * 0.5, 4), p(xc - 0.3, hd + 2)]).map((pts) => ({ pts, kind: 'stitch' as const })));
       }
+    }
+    // Back welt pockets: a welt each side of the seat, below the waist and between the darts.
+    if (back && d.backWelt) {
+      const hwW = Math.min(weltWidth(d.backWelt) / 2, W * 0.4);
+      const x0 = W * 0.52;
+      const y0 = BACK_WELT.below;
+      const box = [p(x0 - hwW, y0), p(x0 + hwW, y0), p(x0 + hwW, y0 + d.backWelt.depth), p(x0 - hwW, y0 + d.backWelt.depth), p(x0 - hwW, y0)];
+      lines.push(...both(box).map((pts) => ({ pts, kind: 'seam' as const })));
     }
     // Belt loops: halfway across each front and at each side, and at the centre back.
     if (d.loops) for (const f of back ? LOOP_PLACES.back : LOOP_PLACES.front) for (const s of f === 0 ? [1] : [1, -1]) shapes.push(loopShape(W * f * s, top));

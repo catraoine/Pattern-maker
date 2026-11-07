@@ -81,7 +81,8 @@ export interface RoundGarment {
   /** The armhole on the body: the shoulder tip and the underarm, in cm from the waist. */
   armhole?: { shoulderCm: number; underarmCm: number };
   sleeve?: { lengthCm: number; bicepCm: number; hemCm: number };
-  legs?: { crotchCm: number; lengthCm: number; kneeCm: number; hemCm: number };
+  /** A barrel leg's side bows out round the knee instead of running straight to it and the hem (In testing). */
+  legs?: { crotchCm: number; lengthCm: number; kneeCm: number; hemCm: number; barrel?: boolean };
   /** An open centre front, closed with buttons at these heights (cm from the waist). */
   opening?: { buttons: number[] };
   /** A centre back vent, from this height to the hem. */
@@ -559,7 +560,7 @@ export function roundTrousers(draft: TrousersDraft, m: TrouserM): RoundGarment {
     ...(pleats.length ? { pleats } : {}),
     flare: 1,
     girth: { waist: draft.finishedWaist, hip: draft.finishedHip },
-    legs: { crotchCm, lengthCm: L, kneeCm: draft.kneeCm, hemCm: draft.hemCm },
+    legs: { crotchCm, lengthCm: L, kneeCm: draft.kneeCm, hemCm: draft.hemCm, ...(draft.leg === 'barrel' ? { barrel: true } : {}) },
     elastic: !!draft.elastic,
     seamsMeet: meets(draft.pieces.filter((pc) => !pc.kind), draft.finishedWaist),
     sideAngle: { front: sideToGrain(front), back: sideToGrain(back) },

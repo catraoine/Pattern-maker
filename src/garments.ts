@@ -9,6 +9,7 @@ import type { DartPlace, PrincessLine } from './engine/manipulate';
 import type { Closure, Collar } from './engine/collar';
 import { LEG_WORDS, Leg, TrouserClosure, TrouserLength } from './engine/trousers';
 import type { TrouserLoops, TrouserPleats } from './engine/trouserPleats';
+import type { BackPockets } from './engine/trouserBack';
 import type { Fit, WaistStyle } from './engine/skirt';
 import type { WaistSeam } from './engine/dress';
 import type { PocketStyle } from './engine/pockets';
@@ -150,26 +151,29 @@ export interface TrousersChoices {
   /** Front pleats and belt loops (In testing, SS27 Bermuda 2026-11-05). Older saves have neither. */
   pleats?: TrouserPleats;
   loops?: TrouserLoops;
+  /** A welt pocket on each back (In testing, Nov 7 2026). Older saves have none. */
+  backPockets?: BackPockets;
 }
 
 export const DEFAULT_TROUSERS_CHOICES: TrousersChoices = { garment: 'trousers', fit: 'regular', leg: 'straight', length: 'full', closure: 'fly', pleats: 'none', loops: 'none' };
 
-type TrouserGroupId = 'fit' | 'leg' | 'length' | 'waist' | 'closure' | 'pockets' | 'pleats' | 'loops';
+type TrouserGroupId = 'fit' | 'leg' | 'length' | 'waist' | 'closure' | 'pockets' | 'backPockets' | 'pleats' | 'loops';
 
 export const TROUSER_GROUPS: { id: TrouserGroupId; label: string; options: [string, string][] }[] = [
   { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed']] },
-  { id: 'leg', label: 'Leg', options: [['straight', 'Straight'], ['wide', 'Wide'], ['tapered', 'Tapered'], ['flare', 'Flare'], ['bootcut', 'Bootcut'], ['culotte', 'Culotte']] },
+  { id: 'leg', label: 'Leg', options: [['straight', 'Straight'], ['wide', 'Wide'], ['tapered', 'Tapered'], ['flare', 'Flare'], ['bootcut', 'Bootcut'], ['culotte', 'Culotte'], ['barrel', 'Barrel']] },
   { id: 'length', label: 'Length', options: [['shorts', 'Shorts'], ['knee', 'Knee'], ['capri', 'Capri'], ['cropped', 'Cropped'], ['ankle', 'Ankle'], ['full', 'Full length']] },
   { id: 'waist', label: 'Waist', options: [['band', 'Waistband with zip'], ['elastic', 'Elastic, pull-on']] },
   { id: 'closure', label: 'Opening', options: [['fly', 'Fly zip'], ['side_zip', 'Side zip']] },
   { id: 'pockets', label: 'Pockets', options: [['none', 'None'], ['inseam', 'In-seam'], ['slant', 'Slant front']] },
+  { id: 'backPockets', label: 'Back pockets', options: [['none', 'None'], ['welt', 'Welt pockets']] },
   { id: 'pleats', label: 'Front pleats', options: [['none', 'None'], ['single', 'One pleat'], ['double', 'Two pleats']] },
   { id: 'loops', label: 'Belt loops', options: [['none', 'None'], ['loops', 'Belt loops']] },
 ];
 
 /** A trouser choice as saved, older saves falling back to no pockets, no pleats, no loops and a zipped waistband. */
 export const trouserChoice = (c: TrousersChoices, id: TrouserGroupId): string =>
-  id === 'pockets' ? (c.pockets ?? 'none') : id === 'waist' ? (c.waist ?? 'band') : id === 'pleats' ? (c.pleats ?? 'none') : id === 'loops' ? (c.loops ?? 'none') : c[id];
+  id === 'pockets' ? (c.pockets ?? 'none') : id === 'waist' ? (c.waist ?? 'band') : id === 'pleats' ? (c.pleats ?? 'none') : id === 'loops' ? (c.loops ?? 'none') : id === 'backPockets' ? (c.backPockets ?? 'none') : c[id];
 
 /**
  * Whether a trouser choice can be picked with the rest, and why not: a pull-on waist has no opening
@@ -201,7 +205,8 @@ export function describeTrousers(c: TrousersChoices) {
   const ruffle = c.hemRuffle && !shorts ? ', ruffled at the hem,' : '';
   const pleats = c.waist !== 'elastic' && c.pleats && c.pleats !== 'none' ? (c.pleats === 'double' ? 'two front pleats' : 'a front pleat') : '';
   const loops = c.waist !== 'elastic' && c.loops === 'loops' ? 'belt loops' : '';
-  const extras = [pleats, loops, pockets].filter(Boolean);
+  const back = c.backPockets === 'welt' ? 'back welt pockets' : '';
+  const extras = [pleats, loops, pockets, back].filter(Boolean);
   const words = `${length}${shorts ? `${c.leg === 'straight' ? '' : `${c.leg} `}shorts` : LEG_WORDS[c.leg]}${ruffle} with ${opening}${extras.length ? `${extras.length > 1 ? ', ' : ' and '}${extras.slice(0, -1).join(', ')}${extras.length > 1 ? ' and ' : ''}${extras[extras.length - 1]}` : ''}`;
   return words[0].toUpperCase() + words.slice(1);
 }
