@@ -2178,6 +2178,32 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
     }
   }
   if (o.stretch) input.edgeK = 1 - o.stretch;
+  // A soft cloth starts in gentle waves round its hang, deepening to the hem, so it settles into the soft folds a silk
+  // falls in: laid smooth, the sim hung it smoother (Cat's "seed folds", Fabric behaviour round 5). By where each point
+  // lies, so the points of a seam move together. (Not a full circle: it is laid in its own flutes. Not under a tier or ruffle: their seams pulled apart. Nor a bias slip, laid in its own folds. Not trousers: seeded,
+  // a silk leg settled back to the same smooth tube; that waits on the sim itself.)
+  const seedAmp = knob('__seedAmp') ?? 2;
+  if (o.skirtBend !== undefined && o.skirtBend < 1 && o.fallOn && !extra.trousers && seedAmp > 0 && !fullCircle(extra.skirt) && !B.panels.some((p) => /tier|ruffle/i.test(p.pc.name)) && !knob('__noSeed')) {
+    const hung = B.panels.filter((p) => (o.fallOn === 'all' || p.role.startsWith('peplum')) && !p.hidden && !p.pc.meta.bias);
+    const lam = knob('__seedLam') ?? 9;
+    const top = sp.cOf(0.82);
+    let bot = top + 1;
+    for (const p of hung) for (let i = 0; i < p.mesh.pts.length; i++) bot = Math.max(bot, pos[(p.base + i) * 3 + 1]);
+    const soft = Math.min(1, (1 - o.skirtBend) / 0.4);
+    for (const p of hung)
+      for (let i = 0; i < p.mesh.pts.length; i++) {
+        const I = (p.base + i) * 3;
+        const t = Math.min(1, Math.max(0, (pos[I + 1] - top) / (bot - top)));
+        if (!t) continue;
+        const dx = pos[I];
+        const dz = pos[I + 2];
+        const r = Math.hypot(dx, dz) || 1;
+        const a = Math.atan2(dx, dz) * r;
+        const k = 1 + (seedAmp * soft * t * Math.sin((a / lam) * TAU)) / r;
+        pos[I] = dx * k;
+        pos[I + 2] = dz * k;
+      }
+  }
   const res = simulate(sp, input, extra.trousers ? (knob('__trouserSteps') ?? 100) : undefined);
   // A popped collar is held up by its interfacing and its roll, which the cloth here does not have: it keeps the shape
   // it was set in, standing round the neck, and only moves as the neck it is sewn to moves.
