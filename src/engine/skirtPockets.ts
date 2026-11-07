@@ -8,7 +8,7 @@ import { patchPocket, spanAt } from './pocketPieces';
 
 /** A skirt's patch pocket, finished: 14 cm across and 15 deep, a little smaller than a jacket's, its top
  * 9 cm below the waist seam (clear of the band and level with the end of the front dart). */
-export const SKIRT_PATCH = { w: 14, h: 15, top: 9, belowDart: 2, hemRoom: 6, minWidth: 10 };
+export const SKIRT_PATCH = { w: 14, h: 15, top: 9, belowDart: 2, hemRoom: 6, minWidth: 10, fromSide: 3 };
 
 /** Where a patch pocket sits on the front, in the front piece's own places (x out from the centre front). */
 export interface PatchPlace {
@@ -25,8 +25,8 @@ function dartFoot(front: Piece): number {
 }
 
 /**
- * A patch pocket on each front: placed below the dart, centred between the centre front and the side seam at
- * its middle, and kept 2 cm clear of the side seam. Undefined when the skirt is too short or narrow for one
+ * A patch pocket on each front: placed below the dart, toward the side on the hip, its outer edge 3 cm in from the
+ * side seam at its middle (nearer the centre only when the front is too narrow), and at least 2 cm from the centre front. Undefined when the skirt is too short or narrow for one
  * (a mini whose hem comes up under the pocket).
  */
 export function patchOnFront(front: Piece, lengthCm: number, hemAllowance: number, sa: number): { front: Piece; pocket: Piece; place: PatchPlace } | undefined {
@@ -40,7 +40,7 @@ export function patchOnFront(front: Piece, lengthCm: number, hemAllowance: numbe
   const from = Math.max(lo, 0) + 2;
   const w = Math.min(SKIRT_PATCH.w, hi - 2 - from);
   if (w < SKIRT_PATCH.minWidth) return undefined;
-  const x = Math.round((from + (hi - 2 - from - w) / 2) * 10) / 10;
+  const x = Math.round(Math.max(from, hi - SKIRT_PATCH.fromSide - w) * 10) / 10;
   const place = { x, y, w, h };
   const box = new Path(p(x, y)).line(p(x, y + h)).line(p(x + w, y + h)).line(p(x + w, y)).line(p(x, y));
   return {
