@@ -2611,7 +2611,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
           const v = hang(q, nape, arc / wt, cs / wt);
           // (Its first few centimetres up from the seam run from where the seam itself settled, which can stand off
           // the body more than the hung cloth does.)
-          const tt = Math.min(1, bd / (knob('__hoodSeamBlend') ?? 8));
+          const tt = Math.min(1, bd / (knob('__hoodSeamBlend') ?? 18));
           for (let k = 0; k < 3; k++) res[I + k] = (seat[k] / wt) * (1 - tt) + v[k] * tt;
         }
       }
