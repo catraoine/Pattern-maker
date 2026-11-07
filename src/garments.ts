@@ -23,6 +23,7 @@ import { Structure, isBoned, isStrapless, isTop } from './engine/corset';
 import { isShirred } from './engine/shirred';
 import { CAPE_NECKS, RUFFLE_NECKS } from './engine/collar';
 import { WRAP_BUST_DARTS } from './engine/wrap';
+import type { RangeChoices } from './garmentRange';
 import type { Panel, SeamKind, Yoke } from './engine/seams';
 import { type OuterCollar, type OuterFit, type OuterFlare, type OuterFront, type OuterKind, type OuterLapel, type OuterLength, lapelled, type OuterPads, type OuterPockets, type OuterShaping, type OuterSleeve, type OuterTrim, type OuterVent } from './engine/outerwear';
 
@@ -405,7 +406,7 @@ export function describeOuter(c: OuterChoices) {
 }
 
 /** A saved pattern's choices. Skirt choices predate bodices, so they carry no garment field. */
-export type PatternChoices = Choices | BodiceChoices | DressChoices | TrousersChoices | TeeChoices | OuterChoices | LingerieChoices;
+export type PatternChoices = Choices | BodiceChoices | DressChoices | TrousersChoices | TeeChoices | OuterChoices | LingerieChoices | RangeChoices;
 
 export const isBodice = (c: PatternChoices): c is BodiceChoices => (c as BodiceChoices).garment === 'bodice';
 export const isDress = (c: PatternChoices): c is DressChoices => (c as DressChoices).garment === 'dress';

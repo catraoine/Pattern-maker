@@ -7,7 +7,7 @@ import { isKnit, isOuterwear } from '../measurements';
 
 export type FitGarment = 'skirt' | 'bodice';
 /** Every garment that can be fitted in a toile: a dress takes both kinds of correction, trousers the skirt's waist and hip. */
-export type FitTarget = FitGarment | 'dress' | 'trousers' | 'tee' | 'jacket' | 'coat' | 'lingerie';
+export type FitTarget = FitGarment | 'dress' | 'trousers' | 'tee' | 'knit_dress' | 'hoodie' | 'jumpsuit' | 'jacket' | 'coat' | 'lingerie';
 
 export interface FitIssue {
   id: string;

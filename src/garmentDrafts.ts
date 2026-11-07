@@ -16,6 +16,10 @@ import { describe } from './skirtChoices';
 import { describePattern } from './screens/describe';
 import type { Piece } from './engine/piece';
 import { INITIAL, type Saved } from './savedWork';
+import { KnitDressDraft, KnitDressMeasurements, draftKnitDress } from './engine/knitDress';
+import { HoodieDraft, draftHoodie } from './engine/hoodie';
+import { JumpsuitDraft, JumpsuitMeasurements, draftJumpsuit } from './engine/jumpsuit';
+import { DEFAULT_HOODIE_CHOICES, DEFAULT_JUMPSUIT_CHOICES, DEFAULT_KNIT_DRESS_CHOICES, describeHoodie, describeJumpsuit, describeKnitDress, hoodieStyleOf, jumpsuitStyleOf, knitDressStyleOf } from './garmentRange';
 
 // The garment catalogue: for each garment, the choices it's styled with, its name on the page, how it's drafted (for
 // the style preview, the fitting screen's before and after, and a graded size run), and what its choices go back to
@@ -32,11 +36,14 @@ export interface Drafts {
   lingerie?: LingerieDraft;
   outer?: OuterDraft;
   sleeve?: SleeveDraft;
+  knitDress?: KnitDressDraft;
+  hoodie?: HoodieDraft;
+  jumpsuit?: JumpsuitDraft;
 }
 
 /** What every garment is drafted from: the saved choices, the person's form and the fabric bought. */
 export interface DraftInputs {
-  saved: Pick<Saved, 'choices' | 'bodice' | 'dress' | 'trousers' | 'tee' | 'lingerie' | 'jacket' | 'coat'>;
+  saved: Pick<Saved, 'choices' | 'bodice' | 'dress' | 'trousers' | 'tee' | 'knitDress' | 'hoodie' | 'jumpsuit' | 'lingerie' | 'jacket' | 'coat'>;
   form: FormKind;
   fabric?: MyFabric;
 }
@@ -70,6 +77,9 @@ export const dressOf = (saved: DraftInputs['saved']): DressChoices =>
   saved.dress ?? { garment: 'dress', fit: saved.bodice.fit, bodice: { ...saved.bodice, length: 'waist' }, skirt: saved.choices };
 export const trousersChoicesOf = (saved: DraftInputs['saved']) => saved.trousers ?? DEFAULT_TROUSERS_CHOICES;
 export const teeChoicesOf = (saved: DraftInputs['saved']) => saved.tee ?? DEFAULT_TEE_CHOICES;
+export const knitDressChoicesOf = (saved: DraftInputs['saved']) => saved.knitDress ?? DEFAULT_KNIT_DRESS_CHOICES;
+export const hoodieChoicesOf = (saved: DraftInputs['saved']) => saved.hoodie ?? DEFAULT_HOODIE_CHOICES;
+export const jumpsuitChoicesOf = (saved: DraftInputs['saved']) => saved.jumpsuit ?? DEFAULT_JUMPSUIT_CHOICES;
 export const lingerieChoicesOf = (saved: DraftInputs['saved']) => saved.lingerie ?? DEFAULT_LINGERIE_CHOICES;
 export const outerChoicesOf = (saved: DraftInputs['saved'], g: 'jacket' | 'coat'): OuterChoices =>
   g === 'coat' ? { ...DEFAULT_COAT_CHOICES, ...saved.coat } : { ...DEFAULT_JACKET_CHOICES, ...saved.jacket };
@@ -191,6 +201,32 @@ export const GARMENT_DRAFTING: Record<Garment, GarmentDrafting> = {
     piecesWith: (values, i) => draftTee(values as TeeMeasurements, teeStyleOf(i)).pieces,
     graded: (m, i) => draftTee(m as TeeMeasurements, teeStyleOf(i)).pieces,
     reset: { tee: DEFAULT_TEE_CHOICES },
+  },
+  // The Garment range (2026-11-07). The knit dress and hoodie fit by stretch like the T-shirt, so no woven toile
+  // corrections go into them; the jumpsuit has none of its own yet either (its fit test comes first).
+  knit_dress: {
+    choices: (s) => knitDressChoicesOf(s),
+    title: (s) => describeKnitDress(knitDressChoicesOf(s)),
+    draft: (values, i) => ({ knitDress: draftKnitDress(values as KnitDressMeasurements, knitDressStyleOf(knitDressChoicesOf(i.saved), i.form === 'menswear')) }),
+    piecesWith: (values, i) => draftKnitDress(values as KnitDressMeasurements, knitDressStyleOf(knitDressChoicesOf(i.saved), i.form === 'menswear')).pieces,
+    graded: (m, i) => draftKnitDress(m as KnitDressMeasurements, knitDressStyleOf(knitDressChoicesOf(i.saved), i.form === 'menswear')).pieces,
+    reset: { knitDress: DEFAULT_KNIT_DRESS_CHOICES },
+  },
+  hoodie: {
+    choices: (s) => hoodieChoicesOf(s),
+    title: (s) => describeHoodie(hoodieChoicesOf(s)),
+    draft: (values, i) => ({ hoodie: draftHoodie(values as TeeMeasurements, hoodieStyleOf(hoodieChoicesOf(i.saved), i.form === 'menswear')) }),
+    piecesWith: (values, i) => draftHoodie(values as TeeMeasurements, hoodieStyleOf(hoodieChoicesOf(i.saved), i.form === 'menswear')).pieces,
+    graded: (m, i) => draftHoodie(m as TeeMeasurements, hoodieStyleOf(hoodieChoicesOf(i.saved), i.form === 'menswear')).pieces,
+    reset: { hoodie: DEFAULT_HOODIE_CHOICES },
+  },
+  jumpsuit: {
+    choices: (s) => jumpsuitChoicesOf(s),
+    title: (s) => describeJumpsuit(jumpsuitChoicesOf(s)),
+    draft: (values, i) => ({ jumpsuit: draftJumpsuit(values as JumpsuitMeasurements, jumpsuitStyleOf(jumpsuitChoicesOf(i.saved))) }),
+    piecesWith: (values, i) => own(draftJumpsuit(values as JumpsuitMeasurements, jumpsuitStyleOf(jumpsuitChoicesOf(i.saved))).pieces),
+    graded: (m, i, _f, allow) => allow(draftJumpsuit(m as JumpsuitMeasurements, jumpsuitStyleOf(jumpsuitChoicesOf(i.saved))).pieces),
+    reset: { jumpsuit: DEFAULT_JUMPSUIT_CHOICES },
   },
   lingerie: {
     choices: (s) => lingerieChoicesOf(s),

@@ -13,6 +13,7 @@ import { Garment, MeasurementValues, Unit } from './measurements';
 import { LingerieChoices } from './garments';
 import { BodiceChoices, DEFAULT_BODICE, OuterChoices, TeeChoices, TrousersChoices, DressChoices, PatternChoices, isBodice, isDress, isLingerie, isOuter, isTee, isTrousers } from './garments';
 import { Flounce, GodetCount, Pleats } from './engine/skirtVolume';
+import { type HoodieChoices, type JumpsuitChoices, type KnitDressChoices, isHoodie, isJumpsuit, isKnitDress } from './garmentRange';
 
 // The work kept in this browser (under the "pattern-maker:skirt" key) and its parts: the skirt's choices, the other
 // garments' choices and how the pattern is finished.
@@ -86,6 +87,10 @@ export interface Saved {
   trousers?: TrousersChoices;
   /** The T-shirt's choices. Older saves have none. */
   tee?: TeeChoices;
+  /** The Garment range's choices (2026-11-07). Older saves have none. */
+  knitDress?: KnitDressChoices;
+  hoodie?: HoodieChoices;
+  jumpsuit?: JumpsuitChoices;
   /** Lingerie's choices, while it's previewed (lingerieFlag.ts). */
   lingerie?: LingerieChoices;
   /** The jacket's and the coat's choices. */
@@ -102,6 +107,9 @@ export function choicesPatch(c: PatternChoices): [Garment, Partial<Saved>] {
   if (isOuter(c)) return [c.garment, { [c.garment]: c }];
   if (isTrousers(c)) return ['trousers', { trousers: c }];
   if (isTee(c)) return ['tee', { tee: c }];
+  if (isKnitDress(c)) return ['knit_dress', { knitDress: c }];
+  if (isHoodie(c)) return ['hoodie', { hoodie: c }];
+  if (isJumpsuit(c)) return ['jumpsuit', { jumpsuit: c }];
   if (isLingerie(c)) return ['lingerie', { lingerie: c }];
   if (isDress(c)) return ['dress', { dress: c }];
   if (isBodice(c)) return ['bodice', { bodice: c }];

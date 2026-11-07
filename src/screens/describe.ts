@@ -1,5 +1,6 @@
 import { beltWords } from '../engine/belt';
 import { PatternChoices, bodiceDetails, describeBodice, describeOuter, describeTee, describeTrousers, describeLingerie, isLingerie, isBodice, isDress, isOuter, isTee, isTrousers } from '../garments';
+import { describeHoodie, describeJumpsuit, describeKnitDress, isHoodie, isJumpsuit, isKnitDress } from '../garmentRange';
 import { GROUPS, describe as describeSkirt } from '../skirtChoices';
 import { buttonsOnSkirt, noSeamAllowed } from '../engine/dress';
 import { wrapSkirtAllowed } from '../engine/wrapSkirt';
@@ -36,5 +37,8 @@ export function describePattern(c: PatternChoices) {
   if (isTee(c)) return describeTee(c);
   if (isOuter(c)) return describeOuter(c);
   if (isLingerie(c)) return describeLingerie(c);
+  if (isKnitDress(c)) return describeKnitDress(c);
+  if (isHoodie(c)) return describeHoodie(c);
+  if (isJumpsuit(c)) return describeJumpsuit(c);
   return isBodice(c) ? describeBodice(c) : describeSkirt(c);
 }

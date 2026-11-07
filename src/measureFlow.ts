@@ -12,8 +12,8 @@ export const BASE: MeasurementId[] = ['waist', 'full_bust', 'full_hip', 'waist_t
 const TAPE_BASE: MeasurementId[] = BASE.filter((id) => id !== 'height');
 
 /** Lingerie is in the list only while previewing, until the fit test passes (lingerieFlag.ts). */
-export const GARMENTS: Garment[] = ['skirt', 'dress', 'bodice', 'trousers', 'tee', 'jacket', 'coat', ...(lingerieShown ? (['lingerie'] as const) : [])];
-export const GARMENT_NAME: Record<Garment, string> = { skirt: 'skirt', dress: 'dress', bodice: 'bodice', trousers: 'trousers', tee: 'T-shirt', jacket: 'jacket', coat: 'coat', lingerie: 'lingerie' };
+export const GARMENTS: Garment[] = ['skirt', 'dress', 'bodice', 'trousers', 'tee', 'knit_dress', 'hoodie', 'jumpsuit', 'jacket', 'coat', ...(lingerieShown ? (['lingerie'] as const) : [])];
+export const GARMENT_NAME: Record<Garment, string> = { skirt: 'skirt', dress: 'dress', bodice: 'bodice', trousers: 'trousers', tee: 'T-shirt', knit_dress: 'knit dress', hoodie: 'hoodie', jumpsuit: 'jumpsuit', jacket: 'jacket', coat: 'coat', lingerie: 'lingerie' };
 
 const ALL = new Map<MeasurementId, MeasurementField>();
 for (const list of Object.values(FIELDS)) for (const f of list) if (!ALL.has(f.id)) ALL.set(f.id, f);

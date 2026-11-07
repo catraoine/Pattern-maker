@@ -303,7 +303,7 @@ function zip(top: number, cm: number): FlatView['lines'] {
 }
 
 /** Front and back side by side, from the top left at 0, 0. */
-function arrange(views: Omit<FlatView, 'at' | 'origin'>[]): Flat {
+export function arrange(views: Omit<FlatView, 'at' | 'origin'>[]): Flat {
   const all = (v: Omit<FlatView, 'at' | 'origin'>) => [...v.shapes.flat(), ...v.lines.flatMap((l) => l.pts)];
   const top = Math.min(...views.flatMap((v) => all(v).map((q) => q.y)));
   const bottom = Math.max(...views.flatMap((v) => all(v).map((q) => q.y)));

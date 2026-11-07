@@ -5,10 +5,10 @@ import type { SleeveMeasurements } from './engine/sleeve';
 import type { TrousersMeasurements } from './engine/trousers';
 import type { LingerieMeasurements } from './engine/lingerie';
 
-export type Garment = 'skirt' | 'bodice' | 'dress' | 'trousers' | 'tee' | 'jacket' | 'coat' | 'lingerie';
+export type Garment = 'skirt' | 'bodice' | 'dress' | 'trousers' | 'tee' | 'knit_dress' | 'hoodie' | 'jumpsuit' | 'jacket' | 'coat' | 'lingerie';
 
 /** Garments cut from knit and fitted by stretch: knit allowances whatever the style, and no woven toile corrections. */
-export const isKnit = (g: Garment) => g === 'tee' || g === 'lingerie';
+export const isKnit = (g: Garment) => g === 'tee' || g === 'knit_dress' || g === 'hoodie' || g === 'lingerie';
 /** Garments worn from the waist down, fitted at the waist and hip with no bust. */
 export const isLowerBody = (g: Garment) => g === 'skirt' || g === 'trousers';
 /** Jackets and coats: drafted on the bodice block, fully lined. */
@@ -369,7 +369,21 @@ const COAT_FIELDS: MeasurementField[] = [
   ...JACKET_FIELDS.filter((f) => f.fit),
 ];
 
-export const FIELDS: Record<Garment, MeasurementField[]> = { skirt: SKIRT_FIELDS, bodice: BODICE_FIELDS, dress: DRESS_FIELDS, trousers: TROUSERS_FIELDS, tee: TEE_FIELDS, jacket: JACKET_FIELDS, coat: COAT_FIELDS, lingerie: LINGERIE_FIELDS };
+/** The Garment range (2026-11-07). A knit dress is the T-shirt carried on to a dress length, so it takes the T-shirt's
+ * measurements with the knee and the floor; a hoodie exactly the T-shirt's (it always has long sleeves, which the
+ * T-shirt's arms already cover); a jumpsuit the dress's top and the trousers' legs, crotch and all. */
+const KNIT_DRESS_FIELDS: MeasurementField[] = [
+  ...TEE_FIELDS.filter((f) => !f.fit),
+  ...SKIRT_FIELDS.filter((f) => f.id === 'waist_to_knee' || f.id === 'waist_to_floor').map((f) => ({ ...f, optional: undefined })),
+  ...TEE_FIELDS.filter((f) => f.fit),
+];
+const JUMPSUIT_FIELDS: MeasurementField[] = [
+  ...DRESS_FIELDS.filter((f) => !f.fit),
+  ...TROUSERS_FIELDS.filter((f) => !f.fit && !DRESS_FIELDS.some((d) => d.id === f.id)),
+  ...DRESS_FIELDS.filter((f) => f.fit),
+];
+
+export const FIELDS: Record<Garment, MeasurementField[]> = { skirt: SKIRT_FIELDS, bodice: BODICE_FIELDS, dress: DRESS_FIELDS, trousers: TROUSERS_FIELDS, tee: TEE_FIELDS, knit_dress: KNIT_DRESS_FIELDS, hoodie: TEE_FIELDS, jumpsuit: JUMPSUIT_FIELDS, jacket: JACKET_FIELDS, coat: COAT_FIELDS, lingerie: LINGERIE_FIELDS };
 
 export type Unit = 'cm' | 'in';
 export type MeasurementValues = Partial<Record<MeasurementId, number>>; // always stored in cm
@@ -492,9 +506,10 @@ export function checkMeasurements(v: MeasurementValues, unit: Unit, garment: Gar
       else if (out[at].level === 'warning' && / is unusual\. /.test(out[at].message)) out[at] = { id: c.id, level: 'warning', message: c.message };
     }
   };
-  // A T-shirt hangs from the shoulders and is cut from the bust down, so only the top's checks apply.
-  if (garment !== 'bodice' && garment !== 'tee') {
-    if (waist && full_hip && waist > full_hip) {
+  // A T-shirt (and a hoodie, built on it) hangs from the shoulders and is cut from the bust down, so only the top's
+  // checks apply. A knit dress stretches over the hip, so a waist larger than the hip drafts too.
+  if (garment !== 'bodice' && garment !== 'tee' && garment !== 'hoodie') {
+    if (waist && full_hip && waist > full_hip && garment !== 'knit_dress') {
       out.push({
         id: 'waist',
         level: 'warning',

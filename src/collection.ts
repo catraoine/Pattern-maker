@@ -13,6 +13,7 @@ import { draftSkirt, skirtFitOf } from './engine/skirt';
 import { SleeveDraft, draftSleeve, needsArms } from './engine/sleeve';
 import { draftTrousers } from './engine/trousers';
 import { draftTee } from './engine/tee';
+import { isRange, rangeFlat } from './garmentRange';
 import type { BodiceDraft } from './engine/bodice';
 import {
   BodiceChoices,
@@ -191,6 +192,7 @@ export function choicesFlat(c: PatternChoices, m: MeasurementValues): Flat | und
       return bodiceFlat(d, 'binding', sleeveFor(d, b, m));
     }
     if (isLingerie(c)) return undefined;
+    if (isRange(c)) return rangeFlat(c, m);
     const k = draftSkirt(m as never, c);
     return skirtFlat(k, skirtBelt(c.belt, k));
   } catch {
