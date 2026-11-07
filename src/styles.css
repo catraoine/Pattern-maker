@@ -32,3 +32,4 @@
 @import './styles/28-step-arrow.css'; /* A down arrow under the step's name on a phone (Nov 6). */
 @import './styles/29-view-glider.css'; /* Style's view line as a glider: a low dark track, the view showing a raised block (Nov 6). */
 @import './styles/30-steady-view.css'; /* One steady drawing box on Style: every view the same height, the corner's tools clear of the drawing (Nov 7). */
+@import './styles/31-full-bars.css'; /* The view bar on Style runs the full width of its line, Pattern in it (Nov 7). */

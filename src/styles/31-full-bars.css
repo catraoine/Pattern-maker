@@ -1,0 +1,78 @@
+/* The view bar on Style runs the full width of its line (Cat, Nov 7: "the button should span farther to match the
+   horizontal line length"). The low dark track now runs edge to edge of the drawing's column, and Pattern (Garment, in
+   the pattern view) sits in it as the last of equal slots: Front | Flat | All round | Pattern. Looks only: the same
+   buttons, the same names, the same views. */
+.style-layout .style-pin > section:not(.live-big) > .row.between.wrap {
+  isolation: isolate;
+  padding: 0 25% 0 0;
+}
+.style-layout .style-pin > section:not(.live-big) > .row.between.wrap::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 32px;
+  transform: translateY(-50%);
+  background: #141210;
+  z-index: -1;
+  pointer-events: none;
+}
+.style-layout .style-pin > section:not(.live-big) > .row.between.wrap > .seg {
+  flex: 1;
+  max-width: none;
+  gap: 0;
+  padding: 3px;
+  background: none;
+  overflow: visible;
+  justify-content: stretch;
+}
+.style-layout .style-pin > section:not(.live-big) > .row.between.wrap > .seg button {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0 4px;
+  text-align: center;
+}
+.style-layout .style-pin > section:not(.live-big) > .row.between.wrap > .fitswitch {
+  margin-left: 12px;
+}
+.style-layout .style-pin > section:not(.live-big) > .lookboxes {
+  width: 25%;
+  margin-right: 0;
+  padding: 0 3px 0 0;
+  box-sizing: border-box;
+  justify-content: stretch;
+  gap: 0;
+}
+.style-layout .style-pin > section:not(.live-big) > .lookboxes button:not(.on) {
+  flex: 1;
+  justify-content: center;
+}
+/* Four views (a bodice with its back) make five equal slots. */
+.style-layout .style-pin > section:not(.live-big) > .row.between.wrap:has(> .seg > button:nth-child(4)) {
+  padding-right: 20%;
+}
+.style-layout .style-pin > section:not(.live-big):has(> .row.between.wrap > .seg > button:nth-child(4)) > .lookboxes {
+  width: 20%;
+}
+
+/* Across the app (Cat, Nov 7): the account's Units and Tools switches run the full width of their line too, as one
+   box split in equal halves, like Womenswear | Menswear on the first measuring page. */
+.account fieldset.group > .seg {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 0;
+  width: 100%;
+  padding: 0;
+  border: var(--bw) solid var(--guide);
+}
+.account fieldset.group > .seg button {
+  min-height: 46px;
+  margin: 0;
+  justify-content: center;
+  text-align: center;
+}
+.account fieldset.group > .seg button + button {
+  border-left: var(--bw) solid var(--guide);
+}
