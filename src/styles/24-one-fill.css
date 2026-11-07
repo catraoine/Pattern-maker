@@ -171,3 +171,13 @@ button.primary.main-go:not(:disabled) {
 .style-pin .undotools button:not(:disabled) {
   pointer-events: auto;
 }
+
+/* CM / IN: the picked one's box stands clear of its letters (Cat, 2026-11-07: too small for them). */
+.unit-switch {
+  gap: 6px;
+}
+.unit-switch button,
+.unit-switch button + button {
+  padding: 6px 10px;
+  border-bottom: 0;
+}

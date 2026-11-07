@@ -405,6 +405,9 @@ button.link.how-link {
 /* Next sits well apart from the box, so the two never read as one control */
 button.step-next {
   margin-top: 18px;
+  /* Its word in the middle (Cat, 2026-11-07): the Style chapter's .step-next row lays its own out to the sides. */
+  justify-content: center;
+  padding: 0 18px;
 }
 /* The tag inside an option chip: just the small word under the label, not a chip of its own. */
 .chip .testing-tag.chip {

@@ -297,7 +297,8 @@ await main.getByRole('button', { name: 'Choose what to make' }).click();
 await main.getByRole('heading', { name: 'What would you like to make?' }).waitFor();
 // 'Pick a garment,' takes the top of the screen in the film, so the app's header is left out under it, the page set
 // down the same as the collection after it (Cat, 2026-10-30).
-const captionRoom = 'main .testing-tag, .topbar { display: none !important; } main { padding-top: ' + (WIDE ? 110 : 96) + 'px !important; }';
+// The line naming the garments still in testing is left out of the film too (Cat, 2026-11-07).
+const captionRoom = 'main .testing-tag, main .testing-note, .topbar { display: none !important; } main { padding-top: ' + (WIDE ? 110 : 96) + 'px !important; }';
 const chooseOnly = await p.addStyleTag({ content: captionRoom });
 await wait(900);
 await start();
