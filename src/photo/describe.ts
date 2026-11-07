@@ -1,9 +1,8 @@
 // Server side only: asks Claude what a garment described in words is, whether the app can draft it, and
 // which garment and style options to start from. Imported by the Netlify function, never by the app.
 import Anthropic from '@anthropic-ai/sdk';
-import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
 import { z } from 'zod';
-import { Reading, SYSTEM as READING_GUIDE, piece, spendLimitReached, toReading } from './analyze';
+import { Reading, SYSTEM as READING_GUIDE, piece, spendLimitReached, toReading, askFor } from './analyze';
 import { IdeaReading, IdeaResponse, MAX_IDEA_CHARS } from './types';
 
 const Idea = z.object({
@@ -45,22 +44,16 @@ export async function describeIdea(text: unknown, client: Anthropic | null): Pro
   if (!idea) return { ok: false, error: 'bad_image' };
 
   try {
-    const response = await client.beta.messages.parse({
-      model: 'claude-opus-5-5',
+    const raw = await askFor(client, Idea, {
+      label: 'idea reading',
       // A reading is a few hundred words at most; the ceiling bounds what one request can ever cost (about 16 cents).
       max_tokens: 8000,
-      output_config: { effort: 'low', format: betaZodOutputFormat(Idea) },
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
       system: SYSTEM,
-      messages: [{ role: 'user', content: [{ type: 'text', text: `What they would like to make: ${idea}` }] }],
+      content: [{ type: 'text', text: `What they would like to make: ${idea}` }],
     });
-    // Logged so the real cost per reading shows in Netlify's function logs.
-    console.log('idea reading tokens', { in: response.usage?.input_tokens, out: response.usage?.output_tokens });
-    if (response.stop_reason === 'refusal') return { ok: false, error: 'declined' };
-    const raw = response.parsed_output as (Omit<IdeaReading, 'reading'> & { reading: Parameters<typeof toReading>[0] }) | null;
+    if (raw === 'refused') return { ok: false, error: 'declined' };
     if (!raw) return { ok: false, error: 'failed' };
-    const parsed: IdeaReading = { ...raw, reading: toReading(raw.reading) };
+    const parsed: IdeaReading = { ...raw, reading: toReading(raw.reading as Parameters<typeof toReading>[0]) } as IdeaReading;
     // A garment to start from only when there is one to make.
     const out: IdeaReading = parsed.verdict === 'not_yet' ? { ...parsed, start: null } : parsed.start ? parsed : { ...parsed, verdict: 'not_yet' };
     return { ok: true, idea: out };

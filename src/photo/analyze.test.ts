@@ -8,15 +8,32 @@ const reading = {
   length: { value: 'midi', confidence: 'medium' },
   fit: { value: 'regular', confidence: 'low' },
   shape: { hemAt: 0.74, hemFullness: 1.6, flareAt: null, confidence: 'medium' },
+  pieces: [{ garment: 'skirt', x: 0.5, y: 0.6 }],
+  extras: { volume: 'box', asymHem: 'none', pockets: false, elasticWaist: false, slit: 'none' },
+  top: null,
+  trousers: null,
+  outer: null,
+  fabric: null,
+  worn: true,
+  measures: [] as { name: string; value: number }[],
+  unsure: null,
+  missing: [],
   details: 'It has box pleats at the front.',
 };
+/** The reading as the app gets it: every size named, null when not shown. */
+const kept = () => toReading(reading as never);
 
+/** A stand-in for the API: a structured answer through parse, or the same answer as a call to the answer tool through create. Both are counted in parse's calls. */
 const fakeClient = (result: object | Error) => {
-  const parse = vi.fn(async () => {
+  const parse = vi.fn(async (_req: unknown) => {
     if (result instanceof Error) throw result;
     return result;
   });
-  return { client: { beta: { messages: { parse } } } as unknown as Anthropic, parse };
+  const create = async (req: unknown) => {
+    const r = (await parse(req)) as { stop_reason?: string; parsed_output?: unknown };
+    return { stop_reason: r.stop_reason === 'refusal' ? 'refusal' : 'tool_use', content: r.parsed_output ? [{ type: 'tool_use', name: 'record_answer', input: r.parsed_output }] : [] };
+  };
+  return { client: { beta: { messages: { parse, create } } } as unknown as Anthropic, parse };
 };
 
 const photo = { image: 'aGVsbG8=', mediaType: 'image/jpeg' };
@@ -35,7 +52,7 @@ describe('analyzePhoto', () => {
 
   it('returns the reading and sends the photo as an image block with fallbacks on', async () => {
     const { client, parse } = fakeClient({ stop_reason: 'end_turn', parsed_output: reading });
-    expect(await analyzePhoto(photo, client)).toEqual({ ok: true, reading });
+    expect(await analyzePhoto(photo, client)).toEqual({ ok: true, reading: kept() });
     const req = (parse.mock.calls[0] as unknown[])[0] as { model: string; fallbacks: string; messages: { content: { type: string }[] }[] };
     expect(req.model).toBe('claude-opus-5-5');
     expect(req.fallbacks).toBe('default');
@@ -45,10 +62,10 @@ describe('analyzePhoto', () => {
   it('asks for every silhouette the drafter knows and the exact shape', async () => {
     const { client, parse } = fakeClient({ stop_reason: 'end_turn', parsed_output: reading });
     await analyzePhoto(photo, client);
-    const req = (parse.mock.calls[0] as unknown[])[0] as { output_config: unknown; system: string };
-    const schema = JSON.stringify(req.output_config);
+    const req = (parse.mock.calls[0] as unknown[])[0] as { tools: unknown; system: string };
+    const schema = JSON.stringify(req.tools);
     for (const shape of ['pencil', 'straight', 'a_line', 'trumpet', 'half_circle', 'circle']) {
-      expect(schema).toContain(`\\"${shape}\\"`); // the enum is listed inside the schema's description
+      expect(schema).toContain(`"${shape}"`);
       expect(req.system).toContain(`"${shape}"`);
     }
     for (const key of ['hemAt', 'hemFullness', 'flareAt']) expect(schema).toContain(`"${key}"`);
@@ -57,8 +74,8 @@ describe('analyzePhoto', () => {
   it('reads every garment the app drafts, and each piece in an outfit', async () => {
     const { client, parse } = fakeClient({ stop_reason: 'end_turn', parsed_output: reading });
     await analyzePhoto(photo, client);
-    const req = (parse.mock.calls[0] as unknown[])[0] as { output_config: unknown; system: string };
-    const schema = JSON.stringify(req.output_config);
+    const req = (parse.mock.calls[0] as unknown[])[0] as { tools: unknown; system: string };
+    const schema = JSON.stringify(req.tools);
     for (const g of ['skirt', 'dress', 'top', 'tee', 'trousers', 'jacket', 'coat']) expect(req.system).toContain(`"${g}"`);
     for (const key of ['pieces', 'extras', 'top', 'trousers', 'outer', 'waistSeam', 'knit']) expect(schema).toContain(`"${key}"`);
   });
@@ -78,31 +95,36 @@ describe('analyzePhoto', () => {
 });
 
 describe('the reading format sent to the API', () => {
-  it('stays within the API limit of 16 values that can be one of two types', async () => {
+  it('asks for the reading as a call to a plain answer tool, never a compiled grammar, which is too large for it', async () => {
     const { client, parse } = fakeClient({ stop_reason: 'end_turn', parsed_output: reading });
     await analyzePhoto(photo, client);
-    const schema = ((parse.mock.calls[0] as unknown[])[0] as { output_config: { format: { schema: unknown } } }).output_config.format.schema;
-    let unions = 0;
-    const walk = (s: unknown): void => {
-      if (!s || typeof s !== 'object') return;
-      if (Array.isArray(s)) return s.forEach(walk);
-      const o = s as Record<string, unknown>;
-      if (o.anyOf || Array.isArray(o.type)) unions++;
-      Object.values(o).forEach(walk);
-    };
-    walk(schema);
-    expect(unions).toBeLessThanOrEqual(12); // room to spare under 16
+    const req = (parse.mock.calls[0] as unknown[])[0] as { output_config: Record<string, unknown>; tools: { name: string; strict?: boolean; input_schema: { type: string } }[]; tool_choice: { type: string }; system: string };
+    expect(req.output_config.format).toBeUndefined();
+    expect(req.tools).toHaveLength(1);
+    expect(req.tools[0].strict).toBeUndefined();
+    expect(req.tools[0].input_schema.type).toBe('object');
+    expect(req.tool_choice.type).toBe('auto'); // Opus 5.5 refuses a forced tool choice
+    expect(req.system).toContain(req.tools[0].name);
+  });
+
+  it('asks once more when the answer is missing or the wrong shape, then gives up', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { client, parse } = fakeClient({ stop_reason: 'end_turn', parsed_output: { garment: 'skirt' } });
+    expect(await analyzePhoto(photo, client)).toEqual({ ok: false, error: 'failed' });
+    expect(parse).toHaveBeenCalledTimes(2);
   });
 
   it('turns the listed sizes into the reading the app keeps, null for each not listed', async () => {
     const listed = { ...reading, measures: [{ name: 'bustRoom', value: 1.32 }, { name: 'shoulderOutCm', value: -2 }, { name: 'bustRoom', value: 9 }] };
     const out = await analyzePhoto(photo, fakeClient({ stop_reason: 'end_turn', parsed_output: listed }).client);
+    expect(out.ok).toBe(true);
     const m = out.ok ? out.reading.measures : undefined;
     expect(m?.bustRoom).toBe(1.32);
     expect(m?.shoulderOutCm).toBe(-2);
     expect(m?.neckDepthCm).toBeNull();
     expect(m?.legHemRoom).toBeNull();
-    expect(toReading({ ...reading } as never)).toEqual(reading);
+    const { measures: _, ...old } = reading;
+    expect(toReading(old as never)).toEqual(old);
   });
 });
 

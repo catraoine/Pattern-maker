@@ -274,6 +274,48 @@ const earlier = (r: unknown) => {
   return ok.success ? toWire(ok.data) : null;
 };
 
+type UserContent = Anthropic.Beta.BetaContentBlockParam[];
+
+/** The answer tool Claude fills in; its name is in the instruction that asks for it. */
+const ANSWER = 'record_answer';
+
+/**
+ * Ask Claude for an answer of this shape, given as its one call to the answer tool and checked here against the schema.
+ * Not a strict tool or a structured output: those compile the schema into a grammar first, and the reading's grammar
+ * is too large for the API ("The compiled grammar is too large", Nov 7), so every front reading was refused. The model
+ * can't be made to call the tool (Opus 5.5 refuses forced tool choice), so an answer with no call, or one that doesn't
+ * fit the schema, is asked for once more. Null when neither fits; "refused" when Claude declines the photo.
+ */
+export async function askFor<T extends z.ZodType>(
+  client: Anthropic,
+  schema: T,
+  ask: { label: string; max_tokens: number; system: string; content: UserContent },
+): Promise<z.infer<T> | null | 'refused'> {
+  const { $schema: _, ...input_schema } = z.toJSONSchema(schema, { io: 'input' }) as Record<string, unknown>;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const response = await client.beta.messages.create({
+      model: 'claude-opus-5-5',
+      max_tokens: ask.max_tokens,
+      // Reading a photo is a quick classification, so low effort keeps it fast and cheap.
+      output_config: { effort: 'low' },
+      betas: ['server-side-fallback-2026-07-01'],
+      fallbacks: 'default',
+      system: `${ask.system}\n\nGive your answer by calling the ${ANSWER} tool once, with every field filled in.`,
+      tools: [{ name: ANSWER, description: 'Records your answer.', input_schema: input_schema as Anthropic.Beta.BetaTool.InputSchema }],
+      tool_choice: { type: 'auto', disable_parallel_tool_use: true },
+      messages: [{ role: 'user', content: ask.content }],
+    });
+    // Logged so the real cost per reading shows in Netlify's function logs.
+    console.log(`${ask.label} tokens`, { in: response.usage?.input_tokens, out: response.usage?.output_tokens });
+    if (response.stop_reason === 'refusal') return 'refused';
+    const call = response.content.find((b) => b.type === 'tool_use' && b.name === ANSWER);
+    const ok = call && call.type === 'tool_use' ? schema.safeParse(call.input) : null;
+    if (ok?.success) return ok.data;
+    console.error(`${ask.label}: no answer that fits`, ok ? ok.error.issues.slice(0, 3) : 'no tool call');
+  }
+  return null;
+}
+
 /** Compare the drawing of what was drafted with the photo, and correct the reading once where they differ. */
 export async function checkDrawing(input: CheckInput, client: Anthropic | null): Promise<CheckResponse> {
   if (!client) return { ok: false, error: 'not_configured' };
@@ -282,27 +324,17 @@ export async function checkDrawing(input: CheckInput, client: Anthropic | null):
   const before = earlier(input.reading);
   if (!before) return { ok: false, error: 'bad_image' };
   try {
-    const response = await client.beta.messages.parse({
-      model: 'claude-opus-5-5',
+    const out = await askFor(client, Check, {
+      label: 'check',
       max_tokens: 8000,
-      output_config: { effort: 'low', format: betaZodOutputFormat(Check) },
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
       system: CHECK_SYSTEM + SYSTEM,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: input.mediaType as (typeof IMAGE_TYPES)[number], data: input.image } },
-            { type: 'image', source: { type: 'base64', media_type: 'image/png', data: input.drawing } },
-            { type: 'text', text: `Your earlier reading:\n${JSON.stringify(before)}\n\nCompare the drawing with the photo and correct the reading where they differ.` },
-          ],
-        },
+      content: [
+        { type: 'image', source: { type: 'base64', media_type: input.mediaType as (typeof IMAGE_TYPES)[number], data: input.image } },
+        { type: 'image', source: { type: 'base64', media_type: 'image/png', data: input.drawing } },
+        { type: 'text', text: `Your earlier reading:\n${JSON.stringify(before)}\n\nCompare the drawing with the photo and correct the reading where they differ.` },
       ],
     });
-    console.log('check tokens', { in: response.usage?.input_tokens, out: response.usage?.output_tokens });
-    if (response.stop_reason === 'refusal') return { ok: false, error: 'declined' };
-    const out = response.parsed_output as { reading: WireReading; changes: string[] } | null;
+    if (out === 'refused') return { ok: false, error: 'declined' };
     return out ? { ok: true, reading: toReading(out.reading), changes: out.changes.slice(0, 6) } : { ok: false, error: 'failed' };
   } catch (e) {
     if (spendLimitReached(e)) return { ok: false, error: 'busy' };
@@ -384,32 +416,17 @@ export async function analyzePhoto(input: AnalyzeInput, client: Anthropic | null
   if (bad) return { ok: false, error: bad };
 
   try {
-    const response = await client.beta.messages.parse({
-      model: 'claude-opus-5-5',
+    const reading = await askFor(client, Reading, {
+      label: 'photo reading',
       // A reading is a few hundred words at most; the ceiling bounds what one request can ever cost (about 16 cents).
       max_tokens: 8000,
-      // Reading a photo is a quick classification, so low effort keeps it fast and cheap.
-      output_config: { effort: 'low', format: betaZodOutputFormat(Reading) },
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
       system: SYSTEM,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: { type: 'base64', media_type: input.mediaType as (typeof IMAGE_TYPES)[number], data: input.image },
-            },
-            { type: 'text', text: 'Read the garment style in this photo.' },
-          ],
-        },
+      content: [
+        { type: 'image', source: { type: 'base64', media_type: input.mediaType as (typeof IMAGE_TYPES)[number], data: input.image } },
+        { type: 'text', text: 'Read the garment style in this photo.' },
       ],
     });
-    // Logged so the real cost per reading shows in Netlify's function logs.
-    console.log('photo reading tokens', { in: response.usage?.input_tokens, out: response.usage?.output_tokens });
-    if (response.stop_reason === 'refusal') return { ok: false, error: 'declined' };
-    const reading = response.parsed_output as WireReading | null;
+    if (reading === 'refused') return { ok: false, error: 'declined' };
     return reading ? { ok: true, reading: toReading(reading) } : { ok: false, error: 'failed' };
   } catch (e) {
     if (spendLimitReached(e)) return { ok: false, error: 'busy' };
