@@ -129,3 +129,12 @@
     padding: 0 8px;
   }
 }
+
+/* Moving points is a tool, not a view: while it is open the box grows to hold the pieces, the tape and its buttons,
+   so none of them slide under the step below (Releases' Move points check, Nov 7). Back to pieces, the box is steady again. */
+.style-layout .style-pin > section:not(.live-big) > .preview:has(.point-svg, .pe-sheet) {
+  height: auto;
+}
+.style-layout .style-pin > section:not(.live-big) > .preview:has(.point-svg, .pe-sheet) > .pattern-pane {
+  height: auto;
+}
