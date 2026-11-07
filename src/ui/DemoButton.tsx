@@ -109,8 +109,13 @@ const DEMOS = {
   patterns: {
     title: 'How drawing a line on your pattern works',
     base: '/demos/patterns',
-    parts: [],
-    length: '0:00',
+    parts: [
+      { name: 'Pattern', from: 0, says: 'Your pattern pieces. Draw a line across one to change its shape.' },
+      { name: 'Spread', from: 11.0, says: 'Choose what the line does. Here, spread it open. Drag the round handle to open it more. The hem gets fuller.' },
+      { name: 'New piece', from: 22.1, says: 'Or draw across the hip, and cut it off as a new piece. Here, a yoke.' },
+      { name: 'Edited', from: 30.3, says: 'Notched to match, ready to print. Back to drafted undoes it all.' },
+    ],
+    length: '0:39',
   },
   shop: {
     title: 'How shopping the fabric works',
