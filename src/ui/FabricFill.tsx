@@ -413,6 +413,9 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
  * shown on the drawings. The photo is made into a tile here and kept on this device; it is never sent. */
 function PhotoSwatch({ finish, onFinish }: { finish: Finish; onFinish: (f: Finish) => void }) {
   const input = useRef<HTMLInputElement>(null);
+  // The finish as it is when the photo is ready, not when it was picked: other taps made while it is read are kept.
+  const latest = useRef(finish);
+  latest.current = finish;
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const id = finish.fabric?.photo?.id;
@@ -451,7 +454,7 @@ function PhotoSwatch({ finish, onFinish }: { finish: Finish; onFinish: (f: Finis
           const got = await saveFabricPhoto(file);
           setBusy(false);
           setFailed(!got);
-          if (got) onFinish(pickPhoto(finish, got));
+          if (got) onFinish(pickPhoto(latest.current, got));
         }}
       />
       {failed && (
