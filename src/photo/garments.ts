@@ -29,7 +29,7 @@ import {
 import type { BodiceLength } from '../engine/bodice';
 import { noSeamAllowed } from '../engine/dress';
 import type { MyFabric } from '../engine/fabrics';
-import { OUTER_EASE_MAX, OUTER_LENGTHS, OUTER_SHOULDER, lapelled, measuredOuterDrop, outerDrop, type OuterLength, type OuterMeasurements } from '../engine/outerwear';
+import { OUTER_EASE, OUTER_EASE_MAX, OUTER_LENGTHS, OUTER_SHOULDER, lapelled, measuredOuterDrop, outerDrop, type OuterLength, type OuterMeasurements } from '../engine/outerwear';
 import type { TeeLength, TeeNeck, TeeSleeve } from '../engine/tee';
 import { setSkirtDetail, skirtDetailOf, volumeOf } from '../engine/skirtVolume';
 import { validCut } from '../engine/slip';
@@ -305,11 +305,19 @@ function measuredOuter(c: OuterChoices, r: PhotoReading, body: PhotoBody | undef
   if (num(m.breakCm) && c.front !== 'zip') out.breakCm = Math.round(clamp(m.breakCm, 6, 44) * scale);
   if (num(m.buttons) && c.front !== 'zip' && m.buttons >= 1) out.buttons = Math.round(clamp(m.buttons, 1, 8));
   if (num(m.buttonGapCm) && c.front !== 'zip' && (m.buttons ?? 2) >= 2) out.buttonGapCm = Math.round(clamp(m.buttonGapCm, 5, 20) * scale);
-  // The shoulder line: an oversized cut already drops its shoulder DROP.out past hers, so only the rest is added.
+  // The shoulder line: an oversized sleeve already drops its shoulder DROP.out past hers, so only the rest is added.
+  // A sleeveless one keeps a set-in shoulder (a dropped one buckles at the seam on the form, with no sleeve to hold
+  // it out), moved out the whole way.
   if (num(m.shoulderOutCm) && out.sleeve !== 'raglan') {
-    const own = out.fit === 'oversized' ? DROP.out : 0;
+    const own = out.fit === 'oversized' && out.sleeve !== 'none' ? DROP.out : 0;
     const by = Math.round(clamp(m.shoulderOutCm, OUTER_SHOULDER.min, OUTER_SHOULDER.max + own) - own);
     if (Math.abs(by) >= 1) out.shoulderCm = clamp(by, OUTER_SHOULDER.min, OUTER_SHOULDER.max);
+  }
+  // An oversized waistcoat hangs straight from its shoulder: the shoulder goes out at least as far as the room at
+  // the side, so the armhole doesn't scoop in under a narrow shoulder and the side jut out below it.
+  if (out.fit === 'oversized' && out.sleeve === 'none' && out.easeCm !== undefined) {
+    const side = Math.round((out.easeCm - OUTER_EASE.jacket.regular) / 4);
+    if (side > (out.shoulderCm ?? 0)) out.shoulderCm = clamp(side, 0, OUTER_SHOULDER.max);
   }
   if (num(m.outerHemFullness)) {
     const f = m.outerHemFullness;

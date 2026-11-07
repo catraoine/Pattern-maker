@@ -28,7 +28,7 @@ export function outerRatios(r: PhotoReading, c: OuterChoices, d: OuterDraft, bod
   const row = (what: string, photo: number, pattern: number, tol = TOLERANCE) => rows.push({ what, photo: r2(photo), pattern: r2(pattern), ok: Math.abs(pattern - photo) <= tol * Math.max(0.1, Math.abs(photo)) });
   if (m.bustRoom != null && body.full_bust) row('Room at the bust (times her bust)', m.bustRoom, d.finishedBust / body.full_bust);
   if (m.outerHemAt != null && body.waist_to_floor) row('Hem (share of waist to floor)', m.outerHemAt, d.drop / body.waist_to_floor, 0.12);
-  if (m.shoulderOutCm != null) row('Shoulder past hers (cm)', m.shoulderOutCm, (c.shoulderCm ?? 0) + (c.fit === 'oversized' && c.sleeve !== 'raglan' ? DROP.out : 0), 0.25);
+  if (m.shoulderOutCm != null) row('Shoulder past hers (cm)', m.shoulderOutCm, (c.shoulderCm ?? 0) + (c.fit === 'oversized' && c.sleeve !== 'raglan' && c.sleeve !== 'none' ? DROP.out : 0), 0.25);
   if (m.buttons != null && c.front !== 'zip') row('Buttons', m.buttons, d.buttons.at.length, 0);
   return rows;
 }

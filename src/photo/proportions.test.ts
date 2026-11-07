@@ -66,10 +66,10 @@ describe('proportions read off a photo', () => {
     expect(() => draftOuter(body, { ...c, kind: 'jacket' })).not.toThrow();
   });
 
-  it('cuts a roomy waistcoat oversized too, its dropped shoulder already as far out as the photo shows', () => {
+  it('cuts a roomy waistcoat oversized too, its set-in shoulder moved out as far as the photo shows', () => {
     const c = choicesFor({ ...vest, measures: { ...vest.measures!, bustRoom: 1.35, shoulderOutCm: 4 } }, 'jacket', body);
     if (!isOuter(c)) throw new Error('not a jacket');
-    expect([c.fit, c.shaping, c.sleeve, c.shoulderCm]).toEqual(['oversized', 'boxy', 'none', -1]);
+    expect([c.fit, c.shaping, c.sleeve, c.shoulderCm]).toEqual(['oversized', 'boxy', 'none', 5]);
   });
 
   it('leaves the named choices alone without the wearer’s measurements or the numbers', () => {
@@ -156,8 +156,9 @@ describe('a jacket or coat cut to proportions read off a photo, on random bodies
 describe('the ratio check against the photo', () => {
   it('an oversized vest comes out as roomy as the picture, its shoulders as far out', async () => {
     const { outerRatios } = await import('./ratios');
-    // Cat's picture, as the Look 09 thread measured it: about 1.5 times her body, shoulders 4 to 5 cm out.
-    const r: PhotoReading = { ...vest, measures: { ...vest.measures!, bustRoom: 1.55, shoulderOutCm: 5, outerHemAt: 0.28 } };
+    // Cat's picture measured against the model's head (22 cm): the vest about 52 cm across the front, so about 1.32
+    // times her bust, its shoulders about 5.5 cm past hers, the sides straight down from them.
+    const r: PhotoReading = { ...vest, measures: { ...vest.measures!, bustRoom: 1.32, shoulderOutCm: 5.5, outerHemAt: 0.28 } };
     const c = choicesFor(r, 'jacket', body);
     if (!isOuter(c)) throw new Error('not a jacket');
     expect(c.fit).toBe('oversized');
@@ -176,4 +177,20 @@ describe('the ratio check against the photo', () => {
     const d = draftOuter(body, { ...c, kind: 'jacket' });
     expect(outerRatios(r, c, d, body).filter((x) => !x.ok)).toEqual([]);
   });
+});
+
+describe('an oversized waistcoat from a photo sews cleanly on the form (All round quality)', () => {
+  it('passes for the vest picture and for roomier and wider readings', async () => {
+    const { sewDesign } = await import('../drapeSweep');
+    const failures: string[] = [];
+    for (const [bustRoom, shoulderOutCm] of [[1.32, 5.5], [1.5, 3], [1.75, 10], [1.3, 0]] as const)
+      for (const crisp of [false, true]) {
+        const c = choicesFor({ ...vest, measures: { ...vest.measures!, bustRoom, shoulderOutCm } }, 'jacket', body);
+        if (!isOuter(c)) throw new Error('not a jacket');
+        const r = sewDesign({ garment: 'jacket', saved: { garment: 'jacket', jacket: c } as never, fibre: 'wool', crisp });
+        const q = r.quality as { ok: boolean; problems: { check: string; part: string }[] } | undefined;
+        if (r.error || !q?.ok) failures.push(`${bustRoom} ${shoulderOutCm} crisp=${crisp}: ${r.error ?? q!.problems.map((p) => `${p.check} ${p.part}`).join(', ')}`);
+      }
+    expect(failures).toEqual([]);
+  }, 300_000);
 });

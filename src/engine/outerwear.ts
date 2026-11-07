@@ -1162,9 +1162,9 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
   // and a wider lapel rolling lower, so it hangs open like a cape.
   const big = s.fit === 'oversized';
   if (big) s = { ...s, shaping: 'boxy', pads: 'none', sleeve: s.sleeve === 'raglan' || s.sleeve === 'none' ? s.sleeve : 'straight' };
-  // Without sleeves (a waistcoat, In testing) there is no sleeve crown for a pad to hold out, so it has none. An
-  // oversized one keeps the dropped shoulder all the same (Cat's SS27 vest, Nov 7): its armhole falls straight
-  // from a shoulder well past hers, so the body hangs from it rather than bowing out below a narrow shoulder.
+  // Without sleeves (a waistcoat, In testing) there is no sleeve crown for a pad to hold out, so it has none, and
+  // an oversized one keeps a set-in shoulder: a dropped shoulder with no sleeve buckles at the seam when sewn on
+  // the form (All round quality, Nov 7). A photo moves its shoulder out instead (shoulderCm).
   const bare = s.sleeve === 'none';
   if (bare) s = { ...s, pads: 'none' };
   const shaping = s.shaping === 'boxy' && s.fit === 'fitted' ? 'darts' : s.shaping === 'princess' && s.sleeve === 'raglan' ? 'darts' : s.shaping;
@@ -1198,7 +1198,7 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     shoulderPad: pad,
     closure: 'back_zip',
     collar: 'none',
-    ...(s.sleeve === 'raglan' ? { sleeveCut: 'raglan' as const, sleeve: 'long' as const } : big ? { sleeveCut: 'drop' as const, sleeve: 'long' as const } : {}),
+    ...(s.sleeve === 'raglan' ? { sleeveCut: 'raglan' as const, sleeve: 'long' as const } : big && !bare ? { sleeveCut: 'drop' as const, sleeve: 'long' as const } : {}),
   };
   const base = draftBodice(m, bodiceStyle);
   const measuredDrop = s.dropCm !== undefined && Number.isFinite(s.dropCm) ? measuredOuterDrop(m, s.kind, s.dropCm) : undefined;
