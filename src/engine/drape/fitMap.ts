@@ -74,6 +74,7 @@ function offArm(sp: Space, x: number, c: number, z: number): { gap: number; t: n
 
 /** The pattern's own ease at a level (cm below the waist): what its measurement table says. */
 export interface FitPin {
+  name: string;
   c: number;
   ease: number;
 }
@@ -205,13 +206,3 @@ export function fitRoom(d: Draped, sp: Space, thick: (i: number) => number, pins
   }
   return out;
 }
-
-/** The room, in words and colours: the bands the map is drawn in. Woven cloth needs a little room to move in (a few cm
- *  round); a knit may be cut smaller than the body and stretch to it. */
-export const FIT_BANDS = [
-  { upTo: 0, name: 'Tight' },
-  { upTo: 3, name: 'Snug' },
-  { upTo: 10, name: 'Easy' },
-  { upTo: 24, name: 'Relaxed' },
-  { upTo: Infinity, name: 'Loose' },
-] as const;

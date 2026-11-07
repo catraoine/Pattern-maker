@@ -50,10 +50,15 @@ input.inline:focus,
 
 /* Closer look (Cat's C, 2026-11-05): a quiet button at the right of the checked line under the view, in the small
    spaced caps of "Drag to turn" (over the view it met the phone's Draw and Your picks). */
+/* The view's quiet buttons (Look closer, and the Fit map, Cat's D, 2026-11-07), on their own line at the right under
+   the view. */
+.all-round-tools {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
 .all-round-closer {
-  position: absolute;
-  top: -2px;
-  right: 0;
   min-height: 32px;
   padding: 6px 10px;
   border: 1px solid color-mix(in srgb, var(--muted) 45%, transparent);
@@ -67,6 +72,50 @@ input.inline:focus,
   cursor: pointer;
 }
 
+
+/* The fit map's key: CLO's heat scale (allRoundMesh.ts FIT_STOPS), its four words under it, and one line on what it
+   reads. */
+.all-round-key {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 2px 0 4px;
+}
+
+.all-round-key-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #c81e32, #e0452c 15%, #f2c23a 35%, #49a85a 60%, #5aa9d6 80%, #2f5bbf);
+}
+
+.all-round-key-words {
+  /* Each word under its own colour: the bar's stops are spaced to match. */
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.all-round-key-words span:nth-child(2),
+.all-round-key-words span:nth-child(3) {
+  text-align: center;
+}
+
+.all-round-key-words span:last-child {
+  text-align: right;
+}
+
+.all-round-key-line {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.all-round-closer[aria-pressed='true'] {
+  border-color: var(--ink);
+}
 
 /* The Front drawing standing in for a sewn drawing that failed its score: as wide as the drawing is on Front. */
 .all-round.all-round-stand-in {
@@ -102,8 +151,6 @@ input.inline:focus,
 }
 
 .all-round-checked {
-  /* Room for the Look closer button at the right of the line. */
-  padding-right: 9.5rem;
   display: flex;
   align-items: center;
   gap: 10px;

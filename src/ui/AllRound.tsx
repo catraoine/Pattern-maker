@@ -245,11 +245,16 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
   // With a Front drawing to hand, it stands in for a failed sewn drawing (the canvas stays, hidden, so the view's state
   // and the draw tool's turning survive); the draw tool keeps the turning form to draw on.
   const standIn = inTesting && !!fallback && !drawing;
+  const sewnView = drapedNow && drapedNow !== 'pending' ? drapedNow : undefined;
+  const canFit = !!sewnView?.d.fit && !standIn;
 
   const turn = useRef({ phi: 0.6, target: null as number | null, dragging: false, idle: 0, probe: false, stroke: null as [number, number][] | null, picks: [] as RoundPick[], ...ZOOM_START });
   // Closer look (Cat's C, 2026-11-05): pinch, ctrl-scroll (a trackpad's pinch), a double tap or the button zooms in on
   // the turning garment so its cloth's weave shows; the button says which way it goes.
   const [closer, setCloser] = useState(false);
+  // The fit map (Cat's D, 2026-11-07): the sewn garment coloured by the room it leaves the body, with the pattern's own
+  // ease in cm at the bust, waist and hip. Only for a garment shown sewn (the shape preview has no cloth to read).
+  const [fitOn, setFitOn] = useState(false);
   const pulse = useRef(-1e9);
   const zoomRef = useRef<((on: boolean) => void) | undefined>(undefined);
   const rows = useMemo(() => roundRows(round, striped), [round, striped]);
@@ -297,7 +302,9 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
 
     const sh = roundShape(round, m, { film, through });
     const v3 = through ? undefined : v3ref.current;
-    if (v3) v3.build({ round, sh, cloth, film, striped: !!striped, draped: drapedNow, formX });
+    const sewnIn = drapedNow && drapedNow !== 'pending' ? drapedNow : undefined;
+    const fitNow = fitOn && !!sewnIn?.d.fit;
+    if (v3) v3.build({ round, sh, cloth, film, striped: !!striped, draped: drapedNow, formX, fit: fitNow });
     const { hemY, topY, wh, yAt, yOf, kY, N, krB, krW, krH, longest, highest, bandTop, arm, yS, yU, sl, ra, rh, neckOnly, radius, foldTilt, depthAt, shell, zAcross, clothDown, yE, yCap, axisX, capDepth, sleeveR, lg, yC, yH, legHemR, legR, legAxis, rAt, reach } = sh;
     /** The last frame's layout, for reading where a finger is. */
     let frame = { S: 1, cx: 0, top: 0, lw: 1, fig: 1 };
@@ -522,8 +529,35 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
         g.beginPath();
         g.rect(0, 0, w, fig);
         g.clip();
-        g.drawImage(v3.render({ phi, w, h: fig, dpr, S, cx, top, lw, probe: st.probe }), 0, 0, w, fig);
+        const frame = { phi, w, h: fig, dpr, S, cx, top, lw, probe: st.probe };
+        g.drawImage(v3.render(frame), 0, 0, w, fig);
         g.restore();
+        // The fit map's labels: the pattern's ease at the bust, waist and hip, on the front of the cloth while it
+        // faces the viewer, fading as it turns away.
+        if (fitNow && sewnIn && !st.probe)
+          for (const t of sewnIn.d.fitTags ?? []) {
+            const at = v3.project(frame, sewnIn.toForm(t.at[0], t.at[1], t.at[2] + 1));
+            const a = Math.max(0, Math.min(1, (at.facing - 0.35) / 0.3));
+            if (a <= 0 || at.y > fig) continue;
+            const text = `${t.name} ${t.ease > 0 ? '+' : t.ease < 0 ? '\u2212' : ''}${Math.abs(t.ease)} cm`;
+            g.save();
+            g.globalAlpha = a;
+            g.font = '600 12px "Space Grotesk", system-ui, sans-serif';
+            const tw = g.measureText(text).width;
+            const [bw, bh] = [tw + 12, 20];
+            const x0 = Math.max(2, Math.min(w - bw - 2, at.x - bw / 2));
+            g.fillStyle = 'rgba(0, 0, 0, 0.72)';
+            g.strokeStyle = '#fff';
+            g.lineWidth = 1;
+            g.beginPath();
+            g.roundRect(x0, at.y - bh / 2, bw, bh, 3);
+            g.fill();
+            g.stroke();
+            g.fillStyle = '#fff';
+            g.textBaseline = 'middle';
+            g.fillText(text, x0 + 6, at.y + 0.5);
+            g.restore();
+          }
       } else {
       // The figure stops above the hem line, so its legs don't run through it. Under trousers its legs
       // turn with the garment.
@@ -1328,7 +1362,7 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
       cv.removeEventListener('pointerup', up);
       cv.removeEventListener('pointercancel', up);
     };
-  }, [round, m, striped, tiles, layers, v3ready, drawing, drapedNow, formX]);
+  }, [round, m, striped, tiles, layers, v3ready, drawing, drapedNow, formX, fitOn]);
 
   return (
     <div className={`all-round${standIn ? ' all-round-stand-in' : ''}`}>
@@ -1337,9 +1371,28 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
       {!drawing && (
         <div className="all-round-quiet">
           {!standIn && (
-            <button type="button" className="all-round-closer" onClick={() => zoomRef.current?.(!closer)}>
-              {closer ? 'Whole garment' : 'Look closer'}
-            </button>
+            <div className="all-round-tools">
+              {canFit && (
+                <button type="button" className="all-round-closer" aria-pressed={fitOn} onClick={() => setFitOn(!fitOn)}>
+                  {fitOn ? 'Fabric' : 'Fit map'}
+                </button>
+              )}
+              <button type="button" className="all-round-closer" onClick={() => zoomRef.current?.(!closer)}>
+                {closer ? 'Whole garment' : 'Look closer'}
+              </button>
+            </div>
+          )}
+          {canFit && fitOn && (
+            <div className="all-round-key" role="note">
+              <span className="all-round-key-bar" aria-hidden="true" />
+              <span className="all-round-key-words" aria-hidden="true">
+                <span>Tight</span>
+                <span>Snug</span>
+                <span>Easy</span>
+                <span>Loose</span>
+              </span>
+              <span className="all-round-key-line">The room between you and the garment, from your pattern's ease.</span>
+            </div>
           )}
           <p className="all-round-checked">
             <span className="all-round-mark" aria-hidden="true" />

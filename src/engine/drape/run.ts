@@ -51,6 +51,8 @@ export interface DrapedLite {
   quality?: Quality;
   /** The fit map: each panel point's room round the body, in cm (see fitMap.ts); NaN where it isn't read. */
   fit?: Float32Array;
+  /** The fit map's labels: the pattern's own ease at the bust, waist and hip, each at the front of the cloth there. */
+  fitTags?: { name: string; ease: number; at: [number, number, number] }[];
 }
 
 /** How each cloth hangs: its thickness off the body and how it resists bending, by fibre. */
@@ -72,14 +74,14 @@ function fitPins(job: DrapeJob, bustC: number): FitPin[] {
   const top: Finished | undefined = job.kind === 'dress' ? (job.draft.bodice as Finished) : job.kind === 'bodice' || job.kind === 'outer' || job.kind === 'tee' ? (job.draft as Finished) : undefined;
   const below: Finished | undefined = job.kind === 'dress' ? (job.draft.skirt as Finished) : job.kind === 'skirt' || job.kind === 'trousers' ? (job.draft as Finished) : undefined;
   const pins: FitPin[] = [];
-  const pin = (c: number, finished: number | undefined, body: number | undefined) => {
-    if (typeof finished === 'number' && Number.isFinite(finished) && typeof body === 'number') pins.push({ c, ease: finished - body });
+  const pin = (name: string, c: number, finished: number | undefined, body: number | undefined) => {
+    if (typeof finished === 'number' && Number.isFinite(finished) && typeof body === 'number') pins.push({ name, c, ease: finished - body });
   };
-  pin(bustC, top?.finishedBust, m.full_bust);
+  pin('Bust', bustC, top?.finishedBust, m.full_bust);
   // (A waist seam or a waistband reads both layers at once, and a top's edge only grazes the level: pinned a little
   // below it, where the waist's ease still holds.)
-  pin(below ? 3 : 0, below?.finishedWaist ?? top?.finishedWaist, m.waist);
-  pin(m.waist_to_hip ?? 20.5, below?.finishedHip ?? top?.finishedHip, m.full_hip);
+  pin('Waist', below ? 3 : 0, below?.finishedWaist ?? top?.finishedWaist, m.waist);
+  pin('Hip', m.waist_to_hip ?? 20.5, below?.finishedHip ?? top?.finishedHip, m.full_hip);
   return pins;
 }
 
@@ -151,7 +153,21 @@ export function runDrape(job: DrapeJob): DrapedLite {
   // The room is read from the cloth as it settled on the body, before it is drawn (closeSeams and the hang move it).
   const thickOf = new Float64Array(d.pos.length / 3);
   for (const p of d.panels) p.thick.forEach((t, i) => (thickOf[p.base + i] = t));
-  const fit = fitRoom(d, sp, (k) => thickOf[k], fitPins(job, sp.cOf(BUST_Y)));
+  const pins = fitPins(job, sp.cOf(BUST_Y));
+  const fit = fitRoom(d, sp, (k) => thickOf[k], pins);
+  // Each label at the front of the cloth at its level (the most forward point near the centre front there).
+  const fitTags: NonNullable<DrapedLite['fitTags']> = [];
+  for (const pin of pins) {
+    let at: [number, number, number] | undefined;
+    for (const p of d.panels) {
+      if (p.hidden || p.role === 'sleeve' || p.role === 'collar') continue;
+      for (let i = 0; i < p.mesh.pts.length; i++) {
+        const k = (p.base + i) * 3;
+        if (Math.abs(d.pos[k]) < 3 && Math.abs(d.pos[k + 1] - pin.c) < 1.5 && d.pos[k + 2] > 0 && (!at || d.pos[k + 2] > at[2])) at = [0, pin.c, d.pos[k + 2]];
+      }
+    }
+    if (at) fitTags.push({ name: pin.name, ease: Math.round(pin.ease * 2) / 2, at });
+  }
   closeSeams(d);
   // (Trouser legs hang round the form's own legs, not the body's axis: measured against the body's round, the leg's
   // points read as touching and clear by turns down each leg, and were drawn at their scales by turns, a sawtooth.)
@@ -213,5 +229,6 @@ export function runDrape(job: DrapeJob): DrapedLite {
     contrastCollar: cc,
     quality,
     fit,
+    fitTags,
   };
 }

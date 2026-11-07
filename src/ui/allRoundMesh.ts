@@ -92,21 +92,16 @@ function clothFinish(mode: Mode, cloth: ClothTiles, map: THREE.Texture, scale: n
   return mat;
 }
 
-/** The fit map's looks (mock-ups, 2026-11-07): heat (CLO's red to blue), calm (the brand's muted earth to mist) and
- *  quiet (the cloth as it is, warmed only where it is snug or tight). */
-export type FitStyle = 'heat' | 'calm' | 'quiet';
-const FIT_STOPS: Record<FitStyle, [number, number][]> = {
-  heat: [[-3, 0xc81e32], [0, 0xe0452c], [1.5, 0xf2c23a], [4, 0x49a85a], [12, 0x5aa9d6], [30, 0x2f5bbf]],
-  calm: [[-3, 0x9c3b28], [0, 0xb5543c], [1.5, 0xd6ad6c], [4, 0xa9bf9f], [12, 0xc4cfd6], [30, 0xece6da]],
-  quiet: [[-3, 0xd23a2a], [0, 0xe0603a], [1.5, 0xf0b07a], [3.5, 0xffffff], [30, 0xffffff]],
-};
-function fitColour(v: number, style: FitStyle): [number, number, number] {
-  const stops = FIT_STOPS[style];
-  if (!Number.isFinite(v)) return style === 'quiet' ? [1, 1, 1] : [0.75, 0.75, 0.75];
+/** The fit map's colours (Cat's D, 2026-11-07): CLO's heat scale, by the room the garment leaves the body in cm round
+ *  (fitMap.ts): red where it is tight (it would have to stretch), yellow snug, green easy, blue loose. Cloth the map
+ *  doesn't read (a collar) is a quiet grey. */
+const FIT_STOPS: [number, number][] = [[-3, 0xc81e32], [0, 0xe0452c], [1.5, 0xf2c23a], [4, 0x49a85a], [12, 0x5aa9d6], [30, 0x2f5bbf]];
+function fitColour(v: number): [number, number, number] {
+  if (!Number.isFinite(v)) return [0.75, 0.75, 0.75];
   let k = 0;
-  while (k < stops.length - 2 && v > stops[k + 1][0]) k++;
-  const [v0, c0] = stops[k];
-  const [v1, c1] = stops[k + 1];
+  while (k < FIT_STOPS.length - 2 && v > FIT_STOPS[k + 1][0]) k++;
+  const [v0, c0] = FIT_STOPS[k];
+  const [v1, c1] = FIT_STOPS[k + 1];
   const t = Math.max(0, Math.min(1, (v - v0) / (v1 - v0)));
   const a = new THREE.Color(c0);
   const b = new THREE.Color(c1);
@@ -403,6 +398,8 @@ export interface BuildOptions {
   draped?: DrapedView | 'pending';
   /** The form drawn out at the shoulders to the wearer's width, as the cloth's body is (Space.widen, in form units). */
   formX?: (x: number, y: number, z: number) => number;
+  /** The fit map: the sewn garment coloured by the room it leaves the body (fitMap.ts) instead of its cloth. */
+  fit?: boolean;
 }
 
 /** What one frame is drawn with: the turn, the canvas (CSS px and device pixel ratio) and the view's own scale,
@@ -437,6 +434,9 @@ export interface RoundView {
   /** What stands under the point (px, py) of the canvas, in CSS px, for the draw tool. In the air past everything,
    *  the point on the plane through the form's axis facing the view. */
   pick(f: Frame, px: number, py: number): Pick | undefined;
+  /** Where a point of the form (its own units, facing front) is drawn on the canvas, in CSS px, and how far it faces
+   *  the viewer (1 straight on, below 0 turned away): for the fit map's labels. */
+  project(f: Frame, p: V3): { x: number; y: number; facing: number };
   dispose(): void;
 }
 
@@ -455,6 +455,7 @@ function buildDraped(
   lines: (style: Style) => Lines,
   maxAniso: number,
   disposables: { dispose: () => void }[],
+  fit = false,
 ) {
   let tex: THREE.Texture | undefined;
   if (cloth) {
@@ -584,11 +585,10 @@ function buildDraped(
       }
       // A contrast upper collar shows at the front; round the back its outside is the garment's own cloth.
       const front = p.collar && contrast !== undefined;
-      const fitStyle = (globalThis as unknown as { __fitStyle?: FitStyle }).__fitStyle;
-      const mat = fitStyle && d.fit && fitStyle !== 'quiet' ? material('matte') : !cloth || !tex ? material('black') : clothFinish(mode, cloth, tex, 1 / cloth.bodySize);
-      if (fitStyle && d.fit) {
+      const mat = fit && d.fit ? material('matte') : !cloth || !tex ? material('black') : clothFinish(mode, cloth, tex, 1 / cloth.bodySize);
+      if (fit && d.fit) {
         const col = new Float32Array(n * 3);
-        for (let i = 0; i < n; i++) col.set(fitColour(d.fit[p.base + i], fitStyle), i * 3);
+        for (let i = 0; i < n; i++) col.set(fitColour(d.fit[p.base + i]), i * 3);
         g.setAttribute('color', new THREE.BufferAttribute(col, 3));
         mat.vertexColors = true;
       } else if (front && contrast !== undefined) {
@@ -763,7 +763,7 @@ export function createRoundView(): RoundView | undefined {
         const l = new Lines(style, turning);
         lineSets.push(l);
         return l;
-      }, maxAniso, disposables);
+      }, maxAniso, disposables, !!o.fit);
       lwBuilt = 0;
       return;
     }
@@ -1365,10 +1365,23 @@ export function createRoundView(): RoundView | undefined {
     return { part, e, p: [local.x, local.y, local.z] };
   };
 
+  const project = (f: Frame, p: V3) => {
+    const { A, B, C, D, E } = projection(f);
+    const [c, sn] = [Math.cos(f.phi), Math.sin(f.phi)];
+    // (Turned as the scene is: three's turn about y.)
+    const X = p[0] * c + p[2] * sn;
+    const Z = -p[0] * sn + p[2] * c;
+    const nx = A * X + B;
+    const ny = C * p[1] + D * Z + E;
+    const r = Math.hypot(p[0], p[2]) || 1;
+    return { x: ((nx + 1) / 2) * f.w, y: ((1 - ny) / 2) * f.h, facing: Z / r };
+  };
+
   return {
     build,
     render,
     pick,
+    project,
     dispose: () => {
       clear();
       renderer.dispose();

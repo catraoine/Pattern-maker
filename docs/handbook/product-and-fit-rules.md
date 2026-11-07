@@ -342,6 +342,14 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    tile 10, 20 or 40 cm wide (a photo from about 30 cm away is Medium); a big-repeat print reads best on Large. The
    fabric type stays, as what the cloth is made of, for the advice and the cutting; a colour or shop fabric comes off.
    Code: `src/fabricPhoto.ts`, `src/engine/fabricTile.ts`, `PhotoSwatch` in `src/ui/FabricFill.tsx`.
+55. **The fit map shows the room, from the pattern's own ease** (Nov 7, Design/3D quality, Cat's D): All round's Fit map
+   button colours the sewn garment by the room it leaves the body, CLO's heat scale (red tight, yellow snug, green easy,
+   blue loose), with the pattern's ease in cm at the bust, waist and hip on the front, and a key under the view; Fabric
+   puts the cloth back. It is read from the cloth's girth round each level as sewn (the drape holds each edge to its cut
+   length only roughly, so stretch would show pulls that aren't there), and pinned to the pattern's finished bust, waist
+   and hip so it never disagrees with the measurement table (the drape alone read a fitted dress's waist 6 cm roomy).
+   Pull lines from real cloth stretch come later, with Design: Fabric behaviour. Code: `src/engine/drape/fitMap.ts`,
+   `fitPins` in `run.ts`, the colours in `allRoundMesh.ts`.
 
 ## Style steps
 
