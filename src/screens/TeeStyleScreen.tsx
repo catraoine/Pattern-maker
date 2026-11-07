@@ -88,6 +88,9 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
   const flatLines = useMemo(() => (flat ? wornLines(flat) : undefined), [flat]);
   const title = describeTee(choices);
   const round = useMemo(() => (draft ? roundTee(draft, values) : undefined), [draft, values]);
+  // All round sews the T-shirt from its own pattern pieces on the form (All round quality, Cat 2026-11-07), the Front
+  // drawing standing in when the sewn drawing fails its score.
+  const drapeJob = useMemo(() => (draft ? ({ kind: 'tee', draft } as const) : undefined), [draft]);
 
   if (onForm && draft && form) {
     return (
@@ -141,6 +144,42 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
       </GarmentFabric>
     );
   }
+
+  const sketch =
+    form && draft ? (
+      <GarmentFabric fabric={fabric}>
+        <FormSketch
+          body={form.body}
+          m={m}
+          legs={false}
+          bottom={form.hems.tunic + 16}
+          arms={form.arm}
+          lines={formLines}
+          cloth={clothShapes} flatLines={flatLines}
+          sleeve={draft.sleeve}
+          hem={{
+            name: 'T-shirt length',
+            marks: TEE_GROUPS.find((g) => g.id === 'length')!.options.map(([id, label]) => ({ id, label, y: form.hems[id as TeeChoices['length']] })),
+            value: choices.length,
+            onPick: (length) => onChoices({ ...choices, length: length as TeeChoices['length'], lengthCm: undefined }),
+            // The hem glides to any length between the named ones, as the centre back length (Cat, 2026-11-06);
+            // the nearest named length goes with it.
+            free: {
+              zero: TEE_NECKS[choices.neckline].backDepth + (draft.hemShape?.back ?? 0),
+              min: m.nape_to_waist + 1 - TEE_NECKS[choices.neckline].backDepth,
+              max: m.nape_to_waist + m.waist_to_hip + 25 - TEE_NECKS[choices.neckline].backDepth,
+              cm: choices.lengthCm,
+              onCm: (cm) => {
+                const y = TEE_NECKS[choices.neckline].backDepth + (draft.hemShape?.back ?? 0) + cm;
+                const length = (['cropped', 'hip', 'tunic'] as const).reduce((a, b) => (Math.abs(form.hems[b] - y) < Math.abs(form.hems[a] - y) ? b : a));
+                onChoices({ ...choices, length, lengthCm: cm });
+              },
+            },
+          }}
+          label={`The ${title.toLowerCase()} on your form`}
+        />
+      </GarmentFabric>
+    ) : undefined;
 
   return (
     <StyleLayout
@@ -235,46 +274,13 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
         </div>
         <div className="preview">
           {error && <p className="msg error">{error}</p>}
-          {form && draft && view === 'sketch' && (
-            <GarmentFabric fabric={fabric}>
-              <FormSketch
-                body={form.body}
-                m={m}
-                legs={false}
-                bottom={form.hems.tunic + 16}
-                arms={form.arm}
-                lines={formLines}
-                cloth={clothShapes} flatLines={flatLines}
-                sleeve={draft.sleeve}
-                hem={{
-                  name: 'T-shirt length',
-                  marks: TEE_GROUPS.find((g) => g.id === 'length')!.options.map(([id, label]) => ({ id, label, y: form.hems[id as TeeChoices['length']] })),
-                  value: choices.length,
-                  onPick: (length) => onChoices({ ...choices, length: length as TeeChoices['length'], lengthCm: undefined }),
-                  // The hem glides to any length between the named ones, as the centre back length (Cat, 2026-11-06);
-                  // the nearest named length goes with it.
-                  free: {
-                    zero: TEE_NECKS[choices.neckline].backDepth + (draft.hemShape?.back ?? 0),
-                    min: m.nape_to_waist + 1 - TEE_NECKS[choices.neckline].backDepth,
-                    max: m.nape_to_waist + m.waist_to_hip + 25 - TEE_NECKS[choices.neckline].backDepth,
-                    cm: choices.lengthCm,
-                    onCm: (cm) => {
-                      const y = TEE_NECKS[choices.neckline].backDepth + (draft.hemShape?.back ?? 0) + cm;
-                      const length = (['cropped', 'hip', 'tunic'] as const).reduce((a, b) => (Math.abs(form.hems[b] - y) < Math.abs(form.hems[a] - y) ? b : a));
-                      onChoices({ ...choices, length, lengthCm: cm });
-                    },
-                  },
-                }}
-                label={`The ${title.toLowerCase()} on your form`}
-              />
-            </GarmentFabric>
-          )}
+          {view === 'sketch' && sketch}
           {flat && view === 'flat' && (
             <GarmentFabric fabric={fabric}>
               <TechFlatView flat={flat} title={title} />
             </GarmentFabric>
           )}
-          {round && view === 'round' && <AllRound round={round} m={values} fabric={fabric} striped={fabric?.checks ? (fabric.checks.stripes ? 'stripes' : 'checks') : false} label={`The ${title.toLowerCase()} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
+          {round && view === 'round' && <AllRound round={round} drape={drapeJob} m={values} fabric={fabric} fallback={sketch} striped={fabric?.checks ? (fabric.checks.stripes ? 'stripes' : 'checks') : false} label={`The ${title.toLowerCase()} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
           {draft && sheet && view === 'pattern' && <PatternPane><PatternPreview paper sheet={sheet} label={`Pattern pieces for ${title.toLowerCase()}`} /></PatternPane>}
           <UndoToast undo={undo} />
         </div>

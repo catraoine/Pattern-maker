@@ -5,15 +5,15 @@
 import { EXAMPLE_BODY, MeasurementValues } from './measurements';
 import { GARMENT_DRAFTING, DraftInputs } from './garmentDrafts';
 import { INITIAL, Saved } from './savedWork';
-import { BODICE_GROUPS, BodiceChoices, DEFAULT_BODICE, DEFAULT_COAT_CHOICES, DEFAULT_JACKET_CHOICES, DRESS_FIT_GROUP, DressChoices, OuterChoices, WAIST_SEAM_GROUP, outerAllowed, outerGroups, validDetails } from './garments';
+import { BODICE_GROUPS, BodiceChoices, DEFAULT_BODICE, DEFAULT_COAT_CHOICES, DEFAULT_JACKET_CHOICES, DEFAULT_TEE_CHOICES, DEFAULT_TROUSERS_CHOICES, DRESS_FIT_GROUP, DressChoices, OuterChoices, TEE_GROUPS, TROUSER_GROUPS, TeeChoices, TrousersChoices, WAIST_SEAM_GROUP, outerAllowed, outerGroups, trouserAllowed, validDetails, validTrousers } from './garments';
 import { DETAIL_GROUPS, FRONT_GROUP, GATHERS_GROUP, GROUPS, RISE_GROUP, withWaist } from './skirtChoices';
-import { roundBodice, roundDress, roundOuter, roundSkirt } from './engine/allRound';
+import { roundBodice, roundDress, roundOuter, roundSkirt, roundTee, roundTrousers } from './engine/allRound';
 import { DrapeJob, runDrape } from './engine/drape/run';
 import type { Quality } from './engine/drape/quality';
 import type { Fibre } from './engine/fabrics';
 import type { RoundMeasurements } from './ui/allRoundShape';
 
-export type SweepGarment = 'skirt' | 'bodice' | 'dress' | 'jacket' | 'coat';
+export type SweepGarment = 'skirt' | 'bodice' | 'dress' | 'jacket' | 'coat' | 'trousers' | 'tee';
 
 /** One design to sew: the garment, its choices as a saved pattern keeps them, and the cloth. */
 export interface SweepDesign {
@@ -61,10 +61,27 @@ function randomOuter(r: () => number, kind: 'jacket' | 'coat'): OuterChoices {
   return c;
 }
 
+function randomTrousers(r: () => number): TrousersChoices {
+  let c: TrousersChoices = { ...DEFAULT_TROUSERS_CHOICES };
+  for (const g of TROUSER_GROUPS) {
+    const ok = g.options.filter(([o]) => trouserAllowed(c, g.id, o));
+    if (ok.length) c = { ...c, [g.id]: pick(r, ok)[0] };
+  }
+  return validTrousers(c);
+}
+
+function randomTee(r: () => number): TeeChoices {
+  const c: Record<string, unknown> = { ...DEFAULT_TEE_CHOICES };
+  for (const g of TEE_GROUPS) c[g.id] = pick(r, g.options)[0];
+  return c as unknown as TeeChoices;
+}
+
 /** A random design of one of the garments All round sews. */
-export function randomDesign(r: () => number, garment: SweepGarment = pick(r, ['skirt', 'bodice', 'dress', 'jacket', 'coat'] as const)): SweepDesign {
+export function randomDesign(r: () => number, garment: SweepGarment = pick(r, ['skirt', 'bodice', 'dress', 'jacket', 'coat', 'trousers', 'tee'] as const)): SweepDesign {
   const fibre = pick(r, FIBRES);
   const crisp = r() < 0.25;
+  if (garment === 'tee') return { garment, saved: { tee: randomTee(r) }, fibre, crisp };
+  if (garment === 'trousers') return { garment, saved: { trousers: randomTrousers(r) }, fibre, crisp };
   if (garment === 'skirt') return { garment, saved: { choices: randomSkirt(r) }, fibre, crisp };
   if (garment === 'bodice') return { garment, saved: { bodice: randomBodice(r) }, fibre, crisp };
   if (garment === 'dress') {
@@ -143,6 +160,13 @@ export function optionDesigns(): OptionDesign[] {
         out.push({ key: `${kind} ${g.id}=${o}`, design: { garment: kind, saved: { [kind]: { ...base, [g.id]: o } }, fibre: 'wool' } });
       }
   }
+  for (const g of TROUSER_GROUPS)
+    for (const [o] of g.options) {
+      const c = validTrousers({ ...DEFAULT_TROUSERS_CHOICES, ...(g.id === 'closure' || g.id === 'pleats' || g.id === 'loops' ? {} : {}), [g.id]: o });
+      if (!trouserAllowed(DEFAULT_TROUSERS_CHOICES, g.id, o) || (c as unknown as Record<string, unknown>)[g.id] !== o) continue;
+      out.push({ key: `trousers ${g.id}=${o}`, design: { garment: 'trousers', saved: { trousers: c }, fibre } });
+    }
+  for (const g of TEE_GROUPS) for (const [o] of g.options) out.push({ key: `tee ${g.id}=${o}`, design: { garment: 'tee', saved: { tee: { ...DEFAULT_TEE_CHOICES, [g.id]: o } }, fibre } });
   // (Each key once: a default turns up in more than one place.)
   return out.filter((x, i) => out.findIndex((y) => y.key === x.key) === i);
 }
@@ -156,7 +180,7 @@ function plainDress(over: Partial<DressChoices>): DressChoices {
 function designLabel(d: SweepDesign): string {
   const flat = (o: object, pre = ''): string[] =>
     Object.entries(o).flatMap(([k, v]) => (v && typeof v === 'object' ? flat(v as object, `${k}.`) : v === undefined || k === 'garment' ? [] : [`${pre}${k}=${v}`]));
-  const c = d.saved.choices ?? d.saved.bodice ?? d.saved.dress ?? d.saved.coat ?? d.saved.jacket ?? {};
+  const c = d.saved.choices ?? d.saved.bodice ?? d.saved.dress ?? d.saved.coat ?? d.saved.jacket ?? d.saved.trousers ?? d.saved.tee ?? {};
   return [d.garment, ...flat(c), `fibre=${d.fibre}`, ...(d.crisp ? ['crisp'] : [])].join(' ');
 }
 
@@ -173,6 +197,12 @@ export function sewDesign(d: SweepDesign, values: MeasurementValues = EXAMPLE_BO
       const round = roundOuter(drafts.outer, values as never);
       const c = (d.saved.coat ?? d.saved.jacket)!;
       job = { kind: 'outer', draft: drafts.outer, boxy: c.shaping === 'boxy' || (c.fit as string) === 'oversized', m, armhole: round.armhole };
+    } else if (drafts.tee) {
+      const round = roundTee(drafts.tee, values as never);
+      job = { kind: 'tee', draft: drafts.tee, m, armhole: round.armhole };
+    } else if (drafts.trousers) {
+      const round = roundTrousers(drafts.trousers, values);
+      job = { kind: 'trousers', draft: drafts.trousers, m, armhole: round.armhole };
     } else if (drafts.dress) {
       const round = roundDress(drafts.dress, values as never, drafts.sleeve);
       job = { kind: 'dress', draft: drafts.dress, sleeve: drafts.sleeve, m, armhole: round.armhole };

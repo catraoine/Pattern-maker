@@ -14,6 +14,8 @@ import { Mesh2D, Wedge, meshPiece } from './mesh2d';
 import { BODY_BOTTOM, BODY_TOP, bodyHalf, shapeAt } from '../body';
 import { dartsOf } from '../marks';
 import { SimInput, simulate } from './sim';
+import { trouserDetails } from './trouserLines';
+import { levelSkirtHem } from './levelHem';
 import { Space, boxed } from './space';
 import { knob, setKnob } from './knob';
 import { frontPins, tapeRollLines } from './rollLine';
@@ -610,7 +612,7 @@ function cowlFront(pc: Piece, bustY: number): Piece {
   return { ...half, outline: path, lines: half.lines.filter((l) => l.points(2).every((q) => q.y >= Y0 - 0.01)), meta: { ...half.meta, cowl: { L: N.x, top: Y0, bustY } } };
 }
 
-function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: number; cropped?: boolean; slitCm?: number; sleeve?: Piece[]; collars?: CollarPart[]; trousers?: TrousersDraft; tiers?: TierBand[]; under?: Piece[]; puff?: number; cuff?: number; cuffBand?: Piece; cuffRuffle?: Piece }, o: DrapeOptions): Draped {
+export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: number; cropped?: boolean; slitCm?: number; sleeve?: Piece[]; collars?: CollarPart[]; trousers?: TrousersDraft; tiers?: TierBand[]; under?: Piece[]; puff?: number; cuff?: number; cuffBand?: Piece; cuffRuffle?: Piece }, o: DrapeOptions): Draped {
   if (o.boxy) sp = boxed(sp);
   if (extra.skirt) extra = { ...extra, skirt: extra.skirt.map(halfPiece).map(narrowed) };
   const B = new Builder(sp);
@@ -1317,8 +1319,9 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       // A shirt's collar and stand (no lapel: no gorge) are interfaced: they keep the shape they were set in round the
       // neck, moved only as the seam each is sewn by moves.
       // (A flat collar is soft cloth lying on the shoulders: it settles with the body under it, not re-set stiff.)
-      else if (!p.mesh.runs.gorge && !knob('__softCollar') && !(flat && !knob('__flatStiff')) && !(hood && knob('__hoodSoft')))
-        // (A bow, a ruffle and a hood keep the shape they were set in, carried by the seam.)
+      else if (!p.mesh.runs.gorge && !knob('__softCollar') && !(flat && !knob('__flatStiff')) && !(hood && knob('__hoodSoft')) && !pc.meta.knit)
+        // (A bow, a ruffle and a hood keep the shape they were set in, carried by the seam. A knit band is not interfaced:
+        // it settles with the neck under it; kept stiff on a T-shirt's lower dropped-shoulder neck, its front flipped out.)
         stiffPanels.push({ p, by: c.onStand ? 'stand' : 'neck', roll: roll ?? undefined, key, carry: bow || gather || hood ? () => true : undefined, hang: hoodHang });
       const stiff = stiffPanels.find((x) => x.p === p);
       if (c.onStand && standTop) {
@@ -1997,6 +2000,10 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     // spare length down off the chest, it folded that length into a ledge across the front at the underarm.
     // (Not a plunge top: with no cloth under its neck but the V's edge, the extra pull dragged that edge 4 cm out and
     // down the chest, All round quality 2026-11-04.)
+    // Trousers hang by the heavier pull too: under the light one the crotch of a short leg (shorts, a knee length, a
+    // tapered knee with pleats) stayed caught at the front and back of the body instead of drawing in between the
+    // legs, and tore the cloth just below it (All round quality, 2026-11-07: 51 of 51 test trousers pass with it).
+    ...(extra.trousers && !knob('__noTrouserG') ? { gK: 3 } : {}),
     ...(shortTop && !knob('__noShortG') && !deepFront ? { gK: 3, gFromY: (() => {
       // (From a little below the shoulder seams down: above that, the neck and shoulders hang by the light pull, or the
       // back of the neck drew down off the front's at the shoulder seam and showed its inside in a notch. Only in toward
@@ -2066,7 +2073,10 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     }
     if (ids.length) input.mirror = { ids: Int32Array.from(ids), rest: Float64Array.from(mr), k: knob('__mk') ?? 0.5 };
   }
-  const res = simulate(sp, input);
+  // Trousers settle in fewer steps: laid on their legs they are near where they hang, and left to run the full count the
+  // cloth below the crotch kept drifting into folds and opened the inside leg (All round quality, 2026-11-07: of 51
+  // trousers in three cloths, 35 passed at 260 steps and 44 at 60 to 100).
+  const res = simulate(sp, input, extra.trousers ? (knob('__trouserSteps') ?? 100) : undefined);
   // A popped collar is held up by its interfacing and its roll, which the cloth here does not have: it keeps the shape
   // it was set in, standing round the neck, and only moves as the neck it is sewn to moves.
   for (const p of poppedPanels) {
@@ -4866,9 +4876,15 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       const ys = p.mesh.pts.map((q) => q.y);
       const y0 = Math.min(...ys);
       const H = Math.max(...ys) - y0;
+      // (The seam into the armhole stays where it is sewn: on a short puff the underarm is well down the sleeve, and
+      // stood out with the crown it pulled 3 cm off the bodice's armhole, All round quality 2026-11-07.)
+      const seam = knob('__puffSeam') === 0 ? [] : (p.mesh.runs.armhole ?? []).flat().map((i) => p.mesh.pts[i]);
       p.mesh.pts.forEach((q, i) => {
         const t = (q.y - y0) / H;
-        const off = P * Math.sin(Math.PI * Math.min(1, t * 1.05));
+        let dc = Infinity;
+        for (const c of seam) dc = Math.min(dc, Math.hypot(c.x - q.x, c.y - q.y));
+        const ts = seam.length ? Math.min(1, dc / (knob('__puffRamp') ?? 12)) : 1;
+        const off = P * Math.sin(Math.PI * Math.min(1, t * 1.05)) * ts * ts * (3 - 2 * ts);
         const I = (p.base + i) * 3;
         const e = res[I] >= 0 ? 1 : -1;
         const r = [res[I] * e - arm.a[0], res[I + 1] - arm.a[1], res[I + 2] - arm.a[2]];
@@ -5721,7 +5737,7 @@ function poloRoll(pc: Piece): [P, P] | undefined {
   ];
 }
 
-function collarsOf(pieces: Piece[], jacketRoll?: [P, P]): CollarPart[] {
+export function collarsOf(pieces: Piece[], jacketRoll?: [P, P]): CollarPart[] {
   return pieces
     .filter((pc) => pc.kind === 'collar' || pc.meta.hood)
     .map((pc) => {
@@ -5969,13 +5985,14 @@ export function drapeDress(sp: Space, d: DressDraft, sleeve?: SleeveDraft, o: Dr
   const sk = d.skirt as { asym?: unknown; hem?: unknown } | undefined;
   const out = drapeBodice(sp, d.bodice, sleeve, { heavySkirt: true, ...(sk?.asym || sk?.hem ? { shapedHem: true } : {}), ...o }, { pieces: d.pieces, skirt: hungSkirt(madeUpSkirt(d.pieces, d.skirt).filter(isSkirt), d.skirt?.volume as never, { hip: d.skirt?.finishedHip, hem: d.skirt?.hemCm }), drop: d.seamDrop ?? 0, tiers: d.skirt?.volume?.tiers?.bands, under: d.pieces.filter(isUnder), ...(slitCm ? { slitCm } : {}) });
   if (d.noSeam) levelHemSpikes(out);
+  else if (!(sk?.asym || sk?.hem) && !knob('__noLevelSkirt')) levelSkirtHem(out);
   return out;
 }
 
 /** A shift or sheath's hem: the cloth settles with a single point hanging a cm or two below its neighbours at the
  *  centre fold and at the foot of the side seam, a notch in an otherwise level hem (the blush shift, 2026-11-04). Each
  *  such point is brought up level with its neighbours along the hem, and the cloth just above it eased with it. */
-function levelHemSpikes(out: Draped): void {
+export function levelHemSpikes(out: Draped): void {
   const EASE = 8;
   const arrs = [out.pos, ...(out.posMirror ? [out.posMirror] : [])];
   const panels = out.panels.filter((p) => !p.hidden && (p.role === 'front' || p.role === 'back') && p.mesh.runs.hem?.length);
@@ -6043,7 +6060,9 @@ function levelHemSpikes(out: Draped): void {
 }
 
 export function drapeTrousers(sp: Space, d: TrousersDraft, o: DrapeOptions = {}): Draped {
-  return drape(sp, [], { trousers: d }, o);
+  const out = drape(sp, [], { trousers: d }, o);
+  trouserDetails(out, d);
+  return out;
 }
 
 export function drapeSkirt(sp: Space, d: SkirtDraft, o: DrapeOptions = {}): Draped {
@@ -6052,7 +6071,9 @@ export function drapeSkirt(sp: Space, d: SkirtDraft, o: DrapeOptions = {}): Drap
   const slit = (d as { slit?: { at: string; cm: number } }).slit;
   const slitCm = o.openSlit && slit?.at === 'side' ? slit.cm : undefined;
   const sk = d as { asym?: unknown; hem?: unknown };
-  return drape(sp, [], { skirt: hungSkirt(madeUpSkirt(d.pieces, d).filter(isSkirt), d.volume as never, { hip: d.finishedHip, hem: d.hemCm }), tiers: d.volume?.tiers?.bands, under: d.pieces.filter(isUnder), ...(drop ? { drop } : {}), ...(slitCm ? { slitCm } : {}) }, { closedFront: true, ...(sk.asym || sk.hem ? { shapedHem: true } : {}), ...o });
+  const out = drape(sp, [], { skirt: hungSkirt(madeUpSkirt(d.pieces, d).filter(isSkirt), d.volume as never, { hip: d.finishedHip, hem: d.hemCm }), tiers: d.volume?.tiers?.bands, under: d.pieces.filter(isUnder), ...(drop ? { drop } : {}), ...(slitCm ? { slitCm } : {}) }, { closedFront: true, ...(sk.asym || sk.hem ? { shapedHem: true } : {}), ...o });
+  if (!(sk.asym || sk.hem) && !knob('__noLevelSkirt')) levelSkirtHem(out);
+  return out;
 }
 
 export function drapeOuter(sp: Space, d: OuterDraft, o: DrapeOptions = {}): Draped {

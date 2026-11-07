@@ -287,7 +287,7 @@ const notchAt = (pts: P[], s: number): [P, P] => {
  * the front so it hugs the neck. On a button front it runs on over the extension, folded at the centre
  * back; with a back zip it is folded at the centre front and its ends go into the zip.
  */
-function band(c: CollarIn, name: string, height: number, rise: number): { piece: Piece; neck: P[]; top: P[]; cfAt: number } {
+export function band(c: CollarIn, name: string, height: number, rise: number): { piece: Piece; neck: P[]; top: P[]; cfAt: number } {
   const buttons = c.closure === 'front_buttons';
   const L = c.back + c.front + c.ext;
   // Centre back at x = 0. The band laid flat is an arc round the neck, its ends rising from the middle

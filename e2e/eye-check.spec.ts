@@ -14,7 +14,7 @@ import { DESIGNS as EYE_DESIGNS, Design } from './eye-designs';
 // weekly eye check's random designs and new options (All round quality, Cat 2026-11-03).
 const DESIGNS: Design[] = process.env.EYE_FROM ? JSON.parse(readFileSync(process.env.EYE_FROM, 'utf8')) : EYE_DESIGNS;
 
-const WORD: Record<string, string> = { skirt: 'skirt', bodice: 'bodice', dress: 'dress', jacket: 'jacket', coat: 'coat' };
+const WORD: Record<string, string> = { skirt: 'skirt', bodice: 'bodice', dress: 'dress', jacket: 'jacket', coat: 'coat', trousers: 'trousers', tee: 'T-shirt' };
 
 test('all round eye check', async ({ page, consoleErrors }, info) => {
   test.setTimeout(3_600_000);

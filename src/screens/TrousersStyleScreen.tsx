@@ -74,6 +74,9 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
   const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
   const title = describeTrousers(choices);
   const round = useMemo(() => (draft ? roundTrousers(draft, values) : undefined), [draft, values]);
+  // All round sews the trousers from their own pattern pieces on the form (All round quality, Cat 2026-11-07), the
+  // Front drawing standing in when the sewn drawing fails its score.
+  const drapeJob = useMemo(() => (draft ? ({ kind: 'trousers', draft } as const) : undefined), [draft]);
   const ease = TROUSER_EASE[choices.fit];
   const extra = fabricEase(fabric, 'trousers');
   const flat = useMemo(
@@ -107,6 +110,13 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
   const pickFrom = (id: string, opt: string): TrousersChoices =>
     validTrousers({ ...choices, [id]: opt, ...(id === 'leg' ? { legCm: undefined } : {}), ...(id === 'length' ? { lengthCm: undefined } : {}) });
   const m = values as unknown as TrousersMeasurements;
+
+  const sketch =
+    formBody && draft ? (
+      <GarmentFabric fabric={fabric}>
+        <FormSketch body={formBody} m={values as { waist: number }} legs bottom={(values.waist_to_floor ? full : draft.lengthCm) + 6} lines={{}} cloth={onForm.cloth} outline={onForm.lines} hem={hem} label={`The ${title.toLowerCase()} on your form`} />
+      </GarmentFabric>
+    ) : undefined;
 
   if (drawing && draft && formBody) {
     return (
@@ -293,17 +303,13 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
         </div>
         <div className="preview">
           {error && <p className="msg error">{error}</p>}
-          {formBody && draft && view === 'sketch' && (
-            <GarmentFabric fabric={fabric}>
-              <FormSketch body={formBody} m={values as { waist: number }} legs bottom={(values.waist_to_floor ? full : draft.lengthCm) + 6} lines={{}} cloth={onForm.cloth} outline={onForm.lines} hem={hem} label={`The ${title.toLowerCase()} on your form`} />
-            </GarmentFabric>
-          )}
+          {view === 'sketch' && sketch}
           {flat && view === 'flat' && (
             <GarmentFabric fabric={fabric}>
               <TechFlatView flat={flat} title={title} />
             </GarmentFabric>
           )}
-          {round && view === 'round' && <AllRound round={round} m={values} fabric={fabric} label={`The ${title.toLowerCase()} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
+          {round && view === 'round' && <AllRound round={round} drape={drapeJob} m={values} fabric={fabric} fallback={sketch} label={`The ${title.toLowerCase()} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
           {draft && sheet && view === 'pattern' && !(fit && canFit) && <PatternPane><PatternPreview paper sheet={sheet} label={`Pattern pieces for ${title.toLowerCase()}`} /></PatternPane>}
           {view === 'pattern' && fit && canFit && <EaseMapView views={easeMap!} label={`The fit of the ${title.toLowerCase()}, on its pattern pieces`} />}
           <UndoToast undo={undo} />

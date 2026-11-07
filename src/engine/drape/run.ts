@@ -7,6 +7,8 @@ import type { OuterDraft } from '../outerwear';
 import type { SkirtDraft } from '../skirt';
 import type { SleeveDraft } from '../sleeve';
 import type { TrousersDraft } from '../trousers';
+import type { TeeDraft } from '../tee';
+import { drapeTee } from './tee';
 import type { Fibre } from '../fabrics';
 import type { RoundGarment } from '../allRound';
 import { placeOnForm, type RoundMeasurements } from '../../ui/allRoundShape';
@@ -24,6 +26,7 @@ export type DrapeJob = { m: RoundMeasurements; armhole: RoundGarment['armhole'];
   | { kind: 'bodice'; draft: BodiceDraft; sleeve?: SleeveDraft }
   | { kind: 'outer'; draft: OuterDraft; boxy?: boolean }
   | { kind: 'trousers'; draft: TrousersDraft }
+  | { kind: 'tee'; draft: TeeDraft }
 );
 
 /** What the view needs of a draped garment: each panel's points and triangles, where it is cut from (for the print),
@@ -93,6 +96,9 @@ export function runDrape(job: DrapeJob): DrapedLite {
     case 'trousers':
       d = drapeTrousers(sp, job.draft, t);
       break;
+    case 'tee':
+      d = drapeTee(sp, job.draft, t);
+      break;
     default:
       d = drapeSkirt(sp, job.draft, { ...t, openSlit: true });
   }
@@ -102,7 +108,7 @@ export function runDrape(job: DrapeJob): DrapedLite {
   const quality = drapeQuality(d, sp, { seams: d.seams, levelHem: !!sk && !sk.asym && !sk.hem, legs: job.kind === 'trousers' });
   // A sleeve piece the drape left out (a raglan's back half) is cloth missing from the drawing, which no measure of the
   // cloth that is there can see: the eye check's oversized raglan jacket passed with its shoulders open (2026-11-02).
-  const sleevePieces = (job.kind === 'outer' ? job.draft.pieces : job.kind === 'bodice' || job.kind === 'dress' ? (job.sleeve?.pieces ?? []) : []).filter((pc) => isShell(pc) && /sleeve/i.test(pc.name) && !/band|cuff|facing/i.test(pc.name));
+  const sleevePieces = (job.kind === 'outer' ? job.draft.pieces : job.kind === 'tee' ? (job.draft.sleeveless ? [] : job.draft.sleeve.pieces) : job.kind === 'bodice' || job.kind === 'dress' ? (job.sleeve?.pieces ?? []) : []).filter((pc) => isShell(pc) && /sleeve/i.test(pc.name) && !/band|cuff|facing/i.test(pc.name));
   const sleevePanels = d.panels.filter((p) => p.role === 'sleeve' && !p.hidden).length;
   if (sleevePieces.length > sleevePanels) {
     for (const pc of sleevePieces.slice(sleevePanels)) quality.problems.push({ check: 'missing', part: pc.name, worst: sleevePieces.length - sleevePanels });
@@ -117,7 +123,9 @@ export function runDrape(job: DrapeJob): DrapedLite {
     quality.ok = false;
   }
   closeSeams(d);
-  let hang = hangScales(d, sp);
+  // (Trouser legs hang round the form's own legs, not the body's axis: measured against the body's round, the leg's
+  // points read as touching and clear by turns down each leg, and were drawn at their scales by turns, a sawtooth.)
+  let hang = job.kind === 'trousers' ? undefined : hangScales(d, sp);
   if (hang) closeSeams(d, hang);
   let pos = d.pos;
   let posMirror = d.posMirror;

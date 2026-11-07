@@ -192,6 +192,8 @@ export interface TeeDraft {
   frontExtra: number;
   /** Centre back, neck edge to hem. */
   backLength: number;
+  /** Where the waist is on the front and back, down from the neck's level (for All round to hang it at the waist). */
+  waistY: number;
   /** A shaped hem, as drafted: how far it rises at the side seams and falls at the centre back, in cm. */
   hemShape?: { sides: number; back: number };
   armholeDepth: number;
@@ -289,6 +291,7 @@ export function draftTee(m: TeeMeasurements, style: Partial<TeeStyle> = {}): Tee
     backBust: r1(shape.backBustQ),
     frontExtra: r1(shape.frontExtra),
     backLength: r1(shape.hemY + shape.backLonger - shape.bd),
+    waistY: m.nape_to_waist,
     ...(shape.sides || shape.backLonger ? { hemShape: { sides: r1(shape.sides), back: r1(shape.backLonger) } } : {}),
     armholeDepth: r1(scye),
     armhole: r1(shape.armhole),
