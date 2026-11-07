@@ -4,6 +4,7 @@
 // the colour's own page. Prices are what the shop listed when the fabric was added; the shop's page has today's price.
 import type { Drape, Fibre, MyFabric, Weight } from './fabrics';
 import type { Special } from './specialFabrics';
+import { catalogueFabric, catalogueOf } from './shopCatalogue';
 
 export interface Colour {
   name: string;
@@ -35,6 +36,10 @@ export interface ShopFabric {
   suits: string[];
   /** The shop's cart link; {qty} is replaced by the amount to buy. */
   cart?: string;
+  /** The shop's own swatch photo (whole-catalogue fabrics, shopCatalogue.ts). */
+  img?: string;
+  /** A printed cloth: its colour is only its main one, so it is left out of the closest-colour match. */
+  print?: boolean;
 }
 
 /** Colours for any fabric. Natural keeps the swatch as photographed. */
@@ -63,7 +68,10 @@ export const COLOURS: Colour[] = [
 const MOOD = 'Mood Fabrics';
 const mood = (path: string) => `https://www.moodfabrics.com/${path}`;
 
-/** Each shop's affiliate tracking: Buy goes through the network so the sale earns the commission. Mood is on Awin (publisher 3131502). */
+/** Each shop's affiliate tracking: Buy goes through the network so the sale earns the commission. Mood is on Awin
+ * (publisher 3131502). NY Designer Fabrics (Awin) and Fashion Fabrics Club (CJ) open their own pages plainly until
+ * each approves us; then their line goes here (NY Designer Fabrics: awinmid=89379; Fashion Fabrics Club: the CJ
+ * deep link from its Links page in CJ, property 101913204). */
 const AFFILIATE: Record<string, (url: string) => string> = {
   [MOOD]: (url) => `https://www.awin1.com/cread.php?awinmid=53817&awinaffid=3131502&ued=${encodeURIComponent(url)}`,
 };
@@ -197,22 +205,24 @@ export const SHOP_FABRICS: ShopFabric[] = [
   },
 ];
 
-export const shopFabric = (id: string | undefined) => SHOP_FABRICS.find((f) => f.id === id);
+/** A shop fabric by its id: one of the hand-picked ones above, or one from a shop's whole catalogue. */
+export const shopFabric = (id: string | undefined) => (id ? SHOP_FABRICS.find((f) => f.id === id) ?? catalogueFabric(id) : undefined);
 
-/** The shop lists (the fabrics you can buy under each type, and the closest shop colourways under Any colour) are
- * hidden until a shop's whole catalogue is loaded from its affiliate feed (Cat, Nov 7: "the whole fabric shop feature
- * is pointless if there are only 7 fabrics"). The code stays; a browser with localStorage `shops` set to `on` still
- * sees them, to test the shop flow and preview a feed. A shop fabric already picked in saved work still shows. */
+/** The shop lists (the fabrics you can buy under each type, and the closest shop colourways under Any colour) were
+ * hidden until a shop's whole catalogue loaded (Cat, Nov 7: "the whole fabric shop feature is pointless if there are
+ * only 7 fabrics"). The partner shops' whole catalogues are in now (shopCatalogue.ts), so they show; localStorage
+ * `shops` set to `off` hides them again, to see the app without them. */
 export function shopListsOn(): boolean {
   try {
-    return localStorage.getItem('shops') === 'on';
+    return localStorage.getItem('shops') !== 'off';
   } catch {
-    return false;
+    return true;
   }
 }
 
-/** Shop fabrics for this garment. */
-export const shopFabricsFor = (garment: string) => SHOP_FABRICS.filter((f) => f.suits.includes(garment));
+/** Shop fabrics for this garment: the hand-picked ones, then the whole catalogue of `type` once its file has loaded. */
+export const shopFabricsFor = (garment: string, type?: string) =>
+  [...SHOP_FABRICS, ...(catalogueOf(type) ?? [])].filter((f) => f.suits.includes(garment));
 
 /** The colours offered for this fabric: a shop fabric's own colourways, otherwise the general set. */
 export const coloursFor = (f: MyFabric | undefined): Colour[] => shopFabric(f?.shop)?.colours ?? COLOURS;
@@ -313,9 +323,11 @@ interface ColourMatch {
   closeness: Closeness;
 }
 
-/** The partner shops' colourways nearest a picked colour, best first, among the fabrics that suit the garment (Cat's W4 Shop Match). */
-export function closestShopColours(hex: string, garment: string, n = 3): ColourMatch[] {
-  return shopFabricsFor(garment)
+/** The partner shops' colourways nearest a picked colour, best first, among the fabrics that suit the garment (Cat's W4
+ * Shop Match), with the whole catalogue of `type` once loaded. Prints are left out: one colour can't stand for them. */
+export function closestShopColours(hex: string, garment: string, n = 3, type?: string): ColourMatch[] {
+  return shopFabricsFor(garment, type)
+    .filter((f) => !f.print)
     .flatMap((fabric) => fabric.colours.map((colour) => ({ fabric, colour, distance: colourDistance(hex, colour.hex) })))
     .sort((a, b) => a.distance - b.distance)
     .slice(0, n)

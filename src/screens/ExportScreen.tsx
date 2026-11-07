@@ -752,16 +752,16 @@ function BuyShopFabric({ shop, colour, metres }: { shop: ShopFabric; colour?: st
   const link = buyLink(shop, colour, metres);
   const words = unit === 'yd' ? (qty === 1 ? 'yard' : 'yards') : 'm';
   const amount = unit === 'yd' ? `${qty} ${words}` : `${qty} m`;
-  const cost = Math.ceil(qty * shopPrice(shop, colour));
-  if (!link) return <p className="muted small">You need {amount}, about ${cost}.</p>;
+  // A shop whose listed price isn't a yard's (shopCatalogue.ts) has no cost here: its page shows it.
+  const cost = shopPrice(shop, colour) ? `about $${Math.ceil(qty * shopPrice(shop, colour))} ${shop.currency}` : 'price on its page';
+  if (!link) return <p className="muted small">You need {amount}, {cost}.</p>;
   return (
     <>
       <a className="buylink" href={link.href} target="_blank" rel="noopener noreferrer">
         Buy {unit === 'yd' ? `${qty} yd` : `${qty} m`} at {shop.shop}
       </a>
       <p className="muted small">
-        {link.inCart ? `${amount} goes straight into the cart` : `Add ${amount} on ${shop.shop}'s page`}, about ${cost} {shop.currency}. We may earn a
-        commission when you buy.
+        {link.inCart ? `${amount} goes straight into the cart` : `Add ${amount} on ${shop.shop}'s page`}, {cost}. We may earn a commission when you buy.
       </p>
     </>
   );
@@ -803,7 +803,8 @@ function YourFabric({ fabric, style, metres, onChange }: { fabric: MyFabric; sty
             <b>{shop.name}</b>
             {fabric.colour ? `, ${fabric.colour}` : ''}{' '}
             <span className="muted">
-              from {shop.shop}, ${shopPrice(shop, fabric.colour)}/{shop.yards ? 'yd' : 'm'}
+              from {shop.shop}
+              {shopPrice(shop, fabric.colour) ? `, $${shopPrice(shop, fabric.colour)}/${shop.yards ? 'yd' : 'm'}` : ''}
             </span>
           </p>
           {metres !== undefined && <BuyShopFabric shop={shop} colour={fabric.colour} metres={metres} />}

@@ -619,3 +619,27 @@
   letter-spacing: var(--caps-track);
   text-decoration: none;
 }
+
+/* The partner shops' whole catalogues (Affiliates, Nov 7): the shop's own swatch photo fills the card, a search box
+   above the row, and a More card at its end. */
+.shopfab-tile.photo {
+  background-size: cover;
+}
+.shopsearch {
+  width: 100%;
+  margin: 2px 0 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+}
+.shopfab.more {
+  justify-content: flex-end;
+  height: var(--tex-h);
+}
+.shopfab.more .shopfab-text {
+  white-space: normal;
+}

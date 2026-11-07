@@ -23,7 +23,7 @@ export function paletteShop(fabric: MyFabric | undefined): string | undefined {
   if (!f) return undefined;
   const colour = fabric?.colour?.trim().toLowerCase();
   const price = f.colours.find((c) => c.name.toLowerCase() === colour)?.price ?? f.price;
-  return `${f.shop} · $${price}/${f.yards ? 'yd' : 'm'}`;
+  return price ? `${f.shop} · $${price}/${f.yards ? 'yd' : 'm'}` : f.shop;
 }
 
 /** Cloth drawn at the drawing's own scale (about 3.4 px a centimetre on a phone), so the card and dress match. */

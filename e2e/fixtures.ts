@@ -8,7 +8,16 @@ import { test as base, expect, type Download, type Locator, type Page, type Test
  * Every test fails on a console error or an uncaught exception in the page, listed at the end.
  * A test can let a known message through with `consoleErrors.allow(/pattern/)`.
  */
-export const test = base.extend<{ consoleErrors: { allow: (re: RegExp) => void }; waitlist: boolean; access: void }>({
+export const test = base.extend<{ consoleErrors: { allow: (re: RegExp) => void }; waitlist: boolean; access: void; shops: void }>({
+  // The partner shops' whole catalogues (public/shops/, refreshed from the shops) change from week to week, so the
+  // click-throughs see none of them: only the hand-picked shop fabrics. A test that needs a catalogue routes its own.
+  shops: [
+    async ({ page }, use) => {
+      await page.route('**/shops/*.json', (r) => r.fulfill({ json: [] }));
+      await use();
+    },
+    { auto: true },
+  ],
   // Until launch a stranger gets the waitlist (Cat's W1, 2026-10-21); the click-throughs run as a tester let in
   // before, unless a test sets `test.use({ waitlist: true })`.
   waitlist: [false, { option: true }],
