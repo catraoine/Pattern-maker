@@ -166,4 +166,48 @@ export function standStiff(panels: Panel[], res: Float64Array | number[], k = kn
       res[I + 1] += hd[j] * s * s * (3 - 2 * s);
     });
   }
+  if (!knob('__noLay')) layFrontEdges(body, res);
+}
+
+/** A buttoned stiff front lies closed to its edge. The front is sewn as a half mirrored at the centre front, so there
+ *  the front's centre line goes onto the mirror, its button stand with it, the cloth beside easing over to it: between
+ *  the buttons its edge can't bow open as a soft cloth's does. Moves `res`. */
+function layFrontEdges(body: Panel[], res: Float64Array | number[]): void {
+  const W = knob('__layW') ?? 6;
+  for (const p of body) {
+    if (p.role !== 'front') continue;
+    const pts = p.mesh.pts;
+    const centre = pts.map((_, i) => i).filter((i) => !p.turned[i] && Math.abs(pts[i].x) < 0.9);
+    if (!centre.length) continue;
+    // (The centre line's depth at a height on the pattern: its points within a little of it, averaged, so the stand
+    // follows a smooth line rather than whichever mesh point happens to lie nearest.)
+    const zAt = (y: number) => {
+      let s = 0;
+      let sw = 0;
+      for (const i of centre) {
+        const w = Math.max(0, 1 - Math.abs(pts[i].y - y) / 2.5);
+        s += w * res[(p.base + i) * 3 + 2];
+        sw += w;
+      }
+      return sw > 1e-6 ? s / sw : undefined;
+    };
+    // (Only below the lapel's break, coming in over a few cm there, as above it the fronts turn back open.)
+    const breakY = Math.max(-Infinity, ...pts.filter((_, i) => p.turned[i]).map((q) => q.y));
+    const moves: [number, number, number][] = [];
+    pts.forEach((q, i) => {
+      if (p.turned[i] || q.x >= W) return;
+      const I = (p.base + i) * 3;
+      const b = Math.min(1, Math.max(0, (q.y - breakY - 1) / 5));
+      const fb = b * b * (3 - 2 * b);
+      if (!fb) return;
+      const t = Math.max(0, (q.x - 0.9) / (W - 0.9));
+      const fx = 1 - t * t * (3 - 2 * t);
+      const z = q.x < 0.9 ? zAt(q.y) : undefined;
+      moves.push([I, res[I] * (1 - fb * fx), z === undefined ? res[I + 2] : res[I + 2] + (z - res[I + 2]) * fb]);
+    });
+    for (const [I, x, z] of moves) {
+      res[I] = x;
+      res[I + 2] = z;
+    }
+  }
 }
