@@ -852,7 +852,9 @@ function notchedCollar(front: Piece, backNeck: number, frontNeck: number, s: Out
     // (A high lapel's long collar end is drafted on the front, beside its lapel as cut: how to carry a point of the
     // collar back to the front's pattern, and the roll line the lapel turns back over, so the drawing can lay that end
     // where it falls when worn, over the lapel and on past it onto the chest.)
-    meta: { foldAt: 'centre back', ...(low ? { pressed: true, onFront: { neckC: neckPts, neckF: front.meta.neckSeam, Q, d1, nF, roll: front.meta.roll } } : {}) },
+    // (For the drape: how the collar's front end was carried over from the front, so it can be laid back on the lapel
+    // as worn. A collar point q sits on the front at Q + d1 (q - E).tE + nF (q - E).up; the front neck starts at x hpsX.)
+    meta: { foldAt: 'centre back', fromFront: { E, tE, up, Q, d1, nF, hpsX: backNeck }, ...(low ? { pressed: true, onFront: { neckC: neckPts, neckF: front.meta.neckSeam, Q, d1, nF, roll: front.meta.roll } } : {}) },
     draft: {
       frame: [],
       points: [

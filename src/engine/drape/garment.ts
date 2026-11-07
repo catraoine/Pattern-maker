@@ -4225,6 +4225,27 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
         };
         const onFront = p.pc.meta.onFront as CollarOnFront | undefined;
         const lapelFront = B.panels.find((pp) => pp.role === 'front' && !pp.hidden && pp.turned.some(Boolean));
+        const ff = p.pc.meta.fromFront as { E: P; tE: P; up: P; Q: P; d1: P; nF: P; hpsX: number } | undefined;
+        const frontP = B.panels.find((f) => f.role === 'front' && !f.hidden && f.folds?.length && f.pc.meta.gorge);
+        // (Not where a high lapel's long collar end is laid by collarEnd.ts below: that lay wins.)
+        const wornLay = !knob('__noWornLay') && !!ff && !!frontP && !onFront;
+        const wornOf = (q: P): { X: V3; w: number } | undefined => {
+          if (!ff || !frontP) return undefined;
+          const t = (q.x - ff.hpsX) / (ff.E.x - ff.hpsX || 1);
+          const s0 = Math.max(0, Math.min(1, (t - (knob('__wornFrom') ?? 0.1)) / (knob('__wornSpan') ?? 0.5)));
+          if (s0 <= 0) return undefined;
+          const v = { x: q.x - ff.E.x, y: q.y - ff.E.y };
+          const a = v.x * ff.tE.x + v.y * ff.tE.y;
+          const b = v.x * ff.up.x + v.y * ff.up.y;
+          const f = { x: ff.Q.x + ff.d1.x * a + ff.nF.x * b, y: ff.Q.y + ff.d1.y * a + ff.nF.y * b };
+          const [ra, rb] = frontP.folds![0];
+          // (Only what the pattern puts past the lapel's roll line, on the lapel: what falls short of it stands.)
+          const sideOf = (r: P) => Math.sign((rb.x - ra.x) * (r.y - ra.y) - (rb.y - ra.y) * (r.x - ra.x));
+          const ti = frontP.turned.findIndex(Boolean);
+          if (ti < 0 || sideOf(f) !== sideOf(frontP.mesh.pts[ti])) return undefined;
+          const X = surfaceAt(frontP, reflect(f, ra, rb), false);
+          return X && { X, w: s0 * s0 * (3 - 2 * s0) };
+        };
         pts.forEach((q, i) => {
           if (onSeamPt.has(i)) return;
           let X: V3;
@@ -4250,6 +4271,9 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
             const w = flatW(at0.seg);
             const flatV = w > 0 ? (knob('__oldEnds') ? onBody(at0.seg, -at0.h) : flatOn(at0)) : undefined;
             X = mix(standAt(q).X, flatV && out(flatV, 0.15), w);
+            // (So does the stand, where the pattern puts it past the lapel's roll line: lying on the lapel with the fall.)
+            const wl = wornLay ? wornOf(q) : undefined;
+            if (wl) X = mix(X, out(wl.X, thick + 0.15), wl.w);
           } else {
             // Turned: laid over whatever its mirror at the roll line would be, the stand or (cut wider than the stand)
             // the piece below the seam, a cloth's thickness out.
@@ -4260,6 +4284,11 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
             const w = flatW(at0.seg);
             const flatV = w > 0 ? (knob('__oldEnds') ? onBody(at0.seg, -at0.h) : flatOn(at0)) : undefined;
             X = mix(out(U0, thick + gap), flatV && out(flatV, 0.15 + thick + gap), w);
+            // (Toward its front end the fall lies where the pattern puts it, on the lapel as worn: carried back onto the
+            // front the way the collar was drafted from it, and turned over the lapel's roll line with it, so the collar
+            // point lands on the draft's own. Laid from the sim's settling, it stood up beside the neck in a point.)
+            const wl = wornLay ? wornOf(q) : undefined;
+            if (wl) X = mix(X, out(wl.X, 2 * thick + gap), wl.w);
           }
           // A high lapel's long collar end lies where it falls when worn, over the lapel and on onto the chest (see
           // collarEnd.ts), two cloths' thickness out; its stand still rises round the neck.
@@ -4284,6 +4313,27 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
         // lapel, 4 to 5 cm apart. Eased back to its cut lengths from the seam, so the end rolls from the one into the
         // other, All round quality 2026-11-04. Every plain jacket and coat read as stretched there before.)
         if (!knob('__noCollarEase')) relax(p, [...onSeamPt]);
+        // (Laid from the pattern, a fall can come to lie inside the form as it is drawn, whose shoulders stand out past
+        // the sim's body: put out onto it now, before it is eased to its cut lengths, not pushed out after.)
+        if (wornLay) {
+          const cTop = sp.cOf(-1.45) + 2;
+          const slope = (sp.yOf(cTop + 4) - sp.yOf(cTop)) / 4;
+          for (const [i] of moved) {
+            const I = (p.base + i) * 3;
+            const yD = Math.max(BODY_TOP, Math.min(BODY_BOTTOM, res[I + 1] < cTop ? sp.yOf(cTop) + (res[I + 1] - cTop) * slope : sp.yOf(res[I + 1])));
+            const drawn = bodyHalf(yD) * shapeAt(Math.abs(Math.atan2(res[I], res[I + 2])), yD) * sp.scale(yD) + thick;
+            const rho = Math.hypot(res[I], res[I + 2]) || 1e-9;
+            if (rho < drawn) {
+              res[I] *= drawn / rho;
+              res[I + 2] *= drawn / rho;
+            }
+            const v = ontoBody([res[I], res[I + 1], res[I + 2]], thick);
+            res[I] = v[0];
+            res[I + 1] = v[1];
+            res[I + 2] = v[2];
+          }
+        }
+        if (wornLay && !knob('__noCollarEase')) relax(p, [...onSeamPt]);
       }
     for (const p of B.panels) {
       if (p.role === 'sleeve' || p.hidden || (collarOnly && p.role !== 'collar')) continue;
@@ -6121,6 +6171,14 @@ function poloRoll(pc: Piece): [P, P] | undefined {
   ];
 }
 
+/** A tailored collar's roll line run down toward the gorge, where the lapel's roll line meets the neck seam: its stand
+ *  dies away to 1.5 cm there, as the lapel's does, instead of standing its full height (4 to 5 cm) at the front end,
+ *  where it stood up beside the neck in a point (Cat's "lay them from the pattern", 2026-11-07). */
+function wornRollEnd(pc: Piece): P {
+  const E = (pc.meta.fromFront as { E: P }).E;
+  return { x: E.x, y: E.y - (knob('__wornStand') ?? 1.5) };
+}
+
 export function collarsOf(pieces: Piece[], jacketRoll?: [P, P]): CollarPart[] {
   return pieces
     .filter((pc) => pc.kind === 'collar' || pc.meta.hood)
@@ -6138,7 +6196,7 @@ export function collarsOf(pieces: Piece[], jacketRoll?: [P, P]): CollarPart[] {
         const xs = pc.outline.points(2).map((q) => q.x);
         return [pt(Math.min(...xs) - 1, y), pt(Math.max(...xs) + 1, y)];
       };
-      const roll: [P, P] | undefined = pc.outline.tags.includes('gorge') && cl ? [cl[0], knob('__rollEnd') !== undefined ? { x: cl[cl.length - 1].x, y: -knob('__rollEnd')! } : cl[cl.length - 1]] : onStand ? shirtCollar(pc) : pc.meta.polo ? poloRoll(pc) : ruffleFold();
+      const roll: [P, P] | undefined = pc.outline.tags.includes('gorge') && cl ? [cl[0], knob('__rollEnd') !== undefined ? { x: cl[cl.length - 1].x, y: -knob('__rollEnd')! } : !knob('__noWornLay') && pc.meta.fromFront ? wornRollEnd(pc) : cl[cl.length - 1]] : onStand ? shirtCollar(pc) : pc.meta.polo ? poloRoll(pc) : ruffleFold();
       void jacketRoll;
       return { pc, roll, onStand };
     })
