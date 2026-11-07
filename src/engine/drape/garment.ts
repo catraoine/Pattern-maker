@@ -415,12 +415,55 @@ function invertedClosed(pc: Piece, inv: { depth: number; backFrom?: number }): P
   return { ...pc, outline: path, lines: [], meta: { ...pc.meta, pleatFolds: folds, pleatKind: 'inverted' } };
 }
 
+/** A pleated skirt too wide for one width of cloth is cut in two each side, a side panel seamed on inside a pleat
+ *  where it never shows. Hung, each side is joined back into the one piece it was drafted as, so its pleats close up as
+ *  one (closed and hung apart, the side panels closed against their own width alone and hung as loose flaps at the
+ *  sides; Cat's SS27 vest set's pleated skirt, 2026-11-07). */
+function joinPanels(pieces: Piece[]): Piece[] {
+  if (knob('__splitPanels')) return pieces;
+  const out: Piece[] = [];
+  const used = new Set<Piece>();
+  for (const pc of pieces) {
+    if (used.has(pc)) continue;
+    const side = /side/i.test(pc.name) ? undefined : pieces.find((o) => o !== pc && !used.has(o) && /side/i.test(o.name) && /back/i.test(o.name) === /back/i.test(pc.name) && o.outline.tags.includes('panel'));
+    if (!side || !pc.outline.tags.includes('panel')) {
+      out.push(pc);
+      continue;
+    }
+    // (Each outline walked from the end of its panel seam round to its start, the two walks laid end to end.)
+    const walk = (p: Piece) => {
+      const { pts, tags } = p.outline.taggedPoints(12);
+      const n = pts.length;
+      const on = (i: number) => tags[((i % n) + n) % n] === 'panel';
+      let end = 0;
+      while (end < n && !(on(end - 1) && !on(end))) end++;
+      const path: { q: P; tag: string }[] = [];
+      for (let k = 0; k < n; k++) {
+        const i = (end + k) % n;
+        path.push({ q: pts[i], tag: tags[i] });
+        if (on(i)) break;
+      }
+      return path;
+    };
+    const a = walk(pc);
+    const b = walk(side);
+    const all = [...a, ...b];
+    const m = new Path(all[0].q);
+    for (let i = 1; i < all.length; i++) m.line(all[i].q, all[i - 1].tag === 'panel' ? 'pleat' : all[i - 1].tag);
+    m.line(all[0].q, all[all.length - 1].tag === 'panel' ? 'pleat' : all[all.length - 1].tag);
+    m.closed = true;
+    used.add(side);
+    out.push({ ...pc, outline: m });
+  }
+  return out;
+}
+
 /** The skirt pieces to hang: pleated ones closed as worn. */
 function hungSkirt(pieces: Piece[], vol?: { kind?: string; folds?: PleatFold[][]; godets?: { hemWidth: number; inSeams: boolean }; inverted?: { depth: number; backFrom?: number } }, size?: { hip?: number; hem?: number }): Piece[] {
   if (vol?.kind === 'godets' && vol.godets && !knob('__looseGodets')) return pieces.filter((pc) => !pc.meta.godet).map((pc) => godetsOpened(pc, vol.godets!));
   if (vol?.kind === 'inverted' && vol.inverted && !knob('__openPleats')) return pieces.map((pc) => (pc.meta.pleats === 'inverted' && pc.outline.taggedPoints(4).pts.some((q) => q.x < -1e-6) ? invertedClosed(pc, vol.inverted!) : pc));
   if (!vol?.folds?.length || (vol.kind !== 'knife' && vol.kind !== 'box') || knob('__openPleats')) return pieces;
-  return pieces.map((pc) => (pc.meta.pleats ? pleatClosed(pc, wornFolds(vol.folds![/back/i.test(pc.name) ? 1 : 0] ?? vol.folds![0], size), vol.kind!) : pc));
+  return joinPanels(pieces).map((pc) => (pc.meta.pleats ? pleatClosed(pc, wornFolds(vol.folds![/back/i.test(pc.name) ? 1 : 0] ?? vol.folds![0], size), vol.kind!) : pc));
 }
 
 /** A flared skirt's folds as worn, spread round the hip and out to the hem as its own finished hip and hem need:
