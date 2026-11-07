@@ -5767,7 +5767,7 @@ export function collarsOf(pieces: Piece[], jacketRoll?: [P, P]): CollarPart[] {
         const xs = pc.outline.points(2).map((q) => q.x);
         return [pt(Math.min(...xs) - 1, y), pt(Math.max(...xs) + 1, y)];
       };
-      const roll: [P, P] | undefined = pc.outline.tags.includes('gorge') && cl ? [cl[0], cl[cl.length - 1]] : onStand ? shirtCollar(pc) : pc.meta.polo ? poloRoll(pc) : ruffleFold();
+      const roll: [P, P] | undefined = pc.outline.tags.includes('gorge') && cl ? [cl[0], knob('__rollEnd') !== undefined ? { x: cl[cl.length - 1].x, y: -knob('__rollEnd')! } : cl[cl.length - 1]] : onStand ? shirtCollar(pc) : pc.meta.polo ? poloRoll(pc) : ruffleFold();
       void jacketRoll;
       return { pc, roll, onStand };
     })

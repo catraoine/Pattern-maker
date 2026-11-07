@@ -21,7 +21,7 @@ import { sideTie, type SideTieSpec } from './tie';
 import { camiStraps } from './strap';
 import { knob } from './knob';
 import { fairDroppedSeam } from './seamFair';
-import { fitRoom } from './fitMap';
+import { BUST_Y, fitRoom, type FitPin } from './fitMap';
 
 export type DrapeJob = { m: RoundMeasurements; armhole: RoundGarment['armhole']; fibre?: Fibre; crisp?: boolean; /** A side tie knotted at the left side seam at the waist (belt.ts). */ sideTie?: SideTieSpec } & (
   | { kind: 'skirt'; draft: SkirtDraft }
@@ -63,6 +63,25 @@ const TUNE: Partial<Record<Fibre, { thick: number; bendK: number }>> = {
   polyester: { thick: 0.3, bendK: 0.04 },
   blend: { thick: 0.3, bendK: 0.05 },
 };
+
+/** The pattern's own ease at the bust, waist and hip, where the draft gives a finished measurement there: what the fit
+ *  map is pinned to (see fitMap.ts). */
+function fitPins(job: DrapeJob, bustC: number): FitPin[] {
+  type Finished = { finishedBust?: number; finishedWaist?: number; finishedHip?: number };
+  const m = job.m;
+  const top: Finished | undefined = job.kind === 'dress' ? (job.draft.bodice as Finished) : job.kind === 'bodice' || job.kind === 'outer' || job.kind === 'tee' ? (job.draft as Finished) : undefined;
+  const below: Finished | undefined = job.kind === 'dress' ? (job.draft.skirt as Finished) : job.kind === 'skirt' || job.kind === 'trousers' ? (job.draft as Finished) : undefined;
+  const pins: FitPin[] = [];
+  const pin = (c: number, finished: number | undefined, body: number | undefined) => {
+    if (typeof finished === 'number' && Number.isFinite(finished) && typeof body === 'number') pins.push({ c, ease: finished - body });
+  };
+  pin(bustC, top?.finishedBust, m.full_bust);
+  // (A waist seam or a waistband reads both layers at once, and a top's edge only grazes the level: pinned a little
+  // below it, where the waist's ease still holds.)
+  pin(below ? 3 : 0, below?.finishedWaist ?? top?.finishedWaist, m.waist);
+  pin(m.waist_to_hip ?? 20.5, below?.finishedHip ?? top?.finishedHip, m.full_hip);
+  return pins;
+}
 
 /** Puts back the Path class on every path in a cloned draft (a structured clone keeps the data, not the class). */
 export function rehydrate<T>(v: T): T {
@@ -132,7 +151,7 @@ export function runDrape(job: DrapeJob): DrapedLite {
   // The room is read from the cloth as it settled on the body, before it is drawn (closeSeams and the hang move it).
   const thickOf = new Float64Array(d.pos.length / 3);
   for (const p of d.panels) p.thick.forEach((t, i) => (thickOf[p.base + i] = t));
-  const fit = fitRoom(d, sp, (k) => thickOf[k]);
+  const fit = fitRoom(d, sp, (k) => thickOf[k], fitPins(job, sp.cOf(BUST_Y)));
   closeSeams(d);
   // (Trouser legs hang round the form's own legs, not the body's axis: measured against the body's round, the leg's
   // points read as touching and clear by turns down each leg, and were drawn at their scales by turns, a sawtooth.)

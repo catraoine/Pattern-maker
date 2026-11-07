@@ -11,7 +11,7 @@ import type { Draped } from './garment';
 import type { Space } from './space';
 
 /** The form's bust line (body.ts / space.ts): above it the armhole and the shoulders cut the ring. */
-const BUST_Y = -0.575;
+export const BUST_Y = -0.575;
 
 /** Cloth this close to the body (cm, past its own thickness) counts as lying on it. */
 const ON = 0.3;
@@ -72,9 +72,15 @@ function offArm(sp: Space, x: number, c: number, z: number): { gap: number; t: n
   return { gap: Math.hypot(x - q[0], c - q[1], z - q[2]) - (r0 + (r1 - r0) * t), t };
 }
 
+/** The pattern's own ease at a level (cm below the waist): what its measurement table says. */
+export interface FitPin {
+  c: number;
+  ease: number;
+}
+
 /** Each point's room, in cm round (as ease is given): below 0 the cloth would have to stretch to go round. NaN where
  *  it can't be read (a collar, cloth off the body's levels). */
-export function fitRoom(d: Draped, sp: Space, thick: (i: number) => number): Float32Array {
+export function fitRoom(d: Draped, sp: Space, thick: (i: number) => number, pins: FitPin[] = []): Float32Array {
   const n = d.pos.length / 3;
   const out = new Float32Array(n).fill(NaN);
   const P = d.pos;
@@ -112,6 +118,32 @@ export function fitRoom(d: Draped, sp: Space, thick: (i: number) => number): Flo
       for (let k = -2; k <= 2; k++) if (rings[r + k]?.ok) [t, w] = [t + raw[r + k], w + 1];
       g.ease = t / w;
     });
+    // Pinned to the pattern's own ease where it gives one (bust, waist, hip): the drape reads a ring's girth to a
+    // centimetre or two, but where cloth bunches (a fitted dress's waist seam read 6 cm roomy) the pattern is the truth,
+    // and the map must never disagree with the measurement table. The correction is blended between the pins and held
+    // past the last one.
+    const fix = pins
+      .map((pin) => {
+        // (The whole ring nearest the level, within 2 cm: the bust line itself can sit a hair above the first ring read.)
+        let best: (typeof rings)[number] | undefined;
+        for (const g of rings) if (g.ok && Math.abs(g.c - pin.c) <= 2 && (!best || Math.abs(g.c - pin.c) < Math.abs(best.c - pin.c))) best = g;
+        return best ? { c: best.c, by: pin.ease - best.ease, ease: pin.ease } : undefined;
+      })
+      .filter((x): x is { c: number; by: number; ease: number } => !!x)
+      .sort((u, v) => u.c - v.c);
+    if (fix.length)
+      rings.forEach((g) => {
+        if (!g.ok) return;
+        let by = fix[0].by;
+        if (g.c >= fix[fix.length - 1].c) by = fix[fix.length - 1].by;
+        else
+          for (let k = 0; k + 1 < fix.length; k++)
+            if (g.c >= fix[k].c && g.c <= fix[k + 1].c) by = fix[k].by + ((fix[k + 1].by - fix[k].by) * (g.c - fix[k].c)) / (fix[k + 1].c - fix[k].c || 1);
+        g.ease += by;
+        // (Between two pins the garment is never read tighter than the tighter of them, less a centimetre: a waist seam,
+        // where two pieces' edges meet, read 3 cm under the waist's own ease once corrected.)
+        for (let k = 0; k + 1 < fix.length; k++) if (g.c > fix[k].c && g.c < fix[k + 1].c) g.ease = Math.max(g.ease, Math.min(fix[k].ease, fix[k + 1].ease) - 1);
+      });
     // A ring the cloth doesn't go all the way round (or laps over itself) takes the nearest whole ring's ease.
     rings.forEach((g, r) => {
       if (g.ok) return;
