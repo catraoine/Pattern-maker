@@ -1445,14 +1445,15 @@ function FeelControl({ feel, onFeel }: { feel: Feel; onFeel: (f: Feel) => void }
         {btn('weight', -1, 'Lighter')}
         {btn('weight', 1, 'Heavier')}
       </div>
-      <p className="all-round-feel-now" aria-live="polite">
-        {words.length ? `Adjusted: ${words.join(', ')}. ` : 'As your fabric comes.'}
-        {words.length > 0 && (
+      {/* (Its words only once adjusted: see the row's styles.) */}
+      {words.length > 0 && (
+        <p className="all-round-feel-now" aria-live="polite">
+          {`Adjusted: ${words.join(', ')}. `}
           <button type="button" className="all-round-feel-reset" onClick={() => onFeel({})}>
             Back to your fabric
           </button>
-        )}
-      </p>
+        </p>
+      )}
     </div>
   );
 }

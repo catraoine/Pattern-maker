@@ -167,21 +167,24 @@ input.inline:focus,
   border-radius: 50%;
 }
 
-/* Feel (Cat's C, 2026-11-07, In testing): a quiet row of steps under the checked line, in the pill style of Look closer. */
+/* Feel (Cat's C, 2026-11-07, In testing): one quiet row under the checked line, in the pill style of Look closer.
+   (One row, its words only once adjusted: as a stack of head, steps on two lines and a line of words it took the
+   steady preview box's height and drew a skirt tiny on a phone, release O.) */
 .all-round-feel {
-  margin: 6px 0 2px 19px;
+  margin: 4px 0 2px 19px;
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
 }
 
 .all-round-feel-head {
   margin: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-family: var(--mono);
-  font-size: 0.72rem;
+  font-size: 0.66rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink);
@@ -191,29 +194,28 @@ input.inline:focus,
   /* Hugs its words, as in a screen head: it is also a .chip, whose tap height stood it twice as high as its text. */
   display: inline-block;
   margin: 0;
-  padding: 2px 8px;
+  padding: 1px 6px;
   min-height: 0;
   line-height: 1.4;
-  font-size: 0.62rem;
+  font-size: 0.58rem;
 }
 
 .all-round-feel-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
 }
 
 .all-round-feel-step,
 .all-round-feel-reset {
-  min-height: 32px;
-  padding: 6px 12px;
+  min-height: 26px;
+  padding: 3px 8px;
   border: 1px solid color-mix(in srgb, var(--muted) 45%, transparent);
   border-radius: 999px;
   background: transparent;
   color: var(--ink);
   font-family: var(--mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.08em;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
 }
@@ -225,14 +227,15 @@ input.inline:focus,
 
 .all-round-feel-now {
   margin: 0;
-  font-size: 0.75rem;
+  flex-basis: 100%;
+  font-size: 0.7rem;
   color: var(--muted);
 }
 
 .all-round-feel-reset {
   margin-left: 6px;
-  min-height: 28px;
-  padding: 4px 10px;
+  min-height: 24px;
+  padding: 2px 8px;
 }
 
 .all-round-note {
