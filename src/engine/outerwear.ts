@@ -65,6 +65,15 @@ interface OuterStyle {
   cutawayCm?: number;
   /** How the lapels are cut (In testing); older saves have none, the classic lapel. */
   lapel?: OuterLapel;
+  /** Measured off a photo (In testing), each in place of the named choice's own when set: the hem's drop
+   * below the waist, the bust ease, the lapel break (or top button) below the centre front neck, how many
+   * buttons and how far apart, and how far the shoulder point sits past (or inside) the wearer's own, in cm. */
+  dropCm?: number;
+  easeCm?: number;
+  breakCm?: number;
+  buttons?: number;
+  buttonGapCm?: number;
+  shoulderCm?: number;
   seamAllowance: number;
   hemAllowance: number;
   fitting?: BodiceFitting;
@@ -185,6 +194,14 @@ function spanAt(pc: Piece, y: number): [number, number] {
 }
 
 /** How far below the waist the hem sits for each length. */
+/** A hem measured off a photo, cm below the waist, kept to the garment's range: a jacket from the cropped length
+ * to 15 cm past its long one, a coat from the jacket's long length to 10 cm above the floor. */
+export function measuredOuterDrop(m: OuterMeasurements, kind: OuterKind, cm: number): number {
+  const lo = kind === 'jacket' ? outerDrop(m, 'cropped') : outerDrop(m, 'long');
+  const hi = kind === 'jacket' ? outerDrop(m, 'long') + 15 : Math.max(outerDrop(m, 'midi'), (m.waist_to_floor ?? outerDrop(m, 'midi') + 20) - 10);
+  return Math.min(hi, Math.max(lo, cm));
+}
+
 export function outerDrop(m: OuterMeasurements, length: OuterLength): number {
   const WH = m.waist_to_hip ?? 20;
   const knee = m.waist_to_knee ?? WH + 38;
@@ -1022,9 +1039,14 @@ const plunges = (s: Pick<OuterStyle, 'lapel' | 'collar' | 'front'>) => s.lapel =
 function buttonsFor(s: OuterStyle, ext: number, first: number, last: number): OuterDraft['buttons'] {
   const size = OUTER_BUTTON[s.kind];
   if (s.front === 'zip') return { at: [], sizeCm: size, columns: [0] };
-  const gap = s.kind === 'coat' ? 11 : 10;
-  const count = plunges(s) ? 1 : Math.max(s.front === 'double' ? 2 : 1, Math.round((last - first) / gap)) + 1;
-  const at = Array.from({ length: count }, (_, i) => r1(first + (count > 1 ? ((last - first) * i) / (count - 1) : 0)));
+  const minCount = s.front === 'double' ? 2 : 1;
+  const given = s.buttons !== undefined && Number.isFinite(s.buttons) ? Math.round(Math.min(8, Math.max(minCount, s.buttons))) : undefined;
+  const givenGap = s.buttonGapCm !== undefined && Number.isFinite(s.buttonGapCm) ? Math.min(20, Math.max(5, s.buttonGapCm)) : undefined;
+  const gap = givenGap ?? (s.kind === 'coat' ? 11 : 10);
+  const count = given ?? (plunges(s) ? 1 : Math.max(minCount, Math.round((last - first) / gap)) + 1);
+  // A measured gap spaces the buttons from the top one down, stopping short of the hem; otherwise they fill the front.
+  const span = givenGap !== undefined && count > 1 ? Math.min(last - first, gap * (count - 1)) : last - first;
+  const at = Array.from({ length: count }, (_, i) => r1(first + (count > 1 ? (span * i) / (count - 1) : 0)));
   const inset = size / 2 + 1.5;
   const columns = s.front === 'double' ? [-(ext - inset), ext - inset] : [0];
   return { at, sizeCm: size, columns };
@@ -1112,6 +1134,12 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
   if (!(m.full_hip && m.waist_to_hip)) throw new DraftError(`Add your full hip and waist to hip measurements to make a ${s.kind}.`);
   if (s.kind === 'coat' && !m.waist_to_knee) throw new DraftError('Add your waist to knee measurement to make a coat.');
   if (!(m.arm_length && m.upper_arm)) throw new DraftError(`Add your arm length and upper arm measurements for the ${s.kind}'s sleeves.`);
+  // A shoulder measured off a photo: the shoulder point moved out (or in) along the shoulder, so the armhole, and
+  // the sleeve drafted to it, follow. Kept within what still sits on the body.
+  if (s.shoulderCm && Number.isFinite(s.shoulderCm) && m.shoulder_length) {
+    const by = Math.min(6, Math.max(-3, s.shoulderCm));
+    m = { ...m, shoulder_length: m.shoulder_length + by, ...(m.shoulder_width ? { shoulder_width: m.shoulder_width + 2 * by } : {}) };
+  }
   const length = OUTER_LENGTHS[s.kind].includes(s.length) ? s.length : DEFAULT_OUTER[s.kind].length;
   // A fitted jacket needs its waist darts; only a roomier one can go boxy.
   // A raglan sleeve is cut off a one-piece front and back, so princess seams give way to darts.
@@ -1138,7 +1166,7 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     length: length === 'cropped' ? 'high_hip' : 'hip',
     darts: big ? 'none' : shaping === 'boxy' ? 'bust' : 'bust_waist',
     princess: shaping === 'princess' ? 'armhole' : 'none',
-    bustEase: OUTER_EASE[s.kind][s.fit],
+    bustEase: s.easeCm !== undefined && Number.isFinite(s.easeCm) ? Math.min(45, Math.max(6, s.easeCm)) : OUTER_EASE[s.kind][s.fit],
     seamAllowance: s.seamAllowance,
     neckArmholeAllowance: 1,
     hemAllowance: s.hemAllowance,
@@ -1149,7 +1177,8 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     ...(s.sleeve === 'raglan' ? { sleeveCut: 'raglan' as const, sleeve: 'long' as const } : big && !bare ? { sleeveCut: 'drop' as const, sleeve: 'long' as const } : {}),
   };
   const base = draftBodice(m, bodiceStyle);
-  const drop = Math.max(base.drop, outerDrop(m, length) + (s.flare === 'flared' && length === 'long' && !rib ? FLARED_LONGER : 0));
+  const measuredDrop = s.dropCm !== undefined && Number.isFinite(s.dropCm) ? measuredOuterDrop(m, s.kind, s.dropCm) : undefined;
+  const drop = Math.max(base.drop, measuredDrop ?? outerDrop(m, length) + (s.flare === 'flared' && length === 'long' && !rib ? FLARED_LONGER : 0));
   // A rib hem band stands in for the last of the length, where the shell is long enough to give it up.
   const extra = Math.max(0, drop - base.drop - (rib ? RIB.hem : 0));
   const flare = (FLARE_PER_40[s.flare] * extra) / 40;
@@ -1178,7 +1207,10 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
   const neckY = block[0].outline.start.y;
   const apexY = base.front.apex.y;
   const waistY = base.front.waistCentre.y;
-  const breakY = plunges(s)
+  const measuredBreak = s.breakCm !== undefined && Number.isFinite(s.breakCm) && s.front !== 'zip' ? neckY + Math.min(waistY - neckY + 4, Math.max(lapelled(s.collar) ? 10 : 1.5, s.breakCm)) : undefined;
+  const breakY = measuredBreak !== undefined
+    ? measuredBreak
+    : plunges(s)
     ? waistY - 1.5
     : lapelled(s.collar)
       ? s.front === 'double'

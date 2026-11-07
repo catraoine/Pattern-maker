@@ -77,6 +77,7 @@ import { GARMENT_DRAFTING, dressOf, lingerieChoicesOf, outerChoicesOf, skirtStyl
 import { DEFAULT_FINISH, INITIAL, choicesPatch, type Finish, type Saved } from './savedWork';
 import { PhotoCheck } from './ui/PhotoCheck';
 import type { PhotoSource } from './photo/check';
+import type { PhotoBody } from './photo/garments';
 import { testerHeaders } from './ui/TesterCode';
 import { NEEDS_MEASUREMENTS, PARENT, SIDE, STEPS, STEP_OF, ladder, type Step, type View } from './navigation';
 
@@ -752,7 +753,7 @@ export default function App() {
             <PhotoScreen
               testerCode={account.testerCode}
               measured={canLeaveMeasure}
-              body={canLeaveMeasure ? (values as SkirtMeasurements & { arm_length?: number }) : undefined}
+              body={canLeaveMeasure ? (values as SkirtMeasurements & PhotoBody) : undefined}
               unit={saved.unit}
               onByHand={() => switchGarment('skirt', {}, 'style')}
               onMade={() => openLegal('made')}
@@ -864,7 +865,7 @@ export default function App() {
             <PhotoCheck
               source={photoSource}
               current={current}
-              body={values as { waist_to_floor?: number; arm_length?: number }}
+              body={values as PhotoBody}
               headers={testerHeaders(account.testerCode)}
               onChoices={(c) => setSaved({ ...saved, ...choicesPatch(c)[1] })}
             />

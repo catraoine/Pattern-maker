@@ -120,6 +120,8 @@ describe('checkDrawing', () => {
     expect(await checkDrawing({ ...photo, drawing: 'iVBO', reading: full }, client)).toEqual({ ok: true, reading: full, changes: ['hem 5 cm longer'] });
     const req = (parse.mock.calls[0] as unknown[])[0] as { messages: { content: { type: string; source?: { media_type: string } }[] }[] };
     expect(req.messages[0].content.map((c) => c.source?.media_type ?? c.type)).toEqual(['image/jpeg', 'image/png', 'text']);
+    // A reading from before the proportions (Nov 7) is checked with them as not shown.
+    expect(req.messages[0].content.map((c) => (c as { text?: string }).text ?? '').join('')).toContain('"breakCm":null');
   });
 
   it("won't check against anything that isn't a reading", async () => {

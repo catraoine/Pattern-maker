@@ -355,6 +355,17 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
   link. On a phone Undo/Redo are named words across from "Step 2 of 4", away from the back arrow; Clear sits
   under Done while drawing.
 
+- **Photos are measured for proportion** (Nov 7, Cat: "This needs to be how users photos are handled instantly",
+  "Measured for proportion and design detail, aiming for max refinement"; In testing): a photo reading measures
+  the garment against the wearer's own body, not only its nearest named options. Skirts already had hem and
+  fullness. Jackets and coats now take the hem below the waist, the lapel break, the button count and spacing, the
+  shoulder line out or in, the room at the bust and the hem's flare; trousers the leg's round at the knee and hem;
+  woven tops the room at the bust. Each is applied only when the wearer's measurements are known, kept to what
+  drafts soundly, and listed in words on the photo page. Code: `measures` in `src/photo/types.ts` and the prompt in
+  `src/photo/analyze.ts`; `measuredOuter` and `measuredLeg` in `src/photo/garments.ts`; the jacket's own numbers
+  (`dropCm`, `easeCm`, `breakCm`, `buttons`, `buttonGapCm`, `shoulderCm`) in `src/engine/outerwear.ts`, which win
+  over the named choice (the Look 09 high lapel uses the same `breakCm`/`buttons`).
+
 ## Fixing problems
 
 - **Auto-fix rule** (Oct 18): never point out problems the user's own edits cause (uneven seams,
