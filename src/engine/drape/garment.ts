@@ -2078,6 +2078,31 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
     }
     if (ids.length) input.mirror = { ids: Int32Array.from(ids), rest: Float64Array.from(mr), k: knob('__mk') ?? 0.5 };
   }
+  // A skirt's cloth is kept from passing through itself (sim.ts `self`).
+  if (!knob('__noSelf')) {
+    const ids: number[] = [];
+    const u: number[] = [];
+    const v: number[] = [];
+    const piece: number[] = [];
+    const sewnAt = new Set<number>();
+    for (const { i, j, k } of seams) sewnAt.add(i).add(j).add(k);
+    B.panels.forEach((p, n) => {
+      // (Not a pleated skirt's, whose pressed folds lie on each other, nor a balloon's, gathered onto its underskirt.)
+      if (p.hidden || !/^Skirt/.test(p.pc.name) || !/peplum/.test(p.role) || p.mesh.runs.pleat?.length || p.pc.meta.pleatFolds || p.mesh.runs.balloon?.length) return;
+      // (Only a skirt that flares far out from its waist, a circle's or a trumpet's: its hem half as long again as its waist or more. A
+      // straighter skirt's cloth hangs apart on its own, and held apart a dropped waist's skirt stood out past its bodice
+      // in a ledge.)
+      const runLen = (tag: string) => (p.mesh.runs[tag] ?? []).reduce((sum, r) => sum + r.slice(1).reduce((a, m, k) => a + Math.hypot(p.mesh.pts[m].x - p.mesh.pts[r[k]].x, p.mesh.pts[m].y - p.mesh.pts[r[k]].y), 0), 0);
+      if (runLen('hem') < (knob('__selfFlare') ?? 1.5) * runLen('waist')) return;
+      p.mesh.pts.forEach((q, i) => {
+        ids.push(p.base + i);
+        u.push(q.x);
+        v.push(q.y);
+        piece.push(n);
+      });
+    });
+    if (ids.length) input.self = { ids: Int32Array.from(ids), u: Float64Array.from(u), v: Float64Array.from(v), piece: Int32Array.from(piece), sewn: Uint8Array.from(ids, (g) => (sewnAt.has(g) ? 1 : 0)), d: knob('__selfD') ?? 2 };
+  }
   // Trousers settle in fewer steps: laid on their legs they are near where they hang, and left to run the full count the
   // cloth below the crotch kept drifting into folds and opened the inside leg (All round quality, 2026-11-07: of 51
   // trousers in three cloths, 35 passed at 260 steps and 44 at 60 to 100).

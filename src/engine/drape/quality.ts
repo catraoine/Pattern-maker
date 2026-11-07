@@ -8,14 +8,16 @@
 // - fin: the cloth folded back sharply on itself where nothing is pressed (a keel down a seam, a crumple);
 // - inside: cloth drawn inside the form;
 // - collar: a collar standing off what it should lie on;
-// - hem: a level hem drawn far from level.
+// - hem: a level hem drawn far from level;
+// - crossed: a skirt's cloth drawn passing through itself (crossed.ts).
 // A drawing that fails any check is not shown turning: the page keeps the flat drawing and says the turning view for
 // that combination is still in testing (see AllRound).
 import type { Draped } from './garment';
 import type { Space } from './space';
+import { crossings } from './crossed';
 
 // - missing: a piece the pattern has that the drawing left out (set in run.ts, where the draft is to hand).
-type QualityCheck = 'broken' | 'stretched' | 'seam' | 'jagged' | 'fin' | 'inside' | 'collar' | 'hem' | 'missing';
+type QualityCheck = 'broken' | 'stretched' | 'seam' | 'jagged' | 'fin' | 'inside' | 'collar' | 'hem' | 'missing' | 'crossed';
 
 export interface QualityProblem {
   check: QualityCheck;
@@ -61,6 +63,9 @@ const LIMITS = {
   collarCm: 2,
   /** A level hem's rise and fall all round, in cm. */
   hemCm: 5,
+  /** A skirt's triangles passing through each other: more than this many pairs on one piece (its circle skirt showed
+   *  469 as it tore at the sides; with its cloth kept apart, none). */
+  crossCount: 12,
 };
 
 interface QualityOptions {
@@ -246,6 +251,9 @@ export function drapeQuality(d: Draped, sp: Pick<Space, 'bodyR' | 'tip'>, o: Qua
       if (range > L.hemCm) add('hem', 'Hem', range);
     }
   }
+
+  // A skirt's cloth passing through itself (not a pleated skirt's pressed folds, lying on each other, nor a balloon's).
+  for (const [part, n] of crossings(d, (p) => /^Skirt/.test(p.pc.name) && /peplum/.test(p.role) && !p.mesh.runs.pleat?.length && !p.pc.meta.pleatFolds && !p.mesh.runs.balloon?.length, o.seams)) if (n > L.crossCount) add('crossed', part, n);
 
   return { ok: !problems.length, problems };
 }

@@ -57,6 +57,10 @@ export interface SimInput {
   round?: { ids: Int32Array; R: Float64Array; k: number };
   /** Turned points resting on the cloth they cover (i on j, gap cm out from the body's axis). */
   lieOn?: { i: Int32Array; j: Int32Array; gap: Float64Array };
+  /** Points of cloth kept from passing through each other (a full skirt's flutes): each kept `d` cm from any other
+   *  that is further than that from it in the cut (u, v: its pattern place; piece: which piece; sewn: on a seam, where
+   *  the other piece's seam points meet it). */
+  self?: { ids: Int32Array; u: Float64Array; v: Float64Array; piece: Int32Array; sewn: Uint8Array; d: number };
   bendK: number;
   /** How much more than the light pull down the cloth hangs by (a short top, with nothing hung below it). */
   gK?: number;
@@ -182,6 +186,57 @@ export function simulate(s: Space, inp: SimInput, steps = knob("__steps") ?? 260
   const HZIN = knob('__holdZin') ?? inp.shoulderZIn ?? -99;
   const HZK = knob('__holdZk') ?? 0.5;
   const HZY = (knob('__holdZy') ?? 1) > 0;
+  // Cloth can't pass through itself: a full skirt's flutes, swung round at the side seams, met and went through each
+  // other, and the drawing showed slits and the cloth's inside there (All round quality 2026-11-07, Cat's circle-skirt
+  // dress). Each pair of points nearer than d is pushed apart to d, unless they lie that near in the cut too.
+  const repel = (() => {
+    const S = inp.self;
+    if (!S) return undefined;
+    const D = S.d;
+    const D2 = D * D;
+    const cell = new Map<number, number[]>();
+    const hash = (a: number, b: number, c: number) => ((a * 73856093) ^ (b * 19349663) ^ (c * 83492791)) | 0;
+    return () => {
+      cell.clear();
+      for (let q = 0; q < S.ids.length; q++) {
+        const I = S.ids[q] * 3;
+        const h = hash(Math.floor(x[I] / D), Math.floor(x[I + 1] / D), Math.floor(x[I + 2] / D));
+        const c = cell.get(h);
+        if (c) c.push(q);
+        else cell.set(h, [q]);
+      }
+      for (let q = 0; q < S.ids.length; q++) {
+        const I = S.ids[q] * 3;
+        const cx = Math.floor(x[I] / D);
+        const cy = Math.floor(x[I + 1] / D);
+        const cz = Math.floor(x[I + 2] / D);
+        for (let a = -1; a <= 1; a++)
+          for (let b = -1; b <= 1; b++)
+            for (let c = -1; c <= 1; c++) {
+              const list = cell.get(hash(cx + a, cy + b, cz + c));
+              if (!list) continue;
+              for (const r of list) {
+                if (r <= q) continue;
+                if (S.piece[q] === S.piece[r] ? Math.hypot(S.u[q] - S.u[r], S.v[q] - S.v[r]) < D * 1.5 : S.sewn[q] && S.sewn[r]) continue;
+                const J = S.ids[r] * 3;
+                const dx = x[J] - x[I];
+                const dy = x[J + 1] - x[I + 1];
+                const dz = x[J + 2] - x[I + 2];
+                const d2 = dx * dx + dy * dy + dz * dz;
+                if (d2 >= D2 || d2 < 1e-12) continue;
+                const d = Math.sqrt(d2);
+                const f = (D - d) / d / 2;
+                x[I] -= dx * f;
+                x[I + 1] -= dy * f;
+                x[I + 2] -= dz * f;
+                x[J] += dx * f;
+                x[J + 1] += dy * f;
+                x[J + 2] += dz * f;
+              }
+            }
+      }
+    };
+  })();
   for (let step = 0; step < steps; step++) {
     const ramp = Math.min(1, 0.05 + step / (steps * 0.35));
     for (let i = 0; i < n; i++) {
@@ -278,6 +333,7 @@ export function simulate(s: Space, inp: SimInput, steps = knob("__steps") ?? 260
           x[I + 2] += dz * f;
         }
       }
+      if (repel && it % 2 === 1) repel();
       for (let i = 0; i < n; i++) {
         if (inp.side[i] && x[i * 3] < 0) x[i * 3] = 0;
         collide(i, it === iters - 1 ? fric : 0);

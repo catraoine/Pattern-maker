@@ -23,6 +23,7 @@ const WHAT: Record<QualityProblem['check'], (piece: string) => string> = {
   collar: () => "the collar stands away from the neck instead of lying flat",
   hem: () => "the hem doesn't hang level yet",
   missing: (p) => `the ${p} goes missing from the turning view`,
+  crossed: (p) => `the ${p}'s folds pass through each other as it turns`,
 };
 
 /**
