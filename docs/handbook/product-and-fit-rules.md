@@ -364,8 +364,10 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    square root of the cloth's stiffness against its fibre's (a fitted top lies on the body, so it shows most in the
    sleeves); a bias-cut slip in a fluid cloth gives three times as much on its length and hangs twice as hard, so it
    clings; a circle's pieces give half as much on the bias; a crisp peplum stands out at ten times a plain cotton's
-   stiffness (it was 40, and 7 of 8 failed their check; now 7 of 8 pass). Trousers, the T-shirt, jackets and coats
-   keep their fibre's stiffness.
+   stiffness (it was 40, and 7 of 8 failed their check; now 7 of 8 pass). Round 3 (Nov 7): trousers and the T-shirt
+   take the same square root as a top; a jacket or coat moves only 0.9 to 1.6 times its fibre's stiffness and lies at
+   most 0.6 cm off the body (a silk peak lapel and a heavy wool shawl collar stretched past those). All 135 trouser,
+   T-shirt, jacket and coat options pass in silk, satin, heavy wool, denim, leather and cotton.
 
 ## Style steps
 

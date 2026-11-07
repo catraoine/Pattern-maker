@@ -92,13 +92,15 @@ export function rehydrate<T>(v: T): T {
 
 export function runDrape(job: DrapeJob): DrapedLite {
   const sp = makeSpace(placeOnForm({ armhole: job.armhole }, job.m), job.m, { widen: widensForm(job) });
-  // (The cloth's own stiffness reaches skirts, dresses and woven tops; trousers, the T-shirt, jackets and coats keep
-  // their fibre's and their own holds, round 2 not having looked at them.)
+  // (Every garment now follows its cloth. A jacket or coat is cut in a firm cloth whatever the swatch: its own cloth
+  // moves that firmness 0.9 to 1.6 times (the square root of 0.81 to 2.56), and it lies at most 0.6 cm off the body.
+  // Softer, a silk jacket's peak lapel stretched; thicker, a heavy wool shawl collar did, Fabric behaviour round 3.)
   const c = job.card ?? cardOf(job.fibre, job.crisp);
   // (Not on a dropped or low waist seam's skirt: given on the bias, its top stood out past the bodice again, the ledge
   // round the hip that fairDroppedSeam takes out, Fabric behaviour on release M.)
   const dropped = job.kind === 'dress' && (job.draft.seamDrop ?? 0) > 1;
-  const t: DrapeOptions = { bendK: c.bendK, thick: c.thick, ...(c.crisp ? { crisp: c.crisp } : {}), ...(c.fall !== 1 ? { fall: c.fall } : {}), ...(c.skirtBend !== 1 && (job.kind === 'skirt' || job.kind === 'dress' || job.kind === 'bodice') ? { skirtBend: c.skirtBend } : {}), ...(c.stretch ? { stretch: c.stretch } : {}), ...(c.bias && !dropped ? { bias: c.bias } : {}) };
+  const outer = job.kind === 'outer';
+  const t: DrapeOptions = { bendK: c.bendK, thick: outer ? Math.min(c.thick, 0.6) : c.thick, ...(c.crisp ? { crisp: c.crisp } : {}), ...(c.fall !== 1 ? { fall: c.fall } : {}), ...(c.skirtBend !== 1 ? { skirtBend: outer ? Math.min(2.56, Math.max(0.81, c.skirtBend)) : c.skirtBend } : {}), ...(c.stretch ? { stretch: c.stretch } : {}), ...(c.bias && !dropped ? { bias: c.bias } : {}) };
   let d: Draped;
   switch (job.kind) {
     case 'outer':
