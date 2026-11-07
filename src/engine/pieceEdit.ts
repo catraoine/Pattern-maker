@@ -515,6 +515,197 @@ function openOut(pc: Piece, e: CutEdit, c: Cut): Piece {
   };
 }
 
+/** A dart as drawn on the piece: the two ends of its legs at the edge it opens on, and its point. */
+interface Dart {
+  a: P;
+  apex: P;
+  b: P;
+}
+
+const dartsIn = (pc: Piece): Dart[] =>
+  pc.lines.filter((ln) => ln.segs.length === 2 && ln.segs.every((sg) => sg.kind === 'L')).map((ln) => ({ a: ln.start, apex: ln.segs[0].to, b: ln.segs[1].to }));
+
+/** The outline split where it crosses the ray from o along u (beyond a hair from o), so no edge runs across it. */
+function splitAtRay(segs: Seg[], o: P, u: P): Seg[] {
+  const out = segs.map((sg) => ({ ...sg }));
+  const hits = crossings(out, o, add(o, u), 1e-3, Infinity).sort((m, n) => n.seg - m.seg || n.t - m.t);
+  let last: { seg: number; t: number } | undefined;
+  for (const h of hits) {
+    let t = h.t;
+    // A second crossing on an edge already split further along: its place on the part that is left.
+    if (last && last.seg === h.seg) t = t / (last.t || 1);
+    if (t < 1e-6 || t > 1 - 1e-6) continue;
+    const [l, r] = splitSeg(out[h.seg], t);
+    out.splice(h.seg, 1, l, r);
+    last = { seg: h.seg, t: h.t };
+  }
+  return out;
+}
+
+const signedAngle = (u: P, v: P) => Math.atan2(cross(u, v), dot(u, v));
+
+/** Distance from a point to the straight line a-b, as a segment. */
+const toSeg = (q: P, a: P, b: P) => {
+  const d = sub(b, a);
+  const t = Math.max(0, Math.min(1, dot(sub(q, a), d) / (dot(d, d) || 1)));
+  return len(sub(q, add(a, mul(d, t))));
+};
+
+/** A yoke's darts closed into it, as a pattern cutter folds them shut and trues the piece round them (round 3, Cat
+ *  2026-11-07). Each dart whose wide end is on this part closes by turning the part on one side of it about its point,
+ *  the side away from the fold (or the centre), so the fold and the grain stay as drafted:
+ *    the cut crosses the dart above its point: it turns about the dart's own point (below the yoke), so the yoke's seam
+ *      loses what the dart took there, and the rest of the dart stays on the lower piece, sewn as before;
+ *    the cut runs below the dart's point: the dart is carried on down its centre line to the seam and turns about where
+ *      it meets it, as a cutter lengthens a dart to the yoke line, so the seam keeps its length and the lower piece has
+ *      no dart.
+ *  A dart the cut runs down the length of (one leg crossed, not both) is left as it is. */
+function closeDartsIn(ring: Seg[], darts: Dart[], lines: Path[], notches: [P, P][], labels: Label[]) {
+  let segs = ring;
+  let closed = 0;
+  let todo = [...darts];
+  /** Where a closed dart left a corner in an edge, to be trued once every dart is closed. */
+  const corners: P[] = [];
+  while (todo.length) {
+    const d = todo.shift()!;
+    const mouth = lerp(d.a, d.b, 0.5);
+    const poly = polyOf(segs);
+    let o = d.apex;
+    if (inside(d.apex, poly) && distTo(d.apex, poly) > 0.05) {
+      // The dart's point is on the yoke: carried on down its centre line to the seam.
+      const hit = crossings(segs, mouth, d.apex, 1 + 1e-6, Infinity)
+        .filter((c) => segs[c.seg].tag === 'join')
+        .sort((m, n) => m.u - n.u)[0];
+      // Only as far as a cutter would carry a dart on to a yoke line: a cut far below (a hem band) leaves it as it is.
+      if (!hit || len(sub(hit.at, d.apex)) > Math.max(15, 1.5 * len(sub(d.apex, mouth)))) continue;
+      o = hit.at;
+      if (hit.t > 1e-6 && hit.t < 1 - 1e-6) {
+        const [l, r] = splitSeg(segs[hit.seg], hit.t);
+        segs = [...segs.slice(0, hit.seg), l, r, ...segs.slice(hit.seg + 1)];
+      }
+    } else {
+      // The cut crosses the dart: both legs must meet the new seam.
+      const meets = (end: P) => crossings(segs, d.apex, end, 1e-3, 1 - 1e-3).some((c) => segs[c.seg].tag === 'join');
+      if (!meets(d.a) || !meets(d.b)) continue;
+    }
+    const uA = unit(sub(d.a, o));
+    const uB = unit(sub(d.b, o));
+    const theta = signedAngle(uA, uB);
+    if (Math.abs(theta) < 1e-4 || Math.abs(theta) > Math.PI / 2) continue;
+    segs = splitAtRay(splitAtRay(segs, o, uA), o, uB);
+    // Which side of the dart a point is on: 'a', 'b', or in the dart itself.
+    const half = Math.abs(theta) / 2;
+    const sideOf = (q: P): 'a' | 'b' | 'in' => {
+      if (len(sub(q, o)) < 1e-6) return 'a';
+      let psi = signedAngle(uA, sub(q, o)) - theta / 2;
+      while (psi > Math.PI) psi -= 2 * Math.PI;
+      while (psi < -Math.PI) psi += 2 * Math.PI;
+      psi *= Math.sign(theta);
+      if (psi <= -half + 1e-6) return 'a';
+      if (psi >= half - 1e-6) return 'b';
+      return 'in';
+    };
+    const sides = segs.map((sg) => sideOf(bez(sg, 0.5)));
+    const weight = (side: 'a' | 'b') =>
+      segs.reduce((t, sg, i) => (sides[i] !== side ? t : t + (sg.tag === 'fold' ? 1000 : sg.tag === 'centre' ? 100 : 0) + len(sub(sg.b, sg.a))), 0);
+    const turnA = weight('a') < weight('b');
+    const turning: 'a' | 'b' = turnA ? 'a' : 'b';
+    const move = (q: P) => rotAbout(q, o, turnA ? theta : -theta);
+    const kept: Seg[] = [];
+    const keptSide: string[] = [];
+    segs.forEach((sg, i) => {
+      if (sides[i] === 'in') return;
+      kept.push(sides[i] === turning ? mapSeg(sg, move) : sg);
+      keptSide.push(sides[i]);
+    });
+    // Earlier closings' corners on the side that turns go with it.
+    for (let k = 0; k < corners.length; k++) if (sideOf(corners[k]) === turning) corners[k] = move(corners[k]);
+    // Close the gaps the dart left: a hair is closed up, a step is bridged straight.
+    const joined: Seg[] = [];
+    kept.forEach((sg, i) => {
+      const prev = joined[joined.length - 1] ?? kept[kept.length - 1];
+      const gap = len(sub(sg.a, prev.b));
+      if (i > 0 && keptSide[i] !== keptSide[i - 1]) corners.push(prev.b);
+      if (i > 0 && gap > 0.2) joined.push({ kind: 'L', a: prev.b, b: sg.a, tag: prev.tag });
+      joined.push(i > 0 && gap <= 0.2 ? { ...sg, a: prev.b } : sg);
+    });
+    if (keptSide[0] !== keptSide[keptSide.length - 1]) corners.push(kept[kept.length - 1].b);
+    const first = joined[0];
+    const lastSeg = joined[joined.length - 1];
+    if (len(sub(first.a, lastSeg.b)) > 0.2) joined.push({ kind: 'L', a: lastSeg.b, b: first.a, tag: lastSeg.tag });
+    else joined[0] = { ...first, a: lastSeg.b };
+    segs = joined;
+    closed++;
+    // The dart's own legs go; the rest of the marks on the turned side go with it.
+    const onLegs = (q: P) => toSeg(q, d.a, d.apex) < 0.05 || toSeg(q, d.b, d.apex) < 0.05;
+    for (let k = lines.length - 1; k >= 0; k--) {
+      const pts = lines[k].points(8);
+      if (pts.every(onLegs)) lines.splice(k, 1);
+      else if (sideOf(pts[Math.floor(pts.length / 2)]) === turning) lines[k] = mapPath(lines[k], move);
+    }
+    for (let k = notches.length - 1; k >= 0; k--) {
+      const [at, dir] = notches[k];
+      const side = sideOf(at);
+      if (side === 'in') notches.splice(k, 1);
+      else if (side === turning) notches[k] = [move(at), unit(sub(move(add(at, dir)), move(at)))];
+    }
+    for (let k = 0; k < labels.length; k++) if (sideOf(labels[k].at) === turning) labels[k] = { ...labels[k], at: move(labels[k].at) };
+    todo = todo.map((x) => (sideOf(lerp(x.a, x.b, 0.5)) === turning ? { a: move(x.a), apex: move(x.apex), b: move(x.b) } : x));
+  }
+  for (const q of corners) segs = trueAt(segs, q, corners);
+  return { ring: segs, closed };
+}
+
+const polyLen = (pts: P[]) => pts.slice(1).reduce((t, q, i) => t + len(sub(q, pts[i])), 0);
+
+/** An edge trued through a corner a closed dart left in it, as a cutter blends the waist and the yoke seam with a curve:
+ *  a few cm each side of the corner become one curve that leaves and meets the edge in its own directions. Corners of
+ *  the outline itself (where one edge meets another) are left. */
+function trueAt(ring: Seg[], q: P, others: P[] = [], reach = 3): Seg[] {
+  const n = ring.length;
+  const at = ring.findIndex((sg) => len(sub(sg.a, q)) < 0.25);
+  if (at < 0 || n < 6) return ring;
+  // Turned so the corner is in the middle, away from where the list wraps.
+  const segs = [...ring.slice(at), ...ring.slice(0, at)];
+  const mid = Math.floor(n / 2);
+  const list = [...segs.slice(mid), ...segs.slice(0, mid)];
+  const c = n - mid;
+  const tag = list[c].tag;
+  if (list[c - 1].tag !== tag) return ring;
+  // Another closed dart's corner close by is taken into the same curve, so no corner is left at its end.
+  const isCorner = (pt: P) => others.some((o) => o !== q && len(sub(o, pt)) < 0.25);
+  let i0 = c;
+  let acc = 0;
+  while (i0 > 1 && list[i0 - 1].tag === tag && acc < reach) {
+    acc += len(sub(list[--i0].b, list[i0].a));
+    if (isCorner(list[i0].a)) acc = 0;
+  }
+  let i1 = c;
+  acc = 0;
+  while (i1 < n - 2 && list[i1].tag === tag && acc < reach) {
+    acc += len(sub(list[i1].b, list[i1++].a));
+    if (isCorner(list[i1 - 1].b)) acc = 0;
+  }
+  if (i0 >= c || i1 <= c) return ring;
+  const a = list[i0].a;
+  const b = list[i1 - 1].b;
+  const L = len(sub(b, a));
+  const inDir = i0 > 0 && list[i0 - 1].tag === tag ? endDir(list[i0 - 1]) : startDir(list[i0]);
+  const outDir = list[i1] && list[i1].tag === tag ? startDir(list[i1]) : endDir(list[i1 - 1]);
+  // The curve keeps the edge's length (a seam still meets its partner notch to notch): its pull is set to match.
+  const want = list.slice(i0, i1).reduce((t, sg) => t + polyLen(flat(sg, 16)), 0);
+  const make = (k: number): Seg => ({ kind: 'C', a, c1: add(a, mul(inDir, L * k)), c2: sub(b, mul(outDir, L * k)), b, tag });
+  let lo = 0.05;
+  let hi = 1.2;
+  for (let it = 0; it < 30; it++) {
+    const m = (lo + hi) / 2;
+    if (polyLen(flat(make(m), 32)) < want) lo = m;
+    else hi = m;
+  }
+  const curve = make((lo + hi) / 2);
+  return [...list.slice(0, i0), curve, ...list.slice(i1)];
+}
+
 /** A name for a new piece, from where it sits on the piece it came off. */
 function newName(pc: Piece, kept: P[], cutOff: P[], taken: string[]): string {
   const a = centroid(kept);
@@ -553,9 +744,18 @@ function cutInTwo(pc: Piece, c: Cut, e: CutEdit, taken: string[]): [Piece, Piece
     acc += step;
   }
   const side = (poly: P[], q: P) => belongsTo(q, keepPoly, offPoly) === (poly === keepPoly ? 0 : 1);
-  const part = (ring: Seg[], poly: P[], own: string): Piece => {
-    const lines = pc.lines.flatMap((ln) => clipLine(ln, poly));
-    const notches: [P, P][] = [...pc.notches.filter(([at]) => side(poly, at)), [mid, outwardAt(mid, dir, poly)]];
+  const darts = dartsIn(pc);
+  // For All round (round 3): the piece kept whole, as the two parts sewn back together along the new seam, with the
+  // seam drawn on it. Sewn, a yoke with its darts closed is the piece with its darts sewn, so the cloth hangs the same.
+  const whole = sewnWhole(pc, cutPts);
+  const part = (cutRing: Seg[], cutPoly: P[], own: string): Piece => {
+    const lines = pc.lines.flatMap((ln) => clipLine(ln, cutPoly));
+    const notches: [P, P][] = [...pc.notches.filter(([at]) => side(cutPoly, at)), [mid, outwardAt(mid, dir, cutPoly)]];
+    // Darts that open on this part are closed into it (a yoke cut across darts, round 3).
+    const mine = darts.filter((d) => inside(lerp(lerp(d.a, d.b, 0.5), d.apex, 0.05), cutPoly));
+    const words = [...pc.labels];
+    const { ring, closed } = mine.length ? closeDartsIn(cutRing, mine, lines, notches, words) : { ring: cutRing, closed: 0 };
+    const poly = closed ? polyOf(ring) : cutPoly;
     const box = poly.reduce((b, q) => ({ y0: Math.min(b.y0, q.y), y1: Math.max(b.y1, q.y) }), { y0: Infinity, y1: -Infinity });
     let grain = pc.grain;
     if (grain && !(inside(grain[0], poly) && inside(grain[1], poly))) {
@@ -594,10 +794,10 @@ function cutInTwo(pc: Piece, c: Cut, e: CutEdit, taken: string[]): [Piece, Piece
       : (() => {
           // The name and its lines stay together, moved to the middle of what is left when the cut ran through or
           // close by them.
-          const first = pc.labels[0]?.at;
-          if (!first || (inside(first, poly) && distTo(first, poly) > 3)) return pc.labels;
+          const first = words[0]?.at;
+          if (!first || (inside(first, poly) && distTo(first, poly) > 3)) return words;
           const shift = sub(at, first);
-          return pc.labels.map((l) => ({ ...l, at: add(l.at, shift) }));
+          return words.map((l) => ({ ...l, at: add(l.at, shift) }));
         })();
     return {
       ...stripDrafted(pc),
@@ -608,10 +808,42 @@ function cutInTwo(pc: Piece, c: Cut, e: CutEdit, taken: string[]): [Piece, Piece
       grain,
       fold: foldOf(ring),
       labels: markEdited(labels),
-      meta: { ...pc.meta, edited: true, pointIds: undefined, ...(isNew ? { newPiece: true, cutFrom: pc.name } : {}) },
+      meta: { ...pc.meta, edited: true, pointIds: undefined, ...(isNew ? { newPiece: true, cutFrom: pc.name } : { sewnWhole: whole }), ...(closed ? { dartsClosed: closed } : {}) },
     };
   };
   return [part(keep, keepPoly, pc.name), part(off, offPoly, name)];
+}
+
+/** The tag of a new seam drawn across a piece kept whole for All round. */
+const NEW_SEAM = 'newseam';
+
+/** A piece with a new seam drawn on it, as All round sews it: whatever it was before it was cut (a piece cut more than
+ *  once keeps every seam). The seam is drawn in short steps, so it is never read as a dart. */
+function sewnWhole(pc: Piece, seam: P[]): Piece {
+  const before = (pc.meta.sewnWhole as Piece | undefined) ?? pc;
+  const total = seam.slice(1).reduce((t, q, i) => t + len(sub(q, seam[i])), 0);
+  const steps = Math.max(12, Math.ceil(total / 1.5));
+  const at = (d: number) => {
+    let acc = 0;
+    for (let i = 1; i < seam.length; i++) {
+      const step = len(sub(seam[i], seam[i - 1]));
+      if (acc + step >= d) return lerp(seam[i - 1], seam[i], (d - acc) / (step || 1));
+      acc += step;
+    }
+    return seam[seam.length - 1];
+  };
+  const path = new Path(at(0));
+  for (let k = 1; k <= steps; k++) path.line(at((k / steps) * total), NEW_SEAM);
+  const meta = { ...before.meta };
+  delete meta.sewnWhole;
+  return { ...before, lines: [...before.lines, path], meta };
+}
+
+/** The pieces as All round sews them (round 3): each piece that had a new piece cut off it is sewn whole again, its new
+ *  seams drawn on it, and the new pieces themselves go (they are in it). */
+export function sewnForAllRound(pieces: Piece[]): Piece[] {
+  if (!hasNewPieces(pieces)) return pieces;
+  return pieces.filter((pc) => !pc.meta.newPiece).map((pc) => (pc.meta.sewnWhole as Piece | undefined) ?? pc);
 }
 
 /** One cut on a set of pieces. A line that doesn't cross its piece from edge to edge changes nothing. */
@@ -646,6 +878,30 @@ export function openHandle(pieces: Piece[], e: CutEdit): { at: P; opens: P } | u
   if (!c) return undefined;
   const o = openingOf(e, c);
   return { at: o.move(o.far), opens: o.opens };
+}
+
+/** Where a kept cut lies, to show it and tap it (round 3): its line from edge to edge, the two ends where it meets the
+ *  edges (the one it was started at first), and a place half way along it for its mark. Given the pieces as they were
+ *  just before that cut. */
+export function cutMark(pieces: Piece[], e: CutEdit): { at: P; ends: [P, P]; line: P[] } | undefined {
+  const pc = pieces.find((x) => x.name === e.piece);
+  if (!pc) return undefined;
+  const c = cutOf(segsOf(pc.outline), e.line, e.cut !== 'piece');
+  if (!c) return undefined;
+  const line = c.cut.flatMap((s, i) => flat(s, 16).slice(i ? 1 : 0));
+  const total = line.slice(1).reduce((t, q, i) => t + len(sub(q, line[i])), 0);
+  let acc = 0;
+  let at = line[0];
+  for (let i = 1; i < line.length; i++) {
+    const step = len(sub(line[i], line[i - 1]));
+    if (acc + step >= total / 2) {
+      at = lerp(line[i - 1], line[i], (total / 2 - acc) / (step || 1));
+      break;
+    }
+    acc += step;
+  }
+  const ends: [P, P] = c.startAtX ? [c.x.at, c.y.at] : [c.y.at, c.x.at];
+  return { at, ends, line: c.startAtX ? line : [...line].reverse() };
 }
 
 /** How many of a drawn line's points lie on a piece. */

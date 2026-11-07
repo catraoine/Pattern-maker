@@ -5283,6 +5283,32 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
   for (const p of B.panels) {
     if (p.hidden) continue;
     for (const tag of Object.keys(p.mesh.runs)) for (const r of p.mesh.runs[tag]) lines.push({ kind: tag, ids: r.map((i) => i + p.base) });
+    // A new seam drawn across a piece (Draw a line, a new piece sewn back in, round 3): the mesh point nearest each step
+    // along it, drawn as a yoke seam.
+    for (const ln of p.pc.lines) {
+      if (ln.tags[0] !== 'newseam') continue;
+      // (Every other step, about the mesh's own spacing, so the line runs on rather than zigzags between rows. A piece
+      // cut on the fold and sewn whole has the seam on both halves: the mirrored line is drawn too where the cloth is.)
+      const steps = ln.points(1).filter((_, k, all) => k % 2 === 0 || k === all.length - 1);
+      for (const flip of [1, -1]) {
+        const ids: number[] = [];
+        let found = 0;
+        for (const q of steps) {
+          let best = -1;
+          let bd = 1.6;
+          p.mesh.pts.forEach((m, i) => {
+            const d = Math.hypot(m.x - q.x * flip, m.y - q.y);
+            if (d < bd) {
+              bd = d;
+              best = i;
+            }
+          });
+          if (best >= 0) found++;
+          if (best >= 0 && ids[ids.length - 1] !== best + p.base) ids.push(best + p.base);
+        }
+        if (ids.length > 2 && found >= steps.length * 0.8) lines.push({ kind: 'yoke', ids });
+      }
+    }
     // A pressed pleat's fold edge, from where it is stitched down to the hem: the point nearest it in each row.
     const folds = p.pc.meta.pleatFolds as PleatFold[] | undefined;
     if (folds) {

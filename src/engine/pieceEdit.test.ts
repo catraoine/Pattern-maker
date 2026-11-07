@@ -5,7 +5,7 @@ import { cutLine } from './piece';
 import { toDxf } from './dxf';
 import { layout, labelCollisions } from './export';
 import { importDxf } from './importDxf';
-import { EDITED, applyCut, applyPatternEdits, cutEnds, hasNewPieces } from './pieceEdit';
+import { EDITED, applyCut, applyPatternEdits, cutEnds, cutMark, hasNewPieces } from './pieceEdit';
 import { handlesOf } from './pointEdit';
 import { pairs } from './qc';
 import { draftSkirt } from './skirt';
@@ -76,14 +76,46 @@ describe('cutting the flat pattern with a drawn line', () => {
     // The new seam is the same length on both, and each has a notch on it.
     expect(taggedLength(yoke.outline, 'join')).toBeCloseTo(taggedLength(rest.outline, 'join'), 2);
     expect(yoke.notches.length).toBeGreaterThan(0);
-    // The yoke takes the darts (they end above the cut) and both keep the fold.
-    expect(yoke.lines.length).toBeGreaterThanOrEqual(1);
+    // The darts end above the cut, so they are carried on to the seam and closed into the yoke (round 3): no dart is
+    // left to sew on either, the waist is as long as it was sewn, and both keep the fold.
+    expect(yoke.meta.dartsClosed).toBe(front.lines.length);
+    expect(yoke.lines.length).toBe(0);
+    expect(rest.lines.length).toBe(0);
+    expect(taggedLength(yoke.outline, 'waist')).toBeCloseTo(waistOf(front), 1);
+    expect(taggedLength(yoke.outline, 'dart')).toBe(0);
     expect(!!yoke.fold).toBe(!!front.fold);
     // A new piece isn't paired with the back, so moving points still walks front with back.
     expect(pairs(out).every((g) => !g.front.meta.newPiece && !g.back.meta.newPiece)).toBe(true);
     // Its name can be given.
     const named = applyCut(skirt.pieces, { cut: 'piece', piece: front.name, line: across, by: 0, name: 'Hip yoke' });
     expect(named.some((pc) => pc.name === 'Hip yoke')).toBe(true);
+  });
+
+  it('closes darts into a yoke cut across them, leaving the rest of each dart on the lower piece (round 3)', () => {
+    const across = [{ x: b.x0 - 2, y: b.y0 + 4 }, { x: b.x1 + 2, y: b.y0 + 4.5 }];
+    const out = applyCut([front], { cut: 'piece', piece: front.name, line: across, by: 0 });
+    const yoke = out.find((pc) => pc.meta.newPiece)!;
+    const rest = out.find((pc) => pc.name === front.name)!;
+    expect(yoke.meta.dartsClosed).toBe(2);
+    expect(yoke.lines.length).toBe(0);
+    expect(rest.lines.length).toBe(2);
+    expect(taggedLength(yoke.outline, 'waist')).toBeCloseTo(waistOf(front), 1);
+    // Sewn, the lower piece's seam is as long as the yoke's: what the darts take there is what the yoke lost.
+    const intake = rest.lines.reduce((t, ln) => t + len(sub(ln.start, ln.segs[1].to)), 0);
+    expect(taggedLength(rest.outline, 'join') - intake).toBeCloseTo(taggedLength(yoke.outline, 'join'), 0);
+    // The fold stays straight and where it was.
+    expect(yoke.fold?.[0].x).toBeCloseTo(front.fold![0].x, 3);
+    expect(yoke.fold?.[1].x).toBeCloseTo(front.fold![1].x, 3);
+    // A band cut off near the hem is not a yoke: the darts stay as drafted.
+    const band = applyCut([front], { cut: 'piece', piece: front.name, line: [{ x: b.x0 - 2, y: b.y1 - 10 }, { x: b.x1 + 2, y: b.y1 - 10 }], by: 0 });
+    expect(band.find((pc) => pc.name === front.name)!.lines.length).toBe(2);
+  });
+
+  it('marks each kept cut half way along its line, ends where it meets the edges', () => {
+    const m = cutMark([front], { cut: 'spread', piece: front.name, line: down, by: 6 })!;
+    expect(Math.abs(m.at.y - (b.y0 + b.y1) / 2)).toBeLessThan(3);
+    expect(m.ends[0].y).toBeLessThan(m.ends[1].y);
+    expect(cutMark([front], { cut: 'spread', piece: 'Nothing', line: down, by: 6 })).toBeUndefined();
   });
 
   it('applies moves and cuts in the order made, so a point moved on a cut piece moves', () => {

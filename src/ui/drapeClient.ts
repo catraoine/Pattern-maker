@@ -2,7 +2,7 @@
 // session, so turning back to a garment already seen is instant.
 import type { DrapeJob, DrapedLite } from '../engine/drape/run';
 import type { Piece } from '../engine/piece';
-import { hasNewPieces } from '../engine/pieceEdit';
+import { hasNewPieces, sewnForAllRound } from '../engine/pieceEdit';
 
 let worker: Worker | undefined;
 let next = 1;
@@ -39,11 +39,24 @@ export function cachedDrape(key: string): DrapedLite | undefined {
   return done.get(key);
 }
 
+/** The job with new pieces sewn back into the pieces they came off, for the cloth. */
+function sewnJob(job: DrapeJob): DrapeJob {
+  const draft = job.draft as { pieces?: Piece[]; skirt?: { pieces?: Piece[] } };
+  const all = [...(draft.pieces ?? []), ...(draft.skirt?.pieces ?? [])];
+  if (!hasNewPieces(all)) return job;
+  const next = { ...draft } as typeof draft;
+  if (draft.pieces) next.pieces = sewnForAllRound(draft.pieces);
+  if (draft.skirt?.pieces) next.skirt = { ...draft.skirt, pieces: sewnForAllRound(draft.skirt.pieces) };
+  return { ...job, draft: next } as DrapeJob;
+}
+
 export function requestDrape(job: DrapeJob, key = drapeKey(job)): Promise<DrapedLite> {
   const hit = done.get(key);
   if (hit) return Promise.resolve(hit);
-  // A piece the maker cut off with Draw a line isn't sewn on the form yet: the garment's Front drawing stands in
-  // (Design: Pattern tools, Cat 2026-11-07), as it does for any design that can't be sewn.
+  // A piece the maker cut off with Draw a line is sewn back to the piece it came off, its seam drawn on the cloth
+  // (Design: Pattern tools round 3, Cat 2026-11-07): sewn, a yoke with its darts closed hangs as the piece with its
+  // darts sewn. Anything still unsewn falls back to the Front drawing, as any design that can't be sewn does.
+  job = sewnJob(job);
   const draft = job.draft as { pieces?: Piece[]; skirt?: { pieces?: Piece[] } };
   if (hasNewPieces([...(draft.pieces ?? []), ...(draft.skirt?.pieces ?? [])])) return Promise.reject(new Error('a new piece is not sewn in All round yet'));
   const id = next++;

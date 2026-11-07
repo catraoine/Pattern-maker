@@ -12,7 +12,7 @@ import { TestingTag } from './TestingTag';
 import { DemoButton } from './DemoButton';
 import { P, add, len, mul, sub } from '../engine/geometry';
 import type { Piece } from '../engine/piece';
-import { CutEdit, CutKind, PatternEdit, START_BY, applyPatternEdits, cutEnds, isCut, openHandle, pointsOn } from '../engine/pieceEdit';
+import { CutEdit, CutKind, PatternEdit, START_BY, applyPatternEdits, cutEnds, cutMark, isCut, openHandle, pointsOn } from '../engine/pieceEdit';
 import { Handle, PointEdit, handlesOf, measureAt, pointOnEdge } from '../engine/pointEdit';
 import { pairs } from '../engine/qc';
 
@@ -72,7 +72,7 @@ export function PatternPane({ children, onPlay }: { children: ReactNode; onPlay?
             Edited by you <TestingTag tool="pattern_tools" />
           </p>
         ) : (
-          <p className="muted small">{on ? 'Drag a point, or draw a line across a piece to cut it.' : 'Reshape any piece: move its points or draw a line to cut it.'}</p>
+          <p className="muted small">{on ? 'Drag a point, draw a line across a piece to cut it, or tap a cut to change it.' : 'Reshape any piece: move its points or draw a line to cut it.'}</p>
         )}
         <button type="button" className={on ? 'ghost on' : 'ghost'} aria-pressed={on} onClick={() => setOn(!on)}>
           {on ? 'Back to pieces' : 'Move points'}
@@ -175,7 +175,7 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
   const svg = useRef<SVGSVGElement>(null);
   const [sel, setSel] = useState<{ piece: string; at: string }>();
   const [tape, setTape] = useState(false);
-  const drag = useRef<{ start: P; edits: PatternEdit[]; by: P; piece: string; at: string; timer?: number; moved: boolean; slop: number }>();
+  const drag = useRef<{ start: P; edits: PatternEdit[]; before: PatternEdit[]; by: P; piece: string; at: string; timer?: number; moved: boolean; slop: number; path: P[]; shapes: Piece[] }>();
   const tapeDrag = useRef<{ x: number; value: number; edits: PatternEdit[] }>();
   // Draw a line: the line as it is drawn (on the editor, in cm), the line waiting for its choice, and the cut being set.
   const [stroke, setStroke] = useState<P[]>();
@@ -189,6 +189,19 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
   const handle = cutAt && beforeCut && openHandle(beforeCut, cutAt);
   const handleAt = handle && place[cutAt!.piece] && add(handle.at, place[cutAt!.piece]);
   const withCut = (from: PatternEdit[], i: number, change: Partial<CutEdit>) => from.map((e, k) => (k === i && isCut(e) ? { ...e, ...change } : e));
+  // Every cut kept so far has a mark on its line, to tap to change it or take it out (round 3): where it is, on the
+  // pieces as they were just before that cut.
+  const marks = useMemo(
+    () =>
+      edits.flatMap((e, i) => {
+        if (!isCut(e) || !place[e.piece]) return [];
+        const m = cutMark(applyPatternEdits(base, edits.slice(0, i)), e);
+        return m ? [{ i, at: add(m.at, place[e.piece]), ends: m.ends.map((q) => add(q, place[e.piece])) as [P, P], line: m.line.map((q) => add(q, place[e.piece])) }] : [];
+      }),
+    [base, edits, place],
+  );
+  const activeMark = active !== undefined ? marks.find((mk) => mk.i === active) : undefined;
+  const endDrag = useRef<{ start: P; k: 0 | 1; line: P[]; edits: PatternEdit[]; i: number }>();
 
   const partnerOf = useMemo(() => {
     const map = new Map<string, string>();
@@ -213,6 +226,24 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
   const selected = sel && handles.find((h) => h.piece === sel.piece && h.at === sel.at);
   const partner = selected && handles.find((h) => h.piece === partnerOf.get(selected.piece) && h.at === selected.at && h.tags.some((t) => ['side', 'shoulder', 'inseam'].includes(t)));
 
+  /** Whether a finger's path is a line across a piece: most of it lies on one piece, and it reaches at least half way
+   *  across that piece along the line it draws. Dragging a point off the piece, or a dart point a little way, isn't. */
+  const lineAcross = (path: P[], shapes: Piece[]) => {
+    if (path.length < 3) return false;
+    const drawn = len(sub(path[path.length - 1], path[0]));
+    if (drawn < 3) return false;
+    // (Read on the pieces as they were when the finger went down: the point being dragged pulls its piece along.)
+    for (const pc of shapes) {
+      const o = place[pc.name];
+      if (!o) continue;
+      const own = path.map((q) => ({ x: q.x - o.x, y: q.y - o.y }));
+      if (pointsOn(pc, own) * 3 < own.length * 2) continue;
+      const ends = cutEnds(pc, own);
+      if (ends && drawn >= len(sub(ends.far, ends.hinge)) * 0.5) return true;
+    }
+    return false;
+  };
+
   const down = (e: PointerEvent<SVGSVGElement>) => {
     const q = toCm(e);
     const px = cmPerPx();
@@ -220,6 +251,27 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
     if (handle && handleAt && cutAt && active !== undefined && len(sub(handleAt, q)) < Math.max(r * 5, HIT_PX * px)) {
       openDrag.current = { start: q, by: cutAt.by, opens: handle.opens, edits, i: active };
       svg.current?.setPointerCapture(e.pointerId);
+      return;
+    }
+    // The ends of the cut being changed: dragging one moves the line.
+    if (activeMark && cutAt && active !== undefined) {
+      const k = activeMark.ends.findIndex((end) => len(sub(end, q)) < Math.max(r * 4, HIT_PX * px));
+      if (k === 0 || k === 1) {
+        const own = cutAt.line.map((q) => ({ ...q }));
+        // The end taken is set on the edge it meets, so the line starts where its handle is.
+        own[k === 0 ? 0 : own.length - 1] = sub(activeMark.ends[k], place[cutAt.piece]);
+        endDrag.current = { start: q, k, line: own, edits, i: active };
+        svg.current?.setPointerCapture(e.pointerId);
+        return;
+      }
+    }
+    // A cut's mark tapped: that cut opens to change it or take it out.
+    const hitMark = marks.find((mk) => len(sub(mk.at, q)) < Math.max(r * 3.5, HIT_PX * px));
+    if (hitMark) {
+      setSel(undefined);
+      setTape(false);
+      setAsking(undefined);
+      setActive(hitMark.i);
       return;
     }
     let best: Handle | undefined;
@@ -269,10 +321,20 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
         setTape(true);
       }
     }, HOLD_MS);
-    drag.current = { start: q, edits: start, by: prev, ...target, timer, moved: false, slop: SLOP_PX * px };
+    drag.current = { start: q, edits: start, before: edits, by: prev, ...target, timer, moved: false, slop: SLOP_PX * px, path: [q], shapes: pieces };
   };
 
   const move = (e: PointerEvent<SVGSVGElement>) => {
+    const ed = endDrag.current;
+    if (ed) {
+      const q = toCm(e);
+      const d = sub(q, ed.start);
+      const n = ed.line.length - 1 || 1;
+      // The end taken moves with the finger; a drawn line bends along with it, less toward its other end.
+      const line = ed.line.map((pt, j) => add(pt, mul(d, ed.k === 0 ? 1 - j / n : j / n))).map((pt) => ({ x: Math.round(pt.x * 100) / 100, y: Math.round(pt.y * 100) / 100 }));
+      liveMove(withCut(ed.edits, ed.i, { line }));
+      return;
+    }
     const o = openDrag.current;
     if (o) {
       const q = toCm(e);
@@ -296,10 +358,30 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
     if (!g.moved && Math.hypot(d.x, d.y) < g.slop) return;
     g.moved = true;
     window.clearTimeout(g.timer);
+    g.path.push(q);
+    // A press that landed on or by a point but carries on across the piece is a line, not a move (Cat: starting a line
+    // near a point moved the point): once the finger has drawn most of the way across a piece, the point goes back and
+    // the line is drawn from where the finger went down.
+    if (lineAcross(g.path, g.shapes)) {
+      drag.current = undefined;
+      if (frame.current) cancelAnimationFrame(frame.current);
+      frame.current = undefined;
+      pending.current = undefined;
+      setLive(g.before === saved ? undefined : g.before);
+      strokeRef.current = g.path;
+      setStroke(g.path);
+      setSel(undefined);
+      return;
+    }
     liveMove(withMove(g.edits, g.piece, g.at, add(g.by, d)));
   };
 
   const up = () => {
+    if (endDrag.current) {
+      endDrag.current = undefined;
+      keep();
+      return;
+    }
     if (openDrag.current) {
       openDrag.current = undefined;
       keep();
@@ -391,6 +473,11 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
         {changed && base.map((pc) => place[pc.name] && <path key={pc.name} d={pathD(pc, place[pc.name])} className="pe-ghost" vectorEffect="non-scaling-stroke" />)}
         {stroke && stroke.length > 1 && <polyline points={stroke.map((q) => `${q.x},${q.y}`).join(' ')} className="pe-stroke" vectorEffect="non-scaling-stroke" />}
         {asking && <polyline points={asking.line.map((q) => `${q.x + place[asking.piece].x},${q.y + place[asking.piece].y}`).join(' ')} className="pe-stroke" vectorEffect="non-scaling-stroke" />}
+        {activeMark && <polyline points={activeMark.line.map((q) => `${q.x},${q.y}`).join(' ')} className="pe-cutline" vectorEffect="non-scaling-stroke" />}
+        {marks.map((mk) => (
+          <rect key={mk.i} data-cut={mk.i} x={mk.at.x - r * 1.3} y={mk.at.y - r * 1.3} width={r * 2.6} height={r * 2.6} transform={`rotate(45 ${mk.at.x} ${mk.at.y})`} className={`pe-cut${mk.i === active ? ' on' : ''}`} vectorEffect="non-scaling-stroke" />
+        ))}
+        {activeMark && activeMark.ends.map((q, k) => <circle key={k} cx={q.x} cy={q.y} r={r * 1.4} className="pe-end" data-end={k} vectorEffect="non-scaling-stroke" />)}
         {handleAt && <circle cx={handleAt.x} cy={handleAt.y} r={r * 1.8} className="pe-open" data-open="far" vectorEffect="non-scaling-stroke" />}
         {handles.filter((h) => place[h.piece]).map((h) => {
           const at = posOf(h);
@@ -496,11 +583,18 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
             onPointerUp={keep}
             onKeyUp={keep}
           />
-          <p className="muted small">Drag the round handle on the piece, or slide.</p>
+          <p className="muted small">Drag the round handle on the piece, or slide. Drag either end of the line to move it.</p>
           <div className="row wrap">
             {(['gathers', 'pleats'] as const).map((f) => (
               <button key={f} type="button" className={(cutAt.finish ?? 'gathers') === f ? 'ghost on' : 'ghost'} aria-pressed={(cutAt.finish ?? 'gathers') === f} onClick={() => setEdits(withCut(edits, active, { finish: f }))}>
                 {f === 'gathers' ? 'Gathers' : 'Pleats'}
+              </button>
+            ))}
+          </div>
+          <div className="row wrap pe-kind" role="group" aria-label="What this cut does">
+            {(['spread', 'fullness', 'piece'] as const).map((k) => (
+              <button key={k} type="button" className={cutAt.cut === k ? 'ghost on' : 'ghost'} aria-pressed={cutAt.cut === k} onClick={() => cutAt.cut !== k && setEdits(withCut(edits, active, { cut: k, by: k === 'piece' ? 0 : cutAt.by || START_BY[k], finish: k === 'piece' ? undefined : (cutAt.finish ?? 'gathers') }))}>
+                {k === 'spread' ? 'Spread' : k === 'fullness' ? 'Fullness' : 'New piece'}
               </button>
             ))}
           </div>
@@ -524,7 +618,14 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
             New piece: its name
           </label>
           <input id="pe-name" type="text" maxLength={40} placeholder={madePiece?.name ?? 'New piece'} defaultValue={cutAt.name ?? ''} onBlur={(e) => e.target.value.trim() !== (cutAt.name ?? '') && setEdits(withCut(edits, active, { name: e.target.value.trim() || undefined }))} />
-          <p className="muted small">Sewn to the piece it came off, notch to notch. All round shows the garment's drawing while it has a new piece.</p>
+          <p className="muted small">Sewn to the piece it came off, notch to notch{madePiece?.meta.dartsClosed ? '; its darts are closed into it' : ''}. Drag either end of the line to move it.</p>
+          <div className="row wrap pe-kind" role="group" aria-label="What this cut does">
+            {(['spread', 'fullness', 'piece'] as const).map((k) => (
+              <button key={k} type="button" className={cutAt.cut === k ? 'ghost on' : 'ghost'} aria-pressed={cutAt.cut === k} onClick={() => cutAt.cut !== k && setEdits(withCut(edits, active, { cut: k, by: k === 'piece' ? 0 : cutAt.by || START_BY[k], finish: k === 'piece' ? undefined : (cutAt.finish ?? 'gathers') }))}>
+                {k === 'spread' ? 'Spread' : k === 'fullness' ? 'Fullness' : 'New piece'}
+              </button>
+            ))}
+          </div>
           <div className="row">
             <button type="button" className="ghost" onClick={() => {
               setEdits(edits.filter((_, k) => k !== active));
@@ -539,10 +640,16 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
         </div>
       )}
 
-      {changed && (
+      {/* Always laid out, shown once something has changed: appearing under a finger mid-stroke, it grew the page and
+          the pinned drawing eased under the finger, so a line being drawn jumped (round 3). */}
+      {(
         <button
           type="button"
           className="ghost"
+          hidden={!changed}
+          style={changed ? undefined : { display: 'block', visibility: 'hidden' }}
+          aria-hidden={!changed || undefined}
+          tabIndex={changed ? undefined : -1}
           onClick={() => {
             setEdits([]);
             setSel(undefined);

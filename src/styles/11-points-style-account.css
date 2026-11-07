@@ -910,3 +910,26 @@
     grid-template-columns: 1fr;
   }
 }
+/* Pattern tools round 3: each kept cut's mark (tap it to change the cut), the cut being changed and its two ends. */
+.point-svg .pe-cut {
+  fill: var(--paper);
+  stroke: var(--gild-glow);
+  stroke-width: 1.2px;
+  cursor: pointer;
+}
+.point-svg .pe-cut.on {
+  fill: var(--gild-glow);
+}
+.point-svg .pe-cutline {
+  fill: none;
+  stroke: var(--gild-glow);
+  stroke-width: 2px;
+  stroke-dasharray: 4 3;
+  pointer-events: none;
+}
+.point-svg .pe-end {
+  fill: var(--gild-glow);
+  stroke: var(--paper);
+  stroke-width: 1px;
+  cursor: grab;
+}
