@@ -59,15 +59,24 @@ export function standStiff(panels: Panel[], res: Float64Array | number[], k = kn
         have[yb * NA + ab] = 1;
       }
     }
-  // Held out: going down, never in from the widest the cloth reached above it at that place round the body.
+  // Held out straight: at each place round the body the cloth keeps the width it has a hand below the underarm all
+  // the way down, so the sides run plumb to the hem as a box (Cat: "longer and more straight square edge", 2026-11-07),
+  // going further out only where the body itself pushes it out.
   const held = Float64Array.from(field);
+  const REF0 = Math.round((knob('__stiffRef0') ?? 6) / DY);
+  const REF1 = Math.round((knob('__stiffRef1') ?? 12) / DY);
   for (let ab = 0; ab < NA; ab++) {
-    let m = 0;
+    let s = 0;
+    let c = 0;
+    for (let yb = REF0; yb <= Math.min(NY - 1, REF1); yb++)
+      if (have[yb * NA + ab]) {
+        s += field[yb * NA + ab];
+        c++;
+      }
+    const ref = c ? s / c : 0;
     for (let yb = 0; yb < NY; yb++) {
       const b = yb * NA + ab;
-      if (!have[b]) continue;
-      m = Math.max(m, field[b]);
-      held[b] = m;
+      if (have[b]) held[b] = Math.max(ref, field[b]);
     }
   }
   const at = (f: Float64Array, a: number, y: number) => {
@@ -102,21 +111,59 @@ export function standStiff(panels: Panel[], res: Float64Array | number[], k = kn
       nb[v].add(u).add(w);
       nb[w].add(u).add(v);
     }
+    // (Points on the outline keep their place round the body, so the seams they're sewn to stay closed.)
+    const edge = new Set(Object.values(p.mesh.runs).flat(2));
     for (let it = 0; it < (knob('__stiffEase') ?? 6); it++) {
-      const next: [number, number][] = [];
+      const next: [number, number, number][] = [];
       p.mesh.pts.forEach((_, i) => {
         const I = (p.base + i) * 3;
         if (res[I + 1] < top + 4 || p.turned[i] || !nb[i].size) return;
+        // (Both how far out it lies and where it sits round the body, so a fold the sim left tucked over itself opens
+        // out flat instead of being pressed into a fin.)
         let m = 0;
-        for (const j of nb[i]) m += Math.hypot(res[(p.base + j) * 3], res[(p.base + j) * 3 + 2]);
+        let ax = 0;
+        let az = 0;
+        for (const j of nb[i]) {
+          const J = (p.base + j) * 3;
+          m += Math.hypot(res[J], res[J + 2]);
+          ax += res[J];
+          az += res[J + 2];
+        }
         m /= nb[i].size;
         const r = Math.hypot(res[I], res[I + 2]) || 1;
-        next.push([I, (r + (m - r) * 0.5) / r]);
+        const r2 = r + (m - r) * 0.5;
+        const t = edge.has(i) ? 0 : 0.5;
+        const x = res[I] + (ax / nb[i].size - res[I]) * t;
+        const z = res[I + 2] + (az / nb[i].size - res[I + 2]) * t;
+        const h = Math.hypot(x, z) || 1;
+        next.push([I, (x / h) * r2, (z / h) * r2]);
       });
-      for (const [I, f] of next) {
-        res[I] *= f;
-        res[I + 2] *= f;
+      for (const [I, x, z] of next) {
+        res[I] = x;
+        res[I + 2] = z;
       }
     }
+  }
+  // A level hem: a stiff cloth hangs to one straight line, so each hem point drops (or rises) to the body's lowest hem,
+  // the cloth above following it less the further up it is, so the corners stay square instead of curling up.
+  let hemY = -Infinity;
+  for (const p of body) for (const i of (p.mesh.runs.hem ?? []).flat()) hemY = Math.max(hemY, res[(p.base + i) * 3 + 1]);
+  if (!Number.isFinite(hemY)) return;
+  const reach = knob('__stiffHemReach') ?? 18;
+  for (const p of body) {
+    const hem = [...new Set((p.mesh.runs.hem ?? []).flat())].filter((i) => !p.turned[i]);
+    if (!hem.length) continue;
+    const hx = hem.map((i) => p.mesh.pts[i].x);
+    const hd = hem.map((i) => hemY - res[(p.base + i) * 3 + 1]);
+    const hp = hem.map((i) => p.mesh.pts[i].y);
+    p.mesh.pts.forEach((q, i) => {
+      const I = (p.base + i) * 3;
+      if (res[I + 1] < top + 4 || p.turned[i]) return;
+      // (The nearest hem point across the piece, by its place along the hem.)
+      let j = 0;
+      for (let n = 1; n < hx.length; n++) if (Math.abs(hx[n] - q.x) < Math.abs(hx[j] - q.x)) j = n;
+      const s = Math.max(0, 1 - Math.abs(hp[j] - q.y) / reach);
+      res[I + 1] += hd[j] * s * s * (3 - 2 * s);
+    });
   }
 }
