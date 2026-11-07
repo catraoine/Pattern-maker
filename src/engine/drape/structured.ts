@@ -229,7 +229,7 @@ function layFrontEdges(body: Panel[], res: Float64Array | number[]): void {
  *  cloth's thickness out, and smoothed so it lies as one crisp plane with a clean edge, the way a bonded or interfaced
  *  collar is pressed (Cat: "very flat and crisp", SS27 vest, 2026-11-07). The stand and the seam stay where they are.
  *  `relax` eases cloth back to its cut lengths, holding the points given. Moves `res`. */
-export function pressCollar(panels: Panel[], res: Float64Array | number[], relax: (p: Panel, held: number[]) => void): void {
+export function pressCollar(panels: Panel[], res: Float64Array | number[], relax: (p: Panel, held: number[]) => void, stiff = false): void {
   const NA = 120;
   const DY = 0.5;
   const TAU = Math.PI * 2;
@@ -309,7 +309,7 @@ export function pressCollar(panels: Panel[], res: Float64Array | number[], relax
   // (And a high lapel's long collar end pressed to a straight edge, collarEnd.ts.)
   for (const p of collars) {
     if (!p.pc.meta.onFront || knob('__noStraightCollar')) continue;
-    const edge = straightenCollarEdge(p, p.pc.meta.onFront as CollarOnFront, res);
+    const edge = straightenCollarEdge(p, p.pc.meta.onFront as CollarOnFront, res, stiff);
     // (Then the cloth inside eased back to its cut, the straight edge and the seams held, so it isn't stretched there.)
     const sewn = new Set([...(p.mesh.runs.neck ?? []), ...(p.mesh.runs.gorge ?? [])].flat());
     if (edge.length && !knob('__noStraightRelax')) relax(p, [...p.mesh.pts.map((_, i) => i).filter((i) => !p.turned[i] || sewn.has(i)), ...edge]);

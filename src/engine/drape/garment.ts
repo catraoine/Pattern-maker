@@ -302,6 +302,12 @@ interface CollarPart {
 /** How much stiffer a coat's faced front edge bends than its cloth: about 1.4 times plain wool's stiffness, which
  *  the sim holds steady (much past that it blows up). */
 const FACED = (o: { bendK?: number }) => Math.min(12, 1.4 / (o.bendK ?? 0.05));
+/** The most a stiff jacket's bend is pulled back toward its rest in one pass: past 2 the sim overshoots and the cloth
+ *  flies apart (2026-11-07). */
+const STIFF_BEND_MAX = 1.4;
+/** A jacket or coat in a crisp cloth holds its own shape: a boxy vest stands off the body, its seams straight, not
+ *  draped onto it (Cat, 2026-11-07). Any stiffer and a double-breasted front's wide overlap stretched. */
+const STIFF_BEND = 1;
 
 /** A full circle skirt (more than a half circle round its waist): its hem's fullness starts in flutes clear of the
  *  body, and a fluid cloth's softer bend and harder fall folded them through each other into fins (39 times the limit
@@ -1820,7 +1826,12 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
         // behaviour round 2. All of it, as a skirt does, and tops folded into fins.)
         const hungHere = o.fallOn === 'all' || (o.fallOn === 'skirt' && p.role.startsWith('peplum'));
         const pours = o.skirtBend !== undefined && !(o.skirtBend < 1 && fullCircle(extra.skirt)) && hungHere ? o.skirtBend : !hungHere && o.skirtBend !== undefined ? o.skirtBend ** (knob('__topBendPow') ?? 0.5) : 1;
-        bendW.push(p.role === 'collar' || p.turned[opp[0]] ? 4 : faced ? FACED(o) : o.crisp && /peplum/i.test(p.pc.name) ? o.crisp : fullSleeve ? Math.max(1, 0.06 / (o.bendK ?? 0.05)) : pours);
+        const w = p.role === 'collar' || p.turned[opp[0]] ? 4 : faced ? FACED(o) : o.crisp && /peplum/i.test(p.pc.name) ? o.crisp : fullSleeve ? Math.max(1, 0.06 / (o.bendK ?? 0.05)) : pours;
+        // (A stiff jacket's cloth is firm already: its collar's and facings' extra stiffness is held to what the sim can
+        // take in one pass, or a bend pulled past its rest more than its own length over overshoots and the cloth flies
+        // apart, 2026-11-07; and its body to its own stiffness, whatever its cloth's fall, or a double-breasted front's
+        // wide overlap stretched.)
+        bendW.push(o.stiff ? Math.min(w, (w === pours ? STIFF_BEND : STIFF_BEND_MAX) / (o.bendK ?? 0.05)) : w);
       }
     }
   }
@@ -4252,7 +4263,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
     }
   }
   // A stiff jacket's collar, or a low-rolled one, is pressed flat and crisp (structured.ts).
-  if (collarOnly && (o.stiff || B.panels.some((p) => p.role === 'collar' && p.pc.meta.pressed)) && !knob('__noPressCollar')) pressCollar(B.panels, res, relax);
+  if (collarOnly && (o.stiff || B.panels.some((p) => p.role === 'collar' && p.pc.meta.pressed)) && !knob('__noPressCollar')) pressCollar(B.panels, res, relax, !!o.stiff);
   // A shirt collar on a stand: the sim leaves its fall standing up round the neck like a second band. Worn, the fall
   // turns at its roll line and lies down over the stand, its points out onto the chest: each turned point goes from
   // the roll line it folds at down the outside of whatever is under it (the stand, then the shirt), by as far as it is
@@ -6386,7 +6397,7 @@ export function drapeOuter(sp: Space, d: OuterDraft, o: DrapeOptions = {}): Drap
     { sleeve: shell.filter((pc) => /sleeve/i.test(pc.name)), collars: collarsOf(d.pieces).map((c) => ((d as { popped?: boolean }).popped ? { ...c, roll: undefined } : c)) },
     // A lapel that breaks high (a coat or jacket buttoned over the chest) is pressed onto the front; a plunging one,
     // breaking near the waist, is left to hang (pressing drags its long front down).
-    { pad: d.pads, stiff: !!o.crisp, lieLapel: !!d.lapel && base.front.waistCentre.y - d.lapel.breakPt.y > 10, ...o, buttons: { y: d.buttons.at, r: d.buttons.sizeCm / 2, waistY: base.front.waistCentre.y }, ...(o.crisp ? { boxy: false } : {}), pinFront: knob("__pinAll") ? [{ y: 52, span: 12 }] : knob('__oldPins') || d.hood ? d.buttons.at.map((y) => ({ y, span: 2 })) : frontPins(d.buttons.at, shell) },
+    { pad: d.pads, stiff: !!o.crisp, lieLapel: !!d.lapel && base.front.waistCentre.y - d.lapel.breakPt.y > 10, ...o, buttons: { y: d.buttons.at, r: d.buttons.sizeCm / 2, waistY: base.front.waistCentre.y }, ...(o.crisp ? { boxy: false, bendK: STIFF_BEND } : {}), pinFront: knob("__pinAll") ? [{ y: 52, span: 12 }] : knob('__oldPins') || d.hood ? d.buttons.at.map((y) => ({ y, span: 2 })) : frontPins(d.buttons.at, shell) },
   );
   if (cs)
     for (const pnl of out.panels) {

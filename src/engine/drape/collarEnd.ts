@@ -79,7 +79,7 @@ type Cloth = { base: number; mesh: { pts: P[]; tris: [number, number, number][];
  *  runs dead straight from where it leaves the shoulder to its point (Cat: "this should be straight", 2026-11-07). Each
  *  point of that edge goes onto the straight line between the two, seen from the front, the fall inside it following
  *  in part. Moves `res`; returns the edge points it placed. */
-export function straightenCollarEdge(collar: Cloth, o: CollarOnFront, res: Float64Array | number[]): number[] {
+export function straightenCollarEdge(collar: Cloth, o: CollarOnFront, res: Float64Array | number[], lower = false): number[] {
   const pts = collar.mesh.pts;
   const run = (collar.mesh.runs.collar ?? []).flat();
   if (run.length < 4) return [];
@@ -112,6 +112,25 @@ export function straightenCollarEdge(collar: Cloth, o: CollarOnFront, res: Float
     if (f <= 0) return;
     moves.push({ q: pts[i], d: [(C[0] + u[0] * t - res[I]) * f, (C[1] + u[1] * t - res[I + 1]) * f] });
   });
+  // The end's lower edge, from the point back to the notch, put on a straight line too (Cat's red line, 2026-11-07):
+  // its notch end stays where it is sewn. Only in a crisp cloth: a soft one's short end edge stretched pulled straight.
+  const low: number[] = [];
+  const lowMoves: { I: number; d: [number, number] }[] = [];
+  for (let k = c; k >= 0 && k < run.length; k -= dir) low.push(run[k]);
+  if (lower && low.length > 2) {
+    const N = [res[X(low[low.length - 1])], res[X(low[low.length - 1]) + 1]];
+    const arcL = [0];
+    for (let k = 1; k < low.length; k++) arcL.push(arcL[k - 1] + Math.hypot(res[X(low[k])] - res[X(low[k - 1])], res[X(low[k]) + 1] - res[X(low[k - 1]) + 1]));
+    const LN = Math.hypot(N[0] - C[0], N[1] - C[1]) || 1;
+    const sc = arcL[arcL.length - 1] > 0 ? LN / arcL[arcL.length - 1] : 1;
+    const v = [(N[0] - C[0]) / LN, (N[1] - C[1]) / LN];
+    low.forEach((i, k) => {
+      if (k === 0 || k === low.length - 1) return;
+      const I = X(i);
+      const t = arcL[k] * sc;
+      lowMoves.push({ I, d: [C[0] + v[0] * t - res[I], C[1] + v[1] * t - res[I + 1]] });
+    });
+  }
   const neck = [...(collar.mesh.runs.neck ?? []), ...(collar.mesh.runs.gorge ?? [])].flat();
   // The fall inside follows its nearest stretch of edge, less the further in it is, so it doesn't fold at the edge.
   const R = 2.5;
@@ -140,6 +159,12 @@ export function straightenCollarEdge(collar: Cloth, o: CollarOnFront, res: Float
     res[I] += (dx / s) * f;
     res[I + 1] += (dy / s) * f;
   });
+  // (The lower edge lies all close to the gorge seam, where the fall's easing fades out, so its points are put on
+  // their line outright; the cloth inside eases to them when the caller relaxes it.)
+  for (const m of lowMoves) {
+    res[m.I] += m.d[0];
+    res[m.I + 1] += m.d[1];
+  }
   // (The edge points it put on the line, for the caller to hold while the cloth inside eases back to its cut.)
-  return edge.slice(0, a + 1);
+  return [...edge.slice(0, a + 1), ...(lowMoves.length ? low.slice(1, -1) : [])];
 }
