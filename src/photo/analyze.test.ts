@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { describe, expect, it, vi } from 'vitest';
-import { analyzePhoto } from './analyze';
+import { analyzePhoto, toReading } from './analyze';
 
 const reading = {
   garment: 'skirt',
@@ -77,6 +77,35 @@ describe('analyzePhoto', () => {
   });
 });
 
+describe('the reading format sent to the API', () => {
+  it('stays within the API limit of 16 values that can be one of two types', async () => {
+    const { client, parse } = fakeClient({ stop_reason: 'end_turn', parsed_output: reading });
+    await analyzePhoto(photo, client);
+    const schema = ((parse.mock.calls[0] as unknown[])[0] as { output_config: { format: { schema: unknown } } }).output_config.format.schema;
+    let unions = 0;
+    const walk = (s: unknown): void => {
+      if (!s || typeof s !== 'object') return;
+      if (Array.isArray(s)) return s.forEach(walk);
+      const o = s as Record<string, unknown>;
+      if (o.anyOf || Array.isArray(o.type)) unions++;
+      Object.values(o).forEach(walk);
+    };
+    walk(schema);
+    expect(unions).toBeLessThanOrEqual(12); // room to spare under 16
+  });
+
+  it('turns the listed sizes into the reading the app keeps, null for each not listed', async () => {
+    const listed = { ...reading, measures: [{ name: 'bustRoom', value: 1.32 }, { name: 'shoulderOutCm', value: -2 }, { name: 'bustRoom', value: 9 }] };
+    const out = await analyzePhoto(photo, fakeClient({ stop_reason: 'end_turn', parsed_output: listed }).client);
+    const m = out.ok ? out.reading.measures : undefined;
+    expect(m?.bustRoom).toBe(1.32);
+    expect(m?.shoulderOutCm).toBe(-2);
+    expect(m?.neckDepthCm).toBeNull();
+    expect(m?.legHemRoom).toBeNull();
+    expect(toReading({ ...reading } as never)).toEqual(reading);
+  });
+});
+
 describe('missingKeys', () => {
   it('counts each unmatched detail under its garment, at most five, without repeats', async () => {
     const { missingKeys } = await import('./analyze');
@@ -116,12 +145,15 @@ describe('checkDrawing', () => {
 
   it('sends the photo, then the drawing, with the earlier reading, and returns the corrections', async () => {
     const { checkDrawing } = await import('./analyze');
-    const { client, parse } = fakeClient({ stop_reason: 'end_turn', parsed_output: { reading: full, changes: ['hem 5 cm longer'] } });
-    expect(await checkDrawing({ ...photo, drawing: 'iVBO', reading: full }, client)).toEqual({ ok: true, reading: full, changes: ['hem 5 cm longer'] });
+    const listed = { ...full, measures: [{ name: 'topHemAt', value: 0.2 }] };
+    const { client, parse } = fakeClient({ stop_reason: 'end_turn', parsed_output: { reading: listed, changes: ['hem 5 cm longer'] } });
+    const out = await checkDrawing({ ...photo, drawing: 'iVBO', reading: full }, client);
+    expect(out.ok && out.changes).toEqual(['hem 5 cm longer']);
+    expect(out.ok && out.reading.measures).toMatchObject({ topHemAt: 0.2, neckDepthCm: null, breakCm: null, legHemRoom: null });
     const req = (parse.mock.calls[0] as unknown[])[0] as { messages: { content: { type: string; source?: { media_type: string } }[] }[] };
     expect(req.messages[0].content.map((c) => c.source?.media_type ?? c.type)).toEqual(['image/jpeg', 'image/png', 'text']);
-    // A reading from before the proportions (Nov 7) is checked with them as not shown.
-    expect(req.messages[0].content.map((c) => (c as { text?: string }).text ?? '').join('')).toContain('"breakCm":null');
+    // A reading from before the proportions (Nov 7) is accepted, and sent as Claude writes it: only the sizes it has.
+    expect(req.messages[0].content.map((c) => (c as { text?: string }).text ?? '').join('')).toContain('"measures":[]');
   });
 
   it("won't check against anything that isn't a reading", async () => {

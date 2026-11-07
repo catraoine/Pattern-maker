@@ -57,6 +57,28 @@ const Outer = z.object({
   trim: z.enum(['none', 'rib']).optional(),
 });
 
+/**
+ * The sizes a reading measures. Claude lists only the ones it can see, as name and value pairs: a field per size that
+ * could be null made the schema too complex for the API (it allows only 16 values that can be one of two types), and
+ * every front reading was refused from Nov 7 until this was changed.
+ */
+const MEASURES = [
+  'neckDepthCm',
+  'sleeveEndsAt',
+  'topHemAt',
+  'trouserHemAt',
+  'outerHemAt',
+  'breakCm',
+  'buttons',
+  'buttonGapCm',
+  'shoulderOutCm',
+  'bustRoom',
+  'outerHemFullness',
+  'kneeRoom',
+  'legHemRoom',
+] as const;
+
+/** The reading as Claude writes it. The app gets it from toReading, with every size it didn't list as null. */
 export const Reading = z.object({
   garment: z.enum(['skirt', 'dress', 'top', 'tee', 'trousers', 'jacket', 'coat', 'other', 'none']),
   pieces: z.array(z.object({ garment: piece, x: z.number(), y: z.number() })),
@@ -76,21 +98,7 @@ export const Reading = z.object({
   outer: Outer.nullable(),
   fabric: Fabric.nullable(),
   worn: z.boolean(),
-  measures: z.object({
-    neckDepthCm: z.number().nullable(),
-    sleeveEndsAt: z.number().nullable(),
-    topHemAt: z.number().nullable(),
-    trouserHemAt: z.number().nullable(),
-    outerHemAt: z.number().nullable(),
-    breakCm: z.number().nullable(),
-    buttons: z.number().nullable(),
-    buttonGapCm: z.number().nullable(),
-    shoulderOutCm: z.number().nullable(),
-    bustRoom: z.number().nullable(),
-    outerHemFullness: z.number().nullable(),
-    kneeRoom: z.number().nullable(),
-    legHemRoom: z.number().nullable(),
-  }),
+  measures: z.array(z.object({ name: z.enum(MEASURES), value: z.number() })),
   unsure: z.object({ group: z.enum(['silhouette', 'length', 'neckline', 'sleeve', 'leg']), other: z.string() }).nullable(),
   missing: z.array(z.string()),
   details: z.string(),
@@ -160,17 +168,17 @@ outer: fill this in for a jacket or a coat; otherwise null.
 
 worn: true when a person or a full-length mannequin is wearing the main garment, so where it ends can be measured against the body; false when it is laid flat, on a hanger or on a dress form without legs.
 
-measures: exact sizes, so the pattern copies the photo rather than a standard option. Measure against the wearer's body, as for the skirt's shape, and use null when the photo doesn't show it, the garment has none, or it isn't worn:
-- neckDepthCm: for a top, T-shirt or dress bodice, how far the lowest point of the front neckline sits below the hollow at the base of the throat, in cm on an average adult (a crew neck 1 to 2, a scoop 8 to 14, a deep V 18 to 28). null for a strapless, cami, halter, one-shoulder or cowl neckline.
-- sleeveEndsAt: where a sleeve ends, as a fraction of the arm from the shoulder point (0) to the wrist bone (1): a short sleeve about 0.25, elbow 0.5, three-quarter 0.75, long 1. null with no sleeves or a cap sleeve.
+measures: exact sizes, so the pattern copies the photo rather than a standard option. List each one the photo shows as its name and value, at most once. Measure against the wearer's body, as for the skirt's shape, and leave a size out when the photo doesn't show it, the garment has none, or it isn't worn:
+- neckDepthCm: for a top, T-shirt or dress bodice, how far the lowest point of the front neckline sits below the hollow at the base of the throat, in cm on an average adult (a crew neck 1 to 2, a scoop 8 to 14, a deep V 18 to 28). Leave it out for a strapless, cami, halter, one-shoulder or cowl neckline.
+- sleeveEndsAt: where a sleeve ends, as a fraction of the arm from the shoulder point (0) to the wrist bone (1): a short sleeve about 0.25, elbow 0.5, three-quarter 0.75, long 1. Leave it out with no sleeves or a cap sleeve.
 - topHemAt: for a top below the waist (not a dress), where its hem falls, as a fraction of the natural waist (0) to the floor (1), like the skirt's hemAt (the hip line is about 0.2).
 - trouserHemAt: for trousers, where the hem falls, as a fraction of the natural waist (0) to the floor (1) (shorts about 0.3, knee 0.56, ankle 0.93, full 0.98).
 
-Proportions: the pattern is cut to these numbers, so measure them carefully against the wearer's own body, using her head (about 22 cm from chin to crown on an average adult), shoulders, waist, hips and knees as rulers, not the photo frame. Read each from the garment as worn, allowing for perspective, and null when it doesn't show, doesn't apply or isn't worn:
+Proportions: the pattern is cut to these numbers, so measure them carefully against the wearer's own body, using her head (about 22 cm from chin to crown on an average adult), shoulders, waist, hips and knees as rulers, not the photo frame. Read each from the garment as worn, allowing for perspective, and leave each out when it doesn't show, doesn't apply or isn't worn:
 - outerHemAt: for a jacket or coat, where its hem falls, as a fraction of the natural waist (0) to the floor (1) (cropped about 0.05, the hip line 0.2, low hip 0.27, mid-thigh 0.38, the knee 0.56, mid-calf 0.76).
 - breakCm: for a jacket or coat, where the lapels fold back and the front starts to close (the break), in cm below the hollow at the base of the throat on an average adult; without lapels, where the top button or the top of the zip sits. A high waistcoat break is about 15 to 18, a classic jacket about 25 to 30, a deep one-button jacket about 35 to 40.
-- buttons: for a jacket, coat or buttoned top, how many buttons run down the front (one row of a double-breasted front). null with a zip or no buttons.
-- buttonGapCm: the distance from one button to the next, in cm on an average adult (about 9 to 12 on most jackets). null with fewer than two buttons.
+- buttons: for a jacket, coat or buttoned top, how many buttons run down the front (one row of a double-breasted front). Leave it out with a zip or no buttons.
+- buttonGapCm: the distance from one button to the next, in cm on an average adult (about 9 to 12 on most jackets). Leave it out with fewer than two buttons.
 - shoulderOutCm: for a jacket, coat or top, how far its shoulder seam sits past the wearer's own shoulder point, in cm on an average adult: 0 on her shoulder, 1 to 2 with a sharp padded shoulder, 4 to 10 for a dropped or extended shoulder (an oversized cut), negative when cut in toward the neck (a racer or halter armhole).
 - bustRoom: for a jacket, coat or top, its round at the bust divided by the wearer's own bust round, judged from how far it stands away from the body at the sides: about 1.05 for a close-fitting top, 1.1 fitted jacket, 1.14 regular, 1.2 relaxed, 1.4 to 1.7 for an oversized cut that stands well away from the body (judge it from the gap between the garment's side and her own side, not from the garment alone: an oversized piece on a slim wearer is still oversized).
 - outerHemFullness: for a jacket or coat, its hem round divided by the round at the wearer's hips: 1.05 for straight sides, 1.2 to 1.3 for an A-line coat, 1.4 or more for one that flares or stands out from the hips.
@@ -233,18 +241,37 @@ The reading's rules:
 
 `;
 
+type Measure = { name: (typeof MEASURES)[number]; value: number };
+type WireReading = Omit<PhotoReading, 'measures'> & { measures?: Measure[] };
+
+/** Claude's list of sizes as the reading the app keeps: every size named, null for each it didn't list. */
+export function toReading(r: WireReading): PhotoReading {
+  if (!Array.isArray(r.measures)) return r as PhotoReading;
+  const measures = Object.fromEntries(MEASURES.map((k) => [k, null])) as Record<(typeof MEASURES)[number], number | null>;
+  for (const m of r.measures) if (measures[m.name] === null && Number.isFinite(m.value)) measures[m.name] = m.value;
+  return { ...r, measures } as PhotoReading;
+}
+
+/** The app's reading, sized fields and all, as the list Claude writes. */
+const toWire = (r: z.infer<typeof Kept>) => ({
+  ...r,
+  measures: MEASURES.flatMap((name) => (typeof r.measures[name] === 'number' ? [{ name, value: r.measures[name] }] : [])),
+});
+
+/** A reading as the app keeps it, to check one the app sends back. */
+const Kept = Reading.extend({ measures: z.object(Object.fromEntries(MEASURES.map((k) => [k, z.number().nullable()])) as Record<(typeof MEASURES)[number], z.ZodNullable<z.ZodNumber>>) });
+
 /** Read the earlier reading back in, keeping only one that has the reading's shape: anything else in the request is dropped. */
 /** The proportions added on Nov 7: a reading from before has none, so each is filled in as not shown. */
-const PROPORTIONS = ['outerHemAt', 'breakCm', 'buttons', 'buttonGapCm', 'shoulderOutCm', 'bustRoom', 'outerHemFullness', 'kneeRoom', 'legHemRoom'] as const;
 const withProportions = (r: unknown) => {
   if (!r || typeof r !== 'object' || !('measures' in r) || !r.measures || typeof r.measures !== 'object') return r;
   const m = r.measures as Record<string, unknown>;
-  return { ...r, measures: { ...Object.fromEntries(PROPORTIONS.map((k) => [k, null])), ...m } };
+  return { ...r, measures: { ...Object.fromEntries(MEASURES.map((k) => [k, null])), ...m } };
 };
 
 const earlier = (r: unknown) => {
-  const ok = Reading.safeParse(withProportions(r));
-  return ok.success ? ok.data : null;
+  const ok = Kept.safeParse(withProportions(r));
+  return ok.success ? toWire(ok.data) : null;
 };
 
 /** Compare the drawing of what was drafted with the photo, and correct the reading once where they differ. */
@@ -275,11 +302,14 @@ export async function checkDrawing(input: CheckInput, client: Anthropic | null):
     });
     console.log('check tokens', { in: response.usage?.input_tokens, out: response.usage?.output_tokens });
     if (response.stop_reason === 'refusal') return { ok: false, error: 'declined' };
-    const out = response.parsed_output as { reading: PhotoReading; changes: string[] } | null;
-    return out ? { ok: true, reading: out.reading, changes: out.changes.slice(0, 6) } : { ok: false, error: 'failed' };
+    const out = response.parsed_output as { reading: WireReading; changes: string[] } | null;
+    return out ? { ok: true, reading: toReading(out.reading), changes: out.changes.slice(0, 6) } : { ok: false, error: 'failed' };
   } catch (e) {
     if (spendLimitReached(e)) return { ok: false, error: 'busy' };
-    if (e instanceof Anthropic.BadRequestError) return { ok: false, error: 'bad_image' };
+    if (e instanceof Anthropic.BadRequestError) {
+      console.error('refused as a bad request', e.message);
+      return { ok: false, error: 'bad_image' };
+    }
     console.error('checkDrawing failed', e instanceof Anthropic.APIError ? `${e.status} ${e.message}` : e);
     return { ok: false, error: 'failed' };
   }
@@ -338,7 +368,10 @@ export async function analyzeBack(input: AnalyzeInput, client: Anthropic | null)
     return back ? { ok: true, back } : { ok: false, error: 'failed' };
   } catch (e) {
     if (spendLimitReached(e)) return { ok: false, error: 'busy' };
-    if (e instanceof Anthropic.BadRequestError) return { ok: false, error: 'bad_image' };
+    if (e instanceof Anthropic.BadRequestError) {
+      console.error('refused as a bad request', e.message);
+      return { ok: false, error: 'bad_image' };
+    }
     console.error('analyzeBack failed', e instanceof Anthropic.APIError ? `${e.status} ${e.message}` : e);
     return { ok: false, error: 'failed' };
   }
@@ -376,11 +409,14 @@ export async function analyzePhoto(input: AnalyzeInput, client: Anthropic | null
     // Logged so the real cost per reading shows in Netlify's function logs.
     console.log('photo reading tokens', { in: response.usage?.input_tokens, out: response.usage?.output_tokens });
     if (response.stop_reason === 'refusal') return { ok: false, error: 'declined' };
-    const reading = response.parsed_output as PhotoReading | null;
-    return reading ? { ok: true, reading } : { ok: false, error: 'failed' };
+    const reading = response.parsed_output as WireReading | null;
+    return reading ? { ok: true, reading: toReading(reading) } : { ok: false, error: 'failed' };
   } catch (e) {
     if (spendLimitReached(e)) return { ok: false, error: 'busy' };
-    if (e instanceof Anthropic.BadRequestError) return { ok: false, error: 'bad_image' };
+    if (e instanceof Anthropic.BadRequestError) {
+      console.error('refused as a bad request', e.message);
+      return { ok: false, error: 'bad_image' };
+    }
     console.error('analyzePhoto failed', e instanceof Anthropic.APIError ? `${e.status} ${e.message}` : e);
     return { ok: false, error: 'failed' };
   }

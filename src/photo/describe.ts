@@ -3,7 +3,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
 import { z } from 'zod';
-import { Reading, SYSTEM as READING_GUIDE, piece, spendLimitReached } from './analyze';
+import { Reading, SYSTEM as READING_GUIDE, piece, spendLimitReached, toReading } from './analyze';
 import { IdeaReading, IdeaResponse, MAX_IDEA_CHARS } from './types';
 
 const Idea = z.object({
@@ -25,7 +25,7 @@ const SYSTEM = `A home sewist has typed what they would like to make, in their o
 - note: one or two short, friendly sentences to the sewist. For "make", what you set up for them. For "closest", plainly what will be different, and for a two-piece idea which garment to make next to finish it. For "not_yet", why the app can't draft it yet (for swimwear and lingerie: they need patterns drafted for stretch fabric). Never mention prices, other apps or AI.
 - start: the garment to start from ("skirt", "dress", "top", "tee", "trousers", "jacket", "coat"), or null for "not_yet".
 - bias: true for a skirt or dress cut on the bias (a slip skirt or slip dress), otherwise false.
-- reading: the style of the start garment, filled in exactly like the photo reading described below, as if the photo showed what they described. Use their words for every detail they give and the plain, everyday choice for anything they don't. Use "high" confidence for details they named and "medium" for the rest. Set reading.garment to the start garment ("other" for "not_yet"), pieces to that one garment at x 0.5, y 0.5, and worn to true. Fill reading.measures only with sizes they give (a neckline 12 cm deep, a hem at the ankle), otherwise null, and reading.unsure with null. List in reading.missing every feature they asked for that the fields can't draft.
+- reading: the style of the start garment, filled in exactly like the photo reading described below, as if the photo showed what they described. Use their words for every detail they give and the plain, everyday choice for anything they don't. Use "high" confidence for details they named and "medium" for the rest. Set reading.garment to the start garment ("other" for "not_yet"), pieces to that one garment at x 0.5, y 0.5, and worn to true. List in reading.measures only sizes they give (a neckline 12 cm deep, a hem at the ankle), otherwise leave it empty, and set reading.unsure to null. List in reading.missing every feature they asked for that the fields can't draft.
 
 The photo reading, for reference:
 
@@ -58,8 +58,9 @@ export async function describeIdea(text: unknown, client: Anthropic | null): Pro
     // Logged so the real cost per reading shows in Netlify's function logs.
     console.log('idea reading tokens', { in: response.usage?.input_tokens, out: response.usage?.output_tokens });
     if (response.stop_reason === 'refusal') return { ok: false, error: 'declined' };
-    const parsed = response.parsed_output as IdeaReading | null;
-    if (!parsed) return { ok: false, error: 'failed' };
+    const raw = response.parsed_output as (Omit<IdeaReading, 'reading'> & { reading: Parameters<typeof toReading>[0] }) | null;
+    if (!raw) return { ok: false, error: 'failed' };
+    const parsed: IdeaReading = { ...raw, reading: toReading(raw.reading) };
     // A garment to start from only when there is one to make.
     const out: IdeaReading = parsed.verdict === 'not_yet' ? { ...parsed, start: null } : parsed.start ? parsed : { ...parsed, verdict: 'not_yet' };
     return { ok: true, idea: out };
