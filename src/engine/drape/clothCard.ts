@@ -80,12 +80,13 @@ export function clothCard(f: Pick<MyFabric, 'fibre' | 'weight' | 'drape' | 'spec
   const body = clamp(bendK, 0.004, 0.6);
   // (Not a crisp cloth: it holds itself out, and pulled down it lost the stand-away that makes it crisp.)
   if (dw > 0 && drape !== 'crisp') fall *= 1.4 ** dw;
-  // Drape: a crisp cloth stands away; a fluid one pours, falling hard into its folds. (Given longer to settle as well,
-  // a dress took 20 seconds to sew, and it settled no better.)
+  // Drape: a crisp cloth stands away; a fluid one pours, falling hard into its folds. (2.5 times: at 3 a silk half
+  // circle midi was drawn 2.5 times its cut. Given longer to settle as well, a dress took 20 seconds to sew, and it
+  // settled no better.)
   if (drape === 'crisp') bendK *= base.drape === 'crisp' ? 1 : 2.5;
   if (drape === 'fluid') {
     bendK = Math.min(bendK, 0.02) * 0.6;
-    fall *= 3;
+    fall *= 2.5;
   }
   const special = f.special ? SPECIAL_BEND[f.special] : undefined;
   if (special && !f.drape && !f.weight) ({ bendK, thick } = special);
@@ -102,7 +103,7 @@ export function clothCard(f: Pick<MyFabric, 'fibre' | 'weight' | 'drape' | 'spec
     thick: clamp(thick, 0.12, 0.8),
     fall: clamp(fall, 1, 4),
     stretch: kn ? STRETCH[kn.stretch] : 0,
-    bias: kn ? 0 : drape === 'fluid' ? 0.35 : drape === 'crisp' ? 0.1 : 0.2,
+    bias: kn ? 0 : drape === 'fluid' ? 0.25 : drape === 'crisp' ? 0.1 : 0.2,
     // (A crisp peplum stands out at 2.4 in all, a crisp cotton's 40 times 0.06: 40 times a stiffer cloth's own blew
     // the sim apart.)
     ...(drape === 'crisp' ? { crisp: Math.max(1, 2.4 / body) } : {}),

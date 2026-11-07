@@ -64,6 +64,8 @@ export interface SimInput {
   bendK: number;
   /** How hard each edge holds its cut length, 1 = fully (a woven cloth); a knit gives (clothCard.ts). */
   edgeK?: number;
+  /** Each edge's own hold, as a share of edgeK (a woven skirt gives on the bias). */
+  edgeW?: Float64Array;
   /** Each point's pull down, as a share of the light pull (the cloth's own fall, clothCard.ts). */
   gScale?: Float32Array;
   /** How much more than the light pull down the cloth hangs by (a short top, with nothing hung below it). */
@@ -263,7 +265,7 @@ export function simulate(s: Space, inp: SimInput, steps = knob("__steps") ?? 260
       }
     }
     for (let it = 0; it < iters; it++) {
-      for (let e = 0; e < ne; e++) dist(EK, edges[2 * e], edges[2 * e + 1], rest[e]);
+      for (let e = 0; e < ne; e++) dist(inp.edgeW ? EK * inp.edgeW[e] : EK, edges[2 * e], edges[2 * e + 1], rest[e]);
       for (let e = 0; e < nb; e++) dist(inp.bendK * (inp.bendW ? inp.bendW[e] : 1), bends[2 * e], bends[2 * e + 1], bendRest[e]);
       if (inp.mirror) {
         const { ids, rest: mr, k } = inp.mirror;

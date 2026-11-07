@@ -263,6 +263,8 @@ export interface DrapeOptions {
   /** How the cloth the fall pulls bends against the rest (clothCard.ts: a fluid cloth pours in its skirt, a denim
    *  stands out; a bodice and sleeves bent as the skirt folded into fins). */
   skirtBend?: number;
+  /** How much of its hold a woven skirt's cloth loses on the bias, at 45 degrees to its grain (clothCard.ts, B). */
+  bias?: number;
   /** How far the cloth gives along its length (a knit), 0 to about 0.4. */
   stretch?: number;
   /** Crisp cloth (organza, taffeta): a peplum this many times stiffer, so it stands out rather than hangs. */
@@ -1631,6 +1633,8 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
   const foldLine: number[] = [];
   const edges: number[] = [];
   const rest: number[] = [];
+  /** Each edge's hold where it is less than full (a woven skirt's bias), by edge. */
+  const edgeW = new Map<number, number>();
   const bends: number[] = [];
   const chain: [number, number, number, number][] = [];
   // (Except round the bust: there the cloth eases over the curve, a few per cent, as a dart's shaping lets it.)
@@ -1721,10 +1725,20 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
         else edgeSet.set(k, [w]);
       }
     }
+    // A woven skirt's cloth gives on the bias and holds on its grain (Cat's B, 2026-11-07): each edge holds its cut
+    // length less the further it runs from the grain, least at 45 degrees. (A skirt's cloth only, where the fall pulls:
+    // see skirtBend.)
+    const biasOf = o.bias && (o.fallOn === 'all' || (o.fallOn === 'skirt' && p.role.startsWith('peplum'))) && !knob('__noBias') ? o.bias : 0;
+    const gr = p.pc.grain ? [p.pc.grain[1].x - p.pc.grain[0].x, p.pc.grain[1].y - p.pc.grain[0].y] : [0, 1];
+    const grL = Math.hypot(gr[0], gr[1]) || 1;
     for (const [k, opp] of edgeSet) {
       const [u, v] = k.split(',').map(Number);
       edges.push(u + p.base, v + p.base);
       rest.push(Math.hypot(pts[u].x - pts[v].x, pts[u].y - pts[v].y));
+      if (biasOf) {
+        const c = ((pts[v].x - pts[u].x) * gr[0] + (pts[v].y - pts[u].y) * gr[1]) / grL / (rest[rest.length - 1] || 1);
+        edgeW.set(edges.length / 2 - 1, 1 - biasOf * 4 * c * c * (1 - c * c));
+      }
       // (Running down the cloth, on a bodice: held to near its cut length in the sim, top first.)
       if ((p.role === 'front' || p.role === 'back') && !p.turned[u] && !p.turned[v] && Math.abs(pts[u].y - pts[v].y) > 0.5 * rest[rest.length - 1] && !nearApex(p, (pts[u].x + pts[v].x) / 2, (pts[u].y + pts[v].y) / 2))
         chain.push(pts[u].y < pts[v].y ? [u + p.base, v + p.base, rest[rest.length - 1], pts[u].y] : [v + p.base, u + p.base, rest[rest.length - 1], pts[v].y]);
@@ -2015,6 +2029,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
     })(),
     lieOn: lieOnOf(),
     bendW: Float64Array.from(bendW),
+    ...(edgeW.size ? { edgeW: Float64Array.from({ length: edges.length / 2 }, (_, e) => edgeW.get(e) ?? 1) } : {}),
     bendK: o.bendK ?? 0.05,
     pad: o.pad,
     // A top that ends at the waist, nothing hung below it, hangs by more than the light pull: too light to draw its
