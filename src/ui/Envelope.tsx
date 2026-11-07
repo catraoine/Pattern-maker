@@ -14,15 +14,19 @@ interface Props {
   /** Under the name: who it's drafted to. */
   foot?: string;
   size?: 'small' | 'large';
+  /** The house name at the top. Print's summary card goes without it (Cat, Nov 7). */
+  house?: boolean;
 }
 
-export function Envelope({ name, flat, mark, foot, size = 'large' }: Props) {
+export function Envelope({ name, flat, mark, foot, size = 'large', house = true }: Props) {
   return (
     <figure className={`envelope ${size}`} aria-label={`Pattern envelope: ${name}`}>
-      <div className="env-top">
-        <span>Maison Tracé</span>
-        {mark && <span>{mark}</span>}
-      </div>
+      {(house || mark) && (
+        <div className="env-top">
+          {house && <span>Maison Tracé</span>}
+          {mark && <span>{mark}</span>}
+        </div>
+      )}
       <div className="env-art">{flat ? <TechFlatView flat={flat} title={name.toLowerCase()} /> : null}</div>
       <figcaption>
         <span className="env-name">{name}</span>

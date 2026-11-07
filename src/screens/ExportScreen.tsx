@@ -291,7 +291,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
             )}
           </div>
           <div className="print-cover">
-            <Envelope name={title[0].toUpperCase() + title.slice(1)} flat={made.flat} mark={edition} foot={imported ? undefined : `Drafted to ${profile === 'Me' ? 'you' : profile}`} />
+            <Envelope house={false} name={title[0].toUpperCase() + title.slice(1)} flat={made.flat} mark={edition} foot={imported ? undefined : `Drafted to ${profile === 'Me' ? 'you' : profile}`} />
             <p className="eyebrow">Pieces</p>
             <ul className="pieces">
               {made.pieces.map((pc, i) => (
