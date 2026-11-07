@@ -1888,8 +1888,9 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
         ids.push(p.base + i);
         // (Soft cloth, a silk, doesn't stand round: its fullness falls in folds close round the arm. Not a full sleeve's:
         // its gathered bulk stands it round whatever the fibre, and laid close a full silk bishop crumpled into 15 to 29
-        // sharp folds down the arm, 2026-11-06.)
-        let r = (widthAt(q.y) / TAU) * 0.92 * ((o.bendK ?? 0.05) < 0.04 && !p.pc.meta.full ? knob('__silkR') ?? 0.72 : 1);
+        // sharp folds down the arm, 2026-11-06. Nor a puff's: its crown is gathered to stand out, and drawn in to the
+        // silk's tube a short puff in silk or viscose tore at the sleeve and failed the drawing check, 2026-11-07.)
+        let r = (widthAt(q.y) / TAU) * 0.92 * ((o.bendK ?? 0.05) < 0.04 && !p.pc.meta.full && !p.pc.meta.gatheredCrown ? knob('__silkR') ?? 0.72 : 1);
         if (cuffR && !knob('__noCuffDraw')) {
           const t = Math.min(1, Math.max(0, (yHem - q.y) / zone));
           const s2 = t * t * (3 - 2 * t);
