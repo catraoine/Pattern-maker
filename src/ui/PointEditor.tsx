@@ -4,17 +4,22 @@
 // dashed ghost shows the pattern as drafted once anything has moved, and pressing and holding a point
 // brings up a tape measure to set what it measures exactly. Anything a move would put out of true is
 // trued by the engine, so the editor shows no warnings (Cat's rule, 2026-10-18).
+// Draw a line (Design: Pattern tools, Cat's pick P2, 2026-11-07): a line drawn across a piece, started away from its
+// points, asks what it should do: spread the piece open (flare), add fullness (gathers or pleats) or make a new piece
+// (engine/pieceEdit.ts). A spread or fullness opens by dragging the handle at its far end, or with the slider.
 import { PointerEvent, ReactNode, createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { P, add, mul } from '../engine/geometry';
+import { TestingTag } from './TestingTag';
+import { P, add, len, mul, sub } from '../engine/geometry';
 import type { Piece } from '../engine/piece';
-import { Handle, PointEdit, applyPointEdits, handlesOf, measureAt, pointOnEdge } from '../engine/pointEdit';
+import { CutEdit, CutKind, PatternEdit, START_BY, applyPatternEdits, cutEnds, isCut, openHandle, pointsOn } from '../engine/pieceEdit';
+import { Handle, PointEdit, handlesOf, measureAt, pointOnEdge } from '../engine/pointEdit';
 import { pairs } from '../engine/qc';
 
 interface PointEditing {
   /** The garment's own pieces as drafted, before any point is moved. */
   base: Piece[];
-  edits: PointEdit[];
-  setEdits: (e: PointEdit[]) => void;
+  edits: PatternEdit[];
+  setEdits: (e: PatternEdit[]) => void;
 }
 
 export const PointEditContext = createContext<PointEditing | null>(null);
@@ -29,6 +34,8 @@ const HIT_PX = 22;
 const EDGE_PX = 14;
 /** How far a finger moves before a press becomes a drag, in screen pixels. */
 const SLOP_PX = 3;
+/** The most a spread or fullness opens, in cm. */
+const MAX_OPEN = 40;
 
 /**
  * Watch it draft, under the pattern inside the drawing's own box: as a row of its own under the drawing it spilled out
@@ -59,7 +66,13 @@ export function PatternPane({ children, onPlay }: { children: ReactNode; onPlay?
   return (
     <div className="pattern-pane">
       <div className="row between wrap point-switch">
-        <p className="muted small">{on ? 'Drag a point. Press and hold to measure it.' : ctx.edits.length ? 'Points moved on this pattern.' : 'Reshape any piece by moving its points.'}</p>
+        {ctx.edits.length && !on ? (
+          <p className="muted small pe-edited">
+            Edited by you <TestingTag tool="pattern_tools" />
+          </p>
+        ) : (
+          <p className="muted small">{on ? 'Drag a point, or draw a line across a piece to cut it.' : 'Reshape any piece: move its points or draw a line to cut it.'}</p>
+        )}
         <button type="button" className={on ? 'ghost on' : 'ghost'} aria-pressed={on} onClick={() => setOn(!on)}>
           {on ? 'Back to pieces' : 'Move points'}
         </button>
@@ -71,7 +84,7 @@ export function PatternPane({ children, onPlay }: { children: ReactNode; onPlay?
 }
 
 /** Each piece's place on the editor: side by side, in rows, tops level. */
-function arrange(pieces: Piece[]) {
+function arrange(pieces: Piece[], rowWidth?: number) {
   const boxes = pieces.map((pc) => {
     const pts = pc.outline.points(12);
     const xs = pts.map((q) => q.x);
@@ -79,7 +92,7 @@ function arrange(pieces: Piece[]) {
     return { x0: Math.min(...xs), y0: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
   });
   const total = boxes.reduce((t, b) => t + b.w + GAP, 0);
-  const rowMax = Math.max(Math.max(...boxes.map((b) => b.w)), total / Math.ceil(total / 70));
+  const rowMax = rowWidth ?? Math.max(Math.max(...boxes.map((b) => b.w)), total / Math.ceil(total / 70));
   const at: Record<string, P> = {};
   let x = 0;
   let y = 0;
@@ -106,27 +119,27 @@ const pathD = (pc: Piece, o: P) => {
 };
 
 /** Set one point's move, adding to any it already had. */
-function withMove(edits: PointEdit[], piece: string, at: string, by: P): PointEdit[] {
-  const i = edits.findIndex((e) => e.piece === piece && e.at === at);
+function withMove(edits: PatternEdit[], piece: string, at: string, by: P): PatternEdit[] {
+  const i = edits.findIndex((e) => !isCut(e) && e.piece === piece && e.at === at);
   if (i < 0) return [...edits, { piece, at, by }];
-  return edits.map((e, k) => (k === i ? { ...e, by } : e));
+  return edits.map((e, k) => (k === i && !isCut(e) ? { ...e, by } : e));
 }
 
 function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
   // While a finger is down the moves stay here, drawn once a frame, and are kept (saved, and passed to the rest of the
   // app) when it lifts: saving on every move redrew the whole app each time, so the point lagged behind the finger.
-  const [live, setLive] = useState<PointEdit[]>();
+  const [live, setLive] = useState<PatternEdit[]>();
   const edits = live ?? saved;
   const frame = useRef<number>();
-  const pending = useRef<PointEdit[]>();
-  const setEdits = (e: PointEdit[]) => {
+  const pending = useRef<PatternEdit[]>();
+  const setEdits = (e: PatternEdit[]) => {
     if (frame.current) cancelAnimationFrame(frame.current);
     frame.current = undefined;
     pending.current = undefined;
     setLive(undefined);
     save(e);
   };
-  const liveMove = (e: PointEdit[]) => {
+  const liveMove = (e: PatternEdit[]) => {
     pending.current = e;
     if (frame.current) return;
     frame.current = requestAnimationFrame(() => {
@@ -141,17 +154,34 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
   useEffect(() => () => {
     if (frame.current) cancelAnimationFrame(frame.current);
   }, []);
-  const pieces = useMemo(() => applyPointEdits(base, edits), [base, edits]);
+  const pieces = useMemo(() => applyPatternEdits(base, edits), [base, edits]);
   const handles = useMemo(() => handlesOf(pieces), [pieces]);
-  const { at: place, width, height } = useMemo(() => arrange(base), [base]);
+  // Laid out from the pattern as drafted with its cuts kept so far (not its moved points), so the pieces hold still
+  // under a finger and the view doesn't rescale as a point moves; a spread piece or a new one makes room.
+  const cutsKept = JSON.stringify(saved.filter(isCut));
+  const kept = useMemo(() => applyPatternEdits(base, JSON.parse(cutsKept) as PatternEdit[]), [base, cutsKept]);
+  // The rows are as wide as the drafted pieces' rows, with room for a spread piece to widen in its row.
+  const { at: place, width, height } = useMemo(() => arrange([...kept.filter((pc) => !pc.meta.newPiece), ...kept.filter((pc) => pc.meta.newPiece)], arrange(base).width * 1.6), [kept, base]);
   const m = 3;
   const vb = { x: -m, y: -m, w: width + 2 * m, h: height + 2 * m };
   const r = vb.w / 110;
   const svg = useRef<SVGSVGElement>(null);
   const [sel, setSel] = useState<{ piece: string; at: string }>();
   const [tape, setTape] = useState(false);
-  const drag = useRef<{ start: P; edits: PointEdit[]; by: P; piece: string; at: string; timer?: number; moved: boolean; slop: number }>();
-  const tapeDrag = useRef<{ x: number; value: number; edits: PointEdit[] }>();
+  const drag = useRef<{ start: P; edits: PatternEdit[]; by: P; piece: string; at: string; timer?: number; moved: boolean; slop: number }>();
+  const tapeDrag = useRef<{ x: number; value: number; edits: PatternEdit[] }>();
+  // Draw a line: the line as it is drawn (on the editor, in cm), the line waiting for its choice, and the cut being set.
+  const [stroke, setStroke] = useState<P[]>();
+  const strokeRef = useRef<P[]>();
+  const [asking, setAsking] = useState<{ piece: string; line: P[] }>();
+  const [active, setActive] = useState<number>();
+  const openDrag = useRef<{ start: P; by: number; opens: P; edits: PatternEdit[]; i: number }>();
+  const cutAt = active !== undefined && isCut(edits[active]) ? (edits[active] as CutEdit) : undefined;
+  /** The pieces as they were just before the cut being set, where its handle is worked out. */
+  const beforeCut = useMemo(() => (active !== undefined ? applyPatternEdits(base, edits.slice(0, active)) : undefined), [base, edits, active]);
+  const handle = cutAt && beforeCut && openHandle(beforeCut, cutAt);
+  const handleAt = handle && place[cutAt!.piece] && add(handle.at, place[cutAt!.piece]);
+  const withCut = (from: PatternEdit[], i: number, change: Partial<CutEdit>) => from.map((e, k) => (k === i && isCut(e) ? { ...e, ...change } : e));
 
   const partnerOf = useMemo(() => {
     const map = new Map<string, string>();
@@ -179,6 +209,12 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
   const down = (e: PointerEvent<SVGSVGElement>) => {
     const q = toCm(e);
     const px = cmPerPx();
+    // The handle at the far end of a spread or fullness being set: dragging it opens the cut.
+    if (handle && handleAt && cutAt && active !== undefined && len(sub(handleAt, q)) < Math.max(r * 5, HIT_PX * px)) {
+      openDrag.current = { start: q, by: cutAt.by, opens: handle.opens, edits, i: active };
+      svg.current?.setPointerCapture(e.pointerId);
+      return;
+    }
     let best: Handle | undefined;
     let bd = Math.max(r * 4.5, HIT_PX * px);
     for (const h of handles) {
@@ -201,11 +237,16 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
       }
     }
     if (!target) {
+      // Away from every point and edge: a line is drawn.
       setSel(undefined);
       setTape(false);
+      setAsking(undefined);
+      strokeRef.current = [q];
+      setStroke([q]);
+      svg.current?.setPointerCapture(e.pointerId);
       return;
     }
-    const prev = edits.find((x) => x.piece === target!.piece && x.at === target!.at)?.by ?? { x: 0, y: 0 };
+    const prev = (edits.find((x) => !isCut(x) && x.piece === target!.piece && x.at === target!.at) as PointEdit | undefined)?.by ?? { x: 0, y: 0 };
     // A new point is kept at once, so it shows; a corner only once it moves.
     const start = target.at.startsWith('+') ? withMove(edits, target.piece, target.at, prev) : edits;
     if (start !== edits) {
@@ -225,6 +266,22 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
   };
 
   const move = (e: PointerEvent<SVGSVGElement>) => {
+    const o = openDrag.current;
+    if (o) {
+      const q = toCm(e);
+      const by = Math.max(0, Math.min(MAX_OPEN, o.by + (q.x - o.start.x) * o.opens.x + (q.y - o.start.y) * o.opens.y));
+      liveMove(withCut(o.edits, o.i, { by: Math.round(by * 10) / 10 }));
+      return;
+    }
+    const line = strokeRef.current;
+    if (line) {
+      const q = toCm(e);
+      if (len(sub(q, line[line.length - 1])) > cmPerPx() * 3) {
+        strokeRef.current = [...line, q];
+        setStroke(strokeRef.current);
+      }
+      return;
+    }
     const g = drag.current;
     if (!g) return;
     const q = toCm(e);
@@ -236,6 +293,32 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
   };
 
   const up = () => {
+    if (openDrag.current) {
+      openDrag.current = undefined;
+      keep();
+      return;
+    }
+    const line = strokeRef.current;
+    if (line) {
+      strokeRef.current = undefined;
+      setStroke(undefined);
+      // The piece the line cuts: the one most of the drawn line lies on (carried on to its edges, the line would also
+      // cross a piece beside it), on that piece's own centimetres.
+      let best: { piece: string; line: P[]; on: number } | undefined;
+      for (const pc of pieces) {
+        const o = place[pc.name];
+        if (!o) continue;
+        const own = line.map((q) => ({ x: q.x - o.x, y: q.y - o.y }));
+        const on = pointsOn(pc, own);
+        if (on && cutEnds(pc, own, false) && (!best || on > best.on)) best = { piece: pc.name, line: own, on };
+      }
+      const drawn = line.slice(1).reduce((t, q, i) => t + len(sub(q, line[i])), 0);
+      if (best && drawn > 2) {
+        setActive(undefined);
+        setAsking({ piece: best.piece, line: best.line.map((q) => ({ x: Math.round(q.x * 100) / 100, y: Math.round(q.y * 100) / 100 })) });
+      }
+      return;
+    }
     if (drag.current) window.clearTimeout(drag.current.timer);
     if (drag.current) keep();
     drag.current = undefined;
@@ -243,23 +326,35 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
 
   // The tape: what the selected point measures, set by sliding the tape under a fixed needle.
   const measure = selected && measureAt(pieces, selected);
-  const setMeasure = (from: PointEdit[], value: number, sliding = false) => {
+  const setMeasure = (from: PatternEdit[], value: number, sliding = false) => {
     if (!sel) return;
     let next = from;
     // Two passes, as a curve's length is not quite proportional to the move.
     for (let k = 0; k < 2; k++) {
-      const now = applyPointEdits(base, next);
+      const now = applyPatternEdits(base, next);
       const h = handlesOf(now).find((x) => x.piece === sel.piece && x.at === sel.at);
       const mm = h && measureAt(now, h);
       if (!mm) break;
-      const by = next.find((x) => x.piece === sel.piece && x.at === sel.at)?.by ?? { x: 0, y: 0 };
+      const by = (next.find((x) => !isCut(x) && x.piece === sel.piece && x.at === sel.at) as PointEdit | undefined)?.by ?? { x: 0, y: 0 };
       next = withMove(next, sel.piece, sel.at, add(by, mul(mm.dir, value - mm.value)));
     }
     if (sliding) liveMove(next);
     else setEdits(next);
   };
 
-  const changed = edits.some((e) => e.at.startsWith('+') || Math.hypot(e.by.x, e.by.y) > 0.01);
+  const changed = edits.some((e) => isCut(e) || e.at.startsWith('+') || Math.hypot(e.by.x, e.by.y) > 0.01);
+
+  /** The line's choice made: the cut is kept, and a spread or fullness stays open to set how far. */
+  const choose = (cut: CutKind) => {
+    if (!asking) return;
+    const e: CutEdit = { cut, piece: asking.piece, line: asking.line, by: cut === 'piece' ? 0 : START_BY[cut], ...(cut === 'piece' ? {} : { finish: 'gathers' as const }) };
+    const next = [...edits, e];
+    setAsking(undefined);
+    setEdits(next);
+    setActive(next.length - 1);
+  };
+  /** The new piece a cut made: the piece in the pattern that came off this cut's piece last. */
+  const madePiece = cutAt?.cut === 'piece' ? pieces.filter((pc) => pc.meta.cutFrom === cutAt.piece && !(beforeCut ?? []).some((x) => x.name === pc.name)).pop() : undefined;
   const offset = measure && measure.value * TAPE_PX;
 
   return (
@@ -269,15 +364,15 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
         className="preview-svg point-svg"
         viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`}
         role="application"
-        aria-label="Pattern pieces with points to drag. Tap an edge to add a point."
+        aria-label="Pattern pieces with points to drag. Tap an edge to add a point, or draw a line across a piece to cut it."
         onPointerDown={down}
         onPointerMove={move}
         onPointerUp={up}
         onPointerCancel={up}
       >
-        {pieces.map((pc) => (
+        {pieces.filter((pc) => place[pc.name]).map((pc) => (
           <g key={pc.name}>
-            <path d={pathD(pc, place[pc.name])} className="pe-piece" vectorEffect="non-scaling-stroke" />
+            <path d={pathD(pc, place[pc.name])} className="pe-piece" data-piece={pc.name} vectorEffect="non-scaling-stroke" />
             {pc.lines.map((ln, i) => (
               <polyline key={i} points={ln.points(8).map((q) => `${q.x + place[pc.name].x},${q.y + place[pc.name].y}`).join(' ')} className="pe-line" vectorEffect="non-scaling-stroke" />
             ))}
@@ -286,8 +381,11 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
             </text>
           </g>
         ))}
-        {changed && base.map((pc) => <path key={pc.name} d={pathD(pc, place[pc.name])} className="pe-ghost" vectorEffect="non-scaling-stroke" />)}
-        {handles.map((h) => {
+        {changed && base.map((pc) => place[pc.name] && <path key={pc.name} d={pathD(pc, place[pc.name])} className="pe-ghost" vectorEffect="non-scaling-stroke" />)}
+        {stroke && stroke.length > 1 && <polyline points={stroke.map((q) => `${q.x},${q.y}`).join(' ')} className="pe-stroke" vectorEffect="non-scaling-stroke" />}
+        {asking && <polyline points={asking.line.map((q) => `${q.x + place[asking.piece].x},${q.y + place[asking.piece].y}`).join(' ')} className="pe-stroke" vectorEffect="non-scaling-stroke" />}
+        {handleAt && <circle cx={handleAt.x} cy={handleAt.y} r={r * 1.8} className="pe-open" data-open="far" vectorEffect="non-scaling-stroke" />}
+        {handles.filter((h) => place[h.piece]).map((h) => {
           const at = posOf(h);
           const isSel = selected === h;
           const isPartner = partner === h;
@@ -353,6 +451,87 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
         </div>
       )}
 
+      {asking && (
+        <div className="pe-sheet pe-ask" role="group" aria-label="What should this line do?">
+          <span className="pe-label">What should this line do?</span>
+          <button type="button" className="ghost" onClick={() => choose('spread')}>
+            Spread it open · flare
+          </button>
+          <button type="button" className="ghost" onClick={() => choose('fullness')}>
+            Add fullness · gathers or pleats
+          </button>
+          <button type="button" className="ghost" onClick={() => choose('piece')}>
+            Make a new piece
+          </button>
+          <button type="button" className="link small" onClick={() => setAsking(undefined)}>
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {cutAt && active !== undefined && cutAt.cut !== 'piece' && (
+        <div className="pe-sheet" role="group" aria-label={cutAt.cut === 'spread' ? 'Spread it open' : 'Add fullness'}>
+          <div className="row between">
+            <span className="pe-label">{cutAt.cut === 'spread' ? 'Opens by' : 'Adds'}</span>
+            <strong className="pe-value" role="status">
+              {cutAt.by.toFixed(1)} cm
+            </strong>
+          </div>
+          <input
+            id="pe-open"
+            type="range"
+            min={0}
+            max={MAX_OPEN}
+            step={0.5}
+            value={cutAt.by}
+            aria-label={cutAt.cut === 'spread' ? 'How far it opens, in cm' : 'How much fullness it adds, in cm'}
+            onChange={(e) => liveMove(withCut(edits, active, { by: Number(e.target.value) }))}
+            onPointerUp={keep}
+            onKeyUp={keep}
+          />
+          <p className="muted small">Drag the round handle on the piece, or slide.</p>
+          <div className="row wrap">
+            {(['gathers', 'pleats'] as const).map((f) => (
+              <button key={f} type="button" className={(cutAt.finish ?? 'gathers') === f ? 'ghost on' : 'ghost'} aria-pressed={(cutAt.finish ?? 'gathers') === f} onClick={() => setEdits(withCut(edits, active, { finish: f }))}>
+                {f === 'gathers' ? 'Gathers' : 'Pleats'}
+              </button>
+            ))}
+          </div>
+          <div className="row">
+            <button type="button" className="ghost" onClick={() => {
+              setEdits(edits.filter((_, k) => k !== active));
+              setActive(undefined);
+            }}>
+              Take this cut out
+            </button>
+            <button type="button" className="ghost pe-done" onClick={() => setActive(undefined)}>
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+
+      {cutAt && active !== undefined && cutAt.cut === 'piece' && (
+        <div className="pe-sheet" role="group" aria-label="New piece">
+          <label className="pe-label" htmlFor="pe-name">
+            New piece: its name
+          </label>
+          <input id="pe-name" type="text" maxLength={40} placeholder={madePiece?.name ?? 'New piece'} defaultValue={cutAt.name ?? ''} onBlur={(e) => e.target.value.trim() !== (cutAt.name ?? '') && setEdits(withCut(edits, active, { name: e.target.value.trim() || undefined }))} />
+          <p className="muted small">Sewn to the piece it came off, notch to notch. All round shows the garment's drawing while it has a new piece.</p>
+          <div className="row">
+            <button type="button" className="ghost" onClick={() => {
+              setEdits(edits.filter((_, k) => k !== active));
+              setActive(undefined);
+            }}>
+              Take this cut out
+            </button>
+            <button type="button" className="ghost pe-done" onClick={() => setActive(undefined)}>
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+
       {changed && (
         <button
           type="button"
@@ -361,9 +540,11 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
             setEdits([]);
             setSel(undefined);
             setTape(false);
+            setAsking(undefined);
+            setActive(undefined);
           }}
         >
-          Back to original
+          Back to drafted
         </button>
       )}
     </div>

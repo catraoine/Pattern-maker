@@ -83,6 +83,48 @@
 .pe-done {
   margin-left: auto;
 }
+/* Draw a line (Design: Pattern tools, Cat's P2): the line as drawn, the handle that opens a cut, the choice card. */
+.point-svg .pe-stroke {
+  fill: none;
+  stroke: var(--gild-glow);
+  stroke-width: 3px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+.point-svg .pe-open {
+  fill: var(--gild-glow);
+  fill-opacity: 0.25;
+  stroke: var(--gild-glow);
+  stroke-width: 1.5px;
+  cursor: grab;
+}
+.pe-ask button.ghost {
+  width: 100%;
+}
+.pe-ask .link {
+  align-self: flex-start;
+}
+.pe-sheet input[type='range'] {
+  width: 100%;
+  accent-color: var(--gild);
+}
+.pe-sheet input[type='text'] {
+  width: 100%;
+}
+.pe-edited {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* The tag hugs its words, as on a screen's heading: it isn't tapped, so it needs no tap height. */
+.pe-edited .testing-tag {
+  display: inline-block;
+  margin: 0;
+  padding: 2px 8px;
+  min-height: 0;
+  line-height: 1.4;
+}
 .pe-tape {
   position: relative;
   height: 34px;

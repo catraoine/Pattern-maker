@@ -45,6 +45,6 @@ test('drags a point on the flat pattern, measures one on the tape, and goes back
   await main.getByRole('button', { name: '+ 1 mm' }).click();
   await expect(main.locator('.pe-value')).toHaveText(`${(before + 0.1).toFixed(1)} cm`);
 
-  await main.getByRole('button', { name: 'Back to original' }).click();
+  await main.getByRole('button', { name: 'Back to drafted' }).click();
   await expect(page.locator('.pe-ghost')).toHaveCount(0);
 });

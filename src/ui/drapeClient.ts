@@ -1,6 +1,8 @@
 // Asks the drape worker for a garment draped from its pattern, latest ask first; the answers are kept for the
 // session, so turning back to a garment already seen is instant.
 import type { DrapeJob, DrapedLite } from '../engine/drape/run';
+import type { Piece } from '../engine/piece';
+import { hasNewPieces } from '../engine/pieceEdit';
 
 let worker: Worker | undefined;
 let next = 1;
@@ -40,6 +42,10 @@ export function cachedDrape(key: string): DrapedLite | undefined {
 export function requestDrape(job: DrapeJob, key = drapeKey(job)): Promise<DrapedLite> {
   const hit = done.get(key);
   if (hit) return Promise.resolve(hit);
+  // A piece the maker cut off with Draw a line isn't sewn on the form yet: the garment's Front drawing stands in
+  // (Design: Pattern tools, Cat 2026-11-07), as it does for any design that can't be sewn.
+  const draft = job.draft as { pieces?: Piece[]; skirt?: { pieces?: Piece[] } };
+  if (hasNewPieces([...(draft.pieces ?? []), ...(draft.skirt?.pieces ?? [])])) return Promise.reject(new Error('a new piece is not sewn in All round yet'));
   const id = next++;
   return new Promise<DrapedLite>((resolve, reject) => {
     waiting.set(id, {

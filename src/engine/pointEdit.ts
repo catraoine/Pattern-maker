@@ -313,7 +313,8 @@ function moveDart(m: Model, i: number, d: P) {
 /** Apply saved moves to a set of pieces. Pieces without moves come back unchanged. */
 export function applyPointEdits(pieces: Piece[], edits: PointEdit[] | undefined): Piece[] {
   if (!edits?.length) return pieces;
-  const named = edits.filter((e) => pieces.some((pc) => pc.name === e.piece));
+  // Only moves: a cut (engine/pieceEdit.ts) saved in the same list is applied there, in its turn.
+  const named = edits.filter((e) => typeof e.at === 'string' && pieces.some((pc) => pc.name === e.piece));
   if (!named.length) return pieces;
   const models = new Map<Piece, Model>();
   const model = (pc: Piece) => {

@@ -66,7 +66,7 @@ import { LoadingScreen } from './ui/LoadingScreen';
 import type { FormStart } from './ui/ContourForm';
 import type { Piece } from './engine/piece';
 import { garmentEase } from './engine/easeMap';
-import { PointEdit, applyPointEdits } from './engine/pointEdit';
+import { PatternEdit, applyPatternEdits } from './engine/pieceEdit';
 import { PointEditContext } from './ui/PointEditor';
 
 // The logo (Cat's pick F1 Loading Block): the loading screen's bodice block, drawn inside the header's square.
@@ -119,7 +119,7 @@ export default function App() {
   const [saved, setSaved] = usePersistent<Saved>('skirt', INITIAL);
   const [storedAccount, setAccount] = usePersistent<Account>('account', NEW_ACCOUNT);
   // Points moved on the flat pattern, per garment (see engine/pointEdit.ts).
-  const [pointEdits, setPointEdits] = usePersistent<Record<string, PointEdit[]>>('point-edits', {});
+  const [pointEdits, setPointEdits] = usePersistent<Record<string, PatternEdit[]>>('point-edits', {});
   const account = withPeople(storedAccount, saved.values);
   const person = activePerson(account);
   // What was measured, for the measuring screens and the checks; patterns are drafted from `values`, which
@@ -173,7 +173,7 @@ export default function App() {
   const applyBackup = (b: Backup<Saved>) => {
     setSaved(fillMissing(INITIAL, b.skirt));
     setAccount({ ...NEW_ACCOUNT, ...b.account, onboarded: true });
-    if (b.pointEdits) setPointEdits(b.pointEdits as Record<string, PointEdit[]>);
+    if (b.pointEdits) setPointEdits(b.pointEdits as Record<string, PatternEdit[]>);
   };
   // Sign-in (Cat's plan, 2026-10-23): held behind ?signin=preview until the December fix week.
   const cloud = useCloud(makeBackup(saved, account, pointEdits), applyBackup, signinShown);
@@ -323,18 +323,18 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drafts]);
 
-  // The drafts with any points moved on the flat pattern, so the preview, print and files all follow.
+  // The drafts with any points moved or pieces cut on the flat pattern, so the preview, print and files all follow.
   const moved = pointEdits[garment];
   const result = useMemo(() => {
     if (!moved?.length) return drafts;
-    const edit = <T extends { pieces: Piece[] }>(d: T | undefined): T | undefined => d && { ...d, pieces: applyPointEdits(d.pieces, moved) };
+    const edit = <T extends { pieces: Piece[] }>(d: T | undefined): T | undefined => d && { ...d, pieces: applyPatternEdits(d.pieces, moved) };
     const { dress: d } = drafts;
     return { ...drafts, skirt: edit(drafts.skirt), bodice: edit(drafts.bodice), trousers: edit(drafts.trousers), tee: edit(drafts.tee), knitDress: edit(drafts.knitDress), hoodie: edit(drafts.hoodie), jumpsuit: edit(drafts.jumpsuit), lingerie: edit(drafts.lingerie), outer: edit(drafts.outer), dress: d && { ...edit(d)!, skirt: edit(d.skirt)! } };
   }, [drafts, moved]);
   const pointEditing = useMemo(() => {
     const { skirt, bodice, dress: d, trousers, tee, knitDress, hoodie, jumpsuit, lingerie, outer } = drafts;
     const base = (bodice ?? d ?? trousers ?? tee ?? knitDress ?? hoodie ?? jumpsuit ?? lingerie ?? outer ?? skirt)?.pieces.filter((pc) => !pc.kind) ?? [];
-    return { base, edits: moved ?? [], setEdits: (e: PointEdit[]) => setPointEdits({ ...pointEdits, [garment]: e }) };
+    return { base, edits: moved ?? [], setEdits: (e: PatternEdit[]) => setPointEdits({ ...pointEdits, [garment]: e }) };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drafts, moved, garment, pointEdits]);
 
@@ -677,7 +677,7 @@ export default function App() {
                 dropHash();
                 setSaved(fillMissing(INITIAL, b.skirt));
                 setAccount({ ...NEW_ACCOUNT, ...b.account, onboarded: true });
-                if (b.pointEdits) setPointEdits(b.pointEdits as Record<string, PointEdit[]>);
+                if (b.pointEdits) setPointEdits(b.pointEdits as Record<string, PatternEdit[]>);
               }}
               onCarryOn={() => setStep(canLeaveMeasure ? 'export' : 'measure')}
               onNotNow={() => {
