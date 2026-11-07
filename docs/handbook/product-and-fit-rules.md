@@ -368,6 +368,10 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    take the same square root as a top; a jacket or coat moves only 0.9 to 1.6 times its fibre's stiffness and lies at
    most 0.6 cm off the body (a silk peak lapel and a heavy wool shawl collar stretched past those). All 135 trouser,
    T-shirt, jacket and coat options pass in silk, satin, heavy wool, denim, leather and cotton.
+   Round 4 (Nov 7, Cat's B): a trouser leg hangs by its cloth's fall, 5/3 as hard as a skirt's (a silk 2.5 times the
+   light pull), and its cloth is held to its cut length down the leg (`hold` in sim.ts), so it drops straight off the
+   hip instead of stretching to 3 times its cut. Skirts don't take the hold: a silk circle and a satin tier folded into
+   fins with it. All 33 trouser options pass in silk, satin, viscose, heavy wool and denim.
 
 ## Style steps
 

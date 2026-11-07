@@ -1638,6 +1638,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
   const edgeW = new Map<number, number>();
   const bends: number[] = [];
   const chain: [number, number, number, number][] = [];
+  const hold: [number, number, number][] = [];
   // (Except round the bust: there the cloth eases over the curve, a few per cent, as a dart's shaping lets it.)
   const apexOf = new Map<Panel, P[]>();
   const nearApex = (p: Panel, x: number, y: number) => {
@@ -1735,6 +1736,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
     // narrows round the hip and thigh, as a bias slip clings. Fabric behaviour round 2; at 0.6 a silk slip gown's back
     // folded through itself once the skirt was kept from passing through itself, release M.)
     const biasOf = o.bias && (o.fallOn === 'all' || (o.fallOn === 'skirt' && p.role.startsWith('peplum'))) && !knob('__noBias') ? knob('__bias') ?? (p.pc.meta.bias ? Math.min(0.3, o.bias * 3) : p.pc.meta.waistRadius ? o.bias * (knob('__circleBias') ?? 0.5) : o.bias) : 0;
+    const holdHere = !!extra.trousers && !!o.fall && o.fall > 1 && o.fallOn === 'all' && !knob('__noHold');
     const gr = p.pc.grain ? [p.pc.grain[1].x - p.pc.grain[0].x, p.pc.grain[1].y - p.pc.grain[0].y] : [0, 1];
     const grL = Math.hypot(gr[0], gr[1]) || 1;
     for (const [k, opp] of edgeSet) {
@@ -1745,6 +1747,10 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
         const c = ((pts[v].x - pts[u].x) * gr[0] + (pts[v].y - pts[u].y) * gr[1]) / grL / (rest[rest.length - 1] || 1);
         edgeW.set(edges.length / 2 - 1, 1 - biasOf * 4 * c * c * (1 - c * c));
       }
+      // (Down a trouser leg that falls harder than the light pull: held to its cut length too, so its weight drops it
+      // straight off the hip rather than stretching it 3 times its cut, Fabric behaviour round 4. Not a skirt: held so,
+      // a silk circle skirt and a satin tier folded into fins.)
+      if (holdHere && Math.abs(pts[u].y - pts[v].y) > (knob('__holdDy') ?? 0.85) * rest[rest.length - 1]) hold.push(pos[(u + p.base) * 3 + 1] < pos[(v + p.base) * 3 + 1] ? [u + p.base, v + p.base, rest[rest.length - 1]] : [v + p.base, u + p.base, rest[rest.length - 1]]);
       // (Running down the cloth, on a bodice: held to near its cut length in the sim, top first.)
       if ((p.role === 'front' || p.role === 'back') && !p.turned[u] && !p.turned[v] && Math.abs(pts[u].y - pts[v].y) > 0.5 * rest[rest.length - 1] && !nearApex(p, (pts[u].x + pts[v].x) / 2, (pts[u].y + pts[v].y) / 2))
         chain.push(pts[u].y < pts[v].y ? [u + p.base, v + p.base, rest[rest.length - 1], pts[u].y] : [v + p.base, u + p.base, rest[rest.length - 1], pts[v].y]);
@@ -2038,6 +2044,11 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
       const k = o.heavySkirt ? 1 : knob('__lightK') ?? 0.3;
       return { up: Int32Array.from(c.map((q) => q[0])), lo: Int32Array.from(c.map((q) => q[1])), rest: Float64Array.from(c.map((q) => q[2])), k };
     })(),
+    // (Settled from the top: each held by the one above it, sorted by where the upper point starts.)
+    ...(hold.length ? { hold: (() => {
+      const h = [...hold].sort((m, n) => pos[m[0] * 3 + 1] - pos[n[0] * 3 + 1]);
+      return { up: Int32Array.from(h.map((q) => q[0])), lo: Int32Array.from(h.map((q) => q[1])), rest: Float64Array.from(h.map((q) => q[2])) };
+    })() } : {}),
     lieOn: lieOnOf(),
     bendW: Float64Array.from(bendW),
     ...(edgeW.size ? { edgeW: Float64Array.from({ length: edges.length / 2 }, (_, e) => edgeW.get(e) ?? 1) } : {}),
@@ -2159,7 +2170,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
     // (Nor a full circle: see fullCircle.)
     if (hung.length && !fullCircle(extra.skirt) && !B.panels.some((p) => /yoke/i.test(p.pc.name))) {
       const sc = new Float32Array(pos.length / 3).fill(1);
-      const fall = knob('__fall') ?? (o.fallOn === 'skirt' ? Math.min(o.fall, knob('__dressFall') ?? 1.4) : o.fall);
+      const fall = knob('__fall') ?? (o.fallOn === 'skirt' ? Math.min(o.fall, knob('__dressFall') ?? 1.4) : extra.trousers ? Math.min(3, o.fall * (knob('__trouserFallX') ?? 5 / 3)) : o.fall);
       // (A bias-cut piece in a fluid cloth hangs twice as hard, up to 3: its weight is what draws it in to cling. In a
       // cotton, pulled harder, the slip's back was drawn 2.5 times its cut.)
       for (const p of hung) for (let i = 0; i < p.mesh.pts.length; i++) sc[p.base + i] = p.pc.meta.bias ? Math.min(3, fall * 2) : fall;

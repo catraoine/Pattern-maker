@@ -118,7 +118,8 @@ export function runDrape(job: DrapeJob): DrapedLite {
       d = drapeBodice(sp, job.draft, job.sleeve, t);
       break;
     case 'trousers':
-      d = drapeTrousers(sp, job.draft, t);
+      // (A trouser leg hangs by its cloth's fall, 5/3 as hard as a skirt's: Cat's B, Fabric behaviour round 4.)
+      d = drapeTrousers(sp, job.draft, { ...t, fallOn: 'all' });
       break;
     case 'tee':
       d = drapeTee(sp, job.draft, t);

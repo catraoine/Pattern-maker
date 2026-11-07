@@ -45,6 +45,8 @@ export interface SimInput {
   /** Edges running down a bodice, top first (upper point, lower point, cut length): held to near their cut length. */
   /** Edges down a bodice held to near their cut length, top first; `k` how hard (1 under a long skirt's weight). */
   chain?: { up: Int32Array; lo: Int32Array; rest: Float64Array; k?: number };
+  /** Edges down a hung cloth that falls harder than the light pull, held to near their cut length as `chain` is. */
+  hold?: { up: Int32Array; lo: Int32Array; rest: Float64Array };
   /** Trouser legs: below the crotch the cloth lies on two legs, not the body. */
   legs?: { x: number; c0: number; c1: number; r0: number; r1: number };
   /** Points beside a fold and their flat distance from their own mirror across it: the cloth's bend carries on round
@@ -361,6 +363,24 @@ export function simulate(s: Space, inp: SimInput, steps = knob("__steps") ?? 260
         x[v + 1] = x[u + 1] + dy * f;
         x[v + 2] = x[u + 2] + dz * f;
       }
+    if (inp.hold) {
+      const HL = knob('__holdLim') ?? LIM;
+      const HK = knob('__holdK') ?? 0.3;
+      for (let q = 0; q < inp.hold.up.length; q++) {
+        const u = inp.hold.up[q] * 3;
+        const v = inp.hold.lo[q] * 3;
+        const dx = x[v] - x[u];
+        const dy = x[v + 1] - x[u + 1];
+        const dz = x[v + 2] - x[u + 2];
+        const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        const L = inp.hold.rest[q] * HL;
+        if (d <= L) continue;
+        const f = 1 - (1 - L / d) * HK;
+        x[v] = x[u] + dx * f;
+        x[v + 1] = x[u + 1] + dy * f;
+        x[v + 2] = x[u + 2] + dz * f;
+      }
+    }
   }
   return x;
 }
