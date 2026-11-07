@@ -91,25 +91,15 @@
   cursor: pointer;
 }
 
-/* No fade as the film opens (Cat, 2026-11-06): the fade hid the start of the push in on the form, so the opening no
-   longer felt like one smooth zoom on play. */
-
-/* The film sits in its own box at its own shape, so there is no letterbox for the browser to paint: iPhones paint
-   the bars beside a video black whatever the page's colour, and black bands showed over the page (Cat, 2026-11-06). */
-.tour-stage {
+/* The film player as it was before the oxblood change (Cat, 2026-11-07: "I want that scene to go back to how it was
+   before oxblood"): the film fills the space under the top bar, no fade as it opens and no box of its own, so the
+   push in on the form plays straight from the tap. (The box was only there to stop iPhones painting black bars beside
+   the film over the oxblood; on black there is nothing to hide.) */
+.tour-video {
   flex: 1;
   min-height: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.tour-video {
-  display: block;
-  width: auto;
-  height: auto;
-  max-width: 100%;
-  max-height: 100%;
+  width: 100%;
+  object-fit: contain;
   background: var(--paper);
 }
 

@@ -89,26 +89,22 @@ export function TourPlayer({ onClose }: { onClose: () => void }) {
           </button>
         </span>
       </div>
-      <div className="tour-stage">
-        <video
-          ref={video}
-          className="tour-video"
-          // Its shape before the film has loaded, so the box doesn't jump as it comes in.
-          style={{ aspectRatio: shape === 'wide' ? '16 / 9' : '9 / 16' }}
-          playsInline
-          preload="auto"
-          aria-describedby="tour-words"
-          // Our own controls, not the phone's (FilmControls): a tap on the film pauses or plays it.
-          onClick={film.toggle}
-          // It stays open at the end (the accessibility review, 2026-10-30), so nothing vanishes from under a viewer;
-          // the focus goes to Skip tour, to close it.
-          onEnded={() => close.current?.focus()}
-        >
-          {SOURCES[shape].map((v) => (
-            <source key={v.src} src={v.src} type={v.type} />
-          ))}
-        </video>
-      </div>
+      <video
+        ref={video}
+        className="tour-video"
+        playsInline
+        preload="auto"
+        aria-describedby="tour-words"
+        // Our own controls, not the phone's (FilmControls): a tap on the film pauses or plays it.
+        onClick={film.toggle}
+        // It stays open at the end (the accessibility review, 2026-10-30), so nothing vanishes from under a viewer;
+        // the focus goes to Skip tour, to close it.
+        onEnded={() => close.current?.focus()}
+      >
+        {SOURCES[shape].map((v) => (
+          <source key={v.src} src={v.src} type={v.type} />
+        ))}
+      </video>
       <FilmBar film={film} />
       <FilmWords id="tour-words" parts={PARTS} />
     </div>
