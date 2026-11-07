@@ -561,6 +561,10 @@ if (process.env.TOUR_PROBE) {
   }
   process.exit(0);
 }
+// Already on the Fabric step when the shot starts (Cat, 2026-11-07: no flashes of app text over the narration; the
+// step list opening on the way there flashed up).
+await openSteps(true);
+await press(stepTab('Fabric'), 900);
 await start();
 t0 = Date.now();
 await wait(process.env.TOUR_QUICK !== '0' ? 1400 : 2600);
@@ -568,8 +572,6 @@ await wait(process.env.TOUR_QUICK !== '0' ? 1400 : 2600);
 // show the flat view for less time, skip enlarge). TOUR_QUICK=0 keeps the enlarge step.
 const QUICK = !WIDE && process.env.TOUR_QUICK !== '0'; // A computer keeps the enlarge: there the drawing tool is small without it.
 mark('fabric');
-await openSteps(true);
-await press(stepTab('Fabric'), 900);
 // Then the fabric changed to the one-way print, the jade python (Cat, 2026-10-25: no check at all; P2 Jade). Tapping
 // the camel again clears the colour, so the print shows in its own.
 const PRINT2 = process.env.TOUR_PRINT2 ?? 'One-way';
