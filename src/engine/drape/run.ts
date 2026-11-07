@@ -91,8 +91,10 @@ export function rehydrate<T>(v: T): T {
 
 export function runDrape(job: DrapeJob): DrapedLite {
   const sp = makeSpace(placeOnForm({ armhole: job.armhole }, job.m), job.m, { widen: widensForm(job) });
+  // (The cloth's own stiffness reaches skirts, dresses and woven tops; trousers, the T-shirt, jackets and coats keep
+  // their fibre's and their own holds, round 2 not having looked at them.)
   const c = job.card ?? cardOf(job.fibre, job.crisp);
-  const t: DrapeOptions = { bendK: c.bendK, thick: c.thick, ...(c.crisp ? { crisp: c.crisp } : {}), ...(c.fall !== 1 ? { fall: c.fall } : {}), ...(c.skirtBend !== 1 ? { skirtBend: c.skirtBend } : {}), ...(c.stretch ? { stretch: c.stretch } : {}), ...(c.bias ? { bias: c.bias } : {}) };
+  const t: DrapeOptions = { bendK: c.bendK, thick: c.thick, ...(c.crisp ? { crisp: c.crisp } : {}), ...(c.fall !== 1 ? { fall: c.fall } : {}), ...(c.skirtBend !== 1 && (job.kind === 'skirt' || job.kind === 'dress' || job.kind === 'bodice') ? { skirtBend: c.skirtBend } : {}), ...(c.stretch ? { stretch: c.stretch } : {}), ...(c.bias ? { bias: c.bias } : {}) };
   let d: Draped;
   switch (job.kind) {
     case 'outer':

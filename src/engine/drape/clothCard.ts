@@ -104,9 +104,9 @@ export function clothCard(f: Pick<MyFabric, 'fibre' | 'weight' | 'drape' | 'spec
     fall: clamp(fall, 1, 4),
     stretch: kn ? STRETCH[kn.stretch] : 0,
     bias: kn ? 0 : drape === 'crisp' ? 0.1 : 0.2,
-    // (A crisp peplum stands out at 2.4 in all, a crisp cotton's 40 times 0.06: 40 times a stiffer cloth's own blew
-    // the sim apart.)
-    ...(drape === 'crisp' ? { crisp: Math.max(1, 2.4 / body) } : {}),
+    // (A crisp peplum stands out at 0.6 in all, ten times a plain cotton's. It was 40 times the cloth's own, 2.4 in a
+    // cotton, and 7 of 8 crisp peplums folded into fins or blew apart; at 0.6, 7 of 8 pass, Fabric behaviour round 2.)
+    ...(drape === 'crisp' ? { crisp: Math.max(1, 0.6 / body) } : {}),
   };
 }
 

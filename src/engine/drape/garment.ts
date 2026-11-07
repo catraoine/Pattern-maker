@@ -1755,7 +1755,11 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
         // sim crumpled a full bishop into 56 sharp pleats down the arm, where in cotton it hung round, 2026-11-06. Its
         // bends are stiffened to a cotton's.)
         const fullSleeve = p.role === 'sleeve' && !!p.pc.meta.full;
-        const pours = o.skirtBend !== undefined && !(o.skirtBend < 1 && fullCircle(extra.skirt)) && (o.fallOn === 'all' || (o.fallOn === 'skirt' && p.role.startsWith('peplum'))) ? o.skirtBend : 1;
+        // (The rest of the garment, a bodice and its sleeves, takes the square root of the cloth's own stiffness against
+        // its fibre's: a silk or a denim top shows its cloth, and none folded into fins that didn't before, Fabric
+        // behaviour round 2. All of it, as a skirt does, and tops folded into fins.)
+        const hungHere = o.fallOn === 'all' || (o.fallOn === 'skirt' && p.role.startsWith('peplum'));
+        const pours = o.skirtBend !== undefined && !(o.skirtBend < 1 && fullCircle(extra.skirt)) && hungHere ? o.skirtBend : !hungHere && o.skirtBend !== undefined ? o.skirtBend ** (knob('__topBendPow') ?? 0.5) : 1;
         bendW.push(p.role === 'collar' || p.turned[opp[0]] ? 4 : faced ? FACED(o) : o.crisp && /peplum/i.test(p.pc.name) ? o.crisp : fullSleeve ? Math.max(1, 0.06 / (o.bendK ?? 0.05)) : pours);
       }
     }

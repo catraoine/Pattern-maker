@@ -10,8 +10,8 @@ describe('clothCard', () => {
     expect(clothCard()).toEqual(c);
   });
 
-  it('keeps the old crisp peplum: 40 times a crisp cotton', () => {
-    expect(cardOf('cotton', true).crisp).toBeCloseTo(40);
+  it('stands a crisp peplum out at ten times a plain cotton', () => {
+    expect(cardOf('cotton', true).crisp).toBeCloseTo(10);
   });
 
   it('lets a fluid silk pour in its skirt and fall harder, its bodice as soft as before', () => {

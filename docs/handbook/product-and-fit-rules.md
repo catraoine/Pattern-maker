@@ -360,8 +360,12 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    holds on its grain (`bias`, B). A knit gives along its length (`stretch`). A plain cotton is drawn exactly as
    before. **Feel** under All round (skirts and dresses) nudges the cloth two steps each way stiffer or softer,
    heavier or lighter, from the fabric's own card, says what it is set to, and goes back to the fabric's own when
-   another is picked. It changes the drawing, not the pattern. Known: a crisp peplum fails its check, in a crisp
-   cotton too (it did before the card).
+   another is picked. It changes the drawing, not the pattern. Round 2 (Nov 7): a top's bodice and sleeves take the
+   square root of the cloth's stiffness against its fibre's (a fitted top lies on the body, so it shows most in the
+   sleeves); a bias-cut slip in a fluid cloth gives three times as much on its length and hangs twice as hard, so it
+   clings; a circle's pieces give half as much on the bias; a crisp peplum stands out at ten times a plain cotton's
+   stiffness (it was 40, and 7 of 8 failed their check; now 7 of 8 pass). Trousers, the T-shirt, jackets and coats
+   keep their fibre's stiffness.
 
 ## Style steps
 
