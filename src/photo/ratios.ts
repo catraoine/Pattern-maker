@@ -7,7 +7,7 @@ import type { OuterChoices } from '../garments';
 import type { PhotoBody } from './garments';
 import type { PhotoReading } from './types';
 
-export interface RatioRow {
+interface RatioRow {
   /** What is compared, in plain words: "Room at the bust". */
   what: string;
   /** The photo's ratio and the pattern's, to the wearer's own body. */

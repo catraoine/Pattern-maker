@@ -85,7 +85,7 @@ export const OUTER_LENGTHS: Record<OuterKind, OuterLength[]> = { jacket: ['cropp
 /** An oversized jacket or coat's ease as a share of the wearer's own bust (Cat, Nov 7: "the insp vest is
  * oversized"; her picture measures about 1.5 times the body), so it reads as oversized on every size; never less
  * than the fixed ease below. The other fits keep their fixed ease through the tester round. */
-export const OVERSIZED_SHARE: Record<OuterKind, number> = { jacket: 0.45, coat: 0.5 };
+const OVERSIZED_SHARE: Record<OuterKind, number> = { jacket: 0.45, coat: 0.5 };
 /** The most ease a jacket or coat takes, in cm, and how far a shoulder measured off a photo can move. */
 export const OUTER_EASE_MAX = 70;
 export const OUTER_SHOULDER = { min: -3, max: 10 };

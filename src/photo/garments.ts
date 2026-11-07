@@ -57,7 +57,7 @@ export interface PhotoBody {
 const AVERAGE_FRONT = 44;
 
 /** From this many times her bust round, a jacket or coat in a photo is the oversized cut. */
-export const OVERSIZED_FROM = 1.28;
+const OVERSIZED_FROM = 1.28;
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 const num = (v: number | null | undefined): v is number => typeof v === 'number' && Number.isFinite(v);
