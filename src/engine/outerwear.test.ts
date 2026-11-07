@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { checkPattern } from './qc';
 import { randomArms, randomBody, rng, sweep } from './randomBodies';
 import { taggedLength } from './geometry';
-import { OUTER_EASE, OUTER_LENGTHS, OuterKind, draftOuter } from './outerwear';
+import { OUTER_EASE, OUTER_LENGTHS, OuterKind, draftOuter, outerEase } from './outerwear';
 import { outerFlat } from './flat';
 import { outerGuide } from './outerGuide';
 import { EXAMPLE_VALUES } from '../measurements';
@@ -115,7 +115,7 @@ describe('jackets and coats', () => {
                 failures.push(`${tag}: ${(e as Error).message}`);
                 continue;
               }
-              if (Math.abs(d.finishedBust - (b.full_bust! + OUTER_EASE[kind].oversized)) > 0.1) failures.push(`${tag}: bust ${d.finishedBust}`);
+              if (Math.abs(d.finishedBust - (b.full_bust! + outerEase(kind, 'oversized', b.full_bust!))) > 0.1) failures.push(`${tag}: bust ${d.finishedBust}`);
               // Straight: no waist shaping and no pads, whatever was asked.
               if (!(d.finishedWaist >= d.finishedBust - 0.5)) failures.push(`${tag}: waist ${d.finishedWaist} under the bust ${d.finishedBust}`);
               if (d.pieces.some((pc) => /top sleeve|under sleeve/i.test(pc.name) && !pc.kind)) failures.push(`${tag}: kept the two-piece sleeve`);

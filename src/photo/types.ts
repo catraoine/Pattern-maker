@@ -84,7 +84,7 @@ export interface OuterReading {
   pads: 'none' | 'soft' | 'structured';
   flare: 'straight' | 'a_line';
   /** How the sleeve joins: a raglan seam from the neck, or set in at the shoulder. Older readings have neither. */
-  sleeve?: 'set_in' | 'raglan';
+  sleeve?: 'set_in' | 'raglan' | 'none';
   /** Rib-knit bands at the hem and cuffs. */
   trim?: 'none' | 'rib';
 }
@@ -101,6 +101,24 @@ export interface PhotoMeasures {
   /** A top's hem, below the waist. */
   topHemAt: number | null;
   trouserHemAt: number | null;
+  /** Proportions read off the photo for a jacket, coat, top or trousers (In testing, Nov 7). Older readings leave them out. */
+  /** A jacket or coat's hem, as a fraction of the natural waist (0) to the floor (1). */
+  outerHemAt?: number | null;
+  /** Where a jacket's lapels break (or its top button sits, without lapels), cm below the hollow of the throat on an average adult. */
+  breakCm?: number | null;
+  /** Buttons down the front, counting one row of a double-breasted front. */
+  buttons?: number | null;
+  /** The distance between one button and the next, cm on an average adult. */
+  buttonGapCm?: number | null;
+  /** How far the garment's shoulder seam sits past (+) or inside (-) the wearer's own shoulder point, cm on an average adult. */
+  shoulderOutCm?: number | null;
+  /** The garment's round at the bust divided by the wearer's: 1.0 skims, a regular jacket about 1.14, oversized 1.3 and up. */
+  bustRoom?: number | null;
+  /** A jacket or coat's hem round divided by the round at the wearer's hips. */
+  outerHemFullness?: number | null;
+  /** A trouser leg's round at the knee and at its hem, each divided by the round at the hips. */
+  kneeRoom?: number | null;
+  legHemRoom?: number | null;
 }
 
 export type UnsureGroup = 'silhouette' | 'length' | 'neckline' | 'sleeve' | 'leg';

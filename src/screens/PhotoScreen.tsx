@@ -5,7 +5,7 @@ import type { Unit } from '../measurements';
 import { photoToJpeg } from '../photo/image';
 import type { BackReading, BackResponse, PhotoError, PhotoReading, PhotoResponse, PieceKind, TopReading, TrousersReading, UnsureGroup } from '../photo/types';
 import { GROUPS } from '../skirtChoices';
-import { PIECE_KINDS, PIECE_WORDS, aPiece, backMissing, backWords, choicesFor, withBack, fabricFor, pieceName, mainPiece, pieceNote, piecesToPick, skirtChoices, type PhotoBody } from '../photo/garments';
+import { PIECE_KINDS, PIECE_WORDS, aPiece, backMissing, backWords, choicesFor, withBack, fabricFor, pieceName, mainPiece, pieceNote, piecesToPick, proportionWords, skirtChoices, type PhotoBody } from '../photo/garments';
 import type { MyFabric } from '../engine/fabrics';
 import { isBodice, isDress, type PatternChoices } from '../garments';
 import { describePattern } from './describe';
@@ -114,7 +114,7 @@ export function tornBetween(r: PhotoReading, piece: PieceKind): { group: UnsureG
     case 'sleeve':
       return topish ? ask(two(SLEEVE_NAME, r.top!.sleeve), (v) => ({ ...r, top: { ...r.top!, sleeve: v as TopReading['sleeve'] }, measures: r.measures && { ...r.measures, sleeveEndsAt: null } })) : undefined;
     case 'leg':
-      return piece === 'trousers' && r.trousers ? ask(two(LEG_NAME, r.trousers.leg), (v) => ({ ...r, trousers: { ...r.trousers!, leg: v as TrousersReading['leg'] } })) : undefined;
+      return piece === 'trousers' && r.trousers ? ask(two(LEG_NAME, r.trousers.leg), (v) => ({ ...r, trousers: { ...r.trousers!, leg: v as TrousersReading['leg'] }, measures: r.measures && { ...r.measures, kneeRoom: null, legHemRoom: null } })) : undefined;
   }
 }
 
@@ -546,6 +546,8 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
     ...(hasSkirt(piece) ? groups.map((g) => (conf[g.id] === 'low' ? `${label(g.id)} (best guess)` : label(g.id))) : []),
     ...(needsLength ? ['length up to you'] : []),
     ...(depth ? [depth] : []),
+    // The proportions measured off the photo (In testing), on the sewist's own body.
+    ...proportionWords(named, (cm) => (unit === 'in' ? `${Math.round((cm / IN) * 4) / 4} in` : `${Math.round(cm)} cm`)),
   ];
 
   return (

@@ -355,6 +355,24 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
   link. On a phone Undo/Redo are named words across from "Step 2 of 4", away from the back arrow; Clear sits
   under Done while drawing.
 
+- **Photos are measured for proportion** (Nov 7, Cat: "This needs to be how users photos are handled instantly",
+  "Measured for proportion and design detail, aiming for max refinement"; In testing): a photo reading measures
+  the garment against the wearer's own body, not only its nearest named options. Skirts already had hem and
+  fullness. Jackets and coats now take the hem below the waist, the lapel break, the button count and spacing, the
+  shoulder line out or in, the room at the bust and the hem's flare; trousers the leg's round at the knee and hem;
+  woven tops the room at the bust. Each is applied only when the wearer's measurements are known, kept to what
+  drafts soundly, and listed in words on the photo page. Code: `measures` in `src/photo/types.ts` and the prompt in
+  `src/photo/analyze.ts`; `measuredOuter` and `measuredLeg` in `src/photo/garments.ts`; the jacket's own numbers
+  (`dropCm`, `easeCm`, `breakCm`, `buttons`, `buttonGapCm`, `shoulderCm`) in `src/engine/outerwear.ts`, which win
+  over the named choice (the Look 09 high lapel uses the same `breakCm`/`buttons`).
+- **Cuts are ratios to her body** (Nov 7, Cat: "the insp vest is oversized", "How can we always account for oversized
+  and other design types?"; In testing): an Oversized jacket or coat takes 0.45 (jacket) or 0.5 (coat) of her bust as
+  ease (`outerEase`, never less than the old 30/34 cm), up to 70 cm from a photo. With sleeves it has the dropped
+  shoulder; without sleeves (a waistcoat) it keeps a set-in shoulder moved out at least as far as the room at the side,
+  so it hangs straight (a dropped shoulder with no sleeve buckles on the form). A photo showing 1.28 times her bust or more is read as Oversized. Fitted, Regular and Relaxed, and
+  every skirt, top and dress, keep their fixed ease through the tester round. Before a photo's jacket or coat is shown
+  to Cat, the ratio check (`src/photo/ratios.ts`) compares the pattern's room, hem, shoulder and buttons with the photo's.
+
 ## Fixing problems
 
 - **Auto-fix rule** (Oct 18): never point out problems the user's own edits cause (uneven seams,

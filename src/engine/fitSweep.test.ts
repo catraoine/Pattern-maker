@@ -5,7 +5,7 @@ import { draftSkirt, FIT_EASE, skirtFitOf } from './skirt';
 import { BODICE_FIT_EASE, BOXY, LONG_BELOW_HIP, draftBodice, girthBelowWaist } from './bodice';
 import { draftDress } from './dress';
 import { draftTrousers, TROUSER_EASE, TrousersMeasurements } from './trousers';
-import { draftOuter, OUTER_EASE } from './outerwear';
+import { draftOuter, outerEase } from './outerwear';
 import { draftSleeve } from './sleeve';
 import { checkPattern } from './qc';
 import { randomArms, randomBody, randomCrotch, rng } from './randomBodies';
@@ -283,7 +283,7 @@ describe('the SS27 looks measured against the body', () => {
       for (const st of styles) {
         const tag = `seed ${seed} ${st.kind}`;
         const d = draftOuter(m, st);
-        const ease = OUTER_EASE[st.kind][st.fit];
+        const ease = outerEase(st.kind, st.fit, m.full_bust);
         if (d.warnings.length) failures.push(`${tag}: ${d.warnings.join('; ')}`);
         const [bf, bb] = d.block;
         const base = d.base;

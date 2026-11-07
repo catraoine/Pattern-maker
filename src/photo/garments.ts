@@ -21,6 +21,7 @@ import {
   isTee,
   isTrousers,
   outerAllowed,
+  oversizeOuter,
   sleeveOf,
   validDetails,
   validTrousers,
@@ -28,15 +29,16 @@ import {
 import type { BodiceLength } from '../engine/bodice';
 import { noSeamAllowed } from '../engine/dress';
 import type { MyFabric } from '../engine/fabrics';
-import type { OuterLength } from '../engine/outerwear';
+import { OUTER_EASE, OUTER_EASE_MAX, OUTER_LENGTHS, OUTER_SHOULDER, lapelled, measuredOuterDrop, outerDrop, type OuterLength, type OuterMeasurements } from '../engine/outerwear';
 import type { TeeLength, TeeNeck, TeeSleeve } from '../engine/tee';
 import { setSkirtDetail, skirtDetailOf, volumeOf } from '../engine/skirtVolume';
 import { validCut } from '../engine/slip';
 import { slitAllowed } from '../engine/slit';
 import { backBlocked } from '../engine/backNeck';
 import { elasticAllowed, pocketsAllowed } from '../skirtChoices';
-import { NECKLINES } from '../engine/bodice';
+import { BODICE_FIT_EASE, BUST_EASE_RANGE, NECKLINES } from '../engine/bodice';
 import { FULLNESS } from '../ui/BodiceShape';
+import { DROP } from '../engine/sleeveCut';
 import { fitOf, shapeOf } from './shape';
 import type { BackReading, Confidence, PhotoReading, PieceKind, TopReading } from './types';
 
@@ -44,7 +46,18 @@ import type { BackReading, Confidence, PhotoReading, PieceKind, TopReading } fro
 export interface PhotoBody {
   waist_to_floor?: number;
   arm_length?: number;
+  full_bust?: number;
+  full_hip?: number;
+  waist_to_hip?: number;
+  waist_to_knee?: number;
+  front_hps_to_waist?: number;
 }
+
+/** An average adult's front, neck to waist, in cm: sizes the photo reads in cm are scaled from it to the wearer's. */
+const AVERAGE_FRONT = 44;
+
+/** From this many times her bust round, a jacket or coat in a photo is the oversized cut. */
+const OVERSIZED_FROM = 1.28;
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 const num = (v: number | null | undefined): v is number => typeof v === 'number' && Number.isFinite(v);
@@ -68,6 +81,15 @@ function measuredBodice(c: BodiceChoices, r: PhotoReading, body: PhotoBody | und
   const sleeve = sleeveOf(out);
   if (num(m.sleeveEndsAt) && body?.arm_length && sleeve.length !== 'none' && sleeve.shape !== 'cap' && !sleeve.cut) {
     out = { ...out, sleeveCm: Math.round(clamp(m.sleeveEndsAt, 0.15, 1) * body.arm_length) };
+  }
+  // The room at the bust as the photo showed it, for a woven top that isn't boned: the nearest fit, with its ease
+  // set to the photo's where it differs by more than a little. Never closer than a fitted top's.
+  if (garment === 'bodice' && num(m.bustRoom) && body?.full_bust && out.structure !== 'boned') {
+    const ease = clamp((m.bustRoom - 1) * body.full_bust, BUST_EASE_RANGE.min + 1, BUST_EASE_RANGE.max);
+    const fits = ['fitted', 'regular', 'relaxed'] as const;
+    const fit = fits.reduce((a, b) => (Math.abs(BODICE_FIT_EASE[b].bust - ease) < Math.abs(BODICE_FIT_EASE[a].bust - ease) ? b : a));
+    const named = { ...out, fit };
+    out = Math.abs(BODICE_FIT_EASE[fit].bust - ease) >= 2 ? { ...named, bustEase: Math.round(ease) } : named;
   }
   if (garment === 'bodice' && num(m.topHemAt) && body?.waist_to_floor && out.length !== 'waist') {
     out = { ...out, dropCm: Math.round(clamp(m.topHemAt, 0, 0.45) * body.waist_to_floor) };
@@ -209,6 +231,27 @@ function teeChoices(t: TopReading | null | undefined): TeeChoices {
   return { ...DEFAULT_TEE_CHOICES, fit: safeFit(t.fit), neckline: TEE_NECK[t.neckline], sleeve: TEE_SLEEVE[t.sleeve], length: TEE_LENGTH[t.length] };
 }
 
+/**
+ * The leg's widths as the photo showed them, as rounds in cm: the knee, and the hem carried on to full length
+ * (the leg widens or narrows evenly from the knee down, as when it is drawn on the form). Only when the wearer's
+ * hips are known, and not for a culotte, whose width is its shape.
+ */
+function measuredLeg(r: PhotoReading, leg: TrousersChoices['leg'], body: PhotoBody | undefined): { legCm: { knee: number; hem: number } } | Record<string, never> {
+  const m = r.measures;
+  if (!m || !body?.full_hip || leg === 'culotte' || !num(m.kneeRoom) || !num(m.legHemRoom)) return {};
+  const H = body.full_hip;
+  const knee = clamp(m.kneeRoom, 0.36, 0.72) * H;
+  let hem = clamp(m.legHemRoom, 0.28, 0.8) * H;
+  const floor = body.waist_to_floor;
+  const kn = body.waist_to_knee ?? (floor ? floor * 0.56 : undefined);
+  if (num(m.trouserHemAt) && floor && kn) {
+    const L = clamp(m.trouserHemAt, 0.2, 1) * floor;
+    const full = 0.98 * floor;
+    if (L > kn + 4 && full > L) hem = knee + ((hem - knee) * (full - kn)) / (L - kn);
+  }
+  return { legCm: { knee: Math.round(knee), hem: Math.round(clamp(hem, 31, 0.8 * H)) } };
+}
+
 function trousersChoices(r: PhotoReading, body?: PhotoBody): TrousersChoices {
   const t = r.trousers;
   if (!t) return { ...DEFAULT_TROUSERS_CHOICES };
@@ -217,6 +260,7 @@ function trousersChoices(r: PhotoReading, body?: PhotoBody): TrousersChoices {
   const lengthCm = num(at) && body?.waist_to_floor && t.leg !== 'culotte' ? { lengthCm: Math.round(clamp(at, 0.2, 1) * body.waist_to_floor) } : {};
   return validTrousers({
     ...lengthCm,
+    ...measuredLeg(r, t.leg, body),
     garment: 'trousers',
     fit: safeFit(t.fit),
     leg: t.leg,
@@ -232,8 +276,59 @@ const COAT_LENGTHS: OuterLength[] = ['thigh', 'knee', 'midi'];
 const AS_JACKET: Partial<Record<OuterLength, OuterLength>> = { thigh: 'long', knee: 'long', midi: 'long' };
 const AS_COAT: Partial<Record<OuterLength, OuterLength>> = { cropped: 'thigh', hip: 'thigh', long: 'thigh' };
 
+/**
+ * The proportions the photo showed, laid over a jacket or coat's named choices: the hem's drop below the waist,
+ * the room at the bust, the lapel break and the buttons (scaled from an average adult's front to the wearer's), the
+ * shoulder line, and the flare from how wide the hem stands. A size close to the named choice's own is left alone.
+ */
+function measuredOuter(c: OuterChoices, r: PhotoReading, body: PhotoBody | undefined): OuterChoices {
+  const m = r.measures;
+  if (!m) return c;
+  const out: OuterChoices = { ...c };
+  const scale = body?.front_hps_to_waist ? body.front_hps_to_waist / AVERAGE_FRONT : 1;
+  if (num(m.outerHemAt) && body?.waist_to_floor && r.worn !== false) {
+    const om = body as OuterMeasurements;
+    const drop = measuredOuterDrop(om, c.garment, clamp(m.outerHemAt, 0, 0.9) * body.waist_to_floor);
+    out.dropCm = Math.round(drop);
+    // The named length nearest it, so the style screen shows the right one.
+    out.length = OUTER_LENGTHS[c.garment].reduce((a, b) => (Math.abs(outerDrop(om, b) - drop) < Math.abs(outerDrop(om, a) - drop) ? b : a));
+    if (out.length === 'cropped' && out.vent === 'centre') out.vent = 'none';
+  }
+  if (num(m.bustRoom) && body?.full_bust) {
+    // Ratios to her own body, not fixed ease (Cat, Nov 7: "the insp vest is oversized"): from about 1.28 times her
+    // bust it is the oversized cut, with or without sleeves, taking all the room the photo shows.
+    if (m.bustRoom >= OVERSIZED_FROM && out.fit !== 'oversized') return measuredOuter(oversizeOuter({ ...out, fit: 'oversized' }), r, body);
+    const ease = (clamp(m.bustRoom, 1.04, 1.75) - 1) * body.full_bust;
+    // Only the oversized cut takes more room than a blouse block allows.
+    out.easeCm = Math.round(out.fit === 'oversized' ? Math.min(OUTER_EASE_MAX, ease) : Math.min(BUST_EASE_RANGE.max, ease));
+  }
+  if (num(m.breakCm) && c.front !== 'zip') out.breakCm = Math.round(clamp(m.breakCm, 6, 44) * scale);
+  if (num(m.buttons) && c.front !== 'zip' && m.buttons >= 1) out.buttons = Math.round(clamp(m.buttons, 1, 8));
+  if (num(m.buttonGapCm) && c.front !== 'zip' && (m.buttons ?? 2) >= 2) out.buttonGapCm = Math.round(clamp(m.buttonGapCm, 5, 20) * scale);
+  // The shoulder line: an oversized sleeve already drops its shoulder DROP.out past hers, so only the rest is added.
+  // A sleeveless one keeps a set-in shoulder (a dropped one buckles at the seam on the form, with no sleeve to hold
+  // it out), moved out the whole way.
+  if (num(m.shoulderOutCm) && out.sleeve !== 'raglan') {
+    const own = out.fit === 'oversized' && out.sleeve !== 'none' ? DROP.out : 0;
+    const by = Math.round(clamp(m.shoulderOutCm, OUTER_SHOULDER.min, OUTER_SHOULDER.max + own) - own);
+    if (Math.abs(by) >= 1) out.shoulderCm = clamp(by, OUTER_SHOULDER.min, OUTER_SHOULDER.max);
+  }
+  // An oversized waistcoat hangs straight from its shoulder: the shoulder goes out at least as far as the room at
+  // the side, so the armhole doesn't scoop in under a narrow shoulder and the side jut out below it.
+  if (out.fit === 'oversized' && out.sleeve === 'none' && out.easeCm !== undefined) {
+    const side = Math.round((out.easeCm - OUTER_EASE.jacket.regular) / 4);
+    if (side > (out.shoulderCm ?? 0)) out.shoulderCm = clamp(side, 0, OUTER_SHOULDER.max);
+  }
+  if (num(m.outerHemFullness)) {
+    const f = m.outerHemFullness;
+    const flare: OuterChoices['flare'] = f >= 1.35 ? 'flared' : f >= 1.15 && c.garment === 'coat' ? 'a_line' : 'straight';
+    if (outerAllowed(out, 'flare', flare)) out.flare = flare;
+  }
+  return out;
+}
+
 /** A jacket or a coat. The back vent and the two-piece sleeve can't be seen from the front, so they keep their defaults. */
-function outerChoices(r: PhotoReading, kind: 'jacket' | 'coat'): OuterChoices {
+function outerChoices(r: PhotoReading, kind: 'jacket' | 'coat', body?: PhotoBody): OuterChoices {
   const base = kind === 'jacket' ? DEFAULT_JACKET_CHOICES : DEFAULT_COAT_CHOICES;
   const o = r.outer;
   if (!o) return { ...base };
@@ -248,14 +343,15 @@ function outerChoices(r: PhotoReading, kind: 'jacket' | 'coat'): OuterChoices {
     shaping: o.shaping,
     pads: o.pads,
     flare: kind === 'coat' ? o.flare : 'straight',
-    sleeve: o.sleeve === 'raglan' ? 'raglan' : base.sleeve,
+    sleeve: o.sleeve === 'raglan' ? 'raglan' : o.sleeve === 'none' && kind === 'jacket' ? 'none' : base.sleeve,
+    ...(o.sleeve === 'none' && kind === 'jacket' ? { pads: 'none' as const } : {}),
     trim: o.trim === 'rib' ? 'rib' : 'none',
   };
   // A notched lapel needs a shoulder seam and a buttoned front; a raglan is cut off a one-piece body.
   if (!outerAllowed(c, 'collar', c.collar)) c.collar = 'stand';
   if (!outerAllowed(c, 'shaping', c.shaping)) c.shaping = 'darts';
   if (!outerAllowed(c, 'vent', c.vent)) c.vent = 'none';
-  return c;
+  return measuredOuter(c, r, body);
 }
 
 /** The style choices for one garment, from the photo, with its exact sizes when the wearer's measurements are known. */
@@ -273,7 +369,7 @@ export function choicesFor(r: PhotoReading, garment: PieceKind, body?: PhotoBody
       return trousersChoices(r, body);
     case 'jacket':
     case 'coat':
-      return outerChoices(r, garment);
+      return outerChoices(r, garment, body);
   }
 }
 
@@ -334,4 +430,25 @@ export function backWords(before: PatternChoices, after: PatternChoices): string
   if (slit && slit !== 'none' && slit !== sk(before)?.slit) words.push(`${slit} slit`);
   if (isOuter(after) && isOuter(before) && after.vent !== before.vent) words.push(after.vent === 'centre' ? 'back vent' : 'no back vent');
   return words.join(', ');
+}
+
+/**
+ * The proportions the pattern took from the photo, in plain words for the photo's summary line: "Hem 28 cm below
+ * the waist", "Lapels break 17 cm below the neck", "3 buttons, 14 cm apart". `size` writes a length in the
+ * sewist's unit.
+ */
+export function proportionWords(c: PatternChoices, size: (cm: number) => string): string[] {
+  const words: string[] = [];
+  if (isOuter(c)) {
+    if (c.dropCm !== undefined) words.push(`Hem ${size(c.dropCm)} below the waist`);
+    if (c.breakCm !== undefined) words.push(`${lapelled(c.collar) ? 'Lapels break' : 'Fastens from'} ${size(c.breakCm)} below the neck`);
+    if (c.buttons !== undefined) words.push(`${c.buttons} button${c.buttons === 1 ? '' : 's'}${c.buttonGapCm !== undefined && c.buttons > 1 ? `, ${size(c.buttonGapCm)} apart` : ''}`);
+    if (c.shoulderCm) words.push(c.shoulderCm > 0 ? `Shoulders ${size(c.shoulderCm)} past yours` : `Shoulders cut in ${size(-c.shoulderCm)}`);
+    if (c.easeCm !== undefined) words.push(`${size(c.easeCm)} of room at the bust`);
+  } else if (isTrousers(c)) {
+    if (c.legCm) words.push(`Leg ${size(c.legCm.knee)} round the knee`);
+  } else if (isBodice(c) && c.bustEase !== undefined) {
+    words.push(`${size(c.bustEase)} of room at the bust`);
+  }
+  return words;
 }

@@ -53,7 +53,7 @@ const Outer = z.object({
   shaping: z.enum(['darts', 'princess', 'boxy']),
   pads: z.enum(['none', 'soft', 'structured']),
   flare: z.enum(['straight', 'a_line']),
-  sleeve: z.enum(['set_in', 'raglan']).optional(),
+  sleeve: z.enum(['set_in', 'raglan', 'none']).optional(),
   trim: z.enum(['none', 'rib']).optional(),
 });
 
@@ -81,6 +81,15 @@ export const Reading = z.object({
     sleeveEndsAt: z.number().nullable(),
     topHemAt: z.number().nullable(),
     trouserHemAt: z.number().nullable(),
+    outerHemAt: z.number().nullable(),
+    breakCm: z.number().nullable(),
+    buttons: z.number().nullable(),
+    buttonGapCm: z.number().nullable(),
+    shoulderOutCm: z.number().nullable(),
+    bustRoom: z.number().nullable(),
+    outerHemFullness: z.number().nullable(),
+    kneeRoom: z.number().nullable(),
+    legHemRoom: z.number().nullable(),
   }),
   unsure: z.object({ group: z.enum(['silhouette', 'length', 'neckline', 'sleeve', 'leg']), other: z.string() }).nullable(),
   missing: z.array(z.string()),
@@ -145,7 +154,7 @@ trousers: fill this in for trousers, shorts or culottes; otherwise null.
 outer: fill this in for a jacket or a coat; otherwise null.
 - fit: as for a top. length: a jacket is "cropped" (above the hip), "hip" or "long" (to the upper thigh); a coat is "thigh" (mid-thigh), "knee" or "midi".
 - front: "single" (one row of buttons), "double" (two rows of buttons, overlapping fronts) or "zip" (a zip up the centre front). collar: "notched" (a lapel with a notch), "stand", "collarless" or "hood".
-- sleeve: "raglan" when a seam runs from the neck to the underarm with no shoulder seam, otherwise "set_in". trim: "rib" when the hem and cuffs are stretchy ribbed bands (as on a bomber), otherwise "none".
+- sleeve: "raglan" when a seam runs from the neck to the underarm with no shoulder seam, "none" for a sleeveless jacket (a waistcoat or tailored vest), otherwise "set_in". trim: "rib" when the hem and cuffs are stretchy ribbed bands (as on a bomber), otherwise "none".
 - pockets: "patch" (sewn on top), "welt" (set-in slits or flaps) or "none". shaping: "princess" (long seams down the front), "darts" or "boxy" (straight and unshaped).
 - pads: "structured" for sharp, built-up shoulders, "soft" for a natural shoulder line, "none" for a soft, unstructured jacket. flare: "a_line" for a coat that widens below the hip, otherwise "straight".
 
@@ -156,6 +165,16 @@ measures: exact sizes, so the pattern copies the photo rather than a standard op
 - sleeveEndsAt: where a sleeve ends, as a fraction of the arm from the shoulder point (0) to the wrist bone (1): a short sleeve about 0.25, elbow 0.5, three-quarter 0.75, long 1. null with no sleeves or a cap sleeve.
 - topHemAt: for a top below the waist (not a dress), where its hem falls, as a fraction of the natural waist (0) to the floor (1), like the skirt's hemAt (the hip line is about 0.2).
 - trouserHemAt: for trousers, where the hem falls, as a fraction of the natural waist (0) to the floor (1) (shorts about 0.3, knee 0.56, ankle 0.93, full 0.98).
+
+Proportions: the pattern is cut to these numbers, so measure them carefully against the wearer's own body, using her head (about 22 cm from chin to crown on an average adult), shoulders, waist, hips and knees as rulers, not the photo frame. Read each from the garment as worn, allowing for perspective, and null when it doesn't show, doesn't apply or isn't worn:
+- outerHemAt: for a jacket or coat, where its hem falls, as a fraction of the natural waist (0) to the floor (1) (cropped about 0.05, the hip line 0.2, low hip 0.27, mid-thigh 0.38, the knee 0.56, mid-calf 0.76).
+- breakCm: for a jacket or coat, where the lapels fold back and the front starts to close (the break), in cm below the hollow at the base of the throat on an average adult; without lapels, where the top button or the top of the zip sits. A high waistcoat break is about 15 to 18, a classic jacket about 25 to 30, a deep one-button jacket about 35 to 40.
+- buttons: for a jacket, coat or buttoned top, how many buttons run down the front (one row of a double-breasted front). null with a zip or no buttons.
+- buttonGapCm: the distance from one button to the next, in cm on an average adult (about 9 to 12 on most jackets). null with fewer than two buttons.
+- shoulderOutCm: for a jacket, coat or top, how far its shoulder seam sits past the wearer's own shoulder point, in cm on an average adult: 0 on her shoulder, 1 to 2 with a sharp padded shoulder, 4 to 10 for a dropped or extended shoulder (an oversized cut), negative when cut in toward the neck (a racer or halter armhole).
+- bustRoom: for a jacket, coat or top, its round at the bust divided by the wearer's own bust round, judged from how far it stands away from the body at the sides: about 1.05 for a close-fitting top, 1.1 fitted jacket, 1.14 regular, 1.2 relaxed, 1.4 to 1.7 for an oversized cut that stands well away from the body (judge it from the gap between the garment's side and her own side, not from the garment alone: an oversized piece on a slim wearer is still oversized).
+- outerHemFullness: for a jacket or coat, its hem round divided by the round at the wearer's hips: 1.05 for straight sides, 1.2 to 1.3 for an A-line coat, 1.4 or more for one that flares or stands out from the hips.
+- kneeRoom and legHemRoom: for trousers, the leg's round at the knee and at its hem, each divided by the round at the hips: a slim leg about 0.38 and 0.3, a straight leg 0.46 and 0.43, a wide leg 0.6 and 0.66, a culotte 0.7 and 0.76, a flare 0.41 at the knee and 0.62 at the hem.
 
 unsure: when you are torn between your pick and one other option in one of these groups, name the group and the other option exactly as it is written above, so the sewist can be asked which it is: "silhouette" (the skirt's), "length" (the skirt's), "neckline", "sleeve" (top.sleeve) or "leg" (trousers.leg). For example a skirt that could be straight or pencil: group "silhouette", other "pencil". Use it only when both really are likely and the choice changes the pattern; otherwise null.
 
@@ -215,8 +234,16 @@ The reading's rules:
 `;
 
 /** Read the earlier reading back in, keeping only one that has the reading's shape: anything else in the request is dropped. */
+/** The proportions added on Nov 7: a reading from before has none, so each is filled in as not shown. */
+const PROPORTIONS = ['outerHemAt', 'breakCm', 'buttons', 'buttonGapCm', 'shoulderOutCm', 'bustRoom', 'outerHemFullness', 'kneeRoom', 'legHemRoom'] as const;
+const withProportions = (r: unknown) => {
+  if (!r || typeof r !== 'object' || !('measures' in r) || !r.measures || typeof r.measures !== 'object') return r;
+  const m = r.measures as Record<string, unknown>;
+  return { ...r, measures: { ...Object.fromEntries(PROPORTIONS.map((k) => [k, null])), ...m } };
+};
+
 const earlier = (r: unknown) => {
-  const ok = Reading.safeParse(r);
+  const ok = Reading.safeParse(withProportions(r));
   return ok.success ? ok.data : null;
 };
 

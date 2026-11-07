@@ -317,6 +317,14 @@ export interface OuterChoices {
   /** How the lapels are cut (In testing): classic, wide or plunging. Older saves have none (classic). */
   lapel?: OuterLapel;
   cutawayCm?: number;
+  /** Measured off a photo (In testing; see draftOuter): the hem below the waist, the bust ease, the lapel break
+   * below the neck, the buttons and their spacing, and the shoulder point out or in, in cm. Older saves have none. */
+  dropCm?: number;
+  easeCm?: number;
+  breakCm?: number;
+  buttons?: number;
+  buttonGapCm?: number;
+  shoulderCm?: number;
 }
 
 export const DEFAULT_JACKET_CHOICES: OuterChoices = { garment: 'jacket', fit: 'regular', length: 'hip', shaping: 'darts', front: 'single', collar: 'notched', pockets: 'patch', sleeve: 'tailored', flare: 'straight', pads: 'soft', vent: 'centre', trim: 'none' };
