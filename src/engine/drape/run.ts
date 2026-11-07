@@ -108,6 +108,19 @@ export function runDrape(job: DrapeJob): DrapedLite {
       t.bendK = Math.max(t.bendK ?? 0, 0.3);
       t.thick = Math.max(t.thick ?? 0, 0.5);
       if (job.boxy) t.boxy = true;
+      // A stiff cloth that isn't crisp (a leather) holds a jacket's own shape as a crisp one does (standStiff): its own
+      // bend, about 1 for a leather, reaches the whole jacket once it passes 0.5 (Cat: "every garment type able to
+      // show stiffer fabric, including jackets", Fabric behaviour round 6). A crisp cloth, denim among them, takes the
+      // crisp path in drapeOuter already.
+      {
+        const own = c.bendK * c.skirtBend;
+        const k = knob('__outerStiffK') ?? 0.3 + Math.max(0, own - (knob('__outerStiffFrom') ?? 0.12)) * (knob('__outerStiffX') ?? 2.1);
+        // (Below that, as round 3: a heavy wool at 0.38 stretched a peak collar.)
+        if (!t.crisp && k > (knob('__outerStiffAt') ?? 0.5)) {
+          t.stiffBend = k;
+          delete t.skirtBend;
+        }
+      }
       d = drapeOuter(sp, job.draft, t);
       break;
     case 'dress':

@@ -275,6 +275,9 @@ export interface DrapeOptions {
   stretch?: number;
   /** Crisp cloth (organza, taffeta): a peplum this many times stiffer, so it stands out rather than hangs. */
   crisp?: number;
+  /** A jacket or coat in a stiff cloth (denim, leather), not crisp: bent this hard, held its own shape as a crisp one is
+   *  (STIFF_BEND at most), Fabric behaviour round 6. */
+  stiffBend?: number;
   /** An unshaped top: hangs from the bust and shoulder blades as a curtain, in a few long folds. */
   curtain?: boolean;
   /** A dress: its bodice carries the skirt's weight. */
@@ -6399,7 +6402,7 @@ export function drapeOuter(sp: Space, d: OuterDraft, o: DrapeOptions = {}): Drap
     { sleeve: shell.filter((pc) => /sleeve/i.test(pc.name)), collars: collarsOf(d.pieces).map((c) => ((d as { popped?: boolean }).popped ? { ...c, roll: undefined } : c)) },
     // A lapel that breaks high (a coat or jacket buttoned over the chest) is pressed onto the front; a plunging one,
     // breaking near the waist, is left to hang (pressing drags its long front down).
-    { pad: d.pads, stiff: !!o.crisp, lieLapel: !!d.lapel && base.front.waistCentre.y - d.lapel.breakPt.y > 10, ...o, buttons: { y: d.buttons.at, r: d.buttons.sizeCm / 2, waistY: base.front.waistCentre.y }, ...(o.crisp ? { boxy: false, bendK: STIFF_BEND } : {}), pinFront: knob("__pinAll") ? [{ y: 52, span: 12 }] : knob('__oldPins') || d.hood ? d.buttons.at.map((y) => ({ y, span: 2 })) : frontPins(d.buttons.at, shell) },
+    { pad: d.pads, stiff: !!o.crisp || !!o.stiffBend, lieLapel: !!d.lapel && base.front.waistCentre.y - d.lapel.breakPt.y > 10, ...o, buttons: { y: d.buttons.at, r: d.buttons.sizeCm / 2, waistY: base.front.waistCentre.y }, ...(o.crisp ? { boxy: false, bendK: STIFF_BEND } : o.stiffBend ? { bendK: Math.min(STIFF_BEND, o.stiffBend) } : {}), pinFront: knob("__pinAll") ? [{ y: 52, span: 12 }] : knob('__oldPins') || d.hood ? d.buttons.at.map((y) => ({ y, span: 2 })) : frontPins(d.buttons.at, shell) },
   );
   if (cs)
     for (const pnl of out.panels) {
