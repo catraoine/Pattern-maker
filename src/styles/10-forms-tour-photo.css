@@ -95,6 +95,21 @@
    before oxblood"): the film fills the space under the top bar, no fade as it opens and no box of its own, so the
    push in on the form plays straight from the tap. (The box was only there to stop iPhones painting black bars beside
    the film over the oxblood; on black there is nothing to hide.) */
+/* The pull in on play (TourPlayer): the player waits unseen while the page's form glides in to the film's form and
+   the page's words fade, then dissolves in over it (Cat, 2026-11-07: a jump on play). */
+.tour {
+  transition: opacity 0.4s ease-out;
+}
+.tour.tour-arriving {
+  opacity: 0;
+}
+.welcome.pulling .welcome-card > :not(.welcome-hero),
+.welcome.pulling .tour-play,
+body:has(.welcome.pulling) .topbar {
+  opacity: 0;
+  transition: opacity 0.4s ease-in;
+}
+
 .tour-video {
   flex: 1;
   min-height: 0;

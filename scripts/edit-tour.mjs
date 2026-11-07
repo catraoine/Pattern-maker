@@ -351,7 +351,10 @@ const INTROS = {
   // W Welcome Push (Cat, 2026-10-30: "this smooth zoom in version"): the welcome page as the viewer has just seen it,
   // its words fading as the camera pushes in on the form and it starts to turn, slowly, the title arriving over the
   // body. Recorded by record-tour-shots.mjs with TOUR_WELCOME=1 (welcome.mp4).
-  W: async () => [await piece({ shot: 'welcome', from: 0, dur: 7, fadeOut: 0.6, over: await title(), overAt: 4, overIn: 0.8 })],
+  // The film starts once the page's words have gone (1.9 s into the take): the app pulls its own page in to here and
+  // dissolves into the film (TourPlayer), so the opening carries on from whichever page the play button was on
+  // (Cat, 2026-11-07: a jump on play from the waitlist, the welcome and Carry on).
+  W: async () => [await piece({ shot: 'welcome', from: 1.9, dur: 5.1, fadeOut: 0.6, over: await title(), overAt: 2.1, overIn: 0.8 })],
   // A Title Card: the words alone, then straight on.
   A: async () => [await piece({ still: await card('', 'How it works'), dur: 2.8, fadeIn: 0.8, fadeOut: 0.5 })],
   // B Straight In: no title at all; the film opens on 01 Measure.

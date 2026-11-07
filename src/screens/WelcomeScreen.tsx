@@ -153,7 +153,7 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
   );
 
   return (
-    <div className={['welcome', formStart !== 'wait' && 'go', leaving && 'leaving', waitlist && 'waitlist-page', waitlist && curtain !== 'off' && `curtain-${curtain}`].filter(Boolean).join(' ')}>
+    <div className={['welcome', formStart !== 'wait' && 'go', leaving && 'leaving', touring && 'pulling', waitlist && 'waitlist-page', waitlist && curtain !== 'off' && `curtain-${curtain}`].filter(Boolean).join(' ')}>
       <section className="card welcome-card" aria-labelledby="wtitle">
         {leaving && pulled}
         <div className="welcome-hero" ref={hero}>
@@ -235,7 +235,8 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
           </p>
         )}
       </section>
-      {touring && <TourPlayer onClose={() => setTouring(false)} />}
+      {/* The page's own form pulls in to the film's first frames as it starts (TourPlayer), its words fading. */}
+      {touring && <TourPlayer onClose={() => setTouring(false)} from={hero.current?.querySelector<HTMLCanvasElement>('canvas.contour')} />}
     </div>
   );
 }

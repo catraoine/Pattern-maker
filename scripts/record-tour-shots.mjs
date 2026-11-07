@@ -148,6 +148,10 @@ if (process.env.TOUR_WELCOME) {
   await wp.goto(APP);
   await wp.waitForTimeout(6000);
   const rect = await wp.evaluate(() => { const c = document.querySelector('canvas.contour'); const r = c.getBoundingClientRect(); c.style.visibility = 'hidden'; return { x: r.x, y: r.y, w: r.width, h: r.height }; });
+  // On a phone the form is drawn as an iPhone's welcome draws it (its canvas 366 x 481.5 on a 390 x 844 screen), taller
+  // than this 432 x 768 page's, so the film's form is as big as the one on the page the viewer tapped play on, and the
+  // app's pull in grows into it rather than shrinking (Cat, 2026-11-07: a jump on play). TourPlayer FILM_FORM follows.
+  if (!WIDE) rect.h = rect.w * (481.5 / 366);
   await wp.waitForTimeout(300);
   const words = (await wp.screenshot()).toString('base64');
   await wp.evaluate(async ([words, rect, FW, FH]) => {
@@ -169,12 +173,14 @@ if (process.env.TOUR_WELCOME) {
     const ease = (x) => { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); };
     const cx0 = rect.x + rect.w / 2, cy0 = rect.y + rect.h / 2;
     // A second still, then the push: 1.35 times over 3 s, the form drawn to the middle of the screen as it comes.
-    // The turn eases in from a standstill at 1 s to about 12 degrees a second; the words are gone by 1.9 s.
+    // The words are gone by 1.9 s. The turn eases in from a standstill at 2.5 s to about 12 degrees a second: the film
+    // starts at 1.9 s, and the app's own page pulls in to the film's first frames (TourPlayer FILM_FORM) and dissolves
+    // into it by 2.5 s, so the form doesn't turn until the film has taken over (Cat, 2026-11-07: a jump on play).
     window.__welcomeFrame = (t) => {
       const p = ease((t - 1) / 3);
       const z = 1 + 0.35 * p;
       const cx = cx0 + (innerWidth / 2 - cx0) * p, cy = cy0 + (innerHeight / 2 - cy0) * p;
-      const rate = (12 * Math.PI) / 180, ramp = 1.6, tt = Math.max(0, t - 1);
+      const rate = (12 * Math.PI) / 180, ramp = 1.6, tt = Math.max(0, t - 2.5);
       const phi = rate * (tt < ramp ? (tt * tt) / (2 * ramp) : tt - ramp / 2);
       g.setTransform(1, 0, 0, 1, 0, 0);
       g.globalAlpha = 1;
