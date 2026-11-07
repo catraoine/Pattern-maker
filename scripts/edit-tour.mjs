@@ -360,10 +360,14 @@ const INTROS = {
   // W Welcome Push (Cat, 2026-10-30: "this smooth zoom in version"): the welcome page as the viewer has just seen it,
   // its words fading as the camera pushes in on the form and it starts to turn, slowly, the title arriving over the
   // body. Recorded by record-tour-shots.mjs with TOUR_WELCOME=1 (welcome.mp4).
-  // The film starts once the page's words have gone (1.9 s into the take): the app pulls its own page in to here and
-  // dissolves into the film (TourPlayer), so the opening carries on from whichever page the play button was on
-  // (Cat, 2026-11-07: a jump on play from the waitlist, the welcome and Carry on).
-  W: async () => [await piece({ shot: 'welcome', from: 1.9, dur: 5.1, fadeOut: 0.6, over: await title(), overAt: 2.1, overIn: 0.8 })],
+  // The film starts once the page's words have gone (1.9 s into the take), the form still at rest: the app lays it
+  // over its own page's form and dissolves in (TourPlayer), so the opening carries on from whichever page the play
+  // button was on, and the one push in starts from there (Cat, 2026-11-07).
+  // tint: the film's thin lines come out paler and whiter than the page draws them (the video's colour is kept at half
+  // size, so a hairline loses its champagne), which showed as the film took over from the page (Cat, 2026-11-07: "too
+  // white"). Measured on an iPhone: the page's lines against the film's, channel by channel. A computer's browser
+  // shows the film a little darker than an iPhone does, so the computer film is taken down only half as far.
+  W: async () => [await piece({ shot: 'welcome', from: 1.9, dur: 5.1, fadeOut: 0.6, tint: WIDE ? [0.94, 0.9, 0.8] : [0.87, 0.835, 0.75], over: await title(), overAt: 2.1, overIn: 0.8 })],
   // A Title Card: the words alone, then straight on.
   A: async () => [await piece({ still: await card('', 'How it works'), dur: 2.8, fadeIn: 0.8, fadeOut: 0.5 })],
   // B Straight In: no title at all; the film opens on 01 Measure.

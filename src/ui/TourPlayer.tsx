@@ -46,10 +46,12 @@ export function FilmWords({ id, parts }: { id: string; parts: FilmPart[] }) {
   );
 }
 
-/** The pull in on play (Cat, 2026-11-07: "a jump when you press the play button, rather than a smooth pull in").
- *  The film opens on the form alone, part way into its push in (edit-tour's W intro, 1.9 s into the welcome take).
- *  So the page the play button was on (the waitlist, the welcome or Carry on) pulls its own form in to where the
- *  film's form is, its words fading, while the film starts unseen behind it; then the film dissolves in over it.
+/** The opening on play (Cat, 2026-11-07: "start from the exact size of the welcome screen and zoom into view
+ *  consistently and smooth"). The film opens on the welcome's form at rest, with nothing moving yet (edit-tour's W
+ *  intro, 1.9 s into the welcome take, its words gone). So the player lays the film over the page with its form exactly
+ *  on the page's own (the page's words fading), dissolves in, and only then does anything move: the film's one push
+ *  in, while the film's own frame eases from the page's place back to the full screen on the film's clock. One image
+ *  throughout, so nothing changes size or colour as one form hands over to another.
  *  FILM_FORM is where the welcome take drew the form: its middle and its scale (ContourForm's welcomeLayout, S) on
  *  the page it was recorded from, in that page's pixels. Re-measure if the welcome's layout changes. */
 const FILM_FORM = {
@@ -57,23 +59,18 @@ const FILM_FORM = {
   tall: { vw: 432, vh: 768, x: 216, y: 354.38, s: 246.91 },
   wide: { vw: 1440, vh: 810, x: 501.34, y: 427, s: 302.68 },
 };
-/** The welcome take's push (record-tour-shots.mjs): eased in from 1 s to 4 s, 1.35 times, drawn to the middle. */
-const TAKE_FROM = 1.9;
-const PULL_MS = 600;
+/** The welcome take's push (record-tour-shots.mjs) runs over the film's first 3 s. */
+const PUSH_S = 3;
 const easeStep = (x: number) => {
   const c = Math.max(0, Math.min(1, x));
   return c * c * (3 - 2 * c);
 };
-/** Where the film's form is on screen, a film time t in, for a video drawn in the box r. */
-function filmForm(shape: 'tall' | 'wide', r: { left: number; top: number; width: number; height: number }, t: number) {
+/** Where the film's form is on screen at its first frame, for a video drawn in the box r. */
+function filmForm(shape: 'tall' | 'wide', r: { left: number; top: number; width: number; height: number }) {
   const f = FILM_FORM[shape];
-  const p = easeStep((TAKE_FROM + t - 1) / 3);
-  const z = 1 + 0.35 * p;
   // The film keeps its shape inside the video box (object-fit: contain).
   const k = Math.min(r.width / f.vw, r.height / f.vh);
-  const left = r.left + (r.width - f.vw * k) / 2;
-  const top = r.top + (r.height - f.vh * k) / 2;
-  return { x: left + (f.x + (f.vw / 2 - f.x) * p) * k, y: top + (f.y + (f.vh / 2 - f.y) * p) * k, s: f.s * z * k };
+  return { x: r.left + (r.width - f.vw * k) / 2 + f.x * k, y: r.top + (r.height - f.vh * k) / 2 + f.y * k, s: f.s * k };
 }
 
 export function TourPlayer({ onClose, from }: { onClose: () => void; from?: HTMLCanvasElement | null }) {
@@ -84,54 +81,44 @@ export function TourPlayer({ onClose, from }: { onClose: () => void; from?: HTML
   const film = useFilm(video);
   const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const [arriving, setArriving] = useState(() => !!from && !reduced);
-  // Read once: the pull in keeps following the film after the player is in (arriving is false by then).
-  const pulling = useRef(arriving);
+  // Read once: the film's frame keeps easing back after the player is in (arriving is false by then).
+  const laying = useRef(arriving);
 
-  // The pull in: the page's form glides and grows onto the film's own push in while the film starts, hidden, and the
-  // player dissolves in over it once the film has caught up with it. It never stops (Cat, 2026-11-07: "a jarring stall
-  // on the zoom in"; the glide used to end and wait for the film to load): the form follows the film's path on a
-  // clock of its own that slows smoothly while the film is still loading, and once the film is playing and has caught
-  // up, it follows the film's own time, so the two are in the same place as one dissolves into the other.
+  // The film laid over the page: its form on the page's form, eased back to the full frame over the film's push, on
+  // the film's own clock, so if the film is slow to load nothing moves until it plays. The player stays unseen until
+  // the film is playing, then dissolves in over the page.
   useLayoutEffect(() => {
     const v = video.current;
-    if (!pulling.current || !from || !v) return;
+    if (!laying.current || !from || !v) return;
     const c = from.getBoundingClientRect();
+    // The page's form: its middle and scale, as ContourForm's welcomeLayout draws it.
     const s0 = Math.min(c.width * 0.82, c.height * 0.46);
-    const [cx, cy] = [c.left + c.width / 2, c.top + c.height / 2];
+    const [px, py] = [c.left + c.width / 2, c.top + c.height / 2];
+    // Measured untransformed (the effect can run again, as React's checks do in development).
+    v.style.transform = '';
     const box = v.getBoundingClientRect();
-    const t0 = performance.now();
-    let last = t0;
-    let t = 0;
-    let caught = 0;
+    const g = filmForm(shape, box);
+    const k = s0 / g.s;
+    v.style.transformOrigin = `${g.x - box.left}px ${g.y - box.top}px`;
     let raf = 0;
-    const step = (now: number) => {
-      const e = (now - t0) / 1000;
-      const dt = (now - last) / 1000;
-      last = now;
-      const playing = !v.paused && v.currentTime > 0;
-      if (caught) t = v.currentTime;
-      else if ((playing && v.currentTime >= t) || e > 4) {
-        caught = now;
-        t = Math.max(t, v.currentTime);
-        setArriving(false);
-      } else t += dt * Math.exp(-e / 0.8);
-      // From the page's own place onto the film's path, eased in over the first PULL_MS.
-      const w = easeStep(e / (PULL_MS / 1000));
-      const g = filmForm(shape, box, t);
-      from.style.transform = `translate(${(g.x - cx) * w}px, ${(g.y - cy) * w}px) scale(${1 + (g.s / s0 - 1) * w})`;
-      // On until the player has fully faded in over it; the page's form then stays there, under the player.
-      if (!caught || now - caught < 600) raf = requestAnimationFrame(step);
+    const step = () => {
+      const w = 1 - easeStep(v.currentTime / PUSH_S);
+      v.style.transform = `translate(${(px - g.x) * w}px, ${(py - g.y) * w}px) scale(${1 + (k - 1) * w})`;
+      if (w > 0) raf = requestAnimationFrame(step);
+      else v.style.transform = '';
     };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
+    step();
+    const shown = () => setArriving(false);
+    v.addEventListener('playing', shown, { once: true });
+    // Never left unseen: if the film can't start (say it is blocked), the player comes in anyway.
+    const late = setTimeout(shown, 4000);
+    return () => {
+      cancelAnimationFrame(raf);
+      v.style.transform = '';
+      clearTimeout(late);
+      v.removeEventListener('playing', shown);
+    };
   }, [from, shape]);
-  // Closing the tour puts the page's form back where it was.
-  useEffect(
-    () => () => {
-      if (from) from.style.transform = '';
-    },
-    [from],
-  );
 
   useEffect(() => {
     close.current?.focus();
