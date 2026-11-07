@@ -244,14 +244,15 @@ const pages = (dur, fades) => (!WIDE && existsSync(SHEET) ? piece({ src: sheetPa
 // together so they stack in place; only the first carries the dark band.
 async function threeChecks() {
   const lines = ['Seams meet.', 'Hem sits level.', 'Before you cut.'];
-  const size = WIDE ? 54 : 40;
+  const size = WIDE ? 54 : 36;
   const pics = [];
   for (let i = 0; i < lines.length; i++) {
     const h = lines.map((l, j) => `<h1 class="t" style="font-size:${size}px;margin:0 0 10px;${j === 2 ? 'color:#efe4cc;' : ''}opacity:${j === i ? 1 : 0}">${l}</h1>`).join('');
     const band = i === 0;
     pics.push(await words(WIDE
       ? `<div class="f" style="display:flex;flex-direction:column;justify-content:center;padding-left:96px;${band ? 'background:linear-gradient(to right,rgba(0,0,0,.75) 0,rgba(0,0,0,.45) 30%,rgba(0,0,0,0) 42%)' : ''}"><div>${h}</div></div>`
-      : `<div class="f" style="display:flex;flex-direction:column;justify-content:flex-end;align-items:center;text-align:center;padding:0 28px 70px;${band ? 'background:linear-gradient(to top,rgba(0,0,0,.8) 0,rgba(0,0,0,.5) 22%,rgba(0,0,0,0) 34%)' : ''}"><div>${h}</div></div>`));
+      // On a phone the whole dress sits above them, so they are in the black under the hem, no band (Cat's C, 2026-11-07).
+      : `<div class="f" style="display:flex;flex-direction:column;justify-content:flex-end;align-items:center;text-align:center;padding:0 28px 46px"><div>${h}</div></div>`));
   }
   return pics;
 }

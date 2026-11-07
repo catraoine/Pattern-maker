@@ -673,17 +673,34 @@ const zoomTo = (from, to, ms, delay = 0) => p.evaluate(([from, to, ms, K, delay]
   const c = document.querySelector('.all-round-canvas');
   const h = (innerHeight + 96) * K;
   // Where to keep still as it grows, as a fraction of the canvas: the bodice, rising a little towards the bust.
+  // Whole dress (Cat's C, 2026-11-07: smaller and in full view): below 1 it stays whole, held at the same point, and on
+  // a phone lifted a little so the three lines sit in the black under the hem.
+  const whole = to <= 1;
   const set = (k) => {
-    const fy = 0.47 - 0.06 * ((k - from) / (to - from || 1));
-    Object.assign(c.style, { top: `${innerHeight / 2 - fy * h}px`, transformOrigin: `50% ${fy * 100}%`, transform: `scale(${k / K})` });
+    const u = (k - from) / (to - from || 1);
+    const fy = whole ? 0.47 : 0.47 - 0.06 * u;
+    const lift = whole && innerHeight > innerWidth ? 30 + 20 * u : 0;
+    Object.assign(c.style, { top: `${innerHeight / 2 - fy * h - lift}px`, transformOrigin: `50% ${fy * 100}%`, transform: `scale(${k / K})` });
   };
   const t0 = performance.now() + delay;
   const ease = (x) => x * x * (3 - 2 * x);
   const step = (now) => { const x = Math.max(0, Math.min(1, (now - t0) / (ms || 1))); set(from + (to - from) * ease(x)); x < 1 ? requestAnimationFrame(step) : done(); };
   requestAnimationFrame(step);
 }), [from, to, ms, CLOSEST, delay]);
-await zoomTo(1, 1, 0);
+// Black behind the canvas, so the page doesn't show round a dress drawn smaller than the screen.
+await p.evaluate(() => { const d = document.createElement('div'); d.id = 'round-ground'; Object.assign(d.style, { position: 'fixed', inset: 0, background: '#000000', zIndex: 9998 }); document.body.appendChild(d); });
+// On a computer the screen is short, so the whole dress can be drawn larger than on a phone and still fit.
+const [ROUND_FROM, ROUND_TO] = WIDE ? [0.66, 0.85] : [0.58, 0.75];
+await zoomTo(ROUND_FROM, ROUND_FROM, 0);
 await wait(600);
+if (process.env.TOUR_ROUND_STILLS) {
+  // Stills of the All round at a few sizes, to try a smaller, whole-figure framing (Cat, 2026-11-07).
+  for (const k of process.env.TOUR_ROUND_STILLS.split(',').map(Number)) {
+    await zoomTo(k, k, 0);
+    for (let i = 0; i < 5; i++) { await wait(2600); await p.screenshot({ path: `${OUT}/rs-${k}-${i}.png` }); }
+  }
+  process.exit(0);
+}
 if (process.env.TOUR_PROBE5) {
   // Stills of the All round moment as the film frames it: its first frame and its closest.
   await p.screenshot({ path: `${OUT}/probe5-start.png` });
@@ -693,11 +710,12 @@ if (process.env.TOUR_PROBE5) {
   process.exit(0);
 }
 // Still a moment, then in and in as it turns, frame by frame (see stepped).
-await stepped('round', 9500, () => zoomTo(1, 1.45, 8500, 400));
+await stepped('round', 9500, () => zoomTo(ROUND_FROM, ROUND_TO, 8500, 400));
 // Put the canvas back where it was.
 await p.evaluate(() => {
   const c = document.querySelector('.all-round-canvas');
   document.querySelector('.all-round')?.prepend(c);
+  document.getElementById('round-ground')?.remove();
   c.removeAttribute('style');
 });
 await wait(600);
