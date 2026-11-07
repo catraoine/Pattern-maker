@@ -367,7 +367,26 @@ export function casingSteps(e: Elastic, seam: string, waist: string, garment: st
 /** Sewing steps for the bodice: centre back zip, the neck (and, sleeveless, the armholes) bias-bound, faced or
  * lined, and set-in sleeves when it has them. */
 export function bodiceGuide(draft: BodiceDraft, style: { length: BodiceLength }, fabricM: number, bindingM: number, finish: BodiceFinish = {}): SewingGuide {
-  return withSleeveCut(bodiceSteps(draft, style, fabricM, bindingM, finish), finish.sleeve, finish.seams);
+  return withSleeveCut(withPlungeTape(bodiceSteps(draft, style, fabricM, bindingM, finish), draft), finish.sleeve, finish.seams);
+}
+
+/**
+ * A plunge's edges stay-taped before the neckline is finished, so the bias of the V can't stretch and gape open over
+ * the bust (fit rule 53). All round draws it taped; the sewist is told to tape it too (Nov 7 audit, Cat).
+ */
+function withPlungeTape(g: SewingGuide, draft: BodiceDraft): SewingGuide {
+  const front = draft.pieces.find((pc) => !pc.kind && /front/i.test(pc.name));
+  if (!front?.meta.plungeTape) return g;
+  const toWaist = !!front.meta.narrowPlunge;
+  const step = {
+    title: 'Tape the plunge',
+    text: `Before the neckline is finished, sew a strip of narrow stay tape along each side of the plunge, on the wrong side, just inside the seam line, from the shoulder down to the point of the V. Lay the tape flat without stretching it, and ease the cloth onto it very slightly as you go${toWaist ? ', most of all over the bust' : ''}: the tape holds the bias edge to its cut length, so the V lies close to the body instead of gaping open.`,
+  };
+  // Taped while the front is still flat: before the shoulders are joined, else before the neckline is finished.
+  const shoulders = g.steps.findIndex((st) => /^Sew the (shoulders|overarm)/.test(st.title));
+  const at = shoulders >= 0 ? shoulders : g.steps.findIndex((st) => /^(Bind|Face|Line) the (neckline|bodice)/.test(st.title));
+  const steps = at < 0 ? [...g.steps, step] : [...g.steps.slice(0, at), step, ...g.steps.slice(at)];
+  return { ...g, notions: [...g.notions.slice(0, -1), `${toWaist ? '1.2' : '0.8'} m of narrow stay tape, for the plunge`, ...g.notions.slice(-1)], steps };
 }
 
 function bodiceSteps(draft: BodiceDraft, _style: { length: BodiceLength }, fabricM: number, bindingM: number, finish: BodiceFinish = {}): SewingGuide {
@@ -643,7 +662,7 @@ function sleeveCutWords(sleeve: SleeveDraft | undefined): string {
  * across the waist seam, and the side seams sewn in one from the underarm to the hem.
  */
 export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; length: Length } & Partial<VolumeStyle>, fabricM: number, bindingM: number, finish: BodiceFinish = {}): SewingGuide {
-  return withSleeveCut(withBackNeck(dressSteps(draft, style, fabricM, bindingM, finish), backNeckOfDraft(draft.bodice)), finish.sleeve, finish.seams);
+  return withSleeveCut(withPlungeTape(withBackNeck(dressSteps(draft, style, fabricM, bindingM, finish), backNeckOfDraft(draft.bodice)), draft.bodice), finish.sleeve, finish.seams);
 }
 
 /** A bodice's back detail, from its back piece. */

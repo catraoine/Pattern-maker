@@ -1266,7 +1266,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     allowances: { neck: s.neckArmholeAllowance, armhole: s.neckArmholeAllowance, fold: 0, hem: s.hemAllowance },
     // A V neck comes to a point at the centre front on purpose. A plunge to the waist is a narrow V the drape leaves to
     // settle (see the stay-tape pass in drape/garment.ts).
-    meta: { ...(pointed ? { pointedAtCentre: ['neck'] } : {}), ...(plunge && s.plungeDepth === 'waist' ? { narrowPlunge: true } : {}) },
+    meta: { ...(pointed ? { pointedAtCentre: ['neck'] } : {}), ...(plunge && s.plungeDepth === 'waist' ? { narrowPlunge: true } : {}), ...(plunge ? { plungeTape: true } : {}) },
   };
 
   // ---- shaped hem ---------------------------------------------------------

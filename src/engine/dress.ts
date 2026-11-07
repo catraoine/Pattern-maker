@@ -218,7 +218,9 @@ function noSeamDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyle>, sk
   const pieces = ruche
     ? named.map((pc) => (pc.kind ? pc : spread(pc, (/back/i.test(pc.name) ? bodice.back : bodice.front).waistCentre.y + ruche.from, ruche.extra)))
     : named;
-  const skirt = ruche ? { ...drafted, ruche: { ...ruche, plain: [] } } : drafted;
+  // The hem is the dress's own (a shift flares out to it), not the uncut skirt's straight hem (Nov 7 audit).
+  const hemmed = bodice.finishedHem !== undefined ? { ...drafted, hemCm: bodice.finishedHem } : drafted;
+  const skirt = ruche ? { ...hemmed, ruche: { ...ruche, plain: [] } } : hemmed;
   const cbWaist = bodice.back.waistCentre.y;
   const zipBelow = Math.round((bodice.back.zipEnd.y - cbWaist) * 10) / 10;
   const bf = pieces.find((pc) => !pc.kind && /front/i.test(pc.name));

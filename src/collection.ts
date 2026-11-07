@@ -120,10 +120,10 @@ export const COLLECTION: HouseLook[] = [
     id: 'ice-peplum',
     number: 5,
     name: 'Ice Peplum Top',
-    line: 'Sheer ice blue, ruffled at the neck and the cuffs, with bishop sleeves and a big flared peplum from a lowered waist.',
+    line: 'Sheer ice blue, ruffled at the neck, with bishop sleeves and a big flared peplum from a lowered waist.',
     fabric: 'Ice sheer silk organza',
     garment: 'bodice',
-    choices: bodice({ fit: 'fitted', neckline: 'crew', collar: 'ruffle', sleeve: 'long', sleeveShape: 'bishop', sleeveCuff: 'ruffle', length: 'waist', dropCm: 6, peplum: 'flared', peplumSize: 'big' }),
+    choices: bodice({ fit: 'fitted', neckline: 'crew', collar: 'ruffle', sleeve: 'long', sleeveShape: 'bishop', length: 'waist', dropCm: 6, peplum: 'flared', peplumSize: 'big' }),
   },
   {
     id: 'lilac-lace',

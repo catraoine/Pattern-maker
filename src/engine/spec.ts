@@ -144,7 +144,8 @@ export function sleeveSpec(m: SleeveMeasurements, s: SleeveDraft): SpecRow[] {
 export function dressSpec(m: DressMeasurements, d: DressDraft, sleeve?: SleeveDraft): SpecRow[] {
   const zip = /zip/i;
   return [
-    ...bodiceSpec(m, d.bodice, 'waist').filter((r) => !zip.test(r.label)),
+    // The bodice's own hem row is left out: on a dress it is the waist seam or, with no seam, the dress's hem, each given below.
+    ...bodiceSpec(m, d.bodice, 'waist').filter((r) => !zip.test(r.label) && !/\(hem\)$/.test(r.label)),
     ...skirtSpec(m, d.skirt).filter((r) => r.label !== 'Waist' && !zip.test(r.label) && !/Waistband/.test(r.label)),
     ...(d.seamCm ? [{ label: d.seamDrop > 0 ? `Waist seam, ${d.seamDrop} cm below the waist` : `Waist seam, ${-d.seamDrop} cm above the waist`, finished: d.seamCm }] : []),
     row('Length, nape to hem', undefined, d.lengthCm),
