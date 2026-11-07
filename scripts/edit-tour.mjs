@@ -173,8 +173,8 @@ function tapeAcross(t) {
   return out;
 }
 const MARKS = WIDE
-  ? { fabric: 1.4, enlarge: 6.7, draw: 8.6, hem: 11.1, side: 16.2, done: 20.1 }
-  : { fabric: 1.4, enlarge: 6.9, draw: 6.9, hem: 9.3, side: 14.4, done: 18.3 };
+  ? { fabric: 1.4, enlarge: 5.0, draw: 6.9, hem: 9.4, side: 14.5, done: 18.4 }
+  : { fabric: 1.4, enlarge: 4.0, draw: 4.0, hem: 6.4, side: 11.6, done: 15.5 };
 // Played at 1.4 times its speed, however long the take (Cat, 2026-11-01: less time on the dress page, no enlarge).
 // Ends as Done is tapped, on the drawing: Shop the fabric follows, not the pattern sheet (Cat, 2026-11-02).
 const JOURNEY = { from: 0.6, to: MARKS.done - 0.2, dur: Math.round(((MARKS.done + 0.3) / 1.4) * 10) / 10 };
@@ -192,7 +192,7 @@ const STYLE_CAM = (WIDE
 // Except over just the form as it is drawn on (Cat's W3, 2026-11-07): "Draw on your form." from the draw, and "The
 // pattern follows." fading in under it as the hem is drawn. Each [lines, from, to] in shot time.
 const STYLE_NOTES = [];
-const DRAW_NOTES = [[['Draw on your form.'], MARKS.draw + 0.9, MARKS.done - 0.2], [['Draw on your form.', 'The pattern follows.'], MARKS.hem + 2.5, MARKS.done - 0.2]];
+const DRAW_NOTES = [[['Draw on your form.'], MARKS.draw + 0.9, MARKS.done - 1.6], [['Draw on your form.', 'The pattern follows.'], MARKS.hem + 2.5, MARKS.done - 1.6]];
 const note2 = (lines) => words(WIDE
   ? `<div class="f" style="padding:44px 0 0 96px"><h1 class="n" style="font-size:34px">${lines.join('<br>')}</h1></div>`
   : `<div class="f" style="padding:38px 0 0 22px"><h1 class="n" style="font-size:29px">${lines.join('<br>')}</h1></div>`);
