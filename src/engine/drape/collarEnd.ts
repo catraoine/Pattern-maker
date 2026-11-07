@@ -78,11 +78,11 @@ type Cloth = { base: number; mesh: { pts: P[]; tris: [number, number, number][];
 /** The collar's outer edge, laid as above, follows the chest's own curve and wanders; pressed, a stiff collar's edge
  *  runs dead straight from where it leaves the shoulder to its point (Cat: "this should be straight", 2026-11-07). Each
  *  point of that edge goes onto the straight line between the two, seen from the front, the fall inside it following
- *  in part, everything kept just off the front it lies on. Moves `res`. */
-export function straightenCollarEdge(collar: Cloth, front: Cloth, o: CollarOnFront, res: Float64Array | number[]): void {
+ *  in part. Moves `res`; returns the edge points it placed. */
+export function straightenCollarEdge(collar: Cloth, o: CollarOnFront, res: Float64Array | number[]): number[] {
   const pts = collar.mesh.pts;
   const run = (collar.mesh.runs.collar ?? []).flat();
-  if (run.length < 4) return;
+  if (run.length < 4) return [];
   // The point: the edge's farthest out along the collar. The outer edge runs from it back towards centre back.
   let c = 0;
   for (let k = 1; k < run.length; k++) if (pts[run[k]].x > pts[run[c]].x) c = k;
@@ -92,38 +92,27 @@ export function straightenCollarEdge(collar: Cloth, front: Cloth, o: CollarOnFro
   const w = edge.map((i) => collarOnFront(pts[i], o).w);
   let a = 0;
   while (a + 1 < edge.length && w[a + 1] > 0.99) a++;
-  if (a < 2) return;
+  if (a < 2) return [];
   const X = (i: number) => (collar.base + i) * 3;
   const A = [res[X(edge[a])], res[X(edge[a]) + 1]];
   const C = [res[X(edge[0])], res[X(edge[0]) + 1]];
   const L = Math.hypot(A[0] - C[0], A[1] - C[1]) || 1;
   const u = [(A[0] - C[0]) / L, (A[1] - C[1]) / L];
-  // How far out the front lies at a place seen from the front (its own cloth, not the lapel turned over it).
-  const frontZ = (x: number, y: number): number | undefined => {
-    for (const [i, j, k] of front.mesh.tris) {
-      if (front.turned[i] || front.turned[j] || front.turned[k]) continue;
-      const I = (front.base + i) * 3, J = (front.base + j) * 3, K = (front.base + k) * 3;
-      if (res[I + 2] <= 0 || res[J + 2] <= 0 || res[K + 2] <= 0) continue;
-      const det = (res[J + 1] - res[K + 1]) * (res[I] - res[K]) + (res[K] - res[J]) * (res[I + 1] - res[K + 1]);
-      if (Math.abs(det) < 1e-9) continue;
-      const l1 = ((res[J + 1] - res[K + 1]) * (x - res[K]) + (res[K] - res[J]) * (y - res[K + 1])) / det;
-      const l2 = ((res[K + 1] - res[I + 1]) * (x - res[K]) + (res[I] - res[K]) * (y - res[K + 1])) / det;
-      const l3 = 1 - l1 - l2;
-      if (l1 < -1e-6 || l2 < -1e-6 || l3 < -1e-6) continue;
-      return res[I + 2] * l1 + res[J + 2] * l2 + res[K + 2] * l3;
-    }
-    return undefined;
-  };
   // Each edge point's move onto the line (fading out past the shoulder end).
   const moves: { q: P; d: [number, number] }[] = [];
+  // (Spaced along the line as they were along the edge, so no stretch of it is pulled longer than it was cut.)
+  const arc = [0];
+  for (let k = 1; k <= a; k++) arc.push(arc[k - 1] + Math.hypot(res[X(edge[k])] - res[X(edge[k - 1])], res[X(edge[k]) + 1] - res[X(edge[k - 1]) + 1]));
+  const scale = arc[a] > 0 ? L / arc[a] : 1;
   edge.forEach((i, k) => {
     const I = X(i);
     const v = [res[I] - C[0], res[I + 1] - C[1]];
-    const t = Math.min(L, Math.max(0, v[0] * u[0] + v[1] * u[1]));
+    const t = k <= a ? arc[k] * scale : Math.min(L, Math.max(0, v[0] * u[0] + v[1] * u[1]));
     const f = k <= a ? 1 : Math.max(0, 1 - (k - a) / 4);
     if (f <= 0) return;
     moves.push({ q: pts[i], d: [(C[0] + u[0] * t - res[I]) * f, (C[1] + u[1] * t - res[I + 1]) * f] });
   });
+  const neck = [...(collar.mesh.runs.neck ?? []), ...(collar.mesh.runs.gorge ?? [])].flat();
   // The fall inside follows its nearest stretch of edge, less the further in it is, so it doesn't fold at the edge.
   const R = 2.5;
   pts.forEach((q, i) => {
@@ -141,15 +130,16 @@ export function straightenCollarEdge(collar: Cloth, front: Cloth, o: CollarOnFro
       dy += m.d[1] * g;
     }
     if (!s || best > 2 * R) return;
-    const f = Math.max(0, 1 - best / (2 * R));
+    // (Nor near its seams to the neck and the gorge: moved there, the cloth sewn to them stretched.)
+    let dn = Infinity;
+    for (const j of neck) dn = Math.min(dn, Math.hypot(pts[j].x - q.x, pts[j].y - q.y));
+    const f = Math.max(0, 1 - best / (2 * R)) * Math.min(1, Math.max(0, (dn - 3) / 3));
     const I = X(i);
-    const z0 = frontZ(res[I], res[I + 1]);
-    const x = res[I] + (dx / s) * f;
-    const y = res[I + 1] + (dy / s) * f;
-    const z1 = frontZ(x, y);
-    res[I] = x;
-    res[I + 1] = y;
-    // (Kept as far off the front as it was.)
-    if (z0 !== undefined && z1 !== undefined) res[I + 2] += z1 - z0;
+    // (Moved only across the view, a centimetre or so: how far out it lies stays as laid. Fitting it to the front's
+    // depth at its new place stretched it where that depth jumps from the lapel to the chest.)
+    res[I] += (dx / s) * f;
+    res[I + 1] += (dy / s) * f;
   });
+  // (The edge points it put on the line, for the caller to hold while the cloth inside eases back to its cut.)
+  return edge.slice(0, a + 1);
 }

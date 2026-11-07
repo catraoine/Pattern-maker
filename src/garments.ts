@@ -344,6 +344,12 @@ export interface OuterChoices {
   buttons?: number;
   buttonGapCm?: number;
   shoulderCm?: number;
+  /** The buttons' size across in cm, and which way the buttonholes run, measured off a photo (In testing). Older
+   * saves have none (the garment's own). */
+  buttonSizeCm?: number;
+  buttonholes?: 'horizontal' | 'vertical';
+  /** A seam across the chest, cm below the centre front neck (In testing). Older saves have none. */
+  yokeCm?: number;
   /** A welt pocket on the left chest (In testing). Older saves have none. */
   chest?: ChestPocket;
 }

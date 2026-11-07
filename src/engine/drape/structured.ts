@@ -192,13 +192,25 @@ function layFrontEdges(body: Panel[], res: Float64Array | number[]): void {
       }
       return sw > 1e-6 ? s / sw : undefined;
     };
-    // (Only below the lapel's break, coming in over a few cm there, as above it the fronts turn back open.)
-    const breakY = Math.max(-Infinity, ...pts.filter((_, i) => p.turned[i]).map((q) => q.y));
+    // (Only below the lapel's break, as above it the fronts turn back open; coming in within a couple of cm of it, as
+    // over a longer way the two front edges, mirrored, crossed and parted again round the top button in an eye shape:
+    // Cat, 2026-11-07.)
+    // (The break: where the lapel's edge ends. The cloth marked turned can run on below it along the extension.)
+    const lapelEdge = (p.mesh.runs.lapel ?? []).flat();
+    const breakY = Math.max(-Infinity, ...(lapelEdge.length ? lapelEdge : pts.map((_, i) => i).filter((i) => p.turned[i])).map((i) => pts[i].y));
     const moves: [number, number, number][] = [];
+    // (The lapel's own foot, just above the break, is drawn in to the centre with it, so the two lapels, mirrored, meet in
+    // one V at the top button instead of crossing in a little diamond round it.)
+    const foot = knob('__layFoot') ?? 6;
     pts.forEach((q, i) => {
-      if (p.turned[i] || q.x >= W) return;
+      if (p.turned[i] && q.y <= breakY && foot > 0) {
+        const f = Math.max(0, 1 - (breakY - q.y) / foot);
+        if (f > 0) moves.push([(p.base + i) * 3, res[(p.base + i) * 3] * (1 - f * f * (3 - 2 * f)), res[(p.base + i) * 3 + 2]]);
+        return;
+      }
+      if ((p.turned[i] && q.y <= breakY) || q.x >= W) return;
       const I = (p.base + i) * 3;
-      const b = Math.min(1, Math.max(0, (q.y - breakY - 1) / 5));
+      const b = Math.min(1, Math.max(0, (q.y - breakY) / (knob('__layIn') ?? 0.8)));
       const fb = b * b * (3 - 2 * b);
       if (!fb) return;
       const t = Math.max(0, (q.x - 0.9) / (W - 0.9));
@@ -295,6 +307,11 @@ export function pressCollar(panels: Panel[], res: Float64Array | number[], relax
     }
   }
   // (And a high lapel's long collar end pressed to a straight edge, collarEnd.ts.)
-  const front = panels.find((p) => p.role === 'front' && !p.hidden && p.turned.some(Boolean));
-  for (const p of collars) if (front && p.pc.meta.onFront && !knob('__noStraightCollar')) straightenCollarEdge(p, front, p.pc.meta.onFront as CollarOnFront, res);
+  for (const p of collars) {
+    if (!p.pc.meta.onFront || knob('__noStraightCollar')) continue;
+    const edge = straightenCollarEdge(p, p.pc.meta.onFront as CollarOnFront, res);
+    // (Then the cloth inside eased back to its cut, the straight edge and the seams held, so it isn't stretched there.)
+    const sewn = new Set([...(p.mesh.runs.neck ?? []), ...(p.mesh.runs.gorge ?? [])].flat());
+    if (edge.length && !knob('__noStraightRelax')) relax(p, [...p.mesh.pts.map((_, i) => i).filter((i) => !p.turned[i] || sewn.has(i)), ...edge]);
+  }
 }

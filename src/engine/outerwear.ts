@@ -4,6 +4,7 @@
 // extension for single or double-breasted buttons, and a notched lapel with its collar, a stand
 // collar or a plain collarless edge. Facings, a full lining and patch pockets are cut from the
 // pieces as drafted, and the sleeve is drafted to the armhole with jacket or coat ease.
+import { CHEST_SEAM_RANGE, chestSeam } from './chestSeam';
 import { P, Path, add, len, lerp, mul, p, sub, taggedLength, unit } from './geometry';
 import type { Piece } from './piece';
 import { BUST_EASE_RANGE, BodiceDraft, BodiceFitting, BodiceMeasurements, BodiceStyle, OVERSIZED, blockOf, draftBodice } from './bodice';
@@ -80,6 +81,11 @@ interface OuterStyle {
   buttons?: number;
   buttonGapCm?: number;
   shoulderCm?: number;
+  /** The buttons' size across, and which way the buttonholes run, as a photo shows them (In testing). */
+  buttonSizeCm?: number;
+  buttonholes?: 'horizontal' | 'vertical';
+  /** A seam straight across the chest, front and back, this far below the centre front neck (In testing). */
+  yokeCm?: number;
   seamAllowance: number;
   hemAllowance: number;
   fitting?: BodiceFitting;
@@ -170,10 +176,13 @@ export interface OuterDraft {
   sleeveless?: true;
   /** Every piece, in print order: the shell, the collar, the facings and pockets, then the lining. */
   pieces: Piece[];
+  /** With a chest seam: the front and back before they were cut across it (the cloth drapes as sewn), and the seam's
+   *  height on each. */
+  chestSeam?: { whole: [Piece, Piece]; front: number; back: number };
   /** The front and back as sewn, closed at the centre front and down to the hem: for the flat and the ease map. */
   block: [Piece, Piece];
   ext: number;
-  buttons: { at: number[]; sizeCm: number; columns: number[] };
+  buttons: { at: number[]; sizeCm: number; columns: number[]; holes?: 'horizontal' | 'vertical' };
   /** Buttoned left over right, as menswear is; right over left when missing. */
   lapsLeft?: boolean;
   lapel?: Lapel;
@@ -665,7 +674,8 @@ function openFront(pc: Piece, s: OuterStyle, ext: number, buttons: OuterDraft['b
   labels.push({ at: p(0.7, (neckCF.y + foot.y) / 2 + 8), text: 'CENTRE FRONT', size: 0.6, rotate: 90 });
   // Buttonholes on the right front, keyhole end toward the edge, at the outer column; a zip front has none.
   const hx = buttons.columns[0];
-  for (const y of buttons.at) lines.push(new Path(p(hx - 0.3, y)).line(p(hx - 0.3 + buttons.sizeCm + 0.3, y)));
+  // (Or down the centre front, from just above the button, where a photo shows them running that way.)
+  for (const y of buttons.at) lines.push(buttons.holes === 'vertical' ? new Path(p(hx, y - 0.3)).line(p(hx, y + buttons.sizeCm)) : new Path(p(hx - 0.3, y)).line(p(hx - 0.3 + buttons.sizeCm + 0.3, y)));
   if (buttons.columns.length > 1)
     for (const y of buttons.at) {
       const bx = buttons.columns[1];
@@ -994,16 +1004,16 @@ const plunges = (s: Pick<OuterStyle, 'lapel' | 'collar' | 'front'>) => s.lapel =
 // (The collar is the big piece: from the notch, a small tight nick 2 cm in from the roll line, its outer edge runs 9.5 cm
 // out to a point aiming down and out, 25 degrees below the lapel's line, and the 6 cm lapel tucks in under it, its point
 // level with the notch, as Cat drew it over her SS27 vest picture and asked "a touch bigger for more drama", 2026-11-07.)
-const HIGH_LAPEL = { breakBelowNeck: 17, gorge: 0.37, width: 6, notch: -2, collarAngle: -25, collarLength: 9.5, pointDrop: 0, buttons: 3, gap: 14 };
+const HIGH_LAPEL = { breakBelowNeck: 17, gorge: 0.37, width: 6, notch: -2, collarAngle: -25, collarLength: 6.2, pointDrop: 0, buttons: 3, gap: 14, buttonSize: 3 };
 const highLapel = (s: Pick<OuterStyle, 'lapel' | 'collar'>) => s.lapel === 'high' && lapelled(s.collar);
 
 /** Buttons down the front: from the break point (or just below the neck) to above the hem, about 10 cm apart. */
 function buttonsFor(s: OuterStyle, ext: number, first: number, last: number): OuterDraft['buttons'] {
-  const size = OUTER_BUTTON[s.kind];
+  // (A high lapel, single-breasted, has its own few big buttons well apart unless the photo measured them.)
+  const high = highLapel(s) && s.front === 'single';
+  const size = s.buttonSizeCm !== undefined && Number.isFinite(s.buttonSizeCm) ? Math.min(4, Math.max(1, s.buttonSizeCm)) : high ? HIGH_LAPEL.buttonSize : OUTER_BUTTON[s.kind];
   if (s.front === 'zip') return { at: [], sizeCm: size, columns: [0] };
   const minCount = s.front === 'double' ? 2 : 1;
-  // (A high lapel, single-breasted, has its own few buttons well apart unless the photo measured them.)
-  const high = highLapel(s) && s.front === 'single';
   const nButtons = s.buttons ?? (high ? HIGH_LAPEL.buttons : undefined);
   const nGap = s.buttonGapCm ?? (high ? HIGH_LAPEL.gap : undefined);
   const given = nButtons !== undefined && Number.isFinite(nButtons) ? Math.round(Math.min(8, Math.max(minCount, nButtons))) : undefined;
@@ -1015,7 +1025,7 @@ function buttonsFor(s: OuterStyle, ext: number, first: number, last: number): Ou
   const at = Array.from({ length: count }, (_, i) => r1(first + (count > 1 ? (span * i) / (count - 1) : 0)));
   const inset = size / 2 + 1.5;
   const columns = s.front === 'double' ? [-(ext - inset), ext - inset] : [0];
-  return { at, sizeCm: size, columns };
+  return { at, sizeCm: size, columns, ...(s.buttonholes === 'vertical' ? { holes: 'vertical' as const } : {}) };
 }
 
 /**
@@ -1202,7 +1212,10 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
   const lastY = s.kind === 'coat' ? Math.min(foot - 15, waistY + (m.waist_to_hip ?? 20) + 12) : foot - (length === 'cropped' ? 3.5 : 9);
   // A cutaway front curves back from below the last button, so the buttons stop above it.
   const cutTop = s.cutawayCm ? foot - Math.min(s.cutawayCm, foot - breakY - 18) - 4 - OUTER_BUTTON[s.kind] / 2 : Infinity;
-  const buttons = buttonsFor(s, ext, breakY, Math.max(breakY + 12, Math.min(lastY, cutTop)));
+  // (Under a chest seam the first button sits just below it, as in Cat's SS27 vest picture.)
+  const seamY = s.yokeCm !== undefined && Number.isFinite(s.yokeCm) ? neckY + Math.min(CHEST_SEAM_RANGE.max, Math.max(CHEST_SEAM_RANGE.min, s.yokeCm)) : undefined;
+  const firstButton = seamY !== undefined && seamY + 2 > breakY && seamY < breakY + 8 ? seamY + 2 : breakY;
+  const buttons = buttonsFor(s, ext, firstButton, Math.max(firstButton + 12, Math.min(lastY, cutTop)));
 
   const fronts: Piece[] = [];
   const facings: Piece[] = [];
@@ -1355,7 +1368,10 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
   const shellHem = r1(2 * shell.reduce((t, pc) => t + taggedLength(pc.outline, 'hem'), 0));
   // The rib bands: one hem band cut on the fold, and a cuff for each sleeve.
   const bands = rib ? [ribBand('Hem band', shellHem, RIB.hem, sa, 'Cut 1 on fold', true), ...(bare ? [] : [ribBand('Cuff band', sleeve.hemCm / RIB.draw, RIB.cuff, sa, 'Cut 2', false)])] : [];
-  const pieces = [...fronts, ...backs, ...(bare ? [] : sleevePieces), ...collar, ...bands, ...facings, ...pocketPieces, ...linings, ...(bare ? [] : sleeveLining)];
+  // A seam across the chest (In testing): the front and back each cut in two along it.
+  const yoke = seamY !== undefined && fronts.length === 1 && backs.length === 1 ? chestSeam(fronts[0], backs[0], seamY) : undefined;
+  const shellParts = yoke ? yoke.pieces : [...fronts, ...backs];
+  const pieces = [...shellParts, ...(bare ? [] : sleevePieces), ...collar, ...bands, ...facings, ...pocketPieces, ...linings, ...(bare ? [] : sleeveLining)];
   const finishedHem = rib ? r1(shellHem * RIB.draw) : shellHem;
   const cbTop = backPiece.outline.points(4).filter((q) => Math.abs(q.x) < 1e-6).reduce((mn, q) => Math.min(mn, q.y), Infinity);
   const cbFoot = backPiece.outline.points(4).filter((q) => Math.abs(q.x) < 1e-6).reduce((mx, q) => Math.max(mx, q.y), -Infinity);
@@ -1365,6 +1381,7 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     sleeve,
     ...(bare ? { sleeveless: true as const } : {}),
     pieces,
+    ...(yoke ? { chestSeam: { whole: [fronts[0], backs[0]] as [Piece, Piece], front: yoke.front, back: yoke.back } } : {}),
     block,
     ext,
     buttons,

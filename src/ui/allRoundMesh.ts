@@ -622,6 +622,23 @@ function buildDraped(
   }
   for (const b of d.buttons) {
     const q = toForm(b.at[0], b.at[1], b.at[2] + LIFT);
+    // Its buttonhole, bound in a dark edge, running from under the button across into the front that laps over (or
+    // down it): drawn once, on the one front, as a thin dark slot lying on the cloth.
+    if (b.hole) {
+      const a0 = toForm(b.at[0], b.at[1], b.at[2] + LIFT - 0.35);
+      const a1 = toForm(b.at[0] + b.hole[0], b.at[1] + b.hole[1], b.at[2] + LIFT - 0.35);
+      const dx = a1[0] - a0[0];
+      const dy = a1[1] - a0[1];
+      const L = Math.hypot(dx, dy);
+      const w = Math.hypot(...(toForm(0, 0.6, 0).map((v, k) => v - toForm(0, 0, 0)[k]) as V3));
+      const g = new THREE.BoxGeometry(L, w, w * 0.3);
+      g.setAttribute('shade', new THREE.Float32BufferAttribute(new Float32Array(g.getAttribute('position').count), 1));
+      g.rotateZ(Math.atan2(dy, dx));
+      g.translate((a0[0] + a1[0]) / 2, (a0[1] + a1[1]) / 2, (a0[2] + a1[2]) / 2);
+      const m = material('matte');
+      m.color.set(0x0b0908);
+      add(g, m, 2, 'cloth');
+    }
     // Small, self-coloured buttons: the cloth's own colour, a touch paler, with a little sheen (a quiet dark horn where
     // there is no plain colour to match).
     const g = new THREE.SphereGeometry(b.r / 30, 16, 8);

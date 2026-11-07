@@ -55,7 +55,8 @@ export interface Draped {
   pos: Float64Array;
   /** Seams to draw: runs of points, by kind. */
   lines: { kind: string; ids: number[] }[];
-  buttons: { at: V3; r: number }[];
+  /** Buttons, each with its buttonhole running from it (cm across and down), where there is one. */
+  buttons: { at: V3; r: number; hole?: [number, number] }[];
   /** How much each point lies in shadow its mesh is too coarse to cast (inside a pressed pleat), 0 to 1. */
   shade?: Float32Array;
   /** The seams as sewn: point i on the line between j and k, a share t along it (for the quality check). */
@@ -234,6 +235,8 @@ interface TorsoPiece {
   back: boolean;
   waistY: number;
   folds?: [P, P][];
+  /** Lines the cloth's mesh runs along without turning there: a seam drawn across a piece draped whole. */
+  creases?: [P, P][];
 }
 
 export interface DrapeOptions {
@@ -246,7 +249,7 @@ export interface DrapeOptions {
   thick?: number;
   bendK?: number;
   /** Buttons at these levels (cm in the front's own frame), at the centre front. */
-  buttons?: { y: number[]; r: number; waistY: number };
+  buttons?: { y: number[]; r: number; waistY: number; holes?: 'horizontal' | 'vertical' };
   pad?: number;
   /** A front closed all the way down (buttons, a shirt): its centre front held on the centre plane. */
   closedFront?: boolean;
@@ -807,6 +810,8 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
       },
       thick,
       t.folds ?? [],
+      undefined,
+      t.creases ?? [],
     );
     (t.back ? back : front).push(p);
   }
@@ -3986,10 +3991,12 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
         }
       }
   }
-  // Stiff cloth stands away from the body below the underarm (structured.ts).
-  if ((o.stiff && !knob('__noStiff')) || knob('__stiff')) standStiff(B.panels, res);
   // A buttoned jacket's roll line is taped and its lapels pressed (rollLine.ts), before its collar is laid on.
   if (o.pinFront?.length && !o.rollFront && !knob('__noBridle')) tapeRollLines(B.panels, res, sp);
+  // Stiff cloth stands away from the body below the underarm (structured.ts): after the roll line is taped, which
+  // otherwise carries the front edge back out below the break, where the two mirrored edges then crossed round the top
+  // button in an eye shape (Cat, 2026-11-07).
+  if ((o.stiff && !knob('__noStiff')) || knob('__stiff')) standStiff(B.panels, res);
   // A jacket's or coat's collar fall is pressed down onto the back it turns over (its stand alone can't hold it
   // there in the sim), so no gap opens between the collar and the back neck.
   const collarOnly = !knob("__lay") && !!o.pinFront?.length && !o.rollFront;
@@ -5691,7 +5698,8 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
           best = i + f0.base;
         }
       });
-      if (best >= 0) buttons.push({ at: [0, res[best * 3 + 1], res[best * 3 + 2] + 0.4], r: o.buttons.r });
+      // (Its buttonhole beside it, on the front that laps over: across into the front, or down the centre front.)
+      if (best >= 0) buttons.push({ at: [0, res[best * 3 + 1], res[best * 3 + 2] + 0.4], r: o.buttons.r, hole: o.buttons.holes === 'vertical' ? [0, 2 * o.buttons.r + 0.3] : [-(2 * o.buttons.r + 0.3), 0] });
     }
   }
   setKnob("__seams", seams);
@@ -6355,23 +6363,38 @@ export function drapeSkirt(sp: Space, d: SkirtDraft, o: DrapeOptions = {}): Drap
 
 export function drapeOuter(sp: Space, d: OuterDraft, o: DrapeOptions = {}): Draped {
   const base = d.base as unknown as { front: { waistCentre: P }; back: { waistCentre: P } };
-  const shell = d.pieces.filter(isShell);
+  // (A front and back cut across by a chest seam drape whole, as sewn, the seam drawn across them.)
+  const cs = d.chestSeam;
+  const shell = cs ? [...cs.whole, ...d.pieces.filter((pc) => isShell(pc) && !pc.meta.chestPart)] : d.pieces.filter(isShell);
   const roll = d.lapel?.roll as [P, P] | undefined;
+  const seamAt = (pc: Piece) => (cs ? (pc === cs.whole[0] ? cs.front : pc === cs.whole[1] ? cs.back : undefined) : undefined);
   const torso = shell
     .filter((pc) => !/sleeve/i.test(pc.name))
-    .map((pc) => ({
-      pc,
-      back: /back/i.test(pc.name),
-      waistY: /back/i.test(pc.name) ? base.back.waistCentre.y : base.front.waistCentre.y,
-      folds: roll && /front/i.test(pc.name) && !/side/i.test(pc.name) ? [roll] : undefined,
-    }));
-  return drape(
+    .map((pc) => {
+      const Y = seamAt(pc);
+      return {
+        pc,
+        back: /back/i.test(pc.name),
+        waistY: /back/i.test(pc.name) ? base.back.waistCentre.y : base.front.waistCentre.y,
+        folds: roll && /front/i.test(pc.name) && !/side/i.test(pc.name) ? [roll] : undefined,
+        ...(Y !== undefined ? { creases: [[{ x: -100, y: Y }, { x: 100, y: Y }]] as [P, P][] } : {}),
+      };
+    });
+  const out = drape(
     sp,
     torso,
     // A popped collar is not rolled down: it stands up round the neck from its stand.
     { sleeve: shell.filter((pc) => /sleeve/i.test(pc.name)), collars: collarsOf(d.pieces).map((c) => ((d as { popped?: boolean }).popped ? { ...c, roll: undefined } : c)) },
     // A lapel that breaks high (a coat or jacket buttoned over the chest) is pressed onto the front; a plunging one,
     // breaking near the waist, is left to hang (pressing drags its long front down).
-    { pad: d.pads, stiff: !!o.crisp, lieLapel: !!d.lapel && base.front.waistCentre.y - d.lapel.breakPt.y > 10, ...o, buttons: { y: d.buttons.at, r: d.buttons.sizeCm / 2, waistY: base.front.waistCentre.y }, ...(o.crisp ? { boxy: false } : {}), pinFront: knob("__pinAll") ? [{ y: 52, span: 12 }] : knob('__oldPins') || d.hood ? d.buttons.at.map((y) => ({ y, span: 2 })) : frontPins(d.buttons.at, shell) },
+    { pad: d.pads, stiff: !!o.crisp, lieLapel: !!d.lapel && base.front.waistCentre.y - d.lapel.breakPt.y > 10, ...o, buttons: { y: d.buttons.at, r: d.buttons.sizeCm / 2, waistY: base.front.waistCentre.y, holes: d.buttons.holes }, ...(o.crisp ? { boxy: false } : {}), pinFront: knob("__pinAll") ? [{ y: 52, span: 12 }] : knob('__oldPins') || d.hood ? d.buttons.at.map((y) => ({ y, span: 2 })) : frontPins(d.buttons.at, shell) },
   );
+  if (cs)
+    for (const pnl of out.panels) {
+      const Y = seamAt(pnl.pc);
+      if (Y === undefined) continue;
+      const ids = pnl.mesh.pts.map((q, i) => ({ q, i })).filter(({ q, i }) => Math.abs(q.y - Y) < 0.05 && !pnl.turned[i]).sort((a, b) => a.q.x - b.q.x).map(({ i }) => i + pnl.base);
+      if (ids.length > 1) out.lines.push({ kind: 'yoke', ids });
+    }
+  return out;
 }
