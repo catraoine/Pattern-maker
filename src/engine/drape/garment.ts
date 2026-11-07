@@ -3311,7 +3311,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
   // Every point on a side seam, found once: seatOn holds them where they are sewn.
   let sideSet: Set<number> | undefined;
   const onSide = () => (sideSet ??= new Set(B.panels.flatMap((x) => (x.mesh.runs.side ?? []).flat().map((i) => x.base + i))));
-  const seatOn = (p: Panel, tag: string, reach = 0) => {
+  const seatOn = (p: Panel, tag: string, reach = 0, smoothAbove = true) => {
     const edge = new Set((p.mesh.runs[tag] ?? []).flat().map((i) => p.base + i));
     const mine = (g: number) => g >= p.base && g < p.base + p.mesh.pts.length;
     // The edge it gathers onto is first smoothed along its length, in the order of its own piece's edge: the gathered
@@ -3324,7 +3324,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
       return q.mesh.pts[g - q.base].x;
     };
     const ring = [...above].sort((u, v) => xOf(u) - xOf(v));
-    for (let pass = 0; pass < (knob('__seamSmooth') ?? 3); pass++) {
+    for (let pass = 0; pass < (smoothAbove ? knob('__seamSmooth') ?? 3 : 0); pass++) {
       const was = ring.map((g) => [res[g * 3], res[g * 3 + 1], res[g * 3 + 2]]);
       for (let n = 1; n < ring.length - 1; n++) {
         // (Points on a side seam stay put, sewn to the other piece as they are: smoothed along with the rest, a balloon
@@ -5705,6 +5705,10 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
       }
     }
   }
+  // A neck ruffle is carried to meet its seam again: the passes above move the neckline it is gathered onto (a V or
+  // scoop drawn down to its cut depth) and not the ruffle, which was left standing round the neck 2 to 10 cm above a
+  // low front neck (All round quality, 2026-11-07). (The neckline itself is left as it is.)
+  if (!knob('__noRufSeat')) for (const p of B.panels) if (p.role === 'collar' && typeof p.pc.meta.ruffle === 'number' && !p.pc.meta.bow) seatOn(p, 'neck', 0, false);
   return { panels: B.panels, pos: res, lines, buttons, seams, ...(shade ? { shade } : {}), ...(posMirror ? { posMirror } : {}) };
 }
 
