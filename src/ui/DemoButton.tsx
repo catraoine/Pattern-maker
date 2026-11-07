@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { FilmBar, FilmSound, useFilm } from './FilmControls';
+import { FilmBar, useFilm } from './FilmControls';
 import { FilmWords, type FilmPart } from './TourPlayer';
 
 // Watch demo (Cat's pick L1 Whisper, 2026-10-20): small deep champagne caps with the play mark after the words,
@@ -171,7 +171,6 @@ function DemoPlayer({ demo, onClose }: { demo: Demo; onClose: () => void }) {
           {demo.title} · {parts[part].name}
         </span>
         <span className="tour-acts">
-          <FilmSound film={film} />
           <button ref={close} type="button" className="tour-skip" onClick={onClose}>
             Close ✕
           </button>

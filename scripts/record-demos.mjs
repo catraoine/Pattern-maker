@@ -53,6 +53,8 @@ async function record(name, script, before) {
   await main.getByRole('button', { name: 'Measure later' }).click();
   await main.getByRole('heading', { level: 1, name: 'Style your skirt' }).waitFor();
   await wait(1500);
+  // Set up before the clip starts (for a wait the clip shouldn't hold a card through).
+  await PREP[name]?.({ f, main, wait });
   const cdp = await ctx.newCDPSession(p);
   cdp.on('Page.screencastFrame', (e) => {
     frames.push({ data: e.data, t: e.metadata.timestamp });
@@ -446,6 +448,14 @@ const READING = {
   extras: { volume: 'none', asymHem: 'none', pockets: false, elasticWaist: false },
   details: 'This 1970s-style floral maxi looks like a gored A-line with soft folds at the hem.',
 };
+const PREP = {
+  // All round sews the garment from its pattern a few seconds after it opens: done before the clip starts.
+  allround: async ({ f, main, wait }) => {
+    await main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round', exact: true }).click();
+    await f.locator('canvas.all-round-canvas[data-sewn="ready"]').waitFor({ state: 'attached', timeout: 120000 });
+    await wait(1500);
+  },
+};
 const BEFORE = {
   photo: (ctx) =>
     ctx.route('**/.netlify/functions/analyze-photo', async (route) => {
@@ -782,6 +792,35 @@ Object.assign(DEMOS, {
     await wait(2600);
     await cap('', '');
     await card('Maison Tracé', 'Find the cloth. Buy just what you need.', 2200, true);
+  },
+  // All round and the fit map (Cat, 2026-11-07: a demo once the fit map is in): the garment sewn from its pattern,
+  // turning on the form, then the fit map's colours and the pattern's ease at the waist and hip.
+  allround: async (h) => {
+    const { wait, card, cap, focus, veil, uncard, R, press, label } = h;
+    const ROUND = { w: 392, h: 500, top: 210 };
+    await card('Maison Tracé', 'All round and the fit map', 1200, true);
+    await focus(['canvas.all-round-canvas'], ROUND);
+    await uncard();
+    await cap('All round', 'Your garment, sewn from your pattern, on your form. It turns so you see every side.');
+    await wait(5200);
+    await cap('Fit map', 'Tap Fit map to see the room it leaves you. Blue is roomy, red is close.');
+    await label('Fit map');
+    await veil(async () => {
+      await press(R('button', 'Fit map'), 1200);
+      await focus(['canvas.all-round-canvas', '.all-round-key'], ROUND);
+    });
+    await wait(4200);
+    await cap('Ease', 'The ease at the waist and hip, in cm, straight from your pattern.');
+    await wait(4400);
+    await cap('Fabric', 'Tap Fabric to see the cloth again.');
+    await label('Fabric');
+    await veil(async () => {
+      await press(R('button', 'Fabric'), 1200);
+      await focus(['canvas.all-round-canvas'], ROUND);
+    });
+    await wait(2600);
+    await cap('', '');
+    await card('Maison Tracé', 'See it fit before you cut.', 2200, true);
   },
 
 });

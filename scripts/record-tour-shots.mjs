@@ -109,6 +109,21 @@ async function stepped(name, ms, kick) {
 }
 // A slimmer, taller sample figure, so the clothes read long and lean on the form (Cat, 2026-10-23).
 const VALUES = { Height: '176', Weight: '', Waist: '62', 'Full hip': '90', 'Waist to hip': '21', 'Waist to knee': '62', 'Waist to floor': '112', 'Crotch depth': '27', 'Crotch length': '68', 'Full bust': '82', 'High bust': '78', Neck: '33', 'Shoulder width': '37', 'Back length': '43', 'Front length': '45', 'Bust depth': '25', 'Bust point to bust point': '17', 'Shoulder length': '12', 'Across back': '34', 'Across front': '31', Armhole: '38', 'Upper arm': '25', Wrist: '15', 'Arm length': '61' };
+// A black veil faded over the screen (below top px, so the tape across the top stays), so a change that would jump
+// (a page going blank, the cut to just the form) passes through black instead (Cat, 2026-11-07: "no jarring jumps").
+const dip = (o, top = 0) => p.evaluate(([o, top]) => {
+  let d = document.getElementById('dip');
+  if (!d) {
+    d = document.createElement('div');
+    d.id = 'dip';
+    Object.assign(d.style, { position: 'fixed', left: 0, right: 0, bottom: 0, background: '#000000', zIndex: 99997, pointerEvents: 'none', opacity: 0, transition: 'opacity .35s' });
+    document.body.appendChild(d);
+    void d.offsetWidth; // laid out at 0 first, so the change to 1 fades
+  }
+  d.style.top = `${top}px`;
+  d.style.setProperty('visibility', 'visible', 'important');
+  d.style.opacity = String(o);
+}, [o, top]);
 async function fillAll() {
   let last = '';
   const checked = main.getByRole('heading', { name: 'Do these look right?' });
@@ -263,8 +278,12 @@ await main.getByRole('radiogroup', { name: 'Which form to draft on?' }).getByRol
 await wait(600);
 await main.getByRole('radio', { name: 'For me' }).click();
 await wait(900);
+await dip(1, 30);
+await wait(420);
 await main.getByRole('button', { name: 'Begin measuring', exact: true }).click();
-await wait(3600);
+await wait(250);
+await dip(0, 30);
+await wait(3350);
 await stop('tape');
 // TOUR_TAPE_ONLY=1 records just the tape shot, to check the measuring pages without the rest.
 if (process.env.TOUR_TAPE_ONLY) {
@@ -602,13 +621,7 @@ const db = await drawOn.boundingBox();
 await pen(db.x + db.width / 2, db.y + db.height / 2, 1);
 await wait(380);
 // Into just the form through a short dip to black, so the cut from the whole screen to the form isn't a jump.
-const dip = (o) => p.evaluate((o) => {
-  let d = document.getElementById('dip');
-  if (!d) { d = document.createElement('div'); d.id = 'dip'; Object.assign(d.style, { position: 'fixed', inset: 0, background: '#000000', zIndex: 99997, pointerEvents: 'none', opacity: 0, transition: 'opacity .35s', visibility: 'visible' }); document.body.appendChild(d); }
-  d.style.setProperty('visibility', 'visible', 'important');
-  d.style.opacity = o;
-}, o);
-if (process.env.TOUR_DRAW_FOCUS !== '0') { await dip(1); await wait(450); }
+if (process.env.TOUR_DRAW_FOCUS !== '0') { await p.evaluate(() => { document.getElementById('pen').style.opacity = 0; }); await dip(1); await wait(450); }
 cut(true);
 await drawOn.evaluate((el) => el.click());
 await p.evaluate(() => { const d = document.getElementById('pen'); d.style.opacity = 0; d.style.visibility = 'hidden'; });

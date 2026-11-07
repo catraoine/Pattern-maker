@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { FilmBar, FilmSound, useFilm } from './FilmControls';
+import { FilmBar, useFilm } from './FilmControls';
 
 // The tour: the walkthrough video, full screen, opened from the play button on the welcome's dress form.
 // Skip tour is always showing; the bar along the bottom marks Measure, Choose, Style and Print as the video reaches them.
@@ -84,32 +84,54 @@ export function TourPlayer({ onClose, from }: { onClose: () => void; from?: HTML
   const film = useFilm(video);
   const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const [arriving, setArriving] = useState(() => !!from && !reduced);
+  // Read once: the pull in keeps following the film after the player is in (arriving is false by then).
+  const pulling = useRef(arriving);
 
-  // The pull in: the page's form glides and grows to the film's form while the film starts, hidden; once the film
-  // is that far in, the player dissolves in over the page.
+  // The pull in: the page's form glides and grows onto the film's own push in while the film starts, hidden, and the
+  // player dissolves in over it once the film has caught up with it. It never stops (Cat, 2026-11-07: "a jarring stall
+  // on the zoom in"; the glide used to end and wait for the film to load): the form follows the film's path on a
+  // clock of its own that slows smoothly while the film is still loading, and once the film is playing and has caught
+  // up, it follows the film's own time, so the two are in the same place as one dissolves into the other.
   useLayoutEffect(() => {
     const v = video.current;
-    if (!arriving || !from || !v) return;
+    if (!pulling.current || !from || !v) return;
     const c = from.getBoundingClientRect();
     const s0 = Math.min(c.width * 0.82, c.height * 0.46);
-    const goal = filmForm(shape, v.getBoundingClientRect(), PULL_MS / 1000);
-    from.animate(
-      [{ transform: 'none' }, { transform: `translate(${goal.x - (c.left + c.width / 2)}px, ${goal.y - (c.top + c.height / 2)}px) scale(${goal.s / s0})` }],
-      { duration: PULL_MS, easing: 'cubic-bezier(0.4, 0, 0.6, 1)', fill: 'forwards' },
-    );
+    const [cx, cy] = [c.left + c.width / 2, c.top + c.height / 2];
+    const box = v.getBoundingClientRect();
+    const t0 = performance.now();
+    let last = t0;
+    let t = 0;
+    let caught = 0;
     let raf = 0;
-    const started = performance.now();
-    // In once the film has got to where the page's form now is (or after two seconds, whatever it has reached).
-    const check = () => {
-      if (v.currentTime >= PULL_MS / 1000 || performance.now() - started > 2000) setArriving(false);
-      else raf = requestAnimationFrame(check);
+    const step = (now: number) => {
+      const e = (now - t0) / 1000;
+      const dt = (now - last) / 1000;
+      last = now;
+      const playing = !v.paused && v.currentTime > 0;
+      if (caught) t = v.currentTime;
+      else if ((playing && v.currentTime >= t) || e > 4) {
+        caught = now;
+        t = Math.max(t, v.currentTime);
+        setArriving(false);
+      } else t += dt * Math.exp(-e / 0.8);
+      // From the page's own place onto the film's path, eased in over the first PULL_MS.
+      const w = easeStep(e / (PULL_MS / 1000));
+      const g = filmForm(shape, box, t);
+      from.style.transform = `translate(${(g.x - cx) * w}px, ${(g.y - cy) * w}px) scale(${1 + (g.s / s0 - 1) * w})`;
+      // On until the player has fully faded in over it; the page's form then stays there, under the player.
+      if (!caught || now - caught < 600) raf = requestAnimationFrame(step);
     };
-    raf = requestAnimationFrame(check);
-    // The page's form stays pulled in under the player; it goes back when the tour closes (below).
+    raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [arriving, from, shape]);
+  }, [from, shape]);
   // Closing the tour puts the page's form back where it was.
-  useEffect(() => () => from?.getAnimations().forEach((a) => a.cancel()), [from]);
+  useEffect(
+    () => () => {
+      if (from) from.style.transform = '';
+    },
+    [from],
+  );
 
   useEffect(() => {
     close.current?.focus();
@@ -124,7 +146,7 @@ export function TourPlayer({ onClose, from }: { onClose: () => void; from?: HTML
   }, [onClose]);
 
   // With its lofi track (Cat, 2026-10-22). The play button's tap usually lets sound start; where a browser still
-  // blocks it, the tour plays muted and the sound switch in the top bar turns it on.
+  // blocks it, the tour plays muted (no sound switch: Cat, 2026-11-07, less clutter).
   useEffect(() => {
     const v = video.current;
     v?.play().catch(() => {
@@ -141,7 +163,6 @@ export function TourPlayer({ onClose, from }: { onClose: () => void; from?: HTML
             2026-11-02: it cluttered the demo). */}
         <span className="tour-tag">Maison Tracé</span>
         <span className="tour-acts">
-          <FilmSound film={film} />
           <button ref={close} type="button" className="tour-skip" onClick={onClose}>
             Skip tour ✕
           </button>
