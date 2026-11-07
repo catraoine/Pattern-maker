@@ -32,7 +32,7 @@ export type TrouserLength = 'shorts' | 'knee' | 'capri' | 'cropped' | 'ankle' | 
 export const TROUSER_LENGTHS: TrouserLength[] = ['shorts', 'knee', 'capri', 'cropped', 'ankle', 'full'];
 export type TrouserClosure = 'fly' | 'side_zip';
 
-interface TrousersStyle {
+export interface TrousersStyle {
   fit: Fit;
   leg: Leg;
   /** Culottes are always cut to mid-calf. */
@@ -62,6 +62,10 @@ interface TrousersStyle {
   pleats?: TrouserPleats;
   /** Belt loops on the waistband. Not on a pull-on waist. */
   loops?: TrouserLoops;
+  /** Sewn to a bodice at the waist, as a jumpsuit's legs (jumpsuit.ts): each half's waist edge drafted to the
+   * bodice's front and back waist, quarter widths in cm, with no waistband. Only a fly opens it; otherwise the
+   * bodice's zip runs on down the back seam. */
+  joinTo?: { front: number; back: number };
 }
 
 /**
@@ -525,7 +529,7 @@ export function draftTrousers(body: TrousersMeasurements, style: Partial<Trouser
   const hemAllowance = short ? Math.min(s.hemAllowance, SHORTS_HEM) : s.hemAllowance;
   const f: Frame = { m, s: { ...s, hemAllowance }, H, W, hd, cd, L, kn, short, thighOut: 0, kneeW, hemW };
   const target = m.crotch_length + ease.crotch;
-  const closure = elastic ? 'none' : s.closure;
+  const closure = elastic || (s.joinTo && s.closure !== 'fly') ? 'none' : s.closure;
   const fly = closure === 'fly';
   // A side zip opens to just past the hip line, so the trousers pull on over the hips: 18 to 25 cm.
   let zipCm = elastic ? 0 : fly ? Math.min(FLY_ZIP, cd - 6) : Math.min(25, Math.max(18, Math.ceil(hd + 2)));
@@ -544,9 +548,9 @@ export function draftTrousers(body: TrousersMeasurements, style: Partial<Trouser
   const fork0 = men ? { front: 0.065 * H, back: 0.105 * H } : { front: 0.05 * H, back: 0.12 * H };
 
   const build = (k: number, f: Frame) => {
-    const frontArgs: HalfArgs = { isFront: true, hipQ: H / 4 - 1, waistQ: W / 4 - 0.5, centreIn: frontIn, centreUp: frontUp, fork: fork0.front * k, legShift: 0, forkDrop: 0, dartMax: 2.5, dartLens: [9], zipCm: fly ? zipCm : 0 };
+    const frontArgs: HalfArgs = { isFront: true, hipQ: H / 4 - 1, waistQ: s.joinTo?.front ?? W / 4 - 0.5, centreIn: frontIn, centreUp: frontUp, fork: fork0.front * k, legShift: 0, forkDrop: 0, dartMax: 2.5, dartLens: [9], zipCm: fly ? zipCm : 0 };
     const front = half(f, frontArgs);
-    const base = { isFront: false, hipQ: H / 4 + 1, waistQ: W / 4 + 0.5, centreIn: backIn, centreUp: backUp, fork: fork0.back * k, legShift: 0, forkDrop: 0.75, dartMax: 3, dartLens: [13, 11], zipCm: 0 };
+    const base = { isFront: false, hipQ: H / 4 + 1, waistQ: s.joinTo?.back ?? W / 4 + 0.5, centreIn: backIn, centreUp: backUp, fork: fork0.back * k, legShift: 0, forkDrop: 0.75, dartMax: 3, dartLens: [13, 11], zipCm: 0 };
     // A wide back fork pulls the inside leg long: set the back crease so it runs as the front's does,
     // then true the side seams by moving the back leg up or down, then the inside legs by dropping the
     // back fork the last few millimetres.
