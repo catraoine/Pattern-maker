@@ -221,6 +221,7 @@ export function withShopFabric(now: MyFabric, f: ShopFabric): MyFabric {
   return {
     ...now,
     shop: f.id,
+    photo: undefined,
     name: f.name,
     fibre: f.fibre,
     special: f.special,

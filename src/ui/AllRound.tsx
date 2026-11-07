@@ -9,6 +9,7 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { widensForm } from '../engine/drape/widen';
 import type { MyFabric } from '../engine/fabrics';
 import { FabricPaint, fabricPaint } from './FabricFill';
+import { useFabricPhoto } from '../fabricPhoto';
 import { ClothQuad, ClothTiles, clothLayers, clothTiles, lightOf, paintCloth } from './allRoundCloth';
 import { RoundGarment, RoundPt, RoundSeam, stripesMeet } from '../engine/allRound';
 import { bodyHalf as formHalfWidth, reach as bodyReach, shapeAt } from '../engine/body';
@@ -142,7 +143,10 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
   // The cloth's tiles, once its swatch has loaded; until then (and with no fabric) the garment is in lines.
   // The How it works film keeps its lines with no fabric (scripts/record-tour-shots.mjs).
   const film = !!(window as Window & { __tourFilm?: string | boolean }).__tourFilm;
-  const paint = useMemo(() => fabricPaint(fabric, import.meta.env.BASE_URL) ?? (film ? undefined : CALICO), [fabric, film]);
+  // A photo of the maker's own fabric loads from this device's store; the cloth is rebuilt in it once it's there.
+  const photoUrl = useFabricPhoto(fabric?.photo?.id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- photoUrl is read inside fabricPaint, from the photo store's cache
+  const paint = useMemo(() => fabricPaint(fabric, import.meta.env.BASE_URL) ?? (film ? undefined : CALICO), [fabric, film, photoUrl]);
   const paintKey = JSON.stringify(paint ?? null);
   const [tiles, setTiles] = useState<ClothTiles | undefined>();
   useEffect(() => {
