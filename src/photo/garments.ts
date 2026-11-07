@@ -319,6 +319,14 @@ function measuredOuter(c: OuterChoices, r: PhotoReading, body: PhotoBody | undef
     const side = Math.round((out.easeCm - OUTER_EASE.jacket.regular) / 4);
     if (side > (out.shoulderCm ?? 0)) out.shoulderCm = clamp(side, 0, OUTER_SHOULDER.max);
   }
+  // The pieces, each scaled from an average adult's front to hers like the break; the buttons' width is kept as read.
+  if (num(m.yokeAtCm)) out.yokeCm = Math.round(clamp(m.yokeAtCm, 5, 40) * scale);
+  if (num(m.buttonSizeCm) && c.front !== 'zip') out.buttonSizeCm = Math.round(clamp(m.buttonSizeCm, 0.8, 4) * 10) / 10;
+  if (lapelled(c.collar)) {
+    if (num(m.collarPointCm) && c.collar !== 'shawl') out.collarPointCm = Math.round(clamp(m.collarPointCm, 3, 18) * scale * 2) / 2;
+    if (num(m.lapelWidthCm)) out.lapelWidthCm = Math.round(clamp(m.lapelWidthCm, 3, 16) * scale * 2) / 2;
+    if (num(m.notchCm) && c.collar !== 'shawl') out.notchCm = Math.round(clamp(m.notchCm, 0, 8) * scale * 2) / 2;
+  }
   if (num(m.outerHemFullness)) {
     const f = m.outerHemFullness;
     const flare: OuterChoices['flare'] = f >= 1.35 ? 'flared' : f >= 1.15 && c.garment === 'coat' ? 'a_line' : 'straight';
@@ -346,9 +354,15 @@ function outerChoices(r: PhotoReading, kind: 'jacket' | 'coat', body?: PhotoBody
     sleeve: o.sleeve === 'raglan' ? 'raglan' : o.sleeve === 'none' && kind === 'jacket' ? 'none' : base.sleeve,
     ...(o.sleeve === 'none' && kind === 'jacket' ? { pads: 'none' as const } : {}),
     trim: o.trim === 'rib' ? 'rib' : 'none',
+    ...(o.chestPocket ? { chest: 'welt' as const } : {}),
+    ...(o.buttonStyle && o.buttonStyle !== 'none' && o.front !== 'zip' ? { buttonStyle: o.buttonStyle } : {}),
+    ...(o.buttonholes && o.buttonholes !== 'none' && o.front !== 'zip' ? { buttonholes: o.buttonholes } : {}),
+    ...(o.edging === 'contrast' ? { edging: 'contrast' as const } : {}),
   };
+  if (o.lapel && o.lapel !== 'classic' && lapelled(c.collar) && outerAllowed(c, 'lapel', o.lapel)) c.lapel = o.lapel;
   // A notched lapel needs a shoulder seam and a buttoned front; a raglan is cut off a one-piece body.
   if (!outerAllowed(c, 'collar', c.collar)) c.collar = 'stand';
+  if (!lapelled(c.collar)) delete c.lapel;
   if (!outerAllowed(c, 'shaping', c.shaping)) c.shaping = 'darts';
   if (!outerAllowed(c, 'vent', c.vent)) c.vent = 'none';
   return measuredOuter(c, r, body);

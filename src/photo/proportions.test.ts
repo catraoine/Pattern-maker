@@ -194,3 +194,45 @@ describe('an oversized waistcoat from a photo sews cleanly on the form (All roun
     expect(failures).toEqual([]);
   }, 300_000);
 });
+
+describe('the pieces read off a photo (Nov 7)', () => {
+  // Cat's vest picture, read piece by piece: a seam across the chest at the underarm, small flat buttons with
+  // sideways buttonholes, a big collar over a small lapel with a tight notch, and black edging.
+  const pieces: PhotoReading = {
+    ...vest,
+    outer: { ...vest.outer!, buttonStyle: 'flat', buttonholes: 'horizontal', edging: 'contrast', lapel: 'classic', chestPocket: false },
+    measures: { ...vest.measures!, yokeAtCm: 20, buttonSizeCm: 1.5, collarPointCm: 11, lapelWidthCm: 5, notchCm: 1.5 },
+  };
+
+  it('carries each piece into the choices, scaled to her front', () => {
+    const c = choicesFor(pieces, 'jacket', body);
+    if (!isOuter(c)) throw new Error('not a jacket');
+    expect(c.yokeCm).toBeGreaterThan(16);
+    expect(c.yokeCm).toBeLessThan(24);
+    expect(c.buttonSizeCm).toBe(1.5);
+    expect([c.buttonStyle, c.buttonholes, c.edging]).toEqual(['flat', 'horizontal', 'contrast']);
+    expect(c.collarPointCm).toBeGreaterThan(c.lapelWidthCm!);
+    expect(c.notchCm).toBeLessThan(2.5);
+  });
+
+  it('leaves the pattern its own pieces when the photo shows none, or the reading is from before', () => {
+    const c = choicesFor(vest, 'jacket', body);
+    if (!isOuter(c)) throw new Error('not a jacket');
+    expect([c.yokeCm, c.buttonSizeCm, c.collarPointCm, c.lapelWidthCm, c.notchCm, c.buttonStyle, c.buttonholes, c.edging]).toEqual(Array(8).fill(undefined));
+  });
+
+  it('drops collar and lapel sizes, buttons and buttonholes where the front has none', () => {
+    const zip: PhotoReading = { ...pieces, outer: { ...pieces.outer!, front: 'zip', collar: 'stand' } };
+    const c = choicesFor(zip, 'jacket', body);
+    if (!isOuter(c)) throw new Error('not a jacket');
+    expect([c.buttonSizeCm, c.buttonStyle, c.buttonholes, c.collarPointCm, c.lapelWidthCm, c.notchCm]).toEqual(Array(6).fill(undefined));
+    expect(c.yokeCm).toBeDefined();
+  });
+
+  it('reads a peak lapel, a wide lapel and a chest pocket', () => {
+    const peak: PhotoReading = { ...pieces, outer: { ...pieces.outer!, collar: 'peak', lapel: 'wide', chestPocket: true, pockets: 'flap' } };
+    const c = choicesFor(peak, 'jacket', body);
+    if (!isOuter(c)) throw new Error('not a jacket');
+    expect([c.collar, c.lapel, c.chest, c.pockets]).toEqual(['peak', 'wide', 'welt', 'flap']);
+  });
+});

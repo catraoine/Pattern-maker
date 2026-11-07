@@ -360,6 +360,18 @@ export interface OuterChoices {
   houseCut?: boolean;
   /** A welt pocket on the left chest (In testing). Older saves have none. */
   chest?: ChestPocket;
+  /** The pieces read off a photo (In testing, Nov 7), in cm on the wearer: a seam across the front (a yoke) below
+   * the centre front neck, the buttons' width, the collar's outer edge to its point, the lapel at its widest, the
+   * gap between collar and lapel points; and the buttons' look, their buttonholes' direction and contrast edging.
+   * Older saves have none, and the pattern keeps its own for any left out. */
+  yokeCm?: number;
+  buttonSizeCm?: number;
+  collarPointCm?: number;
+  lapelWidthCm?: number;
+  notchCm?: number;
+  buttonStyle?: 'flat' | 'domed' | 'shank' | 'covered' | 'snap' | 'toggle';
+  buttonholes?: 'horizontal' | 'vertical';
+  edging?: 'none' | 'contrast';
 }
 
 export const DEFAULT_JACKET_CHOICES: OuterChoices = { garment: 'jacket', fit: 'regular', length: 'hip', shaping: 'darts', front: 'single', collar: 'notched', pockets: 'patch', sleeve: 'tailored', flare: 'straight', pads: 'soft', vent: 'centre', trim: 'none' };

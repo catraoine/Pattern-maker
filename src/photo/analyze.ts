@@ -48,14 +48,22 @@ const Outer = z.object({
   fit,
   length: z.enum(['cropped', 'hip', 'long', 'thigh', 'knee', 'midi']),
   front: z.enum(['single', 'double', 'zip']),
-  collar: z.enum(['notched', 'stand', 'collarless', 'hood']),
-  pockets: z.enum(['none', 'patch', 'welt']),
+  collar: z.enum(['notched', 'peak', 'shawl', 'stand', 'funnel', 'collarless', 'hood']),
+  lapel: z.enum(['classic', 'wide', 'plunge']),
+  pockets: z.enum(['none', 'patch', 'welt', 'flap']),
+  chestPocket: z.boolean(),
   shaping: z.enum(['darts', 'princess', 'boxy']),
   pads: z.enum(['none', 'soft', 'structured']),
   flare: z.enum(['straight', 'a_line']),
   sleeve: z.enum(['set_in', 'raglan', 'none']).optional(),
   trim: z.enum(['none', 'rib']).optional(),
+  buttonStyle: z.enum(['none', 'flat', 'domed', 'shank', 'covered', 'snap', 'toggle']),
+  buttonholes: z.enum(['none', 'horizontal', 'vertical']),
+  edging: z.enum(['none', 'contrast']),
 });
+
+/** The pieces added on Nov 7, which a reading from before doesn't have. */
+const OuterKept = Outer.partial({ lapel: true, chestPocket: true, buttonStyle: true, buttonholes: true, edging: true });
 
 /**
  * The sizes a reading measures. Claude lists only the ones it can see, as name and value pairs: a field per size that
@@ -76,6 +84,11 @@ const MEASURES = [
   'outerHemFullness',
   'kneeRoom',
   'legHemRoom',
+  'yokeAtCm',
+  'buttonSizeCm',
+  'collarPointCm',
+  'lapelWidthCm',
+  'notchCm',
 ] as const;
 
 /** The reading as Claude writes it. The app gets it from toReading, with every size it didn't list as null. */
@@ -161,10 +174,13 @@ trousers: fill this in for trousers, shorts or culottes; otherwise null.
 
 outer: fill this in for a jacket or a coat; otherwise null.
 - fit: as for a top. length: a jacket is "cropped" (above the hip), "hip" or "long" (to the upper thigh); a coat is "thigh" (mid-thigh), "knee" or "midi".
-- front: "single" (one row of buttons), "double" (two rows of buttons, overlapping fronts) or "zip" (a zip up the centre front). collar: "notched" (a lapel with a notch), "stand", "collarless" or "hood".
+- front: "single" (one row of buttons), "double" (two rows of buttons, overlapping fronts) or "zip" (a zip up the centre front). collar: "notched" (a lapel with a notch, the collar's point meeting the lapel's at an open V), "peak" (the lapel's points sweep up past the collar's), "shawl" (lapel and collar in one rolled curve, no notch), "stand", "funnel" (a tall stand rising up the neck), "collarless" or "hood". lapel: "wide" for lapels reaching well toward the shoulder, "plunge" for one rolling down to a single button at the waist, otherwise "classic" (also for no lapels).
 - sleeve: "raglan" when a seam runs from the neck to the underarm with no shoulder seam, "none" for a sleeveless jacket (a waistcoat or tailored vest), otherwise "set_in". trim: "rib" when the hem and cuffs are stretchy ribbed bands (as on a bomber), otherwise "none".
-- pockets: "patch" (sewn on top), "welt" (set-in slits or flaps) or "none". shaping: "princess" (long seams down the front), "darts" or "boxy" (straight and unshaped).
+- pockets: the lower pockets: "patch" (sewn on top), "welt" (a set-in slit), "flap" (a set-in pocket covered by a flap) or "none". chestPocket: true for a welt pocket on the left chest. shaping: "princess" (long seams down the front), "darts" or "boxy" (straight and unshaped).
 - pads: "structured" for sharp, built-up shoulders, "soft" for a natural shoulder line, "none" for a soft, unstructured jacket. flare: "a_line" for a coat that widens below the hip, otherwise "straight".
+- Look at each piece separately, not just the overall shape: the collar, the lapel, the front edge, the buttons and every seam.
+- buttonStyle: "flat" (a flat sew-through button), "domed", "shank" (a rounded or metal button on a stem, with no holes showing), "covered" (covered in the garment's cloth), "snap" (press studs), "toggle" (toggles with loops), or "none" for a zip or no fastening. buttonholes: which way the buttonholes run, "horizontal" or "vertical", or "none" when there are none (snaps, toggles, a zip, or hidden under a fly front).
+- edging: "contrast" when the edges of the collar, lapels, front or armholes are piped, bound or trimmed in a different colour from the body, otherwise "none".
 
 worn: true when a person or a full-length mannequin is wearing the main garment, so where it ends can be measured against the body; false when it is laid flat, on a hanger or on a dress form without legs.
 
@@ -182,6 +198,11 @@ Proportions: the pattern is cut to these numbers, so measure them carefully agai
 - shoulderOutCm: for a jacket, coat or top, how far its shoulder seam sits past the wearer's own shoulder point, in cm on an average adult: 0 on her shoulder, 1 to 2 with a sharp padded shoulder, 4 to 10 for a dropped or extended shoulder (an oversized cut), negative when cut in toward the neck (a racer or halter armhole).
 - bustRoom: for a jacket, coat or top, its round at the bust divided by the wearer's own bust round, judged from how far it stands away from the body at the sides: about 1.05 for a close-fitting top, 1.1 fitted jacket, 1.14 regular, 1.2 relaxed, 1.4 to 1.7 for an oversized cut that stands well away from the body (judge it from the gap between the garment's side and her own side, not from the garment alone: an oversized piece on a slim wearer is still oversized).
 - outerHemFullness: for a jacket or coat, its hem round divided by the round at the wearer's hips: 1.05 for straight sides, 1.2 to 1.3 for an A-line coat, 1.4 or more for one that flares or stands out from the hips.
+- yokeAtCm: for a jacket, coat or top, a seam running across the front from side to side (a yoke), in cm below the hollow at the base of the throat on an average adult (a shoulder yoke about 8 to 12, one level with the underarm about 18 to 22). Leave it out when there is no such seam. Darts and seams running down the body are not a yoke.
+- buttonSizeCm: the buttons' width, in cm on an average adult (a shirt button about 1.1, a jacket button 1.5 to 2, a coat button 2.5 to 3.5).
+- collarPointCm: for a collar that turns down, the length of its outer edge from where it leaves the neck to its point, in cm on an average adult (about 5 to 7 on a classic jacket, 10 or more on a big collar).
+- lapelWidthCm: the lapel at its widest, measured square from the fold to its outer edge, in cm on an average adult (a slim lapel about 6, classic 8, wide 10 to 12). Leave it out with no lapels.
+- notchCm: the open gap between the collar's point and the lapel's point, in cm on an average adult (a classic notch about 3 to 4, a tight one 1 to 2). Leave it out for a shawl collar or no lapels.
 - kneeRoom and legHemRoom: for trousers, the leg's round at the knee and at its hem, each divided by the round at the hips: a slim leg about 0.38 and 0.3, a straight leg 0.46 and 0.43, a wide leg 0.6 and 0.66, a culotte 0.7 and 0.76, a flare 0.41 at the knee and 0.62 at the hem.
 
 unsure: when you are torn between your pick and one other option in one of these groups, name the group and the other option exactly as it is written above, so the sewist can be asked which it is: "silhouette" (the skirt's), "length" (the skirt's), "neckline", "sleeve" (top.sleeve) or "leg" (trousers.leg). For example a skirt that could be straight or pencil: group "silhouette", other "pencil". Use it only when both really are likely and the choice changes the pattern; otherwise null.
@@ -259,7 +280,7 @@ const toWire = (r: z.infer<typeof Kept>) => ({
 });
 
 /** A reading as the app keeps it, to check one the app sends back. */
-const Kept = Reading.extend({ measures: z.object(Object.fromEntries(MEASURES.map((k) => [k, z.number().nullable()])) as Record<(typeof MEASURES)[number], z.ZodNullable<z.ZodNumber>>) });
+const Kept = Reading.extend({ outer: OuterKept.nullable(), measures: z.object(Object.fromEntries(MEASURES.map((k) => [k, z.number().nullable()])) as Record<(typeof MEASURES)[number], z.ZodNullable<z.ZodNumber>>) });
 
 /** Read the earlier reading back in, keeping only one that has the reading's shape: anything else in the request is dropped. */
 /** The proportions added on Nov 7: a reading from before has none, so each is filled in as not shown. */
