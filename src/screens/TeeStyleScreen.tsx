@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
-import { NECKBAND_CM, STRETCH_TEST, TEE_NECKS, TeeDraft, TeeMeasurements, pctWords } from '../engine/tee';
+import { BOXY_EASE, NECKBAND_CM, STRETCH_TEST, TEE_NECKS, TeeDraft, TeeMeasurements, pctWords } from '../engine/tee';
 import { teeSpec } from '../engine/spec';
 import { FinishedTable, finishedLines } from '../ui/FinishedTable';
 
 import { teeFlat, wornLines, wornShapes } from '../engine/flat';
-import { TEE_GROUPS, TeeChoices, describeTee } from '../garments';
+import { TEE_GROUPS, TeeChoices, describeTee, teeOptionAllowed } from '../garments';
+import { TestingTag } from '../ui/TestingTag';
 import { TechFlatView } from '../ui/TechFlatView';
 import { GarmentViews, PreviewSwitch } from '../ui/PreviewSwitch';
 import { AllRound } from '../ui/AllRound';
@@ -166,23 +167,28 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
         <TabPanel tab={LOOKS}>
           <p className="muted small">Drafted for knit fabric: no darts, the stretch shapes it to you.</p>
         </TabPanel>
-        {TEE_GROUPS.filter((g) => g.id !== 'length').map((g) => (
+        {TEE_GROUPS.filter((g) => g.id !== 'length' && (g.id !== 'shoulder' || choices.sleeve !== 'none')).map((g) => {
+          // Older saves have no shoulder choice: set in.
+          const pick = g.id === 'shoulder' ? (choices.shoulder ?? 'set_in') : choices[g.id];
+          return (
           <Group key={g.id} label={g.label}>
             <div className={chipsClass('tee', g.id)}>
-              {g.options.map(([id, label]) => (
+              {g.options.filter(([id]) => teeOptionAllowed(choices, g.id, id)).map(([id, label]) => (
                 <button
                   key={id}
                   type="button"
-                  className={choices[g.id] === id ? 'chip on' : 'chip'}
-                  aria-pressed={choices[g.id] === id}
+                  className={pick === id ? 'chip on' : 'chip'}
+                  aria-pressed={pick === id}
                   onClick={() => onChoices({ ...choices, [g.id]: id, ...(g.id === 'length' ? { lengthCm: undefined } : {}) })}
                 >
                   <ChoicePic set="tee" group={g.id} id={id} />
                   {label}
+                  {g.id === 'sleeve' && id === 'none' && <TestingTag tool="tank_tee" />}
+                  {g.id === 'shoulder' && id === 'dropped' && <TestingTag tool="boxy_tee" />}
                 </button>
               ))}
             </div>
-            <Explain set="tee" group={g.id} options={g.options} pick={choices[g.id]} />
+            <Explain set="tee" group={g.id} options={g.options} pick={pick} />
             {g.id === 'stretch' && (
               <details className="how-to-test muted small">
                 <summary>How to test</summary>
@@ -190,8 +196,10 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
               </details>
             )}
             {g.id === 'fit' && <p className="muted small">{FIT_NOTES[choices.fit]}</p>}
+            {g.id === 'shoulder' && pick === 'dropped' && <p className="muted small">Boxy whatever the fit: the body is cut with at least {Math.round(BOXY_EASE[choices.stretch] * 100)}% room at the bust and hangs straight.</p>}
           </Group>
-        ))}
+          );
+        })}
         {draft && (
           <TabPanel tab={FABRIC}>
             <FabricCard metres={teeFabricMetres(draft)} advice={teeFabrics(choices)} fabric={fabric} knit>

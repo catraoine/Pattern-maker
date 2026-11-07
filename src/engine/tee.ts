@@ -14,12 +14,18 @@ import { P, Path, add, lerp, mul, p, sub, taggedLength } from './geometry';
 import type { Piece } from './piece';
 import { DraftError } from './skirt';
 import { SleeveDraft, SleeveMeasurements, draftSleeveTo } from './sleeve';
+import { DROP } from './sleeveCut';
 
 export type TeeFit = 'fitted' | 'regular' | 'relaxed';
 /** How far the knit stretches across: 10 cm pulled to 12 to 13 cm is low, to 13 to 15 medium, past 15 high. */
 export type Stretch = 'low' | 'medium' | 'high';
 export type TeeNeck = 'crew' | 'scoop' | 'v' | 'mock';
-export type TeeSleeve = 'short' | 'elbow' | 'long';
+/** 'none' is a tank (In testing, Cat's styling options round 1, Nov 7 2026, E1): no sleeves, the shoulder cut in to a
+ * strap and the armholes finished with a band. */
+export type TeeSleeve = 'short' | 'elbow' | 'long' | 'none';
+/** A boxy tee with a dropped shoulder (In testing, round 1, E2): the shoulder carried past the shoulder point,
+ * a lower underarm, a straight wide body and a flat-crowned sleeve. Older saves are set in. */
+export type TeeShoulder = 'set_in' | 'dropped';
 export type TeeLength = 'cropped' | 'hip' | 'tunic';
 
 export interface TeeMeasurements extends SleeveMeasurements {
@@ -54,6 +60,8 @@ interface TeeStyle {
   carry?: TeeCarry;
   /** The sleeve's length from the crown point, in cm, in place of the named one's: shortened by a rib cuff's depth. */
   sleeveCm?: number;
+  /** A dropped shoulder on a boxy body; left out, set in. */
+  shoulder?: TeeShoulder;
 }
 
 /**
@@ -70,6 +78,20 @@ interface TeeCarry {
 
 /** How far a drawn T-shirt hem can rise at the sides and fall at the back, in cm. */
 export const TEE_HEM_SHAPE = { sides: 10, back: 12 };
+
+/** A tank: the shoulder strap 6 cm wide along the shoulder (at most the shoulder there is), the underarm raised
+ * 1.5 cm as nothing hangs under it, and the armhole's across point 2.5 cm further in. The armhole band is cut
+ * 0.9 of the armhole (a little longer than a neckband, so it lies flat round the curve without gaping). */
+export const TANK = { strap: 6, raise: 1.5, scoop: 2.5, bandRatio: 0.9 };
+/** A boxy dropped-shoulder body: at least this much ease at the bust for each stretch, the side seams straight
+ * from underarm to hem. The shoulder goes DROP.out past the shoulder point, the underarm DROP.down lower. */
+export const BOXY_EASE: Record<Stretch, number> = { low: 0.16, medium: 0.14, high: 0.12 };
+
+/** Ease at the bust as drafted: the fit's, or a boxy body's room when the shoulder is dropped. */
+export const teeEase = (s: { fit: TeeFit; stretch: Stretch; shoulder?: TeeShoulder; sleeve?: TeeSleeve }) =>
+  boxyOf(s) ? Math.max(TEE_EASE[s.fit][s.stretch], BOXY_EASE[s.stretch]) : TEE_EASE[s.fit][s.stretch];
+/** Whether the shoulder is dropped: a tank has no sleeve to drop it to. */
+export const boxyOf = (s: { shoulder?: TeeShoulder; sleeve?: TeeSleeve }) => s.shoulder === 'dropped' && s.sleeve !== 'none';
 
 export const DEFAULT_TEE: TeeStyle = { fit: 'regular', stretch: 'medium', neckline: 'crew', sleeve: 'short', length: 'hip' };
 
@@ -152,6 +174,12 @@ export interface TeeDraft {
   neckline: TeeNeck;
   length: TeeLength;
   sleeveLength: TeeSleeve;
+  /** A tank: the sleeve is still worked out (for the form's arm) but not cut; the armholes have bands. */
+  sleeveless?: true;
+  /** Dropped shoulders on a boxy body. */
+  shoulder?: 'dropped';
+  /** A tank's armhole band, cut to go round one armhole. */
+  armBand?: { length: number; width: number };
   /** Bust ease as a share of the bust, and in cm round the body. */
   easePct: number;
   finishedBust: number;
@@ -186,9 +214,13 @@ export function draftTee(m: TeeMeasurements, style: Partial<TeeStyle> = {}): Tee
   if (!m.arm_length || !m.upper_arm) throw new DraftError('Add your arm length and upper arm measurements for the sleeves.');
   const B = m.full_bust;
   const warnings: string[] = [];
-  const pct = TEE_EASE[s.fit][s.stretch];
+  const pct = teeEase(s);
+  const tank = s.sleeve === 'none';
+  const boxy = boxyOf(s);
+  // The armhole depth is found on the plain set-in tee; a tank raises it, a dropped shoulder lowers it.
+  const plain: TeeStyle = tank || boxy ? { ...s, sleeve: tank ? 'short' : s.sleeve, shoulder: undefined } : s;
   const base = 19.5 + (B - 88) * 0.1 + DEPTH_EXTRA[s.fit];
-  let shape = build(m, s, base, m.armscye ? [] : warnings);
+  let shape = build(m, plain, base, m.armscye ? [] : warnings);
   if (m.armscye) {
     // The armhole depth that makes the armhole the person's armhole plus a little.
     const target = m.armscye + ARMHOLE_EASE[s.fit];
@@ -196,27 +228,39 @@ export function draftTee(m: TeeMeasurements, style: Partial<TeeStyle> = {}): Tee
     let hi = base + 5;
     for (let i = 0; i < 30; i++) {
       const mid = (lo + hi) / 2;
-      if (build(m, s, mid, []).armhole < target) lo = mid;
+      if (build(m, plain, mid, []).armhole < target) lo = mid;
       else hi = mid;
     }
-    shape = build(m, s, (lo + hi) / 2, warnings);
+    shape = build(m, plain, (lo + hi) / 2, warnings);
     // A roomier armhole comes with a roomy fit and is harmless; a tight one is not.
     if (shape.armhole < target - 1.5) warnings.push(`armhole ${r1(shape.armhole)} cm could not reach ${r1(target)} cm within a sensible depth`);
   }
+  const setIn = shape;
+  if (tank) shape = build(m, s, setIn.scye - TANK.raise, []);
+  if (boxy) {
+    // Carried out past the shoulder point, the armhole comes out shorter for the same depth: the underarm goes down
+    // DROP.down, and further until the seam goes round the arm with DROP.room to spare, as the bodice's does.
+    const want = m.armscye !== undefined ? m.armscye + DROP.room : 0;
+    let lower = DROP.down;
+    for (; lower < 10 && build(m, s, setIn.scye + lower, []).armhole < want; lower += 0.25);
+    shape = build(m, s, setIn.scye + lower, []);
+  }
   const { front, back, scye } = shape;
 
-  const sleeve = draftSleeveTo(front, back, m, {
-    length: s.sleeve,
+  // A tank's sleeve is worked out on the set-in tee, for the form's arm, and not cut.
+  const sleeve = draftSleeveTo(tank ? setIn.front : front, tank ? setIn.back : back, m, {
+    length: s.sleeve === 'none' ? 'short' : s.sleeve,
     shape: 'straight',
     fit: s.fit,
     seamAllowance: KNIT_SEAM,
     armholeAllowance: KNIT_SEAM,
     hemAllowance: KNIT_SLEEVE_HEM,
     ...(s.sleeveCm !== undefined ? { lengthCm: s.sleeveCm } : {}),
-    ease: { bicep: m.upper_arm * TEE_SLEEVE_EASE[s.fit][s.stretch], crown: CROWN_EASE },
+    ease: { bicep: m.upper_arm * TEE_SLEEVE_EASE[boxy ? 'relaxed' : s.fit][s.stretch], crown: CROWN_EASE },
+    ...(boxy ? { cut: 'drop' as const } : {}),
   });
   // A relaxed tee's wide body makes a long armhole, and a wide sleeve to fill it is part of the look.
-  warnings.push(...sleeve.warnings.filter((w) => s.fit !== 'relaxed' || !/^sleeve widened/.test(w)));
+  if (!tank) warnings.push(...sleeve.warnings.filter((w) => (s.fit !== 'relaxed' && !boxy) || !/^sleeve widened/.test(w)));
 
   const neckline = 2 * (taggedLength(front.outline, 'neck') + taggedLength(back.outline, 'neck'));
   const mock = s.neckline === 'mock';
@@ -224,15 +268,19 @@ export function draftTee(m: TeeMeasurements, style: Partial<TeeStyle> = {}): Tee
   const ratio = r1(bandCm / neckline * 100) / 100;
   const bandWidth = mock ? MOCK_NECK_CM : NECKBAND_CM;
   const band = neckbandPiece(bandCm, s.neckline === 'v', bandWidth);
+  const armBandCm = shape.armhole * TANK.bandRatio;
+  const armBand = tank ? armholeBandPiece(armBandCm) : undefined;
 
   return {
-    pieces: [front, back, ...sleeve.pieces, band],
+    pieces: armBand ? [front, back, band, armBand] : [front, back, ...sleeve.pieces, band],
     sleeve,
     fit: s.fit,
     stretch: s.stretch,
     neckline: s.neckline,
     length: s.length,
     sleeveLength: s.sleeve,
+    ...(tank ? { sleeveless: true as const, armBand: { length: r1(armBandCm), width: NECKBAND_CM } } : {}),
+    ...(boxy ? { shoulder: 'dropped' as const } : {}),
     easePct: pct,
     finishedBust: r1(shape.bust),
     finishedWaist: r1(shape.waist),
@@ -285,14 +333,18 @@ function bustShaping(m: Pick<TeeMeasurements, 'full_bust' | 'high_bust'>, s: Pic
 /** The front and back at armhole depth `scye` (from the nape, down). */
 function build(m: TeeMeasurements, s: TeeStyle, scye: number, warnings: string[]) {
   const { full_bust: B, waist: W, full_hip: H, waist_to_hip: WH, neck: N, shoulder_width: SW, nape_to_waist: NW } = m;
-  const pct = TEE_EASE[s.fit][s.stretch];
+  const pct = teeEase(s);
   const nl = TEE_NECKS[s.neckline];
+  const tank = s.sleeve === 'none';
+  const boxy = boxyOf(s);
 
   // ---- widths, a quarter of the body each ---------------------------------
   const bustQ0 = (B * (1 + pct)) / 4;
-  const hipQ = (H * (1 + pct + 0.03)) / 4;
+  // A boxy body takes its room at the bust and hangs straight past the hip, with a little room there.
+  const hipQ = (H * (boxy ? 1.06 : 1 + pct + 0.03)) / 4;
   const waistQ0 = (W * (1 + pct + 0.02)) / 4;
-  const share = WAIST_SHAPING[s.fit];
+  // A boxy body hangs straight from the underarm.
+  const share = boxy ? 0 : WAIST_SHAPING[s.fit];
   const named = s.length === 'cropped' ? NW + 1 : s.length === 'hip' ? NW + WH : NW + WH + 15;
   // A dragged length sits anywhere from cropped to a little past tunic; from 7 cm below the hip it is cut as a tunic.
   const carry = s.carry;
@@ -300,21 +352,24 @@ function build(m: TeeMeasurements, s: TeeStyle, scye: number, warnings: string[]
   const tunic = carry ? hemY >= NW + WH + 7 : s.lengthCm !== undefined ? hemY >= NW + WH + 7 : s.length === 'tunic';
   /** A carried body long enough to pass the hip runs its side seam through the hip at the hip's width. */
   const throughHip = !!carry && hemY > NW + WH + 3;
-  const relaxed = s.fit === 'relaxed';
+  const relaxed = s.fit === 'relaxed' || boxy;
 
   // ---- neck and shoulder --------------------------------------------------
   const nw = N / 5 + TEE_NECK_WIDEN;
   const hps0 = p(nw, -2);
   const u = p(Math.cos(SLOPE), Math.sin(SLOPE));
-  const spX = Math.max(SW / 2, nw + 8) + SHOULDER_EXT[s.fit];
+  const spX = Math.max(SW / 2, nw + 8) + (boxy ? DROP.out : SHOULDER_EXT[s.fit]);
   const shoulder0 = (spX - nw) / Math.cos(SLOPE);
-  const sp = add(hps0, mul(u, shoulder0));
   const widen = Math.max(0, Math.min(nl.width, shoulder0 - 7));
   const hps = add(hps0, mul(u, widen));
+  // A tank's shoulder is a strap from the neck point.
+  const sp = add(hps0, mul(u, tank ? widen + Math.min(TANK.strap, shoulder0 - widen) : shoulder0));
   if (scye < sp.y + 10) scye = sp.y + 10;
 
   // The underarm is never closer in than the armhole's own curve needs.
-  const acrossX = Math.min(SW / 2 - 1.2, spX - 1);
+  const acrossX = Math.min(SW / 2 - 1.2, (boxy ? SW / 2 + SHOULDER_EXT[s.fit] : spX) - 1);
+  /** The armhole's across point: a tank's cut in under the strap, a dropped shoulder's nearly under the shoulder's end. */
+  const across = (x: number, bq: number) => (tank ? Math.min(x - TANK.scoop, sp.x - 0.3) : boxy ? Math.min(sp.x - 1, bq - 2.5) : x);
   const bustQ = Math.max(bustQ0, acrossX + 2);
   if (bustQ > bustQ0 + 0.05) warnings.push(`bust widened to ${r1(4 * bustQ)} cm so the armhole fits the shoulders`);
   // The bust split between front and back, and the front's extra length (see bustShaping). The total
@@ -426,7 +481,7 @@ function build(m: TeeMeasurements, s: TeeStyle, scye: number, warnings: string[]
 
   // ---- back ---------------------------------------------------------------
   const bd = nl.backDepth;
-  const Ab = p(acrossX, (sp.y + scye) / 2 + 1);
+  const Ab = p(across(acrossX, backBustQ), (sp.y + scye) / 2 + 1);
   const backPath = new Path(p(0, bd)).curve(p(hps.x * 0.6, bd), add(hps, mul(perp(u), 1 + bd * 0.4)), hps, 'neck');
   body(backPath, Ab, 0.6, backSide, sides, hemY + backLonger).line(p(0, bd), 'fold');
   backPath.closed = true;
@@ -440,7 +495,7 @@ function build(m: TeeMeasurements, s: TeeStyle, scye: number, warnings: string[]
   if (s.neckline === 'v') frontPath.line(lerp(cf, hps, 0.5), 'neck').curve(lerp(cf, hps, 0.75), toward(0.15), hps, 'neck');
   else if (s.neckline === 'scoop') frontPath.curve(p(hps.x * 0.7, cfY), toward(0.6), hps, 'neck');
   else frontPath.curve(p(hps.x * 0.55, cfY), toward(0.45), hps, 'neck');
-  const Af = p(Math.min(SW / 2 - 2, spX - 1.5, frontBustQ - 1.5), (sp.y + scye) / 2 + 1.5);
+  const Af = p(across(Math.min(SW / 2 - 2, spX - 1.5, frontBustQ - 1.5), frontBustQ), (sp.y + scye) / 2 + 1.5);
   body(frontPath, Af, 0.75, frontSide, rise, hemY + shaping.length).line(cf, 'fold');
   frontPath.closed = true;
 
@@ -455,7 +510,7 @@ function build(m: TeeMeasurements, s: TeeStyle, scye: number, warnings: string[]
     grain: [p(gf, scye + 1), p(gf, hemY - 4)],
     fold: [p(0, cfY + 2), p(0, hemY - 2)],
     balance: [{ pts: [p(0, scye), frontSide.U], label: 'UNDERARM LINE' }],
-    notches: [[Af, p(1, 0)]],
+    notches: tank ? [] : [[Af, p(1, 0)]],
     labels: [
       { at: p(bustQ * 0.4, scye - 4.5), text: 'TEE FRONT', size: 1.4 },
       { at: p(bustQ * 0.4, scye - 2.5), text: cut, size: 0.9 },
@@ -473,10 +528,12 @@ function build(m: TeeMeasurements, s: TeeStyle, scye: number, warnings: string[]
     grain: [p(gb, scye + 1), p(gb, hemY - 4)],
     fold: [p(0, bd + 2), p(0, hemY - 2)],
     balance: [{ pts: [p(0, scye), backSide.U], label: 'UNDERARM LINE' }],
-    notches: [
-      [add(Ab, p(0, -0.5)), p(1, 0)], // double notch = back
-      [add(Ab, p(0, 0.5)), p(1, 0)],
-    ],
+    notches: tank
+      ? []
+      : [
+          [add(Ab, p(0, -0.5)), p(1, 0)], // double notch = back
+          [add(Ab, p(0, 0.5)), p(1, 0)],
+        ],
     labels: [
       { at: p(bustQ * 0.4, scye - 4.5), text: 'TEE BACK', size: 1.4 },
       { at: p(bustQ * 0.4, scye - 2.5), text: cut, size: 0.9 },
@@ -537,6 +594,23 @@ function neckbandPiece(length: number, v: boolean, width = NECKBAND_CM): Piece {
     seamAllowance: KNIT_SEAM,
     allowances: { fold: 0 },
     meta: { lengthCm: r1(length), neckband: true, foldAt: v ? 'centre back' : 'centre front' },
+  };
+}
+
+/** A tank's armhole band: a strip like the neckband, cut two, each going round one armhole and joined into a ring at
+ * the underarm before it is sewn on. */
+function armholeBandPiece(length: number): Piece {
+  const pc = neckbandPiece(length, false);
+  const cut = 'Cut 2 on fold';
+  return {
+    ...pc,
+    name: 'Armhole band',
+    cut,
+    labels: [
+      { ...pc.labels[0], text: 'ARMHOLE BAND' },
+      { ...pc.labels[1], text: `${cut}, stretch along it` },
+    ],
+    meta: { lengthCm: r1(length), armBand: true, foldAt: 'underarm' },
   };
 }
 

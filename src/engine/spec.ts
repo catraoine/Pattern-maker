@@ -16,6 +16,7 @@ import type { TeeDraft, TeeMeasurements } from './tee';
 import type { LingerieDraft, LingerieMeasurements } from './lingerie';
 import { INSEAM, SLANT } from './pockets';
 import { BACK_WELT, weltWidth } from './trouserBack';
+import { DROP } from './sleeveCut';
 
 const r1 = (v: number) => Math.round(v * 10) / 10;
 const row = (label: string, body: number | undefined, finished: number): SpecRow =>
@@ -185,9 +186,14 @@ export function teeSpec(m: TeeMeasurements, d: TeeDraft): SpecRow[] {
     row('Armhole', m.armscye, d.armhole),
     row('Neckline, round', undefined, d.necklineCm),
     { label: `Neckband (${Math.round(d.neckband.ratio * 100)}% of the neckline)`, finished: `${d.neckband.length} x ${d.neckband.width} finished` },
-    row('Upper arm (bicep)', m.upper_arm, d.sleeve.bicep),
-    row('Sleeve length, crown to hem', undefined, d.sleeve.lengthCm),
-    row('Sleeve hem, round', undefined, d.sleeve.hemCm),
+    ...(d.armBand
+      ? [{ label: 'Armhole bands (cut 2)', finished: `${d.armBand.length} x ${d.armBand.width} finished` }]
+      : [
+          ...(d.shoulder === 'dropped' ? [{ label: 'Shoulder', finished: `dropped ${DROP.out} cm past the shoulder point` }] : []),
+          row('Upper arm (bicep)', m.upper_arm, d.sleeve.bicep),
+          row('Sleeve length, crown to hem', undefined, d.sleeve.lengthCm),
+          row('Sleeve hem, round', undefined, d.sleeve.hemCm),
+        ]),
   ];
 }
 

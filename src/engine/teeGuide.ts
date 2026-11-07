@@ -2,7 +2,7 @@
 // stitch, or an overlocker. Plain ASCII only: the PDF's standard font has no curly quotes.
 import type { SewingGuide, SewStep } from './instructions';
 import { STRETCH_WORDS } from './knits';
-import { KNIT_HEM, KNIT_SEAM, KNIT_SLEEVE_HEM, TeeDraft } from './tee';
+import { KNIT_HEM, KNIT_SEAM, KNIT_SLEEVE_HEM, TANK, TeeDraft } from './tee';
 
 const n1 = (v: number) => `${v} cm`;
 
@@ -16,6 +16,7 @@ export function teeGuide(d: TeeDraft, fabricM: number, finish: { width?: number 
     d.frontExtra >= 0.5
       ? `The front hem curves down ${n1(d.frontExtra)} lower at the centre than at the sides: that is the length the bust takes up, so the tee hangs level when worn. Press it up the same depth all along. `
       : '';
+  const tank = !!d.sleeveless;
   const steps: SewStep[] = [
     {
       title: 'Print and check the size',
@@ -23,7 +24,7 @@ export function teeGuide(d: TeeDraft, fabricM: number, finish: { width?: number 
     },
     {
       title: 'Cut out',
-      text: `Fold the knit in half lengthwise, right sides together, with one rib running straight along the fold. Keep it all on the table: fabric hanging over the edge stretches and the pieces come out too long. Place the front and back against the fold and the sleeve on both layers, every grain line along the ribs, so the stretch runs round the body. Place the neckband against the fold too, lying across the fabric, so it stretches along its length. Use pattern weights and a rotary cutter, or sharp shears, and snip the notches no deeper than 3 mm.`,
+      text: `Fold the knit in half lengthwise, right sides together, with one rib running straight along the fold. Keep it all on the table: fabric hanging over the edge stretches and the pieces come out too long. Place the front and back against the fold${tank ? '' : ' and the sleeve on both layers'}, every grain line along the ribs, so the stretch runs round the body. Place the neckband${tank ? ' and the two armhole bands' : ''} against the fold too, lying across the fabric, so ${tank ? 'they stretch' : 'it stretches'} along ${tank ? 'their' : 'its'} length. Use pattern weights and a rotary cutter, or sharp shears, and snip the notches no deeper than 3 mm.`,
     },
     {
       title: 'Set up your machine',
@@ -49,17 +50,30 @@ export function teeGuide(d: TeeDraft, fabricM: number, finish: { width?: number 
       title: 'Topstitch the neck',
       text: 'From the right side, stitch round the tee just below the neckband seam, about 6 mm from it, through the seam allowance underneath, with a twin needle or a long narrow zigzag. It keeps the seam flat and the band sitting up. This step is optional on an overlocked seam.',
     },
-    {
-      title: 'Sew in the sleeves',
-      text: `Lay the tee open, right side up. Pin each sleeve's crown to its armhole, right sides together, matching the notch at the top of the sleeve to the shoulder seam, the single notches at the front and the double notches at the back. There is very little to ease in: a knit sleeve fits its armhole almost exactly. Sew ${seam} from the edge with the sleeve on top and press the seams toward the sleeve.`,
-    },
-    {
-      title: 'Sew the side seams',
-      text: `Fold the tee right sides together at the sides. Pin each side from the sleeve hem, through the underarm, to the body hem, matching the underarm seams. Sew ${seam} from the edge in one go and press the seams toward the back.`,
-    },
+    ...(tank
+      ? [
+          {
+            title: 'Sew the side seams',
+            text: `Fold the tank right sides together at the sides. Pin each side from the underarm to the hem and sew ${seam} from the edge. Press the seams toward the back.`,
+          },
+          {
+            title: 'Bind the armholes',
+            text: `Each armhole band is ${Math.round(TANK.bandRatio * 100)}% of its armhole, ${d.armBand ? n1(d.armBand.length) : ''} long, so it pulls the edge in to lie flat against the body without gaping. Sew each band's short ends right sides together into a loop, fold it in half lengthwise, wrong sides together, and press lightly. Pin it to the right side of the armhole, raw edges together, its seam at the side seam and its fold at the shoulder seam. Stretch the band, not the armhole, to fit, a little more round the curve under the arm, and sew ${seam} from the edge. Press the seam toward the tank and topstitch 6 mm from it, as on the neck.`,
+          },
+        ]
+      : [
+          {
+            title: 'Sew in the sleeves',
+            text: `Lay the tee open, right side up. Pin each sleeve's crown to its armhole, right sides together, matching the notch at the top of the sleeve to the shoulder seam, the single notches at the front and the double notches at the back. ${d.shoulder === 'dropped' ? 'The shoulders are dropped: the seam sits down on the arm, and the sleeve\'s flat crown goes in with next to nothing to ease.' : 'There is very little to ease in: a knit sleeve fits its armhole almost exactly.'} Sew ${seam} from the edge with the sleeve on top and press the seams toward the sleeve.`,
+          },
+          {
+            title: 'Sew the side seams',
+            text: `Fold the tee right sides together at the sides. Pin each side from the sleeve hem, through the underarm, to the body hem, matching the underarm seams. Sew ${seam} from the edge in one go and press the seams toward the back.`,
+          },
+        ]),
     {
       title: 'Hem',
-      text: `${bustHem}Press up ${n1(KNIT_SLEEVE_HEM)} at each sleeve hem and ${n1(KNIT_HEM)} at the body hem. A strip of fusible knit hem tape inside the fold stops the stitching rippling. From the right side, stitch ${n1(KNIT_SLEEVE_HEM - 0.5)} from the fold with a stretch twin needle, or a long narrow zigzag. Let the machine feed the knit: pulling it makes the hem wavy.`,
+      text: `${bustHem}Press up ${tank ? '' : `${n1(KNIT_SLEEVE_HEM)} at each sleeve hem and `}${n1(KNIT_HEM)} at the body hem. A strip of fusible knit hem tape inside the fold stops the stitching rippling. From the right side, stitch ${n1(KNIT_SLEEVE_HEM - 0.5)} from the fold with a stretch twin needle, or a long narrow zigzag. Let the machine feed the knit: pulling it makes the hem wavy.`,
     },
     {
       title: 'Finish',
@@ -70,6 +84,7 @@ export function teeGuide(d: TeeDraft, fabricM: number, finish: { width?: number 
     notions: [
       `${fabricM.toFixed(1)} m of knit fabric, ${finish.width ?? 150} cm wide, ${STRETCH_WORDS[d.stretch]}`,
       `${mock ? 'Mock neck' : 'Neckband'}: from the same knit, or ${mock ? '0.3' : '0.2'} m of 1x1 rib (finished ${n1(d.neckband.width)} ${mock ? 'tall' : 'wide'})`,
+      ...(tank ? [`Armhole bands: from the same knit or rib, two strips each ${d.armBand ? n1(d.armBand.length) : ''} long (finished ${n1(d.neckband.width)} wide)`] : []),
       'Ballpoint or stretch machine needles, size 75 or 80',
       'Polyester all-purpose thread (with an overlocker, 3 or 4 cones)',
       '0.5 m clear elastic or stay tape, 6 mm wide, for the shoulders',

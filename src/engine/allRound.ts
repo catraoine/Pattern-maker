@@ -414,7 +414,8 @@ export function roundTee(draft: TeeDraft, m: Nape): RoundGarment {
     back,
     pieces: draft.pieces.filter((pc) => pc.kind !== 'band'),
     napeToWaist: napeOf(m, 41),
-    sleeve: draft.sleeve,
+    // (A tank: no sleeve in the turning view.)
+    ...(draft.sleeveless ? {} : { sleeve: draft.sleeve }),
     girth: { bust: draft.finishedBust, waist: draft.finishedWaist, hip: draft.finishedHem },
   });
 }

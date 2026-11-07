@@ -123,7 +123,7 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
       notes: [
         `For knit fabric with ${tee.stretch} stretch. Finished bust ${tee.finishedBust} cm, ${tee.length === 'cropped' ? 'hem' : 'hem at the hip'} ${tee.finishedHem} cm, back length ${tee.backLength} cm.`,
         `Seam allowance 1 cm included, 2.5 cm at the hem, 2 cm at the sleeve hem. Dashed line = stitching line. Grain lines run along the ribs.`,
-        `Neckband ${tee.neckband.length} cm long, ${Math.round(tee.neckband.ratio * 100)}% of the ${tee.necklineCm} cm neckline, cut with the stretch along it. Sleeve: bicep ${tee.sleeve.bicep} cm. Sewing steps are on the last pages.`,
+        `Neckband ${tee.neckband.length} cm long, ${Math.round(tee.neckband.ratio * 100)}% of the ${tee.necklineCm} cm neckline, cut with the stretch along it. ${tee.armBand ? `Armhole bands ${tee.armBand.length} cm long, cut 2.` : `${tee.shoulder === 'dropped' ? 'Dropped shoulders. ' : ''}Sleeve: bicep ${tee.sleeve.bicep} cm.`} Sewing steps are on the last pages.`,
       ],
       guide: withKnitFabric(teeGuide(tee, lays.find((l) => l.fabric === 'self')?.metres ?? teeFabricMetres(tee), { width: finish.fabricWidth }), fabric),
       spec: teeSpec(values as TeeMeasurements, tee),

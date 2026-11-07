@@ -251,6 +251,11 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       short: ['A sleeve that ends on the upper arm.', 'easy'],
       elbow: ['A sleeve that ends at the elbow.'],
       long: ['A sleeve down to the wrist.'],
+      none: ['A tank: no sleeves, the shoulder cut in to a strap and the armholes finished with a knit band.'],
+    },
+    shoulder: {
+      set_in: ['The sleeve sewn in at your shoulder, the classic tee.', 'easy'],
+      dropped: ['A boxy body, the shoulder seam dropped down onto the arm, a flat easy sleeve. Hangs straight and roomy.'],
     },
     length: {
       cropped: ['Ends above the waist.'],
@@ -423,6 +428,9 @@ const SHORT: Record<string, string> = {
   'trousers.pleats.single': 'One pleat each front, pressed to centre.',
   'trousers.pleats.double': 'Two pleats each front, loose and easy.',
   'trousers.loops.loops': 'Five loops on the waistband.',
+  'tee.sleeve.none': 'A tank: no sleeves, banded armholes.',
+  'tee.shoulder.set_in': 'Sewn in at your shoulder.',
+  'tee.shoulder.dropped': 'Boxy, the shoulder seam down the arm.',
   'trousers.backPockets.welt': 'A welt pocket each side of the seat.',
   'noSeam.seam': 'Bodice and skirt joined at the waist.',
   'noSeam.sheath': 'One piece, close at waist and hips.',

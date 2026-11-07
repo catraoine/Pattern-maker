@@ -13,7 +13,7 @@ import type { BackPockets } from './engine/trouserBack';
 import type { Fit, WaistStyle } from './engine/skirt';
 import type { WaistSeam } from './engine/dress';
 import type { PocketStyle } from './engine/pockets';
-import type { Stretch, TeeFit, TeeLength, TeeNeck, TeeSleeve } from './engine/tee';
+import type { Stretch, TeeFit, TeeLength, TeeNeck, TeeShoulder, TeeSleeve } from './engine/tee';
 import { isSwim, type CupStyle, type LegCut, type LingerieFit, type LingeriePiece, type LingerieStretch, type Rise, type StretchWay } from './engine/lingerie';
 import { Peplum, PeplumHem, PeplumSize, isDraped, peplumLengthOk } from './engine/drape';
 import type { PlungeDepth } from './engine/bodice';
@@ -223,26 +223,33 @@ export interface TeeChoices {
   lengthCm?: number;
   /** Drawn on the form: a shirttail or high-low hem (see tee.ts). Older saves have a level hem. */
   hemShape?: { sides?: number; back?: number };
+  /** Dropped shoulders on a boxy body (In testing). Older saves are set in. */
+  shoulder?: TeeShoulder;
 }
 
 export const DEFAULT_TEE_CHOICES: TeeChoices = { garment: 'tee', fit: 'regular', stretch: 'medium', neckline: 'crew', sleeve: 'short', length: 'hip' };
 
-export const TEE_GROUPS: { id: 'stretch' | 'fit' | 'neckline' | 'sleeve' | 'length'; label: string; options: [string, string][] }[] = [
+export const TEE_GROUPS: { id: 'stretch' | 'fit' | 'neckline' | 'sleeve' | 'shoulder' | 'length'; label: string; options: [string, string][] }[] = [
   { id: 'stretch', label: 'Your knit’s stretch', options: [['low', 'Low 20–30%'], ['medium', 'Medium 30–50%'], ['high', 'High 50%+']] },
   { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed']] },
   { id: 'neckline', label: 'Neckline', options: [['crew', 'Crew'], ['scoop', 'Scoop'], ['v', 'V-neck'], ['mock', 'Mock neck']] },
-  { id: 'sleeve', label: 'Sleeves', options: [['short', 'Short'], ['elbow', 'Elbow'], ['long', 'Long']] },
+  { id: 'sleeve', label: 'Sleeves', options: [['short', 'Short'], ['elbow', 'Elbow'], ['long', 'Long'], ['none', 'None (tank)']] },
+  { id: 'shoulder', label: 'Shoulder', options: [['set_in', 'Set-in'], ['dropped', 'Dropped, boxy']] },
   { id: 'length', label: 'Length', options: [['cropped', 'Cropped'], ['hip', 'Hip'], ['tunic', 'Tunic']] },
 ];
 
 const TEE_NECK_WORDS: Record<TeeNeck, string> = { crew: 'crew-neck', scoop: 'scoop-neck', v: 'V-neck', mock: 'mock-neck' };
-const TEE_SLEEVE_WORDS: Record<TeeSleeve, string> = { short: 'short sleeves', elbow: 'elbow-length sleeves', long: 'long sleeves' };
+const TEE_SLEEVE_WORDS: Record<TeeSleeve, string> = { short: 'short sleeves', elbow: 'elbow-length sleeves', long: 'long sleeves', none: '' };
+/** Whether a T-shirt choice goes with the rest: a tank has no sleeve to drop the shoulder to. */
+export const teeOptionAllowed = (c: TeeChoices, id: string, opt: string) => !(id === 'shoulder' && opt === 'dropped' && c.sleeve === 'none');
 const TEE_LENGTH_WORDS: Record<TeeLength, string> = { cropped: 'Cropped ', hip: '', tunic: 'Tunic-length ' };
 
 /** A plain name, such as "Fitted scoop-neck T-shirt with long sleeves". */
 export function describeTee(c: TeeChoices) {
-  const fit = c.fit === 'regular' ? '' : `${c.fit} `;
-  const words = `${c.lengthCm !== undefined ? `${Math.round(c.lengthCm)} cm ` : TEE_LENGTH_WORDS[c.length]}${fit}${TEE_NECK_WORDS[c.neckline]} T-shirt with ${TEE_SLEEVE_WORDS[c.sleeve]}`;
+  const boxy = c.shoulder === 'dropped' && c.sleeve !== 'none';
+  const fit = boxy ? 'boxy ' : c.fit === 'regular' ? '' : `${c.fit} `;
+  const lead = `${c.lengthCm !== undefined ? `${Math.round(c.lengthCm)} cm ` : TEE_LENGTH_WORDS[c.length]}${fit}${TEE_NECK_WORDS[c.neckline]}`;
+  const words = c.sleeve === 'none' ? `${lead} tank` : `${lead} T-shirt with ${boxy ? 'dropped shoulders and ' : ''}${TEE_SLEEVE_WORDS[c.sleeve]}`;
   return words[0].toUpperCase() + words.slice(1);
 }
 

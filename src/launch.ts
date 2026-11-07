@@ -64,7 +64,9 @@ export type TestingTool =
   | 'fabric_photo'
   | 'front_pockets'
   | 'barrel_leg'
-  | 'back_welts';
+  | 'back_welts'
+  | 'tank_tee'
+  | 'boxy_tee';
 
 export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; proof: string }> = {
   draw_lines: { name: 'Draw your lines', where: 'Style, Draw on your form', proof: 'fit testers draw a hem, a neckline and a side and the pattern follows' },
@@ -125,6 +127,8 @@ export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; p
   front_pockets: { name: 'Patch and slant pockets on skirts and dresses', where: 'the Patch and Slant front chips under Pockets on a skirt or dress', proof: 'two testers sew patch pockets and two sew slant pockets, and each lies flat on the hip without gaping, the slant opening staying closed when standing' },
   barrel_leg: { name: 'Barrel-leg trousers', where: 'the Barrel chip under Leg on trousers', proof: 'two testers sew barrel-leg trousers and the leg curves out evenly round the knee and in to the ankle, with no break in the side seam' },
   back_welts: { name: 'Back welt pockets on trousers', where: 'the Welt pockets chip under Back pockets on trousers', proof: 'two testers sew back welt pockets and they lie flat and level with the waist, the corners clean, the shortened darts smooth over the seat' },
+  tank_tee: { name: 'Tank', where: 'the None (tank) chip under Sleeves on the T-shirt', proof: 'two testers sew a tank and the armhole bands lie flat against the body with no gaping at the front or under the arm' },
+  boxy_tee: { name: 'Boxy drop-shoulder T-shirt', where: 'the Dropped, boxy chip under Shoulder on the T-shirt', proof: 'two testers sew a boxy tee and the shoulder seam sits evenly down the arm, the sleeve going in with no puckers' },
   belt_loops: { name: 'Belt loops on trousers', where: 'the Belt loops chips on trousers', proof: 'two testers sew the five loops and a belt sits level in them, the loops clear of the pockets and the fly' },
   // And for the flared lilac blazer from Cat's plaid-blazer picture (2026-10-31).
   flared_jacket: { name: 'Flared jacket and coat hem', where: 'the Flared chip below the waist on a jacket or coat', proof: 'two testers sew a flared jacket and it stays close at the waist, kicking out evenly over the hips with a level hem' },

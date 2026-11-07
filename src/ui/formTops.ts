@@ -49,9 +49,9 @@ function sideAt(stroke: P[], bustY: number, waistY: number) {
 const TEE_FITS: TeeFit[] = ['fitted', 'regular', 'relaxed'];
 const NECKS: TeeNeck[] = ['crew', 'scoop', 'v', 'mock'];
 const LENGTHS: TeeLength[] = ['cropped', 'hip', 'tunic'];
-const SLEEVES: TeeSleeve[] = ['short', 'elbow', 'long'];
+const SLEEVES: Exclude<TeeSleeve, 'none'>[] = ['short', 'elbow', 'long'];
 const NECK_WORDS: Record<TeeNeck, string> = { crew: 'A crew neck', scoop: 'A scoop neck', v: 'A V-neck', mock: 'A mock neck' };
-const SLEEVE_WORDS: Record<TeeSleeve, string> = { short: 'Short sleeves', elbow: 'Elbow-length sleeves', long: 'Long sleeves' };
+const SLEEVE_WORDS: Record<Exclude<TeeSleeve, 'none'>, string> = { short: 'Short sleeves', elbow: 'Elbow-length sleeves', long: 'Long sleeves' };
 
 export type TeeFormMeasurements = TeeMeasurements & { bust_depth?: number; wrist?: number };
 
@@ -63,7 +63,7 @@ interface TeeForm {
   /** For each option: how low the neckline is at the centre front, the hem's height, and the sleeve's length from the shoulder. */
   necks: Record<TeeNeck, number>;
   hems: Record<TeeLength, number>;
-  sleeves: Record<TeeSleeve, number>;
+  sleeves: Record<Exclude<TeeSleeve, 'none'>, number>;
 }
 
 /** The form built from the T-shirt's measurements, in the tee's own coordinates (the neck point about 2 cm above the nape). */
@@ -196,7 +196,8 @@ export function teeLines(draft: TeeDraft, tf: TeeForm): Partial<Record<FormLine,
     ...(draft.neckline === 'mock' ? { collar: standingBand(neck, draft.neckband.width, 0.96) } : {}),
     fit: mirror(edgeRun(front, 'side')),
     hem: mirror(edgeRun(front, 'hem').map((q) => ({ x: q.x, y: level }))),
-    sleeve: mirror([{ x: a.inner, y }, { x: a.outer, y }]),
+    // A tank has no sleeve to end: drawing one across the arm gives it sleeves.
+    ...(draft.sleeveless ? {} : { sleeve: mirror([{ x: a.inner, y }, { x: a.outer, y }]) }),
   };
 }
 

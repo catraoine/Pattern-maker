@@ -1528,8 +1528,11 @@ export function teeFlat(d: TeeDraft): Flat {
     for (const pts of both(neck)) for (const r of inset(pts, 0.6, shape)) lines.push({ pts: r, kind: 'stitch' });
     const shapes = [shape];
     const sleeves: number[] = [];
-    const sl = sleeveSide(h, d.sleeve);
+    // A tank's armholes are bound with a band, topstitched like the neck.
+    if (d.sleeveless) for (const run of along(h, 'armhole')) for (const pts of [run, mirror(run)]) for (const r of inset(pts, 0.6, shape)) lines.push({ pts: r, kind: 'stitch' });
+    const sl = d.sleeveless ? undefined : sleeveSide(h, d.sleeve);
     for (const flip of [false, true]) {
+      if (!sl) break;
       const f = (pts: P[]) => (flip ? mirror(pts) : pts);
       if (sl.shape.length) sleeves.push(shapes.push(f(sl.shape)) - 1);
       lines.push(...sl.lines.map((l) => ({ ...l, pts: f(l.pts) })));

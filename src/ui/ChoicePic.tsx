@@ -172,7 +172,21 @@ const SLEEVE: Record<string, ReactNode> = { none: sleeves(0), short: sleeves(8),
 const PICS: Record<PicSet, Record<string, Record<string, ReactNode>>> = {
   skirt: SKIRT,
   bodice: { neckline: NECK, sleeve: SLEEVE, length: { waist: topTo(28), high_hip: topTo(34), hip: topTo(40) }, waistSeam: { empire: dressSeam(16), raised: dressSeam(19), natural: dressSeam(22), dropped: dressSeam(29), low: dressSeam(33) } },
-  tee: { neckline: NECK, sleeve: { short: sleeves(8), elbow: sleeves(16), long: sleeves(30) }, length: { cropped: topTo(26), hip: topTo(36), tunic: topTo(45) } },
+  tee: {
+    neckline: NECK,
+    sleeve: { short: sleeves(8), elbow: sleeves(16), long: sleeves(30), none: <path d="M14 8L17 7Q20 12 23 7L26 8Q26 18 30 22L29 44H11L10 22Q14 18 14 8z" /> },
+    shoulder: {
+      set_in: sleeves(8),
+      // Boxy: the shoulder seam down on the arm, a wide straight body and a short wide sleeve.
+      dropped: (
+        <>
+          <path d="M4 13L15 7Q20 12 25 7L36 13L38 25L32 26L32 44H8L8 26L2 25z" />
+          <path className="pic-faint" d="M8 13V26M32 13V26" />
+        </>
+      ),
+    },
+    length: { cropped: topTo(26), hip: topTo(36), tunic: topTo(45) },
+  },
   trousers: {
     leg: {
       straight: <path d="M11 4h18l1 42h-8l-2-28-2 28h-8z" />,
