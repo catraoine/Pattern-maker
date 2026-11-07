@@ -693,7 +693,7 @@ function openFront(pc: Piece, s: OuterStyle, ext: number, buttons: OuterDraft['b
     const at = (sAlong: number, t: number) => add(B, add(mul(u, sAlong), mul(nrm, t)));
     // A wide lapel (In testing) is 3 cm broader (half that on a double front, already broad); a plunging one a little broader to carry its longer roll.
     const high = highLapel(s);
-    // (A single high lapel is narrow, 5.5 cm, as the picture's is beside its long collar.)
+    // (A single high lapel is 8 cm across at its point, however big the vest, and opens the V wide, as in Cat's picture.)
     const W = high && s.front === 'single' && s.collar === 'notched' ? HIGH_LAPEL.width :
       (s.front === 'double' ? (s.kind === 'coat' ? 10 : 9) : s.kind === 'coat' ? 8.5 : 7.5) +
       // (Not a high lapel's: it stays a third of the front across, as the picture's does, however big the vest.)
@@ -703,14 +703,18 @@ function openFront(pc: Piece, s: OuterStyle, ext: number, buttons: OuterDraft['b
     const shawl = s.collar === 'shawl';
     // The gorge meets the roll line well below the neck point, rising a little to the notch. A peak's
     // point sweeps up past the notch; a shawl has no notch, its lapel rounding straight into the collar.
-    // (A high lapel's roll is short, so its gorge sits halfway down it rather than 10 cm below the neck: a long collar
-    // down to a short lapel, as in Cat's SS27 vest picture. Its collar rolls low at the front to meet it, see
-    // notchedCollar, or it stands up the long gorge and twists.)
+    // (A high lapel's roll is short, so its gorge sits a little over a third of the way down it rather than 10 cm below
+    // the neck: the collar a third of the line from the neck to the break, the lapel two thirds, as measured off Cat's
+    // SS27 vest picture. Its collar rolls low at the front to meet it, see notchedCollar, or it stands up and twists.)
     const G = high ? Lr * HIGH_LAPEL.gorge : 10;
     const Q = at(Lr - G, 0);
     const K = shawl ? at(Lr - G + 0.8, -W + 0.6) : at(Lr - G + 0.6, -4.3);
     const Lp = peak ? at(Lr - (s.front === 'double' ? 5 : 6.2), -W - 1.2) : shawl ? at(Lr - G - 0.2, -W) : at(Lr - (s.front === 'double' ? 6.5 : G + 0.4), -W);
-    const lapelEdge = Array.from({ length: 21 }, (_, i) => cubic(Lp, at(Lr * 0.5, -W - 0.7), at(Lr * 0.18, -W * 0.7), B, i / 20)).reverse();
+    // (A high lapel's edge runs dead straight from its point to the break, as a crisp waistcoat's does in Cat's picture,
+    // rather than bellying out.)
+    const lapelEdge = high && s.front === 'single' && s.collar === 'notched'
+      ? Array.from({ length: 21 }, (_, i) => lerp(Lp, B, i / 20)).reverse()
+      : Array.from({ length: 21 }, (_, i) => cubic(Lp, at(Lr * 0.5, -W - 0.7), at(Lr * 0.18, -W * 0.7), B, i / 20)).reverse();
     // The neck seam curves up from the gorge to arrive square to the shoulder, so it runs on smoothly
     // into the back neck once the shoulders are sewn.
     let up = p(uSh.y, -uSh.x);
@@ -833,7 +837,8 @@ function notchedCollar(front: Piece, backNeck: number, frontNeck: number, s: Out
     fabric: 'Upper and under collar in self + interfacing',
     seamAllowance: s.seamAllowance,
     allowances: { neck: 1, gorge: 1, collar: 1, fold: 0 },
-    meta: { foldAt: 'centre back' },
+    // (Pressed flat when worn: a low-rolled collar's fall, left to the sim, lies lumpy and pulled.)
+    meta: { foldAt: 'centre back', ...(low ? { pressed: true } : {}) },
     draft: {
       frame: [],
       points: [
@@ -982,7 +987,7 @@ const plunges = (s: Pick<OuterStyle, 'lapel' | 'collar' | 'front'>) => s.lapel =
 /** A high lapel breaks this far below the neck at the centre front, its gorge this share of the way down its roll: short, the front
  *  buttoned up over the bust with three buttons well apart, as a tailored waistcoat is (measured off Cat's SS27 vest
  *  picture against the wearer: the break a head's length below the neck, the buttons about 14 cm apart). */
-const HIGH_LAPEL = { breakBelowNeck: 17, gorge: 0.5, width: 5.5, buttons: 3, gap: 14 };
+const HIGH_LAPEL = { breakBelowNeck: 17, gorge: 0.37, width: 8, buttons: 3, gap: 14 };
 const highLapel = (s: Pick<OuterStyle, 'lapel' | 'collar'>) => s.lapel === 'high' && lapelled(s.collar);
 
 /** Buttons down the front: from the break point (or just below the neck) to above the hem, about 10 cm apart. */

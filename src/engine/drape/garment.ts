@@ -4235,8 +4235,8 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
       });
     }
   }
-  // A stiff jacket's collar is pressed flat and crisp (structured.ts).
-  if (collarOnly && o.stiff && !knob('__noPressCollar')) pressCollar(B.panels, res, relax);
+  // A stiff jacket's collar, or a low-rolled one, is pressed flat and crisp (structured.ts).
+  if (collarOnly && (o.stiff || B.panels.some((p) => p.role === 'collar' && p.pc.meta.pressed)) && !knob('__noPressCollar')) pressCollar(B.panels, res, relax);
   // A shirt collar on a stand: the sim leaves its fall standing up round the neck like a second band. Worn, the fall
   // turns at its roll line and lies down over the stand, its points out onto the chest: each turned point goes from
   // the roll line it folds at down the outside of whatever is under it (the stand, then the shirt), by as far as it is
