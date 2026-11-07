@@ -4006,7 +4006,9 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
   // Stiff cloth stands away from the body below the underarm (structured.ts): after the roll line is taped, which
   // otherwise carries the front edge back out below the break, where the two mirrored edges then crossed round the top
   // button in an eye shape (Cat, 2026-11-07).
-  if ((o.stiff && !knob('__noStiff')) || knob('__stiff')) standStiff(B.panels, res);
+  if ((o.stiff && !knob('__noStiff')) || knob('__stiff')) {
+    standStiff(B.panels, res, seams);
+  }
   // A jacket's or coat's collar fall is pressed down onto the back it turns over (its stand alone can't hold it
   // there in the sim), so no gap opens between the collar and the back neck.
   const collarOnly = !knob("__lay") && !!o.pinFront?.length && !o.rollFront;

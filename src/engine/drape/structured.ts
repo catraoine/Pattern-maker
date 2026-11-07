@@ -8,8 +8,8 @@ import { CollarOnFront, collarOnFront, straightenCollarEdge } from './collarEnd'
 
 const NA = 48;
 
-/** Holds a jacket's body cloth out stiff below its underarm. Moves `res`. */
-export function standStiff(panels: Panel[], res: Float64Array | number[], k = knob('__stiffK') ?? 0.85): void {
+/** Holds a jacket's body cloth out stiff below its underarm. Moves `res`. `seams` are closed again after. */
+export function standStiff(panels: Panel[], res: Float64Array | number[], seams: { i: number; j: number; k: number; t: number }[] = [], k = knob('__stiffK') ?? 0.85): void {
   const body = panels.filter((p) => !p.hidden && (p.role === 'front' || p.role === 'back'));
   if (!body.length) return;
   // (Where the cloth starts to stand free: the lowest underarm point.)
@@ -167,16 +167,32 @@ export function standStiff(panels: Panel[], res: Float64Array | number[], k = kn
       res[I + 1] += hd[j] * s * s * (3 - 2 * s);
     });
   }
+  // (Each point is held out by its own place round the body, so a dart's or a centre seam's two sides, sewn at one
+  // place but lying at different depths, came apart 3 cm: closed again, before the front is laid closed.)
+  closeBodySeams(panels, res, seams);
   if (!knob('__noLay')) layFrontEdges(body, res);
 }
+
+/** The widest button extension, past the centre line in cm, a front is laid closed on: a single-breasted coat's. */
+const LAY_MAX_EXTENSION = 3;
 
 /** A buttoned stiff front lies closed to its edge. The front is sewn as a half mirrored at the centre front, so there
  *  the front's centre line goes onto the mirror, its button stand with it, the cloth beside easing over to it: between
  *  the buttons its edge can't bow open as a soft cloth's does. Moves `res`. */
 function layFrontEdges(body: Panel[], res: Float64Array | number[]): void {
   const W = knob('__layW') ?? 6;
-  for (const p of body) {
-    if (p.role !== 'front') continue;
+  // (The break: where the lapel's edge ends. A front cut across at a chest seam keeps the lapel on its upper part;
+  // both parts are in the whole front's coordinates, so the break read off the one serves the other.)
+  const fronts = body.filter((p) => p.role === 'front');
+  const lapelYs = fronts.flatMap((p) => (p.mesh.runs.lapel ?? []).flat().map((i) => p.mesh.pts[i].y));
+  // (Only a single-breasted lapelled front: one with no lapel has no break to lay it from, and a double-breasted one
+  // buttons well off its centre line, so laid there its wide overlap stretched; checked over every jacket and coat
+  // option in a crisp cloth, 2026-11-07. Its extension is read off the cloth that isn't turned back: a grown-on lapel
+  // reaches further. And a front cut in one piece: laid closed, a princess front's centre piece pulled away from the
+  // side piece sewn to it.)
+  if (!lapelYs.length || fronts.length !== 1 || fronts.some((p) => Math.min(...p.mesh.pts.filter((_, i) => !p.turned[i]).map((q) => q.x)) < -LAY_MAX_EXTENSION)) return;
+  const breakY = Math.max(...lapelYs);
+  for (const p of fronts) {
     const pts = p.mesh.pts;
     const centre = pts.map((_, i) => i).filter((i) => !p.turned[i] && Math.abs(pts[i].x) < 0.9);
     if (!centre.length) continue;
@@ -195,9 +211,6 @@ function layFrontEdges(body: Panel[], res: Float64Array | number[]): void {
     // (Only below the lapel's break, as above it the fronts turn back open; coming in within a couple of cm of it, as
     // over a longer way the two front edges, mirrored, crossed and parted again round the top button in an eye shape:
     // Cat, 2026-11-07.)
-    // (The break: where the lapel's edge ends. The cloth marked turned can run on below it along the extension.)
-    const lapelEdge = (p.mesh.runs.lapel ?? []).flat();
-    const breakY = Math.max(-Infinity, ...(lapelEdge.length ? lapelEdge : pts.map((_, i) => i).filter((i) => p.turned[i])).map((i) => pts[i].y));
     const moves: [number, number, number][] = [];
     // (The lapel's own foot, just above the break, is drawn in to the centre with it, so the two lapels, mirrored, meet in
     // one V at the top button instead of crossing in a little diamond round it.)
@@ -314,4 +327,22 @@ export function pressCollar(panels: Panel[], res: Float64Array | number[], relax
     const sewn = new Set([...(p.mesh.runs.neck ?? []), ...(p.mesh.runs.gorge ?? [])].flat());
     if (edge.length && !knob('__noStraightRelax')) relax(p, [...p.mesh.pts.map((_, i) => i).filter((i) => !p.turned[i] || sewn.has(i)), ...edge]);
   }
+}
+
+/** Closes the seams within and between a jacket's front and back pieces after they've been moved one point at a time:
+ *  each side meets the other halfway. Moves `res`. */
+export function closeBodySeams(panels: Panel[], res: Float64Array | number[], seams: { i: number; j: number; k: number; t: number }[]): void {
+  const body = new Set<number>();
+  for (const p of panels) if (!p.hidden && (p.role === 'front' || p.role === 'back')) for (let i = 0; i < p.mesh.pts.length; i++) body.add(p.base + i);
+  for (let it = 0; it < 4; it++)
+    for (const { i, j, k, t } of seams) {
+      if (!body.has(i) || !body.has(j) || !body.has(k)) continue;
+      for (let d = 0; d < 3; d++) {
+        const target = res[j * 3 + d] * (1 - t) + res[k * 3 + d] * t;
+        const diff = (target - res[i * 3 + d]) * 0.5;
+        res[i * 3 + d] += diff;
+        res[j * 3 + d] -= diff * (1 - t);
+        res[k * 3 + d] -= diff * t;
+      }
+    }
 }
