@@ -256,6 +256,15 @@ export interface DrapeOptions {
   /** Below this level (the front's own pattern y) the fronts hang parted: each centre front edge held off the centre
    *  line by `cm` at the level `to` (its hem), in proportion between (a shirt worn with one button done up). */
   partBelow?: { y: number; cm: number; to: number };
+  /** How much harder than the light pull a skirt's cloth hangs (clothCard.ts: a fluid or heavy cloth). */
+  fall?: number;
+  /** Which cloth the fall pulls: a skirt's every panel, or a dress's skirt (left off a top: see drape()). */
+  fallOn?: 'all' | 'skirt';
+  /** How the cloth the fall pulls bends against the rest (clothCard.ts: a fluid cloth pours in its skirt, a denim
+   *  stands out; a bodice and sleeves bent as the skirt folded into fins). */
+  skirtBend?: number;
+  /** How far the cloth gives along its length (a knit), 0 to about 0.4. */
+  stretch?: number;
   /** Crisp cloth (organza, taffeta): a peplum this many times stiffer, so it stands out rather than hangs. */
   crisp?: number;
   /** An unshaped top: hangs from the bust and shoulder blades as a curtain, in a few long folds. */
@@ -283,6 +292,12 @@ interface CollarPart {
 /** How much stiffer a coat's faced front edge bends than its cloth: about 1.4 times plain wool's stiffness, which
  *  the sim holds steady (much past that it blows up). */
 const FACED = (o: { bendK?: number }) => Math.min(12, 1.4 / (o.bendK ?? 0.05));
+
+/** A full circle skirt (more than a half circle round its waist): its hem's fullness starts in flutes clear of the
+ *  body, and a fluid cloth's softer bend and harder fall folded them through each other into fins (39 times the limit
+ *  on a silk circle dress, Fabric behaviour 2026-11-07), so it hangs as before. (Each piece here is a half piece: a
+ *  half circle's front and back cover 90 degrees between them, a full circle's 180.) */
+const fullCircle = (skirt: Piece[] | undefined) => (skirt ?? []).filter((pc) => pc.meta.waistRadius).reduce((t, pc) => t + ((pc.meta.angleDeg as number) ?? 0), 0) > 135;
 
 /** A heavily gathered panel, drawn in across its width for the sim: cloth this full folds over itself, which the sim
  *  (no cloth-on-cloth contact) shows as tears. It hangs as a panel of SIM_GATHER fullness, and its folds are laid on
@@ -1722,7 +1737,8 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
         // sim crumpled a full bishop into 56 sharp pleats down the arm, where in cotton it hung round, 2026-11-06. Its
         // bends are stiffened to a cotton's.)
         const fullSleeve = p.role === 'sleeve' && !!p.pc.meta.full;
-        bendW.push(p.role === 'collar' || p.turned[opp[0]] ? 4 : faced ? FACED(o) : o.crisp && /peplum/i.test(p.pc.name) ? o.crisp : fullSleeve ? Math.max(1, 0.06 / (o.bendK ?? 0.05)) : 1);
+        const pours = o.skirtBend !== undefined && !(o.skirtBend < 1 && fullCircle(extra.skirt)) && (o.fallOn === 'all' || (o.fallOn === 'skirt' && p.role.startsWith('peplum'))) ? o.skirtBend : 1;
+        bendW.push(p.role === 'collar' || p.turned[opp[0]] ? 4 : faced ? FACED(o) : o.crisp && /peplum/i.test(p.pc.name) ? o.crisp : fullSleeve ? Math.max(1, 0.06 / (o.bendK ?? 0.05)) : pours);
       }
     }
   }
@@ -2106,6 +2122,23 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
   // Trousers settle in fewer steps: laid on their legs they are near where they hang, and left to run the full count the
   // cloth below the crotch kept drifting into folds and opened the inside leg (All round quality, 2026-11-07: of 51
   // trousers in three cloths, 35 passed at 260 steps and 44 at 60 to 100).
+  // The cloth's own behaviour (clothCard.ts): a fluid or heavy cloth falls harder into its folds; a knit gives along
+  // its length.
+  // (Only a skirt's cloth, or a dress's skirt (at most 1.4 times: a silk cowl's bodice folded into fins under more), and
+  // never a yoke: pulled harder, the cloth a skirt hangs from (a bodice, a
+  // yoke) stretched to 4 to 10 times its cut, and a big peplum or a cowl folded into fins, Fabric behaviour 2026-11-07.
+  // A skirt with a yoke keeps the light pull: its yoke carries the whole skirt.)
+  if (o.fall && o.fall > 1 && o.fallOn && !knob('__noFall')) {
+    const hung = B.panels.filter((p) => (o.fallOn === 'all' || p.role.startsWith('peplum')) && !p.hidden);
+    // (Nor a full circle: see fullCircle.)
+    if (hung.length && !fullCircle(extra.skirt) && !B.panels.some((p) => /yoke/i.test(p.pc.name))) {
+      const sc = new Float32Array(pos.length / 3).fill(1);
+      const fall = o.fallOn === 'skirt' ? Math.min(o.fall, knob('__dressFall') ?? 1.4) : o.fall;
+      for (const p of hung) for (let i = 0; i < p.mesh.pts.length; i++) sc[p.base + i] = fall;
+      input.gScale = sc;
+    }
+  }
+  if (o.stretch) input.edgeK = 1 - o.stretch;
   const res = simulate(sp, input, extra.trousers ? (knob('__trouserSteps') ?? 100) : undefined);
   // A popped collar is held up by its interfacing and its roll, which the cloth here does not have: it keeps the shape
   // it was set in, standing round the neck, and only moves as the neck it is sewn to moves.

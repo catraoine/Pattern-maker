@@ -167,6 +167,64 @@ input.inline:focus,
   border-radius: 50%;
 }
 
+/* Feel (Cat's C, 2026-11-07, In testing): a quiet row of steps under the checked line, in the pill style of Look closer. */
+.all-round-feel {
+  margin: 6px 0 2px 19px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.all-round-feel-head {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.all-round-feel-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.all-round-feel-step,
+.all-round-feel-reset {
+  min-height: 32px;
+  padding: 6px 12px;
+  border: 1px solid color-mix(in srgb, var(--muted) 45%, transparent);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.all-round-feel-step:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.all-round-feel-now {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.all-round-feel-reset {
+  margin-left: 6px;
+  min-height: 28px;
+  padding: 4px 10px;
+}
+
 .all-round-note {
   margin: 0 0 0 19px;
   font-size: 0.7rem;

@@ -10,6 +10,7 @@ import type { TrousersDraft } from '../trousers';
 import type { TeeDraft } from '../tee';
 import { drapeTee } from './tee';
 import type { Fibre } from '../fabrics';
+import { cardOf, type ClothCard } from './clothCard';
 import type { RoundGarment } from '../allRound';
 import { placeOnForm, type RoundMeasurements } from '../../ui/allRoundShape';
 import { widensForm } from './widen';
@@ -23,7 +24,7 @@ import { knob } from './knob';
 import { fairDroppedSeam } from './seamFair';
 import { BUST_Y, fitRoom, type FitPin } from './fitMap';
 
-export type DrapeJob = { m: RoundMeasurements; armhole: RoundGarment['armhole']; fibre?: Fibre; crisp?: boolean; /** A side tie knotted at the left side seam at the waist (belt.ts). */ sideTie?: SideTieSpec } & (
+export type DrapeJob = { m: RoundMeasurements; armhole: RoundGarment['armhole']; fibre?: Fibre; crisp?: boolean; /** How the cloth behaves (clothCard.ts); without it, the card of the fibre and crisp fields. */ card?: ClothCard; /** A side tie knotted at the left side seam at the waist (belt.ts). */ sideTie?: SideTieSpec } & (
   | { kind: 'skirt'; draft: SkirtDraft }
   | { kind: 'dress'; draft: DressDraft; sleeve?: SleeveDraft }
   | { kind: 'bodice'; draft: BodiceDraft; sleeve?: SleeveDraft }
@@ -54,17 +55,6 @@ export interface DrapedLite {
   /** The fit map's labels: the pattern's own ease at the bust, waist and hip, each at the front of the cloth there. */
   fitTags?: { name: string; ease: number; at: [number, number, number] }[];
 }
-
-/** How each cloth hangs: its thickness off the body and how it resists bending, by fibre. */
-const TUNE: Partial<Record<Fibre, { thick: number; bendK: number }>> = {
-  wool: { thick: 0.5, bendK: 0.12 },
-  cotton: { thick: 0.35, bendK: 0.06 },
-  linen: { thick: 0.35, bendK: 0.07 },
-  silk: { thick: 0.25, bendK: 0.02 },
-  viscose: { thick: 0.25, bendK: 0.02 },
-  polyester: { thick: 0.3, bendK: 0.04 },
-  blend: { thick: 0.3, bendK: 0.05 },
-};
 
 /** The pattern's own ease at the bust, waist and hip, where the draft gives a finished measurement there: what the fit
  *  map is pinned to (see fitMap.ts). */
@@ -101,8 +91,8 @@ export function rehydrate<T>(v: T): T {
 
 export function runDrape(job: DrapeJob): DrapedLite {
   const sp = makeSpace(placeOnForm({ armhole: job.armhole }, job.m), job.m, { widen: widensForm(job) });
-  const t: DrapeOptions = { ...(TUNE[job.fibre ?? 'cotton'] ?? TUNE.cotton!) };
-  if (job.crisp) t.crisp = 40;
+  const c = job.card ?? cardOf(job.fibre, job.crisp);
+  const t: DrapeOptions = { bendK: c.bendK, thick: c.thick, ...(c.crisp ? { crisp: c.crisp } : {}), ...(c.fall !== 1 ? { fall: c.fall } : {}), ...(c.skirtBend !== 1 ? { skirtBend: c.skirtBend } : {}), ...(c.stretch ? { stretch: c.stretch } : {}) };
   let d: Draped;
   switch (job.kind) {
     case 'outer':
@@ -114,7 +104,7 @@ export function runDrape(job: DrapeJob): DrapedLite {
       break;
     case 'dress':
       // A side slit is drawn open (up the left side seam, as the pattern cuts it).
-      d = drapeDress(sp, job.draft, job.sleeve, { ...t, openSlit: true });
+      d = drapeDress(sp, job.draft, job.sleeve, { ...t, openSlit: true, fallOn: 'skirt' });
       break;
     case 'bodice':
       d = drapeBodice(sp, job.draft, job.sleeve, t);
@@ -126,7 +116,7 @@ export function runDrape(job: DrapeJob): DrapedLite {
       d = drapeTee(sp, job.draft, t);
       break;
     default:
-      d = drapeSkirt(sp, job.draft, { ...t, openSlit: true });
+      d = drapeSkirt(sp, job.draft, { ...t, openSlit: true, fallOn: 'all' });
   }
   const cc = job.kind === 'outer' ? (job.draft as { contrastCollar?: string }).contrastCollar : undefined;
   // (A skirt's hem, or a dress's, is cut level unless it is a high-low, a diagonal or a shaped hem.)

@@ -62,6 +62,10 @@ export interface SimInput {
    *  the other piece's seam points meet it). */
   self?: { ids: Int32Array; u: Float64Array; v: Float64Array; piece: Int32Array; sewn: Uint8Array; d: number };
   bendK: number;
+  /** How hard each edge holds its cut length, 1 = fully (a woven cloth); a knit gives (clothCard.ts). */
+  edgeK?: number;
+  /** Each point's pull down, as a share of the light pull (the cloth's own fall, clothCard.ts). */
+  gScale?: Float32Array;
   /** How much more than the light pull down the cloth hangs by (a short top, with nothing hung below it). */
   gK?: number;
   /** Only from this level down (cm, as placed), over 6 cm, or out past this far from the centre over 4 cm: above it and
@@ -182,6 +186,7 @@ export function simulate(s: Space, inp: SimInput, steps = knob("__steps") ?? 260
   // can't carry its whole weight up to the shoulders, so after them each step every edge that runs down the cloth is
   // held to near its cut length, top first, the lower end drawn up to the upper (a hanging chain, settled from the top).
   const LIM = knob('__strain') ?? 1.06;
+  const EK = knob('__edgeK') ?? inp.edgeK ?? 1;
   const CHK = knob('__chainK') ?? 1;
   const HZIN = knob('__holdZin') ?? inp.shoulderZIn ?? -99;
   const HZK = knob('__holdZk') ?? 0.5;
@@ -249,7 +254,7 @@ export function simulate(s: Space, inp: SimInput, steps = knob("__steps") ?? 260
       prev[I + 1] = x[I + 1];
       prev[I + 2] = x[I + 2];
       x[I] += vx;
-      x[I + 1] += vy + (gOf ? gOf[i] : g) * ramp;
+      x[I + 1] += vy + (gOf ? gOf[i] : g) * (inp.gScale ? inp.gScale[i] : 1) * ramp;
       x[I + 2] += vz;
       if (inp.pressed?.[i]) {
         // Pressed in toward the body (the cloth under it holds it off by its thickness).
@@ -258,7 +263,7 @@ export function simulate(s: Space, inp: SimInput, steps = knob("__steps") ?? 260
       }
     }
     for (let it = 0; it < iters; it++) {
-      for (let e = 0; e < ne; e++) dist(1, edges[2 * e], edges[2 * e + 1], rest[e]);
+      for (let e = 0; e < ne; e++) dist(EK, edges[2 * e], edges[2 * e + 1], rest[e]);
       for (let e = 0; e < nb; e++) dist(inp.bendK * (inp.bendW ? inp.bendW[e] : 1), bends[2 * e], bends[2 * e + 1], bendRest[e]);
       if (inp.mirror) {
         const { ids, rest: mr, k } = inp.mirror;

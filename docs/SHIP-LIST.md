@@ -58,6 +58,7 @@ testing". A tag comes off by hand, once its proof is in: delete the entry and th
 | Prints beyond checks | "What's the print?" in About your fabric | three testers cut a one-way or border print from the lay plan |
 | Any colour | the colour dots on the Fabric tab | shop colourways match the picked colour on five fabrics |
 | Exact colour | under Any colour | the first custom-dyed order delivered and matched |
+| Fabric feel | Feel, under All round | five testers set the Feel to their own cloth and say All round hangs as it does |
 | Your own fabric, photographed | Your photo on the Fabric tab | five testers photograph their own fabric and say the drawing looks like their cloth |
 | Pro files (DXF, measurement files, tech pack, 3D body) | More files on Print | one factory or dressmaker cuts from the pack |
 | Size run | Print, For production | a graded run sewn in two sizes |

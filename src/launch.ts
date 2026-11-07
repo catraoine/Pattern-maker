@@ -62,6 +62,7 @@ export type TestingTool =
   | 'cropped_top'
   | 'sleeveless_outer'
   | 'fabric_photo'
+  | 'fabric_feel'
   | 'front_pockets'
   | 'barrel_leg'
   | 'trouser_rise'
@@ -79,6 +80,7 @@ export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; p
   prints: { name: 'Prints beyond checks', where: "What's the print?, About your fabric", proof: 'three testers cut a one-way or border print from the lay plan' },
   any_colour: { name: 'Any colour', where: 'the colour dots on the Fabric tab', proof: 'shop colourways match the picked colour on five fabrics' },
   // Cat broke the freeze for it (2026-11-07, every gap in the design flexibility rating).
+  fabric_feel: { name: 'Fabric feel', where: 'Feel, under All round', proof: 'five testers set the Feel to their own cloth and say All round hangs as it does' },
   fabric_photo: { name: 'Your own fabric, photographed', where: 'Your photo on the Fabric tab', proof: 'five testers photograph their own fabric and say the drawing looks like their cloth' },
   exact_colour: { name: 'Exact colour', where: 'under Any colour', proof: 'the first custom-dyed order delivered and matched' },
   pro_files: { name: 'Pro files', where: 'More files on Print', proof: 'one factory or dressmaker cuts from the pack' },

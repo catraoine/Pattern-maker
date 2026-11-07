@@ -10,7 +10,8 @@ import { DETAIL_GROUPS, FRONT_GROUP, GATHERS_GROUP, GROUPS, RISE_GROUP, withWais
 import { roundBodice, roundDress, roundOuter, roundSkirt, roundTee, roundTrousers } from './engine/allRound';
 import { DrapeJob, DrapedLite, runDrape } from './engine/drape/run';
 import type { Quality } from './engine/drape/quality';
-import type { Fibre } from './engine/fabrics';
+import type { Fibre, MyFabric } from './engine/fabrics';
+import { clothCard } from './engine/drape/clothCard';
 import type { RoundMeasurements } from './ui/allRoundShape';
 
 export type SweepGarment = 'skirt' | 'bodice' | 'dress' | 'jacket' | 'coat' | 'trousers' | 'tee';
@@ -21,6 +22,8 @@ export interface SweepDesign {
   saved: Partial<Saved>;
   fibre: Fibre;
   crisp?: boolean;
+  /** More of the fabric than its fibre (weight, drape, a special cloth, a knit): how the cloth behaves (clothCard.ts). */
+  fabric?: Pick<MyFabric, 'weight' | 'drape' | 'special' | 'knit'>;
 }
 
 interface SweepResult {
@@ -211,7 +214,8 @@ export function drapeDesign(d: SweepDesign, values: MeasurementValues = EXAMPLE_
     const round = roundSkirt(drafts.skirt!);
     job = { kind: 'skirt', draft: drafts.skirt!, m, armhole: round.armhole };
   }
-  return runDrape({ ...job, fibre: d.fibre, crisp: d.crisp });
+  const card = clothCard({ fibre: d.fibre, ...d.fabric, ...(d.crisp ? { drape: 'crisp' as const } : {}) });
+  return runDrape({ ...job, fibre: d.fibre, crisp: d.crisp, card });
 }
 
 /** Drafts the design on the example body, sews it on the form and scores the drawing. */

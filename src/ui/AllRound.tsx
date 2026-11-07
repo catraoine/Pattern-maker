@@ -20,6 +20,8 @@ import type { DrapeJob } from '../engine/drape/run';
 import { makeSpace } from '../engine/drape/space';
 import { placeOnForm } from './allRoundShape';
 import { cachedDrape, drapeKey, requestDrape, sewnAnyway } from './drapeClient';
+import { FEEL_STEPS, clothCard, type Feel } from '../engine/drape/clothCard';
+import { TestingTag } from './TestingTag';
 import { GILD, GLOW, GROUND, MUTED, SHADOW } from './palette';
 import { inTestingNote } from './allRoundWhy';
 
@@ -179,9 +181,21 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
     };
   }, []);
   // The garment sewn from its pattern, settled by the drape worker; until it comes back the form stands alone.
+  // The Feel (Cat's C, 2026-11-07, In testing): the maker nudges the cloth stiffer or softer, heavier or lighter, from
+  // the fabric's own card. Kept on this view only (it changes the drawing, not the pattern), and back to the fabric's
+  // own when another fabric is picked.
+  const [feel, setFeel] = useState<Feel>({});
+  const fabricWho = `${fabric?.fibre}|${fabric?.weight}|${fabric?.drape}|${fabric?.special}|${fabric?.knit}|${fabric?.shop}|${fabric?.photo?.id}`;
+  useEffect(() => setFeel({}), [fabricWho]);
   const job = useMemo<DrapeJob | undefined>(
-    () => (drape ? ({ ...drape, m, armhole: round.armhole, fibre: drape.fibre ?? fabric?.fibre, crisp: drape.crisp ?? fabric?.drape === 'crisp' } as DrapeJob) : undefined),
-    [drape, m, round.armhole, fabric?.fibre, fabric?.drape],
+    () => {
+      if (!drape) return undefined;
+      // The cloth behaves as the fabric picked does: its stiffness, weight and give (clothCard.ts).
+      const fibre = drape.fibre ?? fabric?.fibre;
+      const card = clothCard({ fibre, weight: fabric?.weight, drape: drape.crisp ? 'crisp' : fabric?.drape, special: fabric?.special, knit: fabric?.knit, feel });
+      return { ...drape, m, armhole: round.armhole, fibre, crisp: drape.crisp ?? fabric?.drape === 'crisp', card } as DrapeJob;
+    },
+    [drape, m, round.armhole, fabric?.fibre, fabric?.drape, fabric?.weight, fabric?.special, fabric?.knit, feel],
   );
   const jobKey = useMemo(() => (job ? drapeKey(job) : ''), [job]);
   const [draped, setDraped] = useState<{ key: string; view: DrapedView } | undefined>();
@@ -1398,9 +1412,47 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
             <span className="all-round-mark" aria-hidden="true" />
             {checked(rows)}
           </p>
+          {/* (A skirt's or a dress's skirt only: the cloth's own stiffness and fall show where it hangs free, clothCard.ts.) */}
+          {!standIn && (drape?.kind === 'skirt' || drape?.kind === 'dress') && <FeelControl feel={feel} onFeel={setFeel} />}
           <p className="all-round-note">{inTesting ? inTestingNote(sewnNow && sewnNow !== 'pending' ? sewnNow.d.quality?.problems : undefined, standIn, gaveUp) : 'A shape preview, not a cloth simulation.'}</p>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Each Feel step in words: one step "a little", two "much". */
+const feelWord = (v: number | undefined, up: string, down: string) => (!v ? undefined : `${Math.abs(v) > 1 ? 'much ' : 'a little '}${v > 0 ? up : down}`);
+
+/** The Feel row under All round (Cat's C): two pairs of steps from the fabric's own card, what they come to in words,
+ *  and a way back. The steps stop at FEEL_STEPS each way, the range the cloth holds steady in (clothCard.ts). */
+function FeelControl({ feel, onFeel }: { feel: Feel; onFeel: (f: Feel) => void }) {
+  const step = (k: keyof Feel, d: number) => onFeel({ ...feel, [k]: Math.max(-FEEL_STEPS, Math.min(FEEL_STEPS, (feel[k] ?? 0) + d)) });
+  const words = [feelWord(feel.stiff, 'stiffer', 'softer'), feelWord(feel.weight, 'heavier', 'lighter')].filter(Boolean);
+  const btn = (k: keyof Feel, d: number, label: string) => (
+    <button type="button" className="all-round-feel-step" onClick={() => step(k, d)} disabled={(feel[k] ?? 0) === d * FEEL_STEPS}>
+      {label}
+    </button>
+  );
+  return (
+    <div className="all-round-feel" role="group" aria-label="How the cloth feels">
+      <p className="all-round-feel-head">
+        Feel <TestingTag tool="fabric_feel" />
+      </p>
+      <div className="all-round-feel-row">
+        {btn('stiff', -1, 'Softer')}
+        {btn('stiff', 1, 'Stiffer')}
+        {btn('weight', -1, 'Lighter')}
+        {btn('weight', 1, 'Heavier')}
+      </div>
+      <p className="all-round-feel-now" aria-live="polite">
+        {words.length ? `Adjusted: ${words.join(', ')}. ` : 'As your fabric comes.'}
+        {words.length > 0 && (
+          <button type="button" className="all-round-feel-reset" onClick={() => onFeel({})}>
+            Back to your fabric
+          </button>
+        )}
+      </p>
     </div>
   );
 }
