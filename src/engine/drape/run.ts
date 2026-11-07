@@ -23,6 +23,7 @@ import { camiStraps } from './strap';
 import { knob } from './knob';
 import { fairDroppedSeam } from './seamFair';
 import { BUST_Y, fitRoom, type FitPin } from './fitMap';
+import { clearCollars } from './collarClear';
 
 export type DrapeJob = { m: RoundMeasurements; armhole: RoundGarment['armhole']; fibre?: Fibre; crisp?: boolean; /** How the cloth behaves (clothCard.ts); without it, the card of the fibre and crisp fields. */ card?: ClothCard; /** A side tie knotted at the left side seam at the waist (belt.ts). */ sideTie?: SideTieSpec } & (
   | { kind: 'skirt'; draft: SkirtDraft }
@@ -126,6 +127,8 @@ export function runDrape(job: DrapeJob): DrapedLite {
   const cc = job.kind === 'outer' ? (job.draft as { contrastCollar?: string }).contrastCollar : undefined;
   // (A skirt's hem, or a dress's, is cut level unless it is a high-low, a diagonal or a shaped hem.)
   const sk = job.kind === 'skirt' ? job.draft : job.kind === 'dress' ? job.draft.skirt : undefined;
+  // A collar's fall over the shoulders lifted out where the sim sank it into them.
+  if (!knob('__noCollarClear')) clearCollars(d, sp);
   const quality = drapeQuality(d, sp, { seams: d.seams, levelHem: !!sk && !sk.asym && !sk.hem, legs: job.kind === 'trousers' });
   // A sleeve piece the drape left out (a raglan's back half) is cloth missing from the drawing, which no measure of the
   // cloth that is there can see: the eye check's oversized raglan jacket passed with its shoulders open (2026-11-02).

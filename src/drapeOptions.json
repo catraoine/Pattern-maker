@@ -19,7 +19,7 @@
  "bodice collar=mock": "passes",
  "bodice collar=none": "passes",
  "bodice collar=peter_pan": "passes",
- "bodice collar=polo": "fails",
+ "bodice collar=polo": "passes",
  "bodice collar=ruffle": "passes",
  "bodice darts=bust": "passes",
  "bodice darts=bust_waist": "passes",

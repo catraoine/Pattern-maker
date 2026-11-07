@@ -22,6 +22,7 @@ import { knob, setKnob } from './knob';
 import { frontPins, tapeRollLines } from './rollLine';
 import { cropHold } from './cropHold';
 import { flutterPlace } from './flutter';
+import { closeBalloonHem } from './balloonHem';
 import { madeUpSkirt } from '../skirtPockets';
 
 type V3 = [number, number, number];
@@ -1928,8 +1929,9 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
         // (Soft cloth, a silk, doesn't stand round: its fullness falls in folds close round the arm. Not a full sleeve's:
         // its gathered bulk stands it round whatever the fibre, and laid close a full silk bishop crumpled into 15 to 29
         // sharp folds down the arm, 2026-11-06. Nor a puff's: its crown is gathered to stand out, and drawn in to the
-        // silk's tube a short puff in silk or viscose tore at the sleeve and failed the drawing check, 2026-11-07.)
-        let r = (widthAt(q.y) / TAU) * 0.92 * ((o.bendK ?? 0.05) < 0.04 && !p.pc.meta.full && !p.pc.meta.gatheredCrown ? knob('__silkR') ?? 0.72 : 1);
+        // silk's tube a short puff in silk or viscose tore at the sleeve and failed the drawing check, 2026-11-07. Nor a knit
+        // tee's: jersey holds its round, and drawn in a relaxed silk tee's sleeve bunched at its hem, 2026-11-07.)
+        let r = (widthAt(q.y) / TAU) * 0.92 * ((o.bendK ?? 0.05) < 0.04 && !p.pc.meta.full && !p.pc.meta.gatheredCrown && !p.pc.meta.knit ? knob('__silkR') ?? 0.72 : 1);
         if (cuffR && !knob('__noCuffDraw')) {
           const t = Math.min(1, Math.max(0, (yHem - q.y) / zone));
           const s2 = t * t * (3 - 2 * t);
@@ -5716,6 +5718,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
   // (A balloon peplum's outer is gathered at the waist, so the side and centre smoothing above ease it like any gathered
   // peplum, and took its hem up to 6 cm off the underskirt's hem it is sewn to, 2026-11-06: set back on it.)
   for (const p of outerB) if (underB.length) seatOn(p, 'balloon', 8);
+  if (outerB.length && underB.length && !knob('__noBalloonClose')) closeBalloonHem(res, seams, outerB, underB);
   // (A dress's bodice under a full skirt: what the passes above leave stretched by the skirt's weight, eased back to
   // near its cut lengths, its seams held.)
   if (extra.skirt?.length && !knob('__noBodiceRelax'))
