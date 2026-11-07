@@ -87,11 +87,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
   const clothShapes = useMemo(() => (flat ? wornShapes(flat) : undefined), [flat]);
   const flatLines = useMemo(() => (flat ? wornLines(flat) : undefined), [flat]);
   const title = describeTee(choices);
-  // All round isn't usable for a sleeveless tank yet (cloth stands out over the shoulders), so the tank shows Front and
-  // Flat only until the sewn T-shirt lands (All round quality, Nov 7).
-  const sleeveless = choices.sleeve === 'none';
-  const round = useMemo(() => (draft && !sleeveless ? roundTee(draft, values) : undefined), [draft, values, sleeveless]);
-  const shownView = view === 'round' && !round ? 'sketch' : view;
+  const round = useMemo(() => (draft ? roundTee(draft, values) : undefined), [draft, values]);
 
   if (onForm && draft && form) {
     return (
@@ -223,7 +219,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
           {view !== 'pattern' ? (
             <GarmentViews<'sketch' | 'flat' | 'round'>
               views={formViews(round)}
-              view={view === 'round' && !round ? 'sketch' : view}
+              view={view}
               onView={setView}
             />
           ) : (
@@ -239,7 +235,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
         </div>
         <div className="preview">
           {error && <p className="msg error">{error}</p>}
-          {form && draft && shownView === 'sketch' && (
+          {form && draft && view === 'sketch' && (
             <GarmentFabric fabric={fabric}>
               <FormSketch
                 body={form.body}
