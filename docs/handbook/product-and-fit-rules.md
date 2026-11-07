@@ -350,6 +350,18 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    and hip so it never disagrees with the measurement table (the drape alone read a fitted dress's waist 6 cm roomy).
    Pull lines from real cloth stretch come later, with Design: Fabric behaviour. Code: `src/engine/drape/fitMap.ts`,
    `fitPins` in `run.ts`, the colours in `allRoundMesh.ts`.
+56. **The cloth behaves as the fabric picked** (Nov 7, Design: Fabric behaviour, Cat's A + B + C; the Feel is In
+   testing): every fabric has a card (`clothCard` in `src/engine/drape/clothCard.ts`) from its own weight and drape,
+   then a special cloth's, a knit's, then the fibre's usual ones. Heavier cloth lies thicker and hangs harder; a fluid
+   cloth (silk and viscose by default) pours in its skirt and falls 1.5 times harder; a crisp one and denim stand out.
+   The cloth's own stiffness and fall show in a skirt or a dress's skirt, where it hangs free (`skirtBend`, `fall`);
+   the bodice keeps the fibre's stiffness, as before, since made stiffer or pulled harder all through, tops folded
+   into fins or stretched. A yoke and a full circle keep the light pull. A skirt's woven cloth gives on the bias and
+   holds on its grain (`bias`, B). A knit gives along its length (`stretch`). A plain cotton is drawn exactly as
+   before. **Feel** under All round (skirts and dresses) nudges the cloth two steps each way stiffer or softer,
+   heavier or lighter, from the fabric's own card, says what it is set to, and goes back to the fabric's own when
+   another is picked. It changes the drawing, not the pattern. Known: a crisp peplum fails its check, in a crisp
+   cotton too (it did before the card).
 
 ## Style steps
 

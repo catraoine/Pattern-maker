@@ -2148,7 +2148,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
     // (Nor a full circle: see fullCircle.)
     if (hung.length && !fullCircle(extra.skirt) && !B.panels.some((p) => /yoke/i.test(p.pc.name))) {
       const sc = new Float32Array(pos.length / 3).fill(1);
-      const fall = o.fallOn === 'skirt' ? Math.min(o.fall, knob('__dressFall') ?? 1.4) : o.fall;
+      const fall = knob('__fall') ?? (o.fallOn === 'skirt' ? Math.min(o.fall, knob('__dressFall') ?? 1.4) : o.fall);
       for (const p of hung) for (let i = 0; i < p.mesh.pts.length; i++) sc[p.base + i] = fall;
       input.gScale = sc;
     }

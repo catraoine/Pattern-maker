@@ -80,13 +80,13 @@ export function clothCard(f: Pick<MyFabric, 'fibre' | 'weight' | 'drape' | 'spec
   const body = clamp(bendK, 0.004, 0.6);
   // (Not a crisp cloth: it holds itself out, and pulled down it lost the stand-away that makes it crisp.)
   if (dw > 0 && drape !== 'crisp') fall *= 1.4 ** dw;
-  // Drape: a crisp cloth stands away; a fluid one pours, falling hard into its folds. (2.5 times: at 3 a silk half
-  // circle midi was drawn 2.5 times its cut. Given longer to settle as well, a dress took 20 seconds to sew, and it
-  // settled no better.)
+  // Drape: a crisp cloth stands away; a fluid one pours, falling harder into its folds. (1.5 times: at 2.5 a silk
+  // half circle held out at the hip and pulled in below it like a lantern, and at 3 it was drawn 2.5 times its cut.
+  // Given longer to settle as well, a dress took 20 seconds to sew, and it settled no better.)
   if (drape === 'crisp') bendK *= base.drape === 'crisp' ? 1 : 2.5;
   if (drape === 'fluid') {
     bendK = Math.min(bendK, 0.02) * 0.6;
-    fall *= 2.5;
+    fall *= 1.5;
   }
   const special = f.special ? SPECIAL_BEND[f.special] : undefined;
   if (special && !f.drape && !f.weight) ({ bendK, thick } = special);
