@@ -26,7 +26,7 @@ import { TechFlatView } from '../ui/TechFlatView';
 import { AllRound } from '../ui/AllRound';
 import { roundDress } from '../engine/allRound';
 import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
-import { DETAIL_GROUPS, GATHERS_GROUP, GROUPS, gathersOf, pocketsAllowed } from '../skirtChoices';
+import { DETAIL_GROUPS, GATHERS_GROUP, GROUPS, frontPocketAllowed, gathersOf, pocketsAllowed } from '../skirtChoices';
 import { cutAllowed, validCut } from '../engine/slip';
 import { describePattern } from './describe';
 import { FABRIC, Group, InCorner, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
@@ -288,6 +288,8 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       : id === 'slit'
       ? // A shirt dress opens down the front and its back is cut whole: only the side can take a slit.
         opt === 'none' || (slitAllowed(choices.skirt) && (!buttoned || opt === 'side'))
+      : id === 'pockets' && (opt === 'patch' || opt === 'slant')
+      ? frontPocketAllowed(choices.skirt, opt) && !(opt === 'slant' && (draft?.bodice.drape?.zip || buttoned))
       : id === 'belt'
       ? beltAllowed(opt as Belt, { wrap: wrapped })
       : id === 'volume'
@@ -595,6 +597,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                   {g.id === 'plungeDepth' && id === 'waist' && <TestingTag tool="waist_plunge" />}
                   {g.id === 'sleeveFullness' && id === 'full' && <TestingTag tool="full_sleeve" />}
                   {g.id === 'gathers' && <TestingTag tool="fullness" />}
+                  {g.id === 'pockets' && (id === 'patch' || id === 'slant') && <TestingTag tool="front_pockets" />}
                 </button>
               ))}
             </div>

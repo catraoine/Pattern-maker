@@ -46,7 +46,7 @@ import { AllRound } from '../ui/AllRound';
 import { roundSkirt } from '../engine/allRound';
 import { PiecesList, SummaryActions } from '../ui/StyleSummary';
 
-import { GROUPS, GATHERS_GROUP, RISE_GROUP, TIERS_GROUP, gathersChosen, gathersOf, chosen, DETAIL_GROUPS, FRONT_GROUP, frontOf, ZIP_PLACES, detailOf, zipOf, withWaist, keepWrap, elasticAllowed, pocketsAllowed, keepWaist, beltOf_, currentLook, describe, fabricMetres } from '../skirtChoices';
+import { GROUPS, GATHERS_GROUP, RISE_GROUP, TIERS_GROUP, gathersChosen, gathersOf, chosen, DETAIL_GROUPS, FRONT_GROUP, frontOf, ZIP_PLACES, detailOf, zipOf, withWaist, keepWrap, elasticAllowed, pocketsAllowed, frontPocketAllowed, pocketOptionAllowed, keepWaist, beltOf_, currentLook, describe, fabricMetres } from '../skirtChoices';
 
 interface Props {
   finish: Finish;
@@ -359,7 +359,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
                         : id === 'high'
                           ? highAllowed(choices)
                           : id !== 'wrap' || wrapSkirtAllowed({ ...choices, waist: undefined })
-                    : id !== 'inseam' || pocketsAllowed(choices);
+                    : pocketOptionAllowed(choices, id);
                 return (
                   <button
                     key={id}
@@ -370,6 +370,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
                     onClick={() => change(g.id === 'waist' ? withWaist(choices, id) : { ...choices, pockets: id as Choices['pockets'] })}
                   >
                     {label}
+                    {g.id === 'pockets' && (id === 'patch' || id === 'slant') && <TestingTag tool="front_pockets" />}
                   </button>
                 );
               })}
@@ -438,13 +439,22 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
               <p className="muted small">The zip goes in the left side seam, so the back is cut whole on the fold{choices.slit === 'back' ? ', or keeps its centre seam for the slit' : ''}.</p>
             )}
             {g.id === 'waist' && zipOf(choices) && !sideZipAllowed(choices) && (
-              <p className="muted small">A side zip goes in a plain darted skirt (pencil, straight, A-line or trumpet) with no in-seam pockets.</p>
+              <p className="muted small">A side zip goes in a plain darted skirt (pencil, straight, A-line or trumpet) with no in-seam or slant pockets.</p>
             )}
             {g.id === 'pockets' && !pocketsAllowed(choices) && (
               <p className="muted small">In-seam pockets go in a plain side seam, so not with pleats, godets, a flounce, tiers, a bias slip or a diagonal hem.</p>
             )}
             {g.id === 'pockets' && pocketsAllowed(choices) && choices.pockets === 'inseam' && draft && !draft.pocket && (
               <p className="muted small">This skirt is too short for a pocket a hand fits in, so it is left off.</p>
+            )}
+            {g.id === 'pockets' && pocketsAllowed(choices) && !frontPocketAllowed(choices, 'patch') && (
+              <p className="muted small">A circle skirt's front is cut as an arc, so patch and slant pockets would sit off grain.</p>
+            )}
+            {g.id === 'pockets' && frontPocketAllowed(choices, 'patch') && !frontPocketAllowed(choices, 'slant') && (
+              <p className="muted small">Slant pockets are cut in at the front waist and side, so not with a high waist or a button front.</p>
+            )}
+            {g.id === 'pockets' && (choices.pockets === 'patch' || choices.pockets === 'slant') && frontPocketAllowed(choices, choices.pockets) && draft && !draft.frontPocket && (
+              <p className="muted small">This skirt is too short or narrow for {choices.pockets === 'patch' ? 'a patch pocket' : 'a slant pocket'}, so it is left off.</p>
             )}
           </Group>
         ))}

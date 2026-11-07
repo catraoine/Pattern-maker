@@ -19,6 +19,7 @@ import { knob, setKnob } from './knob';
 import { frontPins, tapeRollLines } from './rollLine';
 import { cropHold } from './cropHold';
 import { flutterPlace } from './flutter';
+import { madeUpSkirt } from '../skirtPockets';
 
 type V3 = [number, number, number];
 const TAU = Math.PI * 2;
@@ -5966,7 +5967,7 @@ export function drapeDress(sp: Space, d: DressDraft, sleeve?: SleeveDraft, o: Dr
   const slit = (d.skirt as { slit?: { at: string; cm: number } } | undefined)?.slit;
   const slitCm = o.openSlit && slit?.at === 'side' ? slit.cm : undefined;
   const sk = d.skirt as { asym?: unknown; hem?: unknown } | undefined;
-  const out = drapeBodice(sp, d.bodice, sleeve, { heavySkirt: true, ...(sk?.asym || sk?.hem ? { shapedHem: true } : {}), ...o }, { pieces: d.pieces, skirt: hungSkirt(d.pieces.filter(isSkirt), d.skirt?.volume as never, { hip: d.skirt?.finishedHip, hem: d.skirt?.hemCm }), drop: d.seamDrop ?? 0, tiers: d.skirt?.volume?.tiers?.bands, under: d.pieces.filter(isUnder), ...(slitCm ? { slitCm } : {}) });
+  const out = drapeBodice(sp, d.bodice, sleeve, { heavySkirt: true, ...(sk?.asym || sk?.hem ? { shapedHem: true } : {}), ...o }, { pieces: d.pieces, skirt: hungSkirt(madeUpSkirt(d.pieces, d.skirt).filter(isSkirt), d.skirt?.volume as never, { hip: d.skirt?.finishedHip, hem: d.skirt?.hemCm }), drop: d.seamDrop ?? 0, tiers: d.skirt?.volume?.tiers?.bands, under: d.pieces.filter(isUnder), ...(slitCm ? { slitCm } : {}) });
   if (d.noSeam) levelHemSpikes(out);
   return out;
 }
@@ -6051,7 +6052,7 @@ export function drapeSkirt(sp: Space, d: SkirtDraft, o: DrapeOptions = {}): Drap
   const slit = (d as { slit?: { at: string; cm: number } }).slit;
   const slitCm = o.openSlit && slit?.at === 'side' ? slit.cm : undefined;
   const sk = d as { asym?: unknown; hem?: unknown };
-  return drape(sp, [], { skirt: hungSkirt(d.pieces.filter(isSkirt), d.volume as never, { hip: d.finishedHip, hem: d.hemCm }), tiers: d.volume?.tiers?.bands, under: d.pieces.filter(isUnder), ...(drop ? { drop } : {}), ...(slitCm ? { slitCm } : {}) }, { closedFront: true, ...(sk.asym || sk.hem ? { shapedHem: true } : {}), ...o });
+  return drape(sp, [], { skirt: hungSkirt(madeUpSkirt(d.pieces, d).filter(isSkirt), d.volume as never, { hip: d.finishedHip, hem: d.hemCm }), tiers: d.volume?.tiers?.bands, under: d.pieces.filter(isUnder), ...(drop ? { drop } : {}), ...(slitCm ? { slitCm } : {}) }, { closedFront: true, ...(sk.asym || sk.hem ? { shapedHem: true } : {}), ...o });
 }
 
 export function drapeOuter(sp: Space, d: OuterDraft, o: DrapeOptions = {}): Draped {

@@ -335,7 +335,10 @@ export function draftDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyl
   // centimetre over, so the side seams still curve out a little and come out the same length.
   const over = bodiceStyle.fit === 'boxy' ? 4 * Math.max(waist.front, waist.back) + 1 - hipRoom : 0;
   const roomy = over > 0 ? { fitting: { ...fit, hipEase: (fit.hipEase ?? 0) + over } } : {};
-  const skirtOf = (j: typeof join) => draftSkirt(sm, { ...skirtStyle, ...named, ...roomy, joinTo: j, wrap: wrapped || undefined, slit });
+  // A one-shoulder dress zips down its right side seam, where a slant pocket would be cut, and a shirt dress's skirt
+  // front is opened for its buttons: neither keeps a slant pocket.
+  const pockets = (sideOpen || buttoned) && skirtStyle.pockets === 'slant' ? { pockets: 'none' as const } : {};
+  const skirtOf = (j: typeof join) => draftSkirt(sm, { ...skirtStyle, ...named, ...roomy, ...pockets, joinTo: j, wrap: wrapped || undefined, slit });
   let skirt = skirtOf(join);
   // A pleated skirt split to fit the fabric has two pieces a side: their waists add up. A skirt front
   // cut whole (a bias slip) has both halves of the waist.

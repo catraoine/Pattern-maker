@@ -126,6 +126,7 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
         ? `These pieces are too wide to cut from folded fabric, so open it out to a single layer. Cut each piece twice, turning the pattern over for the second one so you get a pair. Keep each grain arrow parallel to the selvedge. Cut along the solid outer line and snip the small notches.${dartCount ? ' Chalk-mark the dart lines.' : ''}${circle ? ' To save fabric, turn every other piece upside down so the curves nest together.' : ''}`
         : `Fold the fabric in half with the selvedges together. ${frontSeam ? (backSeam ? 'Place the skirt front and the skirt back on both layers so you get a pair of each.' : 'Place the skirt back on the fold, and the skirt front on both layers so you get a pair.') : backSeam ? 'Place the skirt front on the fold, and the skirt back on both layers so you get a pair.' : 'Place the skirt front and the skirt back on the fold.'} Keep each grain arrow parallel to the selvedge. Cut along the solid outer line, snip the small notches${dartCount ? ', and chalk-mark the dart lines' : ''}.`) +
         (pockets ? ` ${POCKET_CUT}` : '') +
+        frontPocketCut(draft) +
         oneSide(draft.pieces[0], lined ? 'and the lining' : ''),
     },
     {
@@ -172,6 +173,7 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
         ]
       : []),
     ...(pockets ? [pocketBagsStep('skirt piece')] : []),
+    ...frontPocketSteps(draft, seam, 'front'),
     ...(elastic
       ? backSeam
         ? [
@@ -291,6 +293,33 @@ function gatherSteps(steps: SewStep[], draft: SkirtDraft, kind: 'band' | 'casing
   );
   out.splice(at < 0 ? out.length - 2 : at, 0, gatherStep(g, kind === 'casing' ? 'the casing' : 'the waistband', kind === 'band' && draft.zipCm > 0));
   return out;
+}
+
+/** Cutting a skirt's patch or slant pockets (In testing), added to the cutting step. */
+function frontPocketCut(d: SkirtDraft): string {
+  if (d.frontPocket?.kind === 'patch') return ' Cut the two patch pockets, and chalk the pocket placement on the right side of each skirt front.';
+  if (d.frontPocket?.kind === 'slant') return ' Cut the pocket facings (a pair) from the fabric, and the pocket linings (a pair) from the fabric or a lightweight cotton for less bulk.';
+  return '';
+}
+
+/** Making a skirt's patch or slant pockets on the fronts, before the side seams (In testing). */
+function frontPocketSteps(d: SkirtDraft, seam: string, piece: string): SewStep[] {
+  if (d.frontPocket?.kind === 'patch')
+    return [
+      {
+        title: 'Make the patch pockets',
+        text: `Fold the top of each pocket to the outside along the fold line and stitch the sides 1 cm in. Turn it right side out and press. Press the curved edges under 1 cm, easing the corners with a gathering stitch. Pin each pocket on its POCKET marks on the skirt ${piece} and topstitch close to the edge, with a small triangle of stitching at each top corner for strength.`,
+      },
+    ];
+  if (d.frontPocket?.kind === 'slant')
+    return [
+      {
+        title: 'Make the slant pockets',
+        diagram: 'understitch',
+        text: `Pin a pocket lining to the skirt ${piece} along each slanted POCKET OPENING edge, right sides together. Sew ${seam} from the edge, trim the seam to 0.5 cm, then press the lining away from the ${piece} and understitch it to the seam allowance close to the seam. Turn the lining to the inside, press the opening edge so the lining rolls just out of sight, and topstitch 0.7 cm from the edge if you like. Lay a pocket facing under each lining, right side up toward the lining, matching the curved bag edges, and sew the bag edges together 1 cm in. Zigzag or overlock them together. Then lay the ${piece} flat: the facing fills in the corner cut away for the pocket. Match the facing's notch to the foot of the opening, and tack the facing to the ${piece} along the waist and down the side edge, inside the seam allowance. From here the ${piece} is one piece again.`,
+      },
+    ];
+  return [];
 }
 
 /** Cutting the pocket bags, added to the cutting step. */
@@ -661,7 +690,7 @@ function dressSteps(draft: DressDraft, style: { silhouette: Silhouette; length: 
         draft.skirt.bias
           ? ' The skirt is cut on the bias, from a single layer opened out flat on a big table: the front once, whole, and the back twice, turning the pattern over for the second. Lay each with its grain arrow parallel to the selvedge, so it sits at 45 degrees across the cloth. As soon as the skirt pieces are cut, stay-stitch their waist edges 1 cm in, so the bias waist cannot stretch before it is joined to the bodice.'
           : wide ? ' The skirt pieces are too wide for folded fabric: cut them from a single layer, turning the pattern over for the second of each so you get pairs.' : ''
-      } Keep each grain arrow parallel to the selvedge. Cut along the solid outer line, snip the small notches${dartLines ? ', and chalk-mark the dart lines and the bust point' : ''}.${pockets ? ` ${POCKET_CUT}` : ''}${collarCut(draft.bodice)}${
+      } Keep each grain arrow parallel to the selvedge. Cut along the solid outer line, snip the small notches${dartLines ? ', and chalk-mark the dart lines and the bust point' : ''}.${pockets ? ` ${POCKET_CUT}` : ''}${frontPocketCut(draft.skirt)}${collarCut(draft.bodice)}${
         lined
           ? ' Cut the bodice pieces again from the lining.'
           : edges === 'facings'
@@ -685,6 +714,7 @@ function dressSteps(draft: DressDraft, style: { silhouette: Silhouette; length: 
     ...find(skirt, /^Sew the .*darts?$/).map((s) => ({ ...s, title: 'Sew the skirt darts' })),
     ...find(skirt, /^Sew the centre front$/).map((s) => ({ ...s, title: 'Sew the skirt centre front' })),
     ...find(skirt, /^Sew on the pocket bags$/),
+    ...find(skirt, /^Make the (slant|patch) pockets$/),
     {
       title: 'Join the bodice to the skirt',
       text: `${

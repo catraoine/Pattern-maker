@@ -3,7 +3,7 @@ import type { Choices } from './savedWork';
 import { piecesLengthCm, toMetres } from './engine/fabric';
 import { layPlan } from './engine/layplan';
 import { waistPieces } from './engine/finishing';
-import { Silhouette, SkirtDraft } from './engine/skirt';
+import { Silhouette, SkirtDraft, slantSkirtAllowed } from './engine/skirt';
 import { isShaped } from './engine/hem';
 import { elasticCutAllowed, validCut } from './engine/slip';
 import { wrapSkirtAllowed } from './engine/wrapSkirt';
@@ -67,7 +67,7 @@ export const chosen = (c: Choices, id: keyof Choices) => (id === 'asymHem' ? c.a
  * elastic waist or a wrap that ties. */
 export const DETAIL_GROUPS: [{ id: 'waist'; label: string; options: [NonNullable<Choices['waist']> | 'wrap', string][] }, ChoiceGroup<'pockets'>] = [
   { id: 'waist', label: 'Waist', options: [['band', 'Waistband with zip'], ['faced', 'Faced, no band'], ['high', 'High waist'], ['elastic', 'Elastic, pull-on'], ['wrap', 'Wrap, tied']] },
-  { id: 'pockets', label: 'Pockets', options: [['none', 'None'], ['inseam', 'In-seam']] },
+  { id: 'pockets', label: 'Pockets', options: [['none', 'None'], ['inseam', 'In-seam'], ['patch', 'Patch'], ['slant', 'Slant front']] },
 ];
 
 /** The front: plain and darted, a yoke that takes the darts, or buttoned down the centre front. */
@@ -120,6 +120,14 @@ export const elasticAllowed = (c: Pick<Choices, 'silhouette' | 'asymHem' | 'plea
  * skirt's pieces, nor on a skirt cut whole. */
 export const pocketsAllowed = (c: Choices) => volumeWords(c) === '' && !yokeOf(c) && c.silhouette !== 'slip' && c.asymHem !== 'diagonal' && !(c.wrap && wrapSkirtAllowed(c));
 
+/** Patch and slant pockets (In testing) go where in-seam ones do, but not on a circle skirt, whose front is an
+ * arc; a slant pocket also needs the front's waist and side seam free (see slantSkirtAllowed). */
+export const frontPocketAllowed = (c: Choices, kind: 'patch' | 'slant') =>
+  pocketsAllowed(c) && c.silhouette !== 'circle' && c.silhouette !== 'half_circle' && (kind === 'patch' || slantSkirtAllowed({ zip: zipOf(c), waist: c.waist, buttons: !!buttonsOf(c) }));
+
+/** Whether a pocket choice can be picked with the rest. */
+export const pocketOptionAllowed = (c: Choices, id: string) => (id === 'none' ? true : id === 'inseam' ? pocketsAllowed(c) : frontPocketAllowed(c, id as 'patch' | 'slant'));
+
 /** The choices with the zipped waistband back where an elastic waist isn't allowed. */
 export const keepWaist = (c: Choices): Choices => (elasticAllowed(c) ? c : { ...c, waist: undefined });
 
@@ -138,6 +146,8 @@ function detailWords(c: Choices): string[] {
     zipOf(c) === 'side' ? 'a side zip' : '',
     c.waist === 'elastic' && elasticAllowed(c) ? 'an elastic waist' : '',
     c.pockets === 'inseam' && pocketsAllowed(c) ? 'pockets' : '',
+    c.pockets === 'patch' && frontPocketAllowed(c, 'patch') ? 'patch pockets' : '',
+    c.pockets === 'slant' && frontPocketAllowed(c, 'slant') ? 'slant pockets' : '',
     beltWords(beltOf_(c))].filter(Boolean);
 }
 

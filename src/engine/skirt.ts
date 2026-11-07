@@ -9,6 +9,7 @@ import { Flounce, GodetCount, Pleats, VolumeDraft, addVolume, volumeOf } from '.
 import { AsymHem, AsymPlan, quarterAsym } from './asymHem';
 import { SLIP_HEM, SLIP_HIP_EASE_LESS, closeToHem, cutsWhole, cutWhole, slipSideSupp, slipSlit, slipSlitAllowed, validCut } from './slip';
 import { inseamPocket, markSeam, notchesAlong } from './pockets';
+import { PatchPlace, patchOnFront, slantOnFront } from './skirtPockets';
 import { foldBack, wrapSkirtAllowed, wrapSkirtFront, wrapTies } from './wrapSkirt';
 import { SLIT, Slit, SlitPlace, slitOf, slitPieces, slitRange } from './slit';
 import { buttonBandLength, buttonFront, buttonsOf, frontWaist, splitYoke, yokeOf, yokeSideAt } from './skirtFront';
@@ -78,8 +79,9 @@ export interface SkirtStyle {
   dropYoke?: boolean;
   /** Sitting low on the hip (In testing), or at the natural waist. Not with a high waist. */
   rise?: 'natural' | 'low';
-  /** In-seam pockets in the side seams. Older saves have none. */
-  pockets?: 'none' | 'inseam';
+  /** In-seam pockets in the side seams; or patch pockets on the hip, or slant pockets cut in at the front
+   * waist (both In testing, Nov 7 2026, see skirtPockets.ts). Older saves have none. */
+  pockets?: SkirtPocket;
   /** A waistband with a zip, or an elastic casing that pulls on over the hips. Ignored on a dress. */
   waist?: WaistStyle;
   /** A dress only: cut with no waist seam, front and back each one piece from the shoulder to the hem
@@ -101,6 +103,8 @@ export interface SkirtStyle {
   /** Ruched sides: the side seams cut longer and gathered up on elastic (see ruche.ts). In testing. */
   ruched?: boolean;
 }
+
+export type SkirtPocket = 'none' | 'inseam' | 'patch' | 'slant';
 
 /** A straight band with a zip, a pull-on elastic casing, a faced waist with no band, or a high faced waist (see skirtWaist.ts). */
 export type WaistStyle = 'band' | 'elastic' | 'faced' | 'high';
@@ -573,6 +577,8 @@ export interface SkirtDraft {
   elastic?: Elastic;
   /** In-seam pockets: where the opening is, in cm down the side seam from the waist. */
   pocket?: [number, number];
+  /** Patch or slant pockets on the front, as drafted (In testing); a patch pocket's place on the front. */
+  frontPocket?: { kind: 'patch'; place: PatchPlace } | { kind: 'slant' };
   /** A gathered skirt: its waist round as cut, and the band, casing or bodice seam it is gathered into. */
   gathers?: { round: number; into: number };
   /** A wrap skirt: the whole front's waist (each front reaches across), and its ties (none on a dress,
@@ -689,7 +695,8 @@ export function draftSkirt(m: SkirtMeasurements, style: Partial<SkirtStyle> = {}
   // go in a plain side seam, so not where pleats, godets or a flounce change the skirt's pieces.
   const plain = volumeOf(s) !== 'none' ? { ...s, hem: undefined } : s;
   const draft = withHighHip(withYoke(addVolume(m, s, drafted(m, plain), (st) => drafted(m, st)), s, m), s.fitting?.highHip);
-  return withWaist(withRuche(withSlit(s.pockets === 'inseam' && !draft.volume ? withPockets(draft) : draft, s, m), s, m), s);
+  const pocketed = draft.volume ? draft : s.pockets === 'inseam' ? withPockets(draft) : s.pockets === 'patch' || s.pockets === 'slant' ? withFrontPockets(draft, s) : draft;
+  return withWaist(withRuche(withSlit(pocketed, s, m), s, m), s);
 }
 
 /**
@@ -795,6 +802,29 @@ function withPockets(draft: SkirtDraft): SkirtDraft {
   const mark = (pc: Piece) => markSeam(pc, 'side', pocket.opening, 'POCKET');
   return { ...draft, pieces: [mark(front), mark(back), ...rest, pocket.bag], pocket: pocket.opening };
 }
+
+/**
+ * Patch pockets sewn on each front's hip, or slant pockets cut in at the front waist. A slant pocket sits where a
+ * side zip, a high waist or a button front would go, so with those the skirt keeps no pocket (the Style screen
+ * offers it only where it fits).
+ */
+function withFrontPockets(draft: SkirtDraft, s: SkirtStyle): SkirtDraft {
+  // A circle skirt's front is an arc, its grain swinging round it: a square pocket or a slant would sit off grain.
+  if (draft.circleShare) return draft;
+  const [front, back, ...rest] = draft.pieces;
+  if (s.pockets === 'patch') {
+    const o = patchOnFront(front, draft.lengthCm, front.allowances.hem ?? s.hemAllowance, s.seamAllowance);
+    return o ? { ...draft, pieces: [o.front, back, ...rest, o.pocket], frontPocket: { kind: 'patch', place: o.place } } : draft;
+  }
+  if (!slantSkirtAllowed(s)) return draft;
+  const o = slantOnFront(front);
+  // The sketches draw the front as made up, the corner the facing fills back in place.
+  return o ? { ...draft, pieces: [o.front, back, ...rest, ...o.pieces], frontPocket: { kind: 'slant' }, closed: [front, back] } : draft;
+}
+
+/** Slant pockets need the front's waist and side seam free: not beside a side zip, under a high waist or with a
+ * button front. */
+export const slantSkirtAllowed = (s: Partial<SkirtStyle>) => s.zip !== 'side' && s.waist !== 'high' && !s.buttons;
 
 /**
  * One hip higher than the other: on that side the waist is raised at the side seam, tapering to

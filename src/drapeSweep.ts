@@ -97,6 +97,8 @@ function skirtExtras(): [string, Partial<Saved['choices']>][] {
     ...GATHERS_GROUP.options.map(([g]) => [`gathers=${g}`, { silhouette: 'gathered', gathers: g }] as [string, Partial<Saved['choices']>]),
     ...DETAIL_GROUPS[0].options.filter(([w]) => w !== 'band').map(([w]) => [`waist=${w}`, withWaist(c, w)] as [string, Partial<Saved['choices']>]),
     ['pockets=inseam', { pockets: 'inseam' }],
+    ['pockets=patch', { pockets: 'patch' }],
+    ['pockets=slant', { pockets: 'slant' }],
     ...FRONT_GROUP.options.filter(([f]) => f !== 'plain').map(([f]) => [`front=${f}`, f === 'yoke' ? { yoke: true } : { buttons: true }] as [string, Partial<Saved['choices']>]),
     ...(['back', 'side', 'front'] as const).map((sl) => [`slit=${sl}`, { silhouette: 'pencil', slit: sl }] as [string, Partial<Saved['choices']>]),
   ];
@@ -131,6 +133,8 @@ export function optionDesigns(): OptionDesign[] {
     for (const [o] of opts as readonly (readonly [string, string])[]) out.push({ key: `dress ${g}=${o}`, design: { garment: 'dress', saved: { dress: plainDress({ [g]: o }) }, fibre } });
   for (const g of GROUPS as readonly { id: string; options: readonly (readonly [string, string])[] }[])
     for (const [o] of g.options) out.push({ key: `dress skirt.${g.id}=${o}`, design: { garment: 'dress', saved: { dress: plainDress({ skirt: { ...INITIAL.choices, [g.id]: o } as Saved['choices'] }) }, fibre } });
+  // The pockets a dress's skirt takes besides the in-seam ones (In testing, Nov 7 2026).
+  for (const o of ['patch', 'slant'] as const) out.push({ key: `dress skirt.pockets=${o}`, design: { garment: 'dress', saved: { dress: plainDress({ skirt: { ...INITIAL.choices, pockets: o } }) }, fibre } });
   for (const kind of ['jacket', 'coat'] as const) {
     const base = kind === 'coat' ? DEFAULT_COAT_CHOICES : DEFAULT_JACKET_CHOICES;
     for (const g of outerGroups(kind))

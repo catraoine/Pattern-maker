@@ -35,6 +35,8 @@ export function skirtSpec(m: SkirtMeasurements, d: SkirtDraft): SpecRow[] {
     ...volumeSpec(d),
     ...(d.ruche ? [{ label: 'Ruched sides, below the waist', finished: `${d.ruche.from} to the hem` }, { label: 'Side seam cut longer by / elastic each side', finished: `${d.ruche.extra} / ${d.ruche.elastic}` }] : []),
     ...(d.pocket ? [row('In-seam pocket opening', undefined, d.pocket[1] - d.pocket[0])] : []),
+    ...(d.frontPocket?.kind === 'patch' ? [{ label: 'Patch pockets, each front, wide x deep', finished: `${d.frontPocket.place.w} x ${d.frontPocket.place.h}, top ${Math.round(d.frontPocket.place.y)} below the waist` }] : []),
+    ...(d.frontPocket?.kind === 'slant' ? [{ label: 'Slant pockets', finished: `opening ${SLANT.in} in, ${SLANT.down} down` }] : []),
     ...(d.slit ? [{ label: `Slit, ${d.slit.at === 'side' ? 'left side' : `centre ${d.slit.at}`}, above the hem`, finished: `${d.slit.cm}` }] : []),
     ...(d.yoke ? [row('Yoke, centre front, waist to seam', undefined, d.yoke.front[0].y - (d.closed?.[0].outline.start.y ?? 0)), row('Yoke, centre back, waist to seam', undefined, d.yoke.back[0].y - (d.closed?.[1].outline.start.y ?? 0))] : []),
     ...(d.buttons

@@ -94,6 +94,8 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
     pockets: {
       none: ['No pockets.'],
       inseam: ['Pockets hidden in the side seams, out of sight until you use them.'],
+      patch: ['A square pocket sewn on top of each front, on the hip. Easy to make, and a casual, utility look.', 'easy'],
+      slant: ['Pockets cut in on a slant from the waist to the side, like chinos. Hands slip in easily and they lie flat.', 'skill'],
     },
     belt: {
       none: ['No belt: the waist as it is.', 'easy'],

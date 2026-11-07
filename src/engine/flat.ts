@@ -505,6 +505,36 @@ function sideZip(side: P[], cm: number): FlatView['lines'] {
   return pts.length > 1 ? [{ pts, kind: 'zip' }, { pts: [add(pts[pts.length - 1], p(-0.6, 0)), add(pts[pts.length - 1], p(0.6, 0))], kind: 'seam' }] : [];
 }
 
+/** A skirt's patch or slant pocket on the front half as drawn (In testing): the slant's opening and its
+ * topstitching, from the front piece's own cut edge; a patch's outline, rounded at the foot, and its top hem. */
+function frontPocketLines(d: SkirtDraft, move: (q: P) => P): { pts: P[]; kind: 'seam' | 'stitch' }[] {
+  if (d.frontPocket?.kind === 'slant') {
+    const { pts, tags } = d.pieces[0].outline.taggedPoints(2);
+    const k = tags.indexOf('pocket-edge');
+    if (k < 0) return [];
+    const A = move(pts[k]);
+    const B = move(pts[k + 1]);
+    const v = unit(sub(B, A));
+    const n = p(-v.y, v.x);
+    const inn = n.x < 0 ? n : mul(n, -1);
+    return [
+      { pts: [A, B], kind: 'seam' },
+      { pts: [add(A, mul(inn, 0.7)), add(B, mul(inn, 0.7))], kind: 'stitch' },
+    ];
+  }
+  if (d.frontPocket?.kind === 'patch') {
+    const { x, y, w, h } = d.frontPocket.place;
+    const r = 2;
+    const arc = (c: P, from: number) => Array.from({ length: 5 }, (_, i) => add(c, mul(p(Math.cos(from - (i / 4) * (Math.PI / 2)), Math.sin(from - (i / 4) * (Math.PI / 2))), r)));
+    const outline = [p(x, y), ...arc(p(x + r, y + h - r), Math.PI), ...arc(p(x + w - r, y + h - r), Math.PI / 2), p(x + w, y)].map(move);
+    return [
+      { pts: outline, kind: 'seam' },
+      { pts: [p(x, y + 2.5), p(x + w, y + 2.5)].map(move), kind: 'stitch' },
+    ];
+  }
+  return [];
+}
+
 /**
  * The skirt's views, with their waist at the top. A dress's skirt has no waistband, and its zip is
  * drawn with the bodice's, so the centre back seam starts at `seamFrom` above the waist.
@@ -581,12 +611,14 @@ function skirtViews(d: SkirtDraft, opts: { band: boolean; zipCm?: number; seamFr
         seamY = v.seamTo ?? hemY;
       }
       if (d.ruche) lines.push(...rucheFolds(h.run, d.ruche.from + h.run[0].y, hemY));
-      // The pocket bag, where it hangs behind the front.
-      const bag = d.pieces.find((pc) => pc.kind === 'pocket');
+      // The pocket bag, where it hangs behind the front (a patch pocket is drawn on top, below).
+      const bag = d.pieces.find((pc) => pc.kind === 'pocket' && pc.name !== 'Patch pocket');
       if (bag && !back) {
         const pts = bag.outline.points(8).map(h.move);
         lines.push(...both(pts).map((q) => ({ pts: q, kind: 'stitch' as const })));
       }
+      // Slant pockets: the opening cut in from the waist to the side, topstitched; patch pockets sewn on the hip.
+      if (d.frontPocket && !back) lines.push(...frontPocketLines(d, h.move).flatMap((l) => both(l.pts).map((pts) => ({ pts, kind: l.kind }))));
     }
     if (d.pocket && !back && d.circleShare) {
       const side = shapes[0].slice(0, 3);

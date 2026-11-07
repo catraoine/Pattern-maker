@@ -93,7 +93,7 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
       elastic: on(SKIRT, 'M13.5 6h13v4h-13zM15 7v2M17 7v2M19 7v2M21 7v2M23 7v2M25 7v2'),
       wrap: on(SKIRT, 'M13.5 6h13v4h-13zM24 6L26.5 44M13.5 8L8 14M13.5 8L9.5 16'),
     },
-    pockets: { none: on(SKIRT), inseam: inseam(SKIRT, 13) },
+    pockets: { none: on(SKIRT), inseam: inseam(SKIRT, 13), patch: on(SKIRT, 'M14.2 14h4.3v5.5h-4.3zM21.5 14h4.3v5.5h-4.3z'), slant: on(SKIRT, 'M15.6 6L13.1 14M24.4 6L26.9 14') },
     front: {
       plain: on(SKIRT, 'M16 6L16.5 13M24 6L23.5 13'),
       yoke: on(SKIRT, 'M13.2 13Q16 15.5 20 15Q24 15.5 26.8 13'),

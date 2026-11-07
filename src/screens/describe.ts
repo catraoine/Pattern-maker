@@ -30,7 +30,7 @@ export function describePattern(c: PatternChoices) {
     const kind = c.bodice.closure === 'front_buttons' && buttonsOnSkirt(c.skirt) ? 'shirt dress' : c.bodice.closure === 'wrap' && wrapSkirtAllowed(c.skirt) ? 'wrap dress' : 'dress';
     const word = `${c.fit === 'boxy' ? 'boxy ' : ''}${seam && seam !== 'natural' ? `${SEAM_WORDS[seam]} ${kind}` : kind}`;
     const dress = /skirt/.test(skirt) ? skirt.replace('skirt', word) : `${skirt} ${word}`;
-    const ends = [...(hem ? [hem] : []), ...(c.skirt.pockets === 'inseam' ? ['pockets'] : []), ...(belted ? [belted] : [])];
+    const ends = [...(hem ? [hem] : []), ...(c.skirt.pockets === 'inseam' ? ['pockets'] : c.skirt.pockets === 'patch' ? ['patch pockets'] : c.skirt.pockets === 'slant' ? ['slant pockets'] : []), ...(belted ? [belted] : [])];
     return `${dress} with ${details.length ? `${details.join(' and ')}, ` : ''}${bodiceDetails(c.bodice)}${ends.length ? `, and ${ends.join(' and ')}` : ''}`;
   }
   if (isTrousers(c)) return describeTrousers(c);

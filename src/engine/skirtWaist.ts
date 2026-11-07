@@ -38,7 +38,7 @@ export const facedAllowed = (s: WaistStyleish) => plain(s) && !whole(s) && s.sil
 export const highAllowed = (s: WaistStyleish) => plain(s) && !whole(s) && ['pencil', 'straight', 'a_line', 'trumpet'].includes(s.silhouette);
 /** The zip moves to the side on a darted block, where the back can then be cut on the fold; not where an
  * in-seam pocket takes the side seam. */
-export const sideZipAllowed = (s: WaistStyleish & { waist?: string; pockets?: string }) => highAllowed(s) && s.waist !== 'elastic' && s.pockets !== 'inseam';
+export const sideZipAllowed = (s: WaistStyleish & { waist?: string; pockets?: string }) => highAllowed(s) && s.waist !== 'elastic' && s.pockets !== 'inseam' && s.pockets !== 'slant';
 
 interface Dart {
   /** Ring indices of the near leg's waist point, the peak, and the far leg's waist point. */

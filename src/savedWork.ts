@@ -2,7 +2,7 @@ import { Belt } from './engine/belt';
 import type { Paper } from './engine/export';
 import type { HemShape } from './engine/hem';
 import type { AsymHem } from './engine/asymHem';
-import { Fit, Gathers, Length, Silhouette, NoSeam, SkirtShape, WaistStyle } from './engine/skirt';
+import { Fit, Gathers, Length, Silhouette, NoSeam, SkirtShape, WaistStyle, SkirtPocket } from './engine/skirt';
 import { type SlitPlace } from './engine/slit';
 import { BodiceEdges } from './engine/instructions';
 import { Cloth, Route } from './engine/couture';
@@ -48,8 +48,8 @@ export interface Choices {
   dropYoke?: boolean;
   /** Sitting low on the hip (In testing); unset, at the natural waist. */
   rise?: 'natural' | 'low';
-  /** In-seam pockets. Older saves have none. */
-  pockets?: 'none' | 'inseam';
+  /** In-seam, patch or slant front pockets (the last two In testing). Older saves have none. */
+  pockets?: SkirtPocket;
   /** A tie sash, belt loops, or both, at the waist (see belt.ts). Older saves have none. On a dress, its skirt's choices carry it. */
   belt?: Belt;
   /** A waistband with a zip (older saves), or a pull-on elastic waist. */
