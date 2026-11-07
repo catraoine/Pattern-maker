@@ -1728,7 +1728,11 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
     // A woven skirt's cloth gives on the bias and holds on its grain (Cat's B, 2026-11-07): each edge holds its cut
     // length less the further it runs from the grain, least at 45 degrees. (A skirt's cloth only, where the fall pulls:
     // see skirtBend.)
-    const biasOf = o.bias && (o.fallOn === 'all' || (o.fallOn === 'skirt' && p.role.startsWith('peplum'))) && !knob('__noBias') ? o.bias : 0;
+    // (A circle's piece gives half as much: its grain swings round it, and at the full give its back folded into a fin
+    // in a silk or satin half circle at the knee.)
+    // (A piece cut on the bias, a slip, gives three times as much, up to 0.6: along its length the cloth is all bias,
+    // and pulled down it narrows round the hip and thigh, as a bias slip clings. Fabric behaviour round 2.)
+    const biasOf = o.bias && (o.fallOn === 'all' || (o.fallOn === 'skirt' && p.role.startsWith('peplum'))) && !knob('__noBias') ? knob('__bias') ?? (p.pc.meta.bias ? Math.min(0.6, o.bias * 3) : p.pc.meta.waistRadius ? o.bias * (knob('__circleBias') ?? 0.5) : o.bias) : 0;
     const gr = p.pc.grain ? [p.pc.grain[1].x - p.pc.grain[0].x, p.pc.grain[1].y - p.pc.grain[0].y] : [0, 1];
     const grL = Math.hypot(gr[0], gr[1]) || 1;
     for (const [k, opp] of edgeSet) {
@@ -2149,7 +2153,9 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
     if (hung.length && !fullCircle(extra.skirt) && !B.panels.some((p) => /yoke/i.test(p.pc.name))) {
       const sc = new Float32Array(pos.length / 3).fill(1);
       const fall = knob('__fall') ?? (o.fallOn === 'skirt' ? Math.min(o.fall, knob('__dressFall') ?? 1.4) : o.fall);
-      for (const p of hung) for (let i = 0; i < p.mesh.pts.length; i++) sc[p.base + i] = fall;
+      // (A bias-cut piece in a fluid cloth hangs twice as hard, up to 3: its weight is what draws it in to cling. In a
+      // cotton, pulled harder, the slip's back was drawn 2.5 times its cut.)
+      for (const p of hung) for (let i = 0; i < p.mesh.pts.length; i++) sc[p.base + i] = p.pc.meta.bias ? Math.min(3, fall * 2) : fall;
       input.gScale = sc;
     }
   }
