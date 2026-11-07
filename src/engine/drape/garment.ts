@@ -2749,12 +2749,46 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
     });
   }
   // Close what is left of each seam for drawing, so no slit of light shows along it.
+  // (A bodice sewn to a gathered skirt can settle with its waist several cm off the skirt's, the gathers standing it
+  // out and up. Closed by its edge alone, the bodice's last row of cloth was drawn up to twice its cut, torn along the
+  // waist; its move is carried up into the bodice instead, fading out over a few cm.)
+  const ownerOf = (i: number) => B.panels.find((p) => i >= p.base && i < p.base + p.mesh.pts.length);
+  const gatheredOf = (p?: Panel) => !!p && !p.hidden && /peplum/.test(p.role) && (((p.pc.meta.gathered as number | undefined) ?? 1) > 1.05 || ((p.pc.meta.gatherShown as number | undefined) ?? 1) > 1.05);
+  const carried = new Map<Panel, number[]>();
+  if (!knob('__noCloseCarry')) for (const { i, j } of seams) {
+    const pi = ownerOf(i);
+    if (pi && /bodice/i.test(pi.pc.name) && gatheredOf(ownerOf(j))) carried.set(pi, [...(carried.get(pi) ?? []), i]);
+  }
+  const before = carried.size ? Float64Array.from(res) : undefined;
   for (let pass = 0; pass < 12; pass++) {
     for (const { i, j, k, t } of seams) {
       for (let d = 0; d < 3; d++) {
         const target = res[j * 3 + d] * (1 - t) + res[k * 3 + d] * t;
         res[i * 3 + d] += (target - res[i * 3 + d]) * 0.5;
       }
+    }
+  }
+  if (before) for (const [p, edge] of carried) {
+    const R = knob('__carryR') ?? 6;
+    const on = new Set(edge);
+    for (let a = 0; a < p.mesh.pts.length; a++) {
+      const I = p.base + a;
+      if (on.has(I) || seamOf.has(I)) continue;
+      const q = p.mesh.pts[a];
+      let wSum = 0;
+      const dv = [0, 0, 0];
+      for (const e of edge) {
+        const r = p.mesh.pts[e - p.base];
+        const w = Math.max(0, 1 - Math.hypot(r.x - q.x, r.y - q.y) / R);
+        if (w <= 0) continue;
+        const w2 = w * w;
+        wSum += w2;
+        for (let d = 0; d < 3; d++) dv[d] += (res[e * 3 + d] - before[e * 3 + d]) * w2;
+      }
+      if (!wSum) continue;
+      let near = 0;
+      for (const e of edge) { const r = p.mesh.pts[e - p.base]; near = Math.max(near, 1 - Math.hypot(r.x - q.x, r.y - q.y) / R); }
+      for (let d = 0; d < 3; d++) res[I * 3 + d] += (dv[d] / wSum) * near;
     }
   }
   // Smooth the cloth's finest ripples for drawing (a few cm of mesh noise reads as crumple on a shiny cloth); its
@@ -4725,7 +4759,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
             best = e;
           }
         }
-        if (bd > 6) continue;
+        if (bd > (knob('__mwFar') ?? 2)) continue;
         disp.set(i, [-best[0] - res[I], best[1] - res[I + 1], best[2] - res[I + 2]]);
       }
       const R = 4;
@@ -5813,7 +5847,10 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
     }
   // (A dress's bodice edge at its waist seam stood a few mm out from the skirt sewn under it, and the gap under its
   // edge drew as dark slivers along the seam: the edge laid down onto the skirt.)
-  if (extra.skirt?.length && !knob('__noWaistLay')) {
+  // (Not under a gathered skirt: its waist edge stands in and out round the body with the gathers, by several cm, and
+  // the bodice laid onto it was pulled in and out and down with them, torn along its edge; the gathers cover the seam.)
+  const gatheredSkirt = B.panels.some((p) => !p.hidden && /peplum/.test(p.role) && (((p.pc.meta.gathered as number | undefined) ?? 1) > 1.05 || ((p.pc.meta.gatherShown as number | undefined) ?? 1) > 1.05));
+  if (extra.skirt?.length && !knob('__noWaistLay') && !gatheredSkirt) {
     const sk = B.panels.filter((p) => !p.hidden && /peplum/.test(p.role) && !p.pc.meta.tier);
     const ring = sk
       .flatMap((p) => (p.mesh.runs.waist ?? []).flat().map((i) => (p.base + i) * 3))
