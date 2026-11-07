@@ -20,6 +20,7 @@ import { closeHemCorners } from './hemCorners';
 import { Space, boxed } from './space';
 import { knob, setKnob } from './knob';
 import { frontPins, tapeRollLines } from './rollLine';
+import { standStiff } from './structured';
 import { cropHold } from './cropHold';
 import { flutterPlace } from './flutter';
 import { closeBalloonHem } from './balloonHem';
@@ -277,6 +278,8 @@ export interface DrapeOptions {
   heavySkirt?: boolean;
   /** Cut boxy: the cloth falls straight from the bust to the hip rather than in under the bust. */
   boxy?: boolean;
+  /** A jacket or coat in a crisp cloth: it stands away from the body below the underarm (structured.ts). */
+  stiff?: boolean;
   /** Lapels and collar falls held pressed onto the cloth they turn over (a lapel breaking well above the waist). */
   lieLapel?: boolean;
   /** The skirt's hem is cut unlevel on purpose (a high-low, a diagonal, a shaped hem): it is not let down to level. */
@@ -3939,6 +3942,8 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
         }
       }
   }
+  // Stiff cloth stands away from the body below the underarm (structured.ts).
+  if ((o.stiff && !knob('__noStiff')) || knob('__stiff')) standStiff(B.panels, res);
   // A buttoned jacket's roll line is taped and its lapels pressed (rollLine.ts), before its collar is laid on.
   if (o.pinFront?.length && !o.rollFront && !knob('__noBridle')) tapeRollLines(B.panels, res, sp);
   // A jacket's or coat's collar fall is pressed down onto the back it turns over (its stand alone can't hold it
@@ -6312,6 +6317,6 @@ export function drapeOuter(sp: Space, d: OuterDraft, o: DrapeOptions = {}): Drap
     { sleeve: shell.filter((pc) => /sleeve/i.test(pc.name)), collars: collarsOf(d.pieces).map((c) => ((d as { popped?: boolean }).popped ? { ...c, roll: undefined } : c)) },
     // A lapel that breaks high (a coat or jacket buttoned over the chest) is pressed onto the front; a plunging one,
     // breaking near the waist, is left to hang (pressing drags its long front down).
-    { pad: d.pads, lieLapel: !!d.lapel && base.front.waistCentre.y - d.lapel.breakPt.y > 10, ...o, buttons: { y: d.buttons.at, r: d.buttons.sizeCm / 2, waistY: base.front.waistCentre.y }, pinFront: knob("__pinAll") ? [{ y: 52, span: 12 }] : knob('__oldPins') || d.hood ? d.buttons.at.map((y) => ({ y, span: 2 })) : frontPins(d.buttons.at, shell) },
+    { pad: d.pads, stiff: !!o.crisp, lieLapel: !!d.lapel && base.front.waistCentre.y - d.lapel.breakPt.y > 10, ...o, buttons: { y: d.buttons.at, r: d.buttons.sizeCm / 2, waistY: base.front.waistCentre.y }, ...(o.crisp ? { boxy: false } : {}), pinFront: knob("__pinAll") ? [{ y: 52, span: 12 }] : knob('__oldPins') || d.hood ? d.buttons.at.map((y) => ({ y, span: 2 })) : frontPins(d.buttons.at, shell) },
   );
 }
