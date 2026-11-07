@@ -211,3 +211,82 @@ function layFrontEdges(body: Panel[], res: Float64Array | number[]): void {
     }
   }
 }
+
+/** A stiff collar pressed: its fall laid flat on whatever it covers (its own stand, then the shoulders and lapels), a
+ *  cloth's thickness out, and smoothed so it lies as one crisp plane with a clean edge, the way a bonded or interfaced
+ *  collar is pressed (Cat: "very flat and crisp", SS27 vest, 2026-11-07). The stand and the seam stay where they are.
+ *  `relax` eases cloth back to its cut lengths, holding the points given. Moves `res`. */
+export function pressCollar(panels: Panel[], res: Float64Array | number[], relax: (p: Panel, held: number[]) => void): void {
+  const NA = 120;
+  const DY = 0.5;
+  const TAU = Math.PI * 2;
+  const gap = knob('__pressGap') ?? 0.3;
+  const collars = panels.filter((p) => p.role === 'collar' && !p.hidden && p.turned.some(Boolean));
+  if (!collars.length) return;
+  const key = (a: number, y: number) => (((Math.round(((a + Math.PI) / TAU) * NA) % NA) + NA) % NA) * 100000 + Math.round(y / DY);
+  for (let round = 0; round < (knob('__pressRounds') ?? 6); round++) {
+    // What lies under the fall: the body's cloth and the collar's own stand, as far out as it is at each place.
+    const under = new Map<number, number>();
+    const put = (I: number) => {
+      const k = key(Math.atan2(res[I], res[I + 2]), res[I + 1]);
+      under.set(k, Math.max(under.get(k) ?? 0, Math.hypot(res[I], res[I + 2])));
+    };
+    for (const p of panels) {
+      if (p.hidden || p.role === 'sleeve') continue;
+      if (p.role === 'collar') p.mesh.pts.forEach((_, i) => !p.turned[i] && put((p.base + i) * 3));
+      else if (p.role === 'front' || p.role === 'back') p.mesh.pts.forEach((_, i) => put((p.base + i) * 3));
+    }
+    const underAt = (I: number) => {
+      const a = Math.atan2(res[I], res[I + 2]);
+      // (The highest within a little way round, then averaged over a wider patch, so the laid edge runs smooth rather
+      // than stepping from one sample to the next.)
+      let s = 0;
+      let c = 0;
+      for (let da = -2; da <= 2; da++)
+        for (let dy = -2; dy <= 2; dy++) {
+          let R = 0;
+          for (const ea of [-1, 0, 1]) for (const ey of [-1, 0, 1]) R = Math.max(R, under.get(key(a + ((da + ea) * TAU) / NA, res[I + 1] + (dy + ey) * DY)) ?? 0);
+          if (R) {
+            s += R;
+            c++;
+          }
+        }
+      return c ? s / c : 0;
+    };
+    for (const p of collars) {
+      const nb = p.mesh.pts.map(() => new Set<number>());
+      for (const [u, v, w] of p.mesh.tris) {
+        nb[u].add(v).add(w);
+        nb[v].add(u).add(w);
+        nb[w].add(u).add(v);
+      }
+      // (Its seams to the neck and the gorge stay sewn where they are, even where the roll line turns them over.)
+      const sewn = new Set([...(p.mesh.runs.neck ?? []), ...(p.mesh.runs.gorge ?? [])].flat());
+      const fall = p.mesh.pts.map((_, i) => i).filter((i) => p.turned[i] && !sewn.has(i));
+      // Smoothed: each fall point toward its neighbours, so ripples and lumps press out into one plane.
+      const next = fall.map((i) => {
+        const m = [0, 0, 0];
+        for (const j of nb[i]) for (let d = 0; d < 3; d++) m[d] += res[(p.base + j) * 3 + d] / nb[i].size;
+        const I = (p.base + i) * 3;
+        return [I, ...[0, 1, 2].map((d) => res[I + d] + (m[d] - res[I + d]) * 0.5)] as [number, number, number, number];
+      });
+      for (const [I, x, y, z] of next) {
+        res[I] = x;
+        res[I + 1] = y;
+        res[I + 2] = z;
+      }
+      // Laid on: just out from what it covers, neither standing off it nor sunk in.
+      for (const i of fall) {
+        const I = (p.base + i) * 3;
+        const R = underAt(I);
+        if (!R) continue;
+        const rho = Math.hypot(res[I], res[I + 2]) || 1e-9;
+        const k = (R + gap) / rho;
+        res[I] *= k;
+        res[I + 2] *= k;
+      }
+      // And back to its cut: pressing never stretches it.
+      relax(p, p.mesh.pts.map((_, i) => i).filter((i) => !p.turned[i] || sewn.has(i)));
+    }
+  }
+}
