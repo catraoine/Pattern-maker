@@ -4,7 +4,7 @@
 // and its ripples are smoothed into one plane, as a stiff cloth lies (Cat's SS27 vest picture, 2026-11-07).
 import type { Panel } from './garment';
 import { knob } from './knob';
-import { CollarOnFront, collarOnFront } from './collarEnd';
+import { CollarOnFront, collarOnFront, straightenCollarEdge } from './collarEnd';
 
 const NA = 48;
 
@@ -294,4 +294,7 @@ export function pressCollar(panels: Panel[], res: Float64Array | number[], relax
       relax(p, p.mesh.pts.map((_, i) => i).filter((i) => !p.turned[i] || sewn.has(i) || laid.has(i)));
     }
   }
+  // (And a high lapel's long collar end pressed to a straight edge, collarEnd.ts.)
+  const front = panels.find((p) => p.role === 'front' && !p.hidden && p.turned.some(Boolean));
+  for (const p of collars) if (front && p.pc.meta.onFront && !knob('__noStraightCollar')) straightenCollarEdge(p, front, p.pc.meta.onFront as CollarOnFront, res);
 }

@@ -69,6 +69,87 @@ export function collarOnFront(q: P, o: CollarOnFront): { at: P; w: number } {
   at = { x: r0.x + 2 * al * ru.x - v.x, y: r0.y + 2 * al * ru.y - v.y };
   let len = 0;
   for (let k = 0; k < F.length - 1; k++) len += Math.hypot(F[k + 1].x - F[k].x, F[k + 1].y - F[k].y);
-  const f = Math.min(1, Math.max(0, (len - best.s) / (len * 0.35)));
+  const f = Math.min(1, Math.max(0, (len * 1.1 - best.s) / (len * 0.25)));
   return { at, w: f * f * (3 - 2 * f) };
+}
+
+type Cloth = { base: number; mesh: { pts: P[]; tris: [number, number, number][]; runs: Record<string, number[][]> }; turned: boolean[] };
+
+/** The collar's outer edge, laid as above, follows the chest's own curve and wanders; pressed, a stiff collar's edge
+ *  runs dead straight from where it leaves the shoulder to its point (Cat: "this should be straight", 2026-11-07). Each
+ *  point of that edge goes onto the straight line between the two, seen from the front, the fall inside it following
+ *  in part, everything kept just off the front it lies on. Moves `res`. */
+export function straightenCollarEdge(collar: Cloth, front: Cloth, o: CollarOnFront, res: Float64Array | number[]): void {
+  const pts = collar.mesh.pts;
+  const run = (collar.mesh.runs.collar ?? []).flat();
+  if (run.length < 4) return;
+  // The point: the edge's farthest out along the collar. The outer edge runs from it back towards centre back.
+  let c = 0;
+  for (let k = 1; k < run.length; k++) if (pts[run[k]].x > pts[run[c]].x) c = k;
+  const dir = c + 1 < run.length && pts[run[c + 1]].y < pts[run[c]].y ? 1 : -1;
+  const edge: number[] = [];
+  for (let k = c; k >= 0 && k < run.length; k += dir) edge.push(run[k]);
+  const w = edge.map((i) => collarOnFront(pts[i], o).w);
+  let a = 0;
+  while (a + 1 < edge.length && w[a + 1] > 0.99) a++;
+  if (a < 2) return;
+  const X = (i: number) => (collar.base + i) * 3;
+  const A = [res[X(edge[a])], res[X(edge[a]) + 1]];
+  const C = [res[X(edge[0])], res[X(edge[0]) + 1]];
+  const L = Math.hypot(A[0] - C[0], A[1] - C[1]) || 1;
+  const u = [(A[0] - C[0]) / L, (A[1] - C[1]) / L];
+  // How far out the front lies at a place seen from the front (its own cloth, not the lapel turned over it).
+  const frontZ = (x: number, y: number): number | undefined => {
+    for (const [i, j, k] of front.mesh.tris) {
+      if (front.turned[i] || front.turned[j] || front.turned[k]) continue;
+      const I = (front.base + i) * 3, J = (front.base + j) * 3, K = (front.base + k) * 3;
+      if (res[I + 2] <= 0 || res[J + 2] <= 0 || res[K + 2] <= 0) continue;
+      const det = (res[J + 1] - res[K + 1]) * (res[I] - res[K]) + (res[K] - res[J]) * (res[I + 1] - res[K + 1]);
+      if (Math.abs(det) < 1e-9) continue;
+      const l1 = ((res[J + 1] - res[K + 1]) * (x - res[K]) + (res[K] - res[J]) * (y - res[K + 1])) / det;
+      const l2 = ((res[K + 1] - res[I + 1]) * (x - res[K]) + (res[I] - res[K]) * (y - res[K + 1])) / det;
+      const l3 = 1 - l1 - l2;
+      if (l1 < -1e-6 || l2 < -1e-6 || l3 < -1e-6) continue;
+      return res[I + 2] * l1 + res[J + 2] * l2 + res[K + 2] * l3;
+    }
+    return undefined;
+  };
+  // Each edge point's move onto the line (fading out past the shoulder end).
+  const moves: { q: P; d: [number, number] }[] = [];
+  edge.forEach((i, k) => {
+    const I = X(i);
+    const v = [res[I] - C[0], res[I + 1] - C[1]];
+    const t = Math.min(L, Math.max(0, v[0] * u[0] + v[1] * u[1]));
+    const f = k <= a ? 1 : Math.max(0, 1 - (k - a) / 4);
+    if (f <= 0) return;
+    moves.push({ q: pts[i], d: [(C[0] + u[0] * t - res[I]) * f, (C[1] + u[1] * t - res[I + 1]) * f] });
+  });
+  // The fall inside follows its nearest stretch of edge, less the further in it is, so it doesn't fold at the edge.
+  const R = 2.5;
+  pts.forEach((q, i) => {
+    if (!collar.turned[i]) return;
+    let s = 0;
+    let dx = 0;
+    let dy = 0;
+    let best = Infinity;
+    for (const m of moves) {
+      const d = Math.hypot(m.q.x - q.x, m.q.y - q.y);
+      best = Math.min(best, d);
+      const g = Math.exp(-(d * d) / 0.5);
+      s += g;
+      dx += m.d[0] * g;
+      dy += m.d[1] * g;
+    }
+    if (!s || best > 2 * R) return;
+    const f = Math.max(0, 1 - best / (2 * R));
+    const I = X(i);
+    const z0 = frontZ(res[I], res[I + 1]);
+    const x = res[I] + (dx / s) * f;
+    const y = res[I + 1] + (dy / s) * f;
+    const z1 = frontZ(x, y);
+    res[I] = x;
+    res[I + 1] = y;
+    // (Kept as far off the front as it was.)
+    if (z0 !== undefined && z1 !== undefined) res[I + 2] += z1 - z0;
+  });
 }
