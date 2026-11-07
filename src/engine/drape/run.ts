@@ -21,6 +21,7 @@ import { sideTie, type SideTieSpec } from './tie';
 import { camiStraps } from './strap';
 import { knob } from './knob';
 import { fairDroppedSeam } from './seamFair';
+import { fitRoom } from './fitMap';
 
 export type DrapeJob = { m: RoundMeasurements; armhole: RoundGarment['armhole']; fibre?: Fibre; crisp?: boolean; /** A side tie knotted at the left side seam at the waist (belt.ts). */ sideTie?: SideTieSpec } & (
   | { kind: 'skirt'; draft: SkirtDraft }
@@ -48,6 +49,8 @@ export interface DrapedLite {
   contrastCollar?: string;
   /** How good the drawing measured (see quality.ts): All round shows it turning only when it passed. */
   quality?: Quality;
+  /** The fit map: each panel point's room round the body, in cm (see fitMap.ts); NaN where it isn't read. */
+  fit?: Float32Array;
 }
 
 /** How each cloth hangs: its thickness off the body and how it resists bending, by fibre. */
@@ -126,6 +129,10 @@ export function runDrape(job: DrapeJob): DrapedLite {
   }
   // A dress's waist seam dropped onto the hip: run straight through, without the ledge the sim leaves there.
   if (job.kind === 'dress' && (job.draft.seamDrop ?? 0) > 1 && !knob('__noSeamFair')) fairDroppedSeam(d, sp);
+  // The room is read from the cloth as it settled on the body, before it is drawn (closeSeams and the hang move it).
+  const thickOf = new Float64Array(d.pos.length / 3);
+  for (const p of d.panels) p.thick.forEach((t, i) => (thickOf[p.base + i] = t));
+  const fit = fitRoom(d, sp, (k) => thickOf[k]);
   closeSeams(d);
   // (Trouser legs hang round the form's own legs, not the body's axis: measured against the body's round, the leg's
   // points read as touching and clear by turns down each leg, and were drawn at their scales by turns, a sawtooth.)
@@ -186,5 +193,6 @@ export function runDrape(job: DrapeJob): DrapedLite {
     ...(d.shade ? { shade: d.shade } : {}),
     contrastCollar: cc,
     quality,
+    fit,
   };
 }

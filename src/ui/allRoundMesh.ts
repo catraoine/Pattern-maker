@@ -92,6 +92,27 @@ function clothFinish(mode: Mode, cloth: ClothTiles, map: THREE.Texture, scale: n
   return mat;
 }
 
+/** The fit map's looks (mock-ups, 2026-11-07): heat (CLO's red to blue), calm (the brand's muted earth to mist) and
+ *  quiet (the cloth as it is, warmed only where it is snug or tight). */
+export type FitStyle = 'heat' | 'calm' | 'quiet';
+const FIT_STOPS: Record<FitStyle, [number, number][]> = {
+  heat: [[-3, 0xc81e32], [0, 0xe0452c], [1.5, 0xf2c23a], [4, 0x49a85a], [12, 0x5aa9d6], [30, 0x2f5bbf]],
+  calm: [[-3, 0x9c3b28], [0, 0xb5543c], [1.5, 0xd6ad6c], [4, 0xa9bf9f], [12, 0xc4cfd6], [30, 0xece6da]],
+  quiet: [[-3, 0xd23a2a], [0, 0xe0603a], [1.5, 0xf0b07a], [3.5, 0xffffff], [30, 0xffffff]],
+};
+function fitColour(v: number, style: FitStyle): [number, number, number] {
+  const stops = FIT_STOPS[style];
+  if (!Number.isFinite(v)) return style === 'quiet' ? [1, 1, 1] : [0.75, 0.75, 0.75];
+  let k = 0;
+  while (k < stops.length - 2 && v > stops[k + 1][0]) k++;
+  const [v0, c0] = stops[k];
+  const [v1, c1] = stops[k + 1];
+  const t = Math.max(0, Math.min(1, (v - v0) / (v1 - v0)));
+  const a = new THREE.Color(c0);
+  const b = new THREE.Color(c1);
+  return [a.r + (b.r - a.r) * t, a.g + (b.g - a.g) * t, a.b + (b.b - a.b) * t];
+}
+
 function material(mode: Mode, map?: THREE.Texture, scale = 1, opacity = 1, physical = false): RoundMaterial {
   const mat = new (physical ? THREE.MeshPhysicalMaterial : THREE.MeshStandardMaterial)({
     side: THREE.DoubleSide,
@@ -563,8 +584,14 @@ function buildDraped(
       }
       // A contrast upper collar shows at the front; round the back its outside is the garment's own cloth.
       const front = p.collar && contrast !== undefined;
-      const mat = !cloth || !tex ? material('black') : clothFinish(mode, cloth, tex, 1 / cloth.bodySize);
-      if (front && contrast !== undefined) {
+      const fitStyle = (globalThis as unknown as { __fitStyle?: FitStyle }).__fitStyle;
+      const mat = fitStyle && d.fit && fitStyle !== 'quiet' ? material('matte') : !cloth || !tex ? material('black') : clothFinish(mode, cloth, tex, 1 / cloth.bodySize);
+      if (fitStyle && d.fit) {
+        const col = new Float32Array(n * 3);
+        for (let i = 0; i < n; i++) col.set(fitColour(d.fit[p.base + i], fitStyle), i * 3);
+        g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+        mat.vertexColors = true;
+      } else if (front && contrast !== undefined) {
         const col = new Float32Array(n * 3);
         const cc = new THREE.Color(contrast);
         for (let i = 0; i < n; i++) {
