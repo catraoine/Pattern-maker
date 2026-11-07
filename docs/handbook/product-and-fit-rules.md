@@ -365,6 +365,12 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
   `src/photo/analyze.ts`; `measuredOuter` and `measuredLeg` in `src/photo/garments.ts`; the jacket's own numbers
   (`dropCm`, `easeCm`, `breakCm`, `buttons`, `buttonGapCm`, `shoulderCm`) in `src/engine/outerwear.ts`, which win
   over the named choice (the Look 09 high lapel uses the same `breakCm`/`buttons`).
+- **Cuts are ratios to her body** (Nov 7, Cat: "the insp vest is oversized", "How can we always account for oversized
+  and other design types?"; In testing): an Oversized jacket or coat takes 0.45 (jacket) or 0.5 (coat) of her bust as
+  ease (`outerEase`, never less than the old 30/34 cm), up to 70 cm from a photo, with its square dropped shoulder even
+  without sleeves. A photo showing 1.28 times her bust or more is read as Oversized. Fitted, Regular and Relaxed, and
+  every skirt, top and dress, keep their fixed ease through the tester round. Before a photo's jacket or coat is shown
+  to Cat, the ratio check (`src/photo/ratios.ts`) compares the pattern's room, hem, shoulder and buttons with the photo's.
 
 ## Fixing problems
 

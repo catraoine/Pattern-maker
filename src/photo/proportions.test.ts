@@ -61,14 +61,15 @@ describe('proportions read off a photo', () => {
     const c = choicesFor({ ...vest, outer: { ...vest.outer!, sleeve: 'set_in' }, measures: { ...vest.measures!, bustRoom: 1.4, shoulderOutCm: 6 } }, 'jacket', body);
     if (!isOuter(c)) throw new Error('not a jacket');
     expect(c.fit).toBe('oversized');
-    expect(c.shoulderCm).toBeUndefined();
+    // Its sleeve drops the shoulder 5 cm already; the photo's 6 adds 1.
+    expect(c.shoulderCm).toBe(1);
     expect(() => draftOuter(body, { ...c, kind: 'jacket' })).not.toThrow();
   });
 
-  it('keeps a roomy waistcoat boxy rather than oversized, so its lapels keep their width', () => {
+  it('cuts a roomy waistcoat oversized too, its dropped shoulder already as far out as the photo shows', () => {
     const c = choicesFor({ ...vest, measures: { ...vest.measures!, bustRoom: 1.35, shoulderOutCm: 4 } }, 'jacket', body);
     if (!isOuter(c)) throw new Error('not a jacket');
-    expect([c.fit, c.shaping, c.shoulderCm]).toEqual(['relaxed', 'boxy', 4]);
+    expect([c.fit, c.shaping, c.sleeve, c.shoulderCm]).toEqual(['oversized', 'boxy', 'none', -1]);
   });
 
   it('leaves the named choices alone without the wearer’s measurements or the numbers', () => {
@@ -119,7 +120,8 @@ describe('a jacket or coat cut to proportions read off a photo, on random bodies
     const failures: string[] = [];
     const extremes = [
       { outerHemAt: 0.02, breakCm: 6, buttons: 8, buttonGapCm: 5, shoulderOutCm: -3, bustRoom: 1.04, outerHemFullness: 1 },
-      { outerHemAt: 0.9, breakCm: 44, buttons: 1, buttonGapCm: null, shoulderOutCm: 6, bustRoom: 1.5, outerHemFullness: 1.6 },
+      { outerHemAt: 0.9, breakCm: 44, buttons: 1, buttonGapCm: null, shoulderOutCm: 10, bustRoom: 1.75, outerHemFullness: 1.6 },
+      { outerHemAt: 0.28, breakCm: 17, buttons: 3, buttonGapCm: 14, shoulderOutCm: 15, bustRoom: 1.55, outerHemFullness: 1.1 },
       { outerHemAt: 0.3, breakCm: 17, buttons: 3, buttonGapCm: 20, shoulderOutCm: 4, bustRoom: 1.3, outerHemFullness: 1.1 },
     ];
     for (let seed = 1; seed <= sweep(15); seed++) {
@@ -149,4 +151,29 @@ describe('a jacket or coat cut to proportions read off a photo, on random bodies
     }
     expect(failures.slice(0, 8)).toEqual([]);
   }, 120_000);
+});
+
+describe('the ratio check against the photo', () => {
+  it('an oversized vest comes out as roomy as the picture, its shoulders as far out', async () => {
+    const { outerRatios } = await import('./ratios');
+    // Cat's picture, as the Look 09 thread measured it: about 1.5 times her body, shoulders 4 to 5 cm out.
+    const r: PhotoReading = { ...vest, measures: { ...vest.measures!, bustRoom: 1.55, shoulderOutCm: 5, outerHemAt: 0.28 } };
+    const c = choicesFor(r, 'jacket', body);
+    if (!isOuter(c)) throw new Error('not a jacket');
+    expect(c.fit).toBe('oversized');
+    expect(c.sleeve).toBe('none');
+    const d = draftOuter(body, { ...c, kind: 'jacket' });
+    const rows = outerRatios(r, c, d, body);
+    expect(rows.filter((x) => !x.ok)).toEqual([]);
+    expect(rows.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it('an oversized jacket with sleeves gets its dropped shoulder and the room the photo shows', async () => {
+    const { outerRatios } = await import('./ratios');
+    const r: PhotoReading = { ...vest, outer: { ...vest.outer!, sleeve: 'set_in' }, measures: { ...vest.measures!, bustRoom: 1.6, shoulderOutCm: 8 } };
+    const c = choicesFor(r, 'jacket', body);
+    if (!isOuter(c)) throw new Error('not a jacket');
+    const d = draftOuter(body, { ...c, kind: 'jacket' });
+    expect(outerRatios(r, c, d, body).filter((x) => !x.ok)).toEqual([]);
+  });
 });

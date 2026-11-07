@@ -29,7 +29,7 @@ import {
 import type { BodiceLength } from '../engine/bodice';
 import { noSeamAllowed } from '../engine/dress';
 import type { MyFabric } from '../engine/fabrics';
-import { OUTER_LENGTHS, lapelled, measuredOuterDrop, outerDrop, type OuterLength, type OuterMeasurements } from '../engine/outerwear';
+import { OUTER_EASE_MAX, OUTER_LENGTHS, OUTER_SHOULDER, lapelled, measuredOuterDrop, outerDrop, type OuterLength, type OuterMeasurements } from '../engine/outerwear';
 import type { TeeLength, TeeNeck, TeeSleeve } from '../engine/tee';
 import { setSkirtDetail, skirtDetailOf, volumeOf } from '../engine/skirtVolume';
 import { validCut } from '../engine/slip';
@@ -38,6 +38,7 @@ import { backBlocked } from '../engine/backNeck';
 import { elasticAllowed, pocketsAllowed } from '../skirtChoices';
 import { BODICE_FIT_EASE, BUST_EASE_RANGE, NECKLINES } from '../engine/bodice';
 import { FULLNESS } from '../ui/BodiceShape';
+import { DROP } from '../engine/sleeveCut';
 import { fitOf, shapeOf } from './shape';
 import type { BackReading, Confidence, PhotoReading, PieceKind, TopReading } from './types';
 
@@ -54,6 +55,9 @@ export interface PhotoBody {
 
 /** An average adult's front, neck to waist, in cm: sizes the photo reads in cm are scaled from it to the wearer's. */
 const AVERAGE_FRONT = 44;
+
+/** From this many times her bust round, a jacket or coat in a photo is the oversized cut. */
+export const OVERSIZED_FROM = 1.28;
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 const num = (v: number | null | undefined): v is number => typeof v === 'number' && Number.isFinite(v);
@@ -291,22 +295,22 @@ function measuredOuter(c: OuterChoices, r: PhotoReading, body: PhotoBody | undef
     if (out.length === 'cropped' && out.vent === 'centre') out.vent = 'none';
   }
   if (num(m.bustRoom) && body?.full_bust) {
-    const ease = (clamp(m.bustRoom, 1.04, 1.5) - 1) * body.full_bust;
+    // Ratios to her own body, not fixed ease (Cat, Nov 7: "the insp vest is oversized"): from about 1.28 times her
+    // bust it is the oversized cut, with or without sleeves, taking all the room the photo shows.
+    if (m.bustRoom >= OVERSIZED_FROM && out.fit !== 'oversized') return measuredOuter(oversizeOuter({ ...out, fit: 'oversized' }), r, body);
+    const ease = (clamp(m.bustRoom, 1.04, 1.75) - 1) * body.full_bust;
     // Only the oversized cut takes more room than a blouse block allows.
-    out.easeCm = Math.round(out.fit === 'oversized' ? ease : Math.min(BUST_EASE_RANGE.max, ease));
-    // A lot of room with a shoulder dropped well past hers is the oversized cut, with its dropped sleeve. Without
-    // sleeves (a waistcoat) or with a shoulder on hers, it stays its own cut, boxy, so its lapels keep their width.
-    const dropped = num(m.shoulderOutCm) && m.shoulderOutCm >= 3;
-    if (m.bustRoom >= 1.28 && dropped && out.sleeve !== 'none' && out.fit !== 'oversized') return measuredOuter(oversizeOuter({ ...out, fit: 'oversized' }), r, body);
-    if (m.bustRoom >= 1.22 && out.fit !== 'oversized') {
-      const fit = out.fit === 'fitted' ? 'relaxed' : out.fit;
-      if (outerAllowed({ ...out, fit }, 'shaping', 'boxy')) Object.assign(out, { fit, shaping: 'boxy' });
-    }
+    out.easeCm = Math.round(out.fit === 'oversized' ? Math.min(OUTER_EASE_MAX, ease) : Math.min(BUST_EASE_RANGE.max, ease));
   }
   if (num(m.breakCm) && c.front !== 'zip') out.breakCm = Math.round(clamp(m.breakCm, 6, 44) * scale);
   if (num(m.buttons) && c.front !== 'zip' && m.buttons >= 1) out.buttons = Math.round(clamp(m.buttons, 1, 8));
   if (num(m.buttonGapCm) && c.front !== 'zip' && (m.buttons ?? 2) >= 2) out.buttonGapCm = Math.round(clamp(m.buttonGapCm, 5, 20) * scale);
-  if (num(m.shoulderOutCm) && Math.abs(m.shoulderOutCm) >= 1 && (out.fit !== 'oversized' || out.sleeve === 'none') && out.sleeve !== 'raglan') out.shoulderCm = Math.round(clamp(m.shoulderOutCm, -3, 6));
+  // The shoulder line: an oversized cut already drops its shoulder DROP.out past hers, so only the rest is added.
+  if (num(m.shoulderOutCm) && out.sleeve !== 'raglan') {
+    const own = out.fit === 'oversized' ? DROP.out : 0;
+    const by = Math.round(clamp(m.shoulderOutCm, OUTER_SHOULDER.min, OUTER_SHOULDER.max + own) - own);
+    if (Math.abs(by) >= 1) out.shoulderCm = clamp(by, OUTER_SHOULDER.min, OUTER_SHOULDER.max);
+  }
   if (num(m.outerHemFullness)) {
     const f = m.outerHemFullness;
     const flare: OuterChoices['flare'] = f >= 1.35 ? 'flared' : f >= 1.15 && c.garment === 'coat' ? 'a_line' : 'straight';
