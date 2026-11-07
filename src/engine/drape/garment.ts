@@ -3751,7 +3751,11 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
   if (o.pinFront?.length) {
     const roleOf = new Map<number, string>();
     for (const p of B.panels) for (let i = 0; i < p.mesh.pts.length; i++) roleOf.set(p.base + i, p.role);
-    const body = (g: number) => roleOf.get(g) === 'front' || roleOf.get(g) === 'back';
+    // (A raglan sleeve runs up to the neck as part of the body's yoke: its seams to the front and back close too, or the
+    // front's neckline, drawn in to the neck, leaves the sleeve's top standing 2 to 3 cm off it.)
+    const raglan = new Set<number>();
+    if (!knob('__noRaglanClose')) for (const p of B.panels) if (p.role === 'sleeve' && !p.hidden && /raglan/i.test(p.pc.name)) for (let i = 0; i < p.mesh.pts.length; i++) raglan.add(p.base + i);
+    const body = (g: number) => roleOf.get(g) === 'front' || roleOf.get(g) === 'back' || raglan.has(g);
     for (let it = 0; it < 4; it++)
       for (const { i, j, k, t } of seams) {
         // A collar end sewn to a pressed lapel (a shawl's) follows the lapel; the body never follows the collar.
