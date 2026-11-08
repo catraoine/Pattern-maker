@@ -66,6 +66,13 @@ export function standStiff(panels: Panel[], res: Float64Array | number[], seams:
   const held = Float64Array.from(field);
   const REF0 = Math.round((knob('__stiffRef0') ?? 6) / DY);
   const REF1 = Math.round((knob('__stiffRef1') ?? 12) / DY);
+  // (A cut with no waist shaping, a boxy or oversized one, is held out the widest it has been from there down, so its
+  // back runs straight past the waist's hollow rather than curving into it: Cat, "stiffer", 2026-11-08. A darted one
+  // is cut to come in at the waist, and held out it stretched across the front. Just under the arm it is held in to that
+  // width too, from close under the arm and eased right up to it, or a vest's spare cloth there bulged at the sides.)
+  const run = (box && !knob('__noStiffRun')) || !!knob('__stiffRun');
+  // (Eased right up to the armhole only without sleeves: with them it pulled the armhole off the sleeve's seam.)
+  const bare = !panels.some((p) => !p.hidden && p.role === 'sleeve');
   for (let ab = 0; ab < NA; ab++) {
     let s = 0;
     let c = 0;
@@ -75,14 +82,10 @@ export function standStiff(panels: Panel[], res: Float64Array | number[], seams:
         c++;
       }
     let ref = c ? s / c : 0;
-    // (A cut with no waist shaping, a boxy or oversized one, is held out the widest it has been from there down, so its
-    // back runs straight past the waist's hollow rather than curving into it: Cat, "stiffer", 2026-11-08. A darted one
-    // is cut to come in at the waist, and held out it stretched across the front.)
-    const run = (box && !knob('__noStiffRun')) || knob('__stiffRun');
     for (let yb = 0; yb < NY; yb++) {
       const b = yb * NA + ab;
       if (!have[b]) continue;
-      held[b] = Math.max(ref, field[b]);
+      held[b] = run && yb < REF0 ? ref : Math.max(ref, field[b]);
       if (run && yb >= REF0) ref = Math.max(ref, field[b]);
     }
   }
@@ -101,7 +104,7 @@ export function standStiff(panels: Panel[], res: Float64Array | number[], seams:
     const S = at(field, q.a, q.y);
     if (!Number.isFinite(H) || !Number.isFinite(S) || q.r < 1e-6) continue;
     // (Fading in down from the underarm, so the cloth stands out from the chest in one smooth line.)
-    const s = Math.min(1, (q.y - top) / (knob('__stiffFade') ?? 10));
+    const s = Math.min(1, (q.y - top) / (knob('__stiffFade') ?? (run ? 3 : 10)));
     const w = s * s * (3 - 2 * s);
     // Out to the held line, its own ripple off the smoothed cloth kept only in part.
     const r = q.r + w * (H - S - k * (q.r - S));
@@ -120,11 +123,11 @@ export function standStiff(panels: Panel[], res: Float64Array | number[], seams:
     }
     // (Points on the outline keep their place round the body, so the seams they're sewn to stay closed.)
     const edge = new Set(Object.values(p.mesh.runs).flat(2));
-    for (let it = 0; it < (knob('__stiffEase') ?? 6); it++) {
+    for (let it = 0; it < (knob('__stiffEase') ?? (run ? 16 : 6)); it++) {
       const next: [number, number, number][] = [];
       p.mesh.pts.forEach((_, i) => {
         const I = (p.base + i) * 3;
-        if (res[I + 1] < top + 4 || p.turned[i] || !nb[i].size) return;
+        if (res[I + 1] < top + (knob('__stiffEaseTop') ?? (run && bare ? -2 : 4)) || p.turned[i] || !nb[i].size) return;
         // (Both how far out it lies and where it sits round the body, so a fold the sim left tucked over itself opens
         // out flat instead of being pressed into a fin.)
         let m = 0;
