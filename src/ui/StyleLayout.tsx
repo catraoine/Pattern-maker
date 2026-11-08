@@ -532,6 +532,13 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
     window.addEventListener('scrollend', again);
     setTimeout(again, 900);
   };
+  // "Start from a look" in the name's drop-down (Cat, 2026-11-08 live: tapping it did nothing). On a phone the
+  // step's choices sit just out of sight under its name, so picking it when it was already the step changed nothing
+  // on screen. It now opens the step and pulls up its choices (a photo, the collection), as See the choices does.
+  const openLooks = () => {
+    choose(LOOKS);
+    if (!wide) requestAnimationFrame(() => requestAnimationFrame(() => showChoices()));
+  };
   const step = (by: number) => {
     const i = strip_.indexOf(active ?? '');
     const to = strip_[i + by];
@@ -643,7 +650,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           (the top bar says it), Start from a look is in the name's drop-down, and the example note is one soft line. */}
       <div className="screen-head">
         <Title id="opts" big="Style" label={label} hideLabel />
-        <GarmentDrop label={label} onChoose={onChooseGarment} onLooks={tabs.includes(LOOKS) ? () => choose(LOOKS) : undefined} />
+        <GarmentDrop label={label} onChoose={onChooseGarment} onLooks={tabs.includes(LOOKS) ? openLooks : undefined} />
       </div>
       {exampleTag}
       <div className="style-edit">

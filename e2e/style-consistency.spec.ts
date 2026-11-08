@@ -43,6 +43,21 @@ test('a new sewist sees Start from a photo', async ({ page }) => {
   await expect(await showAllTools(page)).toBeVisible();
 });
 
+// "Start from a look" in the name's drop-down always shows the ways to start from a look, even when it is already the
+// step (Cat, 2026-11-08 live: on a phone the tap did nothing, the choices sat out of sight under the step's name).
+test('Start from a look shows its choices every time it is picked', async ({ page }) => {
+  await startWithExample(page);
+  const main = page.getByRole('main');
+  const photo = main.getByRole('button', { name: 'Start from a photo' });
+  for (let i = 0; i < 2; i++) {
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await main.getByRole('group', { name: 'Garment' }).locator('.drop-button').click();
+    await main.getByRole('menuitemradio', { name: /Start from a look/ }).click();
+    await expect(photo).toBeInViewport({ ratio: 1 });
+    await expect(main.getByRole('button', { name: /^See the choices/ })).toBeHidden();
+  }
+});
+
 // A measurement that fails a check is caught: a bust in the wrong unit on its own page, and two that
 // disagree (waist to knee longer than waist to floor) on the measurements list, never a loop back through the guided pages.
 test('a wrong measurement is explained, not looped', async ({ page }) => {
