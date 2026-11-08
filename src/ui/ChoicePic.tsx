@@ -3,6 +3,7 @@
 // keeps its words under the drawing, so its name (and every test that finds it) stays the same.
 import { useState, type ReactNode } from 'react';
 import { explainLine } from '../explain';
+import { CHOICE_PICS } from './choicePics';
 import { BigDrawing, Drawing } from './Drawing';
 
 type PicSet = 'skirt' | 'bodice' | 'tee' | 'trousers' | 'jacket' | 'coat';
@@ -244,6 +245,10 @@ export function ChoicePic({ set, group, id }: { set: PicSet; group: string; id: 
   const [big, setBig] = useState<string>();
   if (!pic) return null;
   const cls = `pic-${set}-${group}-${id}`;
+  // A tight crop of our own form drawing wearing this choice (Cat's A2, Nov 8), where one has been taken; the
+  // drawing above already shows the pick full size, so the crop doesn't open bigger.
+  if (CHOICE_PICS.has(`${set}-${group}-${id}`))
+    return <img className={`pic-photo ${cls}`} src={`/pics/${set}-${group}-${id}.webp`} alt="" width={324} height={294} loading="lazy" decoding="async" draggable={false} />;
   return (
     <>
       <Drawing

@@ -33,7 +33,8 @@ test('the skirt silhouettes are little drawings on their own tab', async ({ page
   const silhouette = await openGroup(page, 'Silhouette');
   await expect(silhouette.locator('.chips.pics')).toBeVisible();
   const trumpet = silhouette.getByRole('button', { name: 'Trumpet' });
-  await expect(trumpet.locator('svg.pic')).toBeVisible();
+  // A crop of our own form drawing in a trumpet skirt (Cat's A2, Nov 8).
+  await expect(trumpet.locator('img.pic-photo')).toBeVisible();
   await trumpet.click();
   await expect(trumpet).toHaveAttribute('aria-pressed', 'true');
   await expect(main.getByRole('heading', { name: 'Style your skirt' })).toBeVisible();

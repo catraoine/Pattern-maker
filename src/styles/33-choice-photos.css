@@ -1,0 +1,19 @@
+/* Option pictures as a tight crop of our own form drawing (Cat's A2, Nov 8): the crop fills the tile above its name. */
+.chips.pics .chip:has(> .pic-photo) {
+  padding: 6px 6px 8px;
+  gap: 8px;
+  justify-content: flex-start;
+}
+.chips.pics .chip > .pic-photo {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 324 / 294;
+  object-fit: cover;
+  background: #0b0a08;
+  pointer-events: none;
+}
+/* A choice that can't be picked yet reads dimmed, as its name does. */
+.chips.pics .chip:disabled > .pic-photo {
+  opacity: 0.35;
+}

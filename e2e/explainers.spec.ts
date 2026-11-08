@@ -2,7 +2,7 @@ import { chooseChip, expect, startWithExample, test } from './fixtures';
 
 // Each Style section says what its pick does, and a picked tile's drawing opens full size (Cat's E2 + E3; the
 // little drawing beside the line went in Cat's D, 2026-10-24).
-test('a picked choice is explained, and its drawing opens full size', async ({ page }) => {
+test('a picked choice is explained, and its picture is a crop of the form', async ({ page }) => {
   await startWithExample(page);
   const main = page.getByRole('main');
   const details = main.getByRole('group', { name: 'Fullness', exact: true });
@@ -13,14 +13,10 @@ test('a picked choice is explained, and its drawing opens full size', async ({ p
   const silhouette = main.getByRole('group', { name: 'Silhouette', exact: true });
   await chooseChip(page, 'Silhouette', 'Trumpet');
   await expect(silhouette.getByText(/like the bell of a trumpet|flared low down/).filter({ visible: true })).toBeVisible();
-  // Into the middle of the screen first: on a phone the pinned drawing and the bottom bar cover the top and foot,
-  // and where the tile lands after the default scroll moves with the heading sizes above it.
-  const drawing = silhouette.getByRole('button', { name: 'Trumpet', exact: true }).locator('svg');
-  await drawing.evaluate((el) => el.scrollIntoView({ block: 'center' }));
-  await drawing.click();
-  const tile = page.getByRole('dialog', { name: 'Trumpet' });
-  await expect(tile).toBeVisible();
-  await tile.getByRole('button', { name: 'Close' }).click();
-  await expect(tile).toHaveCount(0);
+  // The tile shows a crop of our own form drawing (Cat's A2, Nov 8); the drawing above shows the pick full size,
+  // so a tap on the picked tile opens nothing more.
+  const tilePic = silhouette.getByRole('button', { name: 'Trumpet', exact: true }).locator('img.pic-photo');
+  await expect(tilePic).toHaveAttribute('src', '/pics/skirt-silhouette-trumpet.webp');
+  await expect(page.getByRole('dialog', { name: 'Trumpet' })).toHaveCount(0);
   await expect(silhouette.getByRole('button', { name: 'Trumpet', exact: true })).toHaveAttribute('aria-pressed', 'true');
 });
