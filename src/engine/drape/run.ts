@@ -162,6 +162,13 @@ export function runDrape(job: DrapeJob): DrapedLite {
     quality.problems.push({ check: 'missing', part: pc.name, worst: 1 });
     quality.ok = false;
   }
+  // A diagonal hem runs from short on one side to long on the other, but the drape sews one half of a skirt and draws
+  // its mirror, so the hem came out as a V point at the centre front, passing every check (Nov 8). Until the skirt is
+  // sewn whole, the Front drawing stands in.
+  if ((sk?.asym as { kind?: string } | undefined)?.kind === 'diagonal' && !knob('__diagonalOk')) {
+    quality.problems.push({ check: 'diagonal', part: 'Skirt front', worst: 1 });
+    quality.ok = false;
+  }
   // A dress's waist seam dropped onto the hip: run straight through, without the ledge the sim leaves there.
   if (job.kind === 'dress' && (job.draft.seamDrop ?? 0) > 1 && !knob('__noSeamFair')) fairDroppedSeam(d, sp);
   // The room is read from the cloth as it settled on the body, before it is drawn (closeSeams and the hang move it).

@@ -17,7 +17,7 @@ import type { Space } from './space';
 import { crossings } from './crossed';
 
 // - missing: a piece the pattern has that the drawing left out (set in run.ts, where the draft is to hand).
-type QualityCheck = 'broken' | 'stretched' | 'seam' | 'jagged' | 'fin' | 'inside' | 'collar' | 'hem' | 'missing' | 'crossed';
+type QualityCheck = 'broken' | 'stretched' | 'seam' | 'jagged' | 'fin' | 'inside' | 'collar' | 'hem' | 'missing' | 'crossed' | 'diagonal';
 
 export interface QualityProblem {
   check: QualityCheck;

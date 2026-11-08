@@ -8,6 +8,7 @@ describe('why a design is not shown turning in cloth', () => {
     );
     expect(inTestingNote([{ check: 'hem', part: 'Hem', worst: 7 }], false, false)).toContain("the hem doesn't hang level yet, so here is its shape");
     expect(inTestingNote([{ check: 'collar', part: 'Collar', worst: 3 }], true, false)).toContain('the collar stands away from the neck');
+    expect(inTestingNote([{ check: 'diagonal', part: 'Skirt front', worst: 1 }], true, false)).toContain('a diagonal hem would show as a point at the centre, so here is its drawing');
   });
 
   it('says so plainly when the sewing never finished', () => {

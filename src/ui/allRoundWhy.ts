@@ -24,6 +24,7 @@ const WHAT: Record<QualityProblem['check'], (piece: string) => string> = {
   hem: () => "the hem doesn't hang level yet",
   missing: (p) => `the ${p} goes missing from the turning view`,
   crossed: (p) => `the ${p}'s folds pass through each other as it turns`,
+  diagonal: () => 'a diagonal hem would show as a point at the centre',
 };
 
 /**

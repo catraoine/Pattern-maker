@@ -51,6 +51,13 @@ describe('All round: random mixes that fell back to the flat drawing', () => {
     expect(checks(d)).toContain('crossed');
   }, 240_000);
 
+  // A diagonal hem was drawn as a V point at the centre front (one half of the skirt sewn, and mirrored), passing every
+  // check: until the skirt is sewn whole the Front drawing stands in (Cat's call, Nov 8).
+  it('a diagonal hem skirt shows its Front drawing, not a V point', () => {
+    const d = { garment: 'skirt' as const, saved: { choices: { ...INITIAL.choices, silhouette: 'slip', length: 'above_knee', fit: 'fitted', asymHem: 'diagonal' } } as never, fibre: 'wool' as const };
+    expect(checks(d)).toEqual(['diagonal']);
+  }, 240_000);
+
   // A silk sleeve drawn in to 0.72 of its round: an elbow cap sleeve went jagged and a three-quarter one folded into fins.
   it.each([
     ['an elbow cap sleeve', { fit: 'oversized', neckline: 'boat', length: 'long', sleeve: 'elbow', sleeveShape: 'cap', closure: 'front_buttons' }],
