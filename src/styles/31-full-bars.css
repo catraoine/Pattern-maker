@@ -105,17 +105,42 @@
 }
 /* The paper sits under the corner's words, as Flat's drawings do, and the open tool's how-to line starts after Enlarge. */
 @media (max-width: 760px) {
-  .style-layout .style-pin > section:not(.live-big) > .preview > .pattern-pane:not(:has(.point-svg)) {
+  .style-layout .style-pin > section:not(.live-big) > .preview > .pattern-pane {
     padding-top: 76px;
     box-sizing: border-box;
   }
 }
 @media (min-width: 761px) {
-  .style-layout .style-pin > section:not(.live-big) > .preview > .pattern-pane:not(:has(.point-svg)) {
+  .style-layout .style-pin > section:not(.live-big) > .preview > .pattern-pane {
     padding-top: 56px;
     box-sizing: border-box;
   }
 }
 .style-layout .style-pin > section:not(.live-big) > .preview > .pattern-pane > .point-switch {
   padding-left: 104px;
+}
+/* Move points open: Back to pieces takes its place in the corner, lit, and the how-to line sits small under the pieces,
+   beside Watch demo (Cat, Nov 8: "can this get cleaned up too?"). */
+.preview-corner > .pe-open-tool.on,
+.preview-corner > .pe-open-tool.on .tool-word {
+  color: var(--ink);
+}
+.pattern-pane > .demo-inline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.pattern-pane > .demo-inline > .pe-howto {
+  margin: 0;
+  flex: 1;
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.pattern-pane > .demo-inline > .demo-play {
+  flex: none;
+}
+.style-layout .style-pin > section:not(.live-big) > .preview > .pattern-pane > .demo-inline {
+  flex: none;
 }

@@ -70,12 +70,11 @@ export function PatternPane({ children, onPlay }: { children: ReactNode; onPlay?
   return (
     <div className="pattern-pane">
       {on ? (
-        <div className="row between wrap point-switch">
-          <p className="muted small">Drag a point, draw a line across a piece to cut it, or tap a cut to change it.</p>
-          <button type="button" className="ghost on" aria-pressed="true" onClick={() => setOn(false)}>
-            Back to pieces
+        <InCorner>
+          <button type="button" className="link small pe-open-tool on" aria-pressed="true" onClick={() => setOn(false)}>
+            <span className="tool-word">Back to pieces</span>
           </button>
-        </div>
+        </InCorner>
       ) : (
         <>
           <InCorner>
@@ -93,9 +92,11 @@ export function PatternPane({ children, onPlay }: { children: ReactNode; onPlay?
         </>
       )}
       {on ? <PointEditor {...ctx} /> : children}
-      {/* Its own Watch demo while the tools are open (Cat, 2026-11-07). */}
+      {/* Its own Watch demo while the tools are open (Cat, 2026-11-07), with the how-to line beside it, small, under the
+          pieces (Cat, Nov 8: tidy the open tool's top). */}
       {on && (
         <div className="demo-inline">
+          <p className="muted small pe-howto">Drag a point, draw a line across a piece to cut it, or tap a cut to change it.</p>
           <DemoButton demo="patterns" />
         </div>
       )}
