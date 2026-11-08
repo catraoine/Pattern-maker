@@ -120,6 +120,24 @@ test('moves a dart by drawing from its point to an edge, and All round follows',
   await draw(page, tip, { x: tip.x, y: b.y + b.height - 1 });
   await page.getByRole('group', { name: 'What should this line do?' }).getByRole('button', { name: 'Move the dart here' }).click();
   await page.getByRole('group', { name: 'Dart moved' }).getByRole('button', { name: 'Done' }).click();
+  await expect(page.getByRole('group', { name: 'Dart moved' })).toHaveCount(0);
+
+  // The moved dart keeps a diamond where it opens (Cat, Nov 8): tapped, it opens again; dragged along the hem, the
+  // flare moves with it.
+  const mark = page.locator('rect.pe-cut[data-dart]');
+  await expect(mark).toHaveCount(1);
+  const m0 = await centre(page, 'rect.pe-cut[data-dart]');
+  await page.mouse.click(m0.x, m0.y);
+  await expect(page.getByRole('group', { name: 'Dart moved' })).toBeVisible();
+  await still(page, '5b-dart-mark-tapped');
+  await page.mouse.move(m0.x, m0.y);
+  await page.mouse.down();
+  for (let k = 1; k <= 8; k++) await page.mouse.move(m0.x + k * 3, m0.y);
+  await page.mouse.up();
+  await expect.poll(async () => (await centre(page, 'rect.pe-cut[data-dart]')).x).toBeGreaterThan(m0.x + 8);
+  await expect(darts).toHaveCount(1);
+  await still(page, '5c-dart-mark-moved');
+  await page.getByRole('group', { name: 'Dart moved' }).getByRole('button', { name: 'Done' }).click();
 
   // A dart point dragged a little way (not to an edge) still just makes the dart longer.
   const other = page.locator('circle.pe-point.dart[data-piece="Skirt front"]').first();

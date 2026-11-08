@@ -13,7 +13,7 @@ import { DemoButton } from './DemoButton';
 import { InCorner } from './StyleLayout';
 import { P, add, len, mul, sub } from '../engine/geometry';
 import type { Piece } from '../engine/piece';
-import { CutEdit, CutKind, DartEdit, PatternEdit, START_BY, applyPatternEdits, cutEnds, cutMark, dartMoveTo, isCut, isDartMove, openHandle, pointsOn } from '../engine/pieceEdit';
+import { CutEdit, CutKind, DartEdit, PatternEdit, START_BY, applyPatternEdits, cutEnds, cutMark, dartMark, dartMoveTo, isCut, isDartMove, openHandle, pointsOn } from '../engine/pieceEdit';
 import { Handle, PointEdit, handlesOf, measureAt, pointOnEdge } from '../engine/pointEdit';
 import { pairs } from '../engine/qc';
 
@@ -225,8 +225,19 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
   );
   const activeMark = active !== undefined ? marks.find((mk) => mk.i === active) : undefined;
   const endDrag = useRef<{ start: P; k: 0 | 1; line: P[]; edits: PatternEdit[]; i: number }>();
-  // A dart just moved (round 4): its place in the edits, to put it back.
+  // A dart just moved, or its mark tapped (round 4): its place in the edits, to move it again or put it back.
   const [dartMoved, setDartMoved] = useState<number>();
+  // Every dart moved so far has a mark where it now opens, as a cut has on its line (Cat, 2026-11-08).
+  const dartMarks = useMemo(
+    () =>
+      edits.flatMap((e, i) => {
+        if (!isDartMove(e) || !place[e.piece]) return [];
+        const at = dartMark(applyPatternEdits(base, edits.slice(0, i)), e);
+        return at ? [{ i, at: add(at, place[e.piece]) }] : [];
+      }),
+    [base, edits, place],
+  );
+  const dartDrag = useRef<{ start: P; to: P; edits: PatternEdit[]; i: number }>();
 
   const partnerOf = useMemo(() => {
     const map = new Map<string, string>();
@@ -289,10 +300,25 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
   };
 
   const down = (e: PointerEvent<SVGSVGElement>) => {
-    setDartMoved(undefined);
-    strokeDart.current = undefined;
     const q = toCm(e);
     const px = cmPerPx();
+    strokeDart.current = undefined;
+    // A moved dart's mark: dragged while its sheet is open, it moves where the dart opens; tapped, it opens the sheet.
+    const hitDart = dartMarks.find((mk) => len(sub(mk.at, q)) < Math.max(r * 3.5, HIT_PX * px));
+    if (hitDart && hitDart.i === dartMoved && isDartMove(edits[hitDart.i])) {
+      dartDrag.current = { start: q, to: (edits[hitDart.i] as DartEdit).to, edits, i: hitDart.i };
+      svg.current?.setPointerCapture(e.pointerId);
+      return;
+    }
+    if (hitDart) {
+      setSel(undefined);
+      setTape(false);
+      setAsking(undefined);
+      setActive(undefined);
+      setDartMoved(hitDart.i);
+      return;
+    }
+    setDartMoved(undefined);
     // The handle at the far end of a spread or fullness being set: dragging it opens the cut.
     if (handle && handleAt && cutAt && active !== undefined && len(sub(handleAt, q)) < Math.max(r * 5, HIT_PX * px)) {
       openDrag.current = { start: q, by: cutAt.by, opens: handle.opens, edits, i: active };
@@ -371,6 +397,13 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
   };
 
   const move = (e: PointerEvent<SVGSVGElement>) => {
+    const dd = dartDrag.current;
+    if (dd) {
+      const q = toCm(e);
+      const to = add(dd.to, sub(q, dd.start));
+      liveMove(dd.edits.map((x, k) => (k === dd.i && isDartMove(x) ? { ...x, to: { x: Math.round(to.x * 100) / 100, y: Math.round(to.y * 100) / 100 } } : x)));
+      return;
+    }
     const ed = endDrag.current;
     if (ed) {
       const q = toCm(e);
@@ -426,6 +459,11 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
   };
 
   const up = () => {
+    if (dartDrag.current) {
+      dartDrag.current = undefined;
+      keep();
+      return;
+    }
     if (endDrag.current) {
       endDrag.current = undefined;
       keep();
@@ -560,6 +598,9 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
         {activeMark && <polyline points={activeMark.line.map((q) => `${q.x},${q.y}`).join(' ')} className="pe-cutline" vectorEffect="non-scaling-stroke" />}
         {marks.map((mk) => (
           <rect key={mk.i} data-cut={mk.i} x={mk.at.x - r * 1.3} y={mk.at.y - r * 1.3} width={r * 2.6} height={r * 2.6} transform={`rotate(45 ${mk.at.x} ${mk.at.y})`} className={`pe-cut${mk.i === active ? ' on' : ''}`} vectorEffect="non-scaling-stroke" />
+        ))}
+        {dartMarks.map((mk) => (
+          <rect key={`d${mk.i}`} data-dart={mk.i} x={mk.at.x - r * 1.3} y={mk.at.y - r * 1.3} width={r * 2.6} height={r * 2.6} transform={`rotate(45 ${mk.at.x} ${mk.at.y})`} className={`pe-cut${mk.i === dartMoved ? ' on' : ''}`} vectorEffect="non-scaling-stroke" />
         ))}
         {activeMark && activeMark.ends.map((q, k) => <circle key={k} cx={q.x} cy={q.y} r={r * 1.4} className="pe-end" data-end={k} vectorEffect="non-scaling-stroke" />)}
         {handleAt && <circle cx={handleAt.x} cy={handleAt.y} r={r * 1.8} className="pe-open" data-open="far" vectorEffect="non-scaling-stroke" />}
@@ -732,7 +773,7 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
       {dartMoved !== undefined && isDartMove(edits[dartMoved]) && (
         <div className="pe-sheet" role="group" aria-label="Dart moved">
           <span className="pe-label">Dart moved</span>
-          <p className="muted small">{dartGone ? 'Closed, and the hem flares where you drew instead.' : 'It opens where you drew to. Drag from its point to another edge to move it again.'}</p>
+          <p className="muted small">{dartGone ? 'Closed, and the hem flares at the diamond instead. Drag the diamond along the hem to move it.' : 'It opens at the diamond. Drag the diamond along the edge to move it, or draw from its point to another edge.'}</p>
           <div className="row">
             <button type="button" className="ghost" onClick={() => {
               setEdits(edits.filter((_, k) => k !== dartMoved));

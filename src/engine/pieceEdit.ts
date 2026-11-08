@@ -1231,6 +1231,19 @@ function applyDartMove(pieces: Piece[], e: DartEdit): Piece[] {
   return moved ? pieces.map((pc, j) => (j === i ? moved : pc)) : pieces;
 }
 
+/** Where a kept dart move opens, to show it and tap it: the point on the edge its line meets, on the pieces as they
+ *  were just before the move (the side that stays keeps it, so it is where the dart now opens). */
+export function dartMark(pieces: Piece[], e: DartEdit): P | undefined {
+  const pc = pieces.find((x) => x.name === e.piece);
+  if (!pc) return undefined;
+  const darts = dartsIn(pc);
+  const near = darts.map((d) => len(sub(d.apex, e.from))).reduce((b, v, j, all) => (v < all[b] ? j : b), 0);
+  const d = darts[near];
+  if (!d || len(sub(e.to, d.apex)) < 0.5) return undefined;
+  const u = unit(sub(e.to, d.apex));
+  return crossings(segsOf(pc.outline), d.apex, add(d.apex, u), 1e-3, Infinity).sort((m, n) => m.u - n.u)[0]?.at;
+}
+
 /** Whether a line from a dart's point to q would move the dart there: q on (or by) the piece's edge, outside the dart. */
 export function dartMoveTo(pc: Piece, k: number, q: P): boolean {
   return !!moveDartIn(pc, k, q);
