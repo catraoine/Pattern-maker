@@ -593,11 +593,15 @@ function buildDraped(
   const SLEEVE_LIFT = ((globalThis as unknown as { __drapeKnobs?: Record<string, number> }).__drapeKnobs ?? {}).__slvLift ?? 0.8;
   const inSleeve = new Uint8Array(d.pos.length / 3);
   for (const p of d.panels) if (p.role === 'sleeve') for (let i = 0; i < p.uv.length / 2; i++) inSleeve[p.base + i] = 1;
+  // (A tailored collar's fall a cm further out still: laid close on the sim's body, it went in under the drawn form's
+  // fuller neck and shoulders, so from the side only its stand showed, a wall with a ragged top, Cat Nov 8.)
+  const FALL_LIFT = knobs().__fallLift ?? 1;
+  if (FALL_LIFT) for (const p of d.panels) if (p.role === 'collar' && !p.hidden) for (let i = 0; i < p.uv.length / 2; i++) if (p.turned?.[i]) inSleeve[p.base + i] = 3;
   const P = (i: number, e: number, more = 0): V3 => {
     const pos = e < 0 && d.posMirror ? d.posMirror : d.pos;
     const x = pos[i * 3];
     const z = pos[i * 3 + 2];
-    const k = 1 + (LIFT + more + (inSleeve[i] ? SLEEVE_LIFT : 0)) / (Math.sqrt(x * x + z * z) || 1);
+    const k = 1 + (LIFT + more + (inSleeve[i] === 1 ? SLEEVE_LIFT : inSleeve[i] === 3 ? FALL_LIFT : 0)) / (Math.sqrt(x * x + z * z) || 1);
     return toForm(x * k * e, pos[i * 3 + 1], z * k, d.hang?.[i] || undefined);
   };
   // (A piece cut whole, a one-shoulder's front, holds both its halves: drawn once, not mirrored.)
@@ -700,17 +704,22 @@ function buildDraped(
     for (const p of fronts) for (let i = 0; i < p.uv.length / 2; i++) {
       const g = p.base + i;
       const u = p.uv[i * 2];
-      if (p.turned?.[i] || u >= 0) continue;
-      const b = Math.min(1, -u);
-      const ease = b * b * (3 - 2 * b);
+      // (A double-breasted lapel, turned back, crosses the centre line too: the under front's goes on under the top
+      // front, or the two lapels crossed in an X over the chest, Cat Nov 8. Eased in over its first cm past the centre.)
+      const turned = !!p.turned?.[i];
+      if (!turned && u >= 0) continue;
+      const easeOf = (past: number) => {
+        const b = Math.max(0, Math.min(1, past));
+        return b * b * (3 - 2 * b);
+      };
       // (Where the extension lies over the other front: its mirror place, past the centre line on the far side.)
-      if (-top[g * 3] > 0) {
+      if (-top[g * 3] > 0 && !turned) {
         const r = underBody(-top[g * 3], top[g * 3 + 1]);
-        if (r !== undefined) overUnder[g] = Math.max(0, r + GAP - Math.hypot(top[g * 3], top[g * 3 + 2])) * ease;
+        if (r !== undefined) overUnder[g] = Math.max(0, r + GAP - Math.hypot(top[g * 3], top[g * 3 + 2])) * easeOf(-u);
       }
       if (-bottom[g * 3] > 0) {
         const r = topBody(-bottom[g * 3], bottom[g * 3 + 1]);
-        if (r !== undefined) underIn[g] = Math.min(0, r - GAP - Math.hypot(bottom[g * 3], bottom[g * 3 + 2])) * ease;
+        if (r !== undefined) underIn[g] = Math.min(0, r - GAP - Math.hypot(bottom[g * 3], bottom[g * 3 + 2])) * (turned ? easeOf(-bottom[g * 3]) : easeOf(-u));
       }
     }
   }
@@ -723,6 +732,7 @@ function buildDraped(
   for (const p of d.panels) {
     if (p.hidden) continue;
     for (let i = 0; i < p.uv.length / 2; i++) {
+      if (p.role === 'front' && p.turned?.[i]) layerIn[p.base + i] = underIn[p.base + i];
       if (p.uv[i * 2] >= -0.05) continue;
       if (p.role === 'front' && !p.turned?.[i]) layerIn[p.base + i] = Math.min(-0.9, underIn[p.base + i]);
       else if (p.role === 'back') layerIn[p.base + i] = -0.6;
