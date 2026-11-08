@@ -12,3 +12,19 @@ export function tapeRested(el: Element) {
 export function takeTapeRest() {
   return rest && Date.now() - rest.at < 2000 ? rest : undefined;
 }
+
+/** Forget where the tape rested: Begin measuring takes it on round the neck, not carried from across the top. */
+export function clearTapeRest() {
+  rest = undefined;
+}
+
+/** Begin measuring on the first page, a moment ago: the waist page comes up out of the black rather than cutting in. */
+let left = 0;
+export function introLeft() {
+  left = Date.now();
+}
+export function takeIntroLeft() {
+  const recent = Date.now() - left < 2000;
+  left = 0;
+  return recent;
+}

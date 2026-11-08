@@ -1160,11 +1160,67 @@ function paintTapeLines(g: CanvasRenderingContext2D, S: number, cx: number, Y: (
   g.fillText(name, labelX, Y(wy));
 }
 
+/** The tape round the form's neck on the first measuring page (Cat's T2 Round the Neck, Nov 8): over the back of the
+ *  neck, down the front either side of it, one end a little longer than the other, as a tailor wears one. Each side
+ *  runs from the back of the neck to its end, so drawn in part it falls from the neck. Points are [across, down] in
+ *  form units against the womenswear form, each kept at its share of the width on another form. */
+const NECK_TAPE: [Pt[], Pt[]] = [
+  [[0, -1.68], [-0.13, -1.62], [-0.3, -1.42], [-0.38, -1.12], [-0.37, -0.6], [-0.33, 0.62]],
+  [[0, -1.68], [0.13, -1.62], [0.3, -1.42], [0.38, -1.12], [0.37, -0.4], [0.33, 0.98]],
+];
+/** How long the tape takes to fall from the neck to its ends. */
+export const NECK_MS = 650;
+
+/** A smooth line through a few points (Catmull-Rom), close enough together for the tape's marks. */
+function smooth(pts: Pt[], each = 12): Pt[] {
+  const out: Pt[] = [pts[0]];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] ?? pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] ?? p2;
+    for (let s = 1; s <= each; s++) {
+      const t = s / each, t2 = t * t, t3 = t2 * t;
+      const at = (k: 0 | 1) => 0.5 * (2 * p1[k] + (-p0[k] + p2[k]) * t + (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * t2 + (-p0[k] + 3 * p1[k] - 3 * p2[k] + p3[k]) * t3);
+      out.push([at(0), at(1)]);
+    }
+  }
+  return out;
+}
+
+/** The tape round the neck, each side fallen `p` (0 to 1) of the way to its end, with its metal end once there. */
+function paintNeckTape(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: number) => number, p: number) {
+  if (p <= 0) return;
+  const tw = Math.max(3, S * 0.072);
+  for (const side of NECK_TAPE) {
+    const pts = smooth(side.map(([x, y]): Pt => [cx + x * (R(y) / R_WOMENSWEAR(y)) * S, Y(y)]));
+    const run = partial(pts, p);
+    tape(g, run, tw);
+    if (p >= 1) {
+      // The flat metal end, as on the strip across the top (Cat's E2).
+      const [a, b] = [run[run.length - 2], run[run.length - 1]];
+      const d = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+      const [ux, uy] = [(b[0] - a[0]) / d, (b[1] - a[1]) / d];
+      g.save();
+      g.strokeStyle = '#b8a274';
+      g.lineWidth = tw;
+      g.lineCap = 'butt';
+      stroke(g, b, [b[0] + ux * tw * 0.55, b[1] + uy * tw * 0.55]);
+      g.restore();
+    }
+  }
+}
+
+/** Where the back of the neck is on a FormPicture of this size, for the tape across the top to fall to. */
+export function neckOnPicture(w: number, h: number) {
+  const S = Math.min(w * 0.6, (h * 0.94) / (1.3 + 1.7));
+  return { x: w / 2, y: h * 0.03 + (1.7 + NECK_TAPE[0][0][1]) * S };
+}
+
 /** One form at rest, small, for choosing which form to draft on. `tapes` dims its lines and marks the bust, the waist
- *  string and the hip, for the first measuring page. */
-export function FormPicture({ kind, tapes = false }: { kind: FormKind; tapes?: boolean }) {
+ *  string and the hip, for the first measuring page. `neckTape` hangs the tape round its neck: 'rest' already there, or
+ *  a number of milliseconds after which it falls from the neck. */
+export function FormPicture({ kind, tapes = false, neckTape }: { kind: FormKind; tapes?: boolean; neckTape?: 'rest' | number }) {
+  const began = useRef(0);
   const ref = useCanvas(
-    (g, w, h) => {
+    (g, w, h, now) => {
       pickForm(kind);
       // The body only, neck to hem, filling the card (Cat, 2026-10-21: no head on the first page).
       g.globalAlpha = 1;
@@ -1175,10 +1231,17 @@ export function FormPicture({ kind, tapes = false }: { kind: FormKind; tapes?: b
       const Y = (y: number) => wy + (y - 0.1) * S;
       paintTorso(g, S, w / 2, Y, lineFor(S), tapes ? () => 0.4 : EVEN, 1, 1);
       if (tapes) paintTapeLines(g, S, w / 2, Y, lineFor(S), kind);
+      let more = false;
+      if (neckTape !== undefined) {
+        if (!began.current) began.current = now;
+        const p = neckTape === 'rest' || stillMotion() ? 1 : clamp((now - began.current - neckTape) / NECK_MS, 0, 1);
+        paintNeckTape(g, S, w / 2, Y, p < 1 ? 1 - (1 - p) * (1 - p) : 1);
+        more = p < 1;
+      }
       fadeBottom(g, w, h);
-      return false;
+      return more;
     },
-    [kind, tapes],
+    [kind, tapes, neckTape],
   );
   return <canvas ref={ref} className="form-picture" aria-hidden="true" />;
 }

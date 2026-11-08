@@ -34,3 +34,4 @@
 @import './styles/30-steady-view.css'; /* One steady drawing box on Style: every view the same height, the corner's tools clear of the drawing (Nov 7). */
 @import './styles/31-full-bars.css'; /* The view bar on Style runs the full width of its line, Pattern in it (Nov 7). */
 @import './styles/32-straight-to-questions.css'; /* Style on a phone: bigger drawing, one-line header, one question per screen (Cat's B + K, Nov 8). */
+@import './styles/32-neck-tape.css'; /* The first measuring page: the tape falls to the form's neck, behind the title (Cat's T2, Nov 8). */

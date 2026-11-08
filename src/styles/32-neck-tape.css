@@ -1,0 +1,7 @@
+/* The first measuring page with the tape round the form's neck (Cat's T2 Round the Neck, Nov 8): the strip across the
+   top falls to the neck and its room closes (MeasureStepsScreen LandedTape), so the form, which fills what the page
+   leaves it, grows into it. As it falls, the tape passes behind the title rather than across its letters. */
+.measure-step.has-tape > .step-words > :not(.form-picture) {
+  position: relative;
+  z-index: 1;
+}

@@ -2,9 +2,9 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 're
 import { FIELDS, checkMeasurements, type Check, type FormKind, type Garment, type MeasurementId, type MeasurementValues, type Unit } from '../measurements';
 import { BASE, baseDone, begun, fieldOf, fullSetMissing, GARMENT_NAME, GARMENTS, labelOf, mistakesOf, neededFor, seatedOf, stepsOf, stringOf, tipOf, titleOf } from '../measureFlow';
 import { createPortal } from 'react-dom';
-import { takeTapeRest, tapeRested } from '../ui/tapeHandoff';
+import { clearTapeRest, introLeft, takeIntroLeft, takeTapeRest } from '../ui/tapeHandoff';
 import { WEIGHT_HARD, WeightEntry, fromKg, weightUnitOf } from '../ui/WeightEntry';
-import { CARRY_MS, FormPicture, labelLevel, readCamera, TapeDemo, TAPE_PX } from '../ui/ContourForm';
+import { CARRY_MS, FormPicture, labelLevel, neckOnPicture, readCamera, TapeDemo, TAPE_PX } from '../ui/ContourForm';
 import { canGoBack, goBack, usePageHistory } from '../nav';
 import { estimateOne } from '../estimate';
 import { Title } from '../ui/Title';
@@ -115,6 +115,8 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   // Not when stepping back into it during this visit: only on opening it afresh.
   const [returning] = useState(() => !start && baseDone(values) && (window.history.state as { sub?: unknown } | null)?.sub === undefined);
   const [helper, setHelper] = useState(!!theirs);
+  // Opened by Begin on the welcome: the tape it pulled out falls from across the top onto the form's neck.
+  const [tapeHanded] = useState(() => !!takeTapeRest());
   // Measuring yourself with a friend holding the tape (measuring accuracy, 2026-10-21): every page is then worded for
   // the friend, and the numbers taken this way are noted, so a fit report can tell them from those taken alone.
   const [friend, setFriend] = useState(false);
@@ -183,19 +185,27 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   // together, then Begin measuring. "Someone else" asks their name here, before any measurement is taken.
   if (page.kind === 'intro') {
     const begin = () => {
-      // The tape across the top goes on down to the waist, the first measurement (Cat, 2026-10-21).
-      const strip = document.querySelector('.tape-band.landed');
-      if (strip) tapeRested(strip);
-      // One change for someone else: their name and form together. Two in a row lost the new person (Nov 7).
-      if (helper && onSomeoneElse) onSomeoneElse(name.trim(), chosen);
-      else onForm?.(chosen);
-      setPage({ kind: 'base', at: firstToTake() });
+      clearTapeRest();
+      const go = () => {
+        // One change for someone else: their name and form together. Two in a row lost the new person (Nov 7).
+        if (helper && onSomeoneElse) onSomeoneElse(name.trim(), chosen);
+        else onForm?.(chosen);
+        setPage({ kind: 'base', at: firstToTake() });
+      };
+      // Cat's T2 without the slide (Nov 8): the tape round the neck lifts away with the page, and the waist page comes
+      // up out of the black, its tape coming in from the side to wrap the waist.
+      const card = document.querySelector<HTMLElement>('.measure-step');
+      const form = card?.querySelector<HTMLElement>('.form-picture');
+      if (!card || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return go();
+      introLeft();
+      form?.animate([{ transform: 'none' }, { transform: 'translateY(-28px)' }], { duration: LIFT_MS, easing: 'ease-in', fill: 'forwards' });
+      card.animate([{ opacity: 1 }, { opacity: 0 }], { duration: LIFT_MS, easing: 'ease-in', fill: 'forwards' }).onfinish = go;
     };
     return (
       // Cat's C Tape Lines (2026-10-30): the body with the bust, waist and hip marked on it, then two switches of two
       // halves each, the chosen half filled, for the form and for whom; Begin, and Measure later in quiet capitals.
       <Shell title="First, let's take some measurements." tape>
-        {onForm && <FormPicture kind={chosen} tapes />}
+        {onForm && <FormPicture kind={chosen} tapes neckTape={tapeHanded ? NECK_AT - 220 : 'rest'} />}
         {onForm && (
           <div className="switch two-part" role="radiogroup" aria-label="Which form to draft on?">
             {(['womenswear', 'menswear'] as const).map((k) => (
@@ -526,14 +536,36 @@ const TAP_BLINK_MS = 160;
 
 const TAPE_MARKS = Array.from({ length: 100 }, (_, i) => i + 1);
 
-/** The tape Begin pulls out on the welcome stays full size across the top of the first page (Cat, 2026-10-21), from
- *  where the welcome left it, so it never jumps. Begin measuring carries it on down to the waist. */
+/** How long the first page takes to fade as Begin measuring lifts the tape away. */
+const LIFT_MS = 280;
+/** When the tape across the top has fallen to the form's neck, after the page opens (the welcome's tape carried on
+ *  to its place first), and how long it takes to fall. */
+const NECK_AT = 1050;
+const FALL_MS = 420;
+
+/** The tape Begin pulls out on the welcome lands across the top of the first page from where the welcome left it, so
+ *  it never jumps (Cat, 2026-10-21), then falls onto the form's neck (Cat's T2 Round the Neck, Nov 8): the strip drops
+ *  to the neck, narrowing and fading as the form's own tape falls from the neck down its front, and its room at the
+ *  top closes so the form has it. Without Begin (coming back to this page) the tape is round the neck already. */
 function LandedTape() {
   const ref = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const tape = ref.current;
+    if (!tape) return;
     const from = takeTapeRest();
-    if (!tape || !from || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    // Its room at the top of the page, closed by pulling the page up under it.
+    const room = () => {
+      const cs = getComputedStyle(tape);
+      const gap = parseFloat(getComputedStyle(tape.parentElement!).rowGap) || 0;
+      return tape.offsetHeight + parseFloat(cs.marginTop) + parseFloat(cs.marginBottom) + gap;
+    };
+    const closed = () => `${parseFloat(getComputedStyle(tape).marginBottom) - room()}px`;
+    const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!from || still) {
+      tape.style.marginBottom = closed();
+      tape.style.visibility = 'hidden';
+      return;
+    }
     // From wherever the welcome's tape was as it handed over, it carries on to
     // its place rather than jumping.
     const at = tape.getBoundingClientRect();
@@ -548,6 +580,29 @@ function LandedTape() {
     // takes no opacity, so it's what's inside it that fades.)
     const page = [...(tape.parentElement?.children ?? [])].filter((c) => c !== tape).flatMap((c) => (getComputedStyle(c).display === 'contents' ? [...c.children] : [c]));
     page.forEach((c) => c.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 450, easing: 'ease-out' }));
+    // Then it falls to the back of the form's neck, landing as the form's tape starts down from there.
+    const form = tape.parentElement?.querySelector('.form-picture');
+    const fall = window.setTimeout(() => {
+      const f = form?.getBoundingClientRect();
+      const t = tape.getBoundingClientRect();
+      // Aimed at where the neck will be once the room at the top has closed and the form has grown into it.
+      const r = room();
+      const neck = f && neckOnPicture(f.width, f.height + r);
+      if (f && neck) {
+        const x = f.left + neck.x - t.left;
+        const dy = f.top - r + neck.y - (t.top + t.height / 2);
+        tape.style.transformOrigin = `${x}px 50%`;
+        tape.animate(
+          [
+            { transform: 'none', opacity: 1 },
+            { transform: `translateY(${dy}px) scale(0.12, 0.3)`, opacity: 0 },
+          ],
+          { duration: FALL_MS, easing: 'cubic-bezier(0.5, 0, 0.75, 0.4)', fill: 'forwards' },
+        );
+      }
+      tape.animate([{ marginBottom: getComputedStyle(tape).marginBottom }, { marginBottom: closed() }], { duration: FALL_MS + 300, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' });
+    }, NECK_AT - FALL_MS);
+    return () => window.clearTimeout(fall);
   }, []);
   return (
     <div ref={ref} className="tape-band landed" aria-hidden="true">
@@ -821,6 +876,12 @@ export function MeasurePage({
   const fieldLabel = labelOf(id, form);
   // Opened by Begin measuring: the tape across the top of the first page comes down to the waist with it.
   const [carry] = useState(() => (id === BASE[0] ? takeTapeRest() : undefined));
+  // Opened by Begin measuring: the page comes up out of the black as the first page went into it.
+  const [fromIntro] = useState(() => id === BASE[0] && takeIntroLeft());
+  useLayoutEffect(() => {
+    if (fromIntro && !window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+      document.querySelector('.measure-step')?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 420, easing: 'ease-out' });
+  }, [fromIntro]);
   const guess = canEstimate ? estimateOne(id, values, form) : undefined;
   const [estimated, setEstimated] = useState(false);
   const [text, setText] = useState<string | null>(null);
