@@ -1,4 +1,4 @@
-import { test, expect, startWithExample } from './fixtures';
+import { test, expect, startWithExample, switchGarment } from './fixtures';
 import type { Page } from '@playwright/test';
 
 // Pattern tools round 4 (Design: Pattern tools, Cat 2026-11-08): a new piece is sewn back on in All round as it is
@@ -87,4 +87,104 @@ test('shows a spread made after a yoke was cut in All round', async ({ page }) =
     await page.waitForTimeout(900);
     await still(page, `3-all-round-${k}`);
   }
+});
+
+test('moves a dart by drawing from its point to an edge, and All round follows', async ({ page }) => {
+  if (process.env.STILL_VIEW) await page.emulateMedia({ reducedMotion: 'reduce' });
+  await startWithExample(page);
+  const main = page.getByRole('main');
+  await main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Pattern/ }).click();
+  await main.getByRole('button', { name: 'Move points' }).click();
+  await expect(page.locator('.point-svg')).toBeVisible();
+  await page.locator('path.pe-piece[data-piece="Skirt front"]').evaluate((el) => el.scrollIntoView({ block: 'center' }));
+  const b = await boxOf(page, 'Skirt front');
+  const darts = page.locator('circle.pe-point.dart[data-piece="Skirt front"]');
+  await expect(darts).toHaveCount(2);
+  await still(page, '4-skirt-darts');
+
+  // A line from the dart point nearest the fold straight down to the hem: the dart closes and the hem flares.
+  const tips = await darts.evaluateAll((els) => els.map((el) => { const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; }));
+  const tip = tips.sort((p, q) => p.x - q.x)[0];
+  const hemW = b.width;
+  await draw(page, tip, { x: tip.x, y: b.y + b.height - 1 });
+  await still(page, '5a-line-from-dart-point');
+  await page.getByRole('group', { name: 'What should this line do?' }).getByRole('button', { name: 'Move the dart here' }).click();
+  const sheet = page.getByRole('group', { name: 'Dart moved' });
+  await expect(sheet).toBeVisible();
+  await expect(darts).toHaveCount(1);
+  expect((await boxOf(page, 'Skirt front')).width).toBeGreaterThan(hemW + 3);
+  await still(page, '5-dart-into-hem');
+
+  // Put back: as drafted again.
+  await sheet.getByRole('button', { name: 'Put it back' }).click();
+  await expect(darts).toHaveCount(2);
+  await draw(page, tip, { x: tip.x, y: b.y + b.height - 1 });
+  await page.getByRole('group', { name: 'What should this line do?' }).getByRole('button', { name: 'Move the dart here' }).click();
+  await page.getByRole('group', { name: 'Dart moved' }).getByRole('button', { name: 'Done' }).click();
+
+  // A dart point dragged a little way (not to an edge) still just makes the dart longer.
+  const other = page.locator('circle.pe-point.dart[data-piece="Skirt front"]').first();
+  const at = await centre(page, 'circle.pe-point.dart[data-piece="Skirt front"]');
+  await draw(page, at, { x: at.x, y: at.y + 15 });
+  await expect(page.getByRole('group', { name: 'Dart moved' })).toHaveCount(0);
+  await expect(page.getByRole('group', { name: 'What should this line do?' })).toHaveCount(0);
+  await expect(other).toBeVisible();
+
+  await main.getByRole('button', { name: 'Back to pieces' }).click();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Garment/ }).click();
+  await main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round', exact: true }).click();
+  const canvas = main.locator('canvas.all-round-canvas');
+  await expect(canvas).toHaveAttribute('data-sewn', /ready|testing/, { timeout: 60_000 });
+  await canvas.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(900);
+  await still(page, '6-all-round-dart-into-hem');
+});
+
+test('moves a dress bust dart to the shoulder, and All round sews it', async ({ page }) => {
+  if (process.env.STILL_VIEW) await page.emulateMedia({ reducedMotion: 'reduce' });
+  await startWithExample(page);
+  await switchGarment(page, 'Dress');
+  const main = page.getByRole('main');
+  await main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Pattern/ }).click();
+  await main.getByRole('button', { name: 'Move points' }).click();
+  await expect(page.locator('.point-svg')).toBeVisible();
+  const names = await page.locator('path.pe-piece').evaluateAll((els) => els.map((el) => el.getAttribute('data-piece')));
+  const front = names.find((n) => /front/i.test(n ?? ''))!;
+  await page.locator(`path.pe-piece[data-piece="${front}"]`).evaluate((el) => el.scrollIntoView({ block: 'center' }));
+  const f = await boxOf(page, front);
+  const dart = `circle.pe-point.dart[data-piece="${front}"][data-at="dart0"]`;
+  const tip = await centre(page, dart);
+  await still(page, '7-dress-before');
+  // To the middle of the shoulder: the shoulder runs from the neck's top corner out; aim a little in from the armhole.
+  const shoulder = await page.locator(`path.pe-piece[data-piece="${front}"]`).evaluate((el: SVGPathElement, box) => {
+    // The highest point of the outline right of the neck, read off the path on screen.
+    const svg = el.ownerSVGElement!;
+    const ctm = el.getScreenCTM()!;
+    const n = el.getTotalLength();
+    let best = { x: 0, y: Infinity };
+    for (let k = 0; k <= 400; k++) {
+      const q = el.getPointAtLength((k / 400) * n);
+      const s = new DOMPoint(q.x, q.y).matrixTransform(ctm);
+      if (s.x > box.x + box.width * 0.45 && s.x < box.x + box.width * 0.6 && s.y < best.y) best = { x: s.x, y: s.y };
+    }
+    void svg;
+    return best;
+  }, f);
+  await draw(page, tip, { x: shoulder.x, y: shoulder.y + 1 });
+  await still(page, '8-dress-line-to-shoulder');
+  await page.getByRole('group', { name: 'What should this line do?' }).getByRole('button', { name: 'Move the dart here' }).click();
+  await expect(page.getByRole('group', { name: 'Dart moved' })).toBeVisible();
+  await still(page, '9-dress-dart-at-shoulder');
+  await page.getByRole('group', { name: 'Dart moved' }).getByRole('button', { name: 'Done' }).click();
+
+  await main.getByRole('button', { name: 'Back to pieces' }).click();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Garment/ }).click();
+  await main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round', exact: true }).click();
+  const canvas = main.locator('canvas.all-round-canvas');
+  await expect(canvas).toHaveAttribute('data-sewn', /ready|testing/, { timeout: 90_000 });
+  await canvas.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(900);
+  await still(page, '10-dress-all-round');
 });

@@ -13,7 +13,7 @@ import { DemoButton } from './DemoButton';
 import { InCorner } from './StyleLayout';
 import { P, add, len, mul, sub } from '../engine/geometry';
 import type { Piece } from '../engine/piece';
-import { CutEdit, CutKind, PatternEdit, START_BY, applyPatternEdits, cutEnds, cutMark, isCut, openHandle, pointsOn } from '../engine/pieceEdit';
+import { CutEdit, CutKind, DartEdit, PatternEdit, START_BY, applyPatternEdits, cutEnds, cutMark, dartMoveTo, isCut, isDartMove, openHandle, pointsOn } from '../engine/pieceEdit';
 import { Handle, PointEdit, handlesOf, measureAt, pointOnEdge } from '../engine/pointEdit';
 import { pairs } from '../engine/qc';
 
@@ -140,12 +140,18 @@ const pathD = (pc: Piece, o: P) => {
   return pts.map((q, i) => `${i ? 'L' : 'M'}${(q.x + o.x).toFixed(2)} ${(q.y + o.y).toFixed(2)}`).join('') + 'Z';
 };
 
+/** A point's move, not a cut or a dart moved. */
+const isPoint = (e: PatternEdit): e is PointEdit => !isCut(e) && !isDartMove(e);
+
 /** Set one point's move, adding to any it already had. */
 function withMove(edits: PatternEdit[], piece: string, at: string, by: P): PatternEdit[] {
-  const i = edits.findIndex((e) => !isCut(e) && e.piece === piece && e.at === at);
+  const i = edits.findIndex((e) => isPoint(e) && e.piece === piece && e.at === at);
   if (i < 0) return [...edits, { piece, at, by }];
-  return edits.map((e, k) => (k === i && !isCut(e) ? { ...e, by } : e));
+  return edits.map((e, k) => (k === i && isPoint(e) ? { ...e, by } : e));
 }
+
+/** How near the edge a line from a dart point must end to move the dart there, in cm. */
+const DART_EDGE = 2;
 
 function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
   // While a finger is down the moves stay here, drawn once a frame, and are kept (saved, and passed to the rest of the
@@ -180,7 +186,7 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
   const handles = useMemo(() => handlesOf(pieces), [pieces]);
   // Laid out from the pattern as drafted with its cuts kept so far (not its moved points), so the pieces hold still
   // under a finger and the view doesn't rescale as a point moves; a spread piece or a new one makes room.
-  const cutsKept = JSON.stringify(saved.filter(isCut));
+  const cutsKept = JSON.stringify(saved.filter((e) => isCut(e) || isDartMove(e)));
   const kept = useMemo(() => applyPatternEdits(base, JSON.parse(cutsKept) as PatternEdit[]), [base, cutsKept]);
   // The rows are as wide as the drafted pieces' rows, with room for a spread piece to widen in its row.
   const { at: place, width, height } = useMemo(() => arrange([...kept.filter((pc) => !pc.meta.newPiece), ...kept.filter((pc) => pc.meta.newPiece)], arrange(base).width * 1.6), [kept, base]);
@@ -195,7 +201,9 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
   // Draw a line: the line as it is drawn (on the editor, in cm), the line waiting for its choice, and the cut being set.
   const [stroke, setStroke] = useState<P[]>();
   const strokeRef = useRef<P[]>();
-  const [asking, setAsking] = useState<{ piece: string; line: P[] }>();
+  const [asking, setAsking] = useState<{ piece: string; line: P[]; dart?: DartEdit }>();
+  /** A line being drawn that was started on a dart point: the dart, to offer moving it where the line ends (round 4). */
+  const strokeDart = useRef<{ piece: string; k: number; tip: P }>();
   const [active, setActive] = useState<number>();
   const openDrag = useRef<{ start: P; by: number; opens: P; edits: PatternEdit[]; i: number }>();
   const cutAt = active !== undefined && isCut(edits[active]) ? (edits[active] as CutEdit) : undefined;
@@ -217,6 +225,8 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
   );
   const activeMark = active !== undefined ? marks.find((mk) => mk.i === active) : undefined;
   const endDrag = useRef<{ start: P; k: 0 | 1; line: P[]; edits: PatternEdit[]; i: number }>();
+  // A dart just moved (round 4): its place in the edits, to put it back.
+  const [dartMoved, setDartMoved] = useState<number>();
 
   const partnerOf = useMemo(() => {
     const map = new Map<string, string>();
@@ -259,7 +269,28 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
     return false;
   };
 
+  /** The dart move a line from a dart point offers: where it ends is on (or by) the piece's edge, outside the dart. */
+  const dartOffer = (shapes: Piece[], piece: string, k: number, tip: P, end: P): DartEdit | undefined => {
+    const pc = shapes.find((x) => x.name === piece);
+    const o = place[piece];
+    if (!pc || !o) return undefined;
+    const own = sub(end, o);
+    const pts = pc.outline.points(16);
+    const near = Math.min(
+      ...pts.map((v, i) => {
+        const dd = sub(pts[(i + 1) % pts.length], v);
+        const t = Math.max(0, Math.min(1, ((own.x - v.x) * dd.x + (own.y - v.y) * dd.y) / (dd.x * dd.x + dd.y * dd.y || 1)));
+        return len(sub(own, add(v, mul(dd, t))));
+      }),
+    );
+    if (near > Math.max(DART_EDGE, EDGE_PX * cmPerPx()) || !dartMoveTo(pc, k, own)) return undefined;
+    const r2 = (q: P) => ({ x: Math.round(q.x * 100) / 100, y: Math.round(q.y * 100) / 100 });
+    return { moveDart: k, piece, from: r2(sub(tip, o)), to: r2(own) };
+  };
+
   const down = (e: PointerEvent<SVGSVGElement>) => {
+    setDartMoved(undefined);
+    strokeDart.current = undefined;
     const q = toCm(e);
     const px = cmPerPx();
     // The handle at the far end of a spread or fullness being set: dragging it opens the cut.
@@ -320,7 +351,7 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
       svg.current?.setPointerCapture(e.pointerId);
       return;
     }
-    const prev = (edits.find((x) => !isCut(x) && x.piece === target!.piece && x.at === target!.at) as PointEdit | undefined)?.by ?? { x: 0, y: 0 };
+    const prev = (edits.find((x) => isPoint(x) && x.piece === target!.piece && x.at === target!.at) as PointEdit | undefined)?.by ?? { x: 0, y: 0 };
     // A new point is kept at once, so it shows; a corner only once it moves.
     const start = target.at.startsWith('+') ? withMove(edits, target.piece, target.at, prev) : edits;
     if (start !== edits) {
@@ -383,11 +414,14 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
       frame.current = undefined;
       pending.current = undefined;
       setLive(g.before === saved ? undefined : g.before);
+      if (g.at.startsWith('dart')) strokeDart.current = { piece: g.piece, k: Number(g.at.slice(4)), tip: g.path[0] };
       strokeRef.current = g.path;
       setStroke(g.path);
       setSel(undefined);
       return;
     }
+    // A dart point dragged: the line from it shows, as a line drawn to an edge moves the dart there (round 4).
+    if (g.at.startsWith('dart')) setStroke([g.path[0], q]);
     liveMove(withMove(g.edits, g.piece, g.at, add(g.by, d)));
   };
 
@@ -417,15 +451,35 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
         if (on && cutEnds(pc, own, false) && (!best || on > best.on)) best = { piece: pc.name, line: own, on };
       }
       const drawn = line.slice(1).reduce((t, q, i) => t + len(sub(q, line[i])), 0);
+      const sd = strokeDart.current;
+      strokeDart.current = undefined;
+      const dart = sd && dartOffer(pieces, sd.piece, sd.k, sd.tip, line[line.length - 1]);
       if (best && drawn > 2) {
         setActive(undefined);
-        setAsking({ piece: best.piece, line: best.line.map((q) => ({ x: Math.round(q.x * 100) / 100, y: Math.round(q.y * 100) / 100 })) });
+        setAsking({ piece: best.piece, line: best.line.map((q) => ({ x: Math.round(q.x * 100) / 100, y: Math.round(q.y * 100) / 100 })), ...(dart && dart.piece === best.piece ? { dart } : {}) });
       }
       return;
     }
     if (drag.current) window.clearTimeout(drag.current.timer);
-    if (drag.current) keep();
+    const g = drag.current;
     drag.current = undefined;
+    // A dart point dragged out to the edge, away from the dart: the line asks what it should do, moving the dart there
+    // first (round 4), as a cutter pivots it.
+    if (g && g.moved && g.at.startsWith('dart')) {
+      setStroke(undefined);
+      const dart = dartOffer(g.shapes, g.piece, Number(g.at.slice(4)), g.path[0], g.path[g.path.length - 1]);
+      if (dart) {
+        if (frame.current) cancelAnimationFrame(frame.current);
+        frame.current = undefined;
+        pending.current = undefined;
+        setLive(g.before === saved ? undefined : g.before);
+        setSel(undefined);
+        setActive(undefined);
+        setAsking({ piece: g.piece, line: [dart.from, dart.to], dart });
+        return;
+      }
+    }
+    if (g) keep();
   };
 
   // The tape: what the selected point measures, set by sliding the tape under a fixed needle.
@@ -439,14 +493,14 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
       const h = handlesOf(now).find((x) => x.piece === sel.piece && x.at === sel.at);
       const mm = h && measureAt(now, h);
       if (!mm) break;
-      const by = (next.find((x) => !isCut(x) && x.piece === sel.piece && x.at === sel.at) as PointEdit | undefined)?.by ?? { x: 0, y: 0 };
+      const by = (next.find((x) => isPoint(x) && x.piece === sel.piece && x.at === sel.at) as PointEdit | undefined)?.by ?? { x: 0, y: 0 };
       next = withMove(next, sel.piece, sel.at, add(by, mul(mm.dir, value - mm.value)));
     }
     if (sliding) liveMove(next);
     else setEdits(next);
   };
 
-  const changed = edits.some((e) => isCut(e) || e.at.startsWith('+') || Math.hypot(e.by.x, e.by.y) > 0.01);
+  const changed = edits.some((e) => !isPoint(e) || e.at.startsWith('+') || Math.hypot(e.by.x, e.by.y) > 0.01);
 
   /** The line's choice made: the cut is kept, and a spread or fullness stays open to set how far. */
   const choose = (cut: CutKind) => {
@@ -457,6 +511,21 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
     setEdits(next);
     setActive(next.length - 1);
   };
+  /** The line's dart move chosen: the dart moves where the line ends. */
+  const chooseDart = () => {
+    if (!asking?.dart) return;
+    const next = [...edits, asking.dart];
+    setAsking(undefined);
+    setEdits(next);
+    setDartMoved(next.length - 1);
+  };
+  /** Whether the dart just moved closed into a hem (flare) rather than opening again. */
+  const dartGone = useMemo(() => {
+    if (dartMoved === undefined || !isDartMove(edits[dartMoved])) return false;
+    const name = (edits[dartMoved] as DartEdit).piece;
+    const count = (pcs: Piece[]) => pcs.find((pc) => pc.name === name)?.lines.filter((ln) => ln.segs.length === 2).length ?? 0;
+    return count(applyPatternEdits(base, edits.slice(0, dartMoved + 1))) < count(applyPatternEdits(base, edits.slice(0, dartMoved)));
+  }, [base, edits, dartMoved]);
   /** The new piece a cut made: the piece in the pattern that came off this cut's piece last. */
   const madePiece = cutAt?.cut === 'piece' ? pieces.filter((pc) => pc.meta.cutFrom === cutAt.piece && !(beforeCut ?? []).some((x) => x.name === pc.name)).pop() : undefined;
   const offset = measure && measure.value * TAPE_PX;
@@ -563,6 +632,11 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
       {asking && (
         <div className="pe-sheet pe-ask" role="group" aria-label="What should this line do?">
           <span className="pe-label">What should this line do?</span>
+          {asking.dart && (
+            <button type="button" className="ghost" onClick={chooseDart}>
+              Move the dart here
+            </button>
+          )}
           <button type="button" className="ghost" onClick={() => choose('spread')}>
             Spread it open · flare
           </button>
@@ -655,6 +729,24 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
         </div>
       )}
 
+      {dartMoved !== undefined && isDartMove(edits[dartMoved]) && (
+        <div className="pe-sheet" role="group" aria-label="Dart moved">
+          <span className="pe-label">Dart moved</span>
+          <p className="muted small">{dartGone ? 'Closed, and the hem flares where you drew instead.' : 'It opens where you drew to. Drag from its point to another edge to move it again.'}</p>
+          <div className="row">
+            <button type="button" className="ghost" onClick={() => {
+              setEdits(edits.filter((_, k) => k !== dartMoved));
+              setDartMoved(undefined);
+            }}>
+              Put it back
+            </button>
+            <button type="button" className="ghost pe-done" onClick={() => setDartMoved(undefined)}>
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Always laid out, shown once something has changed: appearing under a finger mid-stroke, it grew the page and
           the pinned drawing eased under the finger, so a line being drawn jumped (round 3). */}
       {(
@@ -671,6 +763,7 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
             setTape(false);
             setAsking(undefined);
             setActive(undefined);
+            setDartMoved(undefined);
           }}
         >
           Back to drafted

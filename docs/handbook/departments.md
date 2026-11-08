@@ -20,7 +20,7 @@ handoff, and this table is updated.
 | Design: Fabric | What the maker's own cloth looks like in the app: Your photo (photograph your fabric), and with Fabric rendering, how it drapes | Product and fit rules 54 |
 | Design: The Collection | Seasonal collections (SS27), drops path, open calls | Collection calendar, drop path doc |
 | Design: Garment range | New garment types: jumpsuit, knit dress, hoodie (freeze broken Nov 7). Page: [garment-range.md](garment-range.md) | Round 1 option sheet in project files `garment-range/` |
-| Design: Pattern tools | Free-form pattern editing on the flat pattern: Move points and Draw a line (spread, add fullness, new pieces; round 3: tap a cut to change it, darts closed into yokes, new pieces sewn in All round; round 4: edits after a cut show in All round), In testing (Nov 8) | `src/engine/pointEdit.ts`, `src/engine/pieceEdit.ts`, `src/ui/PointEditor.tsx`, option sheet in project files `pattern-tools/` |
+| Design: Pattern tools | Free-form pattern editing on the flat pattern: Move points and Draw a line (spread, add fullness, new pieces; round 3: tap a cut to change it, darts closed into yokes, new pieces sewn in All round; round 4: edits after a cut show in All round, move any dart by a line from its point), In testing (Nov 8) | `src/engine/pointEdit.ts`, `src/engine/pieceEdit.ts`, `src/ui/PointEditor.tsx`, option sheet in project files `pattern-tools/` |
 | Design: Collection Preview | Pieces Cat sews from the coming collection before launch | Capsule doc, preview sheet |
 | Organic Social / First solo session | Social strategy, calendar, shoots | Social strategy, social calendar deck |
 | Customer & Community | Community plan, AI stance, customer research | Community plan, Meet the sewist, AI stance |

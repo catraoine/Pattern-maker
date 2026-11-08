@@ -162,6 +162,37 @@ describe('cutting the flat pattern with a drawn line', () => {
     expect(near(plain)).toBeGreaterThan(1);
   });
 
+  it('moves a dart by a line from its point to an edge, as a cutter pivots it (round 4)', () => {
+    const bodice = draftBodice(bm, { fit: 'regular', neckline: 'crew', length: 'waist', darts: 'bust_waist' });
+    const f = bodice.pieces[0];
+    const darts = (pc: typeof f) => pc.lines.filter((ln) => ln.segs.length === 2);
+    const tip = darts(f)[0].segs[0].to;
+    const intake = (pc: typeof f, k: number) => {
+      const d = darts(pc)[k];
+      return Math.abs(Math.atan2(d.segs[1].to.y - d.segs[0].to.y, d.segs[1].to.x - d.segs[0].to.x) - Math.atan2(d.start.y - d.segs[0].to.y, d.start.x - d.segs[0].to.x));
+    };
+    // The bust dart to the shoulder: still two darts, the moved one opening on the shoulder, as wide an angle, the waist
+    // and centre front as drafted.
+    const shoulderMid = { x: 12.2, y: 0.3 };
+    const [moved] = applyPatternEdits([f], [{ moveDart: 0, piece: f.name, from: tip, to: shoulderMid }]);
+    expect(darts(moved).length).toBe(2);
+    const opened = darts(moved).find((ln) => ln.start.y < 5)!;
+    expect(opened).toBeDefined();
+    expect(intake(moved, darts(moved).indexOf(opened))).toBeCloseTo(intake(f, 0), 3);
+    expect(taggedLength(moved.outline, 'waist')).toBeCloseTo(taggedLength(f.outline, 'waist'), 3);
+    expect(moved.fold?.[0].x).toBeCloseTo(f.fold![0].x, 6);
+    expect(moved.labels.some((l) => l.text === EDITED)).toBe(true);
+    // A line into the dart itself, or onto the fold, does nothing.
+    expect(applyPatternEdits([f], [{ moveDart: 0, piece: f.name, from: tip, to: { x: 26, y: 29 } }])[0]).toBe(f);
+    expect(applyPatternEdits([f], [{ moveDart: 0, piece: f.name, from: tip, to: { x: 0, y: 20 } }])[0]).toBe(f);
+    // A skirt's waist dart drawn down to the hem closes, and the hem flares by what it took.
+    const d0 = front.lines.filter((ln) => ln.segs.length === 2)[0];
+    const [flared] = applyPatternEdits([front], [{ moveDart: 0, piece: front.name, from: d0.segs[0].to, to: { x: d0.segs[0].to.x, y: b.y1 + 5 } }]);
+    expect(flared.lines.filter((ln) => ln.segs.length === 2).length).toBe(front.lines.filter((ln) => ln.segs.length === 2).length - 1);
+    expect(hemOf(flared) - hemOf(front)).toBeGreaterThan(2);
+    expect(taggedLength(flared.outline, 'dart')).toBeLessThan(taggedLength(front.outline, 'dart'));
+  });
+
   it('leaves a pattern nobody edited exactly as drafted', () => {
     expect(applyPatternEdits(skirt.pieces, [])).toBe(skirt.pieces);
     expect(applyPatternEdits(skirt.pieces, undefined)).toBe(skirt.pieces);

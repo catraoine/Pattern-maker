@@ -27,9 +27,20 @@ export interface CutEdit {
   name?: string;
 }
 
-export type PatternEdit = PointEdit | CutEdit;
+/** One dart moved (round 4, Cat's B): the dart, by its place among the piece's darts at the time (its point, to find it
+ *  again on a redrafted pattern), and where the line from its point was drawn to, in cm on its own piece. */
+export interface DartEdit {
+  moveDart: number;
+  piece: string;
+  /** The dart's point when it was moved. */
+  from: P;
+  to: P;
+}
+
+export type PatternEdit = PointEdit | CutEdit | DartEdit;
 
 export const isCut = (e: unknown): e is CutEdit => !!e && typeof e === 'object' && 'cut' in e;
+export const isDartMove = (e: unknown): e is DartEdit => !!e && typeof e === 'object' && 'moveDart' in e;
 
 /** How far a new spread or fullness opens before the maker drags it, in cm. */
 export const START_BY: Record<Exclude<CutKind, 'piece'>, number> = { spread: 6, fullness: 8 };
@@ -1070,10 +1081,10 @@ export function applyPatternEdits(pieces: Piece[], edits: PatternEdit[] | undefi
   let out = pieces;
   let run: PointEdit[] = [];
   for (const e of edits) {
-    if (isCut(e)) {
+    if (isCut(e) || isDartMove(e)) {
       if (run.length) out = applyPointEdits(out, run);
       run = [];
-      out = applyCut(out, e);
+      out = isCut(e) ? applyCut(out, e) : applyDartMove(out, e);
     } else if (e && typeof (e as PointEdit).at === 'string') run.push(e as PointEdit);
   }
   if (run.length) out = applyPointEdits(out, run);
@@ -1088,7 +1099,7 @@ export const hasNewPieces = (pieces: Piece[]) => pieces.some((pc) => !!pc.meta.n
  *  closed, and the dart opens on the line instead, its legs trued at the edge. The part that turns is the one away
  *  from the fold (or the centre), so the fold and the grain stay as drafted. Nothing when the line runs inside the
  *  dart, or too close to it to open there. */
-export function moveDartIn(pc: Piece, k: number, toward: P): Piece | undefined {
+function moveDartIn(pc: Piece, k: number, toward: P): Piece | undefined {
   const d = dartsIn(pc)[k];
   if (!d) return undefined;
   const o = d.apex;
@@ -1202,4 +1213,25 @@ export function moveDartIn(pc: Piece, k: number, toward: P): Piece | undefined {
     labels: markEdited(labels),
     meta: { ...pc.meta, edited: true, pointIds: undefined },
   };
+}
+
+/** A saved dart move on a set of pieces: the dart found again by its point (the nearest dart to where it was, else by
+ *  its place). A move that can't be made changes nothing. */
+function applyDartMove(pieces: Piece[], e: DartEdit): Piece[] {
+  const i = pieces.findIndex((pc) => pc.name === e.piece);
+  if (i < 0) return pieces;
+  const darts = dartsIn(pieces[i]);
+  if (!darts.length) return pieces;
+  let k = Math.min(e.moveDart, darts.length - 1);
+  if (e.from) {
+    const near = darts.map((d, j) => [len(sub(d.apex, e.from)), j] as const).sort((a, b) => a[0] - b[0])[0];
+    if (near[0] < 3) k = near[1];
+  }
+  const moved = moveDartIn(pieces[i], k, e.to);
+  return moved ? pieces.map((pc, j) => (j === i ? moved : pc)) : pieces;
+}
+
+/** Whether a line from a dart's point to q would move the dart there: q on (or by) the piece's edge, outside the dart. */
+export function dartMoveTo(pc: Piece, k: number, q: P): boolean {
+  return !!moveDartIn(pc, k, q);
 }
