@@ -612,11 +612,12 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
           }}
         />
         <div className="row between wrap">
-          {view !== 'pattern' && draft ? (
+          {/* The view bar stays on the pattern too, with Pattern lit at its end (Cat, Nov 8). */}
+          {draft ? (
             // The same views as every garment: Front, Flat, All round. Back dropped (Cat, 2026-11-02): All round shows the back.
             <GarmentViews<Side | 'flat' | 'round'>
               views={[['front', 'Front'], ...(flat ? ([['flat', 'Flat']] as [Side | 'flat', string][]) : []), ...(round ? ([['round', 'All round']] as [Side | 'round', string][]) : [])]}
-              view={view === 'round' || view === 'flat' ? view : side}
+              view={view === 'pattern' || view === 'round' || view === 'flat' ? view : side}
               onView={(v) => {
                 if (v === 'round' || v === 'flat') setView(v);
                 else {
@@ -626,10 +627,13 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
                 setDrawing(false);
               }}
             />
-          ) : canFit ? (
-            <FitSwitch on={fit} onChange={setFit} />
           ) : (
             <span />
+          )}
+          {view === 'pattern' && canFit && (
+            <InCorner>
+              <FitSwitch on={fit} onChange={setFit} />
+            </InCorner>
           )}
           <InCorner>
             {view === 'sketch' && draft &&

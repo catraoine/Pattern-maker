@@ -268,18 +268,15 @@ export function RangeStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       <section className="card grow" aria-label="Preview">
         <PreviewSwitch look={view === 'pattern' ? 'pattern' : 'garment'} onLook={(l) => setView(l === 'pattern' ? 'pattern' : 'sketch')} />
         <div className="row between wrap">
-          {view !== 'pattern' ? (
-            <GarmentViews<'sketch' | 'flat'>
-              views={[
-                ['sketch', 'Front'],
-                ['flat', 'Flat'],
-              ]}
-              view={view}
-              onView={setView}
-            />
-          ) : (
-            <span />
-          )}
+          {/* The view bar stays on the pattern too, with Pattern lit at its end (Cat, Nov 8). */}
+          <GarmentViews<'sketch' | 'flat'>
+            views={[
+              ['sketch', 'Front'],
+              ['flat', 'Flat'],
+            ]}
+            view={view}
+            onView={setView}
+          />
         </div>
         <div className="preview">
           {error && <p className="msg error">{error}</p>}

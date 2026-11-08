@@ -114,7 +114,7 @@ test('starts a line on a point, changes a cut by tapping it, and closes darts in
   // All round sews the yoke back on and turns, its seam drawn across the hip (no drawing standing in).
   await main.getByRole('button', { name: 'Back to pieces' }).click();
   await page.evaluate(() => window.scrollTo(0, 0));
-  await main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Garment/ }).click();
+  // The view bar stays on the pattern (Nov 8): All round is one tap from there.
   await main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round', exact: true }).click();
   const canvas = main.locator('canvas.all-round-canvas');
   await expect(canvas).toHaveAttribute('data-sewn', /ready|testing/, { timeout: 60_000 });

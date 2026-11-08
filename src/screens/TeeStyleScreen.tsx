@@ -255,15 +255,12 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
       <section className="card grow" aria-label="Preview">
         <PreviewSwitch look={view === 'pattern' ? 'pattern' : 'garment'} onLook={(l) => setView(l === 'pattern' ? 'pattern' : 'sketch')} />
         <div className="row between wrap">
-          {view !== 'pattern' ? (
-            <GarmentViews<'sketch' | 'flat' | 'round'>
-              views={formViews(round)}
-              view={view}
-              onView={setView}
-            />
-          ) : (
-            <span />
-          )}
+          {/* The view bar stays on the pattern too, with Pattern lit at its end (Cat, Nov 8). */}
+          <GarmentViews<'sketch' | 'flat' | 'round'>
+            views={formViews(round)}
+            view={view}
+            onView={setView}
+          />
           <InCorner>
             {draft && (
               <button type="button" className="link small" aria-label="Draw on your form" onClick={() => setOnForm(choices)}>

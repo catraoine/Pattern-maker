@@ -76,3 +76,46 @@
 .account fieldset.group > .seg button + button {
   border-left: var(--bw) solid var(--guide);
 }
+
+/* On the pattern the same bar stays, with Pattern lit at its end like the view showing (Cat, Nov 8: "can we just have
+   the view selector bar stay the same on this view, just right now pattern has been selected"). */
+.style-pin > section:not(.live-big) > .lookboxes button.on:last-child {
+  position: static;
+  width: auto;
+  height: 26px;
+  min-height: 26px;
+  overflow: visible;
+  clip-path: none;
+}
+.style-layout .style-pin > section:not(.live-big) > .lookboxes button.on:last-child {
+  flex: 1;
+  justify-content: center;
+  background: #3a3220;
+  box-shadow: none;
+  border: 0;
+}
+.style-layout .style-pin > section:not(.live-big) > .lookboxes button.on:last-child .lookname {
+  color: var(--ink);
+  font-weight: var(--w-strong);
+}
+/* The pattern's corner holds its own tools: Enlarge and Move points, as plain words. Draw on your form is for the
+   garment's views, so it steps out here. */
+.style-layout .style-pin > section:not(.live-big) > .preview:has(> .pattern-pane, > .paper-sheet, > .easerows) > .preview-corner > :is([aria-label='Draw on your form'], .drawmenu) {
+  display: none;
+}
+/* The paper sits under the corner's words, as Flat's drawings do, and the open tool's how-to line starts after Enlarge. */
+@media (max-width: 760px) {
+  .style-layout .style-pin > section:not(.live-big) > .preview > .pattern-pane:not(:has(.point-svg)) {
+    padding-top: 76px;
+    box-sizing: border-box;
+  }
+}
+@media (min-width: 761px) {
+  .style-layout .style-pin > section:not(.live-big) > .preview > .pattern-pane:not(:has(.point-svg)) {
+    padding-top: 56px;
+    box-sizing: border-box;
+  }
+}
+.style-layout .style-pin > section:not(.live-big) > .preview > .pattern-pane > .point-switch {
+  padding-left: 104px;
+}

@@ -10,6 +10,7 @@
 import { PointerEvent, ReactNode, createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { TestingTag } from './TestingTag';
 import { DemoButton } from './DemoButton';
+import { InCorner } from './StyleLayout';
 import { P, add, len, mul, sub } from '../engine/geometry';
 import type { Piece } from '../engine/piece';
 import { CutEdit, CutKind, PatternEdit, START_BY, applyPatternEdits, cutEnds, cutMark, isCut, openHandle, pointsOn } from '../engine/pieceEdit';
@@ -64,20 +65,33 @@ export function PatternPane({ children, onPlay }: { children: ReactNode; onPlay?
         {watch}
       </>
     );
+  // Move points is one of the drawing's corner tools, a plain word like Enlarge (Cat, Nov 8: the Draw word, the long
+  // how-to line and the boxed button were confusing together). Its how-to line shows once it is open.
   return (
     <div className="pattern-pane">
-      <div className="row between wrap point-switch">
-        {ctx.edits.length && !on ? (
-          <p className="muted small pe-edited">
-            Edited by you <TestingTag tool="pattern_tools" />
-          </p>
-        ) : (
-          <p className="muted small">{on ? 'Drag a point, draw a line across a piece to cut it, or tap a cut to change it.' : 'Reshape any piece: move its points or draw a line to cut it.'}</p>
-        )}
-        <button type="button" className={on ? 'ghost on' : 'ghost'} aria-pressed={on} onClick={() => setOn(!on)}>
-          {on ? 'Back to pieces' : 'Move points'}
-        </button>
-      </div>
+      {on ? (
+        <div className="row between wrap point-switch">
+          <p className="muted small">Drag a point, draw a line across a piece to cut it, or tap a cut to change it.</p>
+          <button type="button" className="ghost on" aria-pressed="true" onClick={() => setOn(false)}>
+            Back to pieces
+          </button>
+        </div>
+      ) : (
+        <>
+          <InCorner>
+            <button type="button" className="link small pe-open-tool" aria-pressed="false" onClick={() => setOn(true)}>
+              <span className="tool-word">Move points</span>
+            </button>
+          </InCorner>
+          {ctx.edits.length > 0 && (
+            <div className="row between wrap point-switch">
+              <p className="muted small pe-edited">
+                Edited by you <TestingTag tool="pattern_tools" />
+              </p>
+            </div>
+          )}
+        </>
+      )}
       {on ? <PointEditor {...ctx} /> : children}
       {/* Its own Watch demo while the tools are open (Cat, 2026-11-07). */}
       {on && (

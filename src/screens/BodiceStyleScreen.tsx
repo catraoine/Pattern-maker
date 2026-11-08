@@ -475,7 +475,8 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
           }}
         />
         <div className="row between wrap">
-          {view !== 'pattern' && draft ? (
+          {/* The view bar stays on the pattern too, with Pattern lit at its end (Cat, Nov 8). */}
+          {draft ? (
             <GarmentViews
               views={garmentViews.filter(([id]) => (id === 'round' ? !!round : id === 'flat' ? !!flat : true))}
               view={view === 'sketch' ? side : view}
@@ -488,10 +489,13 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
                 setDrawing(false);
               }}
             />
-          ) : canFit ? (
-            <FitSwitch on={fit} onChange={setFit} />
           ) : (
             <span />
+          )}
+          {view === 'pattern' && canFit && (
+            <InCorner>
+              <FitSwitch on={fit} onChange={setFit} />
+            </InCorner>
           )}
           <InCorner>
             {view === 'sketch' && draft &&

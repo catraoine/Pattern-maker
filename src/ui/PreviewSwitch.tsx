@@ -11,7 +11,8 @@ export function PreviewSwitch({ look, onLook }: { look: Look; onLook: (look: Loo
   ];
   return (
     <div className="lookboxes" role="group" aria-label="Preview view">
-      {boxes.map(([id, name, hint]) => (
+      {/* On the pattern, the view bar takes you back to the garment's views, so Garment isn't shown there (Cat, Nov 8). */}
+      {boxes.filter(([id]) => id === 'pattern' || look === 'garment').map(([id, name, hint]) => (
         <button key={id} type="button" aria-pressed={look === id} className={look === id ? 'on' : ''} tabIndex={look === id ? -1 : undefined} onClick={() => onLook(id)}>
           <span className="lookname">{name}</span>
           <span className="lookhint">{hint}</span>
@@ -22,7 +23,7 @@ export function PreviewSwitch({ look, onLook }: { look: Look; onLook: (look: Loo
 }
 
 /** The ways to see the garment itself: a sketch's sides, the flat drawing, all round on the form. */
-export function GarmentViews<T extends string>({ views, view, onView }: { views: [T, string][]; view: T; onView: (v: T) => void }) {
+export function GarmentViews<T extends string>({ views, view, onView }: { views: [T, string][]; view: T | 'pattern'; onView: (v: T) => void }) {
   if (views.length < 2) return null;
   return (
     <div className="seg" role="group" aria-label="Garment view">
