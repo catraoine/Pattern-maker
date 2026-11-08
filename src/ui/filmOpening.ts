@@ -6,7 +6,7 @@ import { FADE_FROM, paintFigure } from './ContourForm';
  *  second over 1.5 s. One move, starting at once. The film's welcome take is drawn from this (record-tour-shots.mjs,
  *  TOUR_WELCOME=1), and the player draws the same frames itself until the film is ready (TourPlayer), so nothing
  *  waits on the film loading. */
-export const OPENING = { push: 0.35, pushS: 5, turnDeg: 8, rampS: 1.5, wordsS: 0.4 };
+const OPENING = { push: 0.35, pushS: 5, turnDeg: 8, rampS: 1.5, wordsS: 0.4 };
 
 const sine = (x: number) => 0.5 - 0.5 * Math.cos(Math.PI * Math.max(0, Math.min(1, x)));
 
@@ -19,7 +19,7 @@ export function openingAt(t: number) {
   return { p, z: 1 + OPENING.push * p, turn: rate * (tt < r ? (tt * tt) / (2 * r) : tt - r / 2) };
 }
 
-export type FormRect = { x: number; y: number; w: number; h: number };
+type FormRect = { x: number; y: number; w: number; h: number };
 
 /** The opening's form at t, on g, in the pixels of a page vw x vh whose welcome form canvas is r (g's transform takes
  *  those pixels to wherever it is drawn): black behind it within the form's canvas, its hem fading into the black. */
