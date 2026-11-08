@@ -78,7 +78,6 @@ test('shows a spread made after a yoke was cut in All round', async ({ page }) =
   // All round sews the yokes back on to the spread pieces: the skirt is sewn (no drawing standing in), with the flare.
   await main.getByRole('button', { name: 'Back to pieces' }).click();
   await page.evaluate(() => window.scrollTo(0, 0));
-  await main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Garment/ }).click();
   await main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round', exact: true }).click();
   const canvas = main.locator('canvas.all-round-canvas');
   await expect(canvas).toHaveAttribute('data-sewn', /ready|testing/, { timeout: 60_000 });
@@ -132,7 +131,6 @@ test('moves a dart by drawing from its point to an edge, and All round follows',
 
   await main.getByRole('button', { name: 'Back to pieces' }).click();
   await page.evaluate(() => window.scrollTo(0, 0));
-  await main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Garment/ }).click();
   await main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round', exact: true }).click();
   const canvas = main.locator('canvas.all-round-canvas');
   await expect(canvas).toHaveAttribute('data-sewn', /ready|testing/, { timeout: 60_000 });
@@ -180,7 +178,6 @@ test('moves a dress bust dart to the shoulder, and All round sews it', async ({ 
 
   await main.getByRole('button', { name: 'Back to pieces' }).click();
   await page.evaluate(() => window.scrollTo(0, 0));
-  await main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Garment/ }).click();
   await main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round', exact: true }).click();
   const canvas = main.locator('canvas.all-round-canvas');
   await expect(canvas).toHaveAttribute('data-sewn', /ready|testing/, { timeout: 90_000 });
