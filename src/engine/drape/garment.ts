@@ -5414,6 +5414,57 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
       }
     }
   }
+  // (A bodice's sleeve met to its armhole at the end: the sleeve passes above leave its cap up to a cm off the armhole
+  // at the underarm and the shoulder, and the gap showed as a dark hole beside the bust from the side, the film's
+  // snakeskin dress, Nov 8. Each point of the sleeve's armhole edge is laid on the nearest point of the bodice's
+  // armhole, and its move carried into the sleeve, fading out over a few cm.)
+  const bodArm = B.panels.filter((p) => !p.hidden && /bodice/i.test(p.pc.name) && p.mesh.runs.armhole?.length);
+  if (bodArm.length && !knob('__noArmClose')) {
+    const segs: [number, number][] = [];
+    for (const p of bodArm) for (const r of p.mesh.runs.armhole) for (let k = 1; k < r.length; k++) segs.push([p.base + r[k - 1], p.base + r[k]]);
+    const onArm = (X: number[]) => {
+      let best = X, bd = Infinity;
+      for (const [a, b] of segs) {
+        const A = [res[a * 3], res[a * 3 + 1], res[a * 3 + 2]], Bv = [res[b * 3], res[b * 3 + 1], res[b * 3 + 2]];
+        const ab = [Bv[0] - A[0], Bv[1] - A[1], Bv[2] - A[2]];
+        const L2 = ab[0] ** 2 + ab[1] ** 2 + ab[2] ** 2 || 1e-9;
+        const t = Math.max(0, Math.min(1, ((X[0] - A[0]) * ab[0] + (X[1] - A[1]) * ab[1] + (X[2] - A[2]) * ab[2]) / L2));
+        const Q = [A[0] + ab[0] * t, A[1] + ab[1] * t, A[2] + ab[2] * t];
+        const d = Math.hypot(Q[0] - X[0], Q[1] - X[1], Q[2] - X[2]);
+        if (d < bd) [bd, best] = [d, Q];
+      }
+      return { Q: best, d: bd };
+    };
+    const R = knob('__armR') ?? 4;
+    for (const p of B.panels.filter((q) => !q.hidden && q.role === 'sleeve' && q.mesh.runs.armhole?.length)) {
+      const edge = p.mesh.runs.armhole.flat();
+      const moves = new Map<number, number[]>();
+      for (const e of edge) {
+        const I = (p.base + e) * 3;
+        const { Q, d } = onArm([res[I], res[I + 1], res[I + 2]]);
+        // (Only a gap: a point already on the armhole, or one far off it, a sleeve this pass does not know, is left.)
+        if (d < 0.15 || d > 3) continue;
+        moves.set(e, [Q[0] - res[I], Q[1] - res[I + 1], Q[2] - res[I + 2]]);
+      }
+      if (!moves.size) continue;
+      const pts = p.mesh.pts;
+      pts.forEach((q, i) => {
+        let wS = 0;
+        const dv = [0, 0, 0];
+        let near = 0;
+        for (const [e, m] of moves) {
+          const w = Math.max(0, 1 - Math.hypot(pts[e].x - q.x, pts[e].y - q.y) / R);
+          if (w <= 0) continue;
+          wS += w * w;
+          near = Math.max(near, w);
+          for (let k = 0; k < 3; k++) dv[k] += m[k] * w * w;
+        }
+        if (!wS) return;
+        const f = moves.has(i) ? 1 : near;
+        for (let k = 0; k < 3; k++) res[(p.base + i) * 3 + k] += (dv[k] / wS) * f;
+      });
+    }
+  }
   const lines: Draped['lines'] = [];
   for (const p of B.panels) {
     if (p.hidden) continue;

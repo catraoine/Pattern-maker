@@ -471,11 +471,16 @@ function buildDraped(
   // collarbones and shoulder blades it would poke through a cloth lying close.
   const LIFT = 0.5;
   // (The mirrored half is drawn from its own points where they differ: a slit up the left side seam parts on the left only.)
+  // (A sleeve a little further out still: round the back of the armhole its cap settles close against the body, and
+  // the drawn form showed through it as a dark hole beside the bust, the film's snakeskin dress, Nov 8.)
+  const SLEEVE_LIFT = ((globalThis as unknown as { __drapeKnobs?: Record<string, number> }).__drapeKnobs ?? {}).__slvLift ?? 0.8;
+  const inSleeve = new Uint8Array(d.pos.length / 3);
+  for (const p of d.panels) if (p.role === 'sleeve') for (let i = 0; i < p.uv.length / 2; i++) inSleeve[p.base + i] = 1;
   const P = (i: number, e: number, more = 0): V3 => {
     const pos = e < 0 && d.posMirror ? d.posMirror : d.pos;
     const x = pos[i * 3];
     const z = pos[i * 3 + 2];
-    const k = 1 + (LIFT + more) / (Math.sqrt(x * x + z * z) || 1);
+    const k = 1 + (LIFT + more + (inSleeve[i] ? SLEEVE_LIFT : 0)) / (Math.sqrt(x * x + z * z) || 1);
     return toForm(x * k * e, pos[i * 3 + 1], z * k, d.hang?.[i] || undefined);
   };
   // (A piece cut whole, a one-shoulder's front, holds both its halves: drawn once, not mirrored.)
@@ -490,7 +495,7 @@ function buildDraped(
       const under = e < 0 && p.role === 'front';
       // A back vent's underlap (cut past the centre back) lies under the other side's cloth, on both sides.
       const vent = p.role === 'back';
-      for (let i = 0; i < n; i++) pos.set(P(p.base + i, e, under && p.uv[i * 2] < -0.05 && !p.turned?.[i] ? -0.9 : vent && p.uv[i * 2] < -0.05 ? -0.6 : 0), i * 3);
+      for (let i = 0; i < n; i++) pos.set(P(p.base + i, e, (under && p.uv[i * 2] < -0.05 && !p.turned?.[i] ? -0.9 : vent && p.uv[i * 2] < -0.05 ? -0.6 : 0)), i * 3);
       // Each triangle wound so its face looks out from the body (a back piece is laid the other way round from a front);
       // a sleeve's out from the middle of its own arm. The scene's y runs down, so out is the cross product's reverse.
       const ref = (() => {
