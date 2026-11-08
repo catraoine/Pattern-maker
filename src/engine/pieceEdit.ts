@@ -1082,3 +1082,124 @@ export function applyPatternEdits(pieces: Piece[], edits: PatternEdit[] | undefi
 
 /** Whether any edit cut a piece in two, so All round shows the garment's drawing until new pieces are sewn there. */
 export const hasNewPieces = (pieces: Piece[]) => pieces.some((pc) => !!pc.meta.newPiece);
+
+/** A dart moved, as a pattern cutter pivots it on paper (round 4, Cat's B, 2026-11-08): a line drawn from the dart's
+ *  point to anywhere on the edge; the piece between the dart and the line turns about the point until the dart is
+ *  closed, and the dart opens on the line instead, its legs trued at the edge. The part that turns is the one away
+ *  from the fold (or the centre), so the fold and the grain stay as drafted. Nothing when the line runs inside the
+ *  dart, or too close to it to open there. */
+export function moveDartIn(pc: Piece, k: number, toward: P): Piece | undefined {
+  const d = dartsIn(pc)[k];
+  if (!d) return undefined;
+  const o = d.apex;
+  const uA = unit(sub(d.a, o));
+  const uB = unit(sub(d.b, o));
+  const theta = signedAngle(uA, uB);
+  if (Math.abs(theta) < 1e-4 || Math.abs(theta) > Math.PI / 2) return undefined;
+  if (len(sub(toward, o)) < 0.5) return undefined;
+  const uS = unit(sub(toward, o));
+  let segs = segsOf(pc.outline);
+  const sg = Math.sign(theta);
+  const TAU = 2 * Math.PI;
+  const span = TAU - Math.abs(theta);
+  // Where a direction lies going round from leg B away from the dart: 0 on leg B, span on leg A, the dart beyond.
+  const phi = (v: P) => {
+    let a = signedAngle(uB, v) * sg;
+    if (a < -1e-9) a += TAU;
+    return a;
+  };
+  const phS = phi(uS);
+  if (phS < 0.12 || phS > span - 0.12) return undefined;
+  const hit = crossings(segs, o, add(o, uS), 1e-3, Infinity).sort((m, n) => m.u - n.u)[0];
+  // A fold can't open: the piece is cut on it.
+  if (!hit || segs[hit.seg].tag === 'fold') return undefined;
+  const free = FREE.includes(segs[hit.seg].tag);
+  segs = splitAtRay(splitAtRay(splitAtRay(segs, o, uA), o, uB), o, uS);
+  const regionOf = (q: P): 'A' | 'B' | 'in' => {
+    if (len(sub(q, o)) < 1e-6) return 'B';
+    const a = phi(sub(q, o));
+    if (a > span + 1e-6 && a < TAU - 1e-6) return 'in';
+    return a < phS ? 'B' : 'A';
+  };
+  const regions = segs.map((s) => regionOf(bez(s, 0.5)));
+  const weight = (r: 'A' | 'B') =>
+    segs.reduce((t, s, i) => (regions[i] !== r ? t : t + (s.tag === 'fold' ? 1000 : s.tag === 'centre' ? 100 : 0) + len(sub(s.b, s.a))), 0);
+  const turning: 'A' | 'B' = weight('A') <= weight('B') ? 'A' : 'B';
+  const move = (q: P) => rotAbout(q, o, turning === 'A' ? theta : -theta);
+  const kept: Seg[] = [];
+  const keptRegion: string[] = [];
+  segs.forEach((s, i) => {
+    if (regions[i] === 'in') return;
+    kept.push(regions[i] === turning ? mapSeg(s, move) : s);
+    keptRegion.push(regions[i]);
+  });
+  // Joined up: the old dart closes (its gap is a hair), the slash opens as the new dart's mouth, with a peak so the
+  // edge lies straight when the dart is sewn.
+  const slashAt = (q: P) => Math.abs(phi(sub(q, o)) - phS) < 0.02 || Math.abs(phi(sub(q, o)) - phS - (turning === 'A' ? 1 : -1) * Math.abs(theta)) < 0.02;
+  const ring: Seg[] = [];
+  const corners: P[] = [];
+  let mouth: [P, P] | undefined;
+  const join = (prev: Seg, next: Seg) => {
+    const gap = len(sub(next.a, prev.b));
+    if (gap <= 0.2) return { ...next, a: prev.b };
+    if (!mouth && slashAt(prev.b) && slashAt(next.a)) {
+      mouth = [prev.b, next.a];
+      if (free) {
+        // On a hem nothing is sewn: the opening is flare, the hem carried smoothly across it.
+        ring.push({ kind: 'C', a: prev.b, c1: add(prev.b, mul(endDir(prev), gap / 3)), c2: sub(next.a, mul(startDir(next), gap / 3)), b: next.a, tag: prev.tag });
+        return next;
+      }
+      const mid = lerp(prev.b, next.a, 0.5);
+      const w = unit(sub(mid, o));
+      // The peak: where the edge carried on from the side that folds over meets the dart's centre line.
+      const t = endDir(prev);
+      const den = cross(t, w);
+      let peak = mid;
+      if (Math.abs(den) > 1e-6) {
+        const s = cross(sub(prev.b, o), t) / -den;
+        const at = add(o, mul(w, s));
+        const m = len(sub(mid, o));
+        if (s > m && s < m + gap) peak = at;
+      }
+      ring.push({ kind: 'L', a: prev.b, b: peak, tag: 'dart' });
+      return [{ kind: 'L' as const, a: peak, b: next.a, tag: 'dart' }, next];
+    }
+    ring.push({ kind: 'L', a: prev.b, b: next.a, tag: prev.tag });
+    return next;
+  };
+  kept.forEach((s, i) => {
+    if (!i) return void ring.push(s);
+    if (keptRegion[i] !== keptRegion[i - 1] && len(sub(s.a, ring[ring.length - 1].b)) <= 0.2) corners.push(ring[ring.length - 1].b);
+    const r = join(ring[ring.length - 1], s);
+    if (Array.isArray(r)) ring.push(...r);
+    else ring.push(r);
+  });
+  const r = join(ring[ring.length - 1], ring[0]);
+  if (Array.isArray(r)) {
+    ring.push(r[0]);
+  } else if (len(sub(ring[0].a, ring[ring.length - 1].b)) > 1e-6) ring[0] = { ...ring[0], a: ring[ring.length - 1].b };
+  if (!mouth) return undefined;
+  let out = ring;
+  for (const q of corners) out = trueAt(out, q, corners.concat(mouth));
+  const dartLine = (ln: Path) => ln.segs.length === 2 && len(sub(ln.segs[0].to, o)) < 1e-6 && len(sub(ln.start, d.a)) < 1e-6;
+  const lines = pc.lines
+    .filter((ln) => !dartLine(ln))
+    .map((ln) => {
+      const pts = ln.points(8);
+      const r0 = regionOf(pts[Math.floor(pts.length / 2)]);
+      return r0 === turning ? mapPath(ln, move) : ln;
+    });
+  if (!free) lines.push(new Path(mouth[0]).line(o).line(mouth[1]));
+  const notches = pc.notches.filter(([at]) => regionOf(at) !== 'in').map(([at, dir]): [P, P] => (regionOf(at) === turning ? [move(at), unit(sub(move(add(at, dir)), move(at)))] : [at, dir]));
+  const labels = pc.labels.map((l) => (regionOf(l.at) === turning ? { ...l, at: move(l.at) } : l));
+  return {
+    ...stripDrafted(pc),
+    outline: pathOf(out),
+    lines,
+    notches,
+    grain: pc.grain,
+    fold: foldOf(out) ?? pc.fold,
+    labels: markEdited(labels),
+    meta: { ...pc.meta, edited: true, pointIds: undefined },
+  };
+}
