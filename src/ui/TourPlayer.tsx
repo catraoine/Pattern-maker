@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { FilmBar, useFilm } from './FilmControls';
+import { openingAt, paintOpening } from './filmOpening';
 
 // The tour: the walkthrough video, full screen, opened from the play button on the welcome's dress form.
 // Skip tour is always showing; the bar along the bottom marks Measure, Choose, Style and Print as the video reaches them.
@@ -46,35 +47,31 @@ export function FilmWords({ id, parts }: { id: string; parts: FilmPart[] }) {
   );
 }
 
-/** The opening on play (Cat, 2026-11-07: "start from the exact size of the welcome screen and zoom into view
- *  consistently and smooth"). The film opens on the welcome's form at rest, with nothing moving yet (edit-tour's W
- *  intro, 1.9 s into the welcome take, its words gone). So the player lays the film over the page with its form exactly
- *  on the page's own (the page's words fading), dissolves in, and only then does anything move: the film's one push
- *  in, while the film's own frame eases from the page's place back to the full screen on the film's clock. One image
- *  throughout, so nothing changes size or colour as one form hands over to another.
- *  FILM_FORM is where the welcome take drew the form: its middle and its scale (ContourForm's welcomeLayout, S) on
- *  the page it was recorded from, in that page's pixels. Re-measure if the welcome's layout changes. */
-const FILM_FORM = {
+/** The opening on play. Cat, 2026-11-07: "start from the exact size of the welcome screen and zoom into view
+ *  consistently and smooth". Cat, 2026-11-08: it sat still while the film loaded, then jumped forward and turned
+ *  ("creepy"); she picked O1 Gentle Glide (filmOpening.ts): the form moves from the tap, the push and the turn as one.
+ *  So the player draws the film's opening itself from the tap, on a canvas laid where the film will be, with its form
+ *  on the page's own form (the page's words fading), and the film takes over, from the same moment, once it is
+ *  playing. Both are laid over the page the same way: the film's frame eases from the page's place back to the full
+ *  screen as the push comes in. One image throughout, so nothing waits, jumps, or changes size as one hands over.
+ *  FILM_RECT is the page the welcome take was drawn from (record-tour-shots.mjs): its size, and its form canvas, in that
+ *  page's pixels. Re-measure if the welcome's layout changes. */
+const FILM_RECT = {
   // Drawn as an iPhone's welcome form: the canvas 408 wide and 408 x 481.5 / 366 tall, from 86 down.
-  tall: { vw: 432, vh: 768, x: 216, y: 354.38, s: 246.91 },
-  wide: { vw: 1440, vh: 810, x: 501.34, y: 427, s: 302.68 },
+  tall: { vw: 432, vh: 768, r: { x: 12, y: 86, w: 408, h: 408 * (481.5 / 366) } },
+  wide: { vw: 1440, vh: 810, r: { x: 290.75, y: 98, w: 421.1875, h: 658 } },
 };
-/** The welcome take's push (record-tour-shots.mjs) runs over the film's first 3 s. */
-const PUSH_S = 3;
-const easeStep = (x: number) => {
-  const c = Math.max(0, Math.min(1, x));
-  return c * c * (3 - 2 * c);
-};
-/** Where the film's form is on screen at its first frame, for a video drawn in the box r. */
-function filmForm(shape: 'tall' | 'wide', r: { left: number; top: number; width: number; height: number }) {
-  const f = FILM_FORM[shape];
-  // The film keeps its shape inside the video box (object-fit: contain).
-  const k = Math.min(r.width / f.vw, r.height / f.vh);
-  return { x: r.left + (r.width - f.vw * k) / 2 + f.x * k, y: r.top + (r.height - f.vh * k) / 2 + f.y * k, s: f.s * k };
+type Box = { left: number; top: number; width: number; height: number };
+/** The film drawn in the box b (object-fit: contain): its scale, from the take's page pixels, and its corner. */
+function filmFit(shape: 'tall' | 'wide', b: Box) {
+  const f = FILM_RECT[shape];
+  const k = Math.min(b.width / f.vw, b.height / f.vh);
+  return { k, x: b.left + (b.width - f.vw * k) / 2, y: b.top + (b.height - f.vh * k) / 2 };
 }
 
 export function TourPlayer({ onClose, from }: { onClose: () => void; from?: HTMLCanvasElement | null }) {
   const video = useRef<HTMLVideoElement>(null);
+  const standIn = useRef<HTMLCanvasElement>(null);
   const close = useRef<HTMLButtonElement>(null);
   // Chosen once, as the tour opens, so turning a tablet doesn't restart it.
   const [shape] = useState<'tall' | 'wide'>(() => (matchMedia(WIDE_SCREEN).matches ? 'wide' : 'tall'));
@@ -83,40 +80,99 @@ export function TourPlayer({ onClose, from }: { onClose: () => void; from?: HTML
   const [arriving, setArriving] = useState(() => !!from && !reduced);
   // Read once: the film's frame keeps easing back after the player is in (arriving is false by then).
   const laying = useRef(arriving);
+  const handed = useRef(false);
 
-  // The film laid over the page: its form on the page's form, eased back to the full frame over the film's push, on
-  // the film's own clock, so if the film is slow to load nothing moves until it plays. The player stays unseen until
-  // the film is playing, then dissolves in over the page.
+  // The opening, drawn from the tap on the stand-in canvas, on a clock started by the tap, until the film is playing
+  // (then it fades away over it); the film, when it comes, is sent to the same moment. Both are laid over the page on
+  // their own clocks: the film's form on the page's form, easing back to the full frame as the push comes in.
   useLayoutEffect(() => {
     const v = video.current;
-    if (!laying.current || !from || !v) return;
-    const c = from.getBoundingClientRect();
+    const c = standIn.current;
+    if (!laying.current || !from || !v || !c) return;
+    const t0 = performance.now();
+    // The page's own form gives way to the stand-in, which starts exactly on it (on a wide screen the push draws the
+    // form away from it, to the middle, so it would show behind).
+    const formWas = from.style.visibility;
+    from.style.visibility = 'hidden';
+    const now = () => (performance.now() - t0) / 1000;
+    const page = from.getBoundingClientRect();
     // The page's form: its middle and scale, as ContourForm's welcomeLayout draws it.
-    const s0 = Math.min(c.width * 0.82, c.height * 0.46);
-    const [px, py] = [c.left + c.width / 2, c.top + c.height / 2];
+    const s0 = Math.min(page.width * 0.82, page.height * 0.46);
+    const [px, py] = [page.left + page.width / 2, page.top + page.height / 2];
     // Measured untransformed (the effect can run again, as React's checks do in development).
     v.style.transform = '';
     const box = v.getBoundingClientRect();
-    const g = filmForm(shape, box);
-    const k = s0 / g.s;
-    v.style.transformOrigin = `${g.x - box.left}px ${g.y - box.top}px`;
+    const host = v.offsetParent?.getBoundingClientRect() ?? { left: 0, top: 0 };
+    const fit = filmFit(shape, box);
+    const f = FILM_RECT[shape];
+    // Where the film's form is on screen at its first frame, and how much smaller or larger than the page's.
+    const g0 = { x: fit.x + (f.r.x + f.r.w / 2) * fit.k, y: fit.y + (f.r.y + f.r.h / 2) * fit.k, s: Math.min(f.r.w * 0.82, f.r.h * 0.46) * fit.k };
+    const k = s0 / g0.s;
+    const origin = `${g0.x - box.left}px ${g0.y - box.top}px`;
+    const lay = (el: HTMLElement, t: number) => {
+      const w = 1 - openingAt(t).p;
+      el.style.transform = w > 0 ? `translate(${(px - g0.x) * w}px, ${(py - g0.y) * w}px) scale(${1 + (k - 1) * w})` : '';
+      return w > 0;
+    };
+    v.style.transformOrigin = origin;
+    Object.assign(c.style, { left: `${box.left - host.left}px`, top: `${box.top - host.top}px`, width: `${box.width}px`, height: `${box.height}px`, transformOrigin: origin });
+    const dpr = Math.min(3, window.devicePixelRatio || 1);
+    c.width = Math.round(box.width * dpr);
+    c.height = Math.round(box.height * dpr);
+    const g = c.getContext('2d');
     let raf = 0;
+    // The stand-in's own clock: real time from the tap, nudged (a touch faster or slower, never seen) onto the film's
+    // once the film is playing, so the film takes over on the very frame the stand-in shows.
+    let t = 0;
+    let last = performance.now();
+    let gone = Infinity;
+    let sent = false;
+    let caught = 0;
     const step = () => {
-      const w = 1 - easeStep(v.currentTime / PUSH_S);
-      v.style.transform = `translate(${(px - g.x) * w}px, ${(py - g.y) * w}px) scale(${1 + (k - 1) * w})`;
-      if (w > 0) raf = requestAnimationFrame(step);
-      else v.style.transform = '';
+      const at = performance.now();
+      const dt = Math.min(0.1, (at - last) / 1000);
+      last = at;
+      const ready = !v.paused && !v.seeking && v.readyState >= 3;
+      if (!handed.current && ready && !sent && v.currentTime < t - 0.25) {
+        // Sent on once, to just ahead of now (a seek takes a moment).
+        sent = true;
+        v.currentTime = t + 0.2;
+      }
+      const err = !handed.current && ready ? v.currentTime - t : 0;
+      t += dt * (1 + Math.max(-0.3, Math.min(0.3, 2 * err)));
+      if (!handed.current && ready) {
+        // In step for a few frames running, or still apart after a good while: the film takes over.
+        caught = Math.abs(v.currentTime - t) < 0.03 ? caught + 1 : 0;
+        if (caught >= 3 || now() > 9) {
+          handed.current = true;
+          gone = now() + 0.5;
+          setArriving(false);
+        }
+      }
+      const shown = handed.current && ready ? v.currentTime : t;
+      if (g && now() < gone) {
+        g.setTransform(1, 0, 0, 1, 0, 0);
+        g.clearRect(0, 0, c.width, c.height);
+        g.setTransform(dpr * fit.k, 0, 0, dpr * fit.k, dpr * (fit.x - box.left), dpr * (fit.y - box.top));
+        paintOpening(g, f.r, f.vw, f.vh, shown);
+        lay(c, shown);
+      }
+      const moving = handed.current ? lay(v, v.currentTime) : (lay(v, t), true);
+      if (moving || now() < gone) raf = requestAnimationFrame(step);
     };
     step();
-    const shown = () => setArriving(false);
-    v.addEventListener('playing', shown, { once: true });
-    // Never left unseen: if the film can't start (say it is blocked), the player comes in anyway.
-    const late = setTimeout(shown, 4000);
+    // Never left on the stand-in: if the film can't start (say it is blocked), the player comes in anyway.
+    const late = setTimeout(() => {
+      if (handed.current) return;
+      handed.current = true;
+      gone = now() + 0.5;
+      setArriving(false);
+    }, 10000);
     return () => {
       cancelAnimationFrame(raf);
       v.style.transform = '';
+      from.style.visibility = formWas;
       clearTimeout(late);
-      v.removeEventListener('playing', shown);
     };
   }, [from, shape]);
 
@@ -145,6 +201,8 @@ export function TourPlayer({ onClose, from }: { onClose: () => void; from?: HTML
 
   return (
     <div className={arriving ? 'tour tour-arriving' : from && !reduced ? 'tour tour-arrived' : 'tour'} role="dialog" aria-modal="true" aria-label="How it works">
+      {/* Under the film, so the film dissolves in over it at full strength, never through a dimmer mix of the two. */}
+      {laying.current && <canvas ref={standIn} className="tour-standin" aria-hidden="true" />}
       <div className="tour-top">
         {/* Just the house name (Cat, 2026-10-22). No Measure / Choose / Style / Print bar under the film (Cat,
             2026-11-02: it cluttered the demo). */}

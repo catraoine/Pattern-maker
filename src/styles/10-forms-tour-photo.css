@@ -95,13 +95,29 @@
    before oxblood"): the film fills the space under the top bar, no fade as it opens and no box of its own, so the
    push in on the form plays straight from the tap. (The box was only there to stop iPhones painting black bars beside
    the film over the oxblood; on black there is nothing to hide.) */
-/* The opening on play (TourPlayer): the film is laid over the page with its form on the page's form; the player waits
-   unseen until the film plays, the page's words fading, then dissolves in over it (Cat, 2026-11-07). */
+/* The opening on play (TourPlayer): from the tap the player draws the film's opening itself on the stand-in canvas,
+   laid over the page with its form on the page's form, the page's words fading under it; when the film is playing it
+   dissolves in over the stand-in, from the same moment (Cat, 2026-11-08: O1 Gentle Glide, nothing waits on loading). */
 .tour {
+  transition: background-color 0.4s ease-out;
+}
+.tour > * {
   transition: opacity 0.4s ease-out;
 }
 .tour.tour-arriving {
+  background-color: transparent;
+}
+.tour.tour-arriving > :not(.tour-standin) {
   opacity: 0;
+}
+.tour-standin {
+  position: absolute;
+  pointer-events: none;
+}
+/* Under the film: it stays whole while the film dissolves in over it, then goes. */
+.tour:not(.tour-arriving) > .tour-standin {
+  opacity: 0;
+  transition: opacity 0s linear 0.45s;
 }
 .welcome.pulling .welcome-card > :not(.welcome-hero),
 .welcome.pulling .tour-play,

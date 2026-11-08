@@ -165,15 +165,15 @@ if (process.env.TOUR_WELCOME) {
   const rect = await wp.evaluate(() => { const c = document.querySelector('canvas.contour'); const r = c.getBoundingClientRect(); c.style.visibility = 'hidden'; return { x: r.x, y: r.y, w: r.width, h: r.height }; });
   // On a phone the form is drawn as an iPhone's welcome draws it (its canvas 366 x 481.5 on a 390 x 844 screen), taller
   // than this 432 x 768 page's, so the film's form is as big as the one on the page the viewer tapped play on, and the
-  // app's pull in grows into it rather than shrinking (Cat, 2026-11-07: a jump on play). TourPlayer FILM_FORM follows.
+  // app's pull in grows into it rather than shrinking (Cat, 2026-11-07: a jump on play). TourPlayer FILM_RECT follows.
   if (!WIDE) rect.h = rect.w * (481.5 / 366);
   await wp.waitForTimeout(300);
   const words = (await wp.screenshot()).toString('base64');
   await wp.evaluate(async ([words, rect, FW, FH]) => {
     // Loaded by the dev server inside the page, not by Node: held in a variable so the dead-code check doesn't try to
     // resolve it from here.
-    const form = '/src/ui/ContourForm.tsx';
-    const cf = await import(form);
+    const opening = '/src/ui/filmOpening.ts';
+    const op = await import(opening);
     const img = new Image();
     img.src = `data:image/png;base64,${words}`;
     await img.decode();
@@ -187,35 +187,21 @@ if (process.env.TOUR_WELCOME) {
     const k = FW / innerWidth;
     const ease = (x) => { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); };
     const cx0 = rect.x + rect.w / 2, cy0 = rect.y + rect.h / 2;
-    // The words fade from 1 s to 1.9 s with the form still at rest, exactly as the welcome leaves it; the film starts
-    // there (TourPlayer lays its first frame over the page's own form). Then one push: 1.35 times over 3 s, eased in
-    // and out, the form drawn to the middle of the screen as it comes (Cat, 2026-11-07: start from the exact size of
-    // the welcome and zoom in consistently). The turn eases in from a standstill at 2.9 s to about 12 degrees a second.
+    // O1 Gentle Glide (Cat, 2026-11-08): the form moves from the first frame, the push and the turn as one move
+    // (filmOpening.ts, which the app also draws from until the film is ready), the page's words fading as it goes,
+    // as fast as the page's own (.welcome.pulling).
     window.__welcomeFrame = (t) => {
-      const p = ease((t - 1.9) / 3);
-      const z = 1 + 0.35 * p;
-      const cx = cx0 + (innerWidth / 2 - cx0) * p, cy = cy0 + (innerHeight / 2 - cy0) * p;
-      const rate = (12 * Math.PI) / 180, ramp = 1.6, tt = Math.max(0, t - 2.9);
-      const phi = rate * (tt < ramp ? (tt * tt) / (2 * ramp) : tt - ramp / 2);
       g.setTransform(1, 0, 0, 1, 0, 0);
       g.globalAlpha = 1;
       g.globalCompositeOperation = 'source-over';
       g.fillStyle = '#000000';
       g.fillRect(0, 0, FW, FH);
-      g.save();
-      g.setTransform(k * z, 0, 0, k * z, k * (cx - (z * rect.w) / 2), k * (cy - (z * rect.h) / 2));
-      g.beginPath(); g.rect(0, 0, rect.w, rect.h); g.clip();
-      const { w, h } = rect;
-      const S = Math.min(w * 0.82, h * 0.46), wy = h * 0.5;
-      g.strokeStyle = '#d9c49b';
-      cf.paintFigure(g, S, w / 2, (y) => wy + (y - 0.1) * S, Math.max(0.7, S / 252) * 1.2, 0, false, phi);
-      g.globalAlpha = 1;
-      const fade = g.createLinearGradient(0, h * cf.FADE_FROM, 0, h);
-      fade.addColorStop(0, 'rgba(0,0,0,0)'); fade.addColorStop(1, 'rgba(0,0,0,1)'); // the page's ground, so the fade leaves no band under the form
-      g.fillStyle = fade;
-      g.fillRect(0, h * cf.FADE_FROM, w, h * (1 - cf.FADE_FROM) + 1);
-      g.restore();
-      const ua = 1 - ease((t - 1) / 0.9);
+      g.setTransform(k, 0, 0, k, 0, 0);
+      op.paintOpening(g, rect, innerWidth, innerHeight, t);
+      g.setTransform(1, 0, 0, 1, 0, 0);
+      const { p, z } = op.openingAt(t);
+      const cx = cx0 + (innerWidth / 2 - cx0) * p, cy = cy0 + (innerHeight / 2 - cy0) * p;
+      const ua = 1 - ease(t / op.OPENING.wordsS);
       if (ua > 0) {
         g.globalAlpha = ua;
         g.globalCompositeOperation = 'screen';
@@ -304,11 +290,11 @@ await wait(900);
 await start();
 await wait(1600);
 // Clicked straight on the button: Playwright's click waits for the screen to settle, and the form never stops moving.
-await main.getByRole('radiogroup', { name: 'What would you like to make?' }).getByRole('radio', { name: /^Dress\b/ }).evaluate((el) => el.click());
+await main.getByRole('group', { name: 'What would you like to make?' }).getByRole('button', { name: /^Dress\b/ }).evaluate((el) => el.click());
 await wait(1800);
 await stop('choose');
 await chooseOnly.evaluate((el) => el.remove());
-await main.getByRole('button', { name: /^(Next: \d+ dress measurements?|Style my dress)$/ }).click();
+await wait(800);
 await fillAll();
 await main.getByRole('heading', { level: 1, name: 'Style your dress' }).waitFor();
 await wait(1500);
@@ -694,7 +680,7 @@ await tap(patternView, 0);
 await main.getByRole('button', { name: 'Move points' }).waitFor({ timeout: 20000 });
 await wait(3000);
 await stop('pattern');
-await tap(main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Garment/ }), 800);
+await tap(main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: /^Front/ }).first(), 800);
 
 // round: turning all round on the form, filling the screen and drawing closer as it turns (Cat, 2026-10-22: start
 // close, then in and in, cinematic). The canvas is lifted out at its closest size, so it is drawn sharp, and shown
@@ -734,14 +720,20 @@ const zoomTo = (from, to, ms, delay = 0) => p.evaluate(([from, to, ms, K, delay]
 // Black behind the canvas, so the page doesn't show round a dress drawn smaller than the screen.
 await p.evaluate(() => { const d = document.createElement('div'); d.id = 'round-ground'; Object.assign(d.style, { position: 'fixed', inset: 0, background: '#000000', zIndex: 9998 }); document.body.appendChild(d); });
 // On a computer the screen is short, so the whole dress can be drawn larger than on a phone and still fit.
-const [ROUND_FROM, ROUND_TO] = WIDE ? [0.66, 0.85] : [0.58, 0.75];
+const [ROUND_FROM, ROUND_TO] = WIDE ? [0.66, 0.85] : process.env.ROUND_Z ? process.env.ROUND_Z.split(',').map(Number) : [0.58, 0.75];
 await zoomTo(ROUND_FROM, ROUND_FROM, 0);
 await wait(600);
+if (process.env.SAVE_DESIGN) {
+  const all = await p.evaluate(() => Object.fromEntries(Object.keys(localStorage).map((k) => [k, localStorage.getItem(k)])));
+  (await import('node:fs')).writeFileSync(process.env.SAVE_DESIGN, JSON.stringify(all, null, 2));
+  process.exit(0);
+}
 if (process.env.TOUR_ROUND_STILLS) {
   // Stills of the All round at a few sizes, to try a smaller, whole-figure framing (Cat, 2026-11-07).
   for (const k of process.env.TOUR_ROUND_STILLS.split(',').map(Number)) {
     await zoomTo(k, k, 0);
-    for (let i = 0; i < 5; i++) { await wait(2600); await p.screenshot({ path: `${OUT}/rs-${k}-${i}.png` }); }
+    await wait(1500);
+    for (let i = 0; i < 40; i++) { await wait(350); await p.screenshot({ path: `${OUT}/rs-${k}-${String(i).padStart(2, '0')}.png` }); }
   }
   process.exit(0);
 }
@@ -754,7 +746,9 @@ if (process.env.TOUR_PROBE5) {
   process.exit(0);
 }
 // Still a moment, then in and in as it turns, frame by frame (see stepped).
-await stepped('round', 9500, () => zoomTo(ROUND_FROM, ROUND_TO, 8500, 400));
+const RLEN = Number(process.env.ROUND_MS ?? 9500);
+await stepped('round', RLEN, () => zoomTo(ROUND_FROM, ROUND_TO, RLEN - 1000, 400));
+if (process.env.ROUND_ONLY) process.exit(0);
 // Put the canvas back where it was.
 await p.evaluate(() => {
   const c = document.querySelector('.all-round-canvas');
