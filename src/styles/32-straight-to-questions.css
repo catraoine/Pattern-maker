@@ -17,7 +17,7 @@
     height: 36px;
   }
   .style-layout .screen-head .drop.garment-drop .drop-button > span {
-    font-size: 22px;
+    font-size: min(22px, 5vw); /* "YOUR TROUSERS" and the tag share one line even at 360 px */
     line-height: 1;
   }
   .main:has(.style-layout) .style-layout > .example-tag {
@@ -34,7 +34,7 @@
     z-index: 5;
   }
   .style-layout > .example-tag span {
-    font-size: 11px;
+    font-size: min(11px, 2.8vw);
   }
   /* "Example body": the lead words are only read out here. */
   .style-layout > .example-tag .example-tag-lead {
