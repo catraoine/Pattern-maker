@@ -173,8 +173,8 @@ function tapeAcross(t) {
   return out;
 }
 const MARKS = WIDE
-  ? { fabric: 1.4, enlarge: 5.0, draw: 6.9, hem: 9.4, side: 14.5, done: 18.4 }
-  : { fabric: 1.4, enlarge: 4.0, draw: 4.0, hem: 6.4, side: 11.6, done: 15.5 };
+  ? { fabric: 1.4, enlarge: 5.0, draw: 6.9, hem: 9.3, side: 14.3, done: 18.0 }
+  : { fabric: 1.4, enlarge: 3.9, draw: 3.9, hem: 6.3, side: 11.3, done: 15.2 };
 // Played at 1.4 times its speed, however long the take (Cat, 2026-11-01: less time on the dress page, no enlarge).
 // Ends as Done is tapped, on the drawing: Shop the fabric follows, not the pattern sheet (Cat, 2026-11-02).
 const JOURNEY = { from: 0.6, to: MARKS.done - 0.2, dur: Math.round(((MARKS.done + 0.3) / 1.4) * 10) / 10 };
