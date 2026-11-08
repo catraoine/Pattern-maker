@@ -151,6 +151,19 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
       go(g);
     }, TAP_BLINK_MS);
   };
+  // "Your form": a tap is the choice, like the garments. The form lights for a blink, then back to where you came from.
+  const tapForm = (k: FormKind) => {
+    if (going.current) return;
+    going.current = true;
+    setChosen(k);
+    window.setTimeout(() => {
+      going.current = false;
+      onForm?.(k);
+      // Changed from the measurements list: back to it, where anything the new form needs shows as Add.
+      if (start?.kind === 'form' && canGoBack()) goBack();
+      else setPage({ kind: 'base', at: firstToTake() });
+    }, TAP_BLINK_MS);
+  };
   const ask = async () => {
     setAsking(true);
     setIdeaError(undefined);
@@ -227,26 +240,14 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
         <p className="who-q" id="form-q">
           Which form should we draft on?
         </p>
-        <div className="form-pick" role="radiogroup" aria-labelledby="form-q">
+        <div className="form-pick" role="group" aria-labelledby="form-q">
           {(['womenswear', 'menswear'] as const).map((k) => (
-            <button key={k} type="button" role="radio" aria-checked={chosen === k} className={chosen === k ? 'on' : ''} onClick={() => setChosen(k)}>
+            <button key={k} type="button" aria-current={chosen === k || undefined} className={chosen === k ? 'on' : ''} onClick={() => tapForm(k)}>
               <FormPicture kind={k} />
               <span>{k === 'womenswear' ? 'Womenswear' : 'Menswear'}</span>
             </button>
           ))}
         </div>
-        <button
-          type="button"
-          className="primary"
-          onClick={() => {
-            onForm?.(chosen);
-            // Changed from the measurements list: back to it, where anything the new form needs shows as Add.
-            if (start?.kind === 'form' && canGoBack()) goBack();
-            else setPage({ kind: 'base', at: firstToTake() });
-          }}
-        >
-          Continue
-        </button>
       </Shell>
     );
 

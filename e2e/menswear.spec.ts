@@ -30,8 +30,8 @@ test('menswear form: chest, no bust measurements, a bodice with no bust dart', a
   const list = main.getByRole('list', { name: 'Tap one to measure it again' });
   await list.getByRole('button', { name: /^Form\s*Menswear$/ }).click();
   await expect(main.getByRole('heading', { name: 'Your form' })).toBeVisible();
-  await main.getByRole('radio', { name: 'Womenswear', exact: true }).click();
-  await main.getByRole('button', { name: 'Continue', exact: true }).click();
+  // A tap on the form is the choice: straight back to the list, no Continue.
+  await main.getByRole('button', { name: 'Womenswear', exact: true }).click();
   await expect(list.getByRole('button', { name: /^Form\s*Womenswear$/ })).toBeVisible();
   await expect(list.getByRole('button', { name: /^High bust\s*Add$/ })).toBeVisible();
   await expect(list).toContainText('Full bust');
