@@ -340,7 +340,7 @@ export function pressCollar(panels: Panel[], res: Float64Array | number[], relax
 
 /** Closes the seams within and between a jacket's front and back pieces after they've been moved one point at a time:
  *  each side meets the other halfway. Moves `res`. */
-export function closeBodySeams(panels: Panel[], res: Float64Array | number[], seams: { i: number; j: number; k: number; t: number }[]): void {
+function closeBodySeams(panels: Panel[], res: Float64Array | number[], seams: { i: number; j: number; k: number; t: number }[]): void {
   const body = new Set<number>();
   for (const p of panels) if (!p.hidden && (p.role === 'front' || p.role === 'back')) for (let i = 0; i < p.mesh.pts.length; i++) body.add(p.base + i);
   for (let it = 0; it < 4; it++)
