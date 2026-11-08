@@ -4016,16 +4016,17 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
   // covers (its mirror, as far the other side of the centre line as it is cut past it), a cloth's thickness out. Settled
   // on its own, it curled forward off the other front by a cm and more or was drawn in under the centre line, and the
   // front edge between the break and the top button bowed in or stood out: Cat saw it as a zigzag between a
-  // double-breasted front's buttons, Nov 8. (Below the break, or a little above the top button on a front without a
-  // lapel; coming in over 2 cm there, and over the first cm past the centre line.)
+  // double-breasted front's buttons, Nov 8. (Below the break, coming in over 2 cm there.)
   if (o.pinFront?.length && !knob('__noLayExt')) {
-    const topPin = Math.min(...o.pinFront.map((f) => f.y - f.span));
     // (Three times over: a point of the extension next to the centre line is laid on cloth whose triangles it shares.)
     for (let pass = 0; pass < 3; pass++) for (const p of B.panels) {
       if (p.role !== 'front' || p.hidden) continue;
       const pts = p.mesh.pts;
       const lapelY = pts.reduce((m, q, i) => (p.turned[i] ? Math.max(m, q.y) : m), -Infinity);
-      const from = lapelY > -Infinity ? lapelY : topPin - 3;
+      // (A lapelled front only: on one buttoned to the neck, a stand or funnel collar's, laid so its front folded into
+      // a fin at the centre and its collar was drawn long; checked over every jacket and coat option.)
+      if (lapelY === -Infinity) continue;
+      const from = lapelY;
       const moves: [number, V3][] = [];
       pts.forEach((q, i) => {
         if (p.turned[i] || q.x >= 0) return;
