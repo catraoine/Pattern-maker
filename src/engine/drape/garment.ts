@@ -23,6 +23,7 @@ import { frontPins, tapeRollLines } from './rollLine';
 import { cropHold } from './cropHold';
 import { flutterPlace } from './flutter';
 import { closeBalloonHem } from './balloonHem';
+import { capeForDrape } from './cape';
 import { madeUpSkirt } from '../skirtPockets';
 
 type V3 = [number, number, number];
@@ -5955,6 +5956,7 @@ function poloRoll(pc: Piece): [P, P] | undefined {
 export function collarsOf(pieces: Piece[], jacketRoll?: [P, P]): CollarPart[] {
   return pieces
     .filter((pc) => pc.kind === 'collar' || pc.meta.hood)
+    .map((pc) => (knob('__noCapeSew') ? pc : capeForDrape(pc)))
     .map((pc) => {
       const cl = pc.lines[0]?.points();
       const hasStand = pc.outline.tags.includes('stand');
