@@ -160,11 +160,12 @@ export function straightenCollarEdge(collar: Cloth, o: CollarOnFront, res: Float
     res[I + 1] += (dy / s) * f;
   });
   // (The lower edge lies all close to the gorge seam, where the fall's easing fades out, so its points are put on
-  // their line outright; the cloth inside eases to them when the caller relaxes it.)
+  // their line outright.)
   for (const m of lowMoves) {
     res[m.I] += m.d[0];
     res[m.I + 1] += m.d[1];
   }
-  // (The edge points it put on the line, for the caller to hold while the cloth inside eases back to its cut.)
-  return [...edge.slice(0, a + 1), ...(lowMoves.length ? low.slice(1, -1) : [])];
+  // (The edge points it put on the line, for the caller to hold while the cloth inside eases back to its cut. The lower
+  // edge is left to ease with it: held too, a thick leather collar's short end was stretched there, 2026-11-07.)
+  return edge.slice(0, a + 1);
 }

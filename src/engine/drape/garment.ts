@@ -311,6 +311,9 @@ const STIFF_BEND_MAX = 1.4;
 /** A jacket or coat in a crisp cloth holds its own shape: a boxy vest stands off the body, its seams straight, not
  *  draped onto it (Cat, 2026-11-07). Any stiffer and a double-breasted front's wide overlap stretched. */
 const STIFF_BEND = 1;
+/** How far off the body a stiff jacket's cloth lies, at most, in cm: a leather's 0.6 left a high lapel's laid collar
+ *  rippled along its edges (2026-11-08), where at a wool's 0.5 it lies flat and straight. */
+const STIFF_THICK = 0.5;
 
 /** A full circle skirt (more than a half circle round its waist): its hem's fullness starts in flutes clear of the
  *  body, and a fluid cloth's softer bend and harder fall folded them through each other into fins (39 times the limit
@@ -6402,7 +6405,7 @@ export function drapeOuter(sp: Space, d: OuterDraft, o: DrapeOptions = {}): Drap
     { sleeve: shell.filter((pc) => /sleeve/i.test(pc.name)), collars: collarsOf(d.pieces).map((c) => ((d as { popped?: boolean }).popped ? { ...c, roll: undefined } : c)) },
     // A lapel that breaks high (a coat or jacket buttoned over the chest) is pressed onto the front; a plunging one,
     // breaking near the waist, is left to hang (pressing drags its long front down).
-    { pad: d.pads, stiff: !!o.crisp || !!o.stiffBend, lieLapel: !!d.lapel && base.front.waistCentre.y - d.lapel.breakPt.y > 10, ...o, buttons: { y: d.buttons.at, r: d.buttons.sizeCm / 2, waistY: base.front.waistCentre.y }, ...(o.crisp ? { boxy: false, bendK: STIFF_BEND } : o.stiffBend ? { bendK: Math.min(STIFF_BEND, o.stiffBend) } : {}), pinFront: knob("__pinAll") ? [{ y: 52, span: 12 }] : knob('__oldPins') || d.hood ? d.buttons.at.map((y) => ({ y, span: 2 })) : frontPins(d.buttons.at, shell) },
+    { pad: d.pads, stiff: !!o.crisp || !!o.stiffBend, lieLapel: !!d.lapel && base.front.waistCentre.y - d.lapel.breakPt.y > 10, ...o, buttons: { y: d.buttons.at, r: d.buttons.sizeCm / 2, waistY: base.front.waistCentre.y }, ...(o.crisp ? { boxy: false, bendK: STIFF_BEND, thick: Math.min(o.thick ?? STIFF_THICK, STIFF_THICK) } : o.stiffBend ? { bendK: Math.min(STIFF_BEND, o.stiffBend), thick: Math.min(o.thick ?? STIFF_THICK, STIFF_THICK) } : {}), pinFront: knob("__pinAll") ? [{ y: 52, span: 12 }] : knob('__oldPins') || d.hood ? d.buttons.at.map((y) => ({ y, span: 2 })) : frontPins(d.buttons.at, shell) },
   );
   if (cs)
     for (const pnl of out.panels) {
