@@ -454,7 +454,7 @@ function projection({ w, h, S, cx, top }: Frame) {
  * edge or a fold reads as cloth with a body rather than a sheet of paper. `t` is in the scene's units.
  */
 const knobs = () => (globalThis as unknown as { __drapeKnobs?: Record<string, number> }).__drapeKnobs ?? {};
-function thickened(g: THREE.BufferGeometry, idx: number[], t: number, sewn: (i: number) => boolean): THREE.BufferGeometry[] {
+function thickened(g: THREE.BufferGeometry, idx: number[], t: number, sewn: (i: number) => boolean, withBack = true): THREE.BufferGeometry[] {
   const pos = g.getAttribute('position').array as Float32Array;
   const nrm = g.getAttribute('normal').array as Float32Array;
   const uv = g.getAttribute('uv').array as Float32Array;
@@ -479,7 +479,7 @@ function thickened(g: THREE.BufferGeometry, idx: number[], t: number, sewn: (i: 
   back.setAttribute('shade', new THREE.BufferAttribute(shade, 1));
   if (col) back.setAttribute('color', new THREE.BufferAttribute(col, 3));
   back.setIndex(bi);
-  if (!knobs().__noBack) out.push(back);
+  if (withBack && !knobs().__noBack) out.push(back);
   // The free edges: those of one triangle only.
   const seen = new Map<number, number>();
   const edges: [number, number, number][] = [];
@@ -858,7 +858,9 @@ function buildDraped(
         const i0 = p.base;
         const a = P(i0, e), b = P(i0, e, 1);
         const unit = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
-        for (const tg of thickened(g, idx, cm * unit, (i) => onSeam.has(p.base + i) || !onEdge.has(p.base + i))) add(tg, mat, 1, p.role === 'sleeve' ? 'sleeve' : 'cloth', p.role === 'sleeve' ? e : 0);
+        // (No face beneath a tailored collar: folded hard at its roll line, the face a thickness in from the fall came
+        // out through the stand, and from beside the neck the collar read as crumpled, Nov 8. Its edges keep their rim.)
+        for (const tg of thickened(g, idx, cm * unit, (i) => onSeam.has(p.base + i) || !onEdge.has(p.base + i), !(p.collar && !kn.__collarBack))) add(tg, mat, 1, p.role === 'sleeve' ? 'sleeve' : 'cloth', p.role === 'sleeve' ? e : 0);
       }
     }
   }
