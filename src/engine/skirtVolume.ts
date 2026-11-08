@@ -202,7 +202,7 @@ const PANEL_MAX = 62;
 export function addVolume(m: SkirtMeasurements, s: SkirtStyle, draft: SkirtDraft, redraft: (st: SkirtStyle) => SkirtDraft): SkirtDraft {
   const kind = volumeOf(s);
   if (kind === 'none' || draft.circleShare || draft.pieces.length !== 2) return draft;
-  if (kind === 'knife' || kind === 'box') return pleated(m, draft, kind);
+  if (kind === 'knife' || kind === 'box') return pleated(m, draft, kind, kind === 'box' && s.pleatWidth === 'wide' ? WIDE_BOX_FACE : BOX_FACE);
   if (kind === 'inverted') return inverted(m, draft);
   if (kind === 'godets') return withGodets(m, s, draft, godetCount(s));
   return flounced(m, s, draft, redraft, kind);
@@ -341,18 +341,26 @@ interface Layout {
   sideHalf: number;
 }
 
-/** Faces about 5 cm wide for knife pleats and about 7.5 cm for box pleats, fitted evenly to the hip:
+/** A box pleat's face at the hip, and a wide one's: about 12 cm, as on Cat's SS27 Look 02 skirt picture, where ten
+ *  wide pleats go round in place of fourteen (2026-11-08). */
+const BOX_FACE = 7.5;
+const WIDE_BOX_FACE = 12;
+const WIDE_BOX_DEPTH = 3;
+
+/** Faces about 5 cm wide for knife pleats and about 7.5 cm (or `boxFace`) for box pleats, fitted evenly to the hip:
  * half a face either side of the centre front and back, a pleat at each side seam. */
-function layoutFor(kind: 'knife' | 'box', hipQ: number): Layout {
+function layoutFor(kind: 'knife' | 'box', hipQ: number, boxFace = BOX_FACE): Layout {
   if (kind === 'knife') {
     const n = Math.max(2, Math.round(hipQ / 5 - 0.5));
     const face = hipQ / (n + 0.5);
     const depth = clamp(0.6 * face, 2.5, 4);
     return { kind, n, face, depth, under: 2 * depth, sideHalf: depth };
   }
-  const n = Math.max(1, Math.round(hipQ / 7.5 - 0.5));
+  const n = Math.max(1, Math.round(hipQ / boxFace - 0.5));
   const face = hipQ / (n + 0.5);
-  const depth = clamp(0.35 * face, 2.5, 4);
+  // (A wide pleat's folds go no deeper than 3 cm: at the usual 4 its deep side pleats sawtoothed down a knee-length
+  // A-line's side seams on the form, 2026-11-08.)
+  const depth = clamp(0.35 * face, 2.5, boxFace > BOX_FACE ? WIDE_BOX_DEPTH : 4);
   return { kind, n, face, depth, under: 4 * depth, sideHalf: 2 * depth };
 }
 
@@ -479,11 +487,11 @@ function spread(pc: Piece, L: Layout, hipY: number, hipQ: number, isFront: boole
   return { top, bottom, side: sideP.map((q) => add(q, V)), pleats, sidePleat, worn, width: Math.max(...sideP.map((q) => q.x + V.x)) };
 }
 
-function pleated(m: SkirtMeasurements, draft: SkirtDraft, kind: 'knife' | 'box'): SkirtDraft {
+function pleated(m: SkirtMeasurements, draft: SkirtDraft, kind: 'knife' | 'box', boxFace = BOX_FACE): SkirtDraft {
   const [bf, bb] = draft.pieces;
   const hipY = hipOf(bf, m);
   const hipQ = draft.finishedHip / 4;
-  const L = layoutFor(kind, hipQ);
+  const L = layoutFor(kind, hipQ, boxFace);
   const sa = bf.seamAllowance;
   // The waist with the darts left out is longer than the waist they close to; the difference goes into
   // the pleats, a share each. Walk it until the waist seam matches the block's to the millimetre.

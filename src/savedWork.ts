@@ -34,6 +34,8 @@ export interface Choices {
   hem?: HemShape;
   /** Pleats, godets, or a hem flounce or tiers, one at a time. Older saves have none. */
   pleats?: Pleats;
+  /** Wide box pleats (In testing, see engine/skirt.ts). Older saves have the usual ones. */
+  pleatWidth?: 'wide';
   godets?: GodetCount;
   flounce?: Flounce;
   /** Ruched side seams (engine/ruche.ts), in place of pleats, godets or a flounce. In testing. */

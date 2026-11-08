@@ -67,6 +67,9 @@ export interface SkirtStyle {
   /** Fullness added to a straight, pencil or A-line skirt: pleats, godets, or a hem flounce or tiers.
    * One at a time; older saves have none (see skirtVolume.ts). */
   pleats?: Pleats;
+  /** Box pleats about 12 cm across rather than 7.5: fewer and wider, as on Cat's SS27 Look 02 skirt picture (In testing,
+   *  2026-11-08). Older saves have the usual ones. */
+  pleatWidth?: 'wide';
   godets?: GodetCount;
   flounce?: Flounce;
   /** A high-low or diagonal hem, drafted in place of a drawn one. Older saves have none. */

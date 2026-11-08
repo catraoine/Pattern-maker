@@ -351,3 +351,17 @@ describe('skirt volume', () => {
     expect(failures.slice(0, 10)).toEqual([]);
   });
 });
+
+describe('wide box pleats (Look 02 skirt, In testing)', () => {
+  it('go round fewer and wider, the waist and hip as the usual ones', () => {
+    const usual = draftSkirt(m, { silhouette: 'a_line', length: 'above_knee', pleats: 'box', flareCm: 40 });
+    const wide = draftSkirt(m, { silhouette: 'a_line', length: 'above_knee', pleats: 'box', pleatWidth: 'wide', flareCm: 40 });
+    expect(usual.volume?.pleats?.count).toBe(14);
+    expect(wide.volume?.pleats?.count).toBe(10);
+    expect(wide.volume!.pleats!.face).toBeGreaterThan(1.3 * usual.volume!.pleats!.face);
+    expect(wide.finishedHip).toBe(usual.finishedHip);
+    expect(checkPattern(wide.pieces, { finishedWaist: wide.finishedWaist }).filter((c) => !c.ok)).toEqual([]);
+    // Knife pleats keep their own width.
+    expect(draftSkirt(m, { silhouette: 'a_line', length: 'knee', pleats: 'knife', pleatWidth: 'wide' }).volume?.pleats?.count).toBe(draftSkirt(m, { silhouette: 'a_line', length: 'knee', pleats: 'knife' }).volume?.pleats?.count);
+  });
+});
