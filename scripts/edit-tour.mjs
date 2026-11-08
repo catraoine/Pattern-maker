@@ -99,7 +99,7 @@ const eased = (stops, i) => {
   return e;
 };
 // notes: captions, each [picture, when it fades in, when it fades out], so a first-time viewer knows what each tap does.
-async function piece({ shot, src, slide = 0, still, from = 0, dur, speed = 1, zoom = [1, 1], at = [0.5, 0.5], cam, frame, tint, fadeIn = 0, fadeOut = 0, over, overIn = 0.4, overAt = 0, overs = [], notes = [], cards = [], strip, reverse = false, lift, drop }) {
+async function piece({ shot, src, slide = 0, still, from = 0, dur, speed = 1, zoom = [1, 1], at = [0.5, 0.5], cam, frame, tint, fadeIn = 0, fadeOut = 0, over, overIn = 0.4, overAt = 0, overs = [], notes = [], cards = [], strip, reverse = false, lift, drop, darken }) {
   const edge = frame ? await mask(frame) : undefined;
   const out = join(work, `p${String(k++).padStart(3, '0')}.mp4`);
   const frames = Math.round(dur * FPS);
@@ -154,6 +154,8 @@ async function piece({ shot, src, slide = 0, still, from = 0, dur, speed = 1, zo
     const si = firstCard + cards.length;
     v += `[sb];[${si}:v]format=rgba,fade=t=in:st=${strip.on ?? 0.2}:d=0.6:alpha=1[sp];[sb][sp]overlay=x='${strip.x0}+(${strip.x1 - strip.x0})*t/${dur}':y=${strip.y}:shortest=1`;
   }
+  // darken: [when it is black, over how long], in piece time: eases a hard cut to black in the take into a fade.
+  if (darken) v += `,eq=eval=frame:brightness='-clip((t-${(darken[0] - darken[1]).toFixed(3)})/${darken[1]},0,1)*lt(t,${(darken[0] + 0.05).toFixed(3)})'`;
   if (fadeIn) v += `,fade=t=in:st=0:d=${fadeIn}`;
   if (fadeOut) v += `,fade=t=out:st=${(dur - fadeOut).toFixed(3)}:d=${fadeOut}`;
   v += ',format=yuv420p[v]';
@@ -172,9 +174,10 @@ function tapeAcross(t) {
   execFileSync('ffmpeg', ['-v', 'error', '-y', '-ss', String(t), '-i', join(SHOTS, 'tape.mp4'), '-frames:v', '1', out]);
   return out;
 }
+// From the "style X" marks record-tour-shots.mjs prints (release W, the calico build, 2026-11-08).
 const MARKS = WIDE
-  ? { fabric: 1.4, enlarge: 5.0, draw: 6.9, hem: 9.3, side: 14.3, done: 18.0 }
-  : { fabric: 1.4, enlarge: 3.9, draw: 3.9, hem: 6.3, side: 11.3, done: 15.2 };
+  ? { calico: 1.6, questions: 13.6, cloth: 15.2, enlarge: 18.1, draw: 20.1, hem: 22.5, side: 28.1, done: 28.1 }
+  : { calico: 1.6, questions: 11.5, cloth: 12.4, enlarge: 15.3, draw: 15.3, hem: 17.7, side: 23.2, done: 23.2 };
 // Played at 1.4 times its speed, however long the take (Cat, 2026-11-01: less time on the dress page, no enlarge).
 // Ends as Done is tapped, on the drawing: Shop the fabric follows, not the pattern sheet (Cat, 2026-11-02).
 const JOURNEY = { from: 0.6, to: MARKS.done - 0.2, dur: Math.round(((MARKS.done + 0.3) / 1.4) * 10) / 10 };
@@ -191,7 +194,16 @@ const STYLE_CAM = (WIDE
 // "Drafted to your body".
 // Except over just the form as it is drawn on (Cat's W3, 2026-11-07): "Draw on your form." from the draw, and "The
 // pattern follows." fading in under it as the hem is drawn. Each [lines, from, to] in shot time.
-const STYLE_NOTES = [];
+// The calico build (Cat, 2026-11-08): "One question at a time." as the questions are answered, then "Then the cloth."
+// as the python drops in. Each [line, from, to, where] in shot time.
+// On a phone the take goes to black after the last question, sometimes with its dip's fade lost in the cut: the
+// film eases into the black itself (DIP_AT: shot time the take is black, release X take 11.57 s).
+const DIP_AT = WIDE ? 0 : Number(process.env.DIP_AT ?? 11.57);
+// On a computer there is no dip between them, so one dark band lies under both lines the whole way (an entry with no
+// words) and the lines themselves hand over: the app's own header never shows through between.
+const STYLE_NOTES = WIDE
+  ? [['', MARKS.calico + 0.4, MARKS.enlarge - 0.4, 'low', true], ['One question at a time.', MARKS.calico + 0.4, MARKS.cloth + 0.3, 'low', false], ['Then the cloth.', MARKS.cloth + 0.3, MARKS.enlarge - 0.4, 'low', false]]
+  : [['One question at a time.', MARKS.calico + 0.4, MARKS.questions - 0.1, 'low'], ['Then the cloth.', MARKS.cloth + 0.3, MARKS.enlarge - 0.4, 'low']];
 const DRAW_NOTES = [[['Draw on your form.'], MARKS.draw + 0.9, MARKS.done - 1.6], [['Draw on your form.', 'The pattern follows.'], MARKS.hem + 2.5, MARKS.done - 1.6]];
 const note2 = (lines) => words(WIDE
   ? `<div class="f" style="padding:44px 0 0 96px"><h1 class="n" style="font-size:34px">${lines.join('<br>')}</h1></div>`
@@ -215,20 +227,21 @@ async function clothCard() {
 const styleJourney = async () => {
   // One at a time: the words are all drawn on the one page.
   const notes = [];
-  for (const [line, on, off, where] of STYLE_NOTES) notes.push([await note(line, where), atOut(on), atOut(off)]);
+  for (const [line, on, off, where, shade = true] of STYLE_NOTES) notes.push([await note(line, where, shade), atOut(on), atOut(off)]);
   if (process.env.TOUR_DRAW_FOCUS !== '0') for (const [lines, on, off] of DRAW_NOTES) notes.push([await note2(lines), atOut(on), atOut(off)]);
   // The app now draws its own palette card beside the form (Release 53), so the film's card is off unless CARD=1.
   const cards = process.env.CARD !== '1' ? [] : [[await clothCard(), atOut(CARD.at), atOut(CARD_OFF)]];
-  return piece({ shot: 'style', from: JOURNEY.from, dur: JOURNEY.dur, speed: (JOURNEY.to - JOURNEY.from) / JOURNEY.dur, cam: STYLE_CAM, fadeIn: 0.5, notes, cards, ...(LIFT && { lift: [LIFT, JOURNEY.dur - 2.4, 1.6] }) });
+  return piece({ shot: 'style', from: JOURNEY.from, dur: JOURNEY.dur, speed: (JOURNEY.to - JOURNEY.from) / JOURNEY.dur, cam: STYLE_CAM, fadeIn: 0.5, notes, cards, ...(DIP_AT && { darken: [atOut(DIP_AT), 0.3] }), ...(LIFT && { lift: [LIFT, JOURNEY.dur - 2.4, 1.6] }) });
 };
 // Cat (2026-10-22): the cream pattern paper was too bright after the black pages; a deeper champagne here.
 // Wide: from the moment the pattern is up, slowed a touch to fill its time (Cat, 2026-10-22: the drawing flashed before it).
 // On a phone the sheet rises the last part of the journey, to sit just under 'Your pattern, in seconds.'
 const LIFT = WIDE ? 0 : 0.065;
 const PATTERN = WIDE
-  ? { from: 1.1, speed: 0.8, zoom: [1.6, 1.66], at: [0.42, 0.72], frame: [0.1, 1.05, 0.1, 0.92, 0.002], tint: [0.84, 0.78, 0.66] }
-  // Drawn in close so the pieces fill the screen, the steps under the sheet masked off (Cat, 2026-10-29).
-  : { from: 1.1, speed: 0.75, zoom: [1.42, 1.46], at: [0.5, 0.473], frame: [0.215, 0.9, -1, 2, 0.002], tint: [0.84, 0.78, 0.66] };
+  ? { from: 1.1, dur: 3.0, speed: 0.8, zoom: [1.33, 1.37], at: [0.37, 0.545], frame: [0.125, 0.885, 0.075, 0.9, 0.002], tint: [0.84, 0.78, 0.66] }
+  // Drawn in close so the pieces fill the screen, the steps under the sheet masked off (Cat, 2026-10-29), right up to
+  // the sheet's foot, so no view switch or step bar shows under it (Cat, 2026-11-08: cut-off app text).
+  : { from: 1.1, dur: 3.2, speed: 0.75, zoom: [1.42, 1.46], at: [0.5, 0.473], frame: [0.215, 0.7, -1, 2, 0.002], tint: [0.84, 0.78, 0.66] };
 // On a phone the whole sheet of pages shows, opened under See the pages, the words round it in black (Cat, 2026-10-24:
 // 1.6 was too close).
 // On a phone the sheet of pages is thin champagne lines on black; lifted so they read (walkthrough, 2026-10-24).
@@ -299,12 +312,12 @@ const PROJECTOR = WIDE ? { from: 8.6, dur: 4.2, zoom: [1.3, 1.34], at: [0.5, 0.4
 // P2 Or Start From a Photo (Cat, 2026-10-24): after the garments, a photo of a dress (made for the film, no person in
 // it), briefly, its words the same size and place as the Style steps'. No drafted dress after it (Cat: skip that).
 const PHOTO = readFileSync(new URL('./tour/photo-dress.jpg', import.meta.url)).toString('base64');
-async function photoMoment() {
+async function photoMoment(line = 'Or upload a photo.') {
   // P2 Champagne Polaroid (Cat picked, 2026-10-30): the photo in a straight champagne frame, 'That dress' on its strip.
   const k = WIDE ? 1.25 : 1;
   const pic = await words(`<div class="f" style="display:flex;align-items:center;justify-content:center;padding-top:${WIDE ? 70 : 60}px"><div style="background:#efe4cc;padding:${18 * k}px ${18 * k}px ${76 * k}px;box-shadow:0 12px 28px rgba(0,0,0,.6);position:relative"><img src="data:image/jpeg;base64,${PHOTO}" style="display:block;width:${304 * k}px;height:${360 * k}px;object-fit:cover;filter:saturate(.92) contrast(1.04)"><div style="position:absolute;left:0;right:0;bottom:${28 * k}px;text-align:center;font:400 ${12 * k}px/1 'Chakra Petch',monospace;letter-spacing:.3em;text-transform:uppercase;color:#6b5a3a">That dress</div></div></div>`, { solid: true });
   // Held long enough to read (Cat, 2026-10-25).
-  return piece({ still: pic, dur: 3.2, zoom: [1, 1.03], fadeIn: 0.5, fadeOut: 0.5, notes: [[await note('Or upload a photo.', 'low'), 0.2, 3.2]] });
+  return piece({ still: pic, dur: 3.2, zoom: [1, 1.03], fadeIn: 0.5, fadeOut: 0.5, notes: [[await note(line, 'low'), 0.2, 3.2]] });
 }
 // S2 Slow Strip (Cat, 2026-11-02, replacing N3b's six tags landing one by one): one row of seven tall swatch cards, real
 // Mood listings Cat picked (photos cropped from her screenshots of the shop, no draped stock swirls), each with its
@@ -401,7 +414,8 @@ const CUTS = {
     // tape's brass tip stays on screen the whole way (Cat, 2026-10-24: the end of the tape must stay the same).
     const TAPE_VIEW = WIDE ? { frame: [0.1, 1.05] } : { zoom: [1.08, 1.08], at: [0.49, 0.545] };
     // In the take the tape is all the way across by about 1.8 s; the pull is made from that frame (below).
-    const [TAPE_OUT, PULL] = [1.8, 1.1];
+    // The waist page is fully up in the take about 5.75 s in, after the dip past the First page.
+    const WAIST_AT = Number(process.env.WAIST_AT ?? 5.75);
     // OPENER_FILM=<walkthrough.mp4> keeps a released film's opening shot and Measure card frame for frame (Cat,
     // 2026-10-24: "go back to that other version exactly"): its first 5.6 s, fades and title already in them.
     const released = process.env.OPENER_FILM ? resolve(process.env.OPENER_FILM) : undefined;
@@ -409,37 +423,32 @@ const CUTS = {
       ...(released
         ? [await piece({ shot: 'round', src: released, from: 0, dur: 5.6 })]
         : [...(await INTROS[INTRO]()), await piece({ still: await card('01', 'Measure', 'Just a few, once.'), dur: 2.2, fadeIn: f, fadeOut: f })]),
-      // One unbroken move to the waist (Cat, 2026-10-22: starting mid-pull, it appeared from nowhere, small): from
-      // black, the tape pulling in across the top of the first page, the welcome skipped (Cat, 2026-10-23). On a phone
-      // it fills the screen, drawn in just enough that the header is off the top (Cat, 2026-10-23: no black band). It
-      // joins with the tape already on its way in, past the black second it took to reach the screen (Cat, 2026-10-24).
-      // The tape is the opening curtain (Cat, 2026-10-24: "a steady smooth pull from one side to the other"): the
-      // tape, as it lies across the top once pulled, travels in from the right in one smooth move, then the page
-      // goes on at its own pace from that same frame.
-      await piece({ still: tapeAcross(TAPE_OUT), dur: PULL, slide: PULL, ...TAPE_VIEW }),
-      await piece({ shot: 'tape', from: TAPE_OUT, dur: 7.8 - (TAPE_OUT - 1), ...TAPE_VIEW, fadeOut: f }),
+      // Straight to the waist (Cat's B, 2026-11-08): the First page is skipped, the waist page fades up from black
+      // as the tape comes round, under the line "First, your shape." (the Measure card keeps "Just a few, once.").
+      await piece({ shot: 'tape', from: WAIST_AT, dur: 3.9, speed: 0.85, ...TAPE_VIEW, fadeIn: f, fadeOut: f, notes: [[await note('First, your shape.', 'low'), 0.3, 3.7]] }),
     ];
     // TOUR_PREVIEW=1 stops after the opening and the tape, to try an opening without cutting the whole film.
     if (process.env.TOUR_PREVIEW) return opening;
     return [
       ...opening,
       await piece({ still: await card('02', 'Choose', 'Then what to make.'), dur: 3, fadeIn: f, fadeOut: f }),
-      // Three ways in, each its own line: a garment, or a look, or a photo (Cat, 2026-10-30: the garment had to read
-      // as a way to start too, not a filter on the looks).
-      await piece({ shot: 'choose', from: 0.3, dur: 3.2, fadeIn: f, fadeOut: f, notes: [[await note('Pick a garment.', 'low'), 0.2, 3.0]] }),
-      // Start from a look, then from a photo (Cat, 2026-10-29: the scroll through the collection back in, before the photo).
-      await piece({ shot: 'collection', ...COLLECTION, fadeIn: f, fadeOut: f, notes: [[await note(WIDE ? 'Or start from a look.' : 'Or start<br>from a look.', 'low'), 0, COLLECTION.dur - 0.3]] }),
-      await photoMoment(),
+      // Three ways in (Cat, 2026-11-08): a photo first, then a look, then design your own, which taps Dress and
+      // carries on into Style in calico.
+      await photoMoment('Start from a photo.'),
+      await piece({ shot: 'collection', ...COLLECTION, fadeIn: f, fadeOut: f, notes: [[await note('Or a look.', 'low'), 0, COLLECTION.dur - 0.3]] }),
+      // Ends just after Dress is tapped (about 1.65 s into the take), before the dress's own extra measurements come
+      // up; slowed a touch so the line has time to be read.
+      await piece({ shot: 'choose', from: 0.1, dur: 2.6, speed: 0.66, fadeIn: f, fadeOut: 0.4, notes: [[await note(WIDE ? 'Or design your own.' : 'Or design<br>your own.', 'low'), 0.2, 2.4]] }),
       await piece({ still: await card('03', 'Style', 'Make it yours.'), dur: 3, fadeIn: f, fadeOut: f }),
       // Done lands on the pattern sheet, so the pattern follows straight on, then the dress all round (Cat,
       // 2026-10-24: no flash back to the dress between them), each dissolving into the next.
-      await dissolve(
-        // Shop the fabric sits with Style, straight after the dress is styled (Cat, 2026-11-02: not after the
-        // pattern and All round, next to Print).
-        await dissolve(await dissolve(await styleJourney(), await shopMoment(), 0.6), await piece({ shot: 'pattern', dur: 3.6, ...PATTERN, notes: [[await note(WIDE ? 'Your pattern, in seconds.' : 'Your pattern,<br>in seconds.', 'low', false), 0.5, 3.4]] }), 0.8),
-        await piece({ shot: 'round', from: 0.3, dur: 8.6, fadeOut: f, overs: (await threeChecks()).map((p, i) => [p, 0.9 + i * 1.8]) }),
-        1,
-      ),
+      // Shop the fabric sits with Style, straight after the dress is styled (Cat, 2026-11-02: not after the
+      // pattern and All round, next to Print).
+      await dissolve(await dissolve(await styleJourney(), await shopMoment(), 0.6), await patternMoment({ fadeOut: 0.45 }), 0.8),
+      // The All round comes up from black after the pattern, so the turning dress never shows through the sheet.
+      // On a phone the knee-length shift is taken at zoom 0.75 and lifted a touch, so its hem clears the three lines
+      // under it (at Z2 0.95 the words sat on the print).
+      await piece({ shot: 'round', from: 0.3, dur: 8.6, fadeIn: 0.6, fadeOut: f, ...(!WIDE && { lift: [0.075] }), overs: (await threeChecks()).map((p, i) => [p, 0.9 + i * 1.8]) }),
       await piece({ still: await card('04', 'Print', 'At home, or full size.'), dur: 3, fadeIn: f, fadeOut: f }),
       // Down to Print my pattern, the pages, then projector mode (Cat, 2026-10-29: the scroll to print and the
       // projector back in).
@@ -452,8 +461,10 @@ const CUTS = {
   },
 };
 
-// ONLY=shop cuts just the Shop the fabric moment, for checking it on its own.
-const pieces = process.env.ONLY === 'shop' ? [await shopMoment()] : await CUTS.words();
+// ONLY=shop cuts just the Shop the fabric moment, for checking it on its own; ONLY=pattern, the pattern moment.
+// The take is 3.6 s; each PATTERN dur ends just inside it, so the fade out is seen.
+const patternMoment = async (more = {}) => piece({ shot: 'pattern', ...PATTERN, ...more, notes: [[await note(WIDE ? 'Your pattern, in seconds.' : 'Your pattern,<br>in seconds.', 'low', false), 0.5, PATTERN.dur - 0.2]] });
+const pieces = process.env.ONLY === 'shop' ? [await shopMoment()] : process.env.ONLY === 'pattern' ? [await patternMoment()] : await CUTS.words();
 await b.close();
 writeFileSync(join(work, 'list.txt'), pieces.map((p) => `file '${p}'`).join('\n'));
 const film = join(work, 'film.mp4');
