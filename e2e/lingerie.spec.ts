@@ -4,15 +4,15 @@ import type { Page } from '@playwright/test';
 // Soft lingerie and swimwear, kept out of releases until its fit test: only ?lingerie=preview shows it.
 
 const main = (page: Page) => page.getByRole('main');
-const makeList = (page: Page) => main(page).getByRole('radiogroup', { name: 'What would you like to make?' });
+const makeList = (page: Page) => main(page).getByRole('group', { name: 'What would you like to make?' });
 
 test('hidden without the preview link', async ({ page }) => {
   await page.goto('/?fresh');
   await skipLoading(page);
   await skipToExample(page);
   await chooseDrop(page, 'Garment', 'See them all ›');
-  await expect(makeList(page).getByRole('radio', { name: /^T-shirt\b/ })).toBeVisible();
-  await expect(makeList(page).getByRole('radio', { name: /^Lingerie\b/ })).toHaveCount(0);
+  await expect(makeList(page).getByRole('button', { name: /^T-shirt\b/ })).toBeVisible();
+  await expect(makeList(page).getByRole('button', { name: /^Lingerie\b/ })).toHaveCount(0);
 });
 
 test('measures the underbust, drafts a bralette and a swimsuit, and prints', async ({ page }) => {
@@ -20,9 +20,8 @@ test('measures the underbust, drafts a bralette and a swimsuit, and prints', asy
   await skipLoading(page);
   await skipToExample(page);
   await chooseDrop(page, 'Garment', 'See them all ›');
-  const pick = makeList(page).getByRole('radio', { name: /^Lingerie\b/ });
-  await pick.click();
-  await main(page).getByRole('button', { name: /^(Continue measurements|Style my lingerie)$/i }).click();
+  // A tap on the garment goes straight on.
+  await makeList(page).getByRole('button', { name: /^Lingerie\b/ }).click();
   // The example already has an underbust; a body without one is asked for it first.
   const style = main(page).getByRole('heading', { level: 1, name: 'Style your brief' });
   await expect(style.or(main(page).getByRole('textbox')).first()).toBeVisible();

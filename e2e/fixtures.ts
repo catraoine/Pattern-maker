@@ -156,14 +156,12 @@ export async function fillStepPages(page: Page): Promise<number> {
   throw new Error('Too many measurement pages');
 }
 
-/** "What would you like to make?": pick a garment and carry on to the first measurement it still needs. */
+/** "What would you like to make?": tap a garment, which carries on to the first measurement it still needs, or to styling it. */
 export async function pickToMake(page: Page, g: GarmentName) {
   await expect(heading(page, 'What would you like to make?')).toBeVisible();
-  const choice = main(page).getByRole('radiogroup', { name: 'What would you like to make?' }).getByRole('radio', { name: new RegExp(`^${pickName(g)}\\b`) });
-  await choice.click();
-  await expect(choice).toHaveAttribute('aria-checked', 'true');
-  // The button says what comes next: the measurements it still needs, or straight to styling it.
-  await main(page).getByRole('button', { name: /^(Next: \d+ .+ measurements?|Style my .+)$/ }).click();
+  await main(page).getByRole('group', { name: 'What would you like to make?' }).getByRole('button', { name: new RegExp(`^${pickName(g)}\\b`) }).click();
+  // The tap is the choice: no button underneath.
+  await expect(heading(page, 'What would you like to make?')).toHaveCount(0);
 }
 
 /** Wait for the style screen of a garment. */

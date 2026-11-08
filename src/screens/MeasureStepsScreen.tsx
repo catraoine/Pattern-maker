@@ -91,7 +91,7 @@ const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 const aOrAn = (name: string) => (/(s|wear|lingerie)$/i.test(name) && !/dress$/i.test(name) ? name : `${/^[aeiou]/i.test(name) ? 'an' : 'a'} ${name}`);
 
 // First-time measuring, laid out like the welcome. A short "before you start", then the base set one
-// measurement per page, a check of those four, then what to make: pick one and Continue measuring goes
+// measurement per page, a check of those four, then what to make: tapping a garment goes
 // straight to the first extra that garment still needs. "Something else" asks what they have in mind and
 // answers "We can make that", "The closest we can do" or "Not yet" (Cat's pick, 2026-10-18); only "Not yet"
 // offers the full set of measurements, for a dressmaker.
@@ -138,6 +138,18 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     const ids = neededFor(g, values, form).map((f) => f.id);
     if (ids.length) setPage({ kind: 'extra', garment: g, ids, at: 0 });
     else onDone(g);
+  };
+  // On "What would you like to make?" a tap is the choice: the tile lights for a blink, so the tap reads as
+  // taken, then the next page opens. No button underneath (Cat, 2026-11-08). A second tap in that blink is ignored.
+  const going = useRef(false);
+  const tapToMake = (g: Pick) => {
+    if (going.current) return;
+    going.current = true;
+    setPicked(g);
+    window.setTimeout(() => {
+      going.current = false;
+      go(g);
+    }, TAP_BLINK_MS);
   };
   const ask = async () => {
     setAsking(true);
@@ -319,17 +331,14 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
       // No form here, the question and the garments centred on the page (Cat's N2 No Form, Centred, 2026-10-25: the form
       // was too small to read above the list).
       <Shell title="What would you like to make?" centred>
-        <div className="make-grid" role="radiogroup" aria-labelledby="stitle">
+        <div className="make-grid" role="group" aria-labelledby="stitle">
           {[...GARMENTS, 'other' as const].map((g) => (
-            <button key={g} type="button" role="radio" aria-checked={picked === g} className={picked === g ? 'on' : ''} onClick={() => setPicked(g)}>
+            <button key={g} type="button" aria-current={picked === g || undefined} className={picked === g ? 'on' : ''} onClick={() => tapToMake(g)}>
               {g === 'other' ? 'Something else' : cap(GARMENT_NAME[g])}
             </button>
           ))}
         </div>
         {testingNote((g) => GARMENT_NAME[g], GARMENTS) && <p className="muted small testing-note">{testingNote((g) => GARMENT_NAME[g], GARMENTS)}</p>}
-        <button type="button" className="primary main-go" disabled={!picked} onClick={() => picked && go(picked)}>
-          {chooseLabel(picked, values, form)}
-        </button>
       </Shell>
     );
 
@@ -511,13 +520,8 @@ export function DoubleChecks({ checks }: { checks: Check[] }) {
   );
 }
 
-/** What the button on "What would you like to make?" leads to, so it reads as the next step. */
-function chooseLabel(picked: Pick | null, values: MeasurementValues, form: FormKind): string {
-  if (!picked) return 'Choose a garment';
-  if (picked === 'other') return 'Next: describe it';
-  const n = neededFor(picked, values, form).length;
-  return n ? `Next: ${n} ${GARMENT_NAME[picked]} measurement${n === 1 ? '' : 's'}` : `Style my ${GARMENT_NAME[picked]}`;
-}
+/** How long a tapped garment stays lit before the next page opens. */
+const TAP_BLINK_MS = 160;
 
 const TAPE_MARKS = Array.from({ length: 100 }, (_, i) => i + 1);
 

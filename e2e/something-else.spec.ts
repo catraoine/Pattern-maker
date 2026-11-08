@@ -31,8 +31,7 @@ async function toDescribe(page: Page, idea: object) {
   await measureMe(page);
   await fillStepPages(page);
   await main.getByRole('button', { name: 'Choose what to make' }).click();
-  await main.getByRole('radio', { name: 'Something else' }).click();
-  await main.getByRole('button', { name: 'Next: describe it' }).click();
+  await main.getByRole('button', { name: 'Something else' }).click();
   await expect(main.getByRole('heading', { name: 'Tell us what you have in mind.' })).toBeVisible();
   const ask = main.getByRole('button', { name: 'See what we can make' });
   await expect(ask).toBeDisabled();
