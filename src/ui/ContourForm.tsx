@@ -1169,7 +1169,7 @@ const NECK_TAPE: [Pt[], Pt[]] = [
   [[0, -1.68], [0.13, -1.62], [0.3, -1.42], [0.38, -1.12], [0.37, -0.4], [0.33, 0.98]],
 ];
 /** How long the tape takes to fall from the neck to its ends. */
-export const NECK_MS = 650;
+const NECK_MS = 650;
 
 /** A smooth line through a few points (Catmull-Rom), close enough together for the tape's marks. */
 function smooth(pts: Pt[], each = 12): Pt[] {
