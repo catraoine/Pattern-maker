@@ -448,6 +448,123 @@ function projection({ w, h, S, cx, top }: Frame) {
 
 /** The garment sewn from its pattern pieces: each panel as cut, the wearer's left as settled and its mirror, the print
  *  laid on each piece at its true size in cm, its seams and edges as fine lines, and its buttons. */
+/**
+ * Cloth drawn with its thickness (Cat, Nov 7: collars and folds read paper-thin). Under the drawn face, a second face a
+ * cloth's thickness in, and round every free edge a rim turning from one to the other, its light rounding over, so an
+ * edge or a fold reads as cloth with a body rather than a sheet of paper. `t` is in the scene's units.
+ */
+const knobs = () => (globalThis as unknown as { __drapeKnobs?: Record<string, number> }).__drapeKnobs ?? {};
+function thickened(g: THREE.BufferGeometry, idx: number[], t: number, sewn: (i: number) => boolean): THREE.BufferGeometry[] {
+  const pos = g.getAttribute('position').array as Float32Array;
+  const nrm = g.getAttribute('normal').array as Float32Array;
+  const uv = g.getAttribute('uv').array as Float32Array;
+  const shade = g.getAttribute('shade').array as Float32Array;
+  const col = g.getAttribute('color')?.array as Float32Array | undefined;
+  const n = pos.length / 3;
+  const out: THREE.BufferGeometry[] = [];
+  // The face beneath: each point a thickness in along its normal, wound the other way so it faces in.
+  const bp = new Float32Array(n * 3);
+  const bn = new Float32Array(n * 3);
+  for (let i = 0; i < n * 3; i++) {
+    // (The drawn normals point in toward the body, the scene's y running down: in is along them.)
+    bp[i] = pos[i] + nrm[i] * t;
+    bn[i] = -nrm[i];
+  }
+  const bi: number[] = [];
+  for (let k = 0; k < idx.length; k += 3) bi.push(idx[k], idx[k + 2], idx[k + 1]);
+  const back = new THREE.BufferGeometry();
+  back.setAttribute('position', new THREE.BufferAttribute(bp, 3));
+  back.setAttribute('normal', new THREE.BufferAttribute(bn, 3));
+  back.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  back.setAttribute('shade', new THREE.BufferAttribute(shade, 1));
+  if (col) back.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  back.setIndex(bi);
+  if (!knobs().__noBack) out.push(back);
+  // The free edges: those of one triangle only.
+  const seen = new Map<number, number>();
+  const edges: [number, number, number][] = [];
+  for (let k = 0; k < idx.length; k += 3) {
+    for (let j = 0; j < 3; j++) {
+      const a = idx[k + j], b = idx[k + ((j + 1) % 3)];
+      const key = Math.min(a, b) * n + Math.max(a, b);
+      seen.set(key, (seen.get(key) ?? 0) + 1);
+      edges.push([a, b, idx[k + ((j + 2) % 3)]]);
+    }
+  }
+  // (Not along a seam, where the edge is sewn to the next piece and the cloth runs on: only an edge left free, a hem,
+  // an opening, a lapel's or a collar's.)
+  const free = edges.filter(([a, b]) => seen.get(Math.min(a, b) * n + Math.max(a, b)) === 1 && !(sewn(a) && sewn(b)));
+  if (!free.length) return out;
+  // Which way is off the cloth at each edge point, in its own plane: across the edge, away from its triangle.
+  const offOf = new Map<number, [number, number, number]>();
+  for (const [a, b, c] of free) {
+    const ex = pos[b * 3] - pos[a * 3], ey = pos[b * 3 + 1] - pos[a * 3 + 1], ez = pos[b * 3 + 2] - pos[a * 3 + 2];
+    const nx = (nrm[a * 3] + nrm[b * 3]) / 2, ny = (nrm[a * 3 + 1] + nrm[b * 3 + 1]) / 2, nz = (nrm[a * 3 + 2] + nrm[b * 3 + 2]) / 2;
+    let ox = ey * nz - ez * ny, oy = ez * nx - ex * nz, oz = ex * ny - ey * nx;
+    const mx = (pos[a * 3] + pos[b * 3]) / 2 - pos[c * 3], my = (pos[a * 3 + 1] + pos[b * 3 + 1]) / 2 - pos[c * 3 + 1], mz = (pos[a * 3 + 2] + pos[b * 3 + 2]) / 2 - pos[c * 3 + 2];
+    if (ox * mx + oy * my + oz * mz < 0) [ox, oy, oz] = [-ox, -oy, -oz];
+    const l = Math.hypot(ox, oy, oz) || 1;
+    for (const v of [a, b]) {
+      const o = offOf.get(v) ?? [0, 0, 0];
+      offOf.set(v, [o[0] + ox / l, o[1] + oy / l, o[2] + oz / l]);
+    }
+  }
+  // The rim: rows turning half round from the drawn face to the one beneath, bulging out by half the thickness.
+  const R = 4;
+  const ids = [...offOf.keys()];
+  const at = new Map(ids.map((v, k) => [v, k]));
+  const rp = new Float32Array(ids.length * (R + 1) * 3);
+  const rn = new Float32Array(ids.length * (R + 1) * 3);
+  const ru = new Float32Array(ids.length * (R + 1) * 2);
+  const rs = new Float32Array(ids.length * (R + 1));
+  const rc = col ? new Float32Array(ids.length * (R + 1) * 3) : undefined;
+  ids.forEach((v, k) => {
+    const o0 = offOf.get(v)!;
+    const nv: [number, number, number] = [nrm[v * 3], nrm[v * 3 + 1], nrm[v * 3 + 2]];
+    // (Kept square to the normal, so the rim turns round the edge, not along the cloth.)
+    const dn = o0[0] * nv[0] + o0[1] * nv[1] + o0[2] * nv[2];
+    const o = [o0[0] - nv[0] * dn, o0[1] - nv[1] * dn, o0[2] - nv[2] * dn];
+    const ol = Math.hypot(o[0], o[1], o[2]) || 1;
+    for (let j = 0; j <= R; j++) {
+      const th = (Math.PI * j) / R;
+      const r = k * (R + 1) + j;
+      for (let q = 0; q < 3; q++) {
+        rp[r * 3 + q] = pos[v * 3 + q] + nv[q] * (t / 2) * (1 - Math.cos(th)) + (o[q] / ol) * (t / 2) * Math.sin(th);
+        rn[r * 3 + q] = nv[q] * Math.cos(th) - (o[q] / ol) * Math.sin(th);
+        if (rc) rc[r * 3 + q] = col![v * 3 + q];
+      }
+      ru[r * 2] = uv[v * 2];
+      ru[r * 2 + 1] = uv[v * 2 + 1];
+      rs[r] = shade[v];
+    }
+  });
+  const ri: number[] = [];
+  for (const [a, b] of free) {
+    const A = at.get(a)! * (R + 1), B = at.get(b)! * (R + 1);
+    for (let j = 0; j < R; j++) {
+      const q = [A + j, B + j, B + j + 1, A + j + 1];
+      // Wound to face the way its normals do.
+      const P = (r: number) => [rp[r * 3], rp[r * 3 + 1], rp[r * 3 + 2]];
+      const [p0, p1, p2] = [P(q[0]), P(q[1]), P(q[2])];
+      const u = [p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2]], w = [p2[0] - p0[0], p2[1] - p0[1], p2[2] - p0[2]];
+      const f = [u[1] * w[2] - u[2] * w[1], u[2] * w[0] - u[0] * w[2], u[0] * w[1] - u[1] * w[0]];
+      const m = q[0] * 3;
+      const agree = f[0] * rn[m] + f[1] * rn[m + 1] + f[2] * rn[m + 2] + f[0] * rn[q[2] * 3] + f[1] * rn[q[2] * 3 + 1] + f[2] * rn[q[2] * 3 + 2];
+      if (agree >= 0) ri.push(q[0], q[1], q[2], q[0], q[2], q[3]);
+      else ri.push(q[0], q[2], q[1], q[0], q[3], q[2]);
+    }
+  }
+  const rim = new THREE.BufferGeometry();
+  rim.setAttribute('position', new THREE.BufferAttribute(rp, 3));
+  rim.setAttribute('normal', new THREE.BufferAttribute(rn, 3));
+  rim.setAttribute('uv', new THREE.BufferAttribute(ru, 2));
+  rim.setAttribute('shade', new THREE.BufferAttribute(rs, 1));
+  if (rc) rim.setAttribute('color', new THREE.BufferAttribute(rc, 3));
+  rim.setIndex(ri);
+  out.push(rim);
+  return out;
+}
+
 function buildDraped(
   { d, toForm }: DrapedView,
   cloth: ClothTiles | undefined,
@@ -485,6 +602,62 @@ function buildDraped(
   };
   // (A piece cut whole, a one-shoulder's front, holds both its halves: drawn once, not mirrored.)
   const wholeAt = (i: number) => d.panels.some((p) => p.whole && i >= p.base && i < p.base + p.uv.length / 2);
+  // The points on a seam: an edge point of a piece with another piece's edge point (or its own mirrored half's, on the
+  // centre line) within a few mm, as the cloth settled.
+  // (Only an edge the eye sees, one of the garment's own edges as its lines name them: not a dart's legs, a facing's
+  // inner edge under the front or a pocket's, which a rim would raise as a ridge.)
+  const hasCollar = d.panels.some((p) => p.collar && !p.hidden);
+  const EDGE = new Set(['hem', 'opening', 'lapel', 'collar', 'opening-hem', ...(hasCollar ? [] : ['neck'])]);
+  const onEdge = new Set<number>();
+  for (const l of d.lines) if (EDGE.has(l.kind)) for (const i of l.ids) onEdge.add(i);
+  const onSeam = new Set<number>();
+  {
+    const edgeOf = (p: (typeof d.panels)[number]) => {
+      const cnt = new Map<string, number>();
+      for (const [a, b, c] of p.tris) for (const [u, v] of [[a, b], [b, c], [c, a]]) {
+        const k = u < v ? `${u},${v}` : `${v},${u}`;
+        cnt.set(k, (cnt.get(k) ?? 0) + 1);
+      }
+      const out = new Set<number>();
+      for (const [k, c] of cnt) if (c === 1) for (const v of k.split(',')) out.add(p.base + Number(v));
+      return out;
+    };
+    const pts: { i: number; panel: number; m: number }[] = [];
+    const grid = new Map<string, number[]>();
+    const cell = (x: number, y: number, z: number) => `${Math.floor(x)},${Math.floor(y)},${Math.floor(z)}`;
+    d.panels.forEach((p, pi) => {
+      if (p.hidden) return;
+      for (const i of edgeOf(p)) for (const m of p.single || p.whole ? [1] : [1, -1]) {
+        const k = pts.length;
+        pts.push({ i, panel: pi, m });
+        const c = cell(d.pos[i * 3] * m, d.pos[i * 3 + 1], d.pos[i * 3 + 2]);
+        grid.set(c, [...(grid.get(c) ?? []), k]);
+      }
+    });
+    const near = new Map<number, Set<number>>();
+    for (const p of d.panels) for (const t of p.tris) for (const a of t) for (const b of t) if (a !== b) {
+      const k = p.base + a;
+      if (!near.has(k)) near.set(k, new Set());
+      near.get(k)!.add(p.base + b);
+    }
+    const R2 = 0.5 * 0.5;
+    for (const q of pts) {
+      if (q.m < 0) continue;
+      const x = d.pos[q.i * 3], y = d.pos[q.i * 3 + 1], z = d.pos[q.i * 3 + 2];
+      search: for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++) {
+        for (const k of grid.get(cell(x + dx, y + dy, z + dz)) ?? []) {
+          const o = pts[k];
+          // (Its own piece only across a dart: not itself, nor a point it shares a triangle with along the edge.)
+          if (o.panel === q.panel && o.m === q.m && (o.i === q.i || near.get(q.i)?.has(o.i))) continue;
+          const ox = d.pos[o.i * 3] * o.m - x, oy = d.pos[o.i * 3 + 1] - y, oz = d.pos[o.i * 3 + 2] - z;
+          if (ox * ox + oy * oy + oz * oz < R2) {
+            onSeam.add(q.i);
+            break search;
+          }
+        }
+      }
+    }
+  }
   for (const p of d.panels) {
     if (p.hidden) continue;
     const n = p.uv.length / 2;
@@ -608,6 +781,17 @@ function buildDraped(
         mat.vertexColors = true;
       }
       add(g, mat, 1, p.role === 'sleeve' ? 'sleeve' : 'cloth', p.role === 'sleeve' ? e : 0);
+      // (The cloth's thickness, in cm: two layers at a hem or facing; a tailored collar and lapel, two layers and their
+      // interfacing, stand thicker.)
+      const kn = (globalThis as unknown as { __drapeKnobs?: Record<string, number> }).__drapeKnobs ?? {};
+      const cm = kn.__thick ?? (p.collar || p.turned?.some((v) => v) ? 0.6 : 0.3);
+      if (cm > 0 && !kn.__noThick) {
+        // (The scene's units for a cm, from how far a point moves when drawn a cm further out.)
+        const i0 = p.base;
+        const a = P(i0, e), b = P(i0, e, 1);
+        const unit = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
+        for (const tg of thickened(g, idx, cm * unit, (i) => onSeam.has(p.base + i) || !onEdge.has(p.base + i))) add(tg, mat, 1, p.role === 'sleeve' ? 'sleeve' : 'cloth', p.role === 'sleeve' ? e : 0);
+      }
     }
   }
   // The seams and edges: bright fine lines in lines, faint ones in cloth (the cloth itself gives the shape).
