@@ -17,13 +17,13 @@ test('enlarge the garment drawing', async ({ page }) => {
   await main.getByRole('button', { name: /^Make the drawing .* smaller$/ }).click();
   await expect(preview).not.toHaveClass(/live-big/);
 
-  // The dress's views switch while it is enlarged, and Escape closes it.
+  // The view you enlarge stays (no view bar there, Cat Nov 8): the dress's flat enlarged, and Escape closes it.
   await switchGarment(page, 'Dress');
+  await preview.getByRole('button', { name: 'Flat', exact: true }).click();
   await main.getByRole('button', { name: /^Enlarge the drawing/ }).click();
   await expect(preview).toHaveClass(/live-big/);
-  await preview.getByRole('button', { name: 'Flat', exact: true }).click();
   await expect(main.getByRole('img', { name: /^Technical flat/ })).toBeVisible();
-  await expect(preview).toHaveClass(/live-big/);
+  await expect(preview.getByRole('group', { name: 'Garment view' })).toBeHidden();
   await page.keyboard.press('Escape');
   await expect(preview).not.toHaveClass(/live-big/);
 
