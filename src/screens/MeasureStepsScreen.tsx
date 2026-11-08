@@ -977,7 +977,8 @@ export function MeasurePage({
                     onUnit(u);
                   }}
                 >
-                  {u === 'in' && id === 'height' ? 'ft in' : u}
+                  {/* CM / IN on every page, height too: its boxes already say FT and IN (Cat, 2026-11-07). */}
+                  {u}
                 </button>
               ))}
             </span>
