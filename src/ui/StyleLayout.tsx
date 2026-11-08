@@ -13,7 +13,6 @@ import { PhotoEntry } from './PhotoEntry';
 import { Title } from './Title';
 import { UndoTools, type Undo } from './useUndo';
 import type { MyFabric } from '../engine/fabrics';
-import { PaletteCard, showsPalette } from './PaletteCard';
 
 // Every style screen, laid out as Cat's B Pinned Sketch with a Looks tab (2026-10-18): the sketch stays
 // pinned at the top, a row of tabs sits under it, and only one tab's choices show at a time, so choosing
@@ -320,7 +319,7 @@ interface Props {
   onPrint?: () => void;
   /** The finished measurements and ease, open above Print rather than folded (F1, 2026-10-28). */
   finished?: ReactNode;
-  /** The picked fabric: it stands beside the form as one tall palette card (Cat's D1, 2026-11-02). */
+  /** The picked fabric (its card beside the form was taken out, Cat Nov 8; the fabric shows on the form). */
   fabric?: MyFabric;
 }
 
@@ -366,7 +365,7 @@ function questionRank(q: Question): [number, number] {
   return [at, sub < 0 ? 0 : sub];
 }
 
-export function StyleLayout({ children, label, name, ready, onChooseGarment, onPhoto, photo, looks, mode, onMode, onEditMeasurements, sections = NO_SECTIONS, undo, flat, onPrint, finished, fabric }: Props) {
+export function StyleLayout({ children, label, name, ready, onChooseGarment, onPhoto, photo, looks, mode, onMode, onEditMeasurements, sections = NO_SECTIONS, undo, flat, onPrint, finished }: Props) {
   const [options, preview, summary] = Children.toArray(children);
   const [page, setPage] = usePageHistory<'edit' | 'review'>(() => 'edit', (s) => s === 'edit' || s === 'review');
   // Read here and cleared once mounted: React may run this twice, and the second run must see it too.
@@ -588,8 +587,6 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
     if (to) choose(to);
   };
   const at = steps.indexOf(active ?? '');
-  // The picked fabric's palette card, beside the garment on the form once a fabric is picked (D1).
-  const palette = showsPalette(fabric);
   // The drawing's corner for its tools, made inside the drawing's area.
   const [corner, setCorner] = useState<HTMLElement | null>(null);
   // Each step's picks, for the list of steps on a phone (Cat's P3, 2026-11-06, in place of "Your picks"): its first
@@ -748,13 +745,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
             createPortal(
               <>
                 <div className="preview-corner" ref={setCorner} />
-                {/* On the pinned drawing, so it stays put however far the page scrolls. */}
-                {/* The picked fabric's card stands beside the form; the picks themselves are in the list of steps. */}
-                {palette && (
-                  <div className="palette-col">
-                    <PaletteCard fabric={fabric} />
-                  </div>
-                )}
+                {/* No fabric card beside the form (Cat, Nov 8): the fabric tapped is on the form itself. */}
               </>,
               host,
             )}
