@@ -2191,7 +2191,10 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
           // the full 3 cm behind: that stretched the top's front and put the dress's inside the form. A plunge dress's
           // straps are not left to settle at all: its skirt's weight already holds them, and settled 1.5 cm back the
           // bias slip gown's front went 2 cm inside the form.)
-          { shoulderZ: knob('__holdZ') ?? (deepTop ? knob('__deepZ') ?? -1.5 : 0.5), ...(sleeved && shortTop ? { shoulderZIn: 4 } : {}), ...(deepTop ? { shoulderZFree: true } : {}) }
+          // (A waistcoat, a jacket cut without sleeves, is held just behind the side, a little as a sleeveless top is:
+          // held half a centimetre forward, a long boxy shoulder's tips poked up as points and a soft collar's neck seam
+          // was stretched twice its length, Look 02 vest 2026-11-08. Held further back, its front stretched.)
+          { shoulderZ: knob('__holdZ') ?? (deepTop ? knob('__deepZ') ?? -1.5 : !sleeved && o.pinFront?.length ? -0.5 : 0.5), ...(sleeved && shortTop ? { shoulderZIn: 4 } : {}), ...(deepTop ? { shoulderZFree: true } : {}) }
       : {}),
   };
   // A flared peplum (or a hem's flounce) cut on the fold: the cloth beside the fold bends on round it rather than folding back flat
