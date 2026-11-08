@@ -2221,6 +2221,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
     const piece: number[] = [];
     const sewnAt = new Set<number>();
     for (const { i, j, k } of seams) sewnAt.add(i).add(j).add(k);
+    let flare = 0;
     B.panels.forEach((p, n) => {
       // (Not a pleated skirt's, whose pressed folds lie on each other, nor a balloon's, gathered onto its underskirt.)
       if (p.hidden || !/^Skirt/.test(p.pc.name) || !/peplum/.test(p.role) || p.mesh.runs.pleat?.length || p.pc.meta.pleatFolds || p.mesh.runs.balloon?.length) return;
@@ -2231,6 +2232,8 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
       const gathered = ((p.pc.meta.gathered as number | undefined) ?? 1) > 1.05 && !knob('__noSelfGather');
       // (Under a waist seam dropped onto the hip, only the circle's: held apart, a flared skirt there stood out in a ledge.)
       if (!gathered && runLen('hem') < (knob('__selfFlare') ?? ((extra.drop ?? 0) > 1 ? 1.5 : 1.25)) * runLen('waist')) return;
+      // (Only a panel cut with its own waist: one sewn to a yoke has none, and read as a huge flare, 2026-11-08.)
+      if (runLen('waist') > 5) flare = Math.max(flare, runLen('hem') / runLen('waist'));
       p.mesh.pts.forEach((q, i) => {
         ids.push(p.base + i);
         u.push(q.x);
@@ -2238,7 +2241,10 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
         piece.push(n);
       });
     });
-    if (ids.length) input.self = { ids: Int32Array.from(ids), u: Float64Array.from(u), v: Float64Array.from(v), piece: Int32Array.from(piece), sewn: Uint8Array.from(ids, (g) => (sewnAt.has(g) ? 1 : 0)), d: knob('__selfD') ?? 2 };
+    // (A long full circle's hem is eight or more times its waist (about 11 at maxi), and its folds come round on each other
+    // from every side: kept only 2 cm apart they still slipped through one another (crossed 15-70); 4 cm held them. A
+    // half circle maxi (about 6) or a short circle (about 5) held 4 cm apart stretched instead, so they keep 2. 2026-11-08.)
+    if (ids.length) input.self = { ids: Int32Array.from(ids), u: Float64Array.from(u), v: Float64Array.from(v), piece: Int32Array.from(piece), sewn: Uint8Array.from(ids, (g) => (sewnAt.has(g) ? 1 : 0)), d: knob('__selfD') ?? (flare >= (knob('__selfWideAt') ?? 8) ? 4 : 2) };
   }
   // Trousers settle in fewer steps: laid on their legs they are near where they hang, and left to run the full count the
   // cloth below the crotch kept drifting into folds and opened the inside leg (All round quality, 2026-11-07: of 51

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { sewDesign } from '../../drapeSweep';
 import { DEFAULT_BODICE } from '../../garments';
+import { INITIAL } from '../../savedWork';
 import { setKnob } from './knob';
 
 const checks = (d: Parameters<typeof sewDesign>[0]) => (sewDesign(d).quality?.problems ?? []).map((p) => p.check);
@@ -9,7 +10,7 @@ const dress = (bodice: object, skirt: object, rest: object = {}) => ({ garment: 
 // Random mixes of options that All round showed as their flat drawing (sweep of Nov 7, 2026), now drawn clean.
 describe('All round: random mixes that fell back to the flat drawing', () => {
   afterEach(() => {
-    for (const k of ['__selfFlare', '__noSelfGather', '__silkR']) setKnob(k, undefined);
+    for (const k of ['__selfFlare', '__noSelfGather', '__silkR', '__selfWideAt']) setKnob(k, undefined);
   });
 
   // A trumpet skirt's flare (its hem under half as long again as its waist) wasn't held apart, and folded through itself.
@@ -27,6 +28,17 @@ describe('All round: random mixes that fell back to the flat drawing', () => {
     const d = dress({ fit: 'regular', neckline: 'cami', length: 'waist', darts: 'bust_waist', sleeve: 'none', closure: 'back_zip', collar: 'none', peplum: 'none' }, { fit: 'regular', silhouette: 'gathered', length: 'midi', asymHem: 'none', rise: 'low' }, { fit: 'relaxed', waistSeam: 'raised' });
     expect(checks(d)).not.toContain('crossed');
     setKnob('__noSelfGather', 1);
+    expect(checks(d)).toContain('crossed');
+  }, 240_000);
+
+  // A long full circle skirt's folds come round on each other from every side, and kept only 2 cm apart they slipped through.
+  it.each([
+    ['level hem, cotton', { fit: 'fitted', asymHem: 'none' }, 'cotton'],
+    ['high-low hem, silk', { fit: 'regular', asymHem: 'high_low' }, 'silk'],
+  ] as const)('a circle maxi skirt (%s) is drawn without crossing itself', (_, c, fibre) => {
+    const d = { garment: 'skirt' as const, saved: { choices: { ...INITIAL.choices, silhouette: 'circle', length: 'maxi', ...c } } as never, fibre };
+    expect(checks(d)).toEqual([]);
+    setKnob('__selfWideAt', 99);
     expect(checks(d)).toContain('crossed');
   }, 240_000);
 

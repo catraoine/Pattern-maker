@@ -226,13 +226,14 @@ export function simulate(s: Space, inp: SimInput, steps = knob("__steps") ?? 260
               if (!list) continue;
               for (const r of list) {
                 if (r <= q) continue;
-                if (S.piece[q] === S.piece[r] ? Math.hypot(S.u[q] - S.u[r], S.v[q] - S.v[r]) < D * 1.5 : S.sewn[q] && S.sewn[r]) continue;
                 const J = S.ids[r] * 3;
                 const dx = x[J] - x[I];
                 const dy = x[J + 1] - x[I + 1];
                 const dz = x[J + 2] - x[I + 2];
                 const d2 = dx * dx + dy * dy + dz * dz;
                 if (d2 >= D2 || d2 < 1e-12) continue;
+                // (Asked after the distance, the cheap test: most pairs in the neighbouring cells are already far enough apart.)
+                if (S.piece[q] === S.piece[r] ? (S.u[q] - S.u[r]) ** 2 + (S.v[q] - S.v[r]) ** 2 < D2 * 2.25 : S.sewn[q] && S.sewn[r]) continue;
                 const d = Math.sqrt(d2);
                 const f = (D - d) / d / 2;
                 x[I] -= dx * f;
