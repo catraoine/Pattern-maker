@@ -3930,9 +3930,20 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
       }
       const ids = p.mesh.pts.map((_, i) => p.base + i).filter((g, i) => !p.turned[i] && !held.has(g) && !edge.has(g) && res[g * 3 + 1] < yBot);
       const inP = (g: number) => g >= p.base && g < p.base + p.mesh.pts.length && !p.turned[g - p.base];
+      // (The front edge eased along itself only: drawn toward the mean of all its neighbours, all of them on the cloth's
+      // side, the edge was drawn in off the opening, the button extension taken in by two thirds between the break and
+      // the top button, and the front edge there bowed in toward the centre: Cat saw it as a zigzag between a
+      // double-breasted front's buttons, Nov 8.)
+      const along = new Set<number>();
+      if (!knob('__noFsAlong')) for (const run of p.mesh.runs.opening ?? []) for (const i of run) along.add(p.base + i);
       for (let it = 0; it < fsIt; it++)
         for (const g of ids) {
-          const ns = (nb.get(g) ?? []).filter(inP);
+          const ns = (nb.get(g) ?? []).filter((n) => inP(n) && (!along.has(g) || along.has(n)));
+          if (along.has(g) && ns.length === 2) {
+            const I = g * 3;
+            for (let d = 0; d < 3; d++) res[I + d] += ((res[ns[0] * 3 + d] + res[ns[1] * 3 + d]) / 2 - res[I + d]) * 0.5;
+            continue;
+          }
           if (ns.length < 3) continue;
           const I = g * 3;
           for (let d = 0; d < 3; d++) {
@@ -3999,6 +4010,37 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
             res[I + 2] *= lo / rho;
           }
         }
+    }
+  }
+  // A buttoned front's extension lies over the other front: each point of it on the cloth of the other front it
+  // covers (its mirror, as far the other side of the centre line as it is cut past it), a cloth's thickness out. Settled
+  // on its own, it curled forward off the other front by a cm and more or was drawn in under the centre line, and the
+  // front edge between the break and the top button bowed in or stood out: Cat saw it as a zigzag between a
+  // double-breasted front's buttons, Nov 8. (Below the break, or a little above the top button on a front without a
+  // lapel; coming in over 2 cm there, and over the first cm past the centre line.)
+  if (o.pinFront?.length && !knob('__noLayExt')) {
+    const topPin = Math.min(...o.pinFront.map((f) => f.y - f.span));
+    for (const p of B.panels) {
+      if (p.role !== 'front' || p.hidden) continue;
+      const pts = p.mesh.pts;
+      const lapelY = pts.reduce((m, q, i) => (p.turned[i] ? Math.max(m, q.y) : m), -Infinity);
+      const from = lapelY > -Infinity ? lapelY : topPin - 3;
+      const moves: [number, V3][] = [];
+      pts.forEach((q, i) => {
+        if (p.turned[i] || q.x >= 0) return;
+        const b = Math.min(1, Math.max(0, (q.y - from) / 2));
+        const c = Math.min(1, -q.x);
+        const w = b * b * (3 - 2 * b) * c * c * (3 - 2 * c);
+        if (!w) return;
+        const u = surfaceAt(p, { x: -q.x, y: q.y }, false);
+        if (!u) return;
+        const rho = Math.hypot(u[0], u[2]) || 1e-9;
+        const k = (rho + p.thick[i] + 0.1) / rho;
+        const I = (p.base + i) * 3;
+        const t: V3 = [-u[0] * k, u[1], u[2] * k];
+        moves.push([I, [res[I] + (t[0] - res[I]) * w, res[I + 1] + (t[1] - res[I + 1]) * w, res[I + 2] + (t[2] - res[I + 2]) * w]]);
+      });
+      for (const [I, v] of moves) for (let d = 0; d < 3; d++) res[I + d] = v[d];
     }
   }
   if (o.pinFront?.length && !knob('__noPress')) {

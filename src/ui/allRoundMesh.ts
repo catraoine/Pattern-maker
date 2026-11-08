@@ -658,17 +658,85 @@ function buildDraped(
       }
     }
   }
+  // A front's button extension, laid over the other front, is drawn just out from that front's cloth beneath it. Each
+  // half settled on its own, the extension and the mirrored front under it at much the same depth, now one a little
+  // further out, now the other, and drawn by turns the top front's edge read as a zigzag between the buttons of a
+  // double-breasted front: Cat, Nov 8. (The under front's cloth at a place is its mirrored half's, read off the points
+  // of the fronts on the far side of the centre line nearest that place's mirror. In cm, eased in over the first cm
+  // past the centre line.)
+  const overUnder = new Float32Array(d.pos.length / 3);
+  // (And the under front's extension, drawn under the top front's cloth over it the same way: below 0.)
+  const underIn = new Float32Array(d.pos.length / 3);
+  if (!knobs().__noOverUnder) {
+    const GAP = knobs().__overGap ?? 0.5;
+    const fronts = d.panels.filter((p) => p.role === 'front' && !p.hidden && !p.single && !p.whole);
+    // (The front's own cloth, not its extension nor its lapel, on the half drawn from `src`: its depth round the body
+    // near a place, from its points within 2 cm.)
+    const bodyOf = (src: ArrayLike<number>) => {
+      const grid = new Map<string, number[]>();
+      for (const p of fronts) for (let i = 0; i < p.uv.length / 2; i++) {
+        const g = p.base + i;
+        if (p.turned?.[i] || p.uv[i * 2] < 0 || src[g * 3] < 0) continue;
+        const k = `${Math.floor(src[g * 3] / 2)},${Math.floor(src[g * 3 + 1] / 2)}`;
+        if (!grid.has(k)) grid.set(k, []);
+        grid.get(k)!.push(g);
+      }
+      return (x: number, y: number) => {
+        let s = 0, sw = 0;
+        for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+          for (const h of grid.get(`${Math.floor(x / 2) + dx},${Math.floor(y / 2) + dy}`) ?? []) {
+            const dd = Math.hypot(src[h * 3] - x, src[h * 3 + 1] - y);
+            if (dd > 2) continue;
+            const w = 1 / (dd * dd + 0.05);
+            s += w * Math.hypot(src[h * 3], src[h * 3 + 2]);
+            sw += w;
+          }
+        }
+        return sw ? s / sw : undefined;
+      };
+    };
+    const top = d.pos, bottom = d.posMirror ?? d.pos;
+    const underBody = bodyOf(bottom), topBody = bodyOf(top);
+    for (const p of fronts) for (let i = 0; i < p.uv.length / 2; i++) {
+      const g = p.base + i;
+      const u = p.uv[i * 2];
+      if (p.turned?.[i] || u >= 0) continue;
+      const b = Math.min(1, -u);
+      const ease = b * b * (3 - 2 * b);
+      // (Where the extension lies over the other front: its mirror place, past the centre line on the far side.)
+      if (-top[g * 3] > 0) {
+        const r = underBody(-top[g * 3], top[g * 3 + 1]);
+        if (r !== undefined) overUnder[g] = Math.max(0, r + GAP - Math.hypot(top[g * 3], top[g * 3 + 2])) * ease;
+      }
+      if (-bottom[g * 3] > 0) {
+        const r = topBody(-bottom[g * 3], bottom[g * 3 + 1]);
+        if (r !== undefined) underIn[g] = Math.min(0, r - GAP - Math.hypot(bottom[g * 3], bottom[g * 3 + 2])) * ease;
+      }
+    }
+  }
+  // How much further out (or in, below 0) a point is drawn where two layers lap, in cm, on the half `e`: a front's
+  // button extension (cut past the centre front) laps over the other side, the under one a little further in, or the
+  // two mirrored halves cross at the front and leave a tab at the hem; the top one over the under one (above); and a
+  // back vent's underlap (cut past the centre back) lies under the other side's cloth, on both sides. (The seams and
+  // edges drawn on the cloth follow it, or the under front's edge showed through the top one.)
+  const layerIn = new Float32Array(d.pos.length / 3);
+  for (const p of d.panels) {
+    if (p.hidden) continue;
+    for (let i = 0; i < p.uv.length / 2; i++) {
+      if (p.uv[i * 2] >= -0.05) continue;
+      if (p.role === 'front' && !p.turned?.[i]) layerIn[p.base + i] = Math.min(-0.9, underIn[p.base + i]);
+      else if (p.role === 'back') layerIn[p.base + i] = -0.6;
+    }
+  }
+  const isBack = new Uint8Array(d.pos.length / 3);
+  for (const p of d.panels) if (p.role === 'back') isBack.fill(1, p.base, p.base + p.uv.length / 2);
+  const layered = (i: number, e: number) => (e < 0 || isBack[i] ? layerIn[i] : 0) + (e > 0 ? overUnder[i] : 0);
   for (const p of d.panels) {
     if (p.hidden) continue;
     const n = p.uv.length / 2;
     for (const e of p.single || p.whole ? [1] : [1, -1]) {
       const pos = new Float32Array(n * 3);
-      // A front's button extension (cut past the centre front) laps over the other side: the under one lies a little
-      // further in, or the two mirrored halves cross at the front and leave a tab at the hem.
-      const under = e < 0 && p.role === 'front';
-      // A back vent's underlap (cut past the centre back) lies under the other side's cloth, on both sides.
-      const vent = p.role === 'back';
-      for (let i = 0; i < n; i++) pos.set(P(p.base + i, e, (under && p.uv[i * 2] < -0.05 && !p.turned?.[i] ? -0.9 : vent && p.uv[i * 2] < -0.05 ? -0.6 : 0)), i * 3);
+      for (let i = 0; i < n; i++) pos.set(P(p.base + i, e, layered(p.base + i, e)), i * 3);
       // Each triangle wound so its face looks out from the body (a back piece is laid the other way round from a front);
       // a sleeve's out from the middle of its own arm. The scene's y runs down, so out is the cross product's reverse.
       const ref = (() => {
@@ -801,7 +869,7 @@ function buildDraped(
     if (!SHOW.has(l.kind)) continue;
     for (const e of l.ids.length && wholeAt(l.ids[0]) ? [1] : [1, -1]) {
       const run = l.ids.map((i) => {
-        const q = P(i, e);
+        const q = P(i, e, layered(i, e));
         const r = Math.hypot(q[0], q[2]) || 1;
         const nrm: V3 = [q[0] / r, 0, q[2] / r];
         return { p: [q[0] + nrm[0] * 0.004, q[1], q[2] + nrm[2] * 0.004] as V3, n: nrm };
