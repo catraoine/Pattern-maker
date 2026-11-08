@@ -849,6 +849,8 @@ export function MeasurePage({
 
   const feetInches = id === 'height' && unit === 'in';
   const [ftIn, setFtIn] = useState<[string, string] | null>(null);
+  const feetText = ftIn?.[0] ?? (value === undefined ? '' : ftOf(value));
+  const inchText = ftIn?.[1] ?? (value === undefined ? '' : inOf(value));
   const typeFtIn = (ft: string, inch: string) => {
     setFtIn([ft, inch]);
     const f = parseFloat(ft.replace(',', '.')), i = parseFloat(inch.replace(',', '.'));
@@ -915,29 +917,39 @@ export function MeasurePage({
           <div className="entry-row">
             {feetInches ? (
               // Height in feet and inches (Cat, 2026-10-20), the way most people know it.
+              // Each number sits right against its own FT or IN, each box exactly as wide as what is typed in it, and tapping
+              // the letters picks their box (Cat, 2026-11-07: the IN label sat far from its number).
               <span className="ft-in">
-                <input
-                  id="step-value"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  aria-label={`${fieldLabel}, feet`}
-                  value={ftIn?.[0] ?? (value === undefined ? '' : ftOf(value))}
-                  aria-invalid={note ? true : undefined}
-                  aria-describedby={note ? 'step-msg' : undefined}
-                  onChange={(e) => typeFtIn(e.target.value, ftIn?.[1] ?? (value === undefined ? '' : inOf(value)))}
-                />
-                <span aria-hidden="true">ft</span>
-                <input
-                  id="step-inches"
-                  inputMode="decimal"
-                  autoComplete="off"
-                  enterKeyHint="next"
-                  aria-label={`${fieldLabel}, inches`}
-                  value={ftIn?.[1] ?? (value === undefined ? '' : inOf(value))}
-                  aria-invalid={note ? true : undefined}
-                  onChange={(e) => typeFtIn(ftIn?.[0] ?? (value === undefined ? '' : ftOf(value)), e.target.value)}
-                />
-                <span aria-hidden="true">in</span>
+                <label className="ft-in-part">
+                  <span className="ft-in-size" data-value={feetText}>
+                    <input
+                      id="step-value"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      aria-label={`${fieldLabel}, feet`}
+                      value={feetText}
+                      aria-invalid={note ? true : undefined}
+                      aria-describedby={note ? 'step-msg' : undefined}
+                      onChange={(e) => typeFtIn(e.target.value, inchText)}
+                    />
+                  </span>
+                  <span aria-hidden="true">ft</span>
+                </label>
+                <label className="ft-in-part">
+                  <span className="ft-in-size" data-value={inchText}>
+                    <input
+                      id="step-inches"
+                      inputMode="decimal"
+                      autoComplete="off"
+                      enterKeyHint="next"
+                      aria-label={`${fieldLabel}, inches`}
+                      value={inchText}
+                      aria-invalid={note ? true : undefined}
+                      onChange={(e) => typeFtIn(feetText, e.target.value)}
+                    />
+                  </span>
+                  <span aria-hidden="true">in</span>
+                </label>
               </span>
             ) : (
               <input

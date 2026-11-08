@@ -563,18 +563,40 @@ body:has(.tape-band.carried) {
 .ft-in {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: 18px;
   flex: 1;
   min-width: 0;
 }
-/* Each box shares the room left beside the unit switch (fixed-width boxes ran under it and hid the IN label:
-   the full-round readiness check, 2026-11-02). */
-.ft-in input {
-  width: 2em;
-  flex: 1 1 2em;
-  min-width: 1.5em;
+/* Each number sits right against its own FT or IN, and the room left over stays empty before the unit switch
+   (Cat, 2026-11-07: the IN label sat far from its number). The boxes are as wide as what is typed (see below), so they can't run under the switch either. */
+.ft-in-part {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  cursor: text;
 }
-.ft-in > span {
+/* The box takes the width of a hidden copy of its own number, so it hugs what is typed. */
+.ft-in-size {
+  display: inline-grid;
+  font-family: var(--sans);
+  font-weight: var(--w-head);
+  font-size: 34px;
+}
+.ft-in-size::after {
+  content: attr(data-value);
+  grid-area: 1 / 1;
+  visibility: hidden;
+  white-space: pre;
+  min-width: 0.7ch;
+  height: 0;
+}
+.ft-in-size input {
+  grid-area: 1 / 1;
+  flex: none;
+  width: 0;
+  min-width: 100%;
+}
+.ft-in-part > span[aria-hidden] {
   flex: none;
   white-space: nowrap;
   color: var(--muted);
@@ -887,4 +909,10 @@ button.later.garment-change {
     right: auto;
     width: 520px;
   }
+}
+
+/* The unit words sit on the same line as the numbers and their FT and IN, rather than floating at mid height
+   (Cat, 2026-11-07: CM and FT IN looked out of line with the IN beside them). */
+.measure-entry .entry-row {
+  align-items: baseline;
 }
