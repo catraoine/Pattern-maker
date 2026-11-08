@@ -10,7 +10,7 @@ const dress = (bodice: object, skirt: object, rest: object = {}) => ({ garment: 
 // Random mixes of options that All round showed as their flat drawing (sweep of Nov 7, 2026), now drawn clean.
 describe('All round: random mixes that fell back to the flat drawing', () => {
   afterEach(() => {
-    for (const k of ['__selfFlare', '__noSelfGather', '__silkR', '__selfWideAt']) setKnob(k, undefined);
+    for (const k of ['__selfFlare', '__noSelfGather', '__silkR', '__selfWideAt', '__noSoftDrop']) setKnob(k, undefined);
   });
 
   // A trumpet skirt's flare (its hem under half as long again as its waist) wasn't held apart, and folded through itself.
@@ -39,6 +39,15 @@ describe('All round: random mixes that fell back to the flat drawing', () => {
     const d = { garment: 'skirt' as const, saved: { choices: { ...INITIAL.choices, silhouette: 'circle', length: 'maxi', ...c } } as never, fibre };
     expect(checks(d)).toEqual([]);
     setKnob('__selfWideAt', 99);
+    expect(checks(d)).toContain('crossed');
+  }, 240_000);
+
+  // Under a dropped waist seam a silk A-line mini's folds passed through each other just below the seam, and its back
+  // bunched out in a jut (the How it works film's dress, Nov 8): in silk and viscose it is held apart like a flared skirt.
+  it.each(['silk', 'viscose'] as const)('the film dress in %s is drawn without its skirt crossing itself', (fibre) => {
+    const d = { ...dress({ fit: 'relaxed', neckline: 'boat', length: 'waist', darts: 'bust_waist', sleeve: 'short', sleeveShape: 'straight', closure: 'back_zip', sleeveCm: 20, bustEase: 13 }, { fit: 'relaxed', silhouette: 'a_line', length: 'mini', flareCm: 7.5 }, { fit: 'relaxed', waistSeam: 'dropped' }), fibre };
+    expect(checks(d)).toEqual([]);
+    setKnob('__noSoftDrop', 1);
     expect(checks(d)).toContain('crossed');
   }, 240_000);
 
