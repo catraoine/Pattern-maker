@@ -4020,7 +4020,8 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
   // lapel; coming in over 2 cm there, and over the first cm past the centre line.)
   if (o.pinFront?.length && !knob('__noLayExt')) {
     const topPin = Math.min(...o.pinFront.map((f) => f.y - f.span));
-    for (const p of B.panels) {
+    // (Three times over: a point of the extension next to the centre line is laid on cloth whose triangles it shares.)
+    for (let pass = 0; pass < 3; pass++) for (const p of B.panels) {
       if (p.role !== 'front' || p.hidden) continue;
       const pts = p.mesh.pts;
       const lapelY = pts.reduce((m, q, i) => (p.turned[i] ? Math.max(m, q.y) : m), -Infinity);
@@ -4030,12 +4031,12 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
         if (p.turned[i] || q.x >= 0) return;
         const b = Math.min(1, Math.max(0, (q.y - from) / 2));
         const c = Math.min(1, -q.x);
-        const w = b * b * (3 - 2 * b) * c * c * (3 - 2 * c);
+        const w = b * b * (3 - 2 * b);
         if (!w) return;
         const u = surfaceAt(p, { x: -q.x, y: q.y }, false);
         if (!u) return;
         const rho = Math.hypot(u[0], u[2]) || 1e-9;
-        const k = (rho + p.thick[i] + 0.1) / rho;
+        const k = (rho + (p.thick[i] + 0.1) * c * c * (3 - 2 * c)) / rho;
         const I = (p.base + i) * 3;
         const t: V3 = [-u[0] * k, u[1], u[2] * k];
         moves.push([I, [res[I] + (t[0] - res[I]) * w, res[I + 1] + (t[1] - res[I + 1]) * w, res[I + 2] + (t[2] - res[I + 2]) * w]]);

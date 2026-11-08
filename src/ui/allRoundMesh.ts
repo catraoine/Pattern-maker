@@ -878,7 +878,15 @@ function buildDraped(
     }
   }
   for (const b of d.buttons) {
-    const q = toForm(b.at[0], b.at[1], b.at[2] + LIFT);
+    // (Carried as the cloth under it is, where that hangs clear of the body: placed at the level's own scale, the
+    // button stood off the front in profile.)
+    let near = -1;
+    let nd = 9;
+    if (d.hang && !knobs().__btnOld) for (let i = 0; i < d.pos.length / 3; i++) {
+      const dd = Math.hypot(d.pos[i * 3] - b.at[0], d.pos[i * 3 + 1] - b.at[1], d.pos[i * 3 + 2] - b.at[2]);
+      if (dd < nd) [nd, near] = [dd, i];
+    }
+    const q = toForm(b.at[0], b.at[1], b.at[2] + LIFT, near >= 0 ? d.hang?.[near] || undefined : undefined);
     // Small, self-coloured buttons: the cloth's own colour, a touch paler, with a little sheen (a quiet dark horn where
     // there is no plain colour to match).
     const g = new THREE.SphereGeometry(b.r / 30, 16, 8);
