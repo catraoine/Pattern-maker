@@ -9,7 +9,7 @@ import { CollarOnFront, collarOnFront, straightenCollarEdge } from './collarEnd'
 const NA = 48;
 
 /** Holds a jacket's body cloth out stiff below its underarm. Moves `res`. `seams` are closed again after. */
-export function standStiff(panels: Panel[], res: Float64Array | number[], seams: { i: number; j: number; k: number; t: number }[] = [], k = knob('__stiffK') ?? 0.85): void {
+export function standStiff(panels: Panel[], res: Float64Array | number[], seams: { i: number; j: number; k: number; t: number }[] = [], k = knob('__stiffK') ?? 0.85, box = false): void {
   const body = panels.filter((p) => !p.hidden && (p.role === 'front' || p.role === 'back'));
   if (!body.length) return;
   // (Where the cloth starts to stand free: the lowest underarm point.)
@@ -74,10 +74,16 @@ export function standStiff(panels: Panel[], res: Float64Array | number[], seams:
         s += field[yb * NA + ab];
         c++;
       }
-    const ref = c ? s / c : 0;
+    let ref = c ? s / c : 0;
+    // (A cut with no waist shaping, a boxy or oversized one, is held out the widest it has been from there down, so its
+    // back runs straight past the waist's hollow rather than curving into it: Cat, "stiffer", 2026-11-08. A darted one
+    // is cut to come in at the waist, and held out it stretched across the front.)
+    const run = (box && !knob('__noStiffRun')) || knob('__stiffRun');
     for (let yb = 0; yb < NY; yb++) {
       const b = yb * NA + ab;
-      if (have[b]) held[b] = Math.max(ref, field[b]);
+      if (!have[b]) continue;
+      held[b] = Math.max(ref, field[b]);
+      if (run && yb >= REF0) ref = Math.max(ref, field[b]);
     }
   }
   const at = (f: Float64Array, a: number, y: number) => {

@@ -286,6 +286,10 @@ export interface DrapeOptions {
   boxy?: boolean;
   /** A jacket or coat in a crisp cloth: it stands away from the body below the underarm (structured.ts). */
   stiff?: boolean;
+  /** A stiff jacket or coat cut with no waist shaping (boxy, oversized): held straight down past the waist (structured.ts). */
+  boxCut?: boolean;
+  /** How hard a stiff jacket's body bends, at most (STIFF_BEND; a hooded one's HOOD_BEND). */
+  stiffMax?: number;
   /** Lapels and collar falls held pressed onto the cloth they turn over (a lapel breaking well above the waist). */
   lieLapel?: boolean;
   /** The skirt's hem is cut unlevel on purpose (a high-low, a diagonal, a shaped hem): it is not let down to level. */
@@ -309,8 +313,12 @@ const FACED = (o: { bendK?: number }) => Math.min(12, 1.4 / (o.bendK ?? 0.05));
  *  flies apart (2026-11-07). */
 const STIFF_BEND_MAX = 1.4;
 /** A jacket or coat in a crisp cloth holds its own shape: a boxy vest stands off the body, its seams straight, not
- *  draped onto it (Cat, 2026-11-07). Any stiffer and a double-breasted front's wide overlap stretched. */
-const STIFF_BEND = 1;
+ *  draped onto it (Cat, 2026-11-07); 1.4 since Cat's "stiffer" (2026-11-08), every option passing. Past that a vest's
+ *  shoulders flared out like wings and its armholes gaped. */
+const STIFF_BEND = 1.4;
+/** A stiff jacket's hood bends no harder than this: at STIFF_BEND it stretched round the face (2026-11-08). */
+const HOOD_BEND = 1;
+const stiffBendNow = () => knob('__stiffBend') ?? STIFF_BEND;
 /** How far off the body a stiff jacket's cloth lies, at most, in cm: a leather's 0.6 left a high lapel's laid collar
  *  rippled along its edges (2026-11-08), where at a wool's 0.5 it lies flat and straight. */
 const STIFF_THICK = 0.5;
@@ -1837,7 +1845,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
         // take in one pass, or a bend pulled past its rest more than its own length over overshoots and the cloth flies
         // apart, 2026-11-07; and its body to its own stiffness, whatever its cloth's fall, or a double-breasted front's
         // wide overlap stretched.)
-        bendW.push(o.stiff ? Math.min(w, (w === pours ? STIFF_BEND : STIFF_BEND_MAX) / (o.bendK ?? 0.05)) : w);
+        bendW.push(o.stiff ? Math.min(w, (w === pours ? o.stiffMax ?? stiffBendNow() : STIFF_BEND_MAX) / (o.bendK ?? 0.05)) : w);
       }
     }
   }
@@ -4013,7 +4021,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
   // otherwise carries the front edge back out below the break, where the two mirrored edges then crossed round the top
   // button in an eye shape (Cat, 2026-11-07).
   if ((o.stiff && !knob('__noStiff')) || knob('__stiff')) {
-    standStiff(B.panels, res, seams);
+    standStiff(B.panels, res, seams, undefined, !!o.boxCut);
   }
   // A jacket's or coat's collar fall is pressed down onto the back it turns over (its stand alone can't hold it
   // there in the sim), so no gap opens between the collar and the back neck.
@@ -6405,7 +6413,7 @@ export function drapeOuter(sp: Space, d: OuterDraft, o: DrapeOptions = {}): Drap
     { sleeve: shell.filter((pc) => /sleeve/i.test(pc.name)), collars: collarsOf(d.pieces).map((c) => ((d as { popped?: boolean }).popped ? { ...c, roll: undefined } : c)) },
     // A lapel that breaks high (a coat or jacket buttoned over the chest) is pressed onto the front; a plunging one,
     // breaking near the waist, is left to hang (pressing drags its long front down).
-    { pad: d.pads, stiff: !!o.crisp || !!o.stiffBend, lieLapel: !!d.lapel && base.front.waistCentre.y - d.lapel.breakPt.y > 10, ...o, buttons: { y: d.buttons.at, r: d.buttons.sizeCm / 2, waistY: base.front.waistCentre.y }, ...(o.crisp ? { boxy: false, bendK: STIFF_BEND, thick: Math.min(o.thick ?? STIFF_THICK, STIFF_THICK) } : o.stiffBend ? { bendK: Math.min(STIFF_BEND, o.stiffBend), thick: Math.min(o.thick ?? STIFF_THICK, STIFF_THICK) } : {}), pinFront: knob("__pinAll") ? [{ y: 52, span: 12 }] : knob('__oldPins') || d.hood ? d.buttons.at.map((y) => ({ y, span: 2 })) : frontPins(d.buttons.at, shell) },
+    { pad: d.pads, stiff: !!o.crisp || !!o.stiffBend, boxCut: d.base.waistDarts.front + d.base.waistDarts.back < 0.5, stiffMax: d.hood ? HOOD_BEND : stiffBendNow(), lieLapel: !!d.lapel && base.front.waistCentre.y - d.lapel.breakPt.y > 10, ...o, buttons: { y: d.buttons.at, r: d.buttons.sizeCm / 2, waistY: base.front.waistCentre.y }, ...(o.crisp ? { boxy: false, bendK: d.hood ? HOOD_BEND : stiffBendNow(), thick: Math.min(o.thick ?? STIFF_THICK, STIFF_THICK) } : o.stiffBend ? { bendK: Math.min(d.hood ? HOOD_BEND : stiffBendNow(), o.stiffBend), thick: Math.min(o.thick ?? STIFF_THICK, STIFF_THICK) } : {}), pinFront: knob("__pinAll") ? [{ y: 52, span: 12 }] : knob('__oldPins') || d.hood ? d.buttons.at.map((y) => ({ y, span: 2 })) : frontPins(d.buttons.at, shell) },
   );
   if (cs)
     for (const pnl of out.panels) {
