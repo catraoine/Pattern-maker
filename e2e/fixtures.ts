@@ -202,7 +202,11 @@ export async function stepTabs(page: Page) {
 
 /** Open a step (or the Pro tab) by its name, through the list of steps. */
 export async function goTab(page: Page, name: string) {
-  await (await stepTabs(page)).getByRole('tab', { name, exact: true }).click();
+  const tabs = await stepTabs(page);
+  const own = tabs.getByRole('tab', { name, exact: true });
+  // On a phone the list holds the questions, not the steps (Cat's K, Nov 8): a step opens at its first question.
+  if (await own.count()) await own.click();
+  else await tabs.locator(`[role="tab"][data-step="${name}"]`).first().click();
 }
 
 export async function addCloserFit(page: Page, g: GarmentName) {
@@ -215,7 +219,8 @@ export async function addCloserFit(page: Page, g: GarmentName) {
     await (await stepTabs(page)).getByRole('tab').nth(i).click();
     for (const head of await main(page).locator('fieldset.fold:not([hidden]) > legend > button.fold-head').all()) {
       if (await add.isVisible()) break find;
-      await head.click();
+      // On a phone each tab is one question already (Cat's K, Nov 8), and the fold heads are hidden.
+      if (await head.isVisible()) await head.click();
     }
   }
   await add.click();
@@ -253,7 +258,7 @@ export async function openGroup(page: Page, name: string) {
 /** On a step with several questions only one is open (Cat's D, 2026-10-24): open this one by its folded line. */
 export async function unfold(group: Locator) {
   const head = group.locator(':scope > legend > button.fold-head');
-  if ((await head.count()) && (await head.getAttribute('aria-expanded')) === 'false') await head.click();
+  if ((await head.count()) && (await head.isVisible()) && (await head.getAttribute('aria-expanded')) === 'false') await head.click();
 }
 
 /** "Start from a look", the first line in the garment's drop-down: the photo and the Maison collection. */
@@ -309,6 +314,10 @@ export async function openReview(page: Page): Promise<boolean> {
   await seeChoices(page);
   const review = main(page).getByRole('button', { name: /^Review( all choices)?$/ }).first();
   const print = main(page).getByRole('button', { name: 'Print my pattern' });
+  // On a phone Review is the bar's button at the last question (Cat's K, Nov 8): jump there through the list.
+  if (!(await review.or(print).first().isVisible()) && (await main(page).locator('.q-head').isVisible())) {
+    await (await stepTabs(page)).getByRole('tab').last().click();
+  }
   await expect(review.or(print).first()).toBeVisible();
   if (!(await review.isVisible())) {
     await openNumbers(page);

@@ -1,0 +1,157 @@
+/* ---- Straight to the questions on a phone (Cat's B layout + K, 2026-11-08): a bigger drawing under a one-line
+   header, the corner's tools side by side with Watch demo under them, and one question per screen named by itself,
+   with the bar pinned at the very bottom: a bare back arrowhead and "Next: <question> ›". ---- */
+@media (max-width: 760px) {
+  /* The header on one line: the garment's name, a size down, and the example note at the right of it. */
+  .style-layout .screen-head {
+    min-height: 0;
+    margin: 0;
+  }
+  .style-layout .screen-head .drop.garment-drop {
+    width: auto;
+    flex: none;
+  }
+  .style-layout .screen-head .drop.garment-drop .drop-button {
+    width: auto;
+    min-height: 36px;
+    height: 36px;
+  }
+  .style-layout .screen-head .drop.garment-drop .drop-button > span {
+    font-size: 22px;
+    line-height: 1;
+  }
+  .main:has(.style-layout) .style-layout > .example-tag {
+    display: flex;
+    gap: 10px;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    align-items: center;
+    width: fit-content;
+    height: 36px;
+    margin: -36px 0 0 auto;
+    position: relative;
+    z-index: 5;
+  }
+  .style-layout > .example-tag span {
+    font-size: 11px;
+  }
+  /* "Example body": the lead words are only read out here. */
+  .style-layout > .example-tag .example-tag-lead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .style-layout > .example-tag .example-tag-body {
+    display: inline-block;
+  }
+  .style-layout > .example-tag .example-tag-body::first-letter {
+    text-transform: uppercase;
+  }
+
+  /* Enlarge and Draw side by side, small words; Watch demo on its own line under them. */
+  .style-layout .preview-corner {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 14px;
+    top: 2px;
+    max-width: 200px;
+  }
+  .style-layout .preview-corner > .demo-play {
+    position: static;
+    order: 9;
+    flex-basis: 100%;
+    display: flex;
+    justify-content: flex-start;
+    text-align: left;
+    min-height: 28px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .style-layout .preview-corner > .demo-play .demo-play-words {
+    font-size: 10px;
+    text-align: left;
+  }
+
+  /* The fabric's card: a small swatch tucked at the top right, so the form takes the whole width. */
+  .style-pin > section:not(.live-big) > .preview:has(.form-still:not(.drawing)) {
+    padding-right: 0;
+  }
+  .style-pin > section:not(.live-big) > .preview:has(.form-still:not(.drawing)) > .palette-col,
+  .style-layout.compact .palette-col {
+    top: 4px;
+    transform: none;
+    width: 76px !important;
+    --palette-h: 64px !important;
+  }
+  .palette-col .palette-name {
+    padding: 6px 6px 7px;
+    font-size: 8px;
+  }
+
+  /* The drawing fills the box it is given. */
+  .style-layout .style-pin > section:not(.live-big) .preview .preview-svg {
+    max-height: 100%;
+    height: 100%;
+  }
+
+  /* The question's name is the heading; a tap on it lists every question. No space is held under it now. */
+  .style-panel > .chapter {
+    gap: 0;
+    padding-top: 8px;
+  }
+  .style-panel > .chapter > .chapter-top:empty {
+    display: none;
+  }
+  .style-panel > .chapter > .chapter-more {
+    display: none;
+  }
+  .chapter-name > .q-head {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    cursor: pointer;
+  }
+  .chapter-name {
+    font-size: 26px;
+    line-height: 1.1;
+    margin: 0;
+  }
+  /* The question on screen shows alone, without its folded line: the heading names it. */
+  .style-panel.one-q fieldset.group.fold:not(.open) {
+    display: none;
+  }
+  .style-panel.one-q fieldset.group.fold > legend {
+    display: none;
+  }
+
+  /* The bar stays at the very bottom whatever the question's length, and the page ends above it. */
+  .style-edit > .style-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    margin: 0;
+  }
+  .style-panel {
+    padding-bottom: calc(var(--style-bar-h, 76px) + 12px);
+  }
+  .style-bar .step-back-arrow {
+    width: 56px;
+    font-size: 26px;
+  }
+}

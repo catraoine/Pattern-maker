@@ -41,7 +41,7 @@ export const openTabNext = (tab: string) => {
   nextTab = tab;
 };
 /** The step last open on a garment's style screen, so coming back to it (from Review, Print or anywhere) opens there. */
-let leftOn: { name: string; tab: string } | undefined;
+let leftOn: { name: string; tab: string; q?: string } | undefined;
 
 
 // The choices sit on a few tabs (Cat, 2026-10-18), so the whole row fits on a phone and the tailor's words
@@ -109,7 +109,7 @@ export function useLengthStep(): boolean {
   return active === undefined || active === (own.Length ?? SECTIONS.Length);
 }
 
-const Fold = createContext<{ open: Record<string, string>; set: (tab: string, label: string) => void; steady: boolean } | undefined>(undefined);
+const Fold = createContext<{ open: Record<string, string>; set: (tab: string, label: string) => void; steady: boolean; one?: boolean } | undefined>(undefined);
 
 /** Set by the click-throughs, so a pick doesn't fold its question away while a test is still checking it. */
 const STEADY = 'maison-trace-steady';
@@ -148,7 +148,8 @@ export function Group({ label, tab, children, className }: { label: string; tab?
   const timer = useRef<number>();
   useEffect(() => () => window.clearTimeout(timer.current), []);
   const onPick = (e: React.MouseEvent) => {
-    if (!folds || fold.steady || !(e.target as HTMLElement).closest('.chips button')) return;
+    // One question at a time on a phone (Cat's K, 2026-11-08): a pick stays put, and the bar's Next moves on.
+    if (!folds || fold.steady || fold.one || !(e.target as HTMLElement).closest('.chips button')) return;
     const all = [...(ref.current?.parentElement?.querySelectorAll<HTMLFieldSetElement>(`fieldset.group[data-tab="${t}"]`) ?? [])];
     const next = all[all.indexOf(ref.current!) + 1];
     window.clearTimeout(timer.current);
@@ -325,6 +326,46 @@ interface Props {
 
 const NO_SECTIONS: Record<string, string> = {};
 
+/** One question on a phone's screen: its step, its name, and its pick for the list of questions. */
+interface Question {
+  tab: string;
+  label: string;
+  pick: string;
+}
+
+/** Where a question falls on a phone, one question per screen (the Style choices index, Cat's K, Nov 8). */
+const STEP_RANK: Record<string, number> = {
+  Shape: 0,
+  Fit: 0,
+  Leg: 0,
+  Rise: 0,
+  'Neck & sleeves': 1,
+  Neckline: 1,
+  Sleeves: 1,
+  Shoulder: 1,
+  Lapels: 1,
+  'Length & hem': 2,
+  Hem: 2,
+  'Below the waist': 2,
+  Details: 3,
+  Waist: 3,
+  Opening: 3,
+  Pockets: 3,
+  'Back pockets': 3,
+  'Front pleats': 3,
+  'Belt loops': 3,
+  Fabric: 5,
+};
+/** Questions that move off their step: Structure and the dress's pockets and belt are details. */
+const QUESTION_RANK: Record<string, number> = { Structure: 4, Pockets: 3, Belt: 3 };
+/** Round the neck first, then the collar and its lapels, the back, and the sleeves. */
+const NECK_ORDER = ['Neckline', 'Collar', 'Lapels', 'Back', 'Sleeves', 'Shoulder pads', 'Shoulder'];
+function questionRank(q: Question): [number, number] {
+  const at = QUESTION_RANK[q.label] ?? STEP_RANK[q.tab] ?? 3.5;
+  const sub = at === 1 ? NECK_ORDER.indexOf(q.label) : -1;
+  return [at, sub < 0 ? 0 : sub];
+}
+
 export function StyleLayout({ children, label, name, ready, onChooseGarment, onPhoto, photo, looks, mode, onMode, onEditMeasurements, sections = NO_SECTIONS, undo, flat, onPrint, finished, fabric }: Props) {
   const [options, preview, summary] = Children.toArray(children);
   const [page, setPage] = usePageHistory<'edit' | 'review'>(() => 'edit', (s) => s === 'edit' || s === 'review');
@@ -333,9 +374,6 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   useEffect(() => {
     nextTab = undefined;
   }, []);
-  useEffect(() => {
-    if (active) leftOn = { name, tab: active };
-  }, [name, active]);
   const [tabs, setTabs] = useState<string[]>([]);
   const root = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLDivElement>(null);
@@ -344,9 +382,13 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   const exampleTag = useContext(ExampleTag);
   // The open question on each step. Every question starts folded (Cat, 2026-11-06: the first one stood open, so
   // See the choices didn't show the whole list); a tap on one opens it.
-  const [folds, setFolds] = useState<Record<string, string>>({});
+  // The question open on that step too (Cat's K, Nov 8: on a phone each question is its own screen).
+  const [folds, setFolds] = useState<Record<string, string>>(() => (!nextTab && leftOn?.name === name && leftOn.q ? { [leftOn.tab]: leftOn.q } : {}));
+  useEffect(() => {
+    if (active) leftOn = { name, tab: active, q: folds[active] };
+  }, [name, active, folds]);
   const [steady] = useState(steadyNow);
-  const fold = { open: folds, set: (t: string, l: string) => setFolds((f) => (f[t] === l ? f : { ...f, [t]: l })), steady };
+  const fold = { open: folds, set: (t: string, l: string) => setFolds((f) => (f[t] === l ? f : { ...f, [t]: l })), steady, one: !wide };
 
   // The tab row lists every tab something on the page belongs to, in the order they're drawn: Looks first,
   // the choices, Fabric, then Pro. Switching the pro tools on opens the Pro tab, so the change is seen.
@@ -466,7 +508,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   // at the step's name it asks to choose again.
   const more = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
-  const seen = wide || inView;
+  const seenStep = wide || inView;
   useLayoutEffect(() => {
     const b = more.current;
     if (!b) return;
@@ -540,6 +582,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
     if (!wide) requestAnimationFrame(() => requestAnimationFrame(() => showChoices()));
   };
   const step = (by: number) => {
+    if (!wide && qAt >= 0) return goQ(qAt + by);
     const i = strip_.indexOf(active ?? '');
     const to = strip_[i + by];
     if (to) choose(to);
@@ -568,6 +611,46 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
     );
     if (JSON.stringify(picks) !== JSON.stringify(stepPicks)) setStepPicks(picks);
   });
+
+  // Straight to the questions on a phone (Cat's K, 2026-11-08: "my brain gets confused seeing all these sub sub
+  // categories"). The steps stay as the order, but each question is a screen of its own, named by itself, with
+  // Next naming the question after it. A step whose page holds more than its questions (Fabric's swatches) is one
+  // question named by the step, as is a step that is one question already.
+  const [qs, setQs] = useState<Question[]>([]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- reads the page after every render; the check stops a loop
+  useLayoutEffect(() => {
+    if (wide || page !== 'edit' || !panel.current) return;
+    const el = panel.current;
+    const found: Question[] = [];
+    for (const t of steps) {
+      const groups = [...el.querySelectorAll<HTMLElement>(`fieldset.group.fold[data-tab="${CSS.escape(t)}"]`)];
+      if (el.querySelector(`.tab-part[data-tab="${CSS.escape(t)}"]`) || !groups.length) found.push({ tab: t, label: t, pick: stepPicks[t] ?? '' });
+      else for (const g of groups) found.push({ tab: t, label: g.dataset.label!, pick: pickIn(g.querySelector<HTMLElement>('.fold-body') ?? g) });
+    }
+    // In the order of the Style choices index (Cat's K, Nov 8): shape, then neck and sleeves, length and hem,
+    // the details, and the fabric last, whatever step the question sits on.
+    const order = found
+      .map((q, i) => ({ q, i, at: questionRank(q) }))
+      .sort((a, b) => a.at[0] - b.at[0] || a.at[1] - b.at[1] || a.i - b.i)
+      .map((o) => o.q);
+    if (JSON.stringify(order) !== JSON.stringify(qs)) setQs(order);
+  });
+  const split = (t?: string) => !!t && qs.some((q) => q.tab === t && q.label !== t);
+  const qAt = qs.findIndex((q) => q.tab === active && (q.label === active || q.label === folds[active ?? '']));
+  // Opening a step on a phone opens its first question.
+  useLayoutEffect(() => {
+    if (wide || !active || !qs.some((q) => q.tab === active && q.label !== active) || qs.some((q) => q.tab === active && q.label === folds[active])) return;
+    const first = qs.find((q) => q.tab === active);
+    if (first) setFolds((f) => ({ ...f, [active]: first.label }));
+  }, [wide, active, qs, folds]);
+  // On a phone each question is its own short screen (Cat's K), so the bar is Next straight away.
+  const seen = seenStep || qs.length > 0;
+  const goQ = (i: number) => {
+    const q = qs[i];
+    if (!q) return;
+    if (q.label !== q.tab) setFolds((f) => ({ ...f, [q.tab]: q.label }));
+    goStep(q.tab);
+  };
 
   // On a phone the drawing stands tall at the top, then eases back once the page scrolls into the choices, so they
   // keep their room under it.
@@ -678,7 +761,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           <EnlargeSketch host={host} corner={corner} name={name} />
         </div>
         <div
-          className="style-panel"
+          className={!wide && split(active) ? 'style-panel one-q' : 'style-panel'}
           ref={panel}
           role="tabpanel"
           aria-label={active}
@@ -708,24 +791,23 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
                     Step <b>{at + 1}</b> of {steps.length}
                   </p>
                 )
-              ) : (
-                <button type="button" className="chapter-step" aria-expanded={jump} aria-controls="style-steps" onClick={() => setJump((j) => !j)}>
-                  {at >= 0 ? (
-                    <>
-                      Step <b>{at + 1}</b> of {steps.length}
-                    </>
-                  ) : (
-                    'The steps'
-                  )}
-                  <span className="chapter-step-mark" aria-hidden="true" />
-                </button>
-              )}
+              ) : null}
               {wide && <DemoButton demo="style" />}
               {/* On a phone, Undo and Redo are named, across from "Step 2 of 4", once there is something to undo:
                   well away from the step's back arrow in the bar (Cat, 2026-10-31). */}
               {!wide && undo && (undo.canUndo || undo.canRedo) && <StepUndo undo={undo} />}
             </div>
-            <h2 className="chapter-name">{active === LOOKS ? 'Start from a look' : active}</h2>
+            {wide ? (
+              <h2 className="chapter-name">{active === LOOKS ? 'Start from a look' : active}</h2>
+            ) : (
+              // The question's own name is the heading (Cat's K): a tap lists every question, to jump to any one.
+              <h2 className="chapter-name">
+                <button type="button" className="chapter-step q-head" aria-expanded={jump} aria-controls="style-steps" onClick={() => setJump((j) => !j)}>
+                  {active === LOOKS ? 'Start from a look' : (qs[qAt]?.label ?? active)}
+                  <span className="chapter-step-mark" aria-hidden="true" />
+                </button>
+              </h2>
+            )}
             <div
               id="style-steps"
               className={['style-tabs', atEnd && 'at-end', jump && 'open'].filter(Boolean).join(' ')}
@@ -734,7 +816,37 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
               ref={strip}
               onScroll={(e) => setAtEnd(e.currentTarget.scrollLeft + e.currentTarget.clientWidth >= e.currentTarget.scrollWidth - 2)}
             >
-              {strip_.map((t) => (
+              {!wide && qs.length > 0
+                ? qs.map((q, i) => (
+                    <button
+                      key={`${q.tab}|${q.label}`}
+                      id={`q-${i}`}
+                      type="button"
+                      role="tab"
+                      aria-selected={i === qAt}
+                      aria-label={q.label}
+                      title={q.label}
+                      data-step={q.tab}
+                      tabIndex={i === qAt ? 0 : -1}
+                      className={i === qAt ? 'on' : ''}
+                      onClick={() => goQ(i)}
+                      onKeyDown={(e) => {
+                        const by = ({ ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 } as Record<string, number | undefined>)[e.key];
+                        const to = e.key === 'Home' ? 0 : e.key === 'End' ? qs.length - 1 : by && i + by;
+                        if (to === undefined || to < 0 || to >= qs.length) return;
+                        e.preventDefault();
+                        // As with the steps: the arrow keys move along the questions with the list held open.
+                        const q = qs[to];
+                        if (q.label !== q.tab) setFolds((f) => ({ ...f, [q.tab]: q.label }));
+                        setActive(q.tab);
+                        requestAnimationFrame(() => document.getElementById(`q-${to}`)?.focus());
+                      }}
+                    >
+                      <span className="tab-full">{q.label}</span>
+                      {q.pick && <span className="step-pick">{q.pick}</span>}
+                    </button>
+                  ))
+                : strip_.map((t) => (
                 <button
                   key={t}
                   id={`tab-${t}`}
@@ -814,16 +926,9 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           )}
           {/* On a phone the step ends with two quiet links (Cat's P1, 2026-10-31): Review, which left the bar so it
               holds one button, and Watch demo. */}
-          {!wide && (
-            <div className="step-links">
-              {next && ready && (
-                <button type="button" className="later go step-review" onClick={() => setPage('review')}>
-                  Review all choices <span aria-hidden="true">›</span>
-                </button>
-              )}
-              <DemoButton demo="style" />
-            </div>
-          )}
+          {/* On a phone the list of questions holds every pick, so Review comes after the last question, and Watch
+              demo stands with the drawing's tools, under Enlarge and Draw (Cat's B combo and K, 2026-11-08). */}
+          {!wide && corner && createPortal(<DemoButton demo="style" />, corner)}
         </div>
         {wide ? (
           <div className="style-side">
@@ -855,8 +960,23 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
             <p className="visually-hidden" role="status">
               {Name}
             </p>
-            {backArrow}
-            {!seen ? (
+            {qAt > 0 ? (
+              // Back a question is a bare arrowhead (Cat, 2026-11-08), so the bar's only words are Next's.
+              <button type="button" className="step-back-arrow" aria-label={`Back to ${qs[qAt - 1].label}`} title={qs[qAt - 1].label} onClick={() => goQ(qAt - 1)}>
+                <span aria-hidden="true">‹</span>
+              </button>
+            ) : (
+              qAt < 0 && backArrow
+            )}
+            {qAt >= 0 && qs[qAt + 1] ? (
+              <button type="button" className="primary" aria-label={`Next: ${qs[qAt + 1].label}`} onClick={() => goQ(qAt + 1)}>
+                Next: {qs[qAt + 1].label} <span aria-hidden="true">›</span>
+              </button>
+            ) : qAt >= 0 ? (
+              <button type="button" className="primary" disabled={!ready} onClick={() => setPage('review')}>
+                Review <span aria-hidden="true">›</span>
+              </button>
+            ) : !seen ? (
               <button type="button" className="primary" onClick={() => showChoices()}>
                 See the choices <span aria-hidden="true">↓</span>
               </button>

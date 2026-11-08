@@ -5,7 +5,9 @@ const main = (page: Page) => page.getByRole('main');
 
 // The accessibility review (Cat's "apply all", 2026-10-30): keyboard, measuring seated or alone, and the films in words.
 
-test('a pick made from the keyboard keeps the focus on the choices', async ({ page }) => {
+test('a pick made from the keyboard keeps the focus on the choices', async ({ page }, info) => {
+  // On a phone each question is a screen of its own and Next moves on (Cat's K, Nov 8): nothing folds there.
+  test.skip(info.project.name === 'phone', 'Questions fold only on a computer.');
   // Without the steady flag, so the question folds and the next one opens as it does for everyone.
   await page.addInitScript(() => localStorage.removeItem('maison-trace-steady'));
   await startWithExample(page);

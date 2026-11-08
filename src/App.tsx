@@ -463,7 +463,11 @@ export default function App() {
   // example's numbers and opens measuring from the start.
   const exampleTag = !!person.example?.length && (
     <button type="button" className="example-tag" onClick={measureMe}>
-      <span>Drafted to an example body</span>
+      {/* On a phone's Style the note shares the name's line, so it shows as "Example body" (Cat's B, 2026-11-08). */}
+      <span>
+        <span className="example-tag-lead">Drafted to an </span>
+        <span className="example-tag-body">example body</span>
+      </span>
       <span className="example-tag-go">Measure me</span>
     </button>
   );

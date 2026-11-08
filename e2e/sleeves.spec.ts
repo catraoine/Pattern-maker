@@ -28,7 +28,8 @@ test('sleeves: any length on the slider, cap and flutter', async ({ page }, info
   await chooseChip(page, 'Sleeves', 'Short');
   await chooseChip(page, 'Sleeve shape', 'Flutter');
   await expect(main.getByText(/^waist-length crew neck bodice with flutter sleeves$/i).first()).toBeAttached();
-  await group.screenshot({ path: info.outputPath('flutter.png') });
+  // On a phone Sleeve shape is a screen of its own (Cat's K, Nov 8): back to Sleeves for the picture.
+  await (await openGroup(page, 'Sleeves')).screenshot({ path: info.outputPath('flutter.png') });
 
   // A cap sleeve has its own length, so the slider goes.
   await chooseChip(page, 'Sleeve shape', 'Cap');
@@ -42,5 +43,5 @@ test('sleeves: any length on the slider, cap and flutter', async ({ page }, info
   await dressSlider.fill('40');
   await expect((await openGroup(page, 'Sleeves')).getByText(/^40 cm from the shoulder\./)).toBeVisible();
   // With no chip picked, the phone's list of steps reads the slider's length for the step's picks, not a blank.
-  if (info.project.name === 'phone') await expect(page.locator('#style-steps button[aria-label="Neck & sleeves"] .step-pick')).toContainText('40 cm');
+  if (info.project.name === 'phone') await expect(page.locator('#style-steps button[aria-label="Sleeves"] .step-pick')).toContainText('40 cm');
 });

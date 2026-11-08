@@ -33,3 +33,4 @@
 @import './styles/29-view-glider.css'; /* Style's view line as a glider: a low dark track, the view showing a raised block (Nov 6). */
 @import './styles/30-steady-view.css'; /* One steady drawing box on Style: every view the same height, the corner's tools clear of the drawing (Nov 7). */
 @import './styles/31-full-bars.css'; /* The view bar on Style runs the full width of its line, Pattern in it (Nov 7). */
+@import './styles/32-straight-to-questions.css'; /* Style on a phone: bigger drawing, one-line header, one question per screen (Cat's B + K, Nov 8). */

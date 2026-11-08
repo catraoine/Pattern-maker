@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { expect, expectStyle, fillStepPages, goPrint, headerBack, measureMe, openFresh, openLooks, pickToMake, seeChoices, skipLoading, startWithExample, stepButton, test } from './fixtures';
+import { expect, expectStyle, fillStepPages, goPrint, headerBack, measureMe, openFresh, openLooks, pickToMake, seeChoices, skipLoading, startWithExample, stepButton, stepTabs, test } from './fixtures';
 
 // Back climbs a fixed ladder (Cat's B Fixed Ladder, 2026-10-24): Print, Style, Measurements, Welcome, however
 // the sewist got there, so it never walks back through measuring or ping-pongs between two screens.
@@ -23,6 +23,8 @@ test('after measuring, back from Style goes to the measurements list, not throug
   // On to a later step, then Print: back comes to Style on the step that was open.
   await seeChoices(page);
   await main(page).getByRole('button', { name: /^Next: / }).click();
+  // On a phone Review sits at the last question (Cat's K, Nov 8): go there, so Print leaves from it.
+  if (await main(page).locator('.q-head').isVisible()) await (await stepTabs(page)).getByRole('tab').last().click();
   const step = await main(page).locator('.chapter-name').textContent();
   await goPrint(page);
   await expect(main(page).getByRole('group', { name: 'Paper' })).toBeVisible();
