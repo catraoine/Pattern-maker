@@ -4379,6 +4379,45 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
           }
         }
         if (wornLay && !knob('__noCollarEase')) relax(p, [...onSeamPt]);
+        // The fall smoothed where it lies: laid point by point from the nearest stretch of the roll and the neck, it
+        // folded over itself in creases where the neck curves round the side to the shoulder, and read as crumpled
+        // there from behind the shoulder (Cat, Nov 8). Each turned point drawn toward its neighbours, its edge only
+        // along itself, the roll line and the back of the neck held (smoothed there, its centre back edge lifted in a nick); kept out on whatever it lies over.
+        const fsN = knob('__fallSmooth') ?? 12;
+        if (fsN > 0) {
+          const nbr = new Map<number, Set<number>>();
+          const cnt = new Map<string, number>();
+          for (const [a, b, c] of p.mesh.tris)
+            for (const [u, v] of [[a, b], [b, c], [c, a]]) {
+              (nbr.get(u) ?? nbr.set(u, new Set()).get(u)!).add(v);
+              (nbr.get(v) ?? nbr.set(v, new Set()).get(v)!).add(u);
+              const k = u < v ? `${u},${v}` : `${v},${u}`;
+              cnt.set(k, (cnt.get(k) ?? 0) + 1);
+            }
+          const rim = (u: number, v: number) => cnt.get(u < v ? `${u},${v}` : `${v},${u}`) === 1;
+          const free = pts.map((_, j) => j).filter((j) => p.turned[j] && !onSeamPt.has(j) && pts[j].x - x0 >= (knob("__fallFromCb") ?? 4) && [...(nbr.get(j) ?? [])].every((n) => p.turned[n]));
+          const before = new Map(free.map((j) => [j, Math.hypot(res[(p.base + j) * 3], res[(p.base + j) * 3 + 2])]));
+          for (let it = 0; it < fsN; it++)
+            for (const j of free) {
+              const all = [...(nbr.get(j) ?? [])];
+              const onRim = all.some((n) => rim(j, n));
+              const ns = onRim ? all.filter((n) => rim(j, n)) : all;
+              if (ns.length < 2) continue;
+              const I = (p.base + j) * 3;
+              for (let d = 0; d < 3; d++) {
+                const m = ns.reduce((a2, n) => a2 + res[(p.base + n) * 3 + d], 0) / ns.length;
+                res[I + d] += (m - res[I + d]) * 0.5;
+              }
+              const rho = Math.hypot(res[I], res[I + 2]) || 1e-9;
+              const lo = before.get(j)! - 0.3;
+              if (rho < lo) {
+                res[I] *= lo / rho;
+                res[I + 2] *= lo / rho;
+              }
+            }
+          // (Smoothed, an edge across a crease could come out long: eased back to its cut length.)
+          if (!knob('__noCollarEase')) relax(p, [...onSeamPt]);
+        }
       }
     for (const p of B.panels) {
       if (p.role === 'sleeve' || p.hidden || (collarOnly && p.role !== 'collar')) continue;
