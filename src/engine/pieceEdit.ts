@@ -754,6 +754,9 @@ function cutInTwo(pc: Piece, c: Cut, e: CutEdit, taken: string[]): [Piece, Piece
     // Darts that open on this part are closed into it (a yoke cut across darts, round 3).
     const mine = darts.filter((d) => inside(lerp(lerp(d.a, d.b, 0.5), d.apex, 0.05), cutPoly));
     const words = [...pc.labels];
+    // The part as cut, before its darts are closed: what All round sews back to the other part if either is edited
+    // after the cut (round 4), so the darts are sewn as darts there.
+    const openLines = [...lines];
     const { ring, closed } = mine.length ? closeDartsIn(cutRing, mine, lines, notches, words) : { ring: cutRing, closed: 0 };
     const poly = closed ? polyOf(ring) : cutPoly;
     const box = poly.reduce((b, q) => ({ y0: Math.min(b.y0, q.y), y1: Math.max(b.y1, q.y) }), { y0: Infinity, y1: -Infinity });
@@ -799,16 +802,21 @@ function cutInTwo(pc: Piece, c: Cut, e: CutEdit, taken: string[]): [Piece, Piece
           const shift = sub(at, first);
           return words.map((l) => ({ ...l, at: add(l.at, shift) }));
         })();
+    const outline = pathOf(ring);
+    const meta: Piece['meta'] = { ...pc.meta, edited: true, pointIds: undefined, ...(isNew ? { newPiece: true, cutFrom: pc.name } : { sewnWhole: whole }), ...(closed ? { dartsClosed: closed } : {}) };
+    delete meta.sewPart;
+    meta.cutSig = sigOf(outline);
+    if (closed) meta.sewPart = { outline: pathOf(cutRing), lines: openLines };
     return {
       ...stripDrafted(pc),
       name: own,
-      outline: pathOf(ring),
+      outline,
       lines,
       notches,
       grain,
       fold: foldOf(ring),
       labels: markEdited(labels),
-      meta: { ...pc.meta, edited: true, pointIds: undefined, ...(isNew ? { newPiece: true, cutFrom: pc.name } : { sewnWhole: whole }), ...(closed ? { dartsClosed: closed } : {}) },
+      meta,
     };
   };
   return [part(keep, keepPoly, pc.name), part(off, offPoly, name)];
@@ -821,6 +829,15 @@ const NEW_SEAM = 'newseam';
  *  once keeps every seam). The seam is drawn in short steps, so it is never read as a dart. */
 function sewnWhole(pc: Piece, seam: P[]): Piece {
   const before = (pc.meta.sewnWhole as Piece | undefined) ?? pc;
+  const meta = { ...before.meta };
+  delete meta.sewnWhole;
+  delete meta.sewPart;
+  delete meta.cutSig;
+  return { ...before, lines: [...before.lines, seamLine(seam)], meta };
+}
+
+/** A new seam as a line drawn on a piece, in short steps so it is never read as a dart. */
+function seamLine(seam: P[]): Path {
   const total = seam.slice(1).reduce((t, q, i) => t + len(sub(q, seam[i])), 0);
   const steps = Math.max(12, Math.ceil(total / 1.5));
   const at = (d: number) => {
@@ -834,16 +851,153 @@ function sewnWhole(pc: Piece, seam: P[]): Piece {
   };
   const path = new Path(at(0));
   for (let k = 1; k <= steps; k++) path.line(at((k / steps) * total), NEW_SEAM);
-  const meta = { ...before.meta };
+  return path;
+}
+
+/** A piece's outline as it was left by its last cut, to tell whether it has been edited since. */
+const sigOf = (outline: Path) =>
+  outline
+    .points(4)
+    .map((q) => `${q.x.toFixed(2)},${q.y.toFixed(2)}`)
+    .join(' ');
+
+/** Whether a piece made or kept by a cut has been edited since (a point moved, a spread). */
+const editedSinceCut = (pc: Piece) => typeof pc.meta.cutSig === 'string' && pc.meta.cutSig !== sigOf(pc.outline);
+
+/** The runs of an outline's edges along new seams: where each starts and ends, and its edges. */
+function joinRuns(segs: Seg[]): { a: P; b: P; from: number; n: number }[] {
+  const start = segs.findIndex((sg, i) => sg.tag !== 'join' && segs[(i + 1) % segs.length].tag === 'join');
+  if (start < 0) return [];
+  const out: { a: P; b: P; from: number; n: number }[] = [];
+  for (let k = 1; k <= segs.length; k++) {
+    const i = (start + k) % segs.length;
+    if (segs[i].tag !== 'join') continue;
+    const last = out[out.length - 1];
+    if (last && (last.from + last.n) % segs.length === i) {
+      last.n++;
+      last.b = segs[i].b;
+    } else out.push({ a: segs[i].a, b: segs[i].b, from: i, n: 1 });
+  }
+  return out;
+}
+
+/** The edges of a closed outline from one place round to another, without wrapping past the start twice. */
+const around = (segs: Seg[], from: number, count: number) => Array.from({ length: count }, (_, k) => segs[(from + k) % segs.length]);
+
+/** Whether a closed line crosses itself. */
+function crossesItself(poly: P[]): boolean {
+  const n = poly.length;
+  const hit = (a: P, b: P, c: P, d: P) => {
+    const d1 = cross(sub(b, a), sub(c, a));
+    const d2 = cross(sub(b, a), sub(d, a));
+    const d3 = cross(sub(d, c), sub(a, c));
+    const d4 = cross(sub(d, c), sub(b, c));
+    return d1 * d2 < -1e-9 && d3 * d4 < -1e-9;
+  };
+  for (let i = 0; i < n; i++)
+    for (let j = i + 2; j < n; j++) {
+      if (i === 0 && j === n - 1) continue;
+      if (hit(poly[i], poly[(i + 1) % n], poly[j], poly[(j + 1) % n])) return true;
+    }
+  return false;
+}
+
+/** A new piece sewn back on to the piece it came off, along the seam they were cut apart at, as each is now (round 4,
+ *  Cat 2026-11-08): points moved and spreads made on either after the cut show on the cloth. The seam is drawn on the
+ *  piece. Where the two seams no longer meet end to end (a spread opened one), the sides are joined straight across.
+ *  Nothing when they can't be sewn as one flat piece. */
+function sewOn(kept: Piece, made: Piece): Piece | undefined {
+  const ks = segsOf(kept.outline);
+  const ms = segsOf(made.outline);
+  const kr = joinRuns(ks);
+  const mr = joinRuns(ms);
+  let best: { k: (typeof kr)[number]; m: (typeof mr)[number]; flip: boolean; gap: number } | undefined;
+  for (const k of kr)
+    for (const m of mr) {
+      const opp = len(sub(k.a, m.b)) + len(sub(k.b, m.a));
+      const same = len(sub(k.a, m.a)) + len(sub(k.b, m.b));
+      const gap = Math.min(opp, same);
+      if (!best || gap < best.gap) best = { k, m, flip: same < opp, gap };
+    }
+  if (!best) return undefined;
+  const { k, m, flip } = best;
+  const seamLen = around(ks, k.from, k.n).reduce((t, sg) => t + polyLen(flat(sg, 16)), 0);
+  if (best.gap > Math.max(4, seamLen * 0.6)) return undefined;
+  // The kept piece from the end of the seam round to its start, then the new piece back from there.
+  const keptRest = around(ks, k.from + k.n, ks.length - k.n);
+  let madeRest = around(ms, m.from + m.n, ms.length - m.n);
+  if (flip) madeRest = [...madeRest].reverse().map(reverse);
+  const ring: Seg[] = [];
+  const push = (sg: Seg) => {
+    const prev = ring[ring.length - 1];
+    if (prev && len(sub(prev.b, sg.a)) > 1e-3) ring.push({ kind: 'L', a: prev.b, b: sg.a, tag: sg.tag });
+    ring.push(prev && len(sub(prev.b, sg.a)) <= 1e-3 ? { ...sg, a: prev.b } : sg);
+  };
+  keptRest.forEach(push);
+  madeRest.forEach(push);
+  const first = ring[0];
+  const last = ring[ring.length - 1];
+  if (len(sub(first.a, last.b)) > 1e-3) ring.push({ kind: 'L', a: last.b, b: first.a, tag: first.tag });
+  else ring[ring.length - 1] = { ...last, b: first.a };
+  if (crossesItself(polyOf(ring))) return undefined;
+  const seam = around(ks, k.from, k.n).flatMap((sg, i) => flat(sg, 16).slice(i ? 1 : 0));
+  const meta: Piece['meta'] = { ...kept.meta, gathers: [...((kept.meta.gathers as unknown[]) ?? []), ...((made.meta.gathers as unknown[]) ?? [])] };
   delete meta.sewnWhole;
-  return { ...before, lines: [...before.lines, path], meta };
+  delete meta.sewPart;
+  delete meta.cutSig;
+  return {
+    ...kept,
+    outline: pathOf(ring),
+    lines: [...kept.lines, ...made.lines, seamLine(seam)],
+    notches: [...kept.notches, ...made.notches],
+    fold: foldOf(ring) ?? kept.fold,
+    meta,
+  };
+}
+
+/** A piece and the new pieces cut off it (and off them), sewn back together as each is now; nothing if any can't be. */
+function sewFamily(root: Piece, family: Piece[]): Piece | undefined {
+  // A part nobody edited since it was cut is sewn with its darts open, so they are sewn as darts.
+  const asSewn = (pc: Piece): Piece => {
+    const open = pc.meta.sewPart as { outline: Path; lines: Path[] } | undefined;
+    return open && !editedSinceCut(pc) ? { ...pc, outline: open.outline, lines: open.lines } : pc;
+  };
+  const now = new Map<string, Piece>([root, ...family].map((pc) => [pc.name, asSewn(pc)]));
+  let left = [...family];
+  while (left.length) {
+    // A new piece nothing else was cut off is sewn on first.
+    const leaf = left.find((pc) => !left.some((x) => x !== pc && x.meta.cutFrom === pc.name));
+    if (!leaf) return undefined;
+    const onto = now.get(leaf.meta.cutFrom as string);
+    if (!onto) return undefined;
+    const sewn = sewOn(onto, now.get(leaf.name)!);
+    if (!sewn) return undefined;
+    now.set(onto.name, sewn);
+    left = left.filter((pc) => pc !== leaf);
+  }
+  return now.get(root.name);
 }
 
 /** The pieces as All round sews them (round 3): each piece that had a new piece cut off it is sewn whole again, its new
- *  seams drawn on it, and the new pieces themselves go (they are in it). */
+ *  seams drawn on it, and the new pieces themselves go (they are in it). Nobody having edited the pieces since they
+ *  were cut, it is the piece as it was before the cut; once any of them is (round 4), they are sewn back as they are
+ *  now, so the moves and spreads show. */
 export function sewnForAllRound(pieces: Piece[]): Piece[] {
   if (!hasNewPieces(pieces)) return pieces;
-  return pieces.filter((pc) => !pc.meta.newPiece).map((pc) => (pc.meta.sewnWhole as Piece | undefined) ?? pc);
+  const byName = new Map(pieces.map((pc) => [pc.name, pc]));
+  const rootOf = (pc: Piece): Piece | undefined => {
+    let at: Piece | undefined = pc;
+    for (let guard = 0; at?.meta.newPiece && guard < pieces.length; guard++) at = byName.get(at.meta.cutFrom as string);
+    return at?.meta.newPiece ? undefined : at;
+  };
+  return pieces
+    .filter((pc) => !pc.meta.newPiece)
+    .map((pc) => {
+      const family = pieces.filter((x) => x.meta.newPiece && rootOf(x) === pc);
+      const whole = (pc.meta.sewnWhole as Piece | undefined) ?? pc;
+      if (![pc, ...family].some(editedSinceCut)) return whole;
+      return sewFamily(pc, family) ?? whole;
+    });
 }
 
 /** One cut on a set of pieces. A line that doesn't cross its piece from edge to edge changes nothing. */

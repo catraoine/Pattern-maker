@@ -5,7 +5,7 @@ import { cutLine } from './piece';
 import { toDxf } from './dxf';
 import { layout, labelCollisions } from './export';
 import { importDxf } from './importDxf';
-import { EDITED, applyCut, applyPatternEdits, cutEnds, cutMark, hasNewPieces } from './pieceEdit';
+import { EDITED, applyCut, applyPatternEdits, cutEnds, cutMark, hasNewPieces, sewnForAllRound } from './pieceEdit';
 import { handlesOf } from './pointEdit';
 import { pairs } from './qc';
 import { draftSkirt } from './skirt';
@@ -129,6 +129,37 @@ describe('cutting the flat pattern with a drawn line', () => {
     ]);
     const moved = handlesOf([out.find((pc) => pc.name === yoke.name)!]).find((x) => x.at === h.at)!;
     expect(len(sub(moved.pos, h.pos))).toBeGreaterThan(0.5);
+  });
+
+  it('sews a new piece back on in All round as cut, then with what was moved or spread after the cut (round 4)', () => {
+    const across = [{ x: b.x0 - 2, y: b.y0 + 12 }, { x: midX, y: b.y0 + 13 }, { x: b.x1 + 2, y: b.y0 + 14 }];
+    const cut = { cut: 'piece' as const, piece: front.name, line: across, by: 0 };
+    const sewnOf = (pcs: typeof skirt.pieces) => sewnForAllRound(pcs).find((pc) => pc.name === front.name)!;
+    const seamOn = (pc: typeof front) => pc.lines.filter((ln) => ln.tags[0] === 'newseam').length;
+    // Nothing edited after the cut: the piece as it was before it, darts and all, the seam drawn on it.
+    const asCut = applyPatternEdits(skirt.pieces, [cut]);
+    const plain = sewnOf(asCut);
+    expect(hemOf(plain)).toBeCloseTo(hemOf(front), 3);
+    expect(plain.lines.length).toBe(front.lines.length + 1);
+    // A spread for flare on the lower piece after the cut: the hem sewn in All round is as much wider, the waist and
+    // its darts as drafted (the yoke had them closed into it; sewn, they are darts again).
+    const flared = applyPatternEdits(skirt.pieces, [cut, { cut: 'spread', piece: front.name, line: [{ x: midX, y: b.y0 + 16 }, { x: midX, y: b.y1 - 3 }], by: 8 }]);
+    const lower = flared.find((pc) => pc.name === front.name)!;
+    expect(hemOf(lower) - hemOf(front)).toBeGreaterThan(7.5);
+    const sewn = sewnOf(flared);
+    expect(sewnForAllRound(flared).some((pc) => pc.meta.newPiece)).toBe(false);
+    expect(hemOf(sewn)).toBeCloseTo(hemOf(lower), 3);
+    expect(taggedLength(sewn.outline, 'waist') + taggedLength(sewn.outline, 'dart')).toBeCloseTo(waistOf(front) + taggedLength(front.outline, 'dart'), 1);
+    expect(sewn.lines.filter((ln) => ln.segs.length === 2).length).toBe(front.lines.length);
+    expect(seamOn(sewn)).toBe(1);
+    expect(taggedLength(sewn.outline, 'join')).toBe(0);
+    // A point moved on the yoke after the cut moves on the sewn piece too.
+    const yoke = asCut.find((pc) => pc.meta.newPiece)!;
+    const h = handlesOf([yoke]).find((x) => !x.at.includes('join') && !x.at.startsWith('dart'))!;
+    const moved = sewnOf(applyPatternEdits(skirt.pieces, [cut, { piece: yoke.name, at: h.at, by: { x: 0, y: -1.5 } }]));
+    const near = (pc: typeof front) => Math.min(...pc.outline.points(16).map((q) => len(sub(q, { x: h.pos.x, y: h.pos.y - 1.5 }))));
+    expect(near(moved)).toBeLessThan(0.3);
+    expect(near(plain)).toBeGreaterThan(1);
   });
 
   it('leaves a pattern nobody edited exactly as drafted', () => {
