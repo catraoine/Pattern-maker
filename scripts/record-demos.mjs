@@ -271,17 +271,10 @@ async function record(name, script, before) {
     await loc.dispatchEvent('click');
     await wait(pause);
   };
-  /** The small line over the caption, for what was just picked. */
-  const label = (t) =>
-    p.evaluate((t) => {
-      const el = document.querySelector('#cap small');
-      el.style.transition = 'opacity .25s';
-      el.style.opacity = 0;
-      setTimeout(() => {
-        el.textContent = t;
-        el.style.opacity = 1;
-      }, 250);
-    }, t);
+  /** The small line over the caption keeps the chapter's name in every clip (Cat, 2026-11-09: names of what was
+   *  just picked popping up above the narration were confusing); the picture shows the pick. Kept as a no-op so
+   *  each clip's script still reads as before. */
+  const label = async () => {};
   /** Drags from one element's middle to another's (or to a point given as [dx, dy] from it), with the finger dot. */
   const drag = async (from, to, pause = 1400) => {
     const a = await from.boundingBox();
@@ -325,8 +318,9 @@ const DEMOS = {
   style: async (h) => {
     const { wait, card, cap, focus, veil, uncard, R, press, label, drag, f, p } = h;
     const pick = async (c, ms = 1700) => {
+      // The line over the caption keeps the chapter's name (Cat, 2026-11-09: skirt names popping up above the
+      // narration were confusing); the drawing shows what was picked.
       await press(R('button', c), 0);
-      await label(c);
       await wait(ms);
     };
     await card('Maison Tracé', 'Styling, in thirty seconds', 1200, true);
@@ -365,7 +359,6 @@ const DEMOS = {
     await cap('Undo', 'Changed your mind? Undo takes off the last change.');
     await wait(900);
     await press(R('button', 'Undo the last change'), 0);
-    await label('Undo');
     await wait(1900);
     await cap('Pattern', 'Switch to Pattern to see the pieces you will cut.');
     await veil(async () => {
@@ -480,6 +473,8 @@ async function toPrint({ R, press }, allTools, quick) {
     await press(see, 300);
     await R('button', /^Review/).waitFor({ state: 'attached', timeout: 8000 });
   }
+  // One question at a time (release W on): Next through the questions until Review shows.
+  for (let i = 0; i < 24 && !(await R('button', /^Review/).count()); i++) await press(R('button', /^Next/), 150);
   await press(R('button', /^Review/), quick ? 200 : 600);
   await press(R('button', 'Print my pattern'), quick ? 400 : 900);
   if (allTools) await press(R('button', 'Show all tools'), 800);
