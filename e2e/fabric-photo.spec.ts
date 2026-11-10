@@ -29,8 +29,8 @@ test('a photo of your own fabric dresses the sketch and comes off again', async 
   await sizes.getByRole('radio', { name: 'Large' }).click();
   await expect(sizes.getByRole('radio', { name: 'Large' })).toHaveAttribute('aria-checked', 'true');
   await expect(main.locator('.garment-fabric pattern').first()).toHaveAttribute('width', '40');
-  // Back after a reload: the photo is kept in this browser.
-  await page.reload();
+  // Back on a later visit: the photo is kept in this browser.
+  await page.goto('/');
   await page.getByRole('button', { name: 'Carry on with your dress' }).click();
   await goTab(page, 'Fabric');
   await expect(main.locator('.garment-fabric pattern image').first()).toHaveAttribute('href', /^blob:/);

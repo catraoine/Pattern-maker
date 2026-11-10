@@ -411,6 +411,30 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
   every skirt, top and dress, keep their fixed ease through the tester round. Before a photo's jacket or coat is shown
   to Cat, the ratio check (`src/photo/ratios.ts`) compares the pattern's room, hem, shoulder and buttons with the photo's.
 
+## Getting around and getting the pattern out (journey review, Nov 10)
+
+Cat applied all seven fixes from the app journey review ("Do all fixes"), plus Email me the PDF ("ok email").
+- **Back returns to where you came from**: Measure opened from Style or Print hangs off that screen, so back
+  (gesture, browser or ←) goes back there, not to the welcome. The rest of the fixed ladder (Oct 24) stays. `ladder`
+  in `src/navigation.ts`.
+- **A reload keeps your place**: this tab's screen (Measure, Style, Print or Your account) is kept in sessionStorage
+  and opened again on a reload, or when a phone drops the page in the background. A new visit still starts at the
+  welcome; `?fresh` clears it. `PLACE_KEY`, `RESTORABLE` in `src/App.tsx`.
+- **Home-screen icon**: the tester code stays in the address once it lets a device in, so an iPhone home-screen icon
+  (own storage, opens the address it was added from) doesn't open the waitlist. With nothing saved there, the
+  welcome offers "Started in Safari? Bring your work here": paste the Send to another device link.
+- **Printing keeps the pattern**: Download, Open, Share or Email puts it in Saved patterns where there's room (not
+  the example body). "Kept in Your account, under Saved patterns." shows under the buttons.
+- **Back to the original style**: a quiet link on Review (phone) and under the summary (computer), asks once, puts
+  every style choice for that garment back to a first visit's; measurements stay. `StartOver` in `src/ui/StyleLayout.tsx`.
+- **Blank print pages**: tiles with nothing on them aren't printed; Print and the PDF's page layout say to leave a gap.
+- **Upright iPad Style**: choices sit at the top of the panel beside the drawing (the phone's space under the
+  question's name isn't held), one question at a time as on a phone; Watch demo on its own line under Draw.
+  `src/styles/21-ipad.css`.
+- **Email me the PDF**: under Download on every device. The PDF goes from hello@maisontrace.co through Resend
+  (needs RESEND_API_KEY in Netlify); the address is used only to send it, never stored. Caps 5 a sender, 90 a day.
+  `netlify/functions/email-pdf.mts`, `src/server/emailPdf.ts`.
+
 ## Fixing problems
 
 - **Auto-fix rule** (Oct 18): never point out problems the user's own edits cause (uneven seams,

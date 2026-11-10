@@ -24,7 +24,8 @@ test('returning visitor: a reload keeps the measurements and the saved pattern',
   await main.getByRole('button', { name: 'Keep in my patterns' }).click();
   await expect(main.getByRole('status').filter({ hasText: 'Kept in' })).toBeVisible();
 
-  await page.reload();
+  // Coming back later (a new visit, not a reload: a reload keeps your place since the journey review, Nov 10).
+  await page.goto('/');
   await skipLoading(page);
 
   // Every visit opens on the welcome, which carries straight on with the garment you were styling.

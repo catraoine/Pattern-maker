@@ -111,3 +111,25 @@
     font-size: 56px;
   }
 }
+
+/* Style on an upright iPad (journey review, Nov 10): the choices sit beside the drawing, as on a computer, so the
+   phone's space under the question's name (28-step-arrow.css), which pushed them down under the Next button and left
+   the panel looking empty, isn't held here. Watch demo takes its own line under Enlarge and Draw, off Draw. */
+@media (min-width: 700px) and (max-width: 1099px) and (min-height: 700px) {
+  .style-panel > .chapter > .chapter-more {
+    display: none;
+  }
+  /* One question at a time, as on a phone (Cat's K, Nov 8): the heading names it, so its own line and the others'
+     folded lines aren't shown again under it. */
+  .style-panel.one-q fieldset.group.fold:not(.open) {
+    display: none;
+  }
+  .style-panel.one-q fieldset.group.fold > legend {
+    display: none;
+  }
+  .style-layout .preview-corner > .demo-play {
+    position: static;
+    margin: 4px 0 0;
+    text-align: left;
+  }
+}

@@ -42,7 +42,7 @@ import { WelcomeScreen } from './screens/WelcomeScreen';
 import { CODE_MESSAGE, checkCode, hasAccess, rememberAccess, testerFromLink, withoutTester } from './access';
 import { keepOffline } from './swUpdate';
 import { preloadScreens, screen } from './screens/load';
-import { FABRIC, openTabNext } from './ui/StyleLayout';
+import { FABRIC, StartOver, openTabNext } from './ui/StyleLayout';
 import { KeptCount } from './ui/SaveControl';
 import { GARMENT_NAME } from './measureFlow';
 import type { StepsStart } from './screens/MeasureStepsScreen';
@@ -80,8 +80,11 @@ import { PhotoCheck } from './ui/PhotoCheck';
 import type { PhotoSource } from './photo/check';
 import type { PhotoBody } from './photo/garments';
 import { testerHeaders } from './ui/TesterCode';
-import { NEEDS_MEASUREMENTS, PARENT, SIDE, STEPS, STEP_OF, ladder, type Step, type View } from './navigation';
+import { NEEDS_MEASUREMENTS, PARENT, PLACE_KEY, SIDE, STEPS, STEP_OF, ladder, type Step, type View } from './navigation';
 
+
+/** The screens a reload may open again. */
+const RESTORABLE: View[] = ['measure', 'style', 'export', 'account'];
 
 const MeasureScreen = screen(() => import('./screens/MeasureScreen').then((m) => m.MeasureScreen));
 const StyleScreen = screen(() => import('./screens/StyleScreen').then((m) => m.StyleScreen));
@@ -183,6 +186,19 @@ export default function App() {
   const sendLink = () => moveLink(window.location.origin, makeBackup(saved, account, pointEdits));
   // maisontrace.co/privacy and /terms open those pages straight away: Google's sign-in setup needs a web address for
   // each, and so will anyone who links to them.
+  // Where the sewist was, for this tab only: a reload, or the phone dropping the page in the background while the tape
+  // is fetched, opens there again instead of the welcome (journey review, Nov 10). A new visit still starts at the welcome.
+  const [restore] = useState<View | undefined>(() => {
+    try {
+      // Only a reload (or Back into the page) reopens the place: typing the address again or a fresh link is a new visit.
+      const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+      if (nav && nav.type !== 'reload' && nav.type !== 'back_forward') return undefined;
+      const v = sessionStorage.getItem(PLACE_KEY) as View | null;
+      return v && RESTORABLE.includes(v) && !window.location.hash && !legalPath(window.location.pathname) && !new URLSearchParams(window.location.search).has('go') ? v : undefined;
+    } catch {
+      return undefined;
+    }
+  });
   const [startView] = useState<View>(incoming?.kind === 'ask' ? 'link' : incoming?.kind === 'reply' ? 'arrive' : isMoveLink(window.location.hash) ? 'move' : legalPath(window.location.pathname) ?? 'welcome');
   const [step, setStep] = useViewHistory<View>(startView, (to) => (NEEDS_MEASUREMENTS.includes(to) && !canLeaveMeasure ? 'measure' : to), ladder);
   // Signing in on a device another account used asks a question in Your account: open it there, wherever the sign-in
@@ -211,7 +227,10 @@ export default function App() {
     if (r === 'tester') {
       letIn(code);
       setLinkCheck({});
-    } else setLinkCheck({ message: r === 'wrong' ? "That tester link isn't working. Check the email it came in, or type the code here." : CODE_MESSAGE[r] });
+    } else {
+      if (r === 'wrong') window.history.replaceState(window.history.state, '', withoutTester(window.location.pathname, window.location.search, window.location.hash));
+      setLinkCheck({ message: r === 'wrong' ? "That tester link isn't working. Check the email it came in, or type the code here." : CODE_MESSAGE[r] });
+    }
   };
   const letIn = (code: string) => {
     rememberAccess();
@@ -227,16 +246,24 @@ export default function App() {
     keepOffline();
     preloadScreens();
   }, [gated]);
-  // A tester link (?tester=TOILE-ONE): checked once, then the code leaves the address bar.
+  // A tester link (?tester=TOILE-ONE): checked once. The code stays in the address while it lets this device in (see
+  // below); one that doesn't is taken out.
   useEffect(() => {
     const code = testerFromLink(window.location.search);
     if (!code) return;
-    window.history.replaceState(window.history.state, '', withoutTester(window.location.pathname, window.location.search, window.location.hash));
     if (access) return;
     linkCode.current = code;
     void checkLink(code);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once on opening: the tester link is read and then taken out of the address
   }, []);
+  // The tester code stays in the address once this device is in (journey review, Nov 10): an iPhone's home-screen
+  // icon opens the address it was added from, in storage of its own, so without the code it opened the waitlist.
+  useEffect(() => {
+    if (!access || !account.testerCode || testerFromLink(window.location.search) || window.location.hash) return;
+    const params = new URLSearchParams(window.location.search);
+    params.set('tester', account.testerCode);
+    window.history.replaceState(window.history.state, '', `${window.location.pathname}?${params.toString()}`);
+  }, [access, account.testerCode, step]);
   // Where Plans goes back to: the screen it was opened from.
   const [beforePlans, setBeforePlans] = useState<View>('account');
   const openPlans = () => {
@@ -256,7 +283,18 @@ export default function App() {
   }, [step]);
   // The loading screen plays when someone first opens the app, on the way into the welcome. People coming
   // back to their work go straight to it.
-  const [opening, setOpening] = useState(step === 'welcome');
+  const [opening, setOpening] = useState(step === 'welcome' && !(restore && !gated));
+  useEffect(() => {
+    if (restore && !gated) setStep(restore);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- once on opening: back to the screen this tab was on
+  }, []);
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(PLACE_KEY, step);
+    } catch {
+      // Storage off (a private window): a reload starts at the welcome.
+    }
+  }, [step]);
   // The welcome's dress form waits under the loading screen, which wraps its bodice into the form's outline.
   const [formStart, setFormStart] = useState<FormStart>(opening ? 'wait' : 'fresh');
   const profile = profileName(account);
@@ -438,6 +476,17 @@ export default function App() {
   const labelFor = savedNow && labelCode(savedNow.id);
   const saveState = isSaved ? 'saved' : account.patterns.length >= savedLimit(account) ? 'full' : 'can';
 
+  // "Back to the original style" on Review: this garment's choices as a first visit has them, measurements untouched.
+  const startOver = () => {
+    const keys: Partial<Record<Garment, keyof Saved>> = { trousers: 'trousers', tee: 'tee', knit_dress: 'knitDress', hoodie: 'hoodie', jumpsuit: 'jumpsuit', lingerie: 'lingerie', jacket: 'jacket', coat: 'coat' };
+    // A dress not yet styled on its own is drawn from the skirt and bodice picks: it keeps them when those start over,
+    // and starts over itself from the first visit's skirt and bodice, not the sewist's.
+    const ownDress = saved.dress ?? dressOf(saved);
+    if (garment === 'skirt') setSaved({ ...saved, choices: INITIAL.choices, dress: ownDress });
+    else if (garment === 'bodice') setSaved({ ...saved, bodice: INITIAL.bodice, dress: ownDress });
+    else if (garment === 'dress') setSaved({ ...saved, dress: dressOf(INITIAL) });
+    else if (keys[garment]) setSaved({ ...saved, [keys[garment]!]: undefined });
+  };
   // "How did it fit?" from the print screen: the pattern is kept (if it can be) and its fit notes open on Your account.
   const [fitFocus, setFitFocus] = useState<string>();
   const openFitNotes = () => {
@@ -583,6 +632,7 @@ export default function App() {
         />
       )}
       <PointEditContext.Provider value={pointEditing}>
+      <StartOver.Provider value={startOver}>
       <div className="app" {...{ inert: opening ? '' : undefined }}>
         <header className={step === 'welcome' || step === 'link' || gated ? 'topbar' : 'topbar steady'}>
           {gated && step !== 'welcome' ? (
@@ -710,6 +760,14 @@ export default function App() {
               onFinish={() => {
                 setAccount({ ...account, onboarded: true, mode });
                 setStep('steps');
+              }}
+              onBringLink={async (link) => {
+                const at = link.indexOf('#');
+                const b = at >= 0 ? await readMoveLink<Saved>(link.slice(at)) : null;
+                if (!b || b === 'broken') return false;
+                setMoving(b);
+                setStep('move');
+                return true;
               }}
               resume={
                 account.onboarded && canLeaveMeasure
@@ -1235,6 +1293,7 @@ export default function App() {
           </Suspense>
         </main>
       </div>
+      </StartOver.Provider>
       </PointEditContext.Provider>
     </>
   );

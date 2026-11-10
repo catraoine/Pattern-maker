@@ -29,6 +29,9 @@ export const SIDE: Partial<Record<View, [string, string]>> = {
   help: ['Account', 'Help & feedback'],
 };
 
+/** This tab's last screen, in sessionStorage, so a reload opens there again (journey review, Nov 10). */
+export const PLACE_KEY = 'maison-trace-place';
+
 /** Screens that draw a pattern, so they need the measurements first. */
 export const NEEDS_MEASUREMENTS: View[] = ['style', 'export', 'fitting', 'scale'];
 
@@ -42,6 +45,10 @@ const HANGS_OFF: Partial<Record<View, View>> = { photo: 'style', collection: 'st
 /** The screens `to` hangs off. Any other screen (Account, Plans, the legal pages, the guided measuring) hangs off
  *  the one it was opened from, and going to one already behind steps back to it. */
 export const ladder = (to: View, trail: View[]): View[] => {
+  // A side trip to the measurements from Style or Print hangs off the screen it was opened from, so back returns
+  // there, not to the welcome (journey review, Nov 10: "Back returns to where you came from").
+  const from = trail[trail.length - 1];
+  if (to === 'measure' && (from === 'style' || from === 'export')) return [...trail, 'measure'];
   const rung = RUNGS[to];
   if (rung) return rung;
   const parent = HANGS_OFF[to];

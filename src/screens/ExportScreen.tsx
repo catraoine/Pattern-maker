@@ -1,6 +1,6 @@
 import { DropMenu } from '../ui/DropMenu';
 import { useTablet, useWide } from '../ui/StyleLayout';
-import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { SendToDevice } from '../ui/SendToDevice';
 import { OVERLAP, PAGE_MARGIN, Paper, Sheet, layout, pageCount, pageName, pageSize, tileGrid, toSvg, usedTiles } from '../engine/export';
 import { checkPattern } from '../engine/qc';
@@ -219,6 +219,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
   // These hooks sit above the early return below so every render calls them in the same order.
   // Once the pattern has left the app (downloaded, shared or opened to print), the fit question comes up.
   const [printed, setPrinted] = useState(false);
+  const [kept, setKept] = useState(false);
   // How to sew it folds closed on a phone, where the page was one long scroll, and opens on a computer (the
   // aesthetic review, 2026-10-21). Set once on arrival; after that the fold is the reader's.
   // On the example body, the first print asks once whether to measure first or print the example anyway.
@@ -248,12 +249,21 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
 
   const showPages = wide || tablet || seePages;
   const checked = (go: () => void) => () => (example && !exampleOk ? setAsking(() => go) : go());
+  // The pattern has left the app: the fit question comes up, and the pattern is kept in Saved patterns where there's
+  // room, so it's there after closing the app (journey review, Nov 10: printing didn't save it).
+  const left = () => {
+    countStep('printed', garment);
+    setPrinted(true);
+    if (onKeep && !example && !imported) {
+      onKeep();
+      setKept(true);
+    }
+  };
   const share = async () => {
     if (!ready) return;
     try {
       await navigator.share({ files: [new File([ready], fileName, { type: 'application/pdf' })], title: `Maison Tracé: ${title}` });
-      countStep('printed', garment);
-      setPrinted(true);
+      left();
       setShareNote('');
     } catch (e) {
       if ((e as Error).name !== 'AbortError') setShareNote("Sharing didn't work on this device. Download the PDF instead.");
@@ -262,8 +272,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
 
   const openToPrint = () => {
     if (!ready) return;
-    countStep('printed', garment);
-    setPrinted(true);
+    left();
     const url = URL.createObjectURL(new Blob([ready], { type: 'application/pdf' }));
     window.open(url, '_blank');
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
@@ -271,8 +280,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
 
   const download_ = () => {
     if (!ready) return;
-    countStep('printed', garment);
-    setPrinted(true);
+    left();
     download(ready, 'application/pdf', fileName);
   };
   const paperChoice = projector ? 'projector' : paper;
@@ -349,6 +357,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
               <button type="button" className="secondary" onClick={checked(openToPrint)} disabled={!ready}>
                 Open PDF to print
               </button>
+              {!imported && <EmailPdf ready={ready} fileName={fileName} title={title} onSent={left} checked={checked} />}
               {asking && (
                 <div className="example-ask" role="alertdialog" aria-labelledby="example-ask-title">
                   <p id="example-ask-title" className="small">
@@ -373,6 +382,11 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
                 </div>
               )}
               {shareNote && <p className="msg small">{shareNote}</p>}
+              {kept && (
+                <p className="small muted" role="status">
+                  Kept in Your account, under Saved patterns.
+                </p>
+              )}
             </div>
             {onFitNotes && !imported && (printed || fitNote) && (
               <div className="stack fit-ask" role="status">
@@ -397,7 +411,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
                 ? 'One page at true size, for a projector app such as Pattern Projector. Line your projector up with the 10 cm test square.'
                 : paper === 'a0'
                   ? 'Ask the copy shop to print at 100% (actual size). Measure the 10 cm test square before you cut.'
-                  : 'Print at 100% (actual size). Measure the 10 cm test square on page A1 before you cut.'}
+                  : `Print at 100% (actual size). Measure the 10 cm test square on page A1 before you cut.${pages < grid.rows * grid.cols ? ' Pages with nothing on them are left out: leave a gap where one is missing when you tape.' : ''}`}
             </p>
             {projector && made && (
               <div className="stack projector-offer">
@@ -1143,5 +1157,86 @@ function TileOverlay({ sheet, paper }: { sheet: Sheet; paper: Paper }) {
     <svg viewBox={`0 0 ${sheet.width} ${sheet.height}`} className="preview-svg overlay" aria-hidden="true">
       {cells}
     </svg>
+  );
+}
+
+/** The PDF as base64, a piece at a time so a long pattern doesn't overflow the call. */
+function toBase64(bytes: Uint8Array) {
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+
+/**
+ * "Email me the PDF" (journey review, Nov 10): on every phone, tablet and computer, where "Send to email or a printer"
+ * needs a share menu that some computer browsers don't have. The address is used only to send this email.
+ */
+function EmailPdf({ ready, fileName, title, onSent, checked }: { ready: Uint8Array | null; fileName: string; title: string; onSent: () => void; checked: (go: () => void) => () => void }) {
+  const [open, setOpen] = useState(false);
+  const [to, setTo] = useState('');
+  const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'limit' | 'off' | 'big' | 'failed'>('idle');
+  const [sentTo, setSentTo] = useState('');
+  // The latest onSent when the send comes back, not the one from when it started, so nothing changed meanwhile is lost.
+  const sentNow = useRef(onSent);
+  sentNow.current = onSent;
+  if (!open)
+    return (
+      <button type="button" className="secondary" onClick={() => setOpen(true)} disabled={!ready}>
+        Email me the PDF
+      </button>
+    );
+  const send = async () => {
+    if (!ready) return;
+    setState('sending');
+    try {
+      const res = await fetch('/.netlify/functions/email-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: to.trim(), title: title.slice(0, 200), fileName, pdf: toBase64(ready) }),
+      });
+      if (res.ok) {
+        setSentTo(to.trim());
+        setState('sent');
+        sentNow.current();
+      } else setState(res.status === 429 ? 'limit' : res.status === 503 ? 'off' : res.status === 413 ? 'big' : 'failed');
+    } catch {
+      setState('failed');
+    }
+  };
+  return (
+    <form
+      className="stack email-pdf"
+      onSubmit={(e) => {
+        e.preventDefault();
+        checked(() => void send())();
+      }}
+    >
+      <label className="field">
+        <span>Your email</span>
+        <input type="email" required value={to} onChange={(e) => setTo(e.target.value)} autoComplete="email" inputMode="email" />
+      </label>
+      <button type="submit" className="primary" disabled={!ready || state === 'sending' || !to.trim()}>
+        {state === 'sending' ? 'Sending…' : 'Send the PDF'}
+      </button>
+      {state === 'sent' ? (
+        <p className="msg small" role="status">
+          Sent to {sentTo}. It should arrive in a minute, from hello@maisontrace.co. Not there? Check spam.
+        </p>
+      ) : state === 'limit' ? (
+        <p className="msg small" role="status">
+          That's as many emails as we can send today. Download the PDF instead, or try again tomorrow.
+        </p>
+      ) : state === 'off' || state === 'big' ? (
+        <p className="msg small" role="status">
+          {state === 'off' ? "Emailing isn't working just now." : 'This PDF is too big to email.'} Download the PDF instead.
+        </p>
+      ) : state === 'failed' ? (
+        <p className="msg small" role="status">
+          It didn't send. Check the address, or download the PDF instead.
+        </p>
+      ) : (
+        <p className="small muted">We use it only to send this PDF.</p>
+      )}
+    </form>
   );
 }
