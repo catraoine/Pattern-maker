@@ -1,0 +1,122 @@
+{
+ "coat collar=hood (big cup, small frame)": [
+  "Neckline square at centre back: #°"
+ ],
+ "coat collar=hood (long back, short legs)": [
+  "Neckline square at centre back: #°"
+ ],
+ "coat collar=hood (long waist to hip)": [
+  "Neckline square at centre back: #°"
+ ],
+ "coat collar=hood (petite and full)": [
+  "Neckline square at centre back: #°"
+ ],
+ "coat collar=hood (short back, long legs)": [
+  "Neckline square at centre back: #°"
+ ],
+ "coat collar=hood (short waist to hip)": [
+  "Neckline square at centre back: #°"
+ ],
+ "coat collar=hood (small waist, full hip)": [
+  "Neckline square at centre back: #°"
+ ],
+ "coat collar=hood (tall and slim)": [
+  "Neckline square at centre back: #°"
+ ],
+ "coat collar=hood (very large)": [
+  "Neckline square at centre back: #°"
+ ],
+ "coat collar=hood (very small)": [
+  "Neckline square at centre back: #°"
+ ],
+ "coat collar=hood (waist bigger than hip)": [
+  "Neckline square at centre back: #°"
+ ],
+ "dress skirt.pockets=slant (long back, short legs)": [
+  "Skirt waist seam to finished waist: # cm with darts closed, finished # cm",
+  "Waist seam, bodice front to skirt front: bodice # cm, skirt # cm, darts closed, # cm apart"
+ ],
+ "dress skirt.pockets=slant (long waist to hip)": [
+  "Skirt waist seam to finished waist: # cm with darts closed, finished # cm",
+  "Waist seam, bodice front to skirt front: bodice # cm, skirt # cm, darts closed, # cm apart"
+ ],
+ "dress skirt.pockets=slant (petite and full)": [
+  "Skirt waist seam to finished waist: # cm with darts closed, finished # cm",
+  "Waist seam, bodice front to skirt front: bodice # cm, skirt # cm, darts closed, # cm apart"
+ ],
+ "dress skirt.pockets=slant (short back, long legs)": [
+  "Skirt waist seam to finished waist: # cm with darts closed, finished # cm",
+  "Waist seam, bodice front to skirt front: bodice # cm, skirt # cm, darts closed, # cm apart"
+ ],
+ "dress skirt.pockets=slant (short waist to hip)": [
+  "Skirt waist seam to finished waist: # cm with darts closed, finished # cm",
+  "Waist seam, bodice front to skirt front: bodice # cm, skirt # cm, darts closed, # cm apart"
+ ],
+ "dress skirt.pockets=slant (small waist, full hip)": [
+  "Skirt waist seam to finished waist: # cm with darts closed, finished # cm",
+  "Waist seam, bodice front to skirt front: bodice # cm, skirt # cm, darts closed, # cm apart"
+ ],
+ "dress skirt.pockets=slant (tall and slim)": [
+  "Skirt waist seam to finished waist: # cm with darts closed, finished # cm",
+  "Waist seam, bodice front to skirt front: bodice # cm, skirt # cm, darts closed, # cm apart"
+ ],
+ "dress skirt.pockets=slant (very large)": [
+  "Skirt waist seam to finished waist: # cm with darts closed, finished # cm",
+  "Waist seam, bodice front to skirt front: bodice # cm, skirt # cm, darts closed, # cm apart"
+ ],
+ "dress skirt.pockets=slant (very small)": [
+  "Skirt waist seam to finished waist: # cm with darts closed, finished # cm",
+  "Waist seam, bodice front to skirt front: bodice # cm, skirt # cm, darts closed, # cm apart"
+ ],
+ "hoodie look H2 (big cup, small frame)": [
+  "Pocket: the stitching line crosses itself near (#, #)"
+ ],
+ "jacket collar=hood (big cup, small frame)": [
+  "Neckline square at centre back: #°"
+ ],
+ "jacket collar=hood (long back, short legs)": [
+  "Neckline square at centre back: #°"
+ ],
+ "jacket collar=hood (long waist to hip)": [
+  "Neckline square at centre back: #°"
+ ],
+ "jacket collar=hood (petite and full)": [
+  "Neckline square at centre back: #°"
+ ],
+ "jacket collar=hood (short back, long legs)": [
+  "Neckline square at centre back: #°"
+ ],
+ "jacket collar=hood (short waist to hip)": [
+  "Neckline square at centre back: #°"
+ ],
+ "jacket collar=hood (small waist, full hip)": [
+  "Neckline square at centre back: #°"
+ ],
+ "jacket collar=hood (tall and slim)": [
+  "Neckline square at centre back: #°"
+ ],
+ "jacket collar=hood (very large)": [
+  "Neckline square at centre back: #°"
+ ],
+ "jacket collar=hood (very small)": [
+  "Neckline square at centre back: #°"
+ ],
+ "jacket collar=hood (waist bigger than hip)": [
+  "Neckline square at centre back: #°"
+ ],
+ "jumpsuit legFit=relaxed (small waist, full hip)": [
+  "Leg front / Leg back side: a notch # cm down the front with none at that place on the back (it has #, #)",
+  "Leg front / Leg back side: a double notch # cm down the back with none at that place on the front (it has #, #)"
+ ],
+ "knit dress look K3 (big cup, small frame)": [
+  "Skirt waist seam to finished waist: # cm with darts closed, finished # cm"
+ ],
+ "knit dress skirt=skater (big cup, small frame)": [
+  "Dress side seams: front # cm, back # cm, # cm apart",
+  "Skirt waist seam to finished waist: # cm with darts closed, finished # cm"
+ ],
+ "trousers fit=relaxed (small waist, full hip)": [
+  "Trousers front / Trousers back side: a notch # cm down the front with none at that place on the back (it has #, #)",
+  "Trousers front / Trousers back side: a double notch # cm down the back with none at that place on the front (it has #, #)"
+ ]
+}
