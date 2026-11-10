@@ -34,6 +34,24 @@ export function withEstimates(v: MeasurementValues, form: FormKind = 'womenswear
   };
   const out = { ...v };
   for (const id of ESTIMATED) if (out[id] === undefined) out[id] = round(id, guess[id]!);
+  return bustAboveWaist(out, v);
+}
+
+/** The longest bust depth for a front length that the measuring pages take without a second look (crossChecks). */
+const BUST_DEPTH_SHARE = 0.78;
+
+/**
+ * An estimate never puts the bust point at or below the waist. Each is read off a different measurement (the bust depth
+ * off the height, the front length off the back length), so an unusual or mistyped one could take them past each other,
+ * and the top's drawing then froze the app (Nov 10). The estimated one gives way, kept inside the proportion the
+ * measuring pages accept; two typed values are the maker's, checked on the measuring pages and never changed here.
+ */
+function bustAboveWaist(out: MeasurementValues, typed: MeasurementValues): MeasurementValues {
+  const bd = out.bust_depth;
+  const fl = out.front_hps_to_waist;
+  if (bd === undefined || fl === undefined || bd <= fl * BUST_DEPTH_SHARE) return out;
+  if (typed.bust_depth === undefined) return { ...out, bust_depth: round('bust_depth', fl * BUST_DEPTH_SHARE) };
+  if (typed.front_hps_to_waist === undefined) return { ...out, front_hps_to_waist: round('front_hps_to_waist', bd / BUST_DEPTH_SHARE) };
   return out;
 }
 
@@ -61,7 +79,7 @@ function menswearEstimates(v: MeasurementValues): MeasurementValues {
   };
   const out = { ...v, high_bust: chest };
   for (const id of ESTIMATED) if (out[id] === undefined) out[id] = round(id, guess[id]!);
-  return out;
+  return bustAboveWaist(out, v);
 }
 
 const LOWER = /hip|thigh|knee|calf|ankle|seat|crotch|rise/;

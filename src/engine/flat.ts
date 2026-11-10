@@ -92,6 +92,12 @@ interface Half {
   move: (q: P) => P;
 }
 
+/** How many short steps an edge `l` long is walked in: one per cm or so, never endless. A broken piece (a point at
+ *  infinity, from a body the drafting should have turned away) once walked its edge in endless steps and froze the app
+ *  (Nov 10); now it draws wrong instead, and the drawing checks catch it. */
+const splitSteps = (l: number) => (Number.isFinite(l) ? Math.min(MAX_STEPS, Math.max(1, Math.floor(l))) : 1);
+const MAX_STEPS = 1000;
+
 /**
  * A half piece with its darts sewn. Waist darts close into the waist, the fabric either side drawn in
  * and easing back to full width at the dart's tip, as the sewn piece does. A dart in the side seam is
@@ -108,7 +114,7 @@ function sewn(pc: Piece, bottom?: number, skip?: 'side' | 'all' | 'none', centre
     const st: string[] = [];
     pts.forEach((q, i) => {
       const next = pts[(i + 1) % pts.length];
-      const steps = tags[i] === 'dart' ? 1 : Math.max(1, Math.floor(len(sub(next, q))));
+      const steps = tags[i] === 'dart' ? 1 : splitSteps(len(sub(next, q)));
       for (let s = 0; s < steps; s++) {
         sp.push(add(q, mul(sub(next, q), s / steps)));
         st.push(tags[i]);
@@ -205,7 +211,7 @@ function sewn(pc: Piece, bottom?: number, skip?: 'side' | 'all' | 'none', centre
     // smoothly instead of bending at the corners.
     const prev = run.length ? pts[(start + s - 1 + n) % n] : undefined;
     if (prev && keep[(start + s - 1 + n) % n] && fishEyes) {
-      const steps = Math.floor(len(sub(pts[i], prev)) / 1.5);
+      const steps = splitSteps(len(sub(pts[i], prev)) / 1.5);
       for (let t = 1; t < steps; t++) {
         run.push(move(lerp(prev, pts[i], t / steps)));
         runTags.push(tags[(start + s - 1 + n) % n]);
