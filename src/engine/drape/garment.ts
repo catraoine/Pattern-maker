@@ -21,6 +21,7 @@ import { closeHemCorners } from './hemCorners';
 import { Space, boxed } from './space';
 import { knob, setKnob } from './knob';
 import { frontPins, tapeRollLines } from './rollLine';
+import { fairFrontCentre } from './fairFront';
 import { pressCollar, standStiff } from './structured';
 import { CollarOnFront, collarOnFront } from './collarEnd';
 import { cropHold } from './cropHold';
@@ -4021,6 +4022,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
   // double-breasted front's buttons, Nov 8. (Below the break, coming in over 2 cm there.)
   // (A jacket or coat's only: on a shirt worn open with one button done up, its turned neck counted as a lapel and the
   // front laid over the other stretched it at the button.)
+  if (o.pinFront?.length && o.layExtension && !knob('__noFairFront')) fairFrontCentre(B.panels, res);
   if (o.pinFront?.length && o.layExtension && !knob('__noLayExt')) {
     // (Three times over: a point of the extension next to the centre line is laid on cloth whose triangles it shares.)
     for (let pass = 0; pass < 3; pass++) for (const p of B.panels) {

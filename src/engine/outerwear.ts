@@ -724,13 +724,16 @@ function openFront(pc: Piece, s: OuterStyle, ext: number, buttons: OuterDraft['b
     // (A high lapel's roll is short, so its gorge sits a little over a third of the way down it rather than 10 cm below
     // the neck: the collar a third of the line from the neck to the break, the lapel two thirds, as measured off Cat's
     // SS27 vest picture. Its collar rolls low at the front to meet it, see notchedCollar, or it stands up and twists.)
-    // (A double-breasted lapel's gorge sits 2 cm higher, its peak 2 cm nearer the neck pointing up toward the shoulder, and
-    // it is 1.5 cm narrower: cut broad with its peak low, it reached nearly to the armhole and pointed out sideways, unlike
-    // the classic double-breasted jackets in Cat's pictures, Nov 10.)
-    const G = high ? Lr * HIGH_LAPEL.gorge : s.front === 'double' ? 8 : 10;
+    // (A double-breasted lapel's gorge starts high, 4.5 cm below the top of the roll line, and slopes down and out to a notch
+    // 5.5 cm from the roll and 4.5 cm lower; its peak rises past the notch to 2.2 cm beyond the lapel's width, about 6 cm
+    // below the shoulder seam. Measured off the two classic double-breasted jackets Cat sent as her guide, Nov 10: cut
+    // with a short level gorge 8 to 10 cm down, the lapel's top edge ran flat across the chest at the shoulder seam and its
+    // point stuck out sideways; and it is 1.5 cm narrower than it was, which reached nearly to the armhole.)
+    const db = s.front === 'double' && !high && !shawl;
+    const G = high ? Lr * HIGH_LAPEL.gorge : db ? DB_LAPEL.gorge : 10;
     const Q = at(Lr - G, 0);
-    const K = shawl ? at(Lr - G + 0.8, -W + 0.6) : at(Lr - G + 0.6, lowLapel ? HIGH_LAPEL.notch : -4.3);
-    const Lp = peak ? at(Lr - (s.front === 'double' ? 3 : 6.2), -W - 1.2) : shawl ? at(Lr - G - 0.2, -W) : at(Lr - (s.front === 'double' ? 6.5 : G + 0.4 + (lowLapel ? HIGH_LAPEL.pointDrop : 0)), -W);
+    const K = shawl ? at(Lr - G + 0.8, -W + 0.6) : db ? at(Lr - G - DB_LAPEL.slope, -DB_LAPEL.notch) : at(Lr - G + 0.6, lowLapel ? HIGH_LAPEL.notch : -4.3);
+    const Lp = peak ? (db ? at(Lr - DB_LAPEL.peak, -W - DB_LAPEL.beyond) : at(Lr - 6.2, -W - 1.2)) : shawl ? at(Lr - G - 0.2, -W) : at(Lr - (db ? G + DB_LAPEL.slope + 1 : s.front === 'double' ? 6.5 : G + 0.4 + (lowLapel ? HIGH_LAPEL.pointDrop : 0)), -W);
     // (A high lapel's edge runs dead straight from its point to the break, as a crisp waistcoat's does in Cat's picture,
     // rather than bellying out.)
     // (A double-breasted lapel runs near straight from its point down to the break, bellying out only a little: cut with
@@ -1015,6 +1018,10 @@ function ventLining(pc: Piece, top: number, w: number, pleat: number): Piece {
   return { ...lining, alternate: { outline: pathOf({ pts: alt, tags }), label: 'RIGHT BACK LINING' } };
 }
 
+/** A classic double-breasted lapel, in cm: its gorge below the top of the roll line, how far the gorge drops along the roll
+ *  to its notch and how far out from the roll the notch sits, and its peak's point: below the top of the roll, and beyond
+ *  the lapel's width. */
+const DB_LAPEL = { gorge: 4.5, slope: 4.5, notch: 5.5, peak: 6.5, beyond: 2.2 };
 /** A wide lapel is this much broader, in cm. */
 const LAPEL_WIDER = 3;
 /** A plunging lapel rolls to one button at the waist; it needs a single-breasted lapelled front. */

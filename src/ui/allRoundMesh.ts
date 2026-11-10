@@ -454,7 +454,7 @@ function projection({ w, h, S, cx, top }: Frame) {
  * edge or a fold reads as cloth with a body rather than a sheet of paper. `t` is in the scene's units.
  */
 const knobs = () => (globalThis as unknown as { __drapeKnobs?: Record<string, number> }).__drapeKnobs ?? {};
-function thickened(g: THREE.BufferGeometry, idx: number[], t: number, sewn: (i: number) => boolean, withBack = true): THREE.BufferGeometry[] {
+function thickened(g: THREE.BufferGeometry, idx: number[], t0: number, sewn: (i: number) => boolean, withBack = true, share?: (i: number) => number): THREE.BufferGeometry[] {
   const pos = g.getAttribute('position').array as Float32Array;
   const nrm = g.getAttribute('normal').array as Float32Array;
   const uv = g.getAttribute('uv').array as Float32Array;
@@ -467,7 +467,7 @@ function thickened(g: THREE.BufferGeometry, idx: number[], t: number, sewn: (i: 
   const bn = new Float32Array(n * 3);
   for (let i = 0; i < n * 3; i++) {
     // (The drawn normals point in toward the body, the scene's y running down: in is along them.)
-    bp[i] = pos[i] + nrm[i] * t;
+    bp[i] = pos[i] + nrm[i] * t0 * (share?.(Math.floor(i / 3)) ?? 1);
     bn[i] = -nrm[i];
   }
   const bi: number[] = [];
@@ -525,6 +525,7 @@ function thickened(g: THREE.BufferGeometry, idx: number[], t: number, sewn: (i: 
     const dn = o0[0] * nv[0] + o0[1] * nv[1] + o0[2] * nv[2];
     const o = [o0[0] - nv[0] * dn, o0[1] - nv[1] * dn, o0[2] - nv[2] * dn];
     const ol = Math.hypot(o[0], o[1], o[2]) || 1;
+    const t = t0 * (share?.(v) ?? 1);
     for (let j = 0; j <= R; j++) {
       const th = (Math.PI * j) / R;
       const r = k * (R + 1) + j;
@@ -725,9 +726,13 @@ function buildDraped(
         const r = underBody(-top[g * 3], top[g * 3 + 1]);
         if (r !== undefined) overUnder[g] = Math.max(0, r + 1.5 * GAP - Math.hypot(top[g * 3], top[g * 3 + 2])) * easeOf(-top[g * 3]);
       }
-      if (-bottom[g * 3] > 0) {
-        const r = topBody(-bottom[g * 3], bottom[g * 3 + 1]);
-        if (r !== undefined) underIn[g] = Math.min(0, r - GAP - Math.hypot(bottom[g * 3], bottom[g * 3 + 2])) * (turned ? easeOf(-bottom[g * 3]) : easeOf(-u));
+      // (The under front's lapel from 1.5 cm short of the centre line: the two lapels' edges cross on the centre line itself,
+      // where neither was yet drawn over or under the other, and the under one's edge showed through the top one's as a
+      // nick, Nov 10.)
+      const early = turned ? 1.5 : 0;
+      if (-bottom[g * 3] > -early) {
+        const r = topBody(Math.max(0, -bottom[g * 3]), bottom[g * 3 + 1]);
+        if (r !== undefined) underIn[g] = Math.min(0, r - GAP - Math.hypot(bottom[g * 3], bottom[g * 3 + 2])) * (turned ? easeOf(-bottom[g * 3] + early) : easeOf(-u));
       }
     }
   }
@@ -878,7 +883,9 @@ function buildDraped(
         const unit = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
         // (No face beneath a tailored collar: folded hard at its roll line, the face a thickness in from the fall came
         // out through the stand, and from beside the neck the collar read as crumpled, Nov 8. Its edges keep their rim.)
-        for (const tg of thickened(g, idx, cm * unit, (i) => onSeam.has(p.base + i) || !onEdge.has(p.base + i), !(p.collar && !kn.__collarBack))) add(tg, mat, 1, p.role === 'sleeve' ? 'sleeve' : 'cloth', p.role === 'sleeve' ? e : 0);
+        // (A front with a lapel: the lapel at its full thickness, the front below it half that, as a plain front's. At the
+        // lapel's thickness all down the front, its edge's rim read from the side as a ragged band standing off the jacket.)
+        for (const tg of thickened(g, idx, cm * unit, (i) => onSeam.has(p.base + i) || !onEdge.has(p.base + i), !(p.collar && !kn.__collarBack), p.collar || !p.turned ? undefined : (i) => (p.turned![i] ? 1 : 0.5))) add(tg, mat, 1, p.role === 'sleeve' ? 'sleeve' : 'cloth', p.role === 'sleeve' ? e : 0);
       }
     }
   }

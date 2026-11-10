@@ -142,7 +142,11 @@ export function tapeRollLines(panels: Panel[], res: Float64Array | number[], sp:
       nb[v].add(u).add(w);
       nb[w].add(u).add(v);
     }
-    const inBand = pts.map((q, i) => off(p.turned[i] ? reflect(q, a, b) : q) < 2);
+    // (Not the front edge below a double-breasted front's break: within 2 cm of the crease's lower end, the edge's top
+    // points, the break itself among them, were eased in toward the cloth beside them, and the front edge stepped in most of a cm just below the
+    // top button, Cat Nov 10. A single-breasted front's break sits at its edge's turn, and keeps the easing.)
+    const below = (q: P) => a.x < -4 && (q.x - a.x) * (b.x - a.x) + (q.y - a.y) * (b.y - a.y) < 0.5 * Math.sqrt(L2);
+    const inBand = pts.map((q, i) => off(p.turned[i] ? reflect(q, a, b) : q) < 2 && !(!p.turned[i] && below(q)));
     for (let it = 0; it < 4; it++) {
       const next: [number, V3][] = [];
       pts.forEach((_, i) => {
