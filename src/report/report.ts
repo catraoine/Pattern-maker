@@ -44,7 +44,7 @@ export const signupSource = (): string | undefined => {
     return undefined;
   }
 };
-type Where = 'error' | 'promise' | 'render';
+type Where = 'error' | 'promise' | 'render' | 'sync';
 
 interface CrashReport {
   message: string;

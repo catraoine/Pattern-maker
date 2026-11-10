@@ -244,7 +244,7 @@ function Photo({ id, caption, date, onRemove }: { id: string; caption: string; d
   const alt = useMemo(() => caption || `Toile photo, ${date}`, [caption, date]);
   return (
     <figure className="photo">
-      {url ? <img src={url} alt={alt} /> : <div className="photo-missing small muted">Photo not on this device</div>}
+      {url ? <img src={url} alt={alt} /> : <div className="photo-missing small muted">Photo kept on the device it was taken on</div>}
       <figcaption className="small">
         {caption || 'Toile'} <span className="muted">{date}</span>{' '}
         <button type="button" className="link inline-link" onClick={onRemove}>

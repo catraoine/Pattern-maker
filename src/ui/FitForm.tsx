@@ -135,12 +135,16 @@ export function FitForm({ choices, initial, onSave, onCancel, onClear, shareByDe
 /** One photo of the toile on, kept on this device only, so the next fit round can see what the notes mean. */
 function FitPhoto({ id, onChange }: { id?: string; onChange: (id: string | undefined) => void }) {
   const [url, setUrl] = useState<string>();
+  // Looked for and not on this device (taken on another one): said once the look is done, so nothing flashes up first.
+  const [elsewhere, setElsewhere] = useState(false);
   useEffect(() => {
     let revoke: string | undefined;
+    setElsewhere(false);
     if (!id) setUrl(undefined);
     else
       getPhoto(id)
         .then((b) => {
+          setElsewhere(!b);
           if (!b) return setUrl(undefined);
           revoke = URL.createObjectURL(b);
           setUrl(revoke);
@@ -167,6 +171,8 @@ function FitPhoto({ id, onChange }: { id?: string; onChange: (id: string | undef
   return (
     <div className="fitphoto">
       {url && <img src={url} alt="Your toile" />}
+      {/* Photos stay on the device they were taken on; the notes travel with the account, so say where it is. */}
+      {!url && id && elsewhere && <p className="muted small">Photo kept on the device it was taken on.</p>}
       <label className="link">
         {url ? 'Change photo' : 'Add a photo of the toile on'}
         <input type="file" accept="image/*" capture="environment" hidden onChange={(e) => pick(e.target.files?.[0])} />

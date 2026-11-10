@@ -8,7 +8,7 @@
 // the join is a three-way one against that base: a pattern or person removed on one side since then stays removed,
 // unless the other side changed it meanwhile, and a change made on only one side is simply taken. That's what lets
 // a phone and a computer both stay signed in without wiping each other's work.
-import { withPeople, type Account, type Backup, type Person, type SavedPattern } from '../account';
+import { ME, newId, withPeople, type Account, type Backup, type Person, type SavedPattern } from '../account';
 import type { MeasurementId } from '../measurements';
 
 const taken = (p: Person) => Object.keys(p.values).filter((k) => !p.example?.includes(k as MeasurementId)).length;
@@ -16,12 +16,98 @@ const taken = (p: Person) => Object.keys(p.values).filter((k) => !p.example?.inc
 // The account service stores JSON with its keys in its own order, so copies are compared with keys sorted.
 const same = (a: unknown, b: unknown) => stable(a) === stable(b);
 
-/** The same person on both sides: whoever has more real measurements, else the side saved later. */
-function pickPerson(local: Person, remote: Person, remoteNewer: boolean): Person {
-  const l = taken(local);
-  const r = taken(remote);
-  if (l !== r) return l > r ? local : remote;
-  return remoteNewer ? remote : local;
+/**
+ * The same person on both sides, joined field by field (engineering review, Nov 10: taking one whole copy dropped the
+ * other's fitting corrections, notes and history). Each measurement, setting and toile correction is taken from the
+ * side that changed it since the base; a measurement taken beats one filled in from the example body; where both sides
+ * changed the same thing (or there is no base yet), the later save wins. Notes, photos, unanswered measure-me links and
+ * the dated history are joined item by item, as patterns are, so none is lost.
+ */
+function mergePerson(l: Person, r: Person, b: Person | undefined, remoteNewer: boolean): Person {
+  /** Which side a value comes from: the one that changed it since the base, else the one that has it, else the later. */
+  const side = <T>(lv: T, rv: T, bv: T | undefined): 'l' | 'r' => {
+    if (b && same(lv, bv)) return 'r';
+    if (b && same(rv, bv)) return 'l';
+    if (lv === undefined) return 'r';
+    if (rv === undefined) return 'l';
+    return remoteNewer ? 'r' : 'l';
+  };
+  const one = <T>(lv: T, rv: T, bv: T | undefined) => (side(lv, rv, bv) === 'l' ? lv : rv);
+  const real = (p: Person, k: MeasurementId) => p.values[k] !== undefined && !p.example?.includes(k);
+  const values: Person['values'] = {};
+  const example: MeasurementId[] = [];
+  const helped: MeasurementId[] = [];
+  for (const k of new Set([...Object.keys(l.values), ...Object.keys(r.values)]) as Set<MeasurementId>) {
+    // Taken on one side only: that one. Otherwise as any other field.
+    const from = real(l, k) !== real(r, k) ? (real(l, k) ? l : r) : side(l.values[k], r.values[k], b?.values[k]) === 'l' ? l : r;
+    if (from.values[k] === undefined) continue;
+    values[k] = from.values[k];
+    if (from.example?.includes(k)) example.push(k);
+    if (from.helped?.includes(k)) helped.push(k);
+  }
+  const fittings: NonNullable<Person['fittings']> = {};
+  const lf = l.fittings ?? {};
+  const rf = r.fittings ?? {};
+  for (const g of new Set([...Object.keys(lf), ...Object.keys(rf)]) as Set<keyof typeof lf>) {
+    const v = one(lf[g], rf[g], b?.fittings?.[g]);
+    if (v !== undefined) fittings[g] = v;
+  }
+  // Each day's measurements: one entry per date, the side that changed it (or the later save).
+  const byDate = (h: Person['history']) => (h ?? []).map((e) => ({ ...e, id: e.date }));
+  const history = union(byDate(l.history), byDate(r.history), b ? byDate(b.history) : undefined, (x, y) => (remoteNewer ? y : x))
+    .sort((x, y) => x.date.localeCompare(y.date))
+    .map(({ date, values: v }) => ({ date, values: v }));
+  const items = <T extends { id: string }>(lv: T[] | undefined, rv: T[] | undefined, bv: T[] | undefined) => union(lv ?? [], rv ?? [], b ? (bv ?? []) : undefined, (x, y) => (remoteNewer ? y : x));
+  const notes = items(l.notes, r.notes, b?.notes);
+  const photos = items(l.photos, r.photos, b?.photos);
+  const asks = items(l.asks, r.asks, b?.asks);
+  const out: Person = {
+    ...(remoteNewer ? { ...l, ...r } : { ...r, ...l }),
+    name: one(l.name, r.name, b?.name) ?? '',
+    named: l.named || r.named,
+    values,
+  };
+  for (const k of ['form', 'weight'] as const) {
+    const v = one(l[k], r[k], b?.[k]);
+    if (v === undefined) delete out[k];
+    else (out as unknown as Record<string, unknown>)[k] = v;
+  }
+  const lists = { example, helped, history, notes, photos, asks } as const;
+  for (const [k, v] of Object.entries(lists)) {
+    if (v.length) (out as unknown as Record<string, unknown>)[k] = v;
+    else delete (out as unknown as Record<string, unknown>)[k];
+  }
+  if (Object.keys(fittings).length) out.fittings = fittings;
+  else delete out.fittings;
+  return out;
+}
+
+/**
+ * Whether the owner's measurements on the two sides can't be the same body: a name given on both and different, or a
+ * measurement taken on both sides that differs by more than a retake would (3 cm, or 4% of a long one). Only asked
+ * at a first join, where nothing says whose work is on this device (a shared computer used without signing in).
+ */
+function notSameOwner(l: Person, la: Account, r: Person, ra: Account): boolean {
+  const ln = la.name.trim().toLowerCase();
+  const rn = ra.name.trim().toLowerCase();
+  if (ln && rn && ln !== rn) return true;
+  return (Object.keys(l.values) as MeasurementId[]).some((k) => {
+    const a = l.values[k];
+    const c = r.values[k];
+    if (a === undefined || c === undefined || l.example?.includes(k) || r.example?.includes(k)) return false;
+    return Math.abs(a - c) > Math.max(3, 0.04 * Math.max(a, c));
+  });
+}
+
+/**
+ * The owner's measurements on this device moved to a person of their own, with the patterns saved for them, so they are
+ * kept beside the account owner's rather than joined into them.
+ */
+function ownerApart(a: Account & { people: Person[]; active: string }): Account & { people: Person[]; active: string } {
+  const id = newId();
+  const people = a.people.map((p) => (p.id === ME ? { ...p, id, name: a.name.trim() || 'From this device', named: true } : p));
+  const patterns = a.patterns.map((p) => (p.personId === ME ? { ...p, personId: id } : p));
+  return { ...a, people, patterns, active: a.active === ME ? id : a.active };
 }
 
 /** The same pattern on both sides: the one saved later. */
@@ -61,18 +147,38 @@ function pick3<T>(local: T, remote: T, base: T | undefined, hasBase: boolean, fa
   return fallback;
 }
 
-export function mergeBackups<S>(local: Backup<S>, remote: Backup<S> | null, base?: Backup<S> | null): Backup<S> {
+export interface JoinOptions {
+  /** This device was last signed in to another account, and the person signing in chose to add its work to theirs:
+   *  the owner's measurements here are kept as a person of their own, and the account's own settings stay as they are. */
+  fromAnotherAccount?: boolean;
+}
+
+export function mergeBackups<S>(local: Backup<S>, remote: Backup<S> | null, base?: Backup<S> | null, opts: JoinOptions = {}): Backup<S> {
   if (!remote) return local;
+  // An empty device never removes anything from the account (engineering review, Nov 10: "Delete everything", then
+  // signing in again, emptied the account). It holds nothing to lose, so it joins as a first sign-in does.
+  if (base && isEmpty(local.account)) base = null;
   const hasBase = !!base;
   const remoteNewer = remote.savedAt > local.savedAt;
   // The work in progress (the open garment, moved points) comes from the newer side, unless that side is a fresh device.
-  const workFromRemote = isEmpty(local.account) || (remoteNewer && !isEmpty(remote.account));
-  const la = withPeople(local.account);
+  const workFromRemote = isEmpty(local.account) || (!isEmpty(remote.account) && (remoteNewer || !!opts.fromAnotherAccount));
+  let la = withPeople(local.account);
   const ra = withPeople(remote.account);
   const ba = base ? withPeople(base.account) : undefined;
+  // Two different people's own measurements are never joined into one (see notSameOwner): this device's are kept apart.
+  const lMe = la.people.find((p) => p.id === ME);
+  const rMe = ra.people.find((p) => p.id === ME);
+  if (opts.fromAnotherAccount) {
+    // Only the people and patterns come over; the name, tester code, studio and other settings are the account's own.
+    const apart = lMe && taken(lMe) > 0 ? ownerApart(la) : la;
+    la = { ...ra, people: apart.people.filter((p) => p.id !== ME), patterns: apart.patterns, active: ra.active };
+  } else if (lMe && rMe && taken(lMe) > 0 && taken(rMe) > 0 && !hasBase && notSameOwner(lMe, la, rMe, ra)) {
+    // The account's owner keeps their own name; this device's owner is now one of their people, under theirs.
+    la = { ...ownerApart(la), name: ra.name };
+  }
   const newer = workFromRemote ? ra : la;
   const older = workFromRemote ? la : ra;
-  const people = union(la.people, ra.people, ba?.people, (l, r) => pickPerson(l, r, remoteNewer));
+  const people = union(la.people, ra.people, ba?.people, (l, r) => mergePerson(l, r, ba?.people.find((p) => p.id === l.id), remoteNewer));
   // Each plain setting (name, units, tools, tester code...) on its own: a change made on one side is taken.
   const fields: Record<string, unknown> = { ...older, ...newer };
   if (hasBase) {

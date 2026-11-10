@@ -173,16 +173,24 @@ export default function App() {
   const applyBackup = (b: Backup<Saved>) => {
     setSaved(fillMissing(INITIAL, b.skirt));
     setAccount({ ...NEW_ACCOUNT, ...b.account, onboarded: true });
-    if (b.pointEdits) setPointEdits(b.pointEdits as Record<string, PatternEdit[]>);
+    // Every moved point is replaced, none kept: a copy with none moved means none (the review, Nov 10: removing every
+    // moved point on one device left them on the other).
+    setPointEdits((b.pointEdits ?? {}) as Record<string, PatternEdit[]>);
   };
   // Sign-in (Cat's plan, 2026-10-23): held behind ?signin=preview until the December fix week.
-  const cloud = useCloud(makeBackup(saved, account, pointEdits), applyBackup, signinShown);
+  const cloud = useCloud(makeBackup(saved, account, pointEdits), applyBackup, signinShown, () => makeBackup(INITIAL, NEW_ACCOUNT));
   /** The link that carries everything on this device to another one. */
   const sendLink = () => moveLink(window.location.origin, makeBackup(saved, account, pointEdits));
   // maisontrace.co/privacy and /terms open those pages straight away: Google's sign-in setup needs a web address for
   // each, and so will anyone who links to them.
   const [startView] = useState<View>(incoming?.kind === 'ask' ? 'link' : incoming?.kind === 'reply' ? 'arrive' : isMoveLink(window.location.hash) ? 'move' : legalPath(window.location.pathname) ?? 'welcome');
   const [step, setStep] = useViewHistory<View>(startView, (to) => (NEEDS_MEASUREMENTS.includes(to) && !canLeaveMeasure ? 'measure' : to), ladder);
+  // Signing in on a device another account used asks a question in Your account: open it there, wherever the sign-in
+  // came back to (Google's page returns to the start).
+  useEffect(() => {
+    if (cloud.status === 'ask') setStep('account');
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when the question comes up, not on every step change
+  }, [cloud.status]);
   const openLegal = (page: 'privacy' | 'terms' | 'tester' | 'news' | 'brands' | 'nights' | 'made' | 'help') => setStep(page);
   // The waitlist (Cat's W1, 2026-10-21): until launch, a visitor without a tester link sees the welcome with a waitlist
   // where Begin was, and the Privacy and Terms pages, nothing else. Measure-me and move links still open, as they
@@ -536,6 +544,9 @@ export default function App() {
   const reset = async () => {
     // Signed in, the account keeps its copy: sign out before clearing, or the empty device would be saved over it.
     if (cloud.user) await cloud.signOut().catch(() => undefined);
+    // Forgotten too, what this device last agreed with the account: otherwise signing in again read the emptied device
+    // as every pattern and person removed, and emptied the account (the review, Nov 10).
+    cloud.forget();
     setSaved(INITIAL);
     setAccount(NEW_ACCOUNT);
     setStep('welcome');
@@ -679,6 +690,8 @@ export default function App() {
               onBring={(b) => {
                 // Brought in, so a reload shouldn't offer it again.
                 dropHash();
+                // Replaced from the other device, not changed here: the next join with the account keeps everything from both.
+                cloud.forget();
                 setSaved(fillMissing(INITIAL, b.skirt));
                 setAccount({ ...NEW_ACCOUNT, ...b.account, onboarded: true });
                 if (b.pointEdits) setPointEdits(b.pointEdits as Record<string, PatternEdit[]>);
@@ -823,6 +836,8 @@ export default function App() {
               onRestore={async (file) => {
                 const b = readBackup<Saved>(await file.text());
                 if (!b) return false;
+                // Replaced from a file, not changed here: the next join with the account keeps everything from both.
+                cloud.forget();
                 applyBackup(b);
                 return true;
               }}

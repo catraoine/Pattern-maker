@@ -7,6 +7,7 @@ const STATUS: Record<string, string> = {
   syncing: 'Saving to your account…',
   saved: 'Saved to your account.',
   offline: "Couldn't reach your account. Your work is safe on this device and will save when you're back online.",
+  fault: "Your work is safe on this device, but it couldn't be saved to your account. We've been told, and it will try again when you next make a change.",
 };
 
 /** Google's own four-colour G, which its sign-in button rules ask for. */
@@ -57,6 +58,24 @@ export function CloudAccount({ cloud }: { cloud: Cloud }) {
         <p className="small">
           Signed in as <b>{cloud.user.email}</b>. Your measurements and patterns are kept in your account, so they're there on any device you sign in on.
         </p>
+        {cloud.status === 'ask' && (
+          <div className="stack" data-testid="cloud-ask">
+            <p className="small">
+              <b>This device was last signed in to another account, and its work is still here.</b> Nothing has been saved to your account yet.
+            </p>
+            <div className="row wrap">
+              <button type="button" className="primary" onClick={() => cloud.answerDevice('account')}>
+                Start from my account only
+              </button>
+              <button type="button" className="secondary sm" onClick={() => cloud.answerDevice('add')}>
+                Add it to my account
+              </button>
+            </div>
+            <p className="muted small">
+              Start from my account only clears this device first. Add it to my account copies its measurements and patterns into yours, with the other person's own measurements kept as a person of their own.
+            </p>
+          </div>
+        )}
         {STATUS[cloud.status] && (
           <p className="muted small" role="status">
             {STATUS[cloud.status]}

@@ -124,3 +124,72 @@ test('Continue with Google signs in and brings what was made on this device, as 
   const store = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)!), FAKE);
   expect(store.users['google-sewist@example.com'].backup.account.patterns).toHaveLength(1);
 });
+
+/** Signs in on Your account with the stand-in's code, and waits for the sign-in to show. */
+async function signIn(page: Page, email: string) {
+  const data = await openFold(page, 'Your data');
+  await data.getByLabel('Email').fill(email);
+  await data.getByRole('button', { name: 'Email me a sign-in link' }).click();
+  await data.getByLabel('Code from the email').fill('123456');
+  await data.getByRole('button', { name: 'Sign in' }).click();
+  await expect(data).toContainText(`Signed in as ${email}`);
+  return data;
+}
+
+/** A pattern saved as a guest, then this device signed in to one account and signed out again. */
+async function usedByAnother(page: Page) {
+  await startWithExample(page);
+  await openReview(page);
+  await page.getByRole('main').getByRole('button', { name: /^(Save pattern|Keep in my patterns)$/ }).click();
+  await page.evaluate((k) => localStorage.setItem(k, '{}'), FAKE);
+  await accountAt(page, '/?signin=preview');
+  const data = await signIn(page, 'first@example.com');
+  await expect(data.getByRole('status').first()).toHaveText('Saved to your account.');
+  await data.getByRole('button', { name: 'Sign out' }).click();
+  await expect(data.getByRole('button', { name: 'Email me a sign-in link' })).toBeVisible();
+}
+
+// The engineering review (Nov 10): on a shared computer the first person's work went into the next person's account.
+// Cat's pick (a): signing in on a device last signed in to another account asks first.
+test('signing in on a computer another account used asks first; "Start from my account only" brings nothing over', async ({ page }, info) => {
+  await usedByAnother(page);
+  const data = await signIn(page, 'second@example.com');
+  const ask = data.getByTestId('cloud-ask');
+  await expect(ask).toContainText('This device was last signed in to another account');
+  if (SHOTS) await data.screenshot({ path: `${SHOTS}/signin-ask-${info.project.name}.png` });
+  // Nothing goes to the account before the answer.
+  expect((await page.evaluate((k) => JSON.parse(localStorage.getItem(k)!), FAKE)).users['second@example.com'].backup).toBeNull();
+  await ask.getByRole('button', { name: 'Start from my account only' }).click();
+  await expect(data.getByRole('status').first()).toHaveText('Saved to your account.');
+  await expect(savedRows(page)).toHaveCount(0);
+  const store = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)!), FAKE);
+  expect(store.users['second@example.com'].backup.account.patterns).toHaveLength(0);
+  expect(store.users['first@example.com'].backup.account.patterns).toHaveLength(1);
+});
+
+test('"Add it to my account" brings the other account\'s patterns over', async ({ page }) => {
+  await usedByAnother(page);
+  const data = await signIn(page, 'second@example.com');
+  await data.getByTestId('cloud-ask').getByRole('button', { name: 'Add it to my account' }).click();
+  await expect(data.getByRole('status').first()).toHaveText('Saved to your account.');
+  await expect(savedRows(page)).toHaveCount(1);
+  const store = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)!), FAKE);
+  expect(store.users['second@example.com'].backup.account.patterns).toHaveLength(1);
+});
+
+test('"Delete everything", then signing in again, brings the account\'s work back and keeps it in the account', async ({ page }) => {
+  await usedByAnother(page);
+  await signIn(page, 'first@example.com');
+  // The same account again: no question.
+  await expect(page.getByTestId('cloud-ask')).toHaveCount(0);
+  const data = await openFold(page, 'Your data');
+  await data.getByRole('button', { name: 'Delete my data and start over' }).click();
+  await data.getByRole('button', { name: 'Delete everything' }).click();
+  await accountAt(page, '/?signin=preview');
+  await expect(savedRows(page)).toHaveCount(0);
+  await signIn(page, 'first@example.com');
+  await expect(page.getByTestId('cloud-ask')).toHaveCount(0);
+  await expect(savedRows(page)).toHaveCount(1);
+  const store = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)!), FAKE);
+  expect(store.users['first@example.com'].backup.account.patterns).toHaveLength(1);
+});

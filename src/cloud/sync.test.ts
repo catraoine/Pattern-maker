@@ -117,4 +117,38 @@ describe('syncOnce', () => {
     const busy: SyncIo = { load: io.load, save: async () => null };
     await expect(syncOnce(makeBackup({}, acc([pattern('x', '2026-11-01')])), null, busy, () => undefined)).rejects.toThrow(/another device/);
   });
+
+  it('“Delete everything” then signing in again: the account keeps all its work, and the device gets it back', async () => {
+    const { state, io } = server();
+    const phone = device(makeBackup({}, acc([pattern('a', '2026-11-01'), pattern('b', '2026-11-02')])));
+    await phone.sync(io);
+    // The device is cleared; its old base is still there (the review reproduced this before the device forgot it).
+    phone.d.backup = makeBackup({}, NEW_ACCOUNT);
+    await phone.sync(io);
+    expect(ids(state.backup)).toEqual(['a', 'b']);
+    expect(ids(phone.d.backup)).toEqual(['a', 'b']);
+  });
+
+  it('“Add it to my account” on a shared computer: the first join takes the option, a retried round does not split the owner again', async () => {
+    const { state, io } = server(makeBackup({}, { ...NEW_ACCOUNT, name: 'Bea', people: [me({ waist: 80 })], patterns: [pattern('beas', '2026-11-01')] }));
+    let slipped = false;
+    const racy: SyncIo = {
+      load: io.load,
+      async save(b, seen) {
+        // Bea's phone saves between this computer's read and write, so the round runs twice.
+        if (!slipped) {
+          slipped = true;
+          await io.save({ ...state.backup!, account: { ...state.backup!.account, patterns: [pattern('beas', '2026-11-01'), pattern('phone', '2026-11-03')] } }, String(state.stamp));
+        }
+        return io.save(b, seen);
+      },
+    };
+    const shared = makeBackup({}, { ...NEW_ACCOUNT, name: 'Ann', people: [me({ waist: 66 })], patterns: [pattern('anns', '2026-11-02')] });
+    await syncOnce(shared, null, racy, () => undefined, { fromAnotherAccount: true });
+    const people = state.backup!.account.people!;
+    expect(people.find((p) => p.id === ME)?.values).toEqual({ waist: 80 });
+    expect(people.filter((p) => p.id !== ME).map((p) => p.name)).toEqual(['Ann']);
+    expect(state.backup!.account.name).toBe('Bea');
+    expect(ids(state.backup)?.sort()).toEqual(['anns', 'beas', 'phone']);
+  });
 });
