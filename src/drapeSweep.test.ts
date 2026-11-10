@@ -11,8 +11,8 @@ import type { Saved } from './savedWork';
 // design that comes to pass, so the list only grows.
 const LOCKED: [string, SweepDesign][] = [
   ['bias slip, midi (SS27 9C skirt)', { garment: 'skirt', saved: { choices: { fit: 'regular', silhouette: 'slip', length: 'midi' } as Saved['choices'] }, fibre: 'silk' }],
-  // (The bias slip above the knee with a diagonal hem was here, but its hem was drawn as a V point at the centre front,
-  // not a diagonal: the drape sews one half and mirrors it. Off the list, on Cat's word, until skirts are sewn whole, Nov 8.)
+  // (Its hem was drawn as a V point at the centre front until the skirt was sewn whole, Nov 8: wholeSkirt.ts.)
+  ['bias slip, above the knee, diagonal hem', { garment: 'skirt', saved: { choices: { fit: 'fitted', silhouette: 'slip', length: 'above_knee', asymHem: 'diagonal' } as Saved['choices'] }, fibre: 'wool' }],
   ['pencil skirt, knee', { garment: 'skirt', saved: { choices: { fit: 'fitted', silhouette: 'pencil', length: 'knee', asymHem: 'none' } as Saved['choices'] }, fibre: 'cotton' }],
   ['knife-pleated A-line midi, low rise, crisp (SS27 look 10)', { garment: 'skirt', saved: { choices: { fit: 'regular', silhouette: 'a_line', length: 'midi', lengthCm: 64.6, pleats: 'knife', rise: 'low' } as unknown as Saved['choices'] }, fibre: 'wool', crisp: true }],
   ['knife-pleated straight midi', { garment: 'skirt', saved: { choices: { fit: 'regular', silhouette: 'straight', length: 'midi', pleats: 'knife' } as unknown as Saved['choices'] }, fibre: 'wool' }],

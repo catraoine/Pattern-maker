@@ -26,6 +26,7 @@ import { cropHold } from './cropHold';
 import { flutterPlace } from './flutter';
 import { closeBalloonHem } from './balloonHem';
 import { capeForDrape } from './cape';
+import { wholeSkirt } from './wholeSkirt';
 import { droppedFlareCut, selfGap } from './skirtApart';
 import { madeUpSkirt } from '../skirtPockets';
 
@@ -627,7 +628,7 @@ function halfPiece(pc: Piece): Piece {
 
 /** A piece turned over (x for -x). A back cut whole lies right side up with the wearer's left at x < 0, seen from
  *  behind; the drape places every piece with the wearer's left at x > 0, so a whole back is turned over first. */
-function mirrorPiece(pc: Piece): Piece {
+export function mirrorPiece(pc: Piece): Piece {
   const o = pc.outline;
   const m = new Path(pt(-o.start.x, o.start.y));
   for (let i = 0; i < o.segs.length; i++) {
@@ -707,7 +708,8 @@ function cowlFront(pc: Piece, bustY: number): Piece {
 
 export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: number; cropped?: boolean; slitCm?: number; sleeve?: Piece[]; collars?: CollarPart[]; trousers?: TrousersDraft; tiers?: TierBand[]; under?: Piece[]; puff?: number; cuff?: number; cuffBand?: Piece; cuffRuffle?: Piece }, o: DrapeOptions): Draped {
   if (o.boxy) sp = boxed(sp);
-  if (extra.skirt) extra = { ...extra, skirt: extra.skirt.map(halfPiece).map(narrowed) };
+  // (Not a skirt to be sewn whole, a diagonal hem's: wholeSkirt.ts.)
+  if (extra.skirt) extra = { ...extra, skirt: extra.skirt.map((pc) => (pc.meta.sewWhole ? pc : halfPiece(pc))).map(narrowed) };
   const B = new Builder(sp);
   // A side slit's open edges (each point's distance up the seam from the hem), for the parting drawn after the sim.
   const slitEdges: { p: Panel; ids: number[]; toHem: Map<number, number>; sign: number }[] = [];
@@ -960,7 +962,13 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
     const pb = B.panels.filter((p) => p.role === 'peplum-back');
     if (pf.length && pb.length) {
       const before = seams.length;
-      sew(seams, B.chain(pf, 'side', levelOf.get(pf[0])!), B.chain(pb, 'side', levelOf.get(pb[0])!));
+      // (A skirt sewn whole has a side seam each side: the wearer's left sewn to the left and the right to the right.)
+      if ([...pf, ...pb].some((p) => p.pc.meta.whole))
+        for (const sign of [1, -1]) {
+          const onSide = (q: P) => q.x * sign > 0;
+          sew(seams, B.chain(pf, 'side', levelOf.get(pf[0])!, onSide), B.chain(pb, 'side', levelOf.get(pb[0])!, onSide));
+        }
+      else sew(seams, B.chain(pf, 'side', levelOf.get(pf[0])!), B.chain(pb, 'side', levelOf.get(pb[0])!));
       // A side slit: the seam left open from the hem up to the slit's end (measured up the seam from the hem).
       if (extra.slitCm) {
         const open = new Set<number>();
@@ -6440,7 +6448,7 @@ export function drapeSkirt(sp: Space, d: SkirtDraft, o: DrapeOptions = {}): Drap
   const slit = (d as { slit?: { at: string; cm: number } }).slit;
   const slitCm = o.openSlit && slit?.at === 'side' ? slit.cm : undefined;
   const sk = d as { asym?: unknown; hem?: unknown };
-  const out = drape(sp, [], { skirt: hungSkirt(madeUpSkirt(d.pieces, d).filter(isSkirt), d.volume as never, { hip: d.finishedHip, hem: d.hemCm }), tiers: d.volume?.tiers?.bands, under: d.pieces.filter(isUnder), ...(drop ? { drop } : {}), ...(slitCm ? { slitCm } : {}) }, { closedFront: true, ...(sk.asym || sk.hem ? { shapedHem: true } : {}), ...o });
+  const out = drape(sp, [], { skirt: wholeSkirt(hungSkirt(madeUpSkirt(d.pieces, d).filter(isSkirt), d.volume as never, { hip: d.finishedHip, hem: d.hemCm }), sk.asym as never), tiers: d.volume?.tiers?.bands, under: d.pieces.filter(isUnder), ...(drop ? { drop } : {}), ...(slitCm ? { slitCm } : {}) }, { closedFront: true, ...(sk.asym || sk.hem ? { shapedHem: true } : {}), ...o });
   if (!(sk.asym || sk.hem) && !knob('__noLevelSkirt')) levelSkirtHem(out);
   return out;
 }

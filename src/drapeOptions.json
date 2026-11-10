@@ -265,7 +265,7 @@
  "jacket trim=rib": "passes",
  "jacket vent=centre": "passes",
  "jacket vent=none": "passes",
- "skirt asymHem=diagonal": "fails",
+ "skirt asymHem=diagonal": "passes",
  "skirt asymHem=high_low": "passes",
  "skirt asymHem=none": "passes",
  "skirt fit=fitted": "passes",
