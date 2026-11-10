@@ -35,7 +35,7 @@ community limits, the trademark choice, pricing, the Base/Target plan cases, the
 | Launch | Jan 25, 2027 (drop schedule, social story) | Feb 11, 2027 |
 | Sign-in | "not started" (feature-freeze file); "no database yet" (HOW-IT-FITS-TOGETHER.md) | Built, live behind `?signin=preview`, switch-on Dec 7 to 11 |
 | Prices | Premium $5/mo or $39/yr, Maker $15 (revenue streams file) | Premium $49/yr, Maker $25/mo |
-| Plan headline | $43.5k budget, $6.5k/mo profit (stress test, still in the index as "APPLIED") | Base case 12k actives; old numbers are the Target case |
+| Plan headline | old stress-test budget and profit (still in the index as "APPLIED") | Base case 12k actives; old numbers are the Target case |
 | Drop price | $32 per drop | $28 |
 | Drops vs collections | "Drop 01 The Dress", "drop schedule" | Collections for seasons; drop only for the numbered sewist piece |
 | Measuring order | Height first (body checks, Oct 20) | Waist first, height last (Release 13) |
@@ -64,7 +64,7 @@ community limits, the trademark choice, pricing, the Base/Target plan cases, the
 
 - **Mastering measuring film:** option C, films at Shoot 1 on Nov 8 (confirmed Oct 30). The Media:
   Measuring video thread still needs to prep the shot list for that day.
-- **maisontrace.com offer:** ~US$400 sent Oct 20; no reply recorded.
+- **maisontrace.com offer:** offer sent Oct 20 (amount in project memory); no reply recorded.
 - **Taste brief** questions Q2 to Q5 still open since Oct 19.
 - **Drop schedule** open decisions (who wears Drop 02, Thursday drop day, stage 4 fabric line).
 - **Lingerie:** bra pattern cutter still to book; garment sketch and lining option not built.

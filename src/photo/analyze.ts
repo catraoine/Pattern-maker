@@ -418,7 +418,7 @@ export async function analyzePhoto(input: AnalyzeInput, client: Anthropic | null
   try {
     const reading = await askFor(client, Reading, {
       label: 'photo reading',
-      // A reading is a few hundred words at most; the ceiling bounds what one request can ever cost (about 16 cents).
+      // A reading is a few hundred words at most; the ceiling bounds what one request can ever cost (about 16 cents, or 32 when askFor has to ask a second time).
       max_tokens: 8000,
       system: SYSTEM,
       content: [

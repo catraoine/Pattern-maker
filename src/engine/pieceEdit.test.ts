@@ -5,7 +5,7 @@ import { cutLine } from './piece';
 import { toDxf } from './dxf';
 import { layout, labelCollisions } from './export';
 import { importDxf } from './importDxf';
-import { EDITED, applyCut, applyPatternEdits, cutEnds, cutMark, hasNewPieces, sewnForAllRound } from './pieceEdit';
+import { EDITED, applyCut, applyPatternEdits, cutEnds, cutMark, dartMark, hasNewPieces, sewnForAllRound } from './pieceEdit';
 import { handlesOf } from './pointEdit';
 import { pairs } from './qc';
 import { draftSkirt } from './skirt';
@@ -191,6 +191,16 @@ describe('cutting the flat pattern with a drawn line', () => {
     expect(flared.lines.filter((ln) => ln.segs.length === 2).length).toBe(front.lines.filter((ln) => ln.segs.length === 2).length - 1);
     expect(hemOf(flared) - hemOf(front)).toBeGreaterThan(2);
     expect(taggedLength(flared.outline, 'dart')).toBeLessThan(taggedLength(front.outline, 'dart'));
+  });
+
+  it('marks the same dart a saved move moves, after the darts have shifted (weekly review, Nov 9)', () => {
+    const f = draftBodice(bm, { fit: 'regular', neckline: 'crew', length: 'waist', darts: 'bust_waist' }).pieces[0];
+    const [a, b2] = f.lines.filter((ln) => ln.segs.length === 2).map((ln) => ln.segs[0].to);
+    const to = { x: 12.2, y: 0.3 };
+    // Where the move was saved from, now more than 3 cm from every dart but nearer the second: the move falls back to
+    // the first dart by its place, so the mark must too.
+    const away = { x: b2.x + ((b2.x - a.x) / len(sub(b2, a))) * 10, y: b2.y + ((b2.y - a.y) / len(sub(b2, a))) * 10 };
+    expect(dartMark([f], { moveDart: 0, piece: f.name, from: away, to })).toEqual(dartMark([f], { moveDart: 0, piece: f.name, from: a, to }));
   });
 
   it('leaves a pattern nobody edited exactly as drafted', () => {
