@@ -1215,6 +1215,17 @@ function moveDartIn(pc: Piece, k: number, toward: P): Piece | undefined {
   };
 }
 
+/** Which dart a saved move is on: the nearest dart to where its point was, when one is within 3 cm, else the one in its
+ *  place. Shared by the move and its mark, so the mark always sits on the dart the move moves. */
+function savedDart(darts: ReturnType<typeof dartsIn>, e: DartEdit): number {
+  let k = Math.min(e.moveDart, darts.length - 1);
+  if (e.from) {
+    const near = darts.map((d, j) => [len(sub(d.apex, e.from)), j] as const).sort((a, b) => a[0] - b[0])[0];
+    if (near[0] < 3) k = near[1];
+  }
+  return k;
+}
+
 /** A saved dart move on a set of pieces: the dart found again by its point (the nearest dart to where it was, else by
  *  its place). A move that can't be made changes nothing. */
 function applyDartMove(pieces: Piece[], e: DartEdit): Piece[] {
@@ -1222,12 +1233,7 @@ function applyDartMove(pieces: Piece[], e: DartEdit): Piece[] {
   if (i < 0) return pieces;
   const darts = dartsIn(pieces[i]);
   if (!darts.length) return pieces;
-  let k = Math.min(e.moveDart, darts.length - 1);
-  if (e.from) {
-    const near = darts.map((d, j) => [len(sub(d.apex, e.from)), j] as const).sort((a, b) => a[0] - b[0])[0];
-    if (near[0] < 3) k = near[1];
-  }
-  const moved = moveDartIn(pieces[i], k, e.to);
+  const moved = moveDartIn(pieces[i], savedDart(darts, e), e.to);
   return moved ? pieces.map((pc, j) => (j === i ? moved : pc)) : pieces;
 }
 
@@ -1237,8 +1243,7 @@ export function dartMark(pieces: Piece[], e: DartEdit): P | undefined {
   const pc = pieces.find((x) => x.name === e.piece);
   if (!pc) return undefined;
   const darts = dartsIn(pc);
-  const near = darts.map((d) => len(sub(d.apex, e.from))).reduce((b, v, j, all) => (v < all[b] ? j : b), 0);
-  const d = darts[near];
+  const d = darts.length ? darts[savedDart(darts, e)] : undefined;
   if (!d || len(sub(e.to, d.apex)) < 0.5) return undefined;
   const u = unit(sub(e.to, d.apex));
   return crossings(segsOf(pc.outline), d.apex, add(d.apex, u), 1e-3, Infinity).sort((m, n) => m.u - n.u)[0]?.at;

@@ -27,9 +27,11 @@ CACHE = os.path.join(ROOT, '.shop-cache')
 OUT = os.path.join(ROOT, 'public', 'shops')
 
 # The shop names match SHOP names in src/engine/shopFabrics.ts, where each shop's affiliate link is set.
+# `cart`: the shop's cart counts in whole yards, so Buy can put the exact amount straight in its cart (checked Nov 10
+# by adding to each shop's cart). Fashion Fabrics Club sells in quarter yards, so its Buy opens the fabric's page.
 SHOPS = {
-    'mood': {'name': 'Mood Fabrics', 'host': 'www.moodfabrics.com', 'collection': 'fashion-fabrics'},
-    'nydf': {'name': 'NY Designer Fabrics', 'host': 'nydesignerfabrics.com'},
+    'mood': {'name': 'Mood Fabrics', 'host': 'www.moodfabrics.com', 'collection': 'fashion-fabrics', 'cart': True},
+    'nydf': {'name': 'NY Designer Fabrics', 'host': 'nydesignerfabrics.com', 'cart': True},
     'ffc': {'name': 'Fashion Fabrics Club', 'host': 'www.fashionfabricsclub.com'},
 }
 
@@ -232,6 +234,8 @@ def describe(key, p):
         'url': f"https://{shop['host']}/products/{p['handle']}",
         'img': img,
         'suits': suits_of(weight, drape, projects),
+        # Shopify's add-to-cart link: the yard variant, {qty} filled in by the app (shopFabrics.ts buyLink).
+        'cart': f"https://{shop['host']}/cart/add?id={v['id']}&quantity={{qty}}" if shop.get('cart') else '',
         'print': bool(re.search(r'print|floral|stripe|plaid|check|gingham|paisley|polka|dot|ikat|houndstooth|abstract|animal|leopard|zebra|toile', title, re.I)),
     }
 
@@ -321,7 +325,7 @@ def build():
         order = {s: i for i, s in enumerate(s['name'] for s in SHOPS.values())}
         fs.sort(key=lambda f: (f['print'], rank[f['id']], order[f['shop']]))
         rows = [[f['id'], f['name'], f['shop'], f['price'], f['fibre'], f.get('special', ''), f['weight'], f['drape'], f['widthCm'],
-                 f['colour'], f['hex'], f['url'], f['img'], ','.join(f['suits']), 1 if f['print'] else 0] for f in fs]
+                 f['colour'], f['hex'], f['url'], f['img'], ','.join(f['suits']), 1 if f['print'] else 0, f['cart']] for f in fs]
         json.dump(rows, open(os.path.join(OUT, f'{t}.json'), 'w'), separators=(',', ':'), ensure_ascii=False)
         counts[t] = len(rows)
     by_shop = Counter(f['shop'] for f in fabrics)

@@ -2,7 +2,27 @@
 
 _Update this page whenever a release ships or a PR is queued._
 
-## Live
+## Now (Nov 10, 2026): direct to Netlify while GitHub is suspended
+
+Live: **release Z** 61af03a (Nov 9, 7:39 am Vancouver): release Y + Watch demos keep the chapter name above the
+narration + a diagonal-hem skirt shows its flat drawing in All round. Netlify deploy 6af1db0780889c38b2491875;
+rollback = 6af0aa003a857163ef1837b1 (release Y). Releases B to Z (Nov 6 to 9) went straight to Netlify; the full
+list of commits and deploy ids is in project memory (pattern-maker-direct-releases).
+
+How a release is done now:
+1. Only the Releases thread deploys, and only when Cat says "ship".
+2. Every change is built on the latest live copy in code-backup/ (release-z-61af03a.bundle, then the next).
+3. Before shipping, list for Cat in plain words every difference from live beyond the intended change.
+4. Run the full checks (types, lint, unit, end-to-end, dead code), build, deploy a draft, then make it live.
+5. After shipping, check the live site loads with no errors and save the release bundle to code-backup/.
+
+Releases no longer need bundling to save Netlify credits (Cat, Nov 10): ship each piece when it's ready and she
+says "ship". Top-ups are cheap if credits run short.
+
+On GitHub reinstatement: push the latest live head to main FIRST, then switch Netlify builds back on (they are
+stopped so a GitHub build can't roll the site back). Netlify token expires about Feb 4, 2027.
+
+## Before the suspension (GitHub releases)
 
 **Release 72** (Nov 6, 2026, Cat's Nov 6 "Ship all"; #317, #318 and #319 merged together): the Watch clips and How it
 works films re-recorded in the oxblood look (no black band; the play button appears just after the waitlist rises and
@@ -136,8 +156,8 @@ was closed as shipped. Before bundling, check every PR's base branch.
    Demo videos thread if a visible change needs a re-record.
 4. Log it in project memory's release log and update this page.
 
-Releases are bundled to save Netlify credits (3,000/month plan, about 15 credits a production
-deploy; previews are nearly free). Never turn on credit recharge. A PR that conflicts with main gets
+Until Nov 10 releases were bundled to save Netlify credits (3,000/month plan, about 15 credits a production
+deploy). From Nov 10 they are not (see the top of this page). A PR that conflicts with main gets
 no Tests run on GitHub, so merge main in first.
 
 ## Dates
