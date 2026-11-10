@@ -1167,7 +1167,16 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
 
     let raf = 0;
     let last = performance.now();
+    // Off screen (scrolled down to the choices) it draws once a second instead of every frame, so a fabric or sewing
+    // that arrives meanwhile still shows: a phone otherwise kept drawing the turning garment many times a second that
+    // nobody could see (the phone weight check, 2026-11-10).
+    let onScreen = true;
+    let drewAt = -Infinity;
     const loop = (now: number) => {
+      if (!onScreen && now - drewAt < 1000) {
+        raf = requestAnimationFrame(loop);
+        return;
+      }
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
       if (!st.dragging) {
@@ -1188,9 +1197,15 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
         }
       } else st.zoom = st.zoomTo;
       draw(now);
+      drewAt = now;
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
+    const io = new IntersectionObserver(([e]) => {
+      onScreen = e.isIntersecting;
+      last = performance.now();
+    });
+    io.observe(cv);
 
     let x0 = 0;
     let phi0 = 0;
@@ -1356,6 +1371,8 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
       st.probe = probe;
       st.target = null;
       st.idle = performance.now();
+      // Off screen, the turn is drawn at once all the same, for the check to read.
+      if (!onScreen) drewAt = -Infinity;
     };
     cv.addEventListener('allround-turn', turnEv);
     cv.addEventListener('pointerdown', downEv);
@@ -1369,6 +1386,7 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
       cv.removeEventListener('wheel', wheel);
       cv.removeEventListener('dblclick', dbl);
       cancelAnimationFrame(raf);
+      io.disconnect();
       ro.disconnect();
       cv.removeEventListener('pointerdown', downEv);
       cv.removeEventListener('allround-turn', turnEv);
