@@ -6,7 +6,7 @@ import type { BodiceDarts, BodiceFit, BodiceLength, DrawnNeck, Neckline, UnevenN
 import { SHAPES_FOR_LENGTH, SleeveLength, SleeveShape } from './engine/sleeve';
 import { SLEEVE_CUTS, SleeveCut, sleeveCutBlocked, sleeveCutOf } from './engine/sleeveCut';
 import type { DartPlace, PrincessLine } from './engine/manipulate';
-import type { Closure, Collar } from './engine/collar';
+import type { Closure, Collar, ShirtCut } from './engine/collar';
 import { LEG_WORDS, Leg, TrouserClosure, TrouserLength, TrouserRise } from './engine/trousers';
 import type { TrouserLoops, TrouserPleats } from './engine/trouserPleats';
 import type { BackPockets } from './engine/trouserBack';
@@ -59,6 +59,8 @@ export interface BodiceChoices {
   /** How the sleeve meets the body: set in, a dropped shoulder, raglan or kimono (see sleeveCut.ts).
    * Older saves are set in. */
   sleeveCut?: SleeveCut;
+  /** The house shirt cut (see collar.ts), set by a look: older saves have none. */
+  shirtCut?: ShirtCut;
   /** Older saves have the block's side bust dart, no princess seams, a back zip and no collar. */
   bustDart?: DartPlace;
   princess?: PrincessLine;

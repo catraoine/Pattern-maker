@@ -16,10 +16,12 @@ import type { Piece } from './piece';
  * at the top, and a long tunic's dip below the hip at the bottom. The side seam moves less: it can rise
  * as far, but drop only a little, since below the hip the bodice is no wider than where it was cut. */
 export const HEM_ABOVE = 5;
-const bodiceHemRange = (m: { waist_to_hip?: number }, drop: number) => ({
+const bodiceHemRange = (m: { waist_to_hip?: number }, drop: number, tail = false) => ({
   min: HEM_ABOVE,
-  max: (m.waist_to_hip ?? drop) + 12,
-  sideMax: Math.max(drop, Math.min(drop + 2, (m.waist_to_hip ?? drop) + 4)),
+  // (A shirttail, the house shirt cut's: cut straight from the bust, it is as wide at any hem as where it was cut, so
+  // its tails may hang a little below a hem that is itself well past the hip, as a shirt dress's is.)
+  max: tail ? Math.max((m.waist_to_hip ?? drop) + 12, drop + 6) : (m.waist_to_hip ?? drop) + 12,
+  sideMax: tail ? drop + 2 : Math.max(drop, Math.min(drop + 2, (m.waist_to_hip ?? drop) + 4)),
 });
 
 /**
@@ -27,9 +29,9 @@ const bodiceHemRange = (m: { waist_to_hip?: number }, drop: number) => ({
  * sides brought to the same height (front and back sew together there) and every offset kept inside
  * the range. Undefined for a waist-length bodice, or a hem that comes out level.
  */
-export function bodiceHemShape(h: HemShape | undefined, m: { waist_to_hip?: number }, drop: number): HemShape | undefined {
+export function bodiceHemShape(h: HemShape | undefined, m: { waist_to_hip?: number }, drop: number, tail = false): HemShape | undefined {
   if (!h || drop <= 0 || !isShaped(h)) return undefined;
-  const range = bodiceHemRange(m, drop);
+  const range = bodiceHemRange(m, drop, tail);
   const clamp = (lo: number, hi: number) => (v: number) => Math.round(Math.min(hi - drop, Math.max(lo - drop, v)) * 10) / 10;
   const atSide = clamp(range.min, range.sideMax);
   const side = (offs: number[]) => offs.map((v, i) => (i === HEM_SAMPLES - 1 ? atSide(v) : v));

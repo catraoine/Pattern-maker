@@ -35,6 +35,10 @@ import { EXAMPLE_BODY, Garment, MeasurementValues, isComplete } from './measurem
 /** The house's own colours, named in a look's fabric words and not on the shop's list (SS27, 2026-11-05). */
 const HOUSE_COLOURS: [string, string][] = [['gold', '#C9962E'], ['ice', '#9CC3E6'], ['lavender', '#a796c4'], ['blue-grey', '#B9C3CF']];
 
+/** The house's own prints, photographed from the real cloth: the words that name one in a look's fabric, its tile in
+ * public/prints/house (see fabricPhoto.ts) and how wide one tile shows on the garment, in cm. */
+const HOUSE_PRINTS: [string, { id: string; size: number }][] = [['leopard python', { id: 'house-leopard-python', size: 26 }]];
+
 /** The fabric a look is named for, read from its words, so its thumbnail draws in that cloth. */
 export function lookFabric(words: string): MyFabric {
   const w = words.toLowerCase();
@@ -45,12 +49,14 @@ export function lookFabric(words: string): MyFabric {
   // A python (or any animal skin) is a one-way print: its scales run one way down the cloth.
   const print = /python|snake|leopard|zebra/.test(w) ? 'oneway' : undefined;
   const crisp = /crisp|sateen|gabardine|poplin|taffeta/.test(w);
+  const photo = HOUSE_PRINTS.find(([k]) => w.includes(k))?.[1];
   return {
     ...(fibre ? { fibre } : {}),
     ...(special ? { special: special === 'sequin' ? 'sequins' : special } : sheer ? { special: 'sheer' } : {}),
     ...(colour ? { colour } : {}),
     ...(print ? { print } : {}),
     ...(crisp ? { drape: 'crisp' } : {}),
+    ...(photo ? { photo } : {}),
   };
 }
 
@@ -142,6 +148,29 @@ export const COLLECTION: HouseLook[] = [
     fabric: 'Gold python silk satin',
     garment: 'dress',
     choices: dress('regular', { neckline: 'plunge', sleeve: 'none', back: 'v' }, { silhouette: 'slip', length: 'maxi' }),
+  },
+  {
+    // Cat's own Japanese leopard and python cotton, and the house shirt cut (2026-11-10).
+    id: 'leopard-shirt-dress',
+    number: 8,
+    name: 'Leopard Shirt Dress',
+    line: 'A big shirt cut down to a mini: a long-point collar, wide sleeves to the elbow, and a shirttail hem that hangs longer at the back.',
+    fabric: 'Ivory leopard python cotton',
+    garment: 'bodice',
+    choices: bodice({
+      fit: 'oversized',
+      neckline: 'crew',
+      collar: 'shirt',
+      closure: 'front_buttons',
+      sleeve: 'elbow',
+      sleeveShape: 'straight',
+      length: 'long',
+      dropCm: 47,
+      bustEase: 36,
+      // A shirttail: the sides scooped up 7.5 cm, the back 3 cm longer than the front.
+      hem: { front: [0, 0, -0.2, -0.7, -1.6, -3, -4.8, -6.5, -7.5], back: [3, 3, 2.9, 2.5, 1.6, 0.2, -2.2, -5.2, -7.5] },
+      shirtCut: 'house',
+    }),
   },
 ];
 

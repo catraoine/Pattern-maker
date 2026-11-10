@@ -8,8 +8,8 @@ test('the Maison collection: open it from styling, draw every look, make one', a
   await expect(main.getByRole('heading', { level: 1, name: 'The collection' })).toBeVisible();
   // Every look is drawn flat, front and back.
   const looks = main.getByRole('listitem');
-  await expect(looks).toHaveCount(7);
-  await expect(main.getByRole('img', { name: /Technical flat/ })).toHaveCount(7);
+  await expect(looks).toHaveCount(8);
+  await expect(main.getByRole('img', { name: /Technical flat/ })).toHaveCount(8);
   // The House shows one season at a time.
   await expect(main.getByText('SS27 · Spring Summer 2027')).toBeVisible();
 
@@ -20,6 +20,23 @@ test('the Maison collection: open it from styling, draw every look, make one', a
   // It comes in the cloth it's named for (red crisp cotton sateen), not the last fabric picked.
   const cloth = await page.evaluate(() => JSON.parse(localStorage.getItem('pattern-maker:skirt') ?? '{}').finish?.fabric);
   expect(cloth).toMatchObject({ fibre: 'cotton', colour: 'Red', drape: 'crisp' });
+});
+
+test('the Leopard Shirt Dress: made in the house print, with its long-point collar and shirttail', async ({ page }) => {
+  await startWithExample(page);
+  const main = page.getByRole('main');
+  await openLooks(page);
+  await main.getByRole('button', { name: 'Start from the Maison collection' }).click();
+  const look = main.getByRole('listitem').filter({ has: page.getByRole('heading', { name: 'Leopard Shirt Dress' }) });
+  await expect(look.getByRole('img', { name: /Technical flat/ })).toBeVisible();
+  if (process.env.SHOTS) await look.screenshot({ path: `${process.env.SHOTS}/leopard-look-${test.info().project.name}.png` });
+  await look.getByRole('button', { name: 'Make this look' }).click();
+  await expectStyle(page, 'Bodice');
+  // It comes in the house's own print, photographed from the real cloth, and keeps the house shirt cut.
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('pattern-maker:skirt') ?? '{}'));
+  expect(saved.finish?.fabric).toMatchObject({ fibre: 'cotton', print: 'oneway', photo: { id: 'house-leopard-python' } });
+  expect(saved.bodice).toMatchObject({ collar: 'shirt', shirtCut: 'house', dropCm: 47 });
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/leopard-style-${test.info().project.name}.png`, fullPage: true });
 });
 
 test('the collection: the next drop stays hidden until it has a piece, and the Archive shows its records', async ({ page }) => {

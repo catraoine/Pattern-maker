@@ -232,6 +232,8 @@ interface CollarIn {
   ext: number;
   closure: Closure;
   sa: number;
+  /** A shirt collar with long points (the house shirt cut). */
+  point?: 'long';
 }
 
 /** A polyline with the corner at index `k` rounded: points within `reach` of it are eased onto a smooth
@@ -352,6 +354,15 @@ function bandCollar(c: CollarIn, kind: BandCollar = 'mandarin'): Piece[] {
   return [b];
 }
 
+/** The house shirt cut (Cat, 2026-11-10: the leopard shirt dress, cut "on par with a high end designer"): a big shirt
+ * drafted the way a designer house cuts one, with long collar points and a shirttail hem that may run on past the
+ * hip (bodiceHem.ts). Set by a look, not by a chip. */
+export type ShirtCut = 'house';
+
+/** The long-point shirt collar: its depth at the centre back, and how far its point runs forward of and past the
+ * front end. */
+const LONG_POINT = { back: 5.5, reach: { x: 4, y: 4.5 } };
+
 /** A shirt collar: a stand like the mandarin, and the collar on it, springing out at its edge. */
 function shirtCollar(c: CollarIn): Piece[] {
   const s = band(c, 'Collar stand', 3, 1.5);
@@ -384,11 +395,15 @@ function shirtCollar(c: CollarIn): Piece[] {
 
   // The collar: its lower edge curves down (the spring), so the outer edge has room to lie over the stand.
   const spring = 1.8;
-  const back = 4.5;
+  // Deep enough at the back to cover the stand's seam; the point runs forward and down from the front end. The long
+  // point (the house shirt cut) is a centimetre deeper at the back with points of about 10 cm, as a designer shirt's.
+  const long = c.point === 'long';
+  const back = long ? LONG_POINT.back : 4.5;
+  const reach = long ? LONG_POINT.reach : { x: 2.2, y: 1.5 };
   const lower = neckCurve(Lc, (t) => spring * t * t);
   const m = lower.length - 1;
   const end = lower[m];
-  const point = add(end, p(2.2, -(back + 1.5)));
+  const point = add(end, p(reach.x, -(back + reach.y)));
   const topEdge: P[] = [];
   for (let i = 0; i <= 24; i++) {
     const t = i / 24;
@@ -418,11 +433,11 @@ function shirtCollar(c: CollarIn): Piece[] {
     fabric: 'Self + interfacing',
     seamAllowance: c.sa,
     allowances: { stand: 1, collar: 1, fold: 0 },
-    meta: { foldAt: 'centre back' },
+    meta: { foldAt: 'centre back', ...(long ? { longPoint: true } : {}) },
   };
   collar.draft = draftNotes([
     ['4', `Square a line the length of the stand's top edge to the centre front, ${Lc.toFixed(1)} cm, and drop its front end ${spring} cm for the spring.`],
-    ['5', `Square up ${back} cm at the centre back. Take the collar point 2.2 cm forward and 1.5 cm above that, and curve the outer edge to it.`],
+    ['5', `Square up ${back} cm at the centre back. Take the collar point ${reach.x} cm forward and ${reach.y} cm above that, and curve the outer edge to it.`],
   ], collar);
   return [s.piece, collar];
 }
