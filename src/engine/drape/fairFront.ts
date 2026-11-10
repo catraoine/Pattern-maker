@@ -41,3 +41,79 @@ export function fairFrontCentre(panels: Panel[], res: Float64Array | number[], b
     }
   }
 }
+
+/** A jacket's or coat's back, faired across its centre below the waist. Held to the centre line, the centre back hung
+ *  straight down from the shoulder blades while the cloth beside it lay in on the seat, and what the back is cut wider
+ *  than the body there gathered into a ridge down the centre back, 3 cm and more proud at the hem, with a vent's
+ *  underlap standing straight out behind it: from the side the hem flicked out at the back like a tail (Cat, Nov 10:
+ *  "why does the bottom bit stick out at the back?"). The cloth within `band` cm of the centre back is eased to the
+ *  depth of the cloth beside it, coming in over the first few cm below the waist, and a vent's underlap laid just
+ *  under the other side's cloth. Moves `pos`. */
+export function fairBackCentre(panels: Panel[], pos: Float64Array | number[], band = 9): void {
+  for (const p of panels) {
+    if (p.hidden || p.role !== 'back') continue;
+    const pts = p.mesh.pts;
+    const I = (i: number) => (p.base + i) * 3;
+    // (Only a back with its centre on the centre line: a point of it at the cut centre, drawn at the body's.)
+    if (!pts.some((q, i) => Math.abs(q.x) < 0.3 && Math.abs(pos[I(i)]) < 0.5)) continue;
+    const nb = pts.map(() => new Set<number>());
+    for (const [u, v, w] of p.mesh.tris) {
+      nb[u].add(v).add(w);
+      nb[v].add(u).add(w);
+      nb[w].add(u).add(v);
+    }
+    const r = pts.map((_, i) => Math.hypot(pos[I(i)], pos[I(i) + 2]));
+    const r0 = [...r];
+    // (Levels run down from the waist at 0: from 2 cm below it, in full by 8 cm below.)
+    const share = (i: number) => {
+      const b = Math.min(1, Math.max(0, (pos[I(i) + 1] - 2) / 6));
+      return b * b * (3 - 2 * b);
+    };
+    const ids = pts.map((_, i) => i).filter((i) => pts[i].x > -0.3 && pts[i].x < band && share(i) > 0);
+    for (let it = 0; it < 120; it++) {
+      const next: [number, number][] = [];
+      for (const i of ids) {
+        const near = [...nb[i]].filter((j) => pts[j].x > -0.3);
+        if (near.length) next.push([i, near.reduce((s, j) => s + r[j], 0) / near.length]);
+      }
+      for (const [i, v] of next) r[i] = v;
+    }
+    for (const i of ids) {
+      const k = (r0[i] + (r[i] - r0[i]) * share(i)) / (r0[i] || 1);
+      pos[I(i)] *= k;
+      pos[I(i) + 2] *= k;
+    }
+    // A vent's underlap, cut past the centre back: each point under the cloth of the other side it lies beneath, the
+    // spot of this back as far the other side of the centre as it is cut past it, a layer in. (The spot within the
+    // triangle it falls in, not the nearest point: from point to point the vent's edge ran in steps.)
+    const body = p.mesh.tris.filter((t) => t.every((j) => pts[j].x > -0.3));
+    const spot = (x: number, y: number): [number, number, number] | undefined => {
+      let best: { w: [number, number, number]; t: [number, number, number]; out: number } | undefined;
+      for (const t of body) {
+        const [a, b, c] = t.map((j) => pts[j]);
+        const den = (b.y - c.y) * (a.x - c.x) + (c.x - b.x) * (a.y - c.y);
+        if (Math.abs(den) < 1e-9) continue;
+        const wa = ((b.y - c.y) * (x - c.x) + (c.x - b.x) * (y - c.y)) / den;
+        const wb = ((c.y - a.y) * (x - c.x) + (a.x - c.x) * (y - c.y)) / den;
+        const out = Math.max(0, -wa, -wb, wa + wb - 1);
+        if (!best || out < best.out) best = { w: [wa, wb, 1 - wa - wb], t, out };
+        if (out === 0) break;
+      }
+      if (!best) return undefined;
+      // (Just past the cloth's edge, the nearest spot on it.)
+      const w = best.w.map((v) => Math.max(0, v));
+      const sum = w[0] + w[1] + w[2];
+      return [0, 1, 2].map((d) => best.t.reduce((acc, j, k) => acc + (pos[I(j) + d] * w[k]) / sum, 0)) as [number, number, number];
+    };
+    pts.forEach((q, i) => {
+      if (q.x > -0.3) return;
+      const m = spot(-q.x, q.y);
+      if (!m) return;
+      const rho = Math.hypot(m[0], m[2]) || 1;
+      const k = Math.max(0, rho - p.thick[i]) / rho;
+      pos[I(i)] = -m[0] * k;
+      pos[I(i) + 1] = m[1];
+      pos[I(i) + 2] = m[2] * k;
+    });
+  }
+}
