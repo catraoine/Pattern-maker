@@ -105,15 +105,29 @@ export function fairBackCentre(panels: Panel[], pos: Float64Array | number[], ba
       const sum = w[0] + w[1] + w[2];
       return [0, 1, 2].map((d) => best.t.reduce((acc, j, k) => acc + (pos[I(j) + d] * w[k]) / sum, 0)) as [number, number, number];
     };
+    // (Past the cloth's own centre back at that level, wherever that has settled: on a roomy back it hangs a little
+    // off the body's centre line, and laid past the body's instead the underlap folded sharply back on itself. Its
+    // run down the back taken smooth, over 5 cm either way: point by point, the vent's edge ran in steps.)
+    const cb = pts.map((q, i) => ({ y: q.y, x: pos[I(i)] })).filter((_, i) => Math.abs(pts[i].x) < 0.3);
+    const centreX = (y: number) => {
+      let sum = 0, n = 0;
+      for (const c of cb) {
+        const w = Math.max(0, 1 - Math.abs(c.y - y) / 5);
+        sum += c.x * w;
+        n += w;
+      }
+      return n ? sum / n : 0;
+    };
     pts.forEach((q, i) => {
       if (q.x > -0.3) return;
       const m = spot(-q.x, q.y);
       if (!m) return;
-      const rho = Math.hypot(m[0], m[2]) || 1;
+      const to = [2 * centreX(q.y) - m[0], m[1], m[2]];
+      const rho = Math.hypot(to[0], to[2]) || 1;
       const k = Math.max(0, rho - p.thick[i]) / rho;
-      pos[I(i)] = -m[0] * k;
-      pos[I(i) + 1] = m[1];
-      pos[I(i) + 2] = m[2] * k;
+      pos[I(i)] = to[0] * k;
+      pos[I(i) + 1] = to[1];
+      pos[I(i) + 2] = to[2] * k;
     });
   }
 }
