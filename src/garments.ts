@@ -549,7 +549,8 @@ const SEAM_WORDS: Record<SeamKind, string> = { yoke: 'A yoke', empire: 'An empir
  * Why a style seam drawn on the form can't go with the rest of the choices, or undefined when it can.
  * A top cut below the shoulders, a boned bodice and a draped neckline are their own shaping, and so are
  * princess seams; the seam takes the bust dart, so it can't be moved anywhere else as well. A front
- * yoke needs a high neckline above it, and a yoke or an empire seam would cross a button front. An
+ * yoke needs a high neckline above it, and a yoke or an empire seam would cross a button front (the house shirt's
+ * back yoke apart: it runs across the back only). An
  * empire seam and side panels run to the waist, so they need a waist-length bodice with no peplum.
  */
 export function seamBlocked(c: BodiceChoices, kind: SeamKind, garment: 'bodice' | 'dress' = 'bodice', side: 'front' | 'back' = 'front'): string | undefined {
@@ -560,7 +561,7 @@ export function seamBlocked(c: BodiceChoices, kind: SeamKind, garment: 'bodice' 
   if (c.princess && c.princess !== 'none') return `${words} can't go with princess seams. Pick no princess seams first.`;
   const front = kind !== 'yoke' || side === 'front';
   if (front && c.bustDart && c.bustDart !== 'side') return `${words} takes the bust dart, so it can't be moved as well. Put the bust dart back in the side seam first.`;
-  if (kind !== 'panel' && c.closure === 'front_buttons') return `${words} would cross the button front. Choose the back zip first.`;
+  if (kind !== 'panel' && c.closure === 'front_buttons' && !(kind === 'yoke' && side === 'back' && c.shirtCut === 'house')) return `${words} would cross the button front. Choose the back zip first.`;
   if (c.closure === 'wrap') return `${words} would cross the wrap's front edge. Choose the back zip first.`;
   if (kind === 'yoke' && side === 'front') {
     const depth = c.neck ? c.neck.frontDepth : NECKLINE_DEPTH[c.neckline];

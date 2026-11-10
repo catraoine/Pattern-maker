@@ -154,7 +154,7 @@ export const COLLECTION: HouseLook[] = [
     id: 'leopard-shirt-dress',
     number: 8,
     name: 'Leopard Shirt Dress',
-    line: 'A big shirt cut down to a mini: a long-point collar, wide sleeves to the elbow, and a shirttail hem that hangs longer at the back.',
+    line: 'A big shirt cut down to a mini: a long-point collar, a back yoke with a box pleat, wide sleeves to the elbow, and a shirttail hem that hangs longer at the back.',
     fabric: 'Ivory leopard python cotton',
     garment: 'bodice',
     choices: bodice({
@@ -169,6 +169,8 @@ export const COLLECTION: HouseLook[] = [
       bustEase: 36,
       // A shirttail: the sides scooped up 7.5 cm, the back 3 cm longer than the front.
       hem: { front: [0, 0, -0.2, -0.7, -1.6, -3, -4.8, -6.5, -7.5], back: [3, 3, 2.9, 2.5, 1.6, 0.2, -2.2, -5.2, -7.5] },
+      // A yoke across the back, with a box pleat under it at the centre.
+      yoke: { back: 9 },
       shirtCut: 'house',
     }),
   },

@@ -132,14 +132,16 @@ export function backOnFold(pc: Piece): Piece {
   const r = ringOf(pc.outline);
   if (!r.tags.includes('centre')) return pc;
   const tags = r.tags.map((t) => (t === 'centre' ? 'fold' : t));
-  const ys = r.pts.filter((q) => Math.abs(q.x) < 1e-6).map((q) => q.y);
+  // (A box pleat under a yoke puts the fold that far beyond the centre back: see boxPleated in seams.ts.)
+  const cx = -((pc.meta.boxPleat as number | undefined) ?? 0);
+  const ys = r.pts.filter((q) => Math.abs(q.x - cx) < 1e-6).map((q) => q.y);
   const top = Math.min(...ys);
   const bottom = Math.max(...ys);
   const cut = 'Cut 1 on fold';
   return {
     ...pc,
     outline: pathOf({ pts: r.pts, tags }),
-    fold: [p(0, top + 2), p(0, bottom - 2)],
+    fold: [p(cx, top + 2), p(cx, bottom - 2)],
     notches: pc.notches.filter(([q, d]) => !(Math.abs(q.x) < 1e-6 && d.x < 0)),
     labels: pc.labels.filter((l) => l.text !== 'ZIP ENDS').map((l) => (l.text === pc.cut ? { ...l, text: cut } : l)),
     cut,

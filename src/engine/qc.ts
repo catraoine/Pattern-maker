@@ -253,11 +253,12 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
     for (const side of ['front', 'back'] as const) {
       const on = pieces.filter((pc) => (side === 'front' ? isFront(pc) : isBack(pc)) && taggedLength(pc.outline, tag) > 0);
       if (on.length !== 2) continue;
-      const [a, b] = on.map((pc) => taggedLength(pc.outline, tag));
+      // A box pleat under a shirt's yoke is folded out of the seam: the back is cut that much longer along it.
+      const [a, b] = on.map((pc) => taggedLength(pc.outline, tag) - (tag === 'yoke' ? ((pc.meta.boxPleat as number | undefined) ?? 0) : 0));
       checks.push({
         group: 'Seams',
         label: `${cap(side)} ${word}`,
-        detail: `${on[0].name.replace(/^Bodice /, '').toLowerCase()} ${cm(a)}, ${on[1].name.replace(/^Bodice /, '').toLowerCase()} ${cm(b)}${tag === 'yoke' ? '' : ', darts closed'}, ${Math.abs(a - b) < 0.05 ? 'identical' : `${cm(Math.abs(a - b))} apart`}`,
+        detail: `${on[0].name.replace(/^Bodice /, '').toLowerCase()} ${cm(a)}, ${on[1].name.replace(/^Bodice /, '').toLowerCase()} ${cm(b)}${tag === 'yoke' ? (on.some((pc) => pc.meta.boxPleat) ? ', box pleat folded' : '') : ', darts closed'}, ${Math.abs(a - b) < 0.05 ? 'identical' : `${cm(Math.abs(a - b))} apart`}`,
         ok: Math.abs(a - b) <= SEAM_TOLERANCE,
       });
     }

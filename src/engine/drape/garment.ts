@@ -13,6 +13,7 @@ import type { TrousersDraft } from '../trousers';
 import { Mesh2D, Wedge, meshPiece } from './mesh2d';
 import { BODY_BOTTOM, BODY_TOP, bodyHalf, shapeAt } from '../body';
 import { dartsOf } from '../marks';
+import { yokesJoined } from '../seams';
 import { SimInput, simulate } from './sim';
 import { trouserDetails } from './trouserLines';
 import { levelSkirtHem } from './levelHem';
@@ -6345,7 +6346,9 @@ const isUnder = (pc: Piece) => !pc.kind && /underskirt/i.test(pc.name);
 const isSkirt = (pc: Piece) => !pc.kind && /skirt|peplum|yoke/i.test(pc.name) && !/underskirt/i.test(pc.name);
 
 export function drapeBodice(sp: Space, d: BodiceDraft, sleeve?: SleeveDraft, o: DrapeOptions = {}, extra: { skirt?: Piece[]; drop?: number; pieces?: Piece[]; tiers?: TierBand[]; under?: Piece[]; slitCm?: number } = {}): Draped {
-  const pieces = (extra.pieces ?? d.pieces).map((pc) =>
+  // (A yoke is sewn back onto its piece first: left as its own piece it has no place on the body and hung loose by
+  // the knees, the house shirt's back yoke, 2026-11-10.)
+  const pieces = yokesJoined(extra.pieces ?? d.pieces).map((pc) =>
     (pc.meta as { wrap?: boolean }).wrap ? ownHalf(pc)
     : pc.meta.whole && pc.meta.bias && isTorso(pc) && !/back/i.test(pc.name) && !knob('__noCowl') ? cowlFront(pc, d.front.apex.y)
     : pc.meta.whole && isTorso(pc) && /back/i.test(pc.name) && !knob('__noBackTurn') ? mirrorPiece(pc)

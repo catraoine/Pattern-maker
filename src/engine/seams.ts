@@ -71,8 +71,15 @@ export function seamStyle<S extends BodiceStyle>(s: S): S {
   // An uneven neckline's whole front takes no front yoke; a back yoke still goes on the back pair.
   if (s.unevenNeck && s.yoke?.front !== undefined) s = { ...s, yoke: s.yoke.back !== undefined ? { back: s.yoke.back } : undefined };
   if (!seamOf(s)) return s;
-  return { ...s, bustDart: 'side', ...(kind !== 'panel' ? { closure: 'back_zip' } : {}) };
+  return { ...s, bustDart: 'side', ...(kind !== 'panel' && !shirtYoke(s) ? { closure: 'back_zip' } : {}) };
 }
+
+/** The house shirt's back yoke (see shirtCut in bodice.ts): across the back only, so it never meets the button front
+ * and the shirt keeps its buttons. Below it the back takes a box pleat at the centre. */
+const shirtYoke = (s: Pick<BodiceStyle, 'shirtCut' | 'closure' | 'yoke'>): boolean => s.shirtCut === 'house' && s.closure === 'front_buttons' && s.yoke?.back !== undefined && s.yoke.front === undefined;
+
+/** The box pleat under a shirt's back yoke: 3 cm across once folded, so the back is cut 3 cm wider at the fold. */
+const BOX_PLEAT = 3;
 
 // ---- cutting a ring along a line ---------------------------------------------------------------
 
@@ -379,7 +386,7 @@ function yokeLevel(r: Ring, depth: number, side: 'front' | 'back', apex: P, notc
   return Math.max(lo, y);
 }
 
-function yokeSide(pc: Piece, depth: number, side: 'front' | 'back', apex: P, bustDart: number): { pieces: [Piece, Piece]; seam: P[]; sewnDart?: P[]; moved: boolean } | undefined {
+function yokeSide(pc: Piece, depth: number, side: 'front' | 'back', apex: P, bustDart: number, pleat = false): { pieces: [Piece, Piece]; seam: P[]; sewnDart?: P[]; moved: boolean } | undefined {
   const r = ringOf(pc.outline);
   const y = yokeLevel(r, depth, side, apex, pc.notches);
   if (y === undefined) return undefined;
@@ -404,6 +411,7 @@ function yokeSide(pc: Piece, depth: number, side: 'front' | 'back', apex: P, bus
   const yoke = part(pc, upper, `${name} yoke`, cutFor(front), { notches: seamNotches(at, seam, upper), meta: { yoke: true } });
   let body = part(pc, lower, name, cutFor(front), { notches: seamNotches(at, seam, lower), points: [note] });
   delete body.meta.pointedAtCentre;
+  if (pleat && !front) body = boxPleated(body, y, name);
   let sewnDart: P[] | undefined;
   if (moves) {
     const moved = moveFrontDart(body, apex, 'shoulder', undefined, undefined, { tag: 'yoke', along: apex.x, words: 'yoke seam' });
@@ -416,10 +424,105 @@ function yokeSide(pc: Piece, depth: number, side: 'front' | 'back', apex: P, bus
   return { pieces: [body, yoke], seam, sewnDart, moved: !!sewnDart };
 }
 
-function yoke(d: BodiceDraft, y: Yoke): Seamed | undefined {
+/**
+ * A box pleat at the centre back, under the yoke: the back cut BOX_PLEAT wider beyond the centre back, the new edge
+ * on the fold. Each side folds halfway along the extra and the old centre back line is brought under to the centre,
+ * so the pleat lies BOX_PLEAT across on the outside and the back fits its yoke again. It is caught in the yoke seam
+ * only and hangs free to the hem.
+ */
+function boxPleated(body: Piece, y: number, name: string): Piece {
+  const r = ringOf(body.outline);
+  const n = r.pts.length;
+  // (The centre back is still a seam here; a button front's back goes on the fold when the bodice is finished.)
+  const centre = r.tags[n - 1];
+  const k = r.tags.findIndex((t, i) => t === centre && r.tags[(i - 1 + n) % n] !== centre);
+  if (k < 1 || !['fold', 'centre'].includes(centre) || Math.abs(r.pts[0].x) > 1e-6 || Math.abs(r.pts[k].x) > 1e-6) return body;
+  const w = BOX_PLEAT;
+  const hemY = r.pts[k].y;
+  const ring: Ring = {
+    pts: [p(-w, y), ...r.pts.slice(0, k + 1), p(-w, hemY)],
+    tags: ['yoke', ...r.tags.slice(0, k), r.tags[k - 1], centre],
+  };
+  const down = Math.min(12, (hemY - y) / 3);
+  const pc: Piece = {
+    ...body,
+    outline: pathOf(ring),
+    notches: [...body.notches, [p(0, y), p(0, -1)], [p(-w / 2, y), p(0, -1)]],
+    balance: [...(body.balance ?? []), { pts: [p(-w / 2, y), p(-w / 2, y + down)], label: 'PLEAT FOLD' }, { pts: [p(0, y), p(0, y + down)], label: 'CENTRE BACK' }],
+    draft: body.draft && {
+      frame: body.draft.frame,
+      points: [
+        ...body.draft.points,
+        {
+          n: 'P',
+          at: p(-w / 2, y),
+          note: `Box pleat: add ${cm(w)} beyond the centre back, from the yoke seam to the hem; the new edge goes on the fold. Fold each side on the pleat line, ${cm(w / 2)} in, and bring the old centre back line under to the centre: the pleat lies ${cm(w)} across on the right side, and is caught in the yoke seam only.`,
+        },
+      ],
+    },
+    meta: { ...body.meta, boxPleat: w },
+  };
+  return dressed(pc, name, pc.cut);
+}
+
+/**
+ * A yoked bodice as it is once its yokes are sewn on, for the cloth on the form: each yoke joined back to the piece
+ * below it along the yoke seam, the seam kept as a line drawn across it, and a box pleat folded away (the back as
+ * wide as its yoke again). A front whose bust dart opens on the yoke seam is left as cut.
+ */
+/** A line drawn across a piece on the form, stepped about every centimetre so the cloth's mesh can follow it. */
+const seamLine = (pts: P[]): Path => {
+  const ln = new Path(pts[0]);
+  pts.slice(1).forEach((q, i) => {
+    const n = Math.max(1, Math.round(len(sub(q, pts[i]))));
+    for (let k = 1; k <= n; k++) ln.line(lerp(pts[i], q, k / n), 'newseam');
+  });
+  return ln;
+};
+
+export function yokesJoined(pieces: Piece[]): Piece[] {
+  const out = [...pieces];
+  for (const yk of pieces.filter((pc) => pc.meta.yoke && !pc.kind)) {
+    const at = out.findIndex((pc) => !pc.kind && !pc.meta.yoke && pc.name === yk.name.replace(/ yoke$/, ''));
+    if (at < 0) continue;
+    const body = out[at];
+    const b0 = ringOf(body.outline);
+    const b1 = from(b0, runStart(b0, 'yoke'));
+    // The pleat's extra beyond the centre is folded under: the back as sewn ends at the centre line.
+    const flat: Ring = { pts: [], tags: [] };
+    b1.pts.forEach((q, i) => {
+      const [a, b] = [p(Math.max(0, q.x), q.y), p(Math.max(0, b1.pts[(i + 1) % b1.pts.length].x), b1.pts[(i + 1) % b1.pts.length].y)];
+      if (!body.meta.boxPleat || len(sub(a, b)) > 1e-6) {
+        flat.pts.push(body.meta.boxPleat ? a : q);
+        flat.tags.push(b1.tags[i]);
+      }
+    });
+    const y0 = ringOf(yk.outline);
+    const end = y0.tags.findIndex((t, i) => t !== 'yoke' && y0.tags[(i - 1 + y0.tags.length) % y0.tags.length] === 'yoke');
+    if (end < 0 || flat.tags[0] !== 'yoke') continue;
+    const y1 = from(y0, end);
+    const a = y1.tags.indexOf('yoke');
+    const j = flat.tags.findIndex((t) => t !== 'yoke');
+    if (a < 1 || j < 1 || len(sub(y1.pts[a], flat.pts[j])) > 0.05 || len(sub(y1.pts[0], flat.pts[0])) > 0.05) continue;
+    const seam = seamLine(flat.pts.slice(0, j + 1));
+    // (The pleat's own folds are not drawn: the cloth's mesh is too coarse to carry two lines 3 cm apart.)
+    const { boxPleat: _b, ...meta } = body.meta;
+    out[at] = {
+      ...body,
+      outline: pathOf({ pts: [...y1.pts.slice(0, a), ...flat.pts.slice(j)], tags: [...y1.tags.slice(0, a), ...flat.tags.slice(j)] }),
+      lines: [...body.lines, ...yk.lines, seam],
+      notches: [...body.notches.filter(([q]) => q.x >= 0), ...yk.notches],
+      meta,
+    };
+    out.splice(out.indexOf(yk), 1);
+  }
+  return out;
+}
+
+function yoke(d: BodiceDraft, y: Yoke, pleat = false): Seamed | undefined {
   const [front, back] = d.pieces;
   const f = y.front !== undefined ? yokeSide(front, y.front, 'front', d.front.apex, d.bustDart) : undefined;
-  const b = y.back !== undefined ? yokeSide(back, y.back, 'back', d.front.apex, 0) : undefined;
+  const b = y.back !== undefined ? yokeSide(back, y.back, 'back', d.front.apex, 0, pleat) : undefined;
   if (!f && !b) return undefined;
   const warnings = [...(y.front !== undefined && !f ? ['the neckline sits too low for a front yoke above the bust; it is left out'] : []), ...(y.back !== undefined && !b ? ['there is no room for a back yoke; it is left out'] : [])];
   return {
@@ -688,7 +791,7 @@ export function styleSeams(d: BodiceDraft, s: BodiceStyle): BodiceDraft {
   const warn = (w: string) => ({ ...d, warnings: [...d.warnings, w] });
   if (d.lowShoulder) return warn(`with one shoulder lower, the ${WORDS[kind]} is left out`);
   if (kind !== 'yoke' && d.drop > 0) return warn(`${kind === 'empire' ? 'an empire seam' : 'side panels'} need a waist-length bodice; left out`);
-  const out = kind === 'yoke' ? yoke(d, s.yoke!) : kind === 'empire' ? empire(d, s.empire!) : panels(d, s.panel!.at);
+  const out = kind === 'yoke' ? yoke(d, s.yoke!, shirtYoke(s)) : kind === 'empire' ? empire(d, s.empire!) : panels(d, s.panel!.at);
   if (!out) return warn(`there is no room for the ${WORDS[kind]} on this bodice; left out`);
   const [front, back] = d.pieces;
   const lines = (side: 'front' | 'back') => out.seams.filter((sm) => sm.side === side).map((sm) => ({ pts: sm.pts, kind: 'seam' as const }));

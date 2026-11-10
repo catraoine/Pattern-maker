@@ -381,8 +381,15 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    still stops 12 cm below the hip). A shirt without the cut is drafted exactly as before. The look is drawn in the
    house's own print, photographed from Cat's cloth: the tile ships in `public/prints/house/` and is named by the
    look's fabric words (`HOUSE_PRINTS` in `collection.ts`), so it shows on any device and never touches the photo
-   store. The look has a set-in sleeve and no back yoke: a yoke can't go on a button front yet (`seamBlocked` in
-   `garments.ts`), so the yoke and the box pleat under it are still to come. Covered by `engine/shirtCut.test.ts` and `e2e/collection.spec.ts`.
+   store. The look has a set-in sleeve and a back yoke with a box pleat under it (Cat, Nov 10: "i want it"). The
+   house cut is the one button front that keeps a yoke, and only across the back, where it never meets the buttons
+   (`seamBlocked` in `garments.ts`, `shirtYoke` in `engine/seams.ts`); every other button front still gives a yoke
+   up. Under the yoke the back is cut 3 cm wider beyond the centre back, the new edge on the fold (`boxPleated`):
+   folded, the pleat lies 3 cm across and the back fits its yoke again, so the seam check takes the pleat out and
+   the sewing steps fold it before the yoke goes on. On the form a yoke is sewn back onto its piece first
+   (`yokesJoined`, for every yoked top: left as its own piece it hung loose by the knees) and its seam is drawn as
+   a line; the pleat's own folds are not drawn in 3D.
+   Covered by `engine/shirtCut.test.ts` and `e2e/collection.spec.ts`.
 
 ## Style steps
 

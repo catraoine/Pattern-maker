@@ -6,6 +6,7 @@ import type { BodiceDraft } from './bodice';
 import type { SewStep, SewingGuide } from './instructions';
 import type { DartPlace } from './manipulate';
 import { dartsOf } from './marks';
+import { cm } from './skirt';
 
 const PRESS: Record<DartPlace, string> = {
   side: 'from the side seam to the point, and press it down',
@@ -47,6 +48,15 @@ function seamSteps(draft: BodiceDraft, seam: string): { darts?: SewStep; join: S
     const backText = front
       ? 'Join each back yoke to its back the same way, matching the double notches.'
       : `Pin each back yoke to the top edge of its back, right sides together, matching the centre back and the double notches. Sew ${seam} from the edge, and press the seam up toward the yoke.`;
+    // A shirt's back yoke: one yoke on the fold, and the back's box pleat folded before it is joined.
+    const pleat = named(/^Bodice back$/).find((pc) => pc.meta.boxPleat)?.meta.boxPleat as number | undefined;
+    if (pleat && !front)
+      return {
+        join: {
+          title: 'Join the pleated back to its yoke',
+          text: `Open the back out flat, right side up. Crease it along each pleat line, ${cm(pleat / 2)} either side of the middle, and bring the two centre back notches together underneath so they meet at the middle: the box pleat lies ${cm(pleat)} across on the right side. Pin it and tack across the top edge. Pin the back yoke to the top edge of the back, right sides together, matching the centre back and the double notches. Sew ${seam} from the edge, and press the seam up toward the yoke. The pleat hangs free below the seam.`,
+        },
+      };
     const text = [front ? `Pin the front yoke to the top edge of the bodice front, right sides together, matching the centre front and the notch. Sew ${seam} from the edge, and press the seam up toward the yoke.` : '', back ? backText : ''];
     return { join: { title: `Join the ${which}`, text: text.filter(Boolean).join(' ') } };
   }
