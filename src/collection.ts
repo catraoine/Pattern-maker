@@ -84,10 +84,10 @@ export const COLLECTION: HouseLook[] = [
     id: 'blush-shift',
     number: 1,
     name: 'Blush Shift',
-    line: 'A sleeveless shift above the knee with a little room at the bust, flaring just enough, and tied at one side.',
+    line: 'A sleeveless shift above the knee, with a little room at the bust and a hem that flares just enough.',
     fabric: 'Blush wool crepe',
     garment: 'dress',
-    choices: dress('regular', { neckline: 'crew', sleeve: 'none', darts: 'bust', bustDart: 'french', bustEase: 5 }, { silhouette: 'straight', length: 'mini', noSeam: 'shift', belt: 'side_tie', flareCm: 4 }),
+    choices: dress('regular', { neckline: 'crew', sleeve: 'none', darts: 'bust', bustDart: 'french', bustEase: 5 }, { silhouette: 'straight', length: 'mini', noSeam: 'shift', flareCm: 4 }),
   },
   {
     id: 'gold-shorts',
