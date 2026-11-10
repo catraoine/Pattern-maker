@@ -787,6 +787,9 @@ interface SideLine {
   backSide?: number;
 }
 
+/** The least the front length runs on below the bust point, in cm (a real body has 10 or more; below 3 the drawing fails). */
+export const MIN_BUST_TO_WAIST = 4;
+
 /** Draft at armhole depth `scye`. */
 function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLine = {}): BodiceDraft & { inner: { bustDart: number; lower: number; upper: number; forward: number; pin: number; turn: number } } {
   const dropShoulder = side.drop ?? 0;
@@ -909,6 +912,11 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     );
     FL = NW + 1;
   }
+  // The bust point must sit clear above the waist: closer than this, the front's darts and side seam have no length to
+  // run in and the drawing breaks (a top drawn with points at infinity froze the app, Nov 10). Only a mistyped
+  // measurement, or a toile correction on top of one, gets here, so say what to check rather than draw something wrong.
+  if (FL - BD < MIN_BUST_TO_WAIST)
+    throw new DraftError(`Your bust point comes out ${FL - BD <= 0 ? 'at or below your waist' : 'right at your waist'}, so this top can't be drafted. Please check your bust depth (neck to bust point, ${cm(BD)}) and your front length (neck to waist, ${cm(FL)}).`);
   const dx = AS / 2 - nwF;
   const apex = p(AS / 2, hpsF0.y + Math.sqrt(Math.max(BD ** 2 - dx ** 2, 1)));
   const wf = apex.y + Math.max(FL - BD, 0);

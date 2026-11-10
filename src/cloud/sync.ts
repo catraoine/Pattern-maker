@@ -4,7 +4,7 @@
 // meanwhile; otherwise the round starts again from the newer copy, so no save ever overwrites another device's.
 import type { Backup } from '../account';
 import type { Kept } from './api';
-import { contentKey, mergeBackups } from './merge';
+import { contentKey, mergeBackups, type JoinOptions } from './merge';
 
 export interface SyncIo {
   load(): Promise<Kept | null>;
@@ -20,13 +20,14 @@ interface SyncResult<S> {
 
 const TRIES = 3;
 
-export async function syncOnce<S>(local: Backup<S>, base: Backup<S> | null, io: SyncIo, apply: (b: Backup<S>) => void): Promise<SyncResult<S>> {
+export async function syncOnce<S>(local: Backup<S>, base: Backup<S> | null, io: SyncIo, apply: (b: Backup<S>) => void, opts: JoinOptions = {}): Promise<SyncResult<S>> {
   let applied = false;
   let mine = local;
   for (let i = 0; i < TRIES; i++) {
     const kept = await io.load();
     const remote = (kept?.backup as Backup<S> | undefined) ?? null;
-    const merged = mergeBackups(mine, remote, base);
+    // The options are for this device's own work, so only the first round's join takes them.
+    const merged = mergeBackups(mine, remote, base, i === 0 ? opts : {});
     if (contentKey(merged) !== contentKey(mine)) {
       apply(merged);
       applied = true;

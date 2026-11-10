@@ -117,3 +117,111 @@ describe('comparing copies', () => {
     expect(mergeBackups(local, reordered, base).account.patterns).toEqual([]);
   });
 });
+
+// The engineering review's sign-in findings (Nov 10), each reproduced with the joining code before it was fixed.
+describe('the review’s sign-in findings', () => {
+  const t = '2026-11-10T10:00:00Z';
+  const friend = { id: 'p2', name: 'Ana', values: { waist: 64 }, named: true };
+
+  it('an emptied device ("Delete everything") never empties the account, even with an old base still on it', () => {
+    const kept = at(t, { garment: 'dress' }, { ...NEW_ACCOUNT, name: 'Cat', people: [me({ waist: 70 }), friend], patterns: [pattern('a', '2026-11-01'), pattern('b', '2026-11-02')] });
+    const emptied = at('2026-11-11T10:00:00Z', {}, NEW_ACCOUNT);
+    const m = mergeBackups(emptied, kept, kept);
+    expect(m.account.patterns.map((p) => p.id)).toEqual(['a', 'b']);
+    expect(m.account.people?.map((p) => [p.id, p.values])).toEqual([[ME, { waist: 70 }], ['p2', { waist: 64 }]]);
+    expect(m.account.name).toBe('Cat');
+  });
+
+  it('two different people’s own measurements are never joined: this device’s are kept as a person of their own', () => {
+    // Ann used a shared computer without signing in to it; Bea then signs in there for the first time.
+    const ann = at('2026-11-11T10:00:00Z', {}, { ...NEW_ACCOUNT, name: 'Ann', people: [me({ waist: 66, full_hip: 94 })], patterns: [{ ...pattern('anns-dress', '2026-11-11'), personId: ME }] });
+    const bea = at(t, {}, { ...NEW_ACCOUNT, name: 'Bea', people: [me({ waist: 80, full_hip: 108 })], patterns: [{ ...pattern('beas-skirt', '2026-11-01'), personId: ME }] });
+    const m = mergeBackups(ann, bea);
+    expect(m.account.name).toBe('Bea');
+    const owner = m.account.people!.find((p) => p.id === ME)!;
+    expect(owner.values).toEqual({ waist: 80, full_hip: 108 });
+    const apart = m.account.people!.find((p) => p.id !== ME)!;
+    expect(apart).toMatchObject({ name: 'Ann', values: { waist: 66, full_hip: 94 } });
+    expect(m.account.patterns.find((p) => p.id === 'anns-dress')?.personId).toBe(apart.id);
+    expect(m.account.patterns.find((p) => p.id === 'beas-skirt')?.personId).toBe(ME);
+  });
+
+  it('“Add it to my account” on a device last signed in to another account: its people and patterns come, nothing else', () => {
+    // Even with measurements close enough to look like one body, the other account's owner stays apart.
+    const ann = at('2026-11-11T10:00:00Z', { garment: 'tee' }, { ...NEW_ACCOUNT, name: 'Ann', testerCode: 'EXAMPLE-ANN', people: [me({ waist: 70 }), friend], patterns: [pattern('anns', '2026-11-11')] });
+    const bea = at(t, { garment: 'skirt' }, { ...NEW_ACCOUNT, name: 'Bea', people: [me({ waist: 71 })], patterns: [pattern('beas', '2026-11-01')] });
+    const m = mergeBackups(ann, bea, null, { fromAnotherAccount: true });
+    expect(m.account.name).toBe('Bea');
+    expect(m.account.testerCode).toBeUndefined();
+    expect(m.account.people!.find((p) => p.id === ME)!.values).toEqual({ waist: 71 });
+    expect(m.account.people!.map((p) => p.name).sort()).toEqual(['', 'Ana', 'Ann']);
+    expect(m.account.patterns.map((p) => p.id).sort()).toEqual(['anns', 'beas']);
+    expect(m.skirt).toEqual({ garment: 'skirt' });
+  });
+
+  it('the same person on two devices at first sign-in: fittings, notes and history from one, an extra measurement from the other', () => {
+    const phone = at(t, {}, {
+      ...NEW_ACCOUNT,
+      name: 'Cat',
+      people: [{ ...me({ waist: 70, full_hip: 98 }), fittings: { skirt: { issues: { waist: 1 }, round: 1 } }, notes: [{ id: 'n1', date: '2026-11-09', text: 'sway back' }], history: [{ date: '2026-11-01', values: { waist: 71 } }] }],
+      patterns: [],
+    });
+    const laptop = at('2026-11-11T10:00:00Z', {}, { ...NEW_ACCOUNT, name: 'Cat', people: [me({ waist: 70, full_hip: 98, waist_to_hip: 20 })], patterns: [] });
+    const m = mergeBackups(laptop, phone);
+    const p = m.account.people!.find((x) => x.id === ME)!;
+    expect(p.values).toEqual({ waist: 70, full_hip: 98, waist_to_hip: 20 });
+    expect(p.fittings).toEqual({ skirt: { issues: { waist: 1 }, round: 1 } });
+    expect(p.notes?.map((n) => n.text)).toEqual(['sway back']);
+    expect(p.history).toEqual([{ date: '2026-11-01', values: { waist: 71 } }]);
+    expect(m.account.people).toHaveLength(1);
+  });
+
+  it('the same person changed on both devices since they last agreed: a waist changed on one and a note added on the other are both kept', () => {
+    const base = at(t, {}, { ...NEW_ACCOUNT, name: 'Cat', people: [me({ waist: 70, full_hip: 98 })], patterns: [] });
+    const phone = at('2026-11-11T10:00:00Z', {}, { ...NEW_ACCOUNT, name: 'Cat', people: [me({ waist: 68, full_hip: 98 })], patterns: [] });
+    const laptop = at('2026-11-12T10:00:00Z', {}, { ...NEW_ACCOUNT, name: 'Cat', people: [{ ...me({ waist: 70, full_hip: 98 }), notes: [{ id: 'n1', date: '2026-11-12', text: 'toile 2' }] }], patterns: [] });
+    const p = mergeBackups(phone, laptop, base).account.people![0];
+    expect(p.values).toEqual({ waist: 68, full_hip: 98 });
+    expect(p.notes?.map((n) => n.text)).toEqual(['toile 2']);
+    // A note removed on one device stays removed.
+    const noted = at('2026-11-12T10:00:00Z', {}, { ...NEW_ACCOUNT, name: 'Cat', people: [{ ...me({ waist: 70, full_hip: 98 }), notes: [{ id: 'n1', date: '2026-11-12', text: 'toile 2' }] }], patterns: [] });
+    const cleared = at('2026-11-13T10:00:00Z', {}, { ...NEW_ACCOUNT, name: 'Cat', people: [me({ waist: 70, full_hip: 98 })], patterns: [] });
+    expect(mergeBackups(cleared, noted, noted).account.people![0].notes).toBeUndefined();
+  });
+
+  it('a measurement cleared on one device since they last agreed stays cleared', () => {
+    const base = at(t, {}, { ...NEW_ACCOUNT, people: [me({ waist: 74, full_hip: 98 })], patterns: [] });
+    const cleared = at('2026-11-12T10:00:00Z', {}, { ...NEW_ACCOUNT, people: [me({ full_hip: 98 })], patterns: [] });
+    expect(mergeBackups(cleared, base, base).account.people![0].values).toEqual({ full_hip: 98 });
+  });
+
+  it('deleting the last pattern on a device in use reaches the account', () => {
+    const base = at(t, {}, { ...NEW_ACCOUNT, onboarded: true, people: [{ ...me({ waist: 76 }), example: ['waist'] }], patterns: [pattern('a', '2026-11-01')] });
+    const none = at('2026-11-12T10:00:00Z', {}, { ...NEW_ACCOUNT, onboarded: true, people: [{ ...me({ waist: 76 }), example: ['waist'] }], patterns: [] });
+    expect(mergeBackups(none, base, base).account.patterns).toEqual([]);
+  });
+
+  it('a measurement taken beats one filled in from the example body, whichever side is newer', () => {
+    const real = at(t, {}, { ...NEW_ACCOUNT, people: [me({ waist: 70 })], patterns: [] });
+    const example = at('2026-11-12T10:00:00Z', {}, { ...NEW_ACCOUNT, people: [{ ...me({ waist: 76, full_hip: 102 }), example: ['waist', 'full_hip'] }], patterns: [] });
+    const p = mergeBackups(example, real).account.people![0];
+    expect(p.values).toEqual({ waist: 70, full_hip: 102 });
+    expect(p.example).toEqual(['full_hip']);
+  });
+
+  it('every moved point removed on one device stays removed', () => {
+    const base = { ...at(t, {}, { ...NEW_ACCOUNT, people: [me({ waist: 70 })], patterns: [] }), pointEdits: { skirt: [{ at: 1 }] } };
+    const cleared = at('2026-11-12T10:00:00Z', {}, { ...NEW_ACCOUNT, people: [me({ waist: 70 })], patterns: [] });
+    expect(mergeBackups(base, cleared, base).pointEdits).toBeUndefined();
+  });
+
+  it('work typed while the account was being read is joined in again, not replaced', () => {
+    // What this device held when the sync started, what the join gave, and what the device holds now.
+    const started = at(t, {}, { ...NEW_ACCOUNT, name: 'Cat', people: [me({ waist: 70 })], patterns: [pattern('a', '2026-11-01')] });
+    const joined = at(t, {}, { ...NEW_ACCOUNT, name: 'Cat', people: [me({ waist: 70 })], patterns: [pattern('a', '2026-11-01'), pattern('from-phone', '2026-11-10')] });
+    const typed = at('2026-11-10T10:00:02Z', {}, { ...NEW_ACCOUNT, name: 'Cat', people: [me({ waist: 69.5 })], patterns: [pattern('a', '2026-11-01')] });
+    const m = mergeBackups(typed, joined, started);
+    expect(m.account.people![0].values).toEqual({ waist: 69.5 });
+    expect(m.account.patterns.map((p) => p.id)).toEqual(['a', 'from-phone']);
+  });
+});
