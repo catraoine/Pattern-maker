@@ -529,7 +529,7 @@ function addSummaryPage(
 
   label('PAGE LAYOUT');
   write(
-    `Print the ${total} pattern pages (page A1 onward) at 100% (actual size) and measure the 10 cm test square on page A1. Trim each page along its dashed line on the left and top, then lay it over the page before it so the half diamonds make whole ones, and tape.`,
+    `Print the ${total} pattern pages (page A1 onward) at 100% (actual size) and measure the 10 cm test square on page A1. Trim each page along its dashed line on the left and top, then lay it over the page before it so the half diamonds make whole ones, and tape.${used.flat().some((u) => !u) ? " Pages with nothing on them aren't printed, so there are gaps in the numbers: leave a gap where a page is missing, as on the map below." : ''}`,
     9.5,
     fonts.body,
     0,

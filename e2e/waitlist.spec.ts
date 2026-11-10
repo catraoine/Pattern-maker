@@ -34,7 +34,9 @@ test('a stranger gets the waitlist where Begin was, and joining counts against t
   await expect(main.getByRole('button', { name: 'Join the waitlist' })).toBeVisible();
 });
 
-test('a tester link lets this device into the full app for good, and leaves the address bar', async ({ page }) => {
+// The code stays in the address (journey review, Nov 10): an iPhone's home-screen icon opens the address it was added
+// from, in storage of its own, so without the code the icon opened the waitlist.
+test('a tester link lets this device into the full app for good, and stays in the address for the home-screen icon', async ({ page }) => {
   await page.route('**/.netlify/functions/tester', async (route) => {
     const { code } = route.request().postDataJSON() as { code: string };
     await route.fulfill({ json: { ok: true, tester: code.toLowerCase() === 'toile-one' } });
@@ -43,7 +45,8 @@ test('a tester link lets this device into the full app for good, and leaves the 
   await skipLoading(page);
   const main = page.getByRole('main');
   await expect(main.getByRole('button', { name: 'Begin' })).toBeVisible();
-  expect(new URL(page.url()).search).toBe('?src=ig');
+  expect(new URL(page.url()).searchParams.get('tester')).toBe('TOILE-ONE');
+  expect(new URL(page.url()).searchParams.get('src')).toBe('ig');
   await page.goto('/');
   await skipLoading(page);
   await expect(main.getByRole('button', { name: 'Begin' })).toBeVisible();

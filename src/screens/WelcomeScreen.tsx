@@ -18,6 +18,10 @@ interface Props {
   resume?: { garment: string; onResume: () => void; onSaved: () => void; onNew: () => void };
   /** Until launch, someone without a tester link gets the waitlist where Begin was (Cat's W1, 2026-10-21). */
   waitlist?: { onCode: (code: string) => void; checking?: boolean; linkMessage?: string; onRetry?: () => void };
+  /** In the home-screen app with nothing here yet: bring work across from Safari with a pasted "Send to another
+   *  device" link, since the home-screen app keeps its own storage (journey review, Nov 10). False when the link
+   *  isn't one. */
+  onBringLink?: (link: string) => Promise<boolean>;
 }
 
 // The welcome has one button (Cat, 2026-10-17): Begin. The tour plays from the dress form, a close crop of the
@@ -47,7 +51,47 @@ const CURTAIN_MS = 1100;
  *  iPad Pro, which gets the phone's picture with the words under it (the iPad check, 2026-10-30). */
 const SIDE_BY_SIDE = '(min-width: 960px) and (min-aspect-ratio: 1/1)';
 
-export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, waitlist }: Props) {
+const standalone = typeof window !== 'undefined' && !!window.matchMedia?.('(display-mode: standalone)').matches;
+
+/** "Started in Safari?": a quiet link that opens a box for the Send to another device link. */
+function BringFromSafari({ onBring }: { onBring: (link: string) => Promise<boolean> }) {
+  const [open, setOpen] = useState(false);
+  const [link, setLink] = useState('');
+  const [wrong, setWrong] = useState(false);
+  if (!open)
+    return (
+      <p className="resume-more">
+        <button type="button" className="link quiet" onClick={() => setOpen(true)}>
+          Started in Safari? Bring your work here
+        </button>
+      </p>
+    );
+  return (
+    <form
+      className="stack bring-safari"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        setWrong(!(await onBring(link)));
+      }}
+    >
+      <p className="small">In Safari, open Your account, then Your data, tap Send to another device and choose Copy. Paste the link here.</p>
+      <label className="field">
+        <span>Link from Safari</span>
+        <input type="url" value={link} onChange={(e) => setLink(e.target.value)} autoComplete="off" />
+      </label>
+      {wrong && (
+        <p className="msg small" role="status">
+          That isn't a Send to another device link. Copy it again from Safari.
+        </p>
+      )}
+      <button type="submit" className="secondary" disabled={!link.trim()}>
+        Bring it here
+      </button>
+    </form>
+  );
+}
+
+export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, waitlist, onBringLink }: Props) {
   const [touring, setTouring] = useState(false);
   // Back from the newsletter's confirm email (Kit sends people to /?joined): straight to "You're on the list".
   const [joined, setJoined] = useState(() => new URLSearchParams(window.location.search).has('joined'));
@@ -209,6 +253,7 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
             <button type="button" className="primary" onClick={begin}>
               Begin
             </button>
+            {onBringLink && standalone && <BringFromSafari onBring={onBringLink} />}
           </div>
         )}
         {/* The agreement shows once, hushed, on a first visit; coming back you've already agreed, and the links

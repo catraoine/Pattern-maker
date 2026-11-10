@@ -196,6 +196,51 @@ export function Group({ label, tab, children, className }: { label: string; tab?
 /** The drawing's top-left corner, where its tools stand stacked in square frames: Enlarge, then Draw (Cat, 2026-10-29). */
 const Corner = createContext<HTMLElement | null>(null);
 
+/** Puts the garment's style back to how it started, measurements untouched: given by the app around the style screens. */
+export const StartOver = createContext<(() => void) | undefined>(undefined);
+
+/** "Back to the original style", a quiet link on Review (journey review, Nov 10: testers had to go back to the start to
+ *  reset). One tap asks first, since it takes away every pick. */
+function StartOverLink() {
+  const startOver = useContext(StartOver);
+  const [asking, setAsking] = useState(false);
+  const [done, setDone] = useState(false);
+  if (!startOver) return null;
+  if (done)
+    return (
+      <p className="small muted start-over" role="status">
+        Back to the original style.
+      </p>
+    );
+  return asking ? (
+    <div className="start-over" role="group" aria-label="Back to the original style">
+      <p className="small">Put every style choice back to how it started? Your measurements stay.</p>
+      <p className="review-edits">
+        <button
+          type="button"
+          className="later"
+          onClick={() => {
+            startOver();
+            setAsking(false);
+            setDone(true);
+          }}
+        >
+          Yes, start over
+        </button>
+        <button type="button" className="later" onClick={() => setAsking(false)}>
+          Keep my choices
+        </button>
+      </p>
+    </div>
+  ) : (
+    <p className="small start-over">
+      <button type="button" className="link quiet" onClick={() => setAsking(true)}>
+        Back to the original style
+      </button>
+    </p>
+  );
+}
+
 /** A tool for the drawing, such as Draw on your form: stood in the drawing's corner, or in place where there is none. */
 export function InCorner({ children }: { children: ReactNode }) {
   const corner = useContext(Corner);
@@ -701,6 +746,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
             </button>
           )}
         </p>
+        <StartOverLink />
         {/* The pro tools (seam allowances, lining, ease) are offered here, at the end, not under the fabric (Cat,
             2026-10-31). Turning them on goes back to the steps, where they open on a tab of their own. */}
         {onMode && (
@@ -941,6 +987,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
                 </button>
               </p>
             )}
+            <StartOverLink />
           </div>
         ) : (
           // One box in the bar (Cat's N3, 2026-10-28, and P1, 2026-10-31): Next in champagne, or Review after the
