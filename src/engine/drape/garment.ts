@@ -4428,7 +4428,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
         for (let k = 1; k < depth.length; k++) if (!depth[k]) depth[k] = depth[k - 1];
         // (Worn, a shirt's fall laps only just past its stand: drawn a little shallower than cut, the same amount
         // all round, so it hugs the neck at the back and its points lie in on the chest.)
-        const shorter = knob('__sfShort') ?? 1;
+        const shorter = knob('__sfShort') ?? (p.pc.meta.longPoint ? 0.3 : 1);
         // (Not at the points: they keep their full cut length, lying out on the chest.)
         const backness = ring.map((F) => Math.min(1, Math.max(0, 0.5 - F[2] / (Math.hypot(F[0], F[2]) || 1))));
         const fallH = (h: number, k: number) => Math.max(0, h - shorter * backness[k] * Math.min(1, h / Math.max(1, depth[k])));
@@ -4471,7 +4471,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
           const o = [F[0] / rho, F[2] / rho];
           // (At the front it also turns in a little toward the placket, so the points lie in on the chest.)
           const front = Math.max(0, F[2] / rho);
-          const inX = -Math.sign(F[0]) * h * front * front * (knob('__sfIn') ?? 0.3);
+          const inX = -Math.sign(F[0]) * h * front * front * (knob('__sfIn') ?? (p.pc.meta.longPoint ? 0 : 0.3));
           // (Tight at the fold, a cloth's thickness round it, easing out to clear what it lies over.)
           const Th = thick * (knob('__sfFoldT') ?? 1.2) + (T - thick * (knob('__sfFoldT') ?? 1.2)) * Math.min(1, h / (knob('__sfRamp') ?? 0.3));
           let X: V3 = [F[0] + o[0] * (Th + h * Math.sin(phi)) + inX, F[1] + h * Math.cos(phi), F[2] + o[1] * (Th + h * Math.sin(phi))];

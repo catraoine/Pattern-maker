@@ -12,7 +12,13 @@ const N = 512;
 const urls = new Map<string, string>();
 const loading = new Map<string, Promise<string | undefined>>();
 
-export const fabricPhotoUrl = (id: string | undefined) => (id ? urls.get(id) : undefined);
+/** The house's own cloths, photographed (a look made in a real print: the leopard shirt dress, 2026-11-10): their
+ * tiles ship with the app in public/prints/house, so they show on any device and never go near the photo store. */
+const HOUSE = 'house-';
+export const isHousePhoto = (id: string | undefined) => !!id && id.startsWith(HOUSE);
+const houseUrl = (id: string) => `${import.meta.env.BASE_URL}prints/house/${id.slice(HOUSE.length)}.jpg`;
+
+export const fabricPhotoUrl = (id: string | undefined) => (id ? (isHousePhoto(id) ? houseUrl(id) : urls.get(id)) : undefined);
 
 function loadFabricPhoto(id: string): Promise<string | undefined> {
   const have = urls.get(id);
@@ -37,7 +43,7 @@ function loadFabricPhoto(id: string): Promise<string | undefined> {
 export function useFabricPhoto(id: string | undefined): string | undefined {
   const [, setLoaded] = useState(0);
   useEffect(() => {
-    if (!id || urls.has(id)) return;
+    if (!id || isHousePhoto(id) || urls.has(id)) return;
     let live = true;
     void loadFabricPhoto(id).then(() => live && setLoaded((n) => n + 1));
     return () => {

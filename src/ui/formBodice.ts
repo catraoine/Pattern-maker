@@ -90,7 +90,7 @@ export function readBodiceHemShape(stroke: P[], draft: BodiceDraft, m: BodiceMea
   }
   // The shape, from the side seam's height: front and back each keep theirs, and meet at the side.
   const drawn = offsetsOf(pts, width, sideY);
-  const hem = bodiceHemShape(matchSides({ front: c.hem?.front ?? flat(), back: c.hem?.back ?? flat(), [side]: drawn }), m, drop);
+  const hem = bodiceHemShape(matchSides({ front: c.hem?.front ?? flat(), back: c.hem?.back ?? flat(), [side]: drawn }), m, drop, c.shirtCut === 'house');
   const next = validDetails(hem ? { ...rest, hem } : rest);
   // A peplum can be lowered with the hem (In testing), a little way and on a level hem; past that it goes.
   const had = !!c.peplum && c.peplum !== 'none';

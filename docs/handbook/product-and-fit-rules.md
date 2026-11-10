@@ -373,6 +373,17 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    hip instead of stretching to 3 times its cut. Skirts don't take the hold: a silk circle and a satin tier folded into
    fins with it. All 33 trouser options pass in silk, satin, viscose, heavy wool and denim.
 
+57. **The house shirt cut, and a look in the real cloth** (Nov 10, Design: Leopard shirt dress, Cat's B recut "on par
+   with high end designer"): Look 08, the Leopard Shirt Dress, is the oversized shirt carried to a mini (47 cm below
+   the waist) with the house shirt cut, which a look sets and no chip does (`shirtCut: 'house'`): the shirt collar
+   is cut 5.5 cm deep at the back with points of about 10 cm (`LONG_POINT` in `engine/collar.ts`), and a shirttail
+   hem may hang up to 6 cm below a hem that is itself past the hip (`bodiceHem.ts`; without the cut a shaped hem
+   still stops 12 cm below the hip). A shirt without the cut is drafted exactly as before. The look is drawn in the
+   house's own print, photographed from Cat's cloth: the tile ships in `public/prints/house/` and is named by the
+   look's fabric words (`HOUSE_PRINTS` in `collection.ts`), so it shows on any device and never touches the photo
+   store. The look has a set-in sleeve and no back yoke: a yoke can't go on a button front yet (`seamBlocked` in
+   `garments.ts`), so the yoke and the box pleat under it are still to come. Covered by `engine/shirtCut.test.ts` and `e2e/collection.spec.ts`.
+
 ## Style steps
 
 - **No repeated names** (Oct 30): a question never carries its step's name (no "Details" question on the

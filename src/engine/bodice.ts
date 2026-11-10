@@ -14,7 +14,7 @@ import { DraftError, Side, cm } from './skirt';
 import type { DartPlace, PrincessLine } from './manipulate';
 import { moveFrontDart, princessPieces } from './shaping';
 import { BackNeck, KEYHOLE, backDepthFor, backNeckOf } from './backNeck';
-import { Buttons, CAPE_NECKS, Closure, Collar, EXTENSION_CM, RUFFLE_NECKS, capeDepth, backNeckFacing, poloSlit, backOnFold, buttonPlaces, collarPieces, frontFacing, isBandCollar, openFront } from './collar';
+import { Buttons, CAPE_NECKS, Closure, Collar, EXTENSION_CM, ShirtCut, RUFFLE_NECKS, capeDepth, backNeckFacing, poloSlit, backOnFold, buttonPlaces, collarPieces, frontFacing, isBandCollar, openFront } from './collar';
 import { DrapeInfo, Peplum, PeplumHem, PeplumInfo, PeplumSize, drapeBodice, drapeStyle, isDraped } from './drape';
 import { Shirring, isShirred, shirredBack } from './shirred';
 import { BONED_EASE, Structure, TopDetails, bonedPanels, cutTop, isBoned, isTop, topStyle } from './corset';
@@ -126,6 +126,9 @@ export interface BodiceStyle {
   /** How the sleeve meets the body (see sleeveCut.ts), with the sleeve it is cut for: a dropped
    * shoulder, a raglan or a kimono reshapes the bodice too. Set-in when missing. */
   sleeveCut?: SleeveCut;
+  /** The house shirt cut (see collar.ts): a long-point shirt collar and a shirttail hem that may run on past the
+   * hip. Older saves have none. */
+  shirtCut?: ShirtCut;
   sleeve?: SleeveLength;
   sleeveShape?: SleeveShape;
   /** A dragged hem: cm below the waist (0 for the waist), in place of the named length. */
@@ -655,7 +658,7 @@ function finish(d: BodiceDraft, s: BodiceStyle, m: BodiceMeasurements & { arm_le
   }
   if (collar !== 'none') {
     const ext = closure === 'front_buttons' && collar !== 'peter_pan' && collar !== 'ruffle' && collar !== 'cape' ? EXTENSION_CM : 0;
-    pieces = [...pieces, ...collarPieces(collar, bf, bb, { back: taggedLength(bb.outline, 'neck'), front: taggedLength(bf.outline, 'neck'), ext, closure, sa: s.seamAllowance, capeCm: capeDepth(m) })];
+    pieces = [...pieces, ...collarPieces(collar, bf, bb, { back: taggedLength(bb.outline, 'neck'), front: taggedLength(bf.outline, 'neck'), ext, closure, sa: s.seamAllowance, capeCm: capeDepth(m), ...(s.shirtCut === 'house' ? { point: 'long' as const } : {}) })];
   }
   // Menswear buttons the other way: the left front laps over the right.
   return { ...d, pieces, block, closure, collar, buttons, ...(buttons && s.fitting?.flatFront ? { lapsLeft: true } : {}) };
@@ -823,7 +826,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   const drop = s.dressHem ? (m.waist_to_hip ?? DROP_MIN) : hemDrop(m, s);
   const below = drop > 0;
   // A shaped hem, and how high it comes: the fish-eye darts end clear of it.
-  const hemShape = s.dressHem ? undefined : bodiceHemShape(s.hem, m, drop);
+  const hemShape = s.dressHem ? undefined : bodiceHemShape(s.hem, m, drop, s.shirtCut === 'house');
   const shallowest = drop + Math.min(0, ...(hemShape ? [...hemShape.front, ...hemShape.back] : []));
 
   // Bust projection (full minus high bust) goes to the front piece.

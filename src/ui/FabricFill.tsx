@@ -14,7 +14,7 @@ import { FabricMetres } from './FabricCard';
 import { ExactColour } from './ExactColour';
 import { TestingTag } from './TestingTag';
 import { FabricLook, FabricLookContext } from './ClothLook';
-import { fabricPhotoUrl, saveFabricPhoto, useFabricPhoto } from '../fabricPhoto';
+import { fabricPhotoUrl, isHousePhoto, saveFabricPhoto, useFabricPhoto } from '../fabricPhoto';
 
 /** One tile, in the sketch's own centimetres: larger than life, so ribs and twill read on a phone. */
 const TILE = 16;
@@ -33,7 +33,7 @@ const printShown = (f: MyFabric | undefined) => {
 };
 
 export const fabricLabel = (f: MyFabric | undefined): string | undefined =>
-  f?.photo ? 'Your fabric' : shopFabric(f?.shop)?.name ?? (f?.special ? SPECIALS[f.special].label : f?.knit ? KNITS[f.knit].label : f?.fibre ? FIBRES[f.fibre].label : undefined);
+  f?.photo ? (isHousePhoto(f.photo.id) ? 'House print' : 'Your fabric') : shopFabric(f?.shop)?.name ?? (f?.special ? SPECIALS[f.special].label : f?.knit ? KNITS[f.knit].label : f?.fibre ? FIBRES[f.fibre].label : undefined);
 
 const withFabric = (finish: Finish, fabric: MyFabric): Finish => ({ ...finish, fabric, cloth: clothFor(fabric, finish.cloth) });
 
