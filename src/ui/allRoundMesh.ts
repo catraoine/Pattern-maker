@@ -116,7 +116,7 @@ function fitColour(v: number): [number, number, number] {
   return [a.r + (b.r - a.r) * t, a.g + (b.g - a.g) * t, a.b + (b.b - a.b) * t];
 }
 
-function material(mode: Mode, map?: THREE.Texture, scale = 1, opacity = 1, physical = false): RoundMaterial {
+export function material(mode: Mode, map?: THREE.Texture, scale = 1, opacity = 1, physical = false): RoundMaterial {
   const mat = new (physical ? THREE.MeshPhysicalMaterial : THREE.MeshStandardMaterial)({
     side: THREE.DoubleSide,
     transparent: opacity < 1,
@@ -195,7 +195,7 @@ interface Sweep {
 }
 
 /** The surface as a mesh: its points, their normals (from the surface's own slope) and the cloth's cm under them. */
-function sweep(s: Sweep, a0: number, a1: number, NA: number, NT: number): THREE.BufferGeometry {
+export function sweep(s: Sweep, a0: number, a1: number, NA: number, NT: number): THREE.BufferGeometry {
   const rowT = s.rowT ?? ((j, n) => j / n);
   const pos = new Float32Array((NA + 1) * (NT + 1) * 3);
   const nor = new Float32Array((NA + 1) * (NT + 1) * 3);
@@ -261,7 +261,7 @@ function sweep(s: Sweep, a0: number, a1: number, NA: number, NT: number): THREE.
 }
 
 /** A flat face closing a surface (the top of the form's neck): the ring at `at(a)`, facing `normal`. */
-function cap(at: (a: number) => V3, normal: V3, n = 72): THREE.BufferGeometry {
+export function cap(at: (a: number) => V3, normal: V3, n = 72): THREE.BufferGeometry {
   const pos: number[] = [];
   const nor: number[] = [];
   const centre = [0, 0, 0];
