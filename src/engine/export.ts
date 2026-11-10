@@ -701,7 +701,7 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
           ...(pc.alternate ? [`TRIM YOUR ${pc.alternate.label.split(' ')[0]} SIDE TO THE ${pc.alternate.label} LINE`] : []),
           ...(pc.kind
             ? []
-            : [info.pattern.toUpperCase(), [info.madeFor && `MADE FOR ${info.madeFor}`, info.date, info.edition, info.code && `CODE ${info.code}`].filter(Boolean).join(' · ').toUpperCase()]),
+            : [info.pattern.toUpperCase(), [info.madeFor && `MADE FOR ${info.madeFor}`, info.date, info.edition].filter(Boolean).join(' · ').toUpperCase()]),
         ].filter(Boolean);
         const trace = pc.meta.threadTrace ? 'THREAD-TRACE THE STITCHING LINE' : '';
         const obstacles = [...fixtures, ...labs.filter((x) => x.rank !== 2).map((x) => x.box)];

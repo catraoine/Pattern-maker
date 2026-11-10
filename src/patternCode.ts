@@ -1,4 +1,4 @@
-// The pattern code printed on every pattern (Cat's tester plan, Nov 10 2026): a short code a fit tester types into the
+// The pattern code printed on every pattern, on the cover and in the title block on page 1 (Cat's tester plan, Nov 10 2026): a short code a fit tester types into the
 // report form, so each report ties to the exact draft it was sewn from. It reads, in order: the app's build (the first
 // four characters of its commit), the hip, bust and high bust it was drafted for (whole cm, "0" where not given), so
 // reports can be grouped by body without looking anything up, and four characters standing for the pieces themselves
