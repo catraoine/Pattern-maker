@@ -4,7 +4,20 @@ _Update this page whenever a release ships or a PR is queued._
 
 ## Now (Nov 10, 2026): direct to Netlify while GitHub is suspended
 
-Live: **release Z** 61af03a (Nov 9, 7:39 am Vancouver): release Y + Watch demos keep the chapter name above the
+Live: **release AB** b1c52c2 (Nov 10, 9:32 am Vancouver, Cat's "ship all except the lapel fix"): skirts and dresses for a
+waist bigger than the hip; app journey fixes (Back returns where you came from, reload keeps your place, home-screen
+icon, printing keeps the pattern, Back to the original style, blank pages explained, upright iPad Style, Email me the
+PDF); a bust point at or below the waist no longer freezes the app; sign-in fixes (sign-in still hidden); All round
+diagonal hems sewn whole, fuller-bust dresses no longer ride up, wrap fronts held at the waist; the moved-dart mark on
+the dart that moved; Buy puts the exact yards in the shop's cart. Left out: the classic double-breasted lapel (collars
+v6). Known: coat front=double shows its Front drawing in All round. Deploy 6af346fe742ffb4c37671460; rollback =
+6af31f2b7bfac82828eba98c (AA).
+
+**Release AA** 95076f3 (Nov 10, 6:42 am, Cat's "ship" in Fit): Rodica's pattern review (bust dart at least 3.8 cm with
+the front armhole 1 cm shorter, neck estimate to the size tables, DXF notches on cutting-line points, pattern code on
+the cover and title block, slant-pocket dress waist, empire band, armhole depth search) and the unusual-body tests.
+
+Before: **release Z** 61af03a (Nov 9, 7:39 am Vancouver): release Y + Watch demos keep the chapter name above the
 narration + a diagonal-hem skirt shows its flat drawing in All round. Netlify deploy 6af1db0780889c38b2491875;
 rollback = 6af0aa003a857163ef1837b1 (release Y). Releases B to Z (Nov 6 to 9) went straight to Netlify; the full
 list of commits and deploy ids is in project memory (pattern-maker-direct-releases).
