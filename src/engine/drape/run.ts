@@ -25,6 +25,7 @@ import { fairDroppedSeam } from './seamFair';
 import { BUST_Y, fitRoom, type FitPin } from './fitMap';
 import { clearCollars } from './collarClear';
 import { fairBackCentre } from './fairFront';
+import { layLapelFoot } from './lapelFoot';
 
 export type DrapeJob = { m: RoundMeasurements; armhole: RoundGarment['armhole']; fibre?: Fibre; crisp?: boolean; /** How the cloth behaves (clothCard.ts); without it, the card of the fibre and crisp fields. */ card?: ClothCard; /** A side tie knotted at the left side seam at the waist (belt.ts). */ sideTie?: SideTieSpec } & (
   | { kind: 'skirt'; draft: SkirtDraft }
@@ -125,6 +126,8 @@ export function runDrape(job: DrapeJob): DrapedLite {
       d = drapeOuter(sp, job.draft, t);
       // Its back faired across the centre below the waist, so the hem doesn't flick out behind.
       if (!knob('__noFairBack')) fairBackCentre(d.panels, d.pos);
+      // A lapel's foot folded right back at the break, not left poking out past the front's edge.
+      if (job.draft.lapel && !knob('__noLapelFoot')) layLapelFoot(d.panels, d.pos, [job.draft.lapel.roll[0], job.draft.lapel.roll[1]]);
       break;
     case 'dress':
       // A side slit is drawn open (up the left side seam, as the pattern cuts it).
