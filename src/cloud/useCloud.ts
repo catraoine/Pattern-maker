@@ -19,7 +19,7 @@ import { cloud, cloudConfigured, type CloudUser } from './api';
 type CloudStatus = 'off' | 'checking' | 'out' | 'ask' | 'syncing' | 'saved' | 'offline' | 'fault';
 
 /** What to do with work left on this device by another account: add it to this one, or start from this account only. */
-export type DeviceAnswer = 'add' | 'account';
+type DeviceAnswer = 'add' | 'account';
 
 const CHANGED = 'pattern-maker:changed-at';
 /** What this device and the account last agreed on, for the account it was signed in to. */
@@ -57,7 +57,8 @@ function lastAccount(): string | undefined {
 /** A failed sync that is only the connection: the browser says it's offline, or the request never got an answer. */
 export function isOffline(e: unknown, online = typeof navigator === 'undefined' ? true : navigator.onLine): boolean {
   if (!online) return true;
-  if (e instanceof TypeError) return true; // fetch's "Failed to fetch" / "Load failed" / "NetworkError"
+  // fetch's own words when a request gets no answer ("Failed to fetch", "Load failed", "NetworkError..."). A TypeError
+  // with other words is a fault in the code, and is reported.
   const m = e instanceof Error ? e.message : typeof e === 'object' && e && 'message' in e ? String((e as { message: unknown }).message) : '';
   return /failed to fetch|load failed|network ?error|network request failed|timed? ?out|being saved from another device/i.test(m);
 }
@@ -69,6 +70,17 @@ export function syncFault(e: unknown): Error {
   const err = new Error(`Account sync: ${parts.join(' ').replace(/\S+@\S+/g, '[email]') || 'unknown error'}`);
   err.stack = undefined;
   return err;
+}
+
+/** Forgets what this device last agreed with the account, keeping whose account that was. */
+function forgetBase() {
+  const user = lastAccount();
+  try {
+    if (user) localStorage.setItem(BASE, JSON.stringify({ user, backup: null }));
+    else localStorage.removeItem(BASE);
+  } catch {
+    // Nothing to forget it in.
+  }
 }
 
 function writeBase<S>(userId: string, backup: Backup<S> | null) {
@@ -143,40 +155,54 @@ export function useCloud<S>(backup: Backup<S>, apply: (b: Backup<S>) => void, en
       try {
         const api = await cloud();
         const io = { load: () => api.load(u), save: (b: Backup<unknown>, seen: string | null) => api.save(u, b, seen) };
-        // "Start from my account only": this device's work is cleared first, and the account's taken as it is.
-        if (answer === 'account') {
-          const fresh = blankRef.current();
-          firstKey.current = contentKey(fresh);
-          applyRef.current(fresh);
-        }
+        // "Start from my account only": joined from an empty device, so the account's work is taken as it is, and this
+        // device is cleared only once that has worked (if it fails, nothing here has changed and the question stays).
         const local = answer === 'account' ? { ...blankRef.current(), savedAt: new Date(0).toISOString() } : { ...latest.current, savedAt: changedAt() };
         const opts: JoinOptions = answer === 'add' ? { fromAnotherAccount: true } : {};
-        const { base } = await syncOnce(
+        // What this device held as each round's join was put on it: this round's start, then what the last join applied.
+        let held = contentKey(local);
+        let heldBackup = local;
+        const { base, applied } = await syncOnce(
           local,
           readBase<S>(u.id),
           io,
           (b) => {
             // Taking in the joined work isn't a change made on this device. Anything typed while the account was being
-            // read is joined in again (against what this round started from), never replaced; the next round saves it.
+            // read is joined in again (against what the device held), never replaced; the next round saves it.
             firstKey.current = contentKey(b);
             const now = { ...latest.current, savedAt: changedAt() };
-            if (answer !== 'account' && contentKey(now) !== contentKey(local)) {
-              applyRef.current(mergeBackups(now, b, local));
+            const key = contentKey(now);
+            if (answer !== 'account' && key !== held && key !== contentKey(local)) {
+              applyRef.current(mergeBackups(now, b, heldBackup));
               again.current = true;
             } else applyRef.current(b);
+            held = contentKey(b);
+            heldBackup = b;
           },
           opts,
         );
+        if (answer === 'account' && !applied) {
+          // Nothing in the account, or exactly an empty device's worth: still, this device starts over.
+          firstKey.current = contentKey(base);
+          applyRef.current(base);
+        }
         writeBase(u.id, base);
         setJoined(u.id);
         setStatus('saved');
       } catch (e) {
         // Being offline is expected and says so. Anything else (a refused save, a sign-in that ran out, the account
         // service paused) would otherwise stop the work reaching the account without anyone knowing: report it.
-        if (isOffline(e)) setStatus('offline');
-        else {
-          reportCrash(syncFault(e), 'sync');
-          setStatus('fault');
+        const offline = isOffline(e);
+        if (!offline) reportCrash(syncFault(e), 'sync');
+        if (answer) {
+          // The question stays until an answer goes through; nothing on this device has changed.
+          again.current = false;
+          setStatus('ask');
+        } else {
+          setStatus(offline ? 'offline' : 'fault');
+          // Every later round is a full join too, so changes and coming back to the app try again even when the first
+          // join after signing in is the one that failed.
+          setJoined(u.id);
         }
       } finally {
         running.current = undefined;
@@ -250,8 +276,9 @@ export function useCloud<S>(backup: Backup<S>, apply: (b: Backup<S>) => void, en
     answerDevice: (answer: DeviceAnswer) => {
       if (user && status === 'ask') void sync(user, answer);
     },
-    /** This device's work was replaced (cleared, or filled from a backup or a move link): the next join removes nothing. */
-    forget: () => writeBase('', null),
+    /** This device's work was replaced (cleared, or filled from a backup or a move link): the next join removes nothing.
+     *  Which account it was last in step with is kept, so signing in to another one still asks first. */
+    forget: () => forgetBase(),
     signOut: async () => {
       await (await cloud()).signOut();
       setUser(null);

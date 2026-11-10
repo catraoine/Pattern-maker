@@ -25,6 +25,9 @@ describe('the bust point stays above the waist', () => {
       expect(e.front_hps_to_waist! - e.bust_depth!).toBeGreaterThanOrEqual(MIN_BUST_TO_WAIST);
     }
     expect(withEstimates(LONG_BUST_DEPTH).bust_depth).toBe(45);
+    // The shortest front length the measuring pages take still leaves the bust point clear of the waist, not only inside the usual proportion.
+    const short = withEstimates({ ...SHORT_BACK, front_hps_to_waist: 30 });
+    expect(30 - short.bust_depth!).toBeGreaterThanOrEqual(MIN_BUST_TO_WAIST);
     expect(withEstimates({ ...SHORT_BACK, front_hps_to_waist: 33 }).front_hps_to_waist).toBe(33);
     // An everyday body's estimates are as they were.
     expect(withEstimates(essentials(EXAMPLE_VALUES))).toMatchObject({ bust_depth: 26.6, front_hps_to_waist: 45.9 });

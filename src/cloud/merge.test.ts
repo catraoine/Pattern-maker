@@ -189,6 +189,18 @@ describe('the review’s sign-in findings', () => {
     expect(mergeBackups(cleared, noted, noted).account.people![0].notes).toBeUndefined();
   });
 
+  it('a measurement cleared on one device since they last agreed stays cleared', () => {
+    const base = at(t, {}, { ...NEW_ACCOUNT, people: [me({ waist: 74, full_hip: 98 })], patterns: [] });
+    const cleared = at('2026-11-12T10:00:00Z', {}, { ...NEW_ACCOUNT, people: [me({ full_hip: 98 })], patterns: [] });
+    expect(mergeBackups(cleared, base, base).account.people![0].values).toEqual({ full_hip: 98 });
+  });
+
+  it('deleting the last pattern on a device in use reaches the account', () => {
+    const base = at(t, {}, { ...NEW_ACCOUNT, onboarded: true, people: [{ ...me({ waist: 76 }), example: ['waist'] }], patterns: [pattern('a', '2026-11-01')] });
+    const none = at('2026-11-12T10:00:00Z', {}, { ...NEW_ACCOUNT, onboarded: true, people: [{ ...me({ waist: 76 }), example: ['waist'] }], patterns: [] });
+    expect(mergeBackups(none, base, base).account.patterns).toEqual([]);
+  });
+
   it('a measurement taken beats one filled in from the example body, whichever side is newer', () => {
     const real = at(t, {}, { ...NEW_ACCOUNT, people: [me({ waist: 70 })], patterns: [] });
     const example = at('2026-11-12T10:00:00Z', {}, { ...NEW_ACCOUNT, people: [{ ...me({ waist: 76, full_hip: 102 }), example: ['waist', 'full_hip'] }], patterns: [] });

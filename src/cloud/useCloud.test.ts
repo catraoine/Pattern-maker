@@ -16,6 +16,8 @@ describe('telling a sync fault from being offline', () => {
     expect(isOffline({ code: '42501', message: 'new row violates row-level security policy for table "backups"' }, true)).toBe(false);
     expect(isOffline({ code: 'PGRST301', message: 'JWT expired' }, true)).toBe(false);
     expect(isOffline({ status: 503, message: 'Service Unavailable' }, true)).toBe(false);
+    // A fault in the joining code itself is reported too, not hidden as offline.
+    expect(isOffline(new TypeError("Cannot read properties of undefined (reading 'values')"), true)).toBe(false);
   });
 
   it('a reported fault names what failed, never an email address', () => {

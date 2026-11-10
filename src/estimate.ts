@@ -37,8 +37,11 @@ export function withEstimates(v: MeasurementValues, form: FormKind = 'womenswear
   return bustAboveWaist(out, v);
 }
 
-/** The longest bust depth for a front length that the measuring pages take without a second look (crossChecks). */
+/** The longest bust depth for a front length that the measuring pages take without a second look (crossChecks), and
+ *  the least the front runs on below the bust point (the bodice turns away less than 4 cm: MIN_BUST_TO_WAIST). */
 const BUST_DEPTH_SHARE = 0.78;
+const BUST_TO_WAIST = 4.5;
+const longestBustDepth = (fl: number) => Math.min(fl * BUST_DEPTH_SHARE, fl - BUST_TO_WAIST);
 
 /**
  * An estimate never puts the bust point at or below the waist. Each is read off a different measurement (the bust depth
@@ -49,9 +52,9 @@ const BUST_DEPTH_SHARE = 0.78;
 function bustAboveWaist(out: MeasurementValues, typed: MeasurementValues): MeasurementValues {
   const bd = out.bust_depth;
   const fl = out.front_hps_to_waist;
-  if (bd === undefined || fl === undefined || bd <= fl * BUST_DEPTH_SHARE) return out;
-  if (typed.bust_depth === undefined) return { ...out, bust_depth: round('bust_depth', fl * BUST_DEPTH_SHARE) };
-  if (typed.front_hps_to_waist === undefined) return { ...out, front_hps_to_waist: round('front_hps_to_waist', bd / BUST_DEPTH_SHARE) };
+  if (bd === undefined || fl === undefined || bd <= longestBustDepth(fl)) return out;
+  if (typed.bust_depth === undefined) return { ...out, bust_depth: round('bust_depth', longestBustDepth(fl)) };
+  if (typed.front_hps_to_waist === undefined) return { ...out, front_hps_to_waist: round('front_hps_to_waist', Math.max(bd / BUST_DEPTH_SHARE, bd + BUST_TO_WAIST)) };
   return out;
 }
 

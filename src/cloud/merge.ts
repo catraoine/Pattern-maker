@@ -38,8 +38,10 @@ function mergePerson(l: Person, r: Person, b: Person | undefined, remoteNewer: b
   const example: MeasurementId[] = [];
   const helped: MeasurementId[] = [];
   for (const k of new Set([...Object.keys(l.values), ...Object.keys(r.values)]) as Set<MeasurementId>) {
-    // Taken on one side only: that one. Otherwise as any other field.
-    const from = real(l, k) !== real(r, k) ? (real(l, k) ? l : r) : side(l.values[k], r.values[k], b?.values[k]) === 'l' ? l : r;
+    // Changed on one side since the base: that side, even when the change was to clear it. Otherwise a measurement
+    // taken on one side only beats a missing one or one from the example body; otherwise as any other field.
+    const changedOnOne = b && (same(l.values[k], b.values[k]) !== same(r.values[k], b.values[k]));
+    const from = !changedOnOne && real(l, k) !== real(r, k) ? (real(l, k) ? l : r) : side(l.values[k], r.values[k], b?.values[k]) === 'l' ? l : r;
     if (from.values[k] === undefined) continue;
     values[k] = from.values[k];
     if (from.example?.includes(k)) example.push(k);
@@ -155,9 +157,11 @@ export interface JoinOptions {
 
 export function mergeBackups<S>(local: Backup<S>, remote: Backup<S> | null, base?: Backup<S> | null, opts: JoinOptions = {}): Backup<S> {
   if (!remote) return local;
-  // An empty device never removes anything from the account (engineering review, Nov 10: "Delete everything", then
-  // signing in again, emptied the account). It holds nothing to lose, so it joins as a first sign-in does.
-  if (base && isEmpty(local.account)) base = null;
+  // A cleared device never removes anything from the account (engineering review, Nov 10: "Delete everything", then
+  // signing in again, emptied the account). The device forgets its base when cleared (useCloud's forget); this is the
+  // backstop for one that couldn't. Only a device as it is after clearing (never past the welcome, nothing measured or
+  // saved) counts, so deleting the last pattern on a device in use still reaches the account.
+  if (base && !local.account.onboarded && isEmpty(local.account)) base = null;
   const hasBase = !!base;
   const remoteNewer = remote.savedAt > local.savedAt;
   // The work in progress (the open garment, moved points) comes from the newer side, unless that side is a fresh device.

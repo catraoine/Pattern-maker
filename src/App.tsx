@@ -692,9 +692,7 @@ export default function App() {
                 dropHash();
                 // Replaced from the other device, not changed here: the next join with the account keeps everything from both.
                 cloud.forget();
-                setSaved(fillMissing(INITIAL, b.skirt));
-                setAccount({ ...NEW_ACCOUNT, ...b.account, onboarded: true });
-                if (b.pointEdits) setPointEdits(b.pointEdits as Record<string, PatternEdit[]>);
+                applyBackup(b as Backup<Saved>);
               }}
               onCarryOn={() => setStep(canLeaveMeasure ? 'export' : 'measure')}
               onNotNow={() => {
