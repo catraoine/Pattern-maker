@@ -26,6 +26,7 @@ import { cropHold } from './cropHold';
 import { flutterPlace } from './flutter';
 import { closeBalloonHem } from './balloonHem';
 import { capeForDrape } from './cape';
+import { heavyChainK } from './heavyHold';
 import { droppedFlareCut, selfGap } from './skirtApart';
 import { madeUpSkirt } from '../skirtPockets';
 
@@ -2119,9 +2120,9 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
     pressed: Uint8Array.from(B.panels.flatMap((p) => p.turned.map((t) => (t ? 1 : 0)))),
     chain: (() => {
       const c = [...chain].sort((m, n) => m[3] - n[3]);
-      // (Hard under a long skirt's weight, which would otherwise draw the bodice down; a top that carries only
-      // itself is held gently, or the hold ratchets it up over the bust.)
-      const k = o.heavySkirt ? 1 : knob('__lightK') ?? 0.3;
+      // (Hard under a long skirt's weight, which would otherwise draw the bodice down, less over a full bust:
+      // heavyHold.ts; a top that carries only itself is held gently, or the hold ratchets it up over the bust.)
+      const k = o.heavySkirt ? heavyChainK(sp) : knob('__lightK') ?? 0.3;
       return { up: Int32Array.from(c.map((q) => q[0])), lo: Int32Array.from(c.map((q) => q[1])), rest: Float64Array.from(c.map((q) => q[2])), k };
     })(),
     // (Settled from the top: each held by the one above it, sorted by where the upper point starts.)
