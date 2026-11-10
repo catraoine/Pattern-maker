@@ -162,10 +162,10 @@ export function runDrape(job: DrapeJob): DrapedLite {
     quality.problems.push({ check: 'missing', part: pc.name, worst: 1 });
     quality.ok = false;
   }
-  // A diagonal hem runs from short on one side to long on the other, but the drape sews one half of a skirt and draws
-  // its mirror, so the hem came out as a V point at the centre front, passing every check (Nov 8). Until the skirt is
-  // sewn whole, the Front drawing stands in.
-  if ((sk?.asym as { kind?: string } | undefined)?.kind === 'diagonal' && !knob('__diagonalOk')) {
+  // A diagonal hem runs from short on one side to long on the other: drawn from one half of the skirt and its mirror,
+  // it came out as a V point at the centre front, passing every check (Nov 8). Sewn whole (wholeSkirt.ts) it hangs as
+  // cut; a skirt still sewn as a half shows the Front drawing instead.
+  if ((sk?.asym as { kind?: string } | undefined)?.kind === 'diagonal' && d.panels.some((p) => /^Skirt/.test(p.pc.name) && !p.hidden && !p.pc.meta.whole) && !knob('__diagonalOk')) {
     quality.problems.push({ check: 'diagonal', part: 'Skirt front', worst: 1 });
     quality.ok = false;
   }

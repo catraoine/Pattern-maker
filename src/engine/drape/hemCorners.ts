@@ -9,7 +9,9 @@ export function closeHemCorners(panels: Panel[], seams: { i: number; j: number; 
   // Each side seam's points within `reach` cm of its hem corner, and how near the corner each is.
   const near = new Map<number, number>();
   for (const p of panels) {
-    if (!/peplum/.test(p.role) || p.hidden) continue;
+    // (Not a skirt sewn whole, a diagonal's (wholeSkirt.ts): its side seams are each sewn to their own side, and drawn
+    // together here they pulled a trumpet's seams 3 cm open further up, Nov 10.)
+    if (!/peplum/.test(p.role) || p.hidden || p.pc.meta.sewWhole) continue;
     const hem = new Set((p.mesh.runs.hem ?? []).flat());
     const side = (p.mesh.runs.side ?? []).flat();
     for (const c of side.filter((i) => hem.has(i))) {

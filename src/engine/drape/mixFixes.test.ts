@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { sewDesign } from '../../drapeSweep';
+import { drapeDesign, sewDesign } from '../../drapeSweep';
 import { DEFAULT_BODICE } from '../../garments';
 import { INITIAL } from '../../savedWork';
 import { setKnob } from './knob';
@@ -10,7 +10,7 @@ const dress = (bodice: object, skirt: object, rest: object = {}) => ({ garment: 
 // Random mixes of options that All round showed as their flat drawing (sweep of Nov 7, 2026), now drawn clean.
 describe('All round: random mixes that fell back to the flat drawing', () => {
   afterEach(() => {
-    for (const k of ['__selfFlare', '__noSelfGather', '__silkR', '__selfWideAt', '__noSoftDrop']) setKnob(k, undefined);
+    for (const k of ['__selfFlare', '__noSelfGather', '__silkR', '__selfWideAt', '__noSoftDrop', '__halfDiagonal']) setKnob(k, undefined);
   });
 
   // A trumpet skirt's flare (its hem under half as long again as its waist) wasn't held apart, and folded through itself.
@@ -52,10 +52,22 @@ describe('All round: random mixes that fell back to the flat drawing', () => {
   }, 240_000);
 
   // A diagonal hem was drawn as a V point at the centre front (one half of the skirt sewn, and mirrored), passing every
-  // check: until the skirt is sewn whole the Front drawing stands in (Cat's call, Nov 8).
-  it('a diagonal hem skirt shows its Front drawing, not a V point', () => {
-    const d = { garment: 'skirt' as const, saved: { choices: { ...INITIAL.choices, silhouette: 'slip', length: 'above_knee', fit: 'fitted', asymHem: 'diagonal' } } as never, fibre: 'wool' as const };
-    expect(checks(d)).toEqual(['diagonal']);
+  // check. Sewn whole it hangs as cut, from short on one side to long on the other; sewn as a half it shows the Front
+  // drawing (Nov 8).
+  it.each([
+    ['a bias slip above the knee', { silhouette: 'slip', length: 'above_knee', fit: 'fitted' }, 'wool'],
+    ['an A-line maxi in silk', { silhouette: 'a_line', length: 'maxi', fit: 'fitted' }, 'silk'],
+    ['a relaxed trumpet to the knee', { silhouette: 'trumpet', length: 'knee', fit: 'relaxed' }, 'cotton'],
+  ] as const)('a diagonal hem on %s is sewn whole, its hem running from one side to the other', (_, c, fibre) => {
+    const d = { garment: 'skirt' as const, saved: { choices: { ...INITIAL.choices, ...c, asymHem: 'diagonal' } } as never, fibre };
+    const out = drapeDesign(d);
+    expect(out.quality?.problems ?? []).toEqual([]);
+    // (The hem's lowest point lies well off to one side, not at the centre front as a V's did.)
+    const hem = out.lines.filter((l) => l.kind === 'hem').flatMap((l) => l.ids);
+    const low = hem.reduce((a, i) => (out.pos[i * 3 + 1] > out.pos[a * 3 + 1] ? i : a), hem[0]);
+    expect(Math.abs(out.pos[low * 3])).toBeGreaterThan(10);
+    setKnob('__halfDiagonal', 1);
+    expect(checks(d)).toContain('diagonal');
   }, 240_000);
 
   // A silk sleeve drawn in to 0.72 of its round: an elbow cap sleeve went jagged and a three-quarter one folded into fins.
