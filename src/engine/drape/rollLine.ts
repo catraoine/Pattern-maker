@@ -96,7 +96,13 @@ export function tapeRollLines(panels: Panel[], res: Float64Array | number[], sp:
       const d = off(r);
       if (d >= W) return;
       const s = 1 - d / W;
-      const w = s * s * (3 - 2 * s) * free(q);
+      // (Fading out toward the break, where the front is buttoned: moved with the crease there, a double-breasted
+      // front's centre line was drawn 2 to 3 cm across at the top button, and its extension, laid over the other
+      // front, folded back on itself in a kink (Cat, Nov 10). From nothing at the break to full over 3 cm above it; on a
+      // double-breasted front only, its break well past the centre: a single-breasted lapel's tip flicked out without it.)
+      const bf = a.x < -4 ? (knob('__bridleBreak') ?? 3) : 0;
+      const u = bf > 0 ? Math.min(1, Math.max(0, (a.y - r.y) / bf)) : 1;
+      const w = s * s * (3 - 2 * s) * free(q) * u * u * (3 - 2 * u);
       const D = disp(r);
       moves.push([(p.base + i) * 3, [D[0] * w, 0, D[2] * w]]);
     });

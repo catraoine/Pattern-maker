@@ -4030,7 +4030,10 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
       // (A lapelled front only: on one buttoned to the neck, a stand or funnel collar's, laid so its front folded into
       // a fin at the centre and its collar was drawn long; checked over every jacket and coat option.)
       if (lapelY === -Infinity) continue;
-      const from = lapelY;
+      // (A double-breasted front's laid right up to the break, coming in over the 2 cm above it: eased in only below it,
+      // its front edge leaned out at the top button, Cat Nov 10. A single-breasted one's narrow extension is not.)
+      const wide = (p.folds?.[0]?.[0].x ?? 0) < -4;
+      const from = lapelY - (wide ? 2 : 0);
       const moves: [number, V3][] = [];
       pts.forEach((q, i) => {
         if (p.turned[i] || q.x >= 0) return;
