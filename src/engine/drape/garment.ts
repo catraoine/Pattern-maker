@@ -4388,8 +4388,9 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
         // folded over itself in creases where the neck curves round the side to the shoulder, and read as crumpled
         // there from behind the shoulder (Cat, Nov 8). Each turned point drawn toward its neighbours, its edge only
         // along itself, the roll line and the back of the neck held (smoothed there, its centre back edge lifted in a nick); kept out on whatever it lies over.
+        // (Not a crisp cloth's, pressed flat after: smoothed first, the pressing left a waistcoat's fall jagged.)
         const fsN = knob('__fallSmooth') ?? 12;
-        if (fsN > 0) {
+        if (fsN > 0 && !o.stiff) {
           const nbr = new Map<number, Set<number>>();
           const cnt = new Map<string, number>();
           for (const [a, b, c] of p.mesh.tris)
