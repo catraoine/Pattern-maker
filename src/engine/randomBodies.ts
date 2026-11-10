@@ -31,7 +31,7 @@ export function randomBody(r: () => number): Body {
   const ab = 30 + (h - 148) * 0.08 + (bust - cup - 76) * 0.18 + u(-1.2, 1.2);
   const sw = ab + u(2, 4.5);
   const nw = h * 0.25 + u(-2, 2);
-  const neck = 30 + (bust - 76) * 0.11 + u(-1.5, 1.5);
+  const neck = 34.5 + (bust - 86) * 0.25 + u(-1.5, 1.5); // base of the neck, as estimate.ts (Rodica, Nov 9 2026)
   return {
     full_bust: bust,
     high_bust: bust - cup,

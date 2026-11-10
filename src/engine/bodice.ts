@@ -342,6 +342,9 @@ export interface BodiceDraft {
   armholeDepth: number;
   armhole: number;
   armholeTarget?: number;
+  /** Cloth pinned out of the front armhole into a small cup's bust dart (cm, see MIN_BUST_DART): the armhole is that
+   *  much shorter than its target, on purpose. */
+  armholePin?: number;
   shoulder: { front: number; back: number };
   /** Shoulder angles in degrees below level, measured or standard. */
   shoulderSlope: { front: number; back: number };
@@ -476,6 +479,12 @@ const FLARE_MAX = 3;
 /** How much longer the back armhole is than the front's, in cm: room for the shoulder blade and the
  * arm reaching forward, as most blocks have it. The side seam is moved forward under the arm to give it. */
 const ARMHOLE_BALANCE = 0.7;
+/** The smallest side bust dart, in cm at the side seam (Rodica's paid pattern review, Nov 9 2026: a fitted bodice's
+ * bust dart is typically 1.5 to 2 inches; ours came out under 1 cm wherever the full and high bust were close, and the
+ * cloth the dart should have taken stood loose round the armhole, the gape a tester saw above the armpit). */
+export const MIN_BUST_DART = 3.8;
+/** At most this much (cm, at the armhole edge) is pinned out of the front armhole toward the smallest dart. */
+const ARMHOLE_PIN = 1;
 const SIDE_FORWARD_MAX = 3.5;
 
 const r = (v: number, dp = 2) => Math.round(v * 10 ** dp) / 10 ** dp;
@@ -668,6 +677,7 @@ function draftBlock(m: BodiceMeasurements, style: BodiceStyle): BodiceDraft {
   const lower = fit.armhole ?? 0;
   const withSides = (scye: number): BodiceDraft => {
     const { inner, ...result } = draft(m, s, scye + lower);
+    if (inner.pin) result.armholePin = r(inner.pin);
     const low = fit.lowShoulder;
     if (!low || !(low.cm > 0)) return result;
     // The lower shoulder: the same draft with both shoulder points dropped and the armhole lowered as
@@ -686,17 +696,21 @@ function draftBlock(m: BodiceMeasurements, style: BodiceStyle): BodiceDraft {
   const target = clean ? m.armscye + SLEEVELESS.ease + SLEEVELESS.easeShare * ease.bust : m.armscye + 4 + 0.5 * (s.fit === 'oversized' ? Math.min(ease.bust, OVERSIZED.armholeEase) : ease.bust);
   let lo = table - 5;
   let hi = table + 3;
+  // The armhole pin (a small cup's, see MIN_BUST_DART) is cloth the armhole is meant to lose, so the armhole is found
+  // that much shorter rather than lowered to win it back.
+  const pinned = (d: { armhole: number; inner: { pin: number } }) => d.armhole + d.inner.pin;
   for (let i = 0; i < 30; i++) {
     const mid = (lo + hi) / 2;
     // Found without any shoulder pad: a pad raises the shoulder, not the underarm.
-    if (draft(m, { ...s, shoulderPad: 0 }, mid).armhole < target) lo = mid;
+    if (pinned(draft(m, { ...s, shoulderPad: 0 }, mid)) < target) lo = mid;
     else hi = mid;
   }
   const result = withSides((lo + hi) / 2);
+  const pin = result.armholePin ?? 0;
   // A slightly roomy armhole is harmless (it happens on big frames with a lot of ease); a tight one is not.
   // A boxy shoulder squared and carried on past the body's grows the armhole above the underarm, by design.
   const grown = s.fit === 'boxy' ? 2 * (BOXY.square + BOXY.extend) : 0;
-  if (!lower && (result.armhole < target - 1 || result.armhole > target + 3 + grown)) {
+  if (!lower && (result.armhole + pin < target - 1 || result.armhole + pin > target + 3 + grown)) {
     result.warnings.push(`armhole ${result.armhole} cm could not reach ${target.toFixed(1)} cm within a sensible depth`);
   }
   result.armholeTarget = r(target, 1);
@@ -772,7 +786,7 @@ interface SideLine {
 }
 
 /** Draft at armhole depth `scye`. */
-function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLine = {}): BodiceDraft & { inner: { bustDart: number; lower: number; upper: number; forward: number } } {
+function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLine = {}): BodiceDraft & { inner: { bustDart: number; lower: number; upper: number; forward: number; pin: number } } {
   const dropShoulder = side.drop ?? 0;
   const fit = s.fitting ?? {};
   const { full_bust: B, waist: W, neck: N, shoulder_length: SL, shoulder_width: SW } = m;
@@ -929,6 +943,16 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
 
   const afPt = pivot(p(AF / 2, (hpsFit.y + (SL - widen) * Math.sin(frontSlope) + scye) / 2 + 1.5));
 
+  // A small cup's bust dart is made up to MIN_BUST_DART the way a pattern cutter takes in a gaping armhole: up to
+  // ARMHOLE_PIN is pinned out of the armhole at the across front and pivoted into the side dart, the lower armhole and
+  // the side seam above the bust turning up about the bust point (so the armhole is that much shorter and lies on the
+  // body). The rest of the shortfall comes as length at the side, as a fuller cup's does.
+  const shortfall = bustDarts && !side.keep ? Math.max(0, MIN_BUST_DART - (B - HB) / 2) : 0;
+  const pin = Math.min(ARMHOLE_PIN, (shortfall * len(sub(afPt, apex))) / Math.max(5, frontW - apex.x));
+  const turnA = pin ? -pin / len(sub(afPt, apex)) : 0;
+  const turnArm = (v: P) => p(v.x * Math.cos(turnA) - v.y * Math.sin(turnA), v.x * Math.sin(turnA) + v.y * Math.cos(turnA));
+  const pivotSide = (q: P) => add(apex, turnArm(sub(pivot(q), apex)));
+
   // ---- side seam under the arm -------------------------------------------
   // The armhole is sized from the high bust (the body's frame). Bust volume beyond that is added
   // below the armhole, with the side seam widening out to full width at bust level, the way a
@@ -942,21 +966,22 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   // The whole side seam then moves `fw` forward, the back wider by as much as the front is narrower
   // from the underarm to the waist (and hem), so the seam keeps its line and length and the bust and
   // waist their size. A dress skirt is drafted to the bodice's front and back waists, so it follows.
-  const sideAt = (fw: number) => {
+  const sideAt = (fw: number, pinned = true) => {
     const bustX = frontW - fw;
     const frameX = Math.max((HB + be) / 4 + 0.5, AF / 2 + 3) - fw;
-    return { bustX, underF: pivot(p(Math.min(bustX, Math.max(frameX, bustX - FLARE_MAX)), scye)), underB: p(backW + fw, underY), swB: p(swB0.x + fw, wb) };
+    return { bustX, underF: (pinned ? pivotSide : pivot)(p(Math.min(bustX, Math.max(frameX, bustX - FLARE_MAX)), scye)), underB: p(backW + fw, underY), swB: p(swB0.x + fw, wb) };
   };
-  const down = turnV(p(0, 1));
+  const down = turnArm(turnV(p(0, 1)));
   // The two armholes: across back (or front) and round the underarm, meeting the side seam square.
   const backArmhole = (path: Path, sideB: P, waistB: P) =>
     path.curve(add(spB, mul(perp(uB), 2.5)), sub(abPt, p(0, 3)), abPt, 'armhole').curve(add(abPt, p(0, (sideB.y - abPt.y) * 0.55)), sub(sideB, mul(squareTo(unit(sub(waistB, sideB))), (sideB.x - abPt.x) * 0.6)), sideB, 'armhole');
   const frontArmhole = (path: Path, sideF: P, sideDown: P) =>
     path.curve(add(spF, mul(perp(uF), 2.5)), sub(afPt, p(0, 3)), afPt, 'armhole').curve(add(afPt, p(0, (scye - afPt.y) * 0.5)), sub(sideF, mul(squareTo(sideDown), (sideF.x - afPt.x) * 0.75)), sideF, 'armhole');
-  // Moved forward until the back armhole is ARMHOLE_BALANCE longer than the front's (never backward).
+  // Moved forward until the back armhole is ARMHOLE_BALANCE longer than the front's (never backward), weighed before
+  // the armhole pin, so the pin shortens the front armhole rather than moving the seam back to let it out again.
   const balance = (fw: number) => {
-    const at = sideAt(fw);
-    return backArmhole(new Path(spB), at.underB, at.swB).length() - frontArmhole(new Path(spF), at.underF, down).length() - ARMHOLE_BALANCE;
+    const at = sideAt(fw, false);
+    return backArmhole(new Path(spB), at.underB, at.swB).length() - frontArmhole(new Path(spF), at.underF, turnV(p(0, 1))).length() - ARMHOLE_BALANCE;
   };
   let forward = side.keep?.forward ?? 0;
   if (!side.keep && balance(0) < 0) {
@@ -1086,7 +1111,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
 
   // ---- front, below the across front -----------------------------------------
   const sideBust0 = p(bustX, bustY);
-  const sideBust = pivot(sideBust0);
+  const sideBust = pivotSide(sideBust0);
   // Below the underarm the side seam starts straight down, square to the armhole like the back's,
   // then swings out to full bust width, so the underarm curve blends across the side seam.
   const chord = len(sub(sideBust, sideF));
@@ -1100,8 +1125,9 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   // centre front, which hangs as ease over the bust.
   const backSide = len(sub(swB, sideB));
   const straightDown = upper + len(sub(p(waistXF, wf), sideBust));
-  // A pivoted neck gape raises the side at bust level; all of that goes into the dart.
-  const bustDart = side.keep ? side.keep.bustDart : !bustDarts ? 0 : Math.max(straightDown - backSide, (B - HB) / 2 + Math.max(0, sideBust0.y - sideBust.y), 0);
+  // A pivoted neck gape raises the side at bust level; all of that goes into the dart. The armhole pin is part of
+  // making up MIN_BUST_DART, so it is not added again.
+  const bustDart = side.keep ? side.keep.bustDart : !bustDarts ? 0 : Math.max(straightDown - backSide, Math.max((B - HB) / 2, MIN_BUST_DART) + Math.max(0, sideBust0.y - pivot(sideBust0).y), 0);
   const lower = side.keep ? side.keep.lower : backSide + bustDart - upper; // side seam left below bust level, dart included
   if (bustDarts && lower < bustDart + 4) warnings.push('side seam too short below the bust for the bust dart');
   const across = waistXF - sideBust.x;
@@ -1312,6 +1338,6 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     closure: 'back_zip',
     collar: 'none',
     warnings,
-    inner: { bustDart, lower, upper, forward },
+    inner: { bustDart, lower, upper, forward, pin },
   };
 }

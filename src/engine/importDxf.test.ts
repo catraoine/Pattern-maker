@@ -5,7 +5,7 @@ import { draftBodice } from './bodice';
 import { draftTrousers } from './trousers';
 import { draftOuter } from './outerwear';
 import { withAllowances } from './allowances';
-import { quantity, toDxf } from './dxf';
+import { quantity, toDxf, cleanRing, dxfCut } from './dxf';
 import { importDxf, importedGuide } from './importDxf';
 import { Piece, cutLine } from './piece';
 import { P, len, sub } from './geometry';
@@ -64,8 +64,9 @@ function roundTrip(pieces: Piece[]) {
     const o = origin(want);
     expect(got.cut).toBe(want.cut);
     expect(quantity(got.cut)).toBe(quantity(want.cut));
-    same(open(cutLine(want)), cutLine(got), o);
-    same(open(want.outline.points()), open(got.outline.points()), o);
+    // The lines as the file writes them: cleaned, with a point at each notch (dxfCut; dxfRoundTrip holds them to the draft).
+    same(dxfCut(want).cut, cutLine(got), o);
+    same(cleanRing(want.outline.points()), open(got.outline.points()), o);
     expect(got.lines).toHaveLength(want.lines.length);
     got.lines.forEach((ln, k) => same(want.lines[k].points(), ln.points(), o));
     if (want.grain) same(want.grain, got.grain!, o);

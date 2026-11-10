@@ -21,7 +21,9 @@ export function withEstimates(v: MeasurementValues, form: FormKind = 'womenswear
   const nw = v.nape_to_waist ?? h * 0.25;
   const ab = v.across_back ?? 30 + (h - 148) * 0.08 + (high - 76) * 0.18;
   const sw = v.shoulder_width ?? ab + 3.25;
-  const neck = v.neck ?? 30 + (bust - 76) * 0.11;
+  // The base of the neck, after Aldrich's and ASTM's size tables (about 34.5 cm at an 86 cm bust). It was 3 to 4 cm
+  // smaller, and Rodica's pattern review (Nov 9 2026) found the neck opening a little small.
+  const neck = v.neck ?? 34.5 + (bust - 86) * 0.25;
   const guess: Partial<Record<MeasurementId, number>> = {
     neck,
     shoulder_length: (sw / 2 - neck / 5 + 0.2) / Math.cos((20 * Math.PI) / 180),

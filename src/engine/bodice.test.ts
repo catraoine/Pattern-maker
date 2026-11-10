@@ -23,10 +23,11 @@ describe('bodice block', () => {
     // Regular ease is 7 cm at the bust and 5 at the waist (was 9 and 6), so every finished size is
     // 1 cm less at the bust, the waist darts a touch smaller and the armhole a little shorter. The waist seam used to
     // step back up to the waist line beside each trued dart leg, and the steps counted in its length; blended in now,
-    // the finished waist is 2 to 4 mm less.
+    // the finished waist is 2 to 4 mm less. No side bust dart is under MIN_BUST_DART, 3.8 cm (Rodica's pattern review,
+    // Nov 9 2026): A's and B's grew to it, part pinned out of the front armhole, which is that much shorter.
     const expected = {
-      A: { bustDart: 3, front: 4.33, back: 2.33, armhole: 46, bust: 96, waist: 76.5 },
-      B: { bustDart: 1, front: 2.63, back: 2.63, armhole: 52.9, bust: 106, waist: 88.7 },
+      A: { bustDart: 3.8, front: 4.33, back: 2.33, armhole: 45.4, bust: 96, waist: 76.5 },
+      B: { bustDart: 3.8, front: 2.63, back: 2.63, armhole: 51.9, bust: 106, waist: 89 },
       C: { bustDart: 6, front: 8.61, back: 0.5, armhole: 58, bust: 136, waist: 120.5 },
     };
     for (const [name, body] of Object.entries({ A, B, C })) {
@@ -46,7 +47,8 @@ describe('bodice block', () => {
       const d = draftBodice(body, { fit });
       expect(Math.abs(d.sideSeam.frontLessDart - d.sideSeam.back)).toBeLessThan(0.05);
       expect(d.shoulder.back - d.shoulder.front).toBeCloseTo(1, 1);
-      expect(Math.abs(d.armhole - (d.armholeTarget ?? 0))).toBeLessThan(1);
+      // A small cup's armhole pin (MIN_BUST_DART) is taken off the armhole on purpose.
+      expect(Math.abs(d.armhole + (d.armholePin ?? 0) - (d.armholeTarget ?? 0))).toBeLessThan(1);
     }
   });
 
@@ -132,7 +134,8 @@ describe('bodice fit across sizes', () => {
       const [f, b] = blockOf(d);
       const diff = taggedLength(b.outline, 'armhole') - taggedLength(f.outline, 'armhole');
       expect(diff, name).toBeGreaterThanOrEqual(0.3);
-      expect(diff, name).toBeLessThanOrEqual(1.5);
+      // The front armhole is shorter again by a small cup's armhole pin (MIN_BUST_DART, Rodica's review, Nov 9 2026).
+      expect(diff, name).toBeLessThanOrEqual(1.5 + (d.armholePin ?? 0));
       expect(Math.abs(d.sideSeam.frontLessDart - d.sideSeam.back), name).toBeLessThan(0.05);
       const sl = draftSleeve(d, { arm_length: 58, upper_arm: m[0] / 3.4 }, { fit, shape: 'fitted', length: 'long', seamAllowance: 1.5, armholeAllowance: 1, hemAllowance: 2.5 });
       const ease = sl.crownEase.front + sl.crownEase.back;

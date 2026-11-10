@@ -116,11 +116,106 @@ function nearestOn(poly: P[], q: P): P {
   return best;
 }
 
+/** Points closer than this (cm) on a written line are one point: half a millimetre. A curve drafted on to a corner
+ *  left runs of points a few hundredths of a millimetre apart, and Gerber read each as its own corner, so the seam
+ *  allowance came in with extra points a pattern maker had to delete by hand (Rodica's review, Nov 9 2026). */
+const MIN_STEP = 0.05;
+/** How sharply the line turns at a point (radians, 0 = straight on). */
+function turnAt(prev: P, q: P, next: P): number {
+  const a = sub(q, prev);
+  const b = sub(next, q);
+  const la = len(a);
+  const lb = len(b);
+  if (la < 1e-9 || lb < 1e-9) return 0;
+  return Math.acos(Math.max(-1, Math.min(1, (a.x * b.x + a.y * b.y) / (la * lb))));
+}
+/** How far a written line may stray from the drafted one where points are merged (cm): a twentieth of a millimetre. */
+const DRIFT = 0.005;
+/** Distance from q to the segment a-b. */
+function offSegment(q: P, a: P, b: P): number {
+  const ab = sub(b, a);
+  const l2 = ab.x * ab.x + ab.y * ab.y;
+  const t = l2 ? Math.max(0, Math.min(1, ((q.x - a.x) * ab.x + (q.y - a.y) * ab.y) / l2)) : 0;
+  return len(sub(q, add(a, mul(ab, t))));
+}
+/** A closed line with points closer than MIN_STEP merged: of each close pair the gentler point goes, so long as the line
+ *  without it stays within DRIFT of where it was (corners stay exactly where they were drafted). */
+export function cleanRing(pts: P[]): P[] {
+  const ring = [...open(pts)];
+  let changed = true;
+  while (changed && ring.length > 3) {
+    changed = false;
+    for (let i = 0; i < ring.length && ring.length > 3; i++) {
+      const n = ring.length;
+      const j = (i + 1) % n;
+      if (len(sub(ring[j], ring[i])) >= MIN_STEP) continue;
+      const turn = (k: number) => turnAt(ring[(k + n - 1) % n], ring[k], ring[(k + 1) % n]);
+      const off = (k: number) => offSegment(ring[k], ring[(k + n - 1) % n], ring[(k + 1) % n]);
+      const order = turn(i) <= turn(j) ? [i, j] : [j, i];
+      const drop = order.find((k) => off(k) < DRIFT);
+      if (drop === undefined) continue;
+      ring.splice(drop, 1);
+      changed = true;
+    }
+  }
+  return ring;
+}
+
+/** The cutting line as the file writes it, cleaned, with a point of its own at every notch, and the notches. Gerber
+ *  (and most cutting-room software) keeps a notch only where it falls on a point of the cutting line; ours fell between
+ *  points, so Rodica's import showed one notch on the bodice and none on the skirt (Nov 9 2026). A notch within
+ *  0.4 mm of a point moves onto it; one beside a point that is no corner takes that point's place where the line moves
+ *  less than DRIFT; any other is added to the line where it falls. */
+export function dxfCut(pc: Piece): { cut: P[]; notches: P[] } {
+  const cut = cleanRing(cutLine(pc));
+  const notches: P[] = [];
+  for (const [q, d] of allNotches(pc)) {
+    const at = nearestOn(cut, notchSlit(pc, q, d)[0]);
+    const n = cut.length;
+    let near = -1;
+    let nearD = Infinity;
+    for (let i = 0; i < n; i++) {
+      const dd = len(sub(cut[i], at));
+      if (dd < nearD) [nearD, near] = [dd, i];
+    }
+    const corner = turnAt(cut[(near + n - 1) % n], cut[near], cut[(near + 1) % n]) > 0.35;
+    // Within 0.4 mm of a point the notch moves onto it (a cutter's notch is wider than that), so no sliver of a step is
+    // left beside it.
+    if (nearD < 0.04) {
+      notches.push(cut[near]);
+      continue;
+    }
+    const swapped = [...cut];
+    swapped[near] = at;
+    const moves = Math.max(offSegment(cut[near], swapped[(near + n - 1) % n], at), offSegment(cut[near], at, swapped[(near + 1) % n]));
+    if (!corner && nearD < 2 * MIN_STEP && moves < DRIFT && !notches.some((m) => len(sub(m, cut[near])) < 1e-9)) {
+      cut[near] = at;
+      notches.push(at);
+      continue;
+    }
+    // Added on the segment it falls on.
+    let seg = 0;
+    let segD = Infinity;
+    for (let i = 0; i < n; i++) {
+      const a = cut[i];
+      const ab = sub(cut[(i + 1) % n], a);
+      const l2 = ab.x * ab.x + ab.y * ab.y;
+      const t = l2 ? Math.max(0, Math.min(1, ((at.x - a.x) * ab.x + (at.y - a.y) * ab.y) / l2)) : 0;
+      const dd = len(sub(at, add(a, mul(ab, t))));
+      if (dd < segD) [segD, seg] = [dd, i];
+    }
+    cut.splice(seg + 1, 0, at);
+    notches.push(at);
+  }
+  return { cut, notches };
+}
+
 const blockName = (pc: Piece, i: number) => `P${i + 1}_${ascii(pc.name).toUpperCase().replace(/[^A-Z0-9]+/g, '_')}`;
 
 export function toDxf(pieces: Piece[], info: DxfInfo): string {
   const w = new Writer();
-  const cuts = pieces.map((pc) => open(cutLine(pc)));
+  const written = pieces.map(dxfCut);
+  const cuts = written.map((w) => w.cut);
   // Lay the pieces side by side, as the SVG and PDF do, so the file opens with everything in view.
   const extents = cuts.map((c) => {
     const xs = c.map((q) => q.x);
@@ -166,14 +261,14 @@ export function toDxf(pieces: Piece[], info: DxfInfo): string {
     w.g(3, blockName(pc, i));
 
     w.polyline(cuts[i], LAYER.boundary, true);
-    w.polyline(open(pc.outline.points()), LAYER.sew, true);
+    w.polyline(cleanRing(pc.outline.points()), LAYER.sew, true);
     pc.lines.forEach((ln) => w.polyline(ln.points(), LAYER.internal, false));
     if (pc.grain) w.line(pc.grain[0], pc.grain[1], LAYER.grain);
     if (pc.fold) w.line(pc.fold[0], pc.fold[1], LAYER.mirror);
     // AAMA notches are points on the cut line: the seam and dart notches the PDF cuts, each pushed out
     // by its own edge's allowance, then snapped onto the cut line where edges with different
-    // allowances meet.
-    allNotches(pc).forEach(([q, d]) => w.point(nearestOn(cuts[i], notchSlit(pc, q, d)[0]), LAYER.notch));
+    // allowances meet, each on a point of the cut line itself (dxfCut).
+    written[i].notches.forEach((q) => w.point(q, LAYER.notch));
     drillHoles(pc).forEach((q) => w.point(q, LAYER.drill));
 
     const [x0, y0, x1, y1] = extents[i];

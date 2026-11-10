@@ -4,7 +4,7 @@
 // drafted size: the same pieces, names and quantities, cutting and stitching lines to a tenth of a millimetre, the seam
 // allowances, grain and fold lines, internal lines, and every notch and drill hole within half a millimetre.
 // dxfRoundTrip.test.ts runs it on every pull request and nightly, held to src/dxfKnown.json.
-import { toDxf, quantity, ascii } from './engine/dxf';
+import { toDxf, quantity, ascii, cleanRing, dxfCut } from './engine/dxf';
 import { ImportedPattern, importDxf } from './engine/importDxf';
 import { allNotches, drillHoles, notchSlit } from './engine/marks';
 import { P, len, sub } from './engine/geometry';
@@ -41,6 +41,10 @@ function nearestOn(poly: P[], q: P): P {
     if (d < bestD) [bestD, best] = [d, c];
   }
   return best;
+}
+/** How far a closed line strays from another, either way: each point's distance to the other line, the worst. */
+function strays(a: P[], b: P[]): number {
+  return Math.max(0, ...a.map((q) => len(sub(q, nearestOn(b, q)))), ...b.map((q) => len(sub(q, nearestOn(a, q)))));
 }
 const perimeter = (pts: P[]) => pts.reduce((s, q, i) => s + len(sub(pts[(i + 1) % pts.length], q)), 0);
 
@@ -80,10 +84,18 @@ export function compareBack(pieces: Piece[], back: ImportedPattern): string[] {
     const shift = { x: b.x, y: b.y };
     const bg = box(cutG);
     if (Math.abs(bg.w - b.w) > LINE_TOL || Math.abs(bg.h - b.h) > LINE_TOL) say(`reads back ${r2(bg.w)} × ${r2(bg.h)} cm, drafted ${r2(b.w)} × ${r2(b.h)} cm`);
-    const cutOff = lineOff(cutW, cutG, shift);
+    // The file writes each line cleaned, with the notches as points of the cutting line (dxfCut): those are what must
+    // read back point for point, and they may not stray from the drafted lines.
+    const cutF = dxfCut(want).cut;
+    const sewF = cleanRing(want.outline.points());
+    const cutDrift = strays(cutF, cutW);
+    if (cutDrift > LINE_TOL) say(`cutting line written up to ${r2(cutDrift * 10)} mm from the drafted one`);
+    const sewDrift = strays(sewF, open(want.outline.points()));
+    if (sewDrift > LINE_TOL) say(`stitching line written up to ${r2(sewDrift * 10)} mm from the drafted one`);
+    const cutOff = lineOff(cutF, cutG, shift);
     if (typeof cutOff === 'string') say(`cutting line: ${cutOff} (${r1(perimeter(cutG))} cm round, drafted ${r1(perimeter(cutW))} cm)`);
     else if (cutOff > LINE_TOL) say(`cutting line moves up to ${r2(cutOff * 10)} mm`);
-    const sewOff = lineOff(open(want.outline.points()), open(got.outline.points()), shift);
+    const sewOff = lineOff(sewF, open(got.outline.points()), shift);
     if (typeof sewOff === 'string') say(`stitching line: ${sewOff}`);
     else if (sewOff > LINE_TOL) say(`stitching line moves up to ${r2(sewOff * 10)} mm`);
 
