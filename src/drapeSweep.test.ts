@@ -7,6 +7,7 @@ import type { Draped } from './engine/drape/garment';
 import type { Saved } from './savedWork';
 import { EXAMPLE_BODY, type MeasurementValues } from './measurements';
 import { UNUSUAL_BODIES } from './engine/unusualBodies';
+import { DEFAULT_COAT_CHOICES } from './garments';
 
 // Designs whose All round drawing passed its quality check, and passed by eye (Cat's SS27 looks and the first sweep,
 // 2026-11-02). They stay passing: an engine change that breaks one of them fails here, before it ships. Add each
@@ -29,6 +30,9 @@ const LOCKED: [string, SweepDesign][] = [
   ['oversized Big Shirt, dropped shoulder, oversized cuffs (SS27 look 01 top)', { garment: 'bodice', saved: { bodice: { garment: 'bodice', fit: 'oversized', neckline: 'crew', length: 'long', darts: 'none', sleeve: 'long', sleeveShape: 'straight', collar: 'shirt', closure: 'front_buttons', sleeveCut: 'drop', sleeveCuff: 'oversized' } as Saved['bodice'] }, fibre: 'cotton' }],
   ['boxy crop, short sleeves, waist length, crisp (SS27 07 top)', { garment: 'bodice', saved: { bodice: { garment: 'bodice', fit: 'boxy', neckline: 'crew', collar: 'none', sleeve: 'short', length: 'waist' } as Saved['bodice'] }, fibre: 'cotton', crisp: true }],
   ['shirt, collar and long sleeves (SS27 9C top)', { garment: 'bodice', saved: { bodice: { garment: 'bodice', fit: 'regular', neckline: 'crew', collar: 'shirt', closure: 'front_buttons', sleeve: 'long', sleeveShape: 'straight', sleeveCuff: 'shirt', length: 'hip', darts: 'bust_waist' } as Saved['bodice'] }, fibre: 'cotton' }],
+  // (Its hem drew stretched, 3 cm inside the rows above it, once the deeper bust dart dropped the side front's hem:
+  // hemWidth.ts, Nov 10.)
+  ['double-breasted coat, knee length', { garment: 'coat', saved: { coat: { ...DEFAULT_COAT_CHOICES, front: 'double' } }, fibre: 'wool' }],
 ];
 
 describe('All round drawings that passed stay passing', () => {

@@ -28,6 +28,7 @@ import { closeBalloonHem } from './balloonHem';
 import { capeForDrape } from './cape';
 import { heavyChainK } from './heavyHold';
 import { wholeSkirt } from './wholeSkirt';
+import { fullHemLevel } from './hemWidth';
 import { droppedFlareCut, selfGap } from './skirtApart';
 import { madeUpSkirt } from '../skirtPockets';
 
@@ -742,7 +743,8 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
     };
     // (Below a piece's own hem, as settled cloth can fall a few cm past where it is cut, the piece keeps its hem's width:
     // a long flared coat's last rows were given no width there, so its hem was left 4 cm inside the rows above it.)
-    const hemOf = outlines.map((o) => Math.max(...o.pts.map((q) => q.y)) - 0.5);
+    // (Read where the piece is still as wide as its hem, not at its lowest corner: hemWidth.ts.)
+    const hemOf = outlines.map((o) => fullHemLevel(o.pts, (y) => spanAt(o.pts, y)));
     widthAt = (c: number) => 2 * outlines.reduce((t, o, i) => t + spanAt(o.pts, Math.min(c + o.waistY, hemOf[i])), 0);
     const cache = new Map<number, number>();
     return (c: number) => {
