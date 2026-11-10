@@ -5,6 +5,8 @@ import { rng } from './engine/randomBodies';
 import { drapeQuality } from './engine/drape/quality';
 import type { Draped } from './engine/drape/garment';
 import type { Saved } from './savedWork';
+import { EXAMPLE_BODY, type MeasurementValues } from './measurements';
+import { UNUSUAL_BODIES } from './engine/unusualBodies';
 
 // Designs whose All round drawing passed its quality check, and passed by eye (Cat's SS27 looks and the first sweep,
 // 2026-11-02). They stay passing: an engine change that breaks one of them fails here, before it ships. Add each
@@ -73,6 +75,33 @@ describe('the quality check', () => {
   });
 });
 
+// Bodies the drawings are sewn on beyond the example: the far small and large ends of what the measuring pages take.
+const SWEEP_BODIES: [string, MeasurementValues][] = [
+  ['very small body (76 cm bust)', UNUSUAL_BODIES['very small']],
+  ['example body', EXAMPLE_BODY],
+  ['very large body (145 cm bust)', UNUSUAL_BODIES['very large']],
+];
+
+// Plain garments on small and large bodies, as well as the example: these passed by score and by eye (Nov 10), and stay
+// passing. (The default dress on a large body rode up over the bust until Nov 10: the bodice was held hard to its cut
+// length under the skirt's weight, garment.ts `chain`.)
+const LOCKED_BODIES: [string, SweepDesign, MeasurementValues][] = [
+  ['default dress, very small body', { garment: 'dress', saved: {}, fibre: 'cotton' }, UNUSUAL_BODIES['very small']],
+  ['default dress, very large body', { garment: 'dress', saved: {}, fibre: 'cotton' }, UNUSUAL_BODIES['very large']],
+  ['default dress, petite and full body', { garment: 'dress', saved: {}, fibre: 'cotton' }, UNUSUAL_BODIES['petite and full']],
+  ['default bodice, very small body', { garment: 'bodice', saved: {}, fibre: 'cotton' }, UNUSUAL_BODIES['very small']],
+  ['default skirt, very large body', { garment: 'skirt', saved: {}, fibre: 'cotton' }, UNUSUAL_BODIES['very large']],
+  ['default trousers, very large body', { garment: 'trousers', saved: {}, fibre: 'cotton' }, UNUSUAL_BODIES['very large']],
+];
+
+describe('All round drawings on small and large bodies stay passing', () => {
+  it.each(LOCKED_BODIES)('%s', (_, design, body) => {
+    const x = sewDesign(design, body);
+    expect(x.error).toBeUndefined();
+    expect(x.quality?.problems ?? []).toEqual([]);
+  }, 120_000);
+});
+
 // The nightly sweep: DRAPE_SWEEP=<how many> sews that many random designs (seeded by DRAPE_SEED, by default the
 // date) and writes the report to DRAPE_REPORT. It doesn't fail on what it finds: the report is the result.
 const N = Number(process.env.DRAPE_SWEEP ?? 0);
@@ -80,8 +109,15 @@ describe.skipIf(!N)('All round sweep of random designs', () => {
   it(`sews ${N} random designs and reports the failures`, () => {
     const seed = Number(process.env.DRAPE_SEED ?? new Date().toISOString().slice(0, 10).replace(/-/g, ''));
     const r = rng(seed);
-    const results = Array.from({ length: N }, () => sewDesign(randomDesign(r)));
-    const report = `Seed ${seed}\n\n${sweepReport(results, Number(process.env.DRAPE_LIST ?? 8))}`;
+    // (Each design on one of three bodies in turn: a very small one, the example, a very large one. Sewn only on the
+    // example, the default dress failed on every body from about a 102 cm bust and nothing showed it, Nov 10.)
+    const bodies = SWEEP_BODIES;
+    const results = Array.from({ length: N }, (_, i) => sewDesign(randomDesign(r), bodies[i % bodies.length][1]));
+    const byBody = bodies.map(([name], b) => {
+      const mine = results.filter((_, i) => i % bodies.length === b);
+      return `- ${name}: ${mine.filter((x) => x.quality?.ok).length} of ${mine.length} pass`;
+    });
+    const report = `Seed ${seed}\n\nBy body:\n${byBody.join('\n')}\n\n${sweepReport(results, Number(process.env.DRAPE_LIST ?? 8))}`;
     writeFileSync(process.env.DRAPE_REPORT ?? 'drape-sweep.md', report);
     expect(results.length).toBe(N);
   }, 6 * 60 * 60_000);
