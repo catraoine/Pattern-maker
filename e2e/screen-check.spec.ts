@@ -136,7 +136,8 @@ test('screens: a full dress in every view', async ({ page }, info) => {
   await page.reload();
   await page.keyboard.press('Escape').catch(() => {});
   const carry = main(page).getByRole('button', { name: /^Carry on with your dress/i });
-  if (await carry.isVisible().catch(() => false)) await carry.click();
+  // A reload now keeps your place (journey fixes, Nov 10), so Style may already be open and the welcome only flashes.
+  if (await carry.isVisible().catch(() => false)) await carry.click({ timeout: 5_000 }).catch(() => {});
   await expectStyle(page, 'Dress');
   const box = () => page.locator('.style-pin .preview').first().evaluate((el) => Math.round(el.getBoundingClientRect().height));
   const heights: number[] = [];
