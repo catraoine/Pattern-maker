@@ -182,7 +182,8 @@ export interface OuterDraft {
   /** The front and back as sewn, closed at the centre front and down to the hem: for the flat and the ease map. */
   block: [Piece, Piece];
   ext: number;
-  buttons: { at: number[]; sizeCm: number; columns: number[]; holes?: 'horizontal' | 'vertical' };
+  /** A classic double-breasted front's pair of show buttons above the ones that fasten, set wider apart. */
+  buttons: { at: number[]; sizeCm: number; columns: number[]; holes?: 'horizontal' | 'vertical'; show?: { y: number; columns: number[] } };
   /** Buttoned left over right, as menswear is; right over left when missing. */
   lapsLeft?: boolean;
   lapel?: Lapel;
@@ -681,6 +682,12 @@ function openFront(pc: Piece, s: OuterStyle, ext: number, buttons: OuterDraft['b
       const bx = buttons.columns[1];
       lines.push(new Path(p(bx - 0.5, y)).line(p(bx + 0.5, y)), new Path(p(bx, y - 0.5)).line(p(bx, y + 0.5)));
     }
+  // (The pair for show, marked for the button on each front's own side: no buttonhole.)
+  if (buttons.show) {
+    const bx = buttons.show.columns[1];
+    const y = buttons.show.y;
+    lines.push(new Path(p(bx - 0.5, y)).line(p(bx + 0.5, y)), new Path(p(bx, y - 0.5)).line(p(bx, y + 0.5)));
+  }
   if (buttons.at.length) labels.push({ at: p(hx + buttons.sizeCm / 2, buttons.at[0] - 0.6), text: 'BUTTONHOLE', size: 0.5 });
   if (s.front === 'zip') labels.push({ at: p(1.6, neckCF.y + 6), text: 'ZIP', size: 0.6, rotate: 90 });
   const facingX = s.front === 'double' ? (buttons.columns[1] ?? 0) + 4.5 : s.front === 'zip' ? 6.5 : 7.5;
@@ -1030,11 +1037,15 @@ function buttonsFor(s: OuterStyle, ext: number, first: number, last: number): Ou
   const given = nButtons !== undefined && Number.isFinite(nButtons) ? Math.round(Math.min(8, Math.max(minCount, nButtons))) : undefined;
   const givenGap = nGap !== undefined && Number.isFinite(nGap) ? Math.min(20, Math.max(5, nGap)) : undefined;
   const gap = givenGap ?? (s.kind === 'coat' ? 11 : 10);
+  const inset = size / 2 + 1.5;
+  // A classic double-breasted lapel (6x2): two rows that fasten, from the break down, and above them a pair for show,
+  // 2 cm further out each side, as on a classic double-breasted jacket (Cat Nov 10).
+  if (s.front === 'double' && lapelled(s.collar) && given === undefined && givenGap === undefined && !high && !plunges(s))
+    return { at: [r1(first), r1(Math.min(last, first + gap))], sizeCm: size, columns: [-(ext - inset), ext - inset], show: { y: r1(first - gap), columns: [-(ext - inset + 2), ext - inset + 2] }, ...(s.buttonholes === 'vertical' ? { holes: 'vertical' as const } : {}) };
   const count = given ?? (plunges(s) ? 1 : Math.max(minCount, Math.round((last - first) / gap)) + 1);
   // A measured gap spaces the buttons from the top one down, stopping short of the hem; otherwise they fill the front.
   const span = givenGap !== undefined && count > 1 ? Math.min(last - first, gap * (count - 1)) : last - first;
   const at = Array.from({ length: count }, (_, i) => r1(first + (count > 1 ? (span * i) / (count - 1) : 0)));
-  const inset = size / 2 + 1.5;
   const columns = s.front === 'double' ? [-(ext - inset), ext - inset] : [0];
   return { at, sizeCm: size, columns, ...(s.buttonholes === 'vertical' ? { holes: 'vertical' as const } : {}) };
 }
@@ -1217,10 +1228,10 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
       ? neckY + HIGH_LAPEL.breakBelowNeck
     : lapelled(s.collar)
       ? s.front === 'double'
-        ? // (A double-breasted lapel breaks 5 cm below the bust point, rising from the top button to its peak at the
-          // shoulder: breaking above the bust, it was short and lay almost flat across the chest, Cat Nov 10. Kept 11 cm
-          // above the waist on a short body, where the drape still presses it onto the front.)
-          Math.min(apexY + 5, waistY - 11)
+        ? // (A double-breasted lapel breaks at the upper button that fastens, 4 cm above the waist, as a classic 6x2
+          // does, rising from there to its peak at the shoulder: breaking above the bust, it was short and lay almost flat
+          // across the chest, Cat Nov 10.)
+          waistY - 4
         : apexY + (big ? OVERSIZED_LAPEL.lower : 2)
       : neckY + (s.collar === 'stand' || s.collar === 'funnel' ? 2 : 1.8);
   const lastY = s.kind === 'coat' ? Math.min(foot - 15, waistY + (m.waist_to_hip ?? 20) + 12) : foot - (length === 'cropped' ? 3.5 : 9);

@@ -253,7 +253,7 @@ export interface DrapeOptions {
   thick?: number;
   bendK?: number;
   /** Buttons at these levels (cm in the front's own frame), at the centre front. */
-  buttons?: { y: number[]; r: number; waistY: number; /** A double-breasted front's two columns, across from the centre. */ x?: number[] };
+  buttons?: { y: number[]; r: number; waistY: number; /** A double-breasted front's two columns, across from the centre. */ x?: number[]; /** Its pair for show, above. */ show?: { y: number; x: number[] } };
   pad?: number;
   /** A front closed all the way down (buttons, a shirt): its centre front held on the centre plane. */
   closedFront?: boolean;
@@ -5959,6 +5959,15 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
       const sideOk = cx > 0 || m < 0 || Math.abs(Math.abs(res[I]) - Math.abs(res[J])) < 1.5;
       buttons.push({ at: sideOk ? [res[I], res[I + 1], res[I + 2] + 0.4] : [-Math.abs(res[J]), res[J + 1], res[J + 2] + f0.thick[m] + 0.5], r: o.buttons.r });
     }
+    // (The pair for show above them: each on its own front's side, the one across the centre on the under front where
+    // the top front's lapel has turned back off it, so placed as the other side of the centre lies.)
+    if (o.buttons.show)
+      for (const cx of o.buttons.show.x) {
+        const m = nearest(Math.abs(cx), o.buttons.show.y);
+        if (m < 0) continue;
+        const J = (f0.base + m) * 3;
+        buttons.push({ at: [Math.sign(cx) * Math.abs(res[J]), res[J + 1], res[J + 2] + 0.4], r: o.buttons.r });
+      }
   }
   setKnob("__seams", seams);
   // (A gathered skirt's centre front and back, cut on the fold: the fullness either side crowded the centre line and
@@ -6666,7 +6675,7 @@ export function drapeOuter(sp: Space, d: OuterDraft, o: DrapeOptions = {}): Drap
     { sleeve: shell.filter((pc) => /sleeve/i.test(pc.name)), collars: collarsOf(d.pieces).map((c) => ((d as { popped?: boolean }).popped ? { ...c, roll: undefined } : c)) },
     // A lapel that breaks high (a coat or jacket buttoned over the chest) is pressed onto the front; a plunging one,
     // breaking near the waist, is left to hang (pressing drags its long front down).
-    { pad: d.pads, stiff: !!o.crisp || !!o.stiffBend, boxCut: d.base.waistDarts.front + d.base.waistDarts.back < 0.5, stiffMax: d.hood ? HOOD_BEND : stiffBendNow(), lieLapel: !!d.lapel && base.front.waistCentre.y - d.lapel.breakPt.y > 10, layExtension: true, ...o, buttons: { y: d.buttons.at, r: d.buttons.sizeCm / 2, waistY: base.front.waistCentre.y, ...(d.buttons.columns.length > 1 ? { x: d.buttons.columns } : {}) }, ...(o.crisp ? { boxy: false, bendK: d.hood ? HOOD_BEND : stiffBendNow(), thick: Math.min(o.thick ?? STIFF_THICK, STIFF_THICK) } : o.stiffBend ? { bendK: Math.min(d.hood ? HOOD_BEND : stiffBendNow(), o.stiffBend), thick: Math.min(o.thick ?? STIFF_THICK, STIFF_THICK) } : {}), pinFront: knob("__pinAll") ? [{ y: 52, span: 12 }] : knob('__oldPins') || d.hood ? d.buttons.at.map((y) => ({ y, span: 2 })) : frontPins(d.buttons.at, shell) },
+    { pad: d.pads, stiff: !!o.crisp || !!o.stiffBend, boxCut: d.base.waistDarts.front + d.base.waistDarts.back < 0.5, stiffMax: d.hood ? HOOD_BEND : stiffBendNow(), lieLapel: !!d.lapel && base.front.waistCentre.y - d.lapel.breakPt.y > 10, layExtension: true, ...o, buttons: { y: d.buttons.at, r: d.buttons.sizeCm / 2, waistY: base.front.waistCentre.y, ...(d.buttons.columns.length > 1 ? { x: d.buttons.columns } : {}), ...(d.buttons.show ? { show: { y: d.buttons.show.y, x: d.buttons.show.columns } } : {}) }, ...(o.crisp ? { boxy: false, bendK: d.hood ? HOOD_BEND : stiffBendNow(), thick: Math.min(o.thick ?? STIFF_THICK, STIFF_THICK) } : o.stiffBend ? { bendK: Math.min(d.hood ? HOOD_BEND : stiffBendNow(), o.stiffBend), thick: Math.min(o.thick ?? STIFF_THICK, STIFF_THICK) } : {}), pinFront: knob("__pinAll") ? [{ y: 52, span: 12 }] : knob('__oldPins') || d.hood ? d.buttons.at.map((y) => ({ y, span: 2 })) : frontPins(d.buttons.at, shell) },
   );
   if (cs)
     for (const pnl of out.panels) {

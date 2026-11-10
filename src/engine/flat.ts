@@ -1639,6 +1639,7 @@ export function outerFlat(d: OuterDraft): Flat {
         over.push([...neckRun, p(nx * 1.08, sy - rise * 0.45), p(nx * 0.7, sy - rise * 0.85), p(0, top)]);
       }
       for (const y of d.buttons.at) for (const x of d.buttons.columns) lines.push({ pts: circle(h.move(p(x, y)), d.buttons.sizeCm / 2), kind: 'seam' });
+      if (d.buttons.show) for (const x of d.buttons.show.columns) lines.push({ pts: circle(h.move(p(x, d.buttons.show.y)), d.buttons.sizeCm / 2), kind: 'seam' });
       if (d.pocket) {
         const { x, y, w, h: ph } = d.pocket;
         const box = [p(x, y), p(x, y + ph), p(x + w, y + ph), p(x + w, y), p(x, y)].map(h.move);

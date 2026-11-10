@@ -717,6 +717,13 @@ function buildDraped(
         const r = underBody(-top[g * 3], top[g * 3 + 1]);
         if (r !== undefined) overUnder[g] = Math.max(0, r + GAP - Math.hypot(top[g * 3], top[g * 3 + 2])) * easeOf(-u);
       }
+      // (And the top front's lapel, turned back over its extension where that crosses the centre: two layers out from
+      // the under front. Breaking low at the waist, a classic double-breasted lapel's lower end crosses well past the
+      // centre, and the under front drawn over it hid its edge from the break up to mid-chest, Nov 10.)
+      if (turned && -top[g * 3] > 0 && !knobs().__noLapOver) {
+        const r = underBody(-top[g * 3], top[g * 3 + 1]);
+        if (r !== undefined) overUnder[g] = Math.max(0, r + 2 * GAP - Math.hypot(top[g * 3], top[g * 3 + 2])) * easeOf(-top[g * 3]);
+      }
       if (-bottom[g * 3] > 0) {
         const r = topBody(-bottom[g * 3], bottom[g * 3 + 1]);
         if (r !== undefined) underIn[g] = Math.min(0, r - GAP - Math.hypot(bottom[g * 3], bottom[g * 3 + 2])) * (turned ? easeOf(-bottom[g * 3]) : easeOf(-u));

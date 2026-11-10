@@ -46,7 +46,7 @@ export function outerGuide(
   const vent = d.vent;
   const darts = !princess && d.base.bustDart > 0.3;
   const waistDarts = !princess && (d.base.waistDarts.front > 0.3 || d.base.waistDarts.back > 0.3);
-  const count = d.buttons.at.length * d.buttons.columns.length;
+  const count = d.buttons.at.length * d.buttons.columns.length + (d.buttons.show?.columns.length ?? 0);
   const holes = d.buttons.at.length;
   const hem = d.pieces[0].allowances['opening-hem'] ?? 4;
   const sleeveHem = d.sleeve.pieces[0].allowances.hem ?? 4;
@@ -232,7 +232,7 @@ export function outerGuide(
       : [
           {
             title: 'Buttonholes and buttons',
-            text: `Mark ${holes} buttonholes on the ${over} front (as you wear it) where the pattern shows them, ${n1(d.buttons.sizeCm + 0.3)} long. Sew them by machine or by hand with buttonhole twist, and cut them open. Sew the buttons to the ${under} front to match${d.buttons.columns.length > 1 ? `, and the second column on the ${over} front as the pattern shows; sew the small button inside the ${under} front to hold the underlap` : ''}, on a thread shank as long as the cloth is thick.`,
+            text: `Mark ${holes} buttonholes on the ${over} front (as you wear it) where the pattern shows them, ${n1(d.buttons.sizeCm + 0.3)} long. Sew them by machine or by hand with buttonhole twist, and cut them open. Sew the buttons to the ${under} front to match${d.buttons.columns.length > 1 ? `, and the second column on the ${over} front as the pattern shows${d.buttons.show ? `, and the pair for show above them, one on each front where the pattern marks it` : ''}; sew the small button inside the ${under} front to hold the underlap` : ''}, on a thread shank as long as the cloth is thick.`,
           },
         ]),
     {
