@@ -24,7 +24,9 @@ Rules:
 - Whole catalogues (Nov 7): `scripts/shop-catalogue.py` reads each partner shop's public product list (all three run on Shopify), keeps the
   dressmaking fabrics in stock and writes `public/shops/<type>.json`; the app loads a type only when it is tapped
   (`src/engine/shopCatalogue.ts`). Re-run it to refresh prices and stock. When a shop approves us, add its line to
-  `AFFILIATE` in `src/engine/shopFabrics.ts` so its Buy links earn.
+  `AFFILIATE` in `src/engine/shopFabrics.ts` so its Buy links earn. Buy puts the exact yards in the shop's cart for Mood and
+  NY Designer Fabrics (Shopify add-to-cart links, Nov 10); Fashion Fabrics Club sells by the quarter yard, so its Buy
+  opens the fabric's page. The Affiliates thread refreshes the catalogue every Monday and hands the files to Releases.
 - Check any outward email address in a real source before sending (a guessed Mood address bounced, Nov 7).
 - Mood bans coupon and cashback sites. Skip sewing-class sites and coupon sites generally.
 - Cart Ready (shop fabric in the app) uses each shop's own checkout; no money, tax or refunds pass

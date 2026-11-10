@@ -18,6 +18,7 @@ const row = (id: string, shop: string, colour: string, hex: string, price = 20, 
   `https://shop.example/${id}.jpg`,
   'bodice,dress,skirt',
   print,
+  shop === 'Fashion Fabrics Club' ? '' : `https://shop.example/cart/add?id=${id}&quantity={qty}`,
 ];
 
 const SILK: Row[] = [
@@ -66,9 +67,14 @@ describe('shop catalogues', () => {
     expect(best.fabric.id).toBe('nydf-1');
   });
 
-  it("opens a shop's own page until its affiliate programme approves us", async () => {
+  it("puts the yards straight in the shop's cart, plainly until its affiliate programme approves us", async () => {
     await loadCatalogue('silk');
-    expect(buyLink(shopFabric('nydf-1')!, 'Ruby', 2)?.href).toBe('https://shop.example/products/nydf-1');
+    expect(buyLink(shopFabric('nydf-1')!, 'Ruby', 2)).toEqual({ href: 'https://shop.example/cart/add?id=nydf-1&quantity=3', inCart: true });
+  });
+
+  it("opens the fabric's page for a shop whose cart doesn't count in yards", async () => {
+    await loadCatalogue('silk');
+    expect(buyLink(shopFabric('ffc-2')!, undefined, 2)).toEqual({ href: 'https://shop.example/products/ffc-2', inCart: false });
   });
 
   it('keeps a picked fabric on the device, so saved work finds it before the file loads', async () => {

@@ -24,6 +24,8 @@ export type Row = [
   img: string,
   suits: string,
   print: 0 | 1,
+  /** The shop's add-to-cart link with {qty} for the yards, or '' for a shop whose cart doesn't count in yards. */
+  cart: string,
 ];
 
 /** Shops whose listed price isn't a yard's price: Fashion Fabrics Club lists a quarter yard. Their cards say to see
@@ -31,7 +33,7 @@ export type Row = [
 const PRICE_AT_SHOP = new Set(['Fashion Fabrics Club']);
 
 export function fromRow(r: Row): ShopFabric {
-  const [id, name, shop, price, fibre, special, weight, drape, widthCm, colour, hex, url, img, suits, print] = r;
+  const [id, name, shop, price, fibre, special, weight, drape, widthCm, colour, hex, url, img, suits, print, cart] = r;
   return {
     id,
     name,
@@ -49,6 +51,7 @@ export function fromRow(r: Row): ShopFabric {
     suits: suits.split(','),
     img,
     print: !!print,
+    ...(cart ? { cart } : {}),
   };
 }
 

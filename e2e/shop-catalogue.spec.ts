@@ -18,6 +18,7 @@ const row = (i: number, shop: string, colour: string, hex: string, price = 12.99
   `https://shop.example/swatch-${i}.jpg`,
   'skirt,dress,bodice,trousers',
   0,
+  shop === 'Fashion Fabrics Club' ? '' : `https://shop.example/cart/add?id=${i}&quantity={qty}`,
 ];
 const COTTON = [
   row(0, 'NY Designer Fabrics', 'Saffron', '#D9A030', 18.5),
@@ -47,8 +48,8 @@ test('a shop catalogue lists its fabrics, searchable, and a pick goes to the sho
   const strip = main.locator('.buystrip');
   await expect(strip).toContainText('NY Designer Fabrics · Saffron');
   await expect(strip).toContainText(/\d+ yd for your skirt · about \$\d+/);
-  // Not yet approved by the shop's affiliate programme: Buy opens the shop's own page plainly.
-  await expect(strip.getByRole('link', { name: /Buy at NY Designer/ })).toHaveAttribute('href', 'https://shop.example/products/cotton-0');
+  // Buy puts the yards in the shop's cart; not yet approved by its affiliate programme, so the link is plain.
+  await expect(strip.getByRole('link', { name: /Buy \d+ yd at NY Designer/ })).toHaveAttribute('href', /^https:\/\/shop\.example\/cart\/add\?id=0&quantity=\d+$/);
   // Saved work keeps the pick after a reload, before the catalogue loads again.
   await page.route('**/shops/cotton.json', (r) => r.fulfill({ json: [] }));
   await page.reload();

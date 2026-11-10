@@ -591,7 +591,8 @@ function BuyStrip({ shop, colour, metres, garment }: { shop: ShopFabric; colour?
       )}
       {link && (
         <a className="buylink" href={link.href} target="_blank" rel="noopener noreferrer">
-          Buy at {shop.shop.replace(/ Fabrics$/, '')} <span aria-hidden="true">›</span>
+          {/* A cart link puts the yards straight in the shop's cart, so the button says how many. */}
+          {link.inCart && amount ? `Buy ${amount.qty} ${amount.unit}` : 'Buy'} at {shop.shop.replace(/ Fabrics$/, '')} <span aria-hidden="true">›</span>
         </a>
       )}
       <p className="muted small">Prices are the shop's when we added it. We may earn a commission when you buy.</p>
