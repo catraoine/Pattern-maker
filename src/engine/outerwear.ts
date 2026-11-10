@@ -723,9 +723,18 @@ function openFront(pc: Piece, s: OuterStyle, ext: number, buttons: OuterDraft['b
     const Lp = peak ? at(Lr - (s.front === 'double' ? 5 : 6.2), -W - 1.2) : shawl ? at(Lr - G - 0.2, -W) : at(Lr - (s.front === 'double' ? 6.5 : G + 0.4 + (lowLapel ? HIGH_LAPEL.pointDrop : 0)), -W);
     // (A high lapel's edge runs dead straight from its point to the break, as a crisp waistcoat's does in Cat's picture,
     // rather than bellying out.)
+    // (A double-breasted lapel runs near straight from its point down to the break, bellying out only a little: cut with
+    // a single lapel's full belly, it reached its width a few cm above the break and, turned back, its edge lay almost
+    // flat across the chest rather than rising from the top button to the shoulder, Cat Nov 9.)
     const lapelEdge = high && s.front === 'single' && s.collar === 'notched'
       ? Array.from({ length: 21 }, (_, i) => lerp(Lp, B, i / 20)).reverse()
-      : Array.from({ length: 21 }, (_, i) => cubic(Lp, at(Lr * 0.5, -W - 0.7), at(Lr * 0.18, -W * 0.7), B, i / 20)).reverse();
+      : s.front === 'double' && !shawl
+        ? Array.from({ length: 21 }, (_, i) => {
+            const t = i / 20;
+            const q = lerp(Lp, B, t);
+            return add(q, mul(nrm, -4 * t * (1 - t)));
+          }).reverse()
+        : Array.from({ length: 21 }, (_, i) => cubic(Lp, at(Lr * 0.5, -W - 0.7), at(Lr * 0.18, -W * 0.7), B, i / 20)).reverse();
     // The neck seam curves up from the gorge to arrive square to the shoulder, so it runs on smoothly
     // into the back neck once the shoulders are sewn.
     let up = p(uSh.y, -uSh.x);
@@ -1208,7 +1217,10 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
       ? neckY + HIGH_LAPEL.breakBelowNeck
     : lapelled(s.collar)
       ? s.front === 'double'
-        ? apexY - 2
+        ? // (A double-breasted lapel breaks 5 cm below the bust point, rising from the top button to its peak at the
+          // shoulder: breaking above the bust, it was short and lay almost flat across the chest, Cat Nov 10. Kept 11 cm
+          // above the waist on a short body, where the drape still presses it onto the front.)
+          Math.min(apexY + 5, waistY - 11)
         : apexY + (big ? OVERSIZED_LAPEL.lower : 2)
       : neckY + (s.collar === 'stand' || s.collar === 'funnel' ? 2 : 1.8);
   const lastY = s.kind === 'coat' ? Math.min(foot - 15, waistY + (m.waist_to_hip ?? 20) + 12) : foot - (length === 'cropped' ? 3.5 : 9);
