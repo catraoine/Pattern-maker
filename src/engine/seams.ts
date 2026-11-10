@@ -569,7 +569,13 @@ function empire(d: BodiceDraft, below: number): Seamed | undefined {
   const lo = Math.max(apex.y + EMPIRE_RANGE.min, dl ? dl[1].y + 2 : -Infinity);
   // Above the waist, and above where the waist dart is shaped for pressing.
   const dartYs = fr.pts.filter((_, i) => fr.tags[i] === 'dart').map((q) => q.y);
-  const hi = Math.min(d.front.waistCentre.y - 5, fWaist.y - 5, ...dartYs.map((y) => y - 3));
+  // And, room allowing, high enough that the band's dart (the waist dart with the bust dart closed into it) is at least 1.5 times as
+  // long as it is wide at the waist: shorter, it sews to a pucker, and truing its legs ran the waist seam over the
+  // finished waist (up to 1.5 cm under a seam 16 cm below the bust point).
+  const dartWide = dl ? len(sub(dl[0], dl[2])) : 0;
+  const room = Math.min(d.front.waistCentre.y - 5, fWaist.y - 5, ...dartYs.map((y) => y - 3));
+  // (As far as there is room below the bust: a short body keeps its seam where it fits.)
+  const hi = dl ? Math.min(room, Math.max(lo, Math.min(dl[0].y, dl[2].y) - 1.5 * dartWide)) : room;
   if (lo > hi) return undefined;
   const yc = Math.min(hi, Math.max(lo, apex.y + below));
   const sf = atLevel(fSide, yc);

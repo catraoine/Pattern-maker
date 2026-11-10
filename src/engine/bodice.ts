@@ -482,7 +482,7 @@ const ARMHOLE_BALANCE = 0.7;
 /** The smallest side bust dart, in cm at the side seam (Rodica's paid pattern review, Nov 9 2026: a fitted bodice's
  * bust dart is typically 1.5 to 2 inches; ours came out under 1 cm wherever the full and high bust were close, and the
  * cloth the dart should have taken stood loose round the armhole, the gape a tester saw above the armpit). */
-export const MIN_BUST_DART = 3.8;
+const MIN_BUST_DART = 3.8;
 /** At most this much (cm, at the armhole edge) is pinned out of the front armhole toward the smallest dart. */
 const ARMHOLE_PIN = 1;
 const SIDE_FORWARD_MAX = 3.5;
@@ -683,7 +683,7 @@ function draftBlock(m: BodiceMeasurements, style: BodiceStyle): BodiceDraft {
     // The lower shoulder: the same draft with both shoulder points dropped and the armhole lowered as
     // much, so the armhole keeps its shape and size. Below the bust nothing changes (the same bust
     // dart, the same side seam), and the back underarm sits where the side seams come out equal.
-    const keep = { bustDart: inner.bustDart, lower: inner.lower, forward: inner.forward };
+    const keep = { bustDart: inner.bustDart, lower: inner.lower, forward: inner.forward, pin: inner.pin, turn: inner.turn };
     const first = draft(m, s, scye + lower + low.cm, { drop: low.cm, keep });
     const alt = draft(m, s, scye + lower + low.cm, { drop: low.cm, keep, backSide: keep.lower - keep.bustDart + first.inner.upper });
     const label = `${low.side.toUpperCase()} SHOULDER`;
@@ -694,7 +694,9 @@ function draftBlock(m: BodiceMeasurements, style: BodiceStyle): BodiceDraft {
   if (!m.armscye) return withSides(table);
 
   const target = clean ? m.armscye + SLEEVELESS.ease + SLEEVELESS.easeShare * ease.bust : m.armscye + 4 + 0.5 * (s.fit === 'oversized' ? Math.min(ease.bust, OVERSIZED.armholeEase) : ease.bust);
-  let lo = table - 5;
+  // Up to 6 cm above the table's depth (was 5): with the size tables' neck (Nov 10 2026) a few big frames' shorter
+  // shoulders ran the armhole long enough to need it.
+  let lo = table - 6;
   let hi = table + 3;
   // The armhole pin (a small cup's, see MIN_BUST_DART) is cloth the armhole is meant to lose, so the armhole is found
   // that much shorter rather than lowered to win it back.
@@ -781,12 +783,12 @@ function frontNeck(path: Path, hps: P, uShoulder: P, shape: Neckline | 'drawn', 
  * the side seam below the bust to keep from the first line, and the back side seam length to match. */
 interface SideLine {
   drop?: number;
-  keep?: { bustDart: number; lower: number; forward: number };
+  keep?: { bustDart: number; lower: number; forward: number; pin: number; turn: number };
   backSide?: number;
 }
 
 /** Draft at armhole depth `scye`. */
-function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLine = {}): BodiceDraft & { inner: { bustDart: number; lower: number; upper: number; forward: number; pin: number } } {
+function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLine = {}): BodiceDraft & { inner: { bustDart: number; lower: number; upper: number; forward: number; pin: number; turn: number } } {
   const dropShoulder = side.drop ?? 0;
   const fit = s.fitting ?? {};
   const { full_bust: B, waist: W, neck: N, shoulder_length: SL, shoulder_width: SW } = m;
@@ -948,8 +950,10 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   // the side seam above the bust turning up about the bust point (so the armhole is that much shorter and lies on the
   // body). The rest of the shortfall comes as length at the side, as a fuller cup's does.
   const shortfall = bustDarts && !side.keep ? Math.max(0, MIN_BUST_DART - (B - HB) / 2) : 0;
-  const pin = Math.min(ARMHOLE_PIN, (shortfall * len(sub(afPt, apex))) / Math.max(5, frontW - apex.x));
-  const turnA = pin ? -pin / len(sub(afPt, apex)) : 0;
+  // The lower shoulder's second line keeps the first line's pin and turn, as it keeps its dart, so nothing below the
+  // armhole moves.
+  const pin = side.keep ? side.keep.pin : Math.min(ARMHOLE_PIN, (shortfall * len(sub(afPt, apex))) / Math.max(5, frontW - apex.x));
+  const turnA = side.keep ? side.keep.turn : pin ? -pin / len(sub(afPt, apex)) : 0;
   const turnArm = (v: P) => p(v.x * Math.cos(turnA) - v.y * Math.sin(turnA), v.x * Math.sin(turnA) + v.y * Math.cos(turnA));
   const pivotSide = (q: P) => add(apex, turnArm(sub(pivot(q), apex)));
 
@@ -1338,6 +1342,6 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     closure: 'back_zip',
     collar: 'none',
     warnings,
-    inner: { bustDart, lower, upper, forward, pin },
+    inner: { bustDart, lower, upper, forward, pin, turn: turnA },
   };
 }

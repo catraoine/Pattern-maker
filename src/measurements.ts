@@ -615,7 +615,9 @@ function proportions(v: MeasurementValues, mode: 'out' | 'near'): CrossCheck[] {
   ratio('armscye', 'full_bust', 0.34, 0.55,
     'Your armhole looks small for your bust. Measure round the top of your arm through the armpit, with the tape snug but not tight.',
     'Your armhole looks large for your bust. Keep the tape close up in the armpit and snug, not loose over the shoulder.');
-  ratio('neck', 'full_bust', 0.22, 0.45,
+  // Up to 0.47: the size tables' smallest sizes run a 35 to 36 cm neck on an 80 cm bust (0.44 to 0.45), so 0.45 called a
+  // real neck large (found with the neck estimate, Nov 10 2026).
+  ratio('neck', 'full_bust', 0.22, 0.47,
     'Your neck looks small for your bust. Measure round the base of the neck, where a necklace sits, not round the throat.',
     'Your neck looks large for your bust. Measure round the base of the neck with the tape flat, not over a collar.');
   ratio('apex_separation', 'full_bust', 0.11, 0.26,

@@ -47,6 +47,8 @@ interface SheetInfo {
   edition?: string;
   /** An Archive cut's credit line, under the title. */
   credit?: string;
+  /** The pattern code a fit tester types into the report form (patternCode.ts). */
+  code?: string;
 }
 
 // Line weights follow the industry hierarchy: the cutting line is heaviest, the stitching line a
@@ -699,7 +701,7 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
           ...(pc.alternate ? [`TRIM YOUR ${pc.alternate.label.split(' ')[0]} SIDE TO THE ${pc.alternate.label} LINE`] : []),
           ...(pc.kind
             ? []
-            : [info.pattern.toUpperCase(), [info.madeFor && `MADE FOR ${info.madeFor}`, info.date, info.edition].filter(Boolean).join(' · ').toUpperCase()]),
+            : [info.pattern.toUpperCase(), [info.madeFor && `MADE FOR ${info.madeFor}`, info.date, info.edition, info.code && `CODE ${info.code}`].filter(Boolean).join(' · ').toUpperCase()]),
         ].filter(Boolean);
         const trace = pc.meta.threadTrace ? 'THREAD-TRACE THE STITCHING LINE' : '';
         const obstacles = [...fixtures, ...labs.filter((x) => x.rank !== 2).map((x) => x.box)];
@@ -838,7 +840,7 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
   const tx = MARGIN + 10;
   poly([p(tx, MARGIN), p(tx + TITLE_W, MARGIN), p(tx + TITLE_W, MARGIN + 10), p(tx, MARGIN + 10)], 'mark', true);
   poly([p(tx, MARGIN + 4.4), p(tx + TITLE_W, MARGIN + 4.4)], 'fine');
-  const who = info ? [info.madeFor && `MADE FOR ${info.madeFor}`, info.date, info.edition].filter(Boolean) : [];
+  const who = info ? [info.madeFor && `MADE FOR ${info.madeFor}`, info.date, info.edition, info.code && `CODE ${info.code}`].filter(Boolean) : [];
   text(p(tx + 1.2, MARGIN + 1.5), ['MAISON TRACÉ', ...who].join('   ·   ').toUpperCase(), 0.5, 0, 'start', { face: 'label', tracking: 0.3, grey: 0.35 });
   const name = title.replace(/^Maison Tracé:\s*/, '');
   text(p(tx + 1.2, MARGIN + 3.3), name.charAt(0).toUpperCase() + name.slice(1), 1.3, 0, 'start', { face: 'bodyMedium' });

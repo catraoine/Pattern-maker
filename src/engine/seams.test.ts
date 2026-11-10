@@ -8,6 +8,7 @@ import { dartsOf } from './marks';
 import type { Piece } from './piece';
 import { checkPattern } from './qc';
 import { randomBody, rng } from './randomBodies';
+import { taggedLength } from './geometry';
 import { DraftError } from './skirt';
 import { DEFAULT_BODICE, bodiceDetails, describeBodice, detailAllowed, seamBlocked, validDetails } from '../garments';
 
@@ -91,9 +92,10 @@ describe('style seams', () => {
     for (const pc of [front, back]) for (const dt of dartsOf(pc)) expect(dt.near.y).toBeGreaterThan(dt.tip.y);
     expect(dartsOf(mf).length).toBe(1);
     expect(dartsOf(mb).length).toBe(1);
-    // The front and back seams sit at one height at the side.
-    const sideTop = (pc: Piece) => Math.min(...pc.outline.points(8).filter((q) => q.x > 5).map((q) => q.y));
-    expect(Math.abs(sideTop(mf) - d.front.waistCentre.y - (sideTop(mb) - d.back.waistCentre.y))).toBeLessThan(1.5);
+    // The front and back seams meet at one height at the side: the band's side seams are one length. (This was held as
+    // each side's height above its own centre waist, which also counts the front waist's drop over the bust: past
+    // 1.5 cm on any bust dart over about 3 cm, so it failed on fuller busts before the 3.8 cm smallest dart, Nov 10 2026.)
+    expect(Math.abs(taggedLength(mf.outline, 'side') - taggedLength(mb.outline, 'side'))).toBeLessThan(0.1);
     expect(checkPattern(garment(d.pieces)).map((c) => c.label)).toContain('Front empire seam');
   });
 

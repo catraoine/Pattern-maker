@@ -114,9 +114,10 @@ describe('bodice measured against the body', () => {
         if (Math.abs(bust - (body.full_bust + ease.bust)) > 3) failures.push(`${tag}: bust ${r1(bust)} vs ${r1(body.full_bust + ease.bust)}`);
         const waist = 2 * (taggedLength(front.outline, 'waist') + taggedLength(back.outline, 'waist'));
         if (Math.abs(waist - (body.waist + ease.waist)) > 1.5) failures.push(`${tag}: waist ${r1(waist)} vs ${r1(body.waist + ease.waist)}`);
-        // The back armhole a little longer than the front, never shorter.
+        // The back armhole a little longer than the front, never shorter; longer again by a small cup's armhole pin
+        // (MIN_BUST_DART in bodice.ts, Rodica's review, Nov 9 2026), which the front loses on purpose.
         const balance = taggedLength(back.outline, 'armhole') - taggedLength(front.outline, 'armhole');
-        if (balance < 0.3 || balance > 1.5) failures.push(`${tag}: back armhole ${r1(balance)} longer than the front`);
+        if (balance < 0.3 || balance > 1.5 + (d.armholePin ?? 0)) failures.push(`${tag}: back armhole ${r1(balance)} longer than the front`);
         // The armhole is the person's plus ease; the neckline clears the neck.
         const target = body.armscye! + 4 + ease.bust / 2;
         if (Math.abs(d.armhole - target) > 1.5) failures.push(`${tag}: armhole ${d.armhole} vs ${r1(target)}`);

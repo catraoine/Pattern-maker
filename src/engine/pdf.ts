@@ -244,6 +244,8 @@ interface Summary {
   /** A numbered drop's copy, and an Archive cut's credit line (see SheetInfo). */
   edition?: string;
   credit?: string;
+  /** The pattern code (patternCode.ts). */
+  code?: string;
   /** The atelier view: each piece's numbered drafting points and how they were found. */
   drafting?: { piece: string; points: DraftPoint[] }[];
   /** The draft-it-by-hand guide: each piece's frame, outline and numbered points, to redraw it on paper. */
@@ -465,7 +467,7 @@ function addSummaryPage(
   [stepX, stepY]: [number, number],
 ) {
   const { st, write, label, room, left, width } = flow(doc, paper, fonts);
-  drawText(st.page, ['MAISON TRACÉ', s.madeFor && `MADE FOR ${s.madeFor}`, s.date, s.edition].filter(Boolean).join('   ·   ').toUpperCase(), {
+  drawText(st.page, ['MAISON TRACÉ', s.madeFor && `MADE FOR ${s.madeFor}`, s.date, s.edition, s.code && `CODE ${s.code}`].filter(Boolean).join('   ·   ').toUpperCase(), {
     x: left,
     y: st.y,
     size: 7.5,

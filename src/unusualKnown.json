@@ -32,10 +32,6 @@
  "coat collar=hood (waist bigger than hip)": [
   "Neckline square at centre back: #°"
  ],
- "dress skirt.pockets=slant (long back, short legs)": [
-  "Skirt waist seam to finished waist: # cm with darts closed, finished # cm",
-  "Waist seam, bodice front to skirt front: bodice # cm, skirt # cm, darts closed, # cm apart"
- ],
  "dress skirt.pockets=slant (long waist to hip)": [
   "Skirt waist seam to finished waist: # cm with darts closed, finished # cm",
   "Waist seam, bodice front to skirt front: bodice # cm, skirt # cm, darts closed, # cm apart"
@@ -48,19 +44,11 @@
   "Skirt waist seam to finished waist: # cm with darts closed, finished # cm",
   "Waist seam, bodice front to skirt front: bodice # cm, skirt # cm, darts closed, # cm apart"
  ],
- "dress skirt.pockets=slant (short waist to hip)": [
-  "Skirt waist seam to finished waist: # cm with darts closed, finished # cm",
-  "Waist seam, bodice front to skirt front: bodice # cm, skirt # cm, darts closed, # cm apart"
- ],
  "dress skirt.pockets=slant (small waist, full hip)": [
   "Skirt waist seam to finished waist: # cm with darts closed, finished # cm",
   "Waist seam, bodice front to skirt front: bodice # cm, skirt # cm, darts closed, # cm apart"
  ],
  "dress skirt.pockets=slant (tall and slim)": [
-  "Skirt waist seam to finished waist: # cm with darts closed, finished # cm",
-  "Waist seam, bodice front to skirt front: bodice # cm, skirt # cm, darts closed, # cm apart"
- ],
- "dress skirt.pockets=slant (very large)": [
   "Skirt waist seam to finished waist: # cm with darts closed, finished # cm",
   "Waist seam, bodice front to skirt front: bodice # cm, skirt # cm, darts closed, # cm apart"
  ],

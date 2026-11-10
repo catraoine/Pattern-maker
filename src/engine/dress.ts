@@ -345,8 +345,12 @@ export function draftDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyl
   // A pleated skirt split to fit the fabric has two pieces a side: their waists add up. A skirt front
   // cut whole (a bias slip) has both halves of the waist.
   const halfWaist = (pc: Piece) => taggedLength(pc.outline, 'waist') / (pc.meta.whole ? 2 : 1);
+  // A slant pocket's facing is part of the front's waist (it fills the corner the opening cuts away): counted in, or the
+  // walk below widened the front by the facing's share and the skirt came out 4 cm over the bodice (Nov 10 2026).
   const skirtWaist = (d: SkirtDraft, which: 'front' | 'back') =>
-    d.pieces.filter((pc) => /^Skirt/.test(pc.name) && new RegExp(which, 'i').test(pc.name)).reduce((t, pc) => t + halfWaist(pc), 0);
+    d.pieces
+      .filter((pc) => /^Skirt/.test(String(pc.meta.partOf ?? pc.name)) && new RegExp(which, 'i').test(String(pc.meta.partOf ?? pc.name)))
+      .reduce((t, pc) => t + halfWaist(pc), 0);
   // A gathered skirt is gathered into the seam, so its waist is longer by design.
   for (let i = 0; i < 4 && !skirt.gathers; i++) {
     const df = waist.front - skirtWaist(skirt, 'front');
