@@ -47,10 +47,8 @@ const HANGS_OFF: Partial<Record<View, View>> = { photo: 'style', collection: 'st
 export const ladder = (to: View, trail: View[]): View[] => {
   // A side trip to the measurements from Style or Print hangs off the screen it was opened from, so back returns
   // there, not to the welcome (journey review, Nov 10: "Back returns to where you came from").
-  if (to === 'measure') {
-    const from = Math.max(trail.lastIndexOf('style'), trail.lastIndexOf('export'));
-    if (from >= 0) return [...trail.slice(0, from + 1), 'measure'];
-  }
+  const from = trail[trail.length - 1];
+  if (to === 'measure' && (from === 'style' || from === 'export')) return [...trail, 'measure'];
   const rung = RUNGS[to];
   if (rung) return rung;
   const parent = HANGS_OFF[to];

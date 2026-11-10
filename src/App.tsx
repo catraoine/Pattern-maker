@@ -188,8 +188,11 @@ export default function App() {
   // is fetched, opens there again instead of the welcome (journey review, Nov 10). A new visit still starts at the welcome.
   const [restore] = useState<View | undefined>(() => {
     try {
+      // Only a reload (or Back into the page) reopens the place: typing the address again or a fresh link is a new visit.
+      const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+      if (nav && nav.type !== 'reload' && nav.type !== 'back_forward') return undefined;
       const v = sessionStorage.getItem(PLACE_KEY) as View | null;
-      return v && RESTORABLE.includes(v) && !window.location.hash && !legalPath(window.location.pathname) ? v : undefined;
+      return v && RESTORABLE.includes(v) && !window.location.hash && !legalPath(window.location.pathname) && !new URLSearchParams(window.location.search).has('go') ? v : undefined;
     } catch {
       return undefined;
     }
@@ -272,7 +275,7 @@ export default function App() {
   }, [step]);
   // The loading screen plays when someone first opens the app, on the way into the welcome. People coming
   // back to their work go straight to it.
-  const [opening, setOpening] = useState(step === 'welcome' && !restore);
+  const [opening, setOpening] = useState(step === 'welcome' && !(restore && !gated));
   useEffect(() => {
     if (restore && !gated) setStep(restore);
   // eslint-disable-next-line react-hooks/exhaustive-deps -- once on opening: back to the screen this tab was on
@@ -467,9 +470,13 @@ export default function App() {
 
   // "Back to the original style" on Review: this garment's choices as a first visit has them, measurements untouched.
   const startOver = () => {
-    const keys: Partial<Record<Garment, keyof Saved>> = { dress: 'dress', trousers: 'trousers', tee: 'tee', knit_dress: 'knitDress', hoodie: 'hoodie', jumpsuit: 'jumpsuit', lingerie: 'lingerie', jacket: 'jacket', coat: 'coat' };
-    if (garment === 'skirt') setSaved({ ...saved, choices: INITIAL.choices });
-    else if (garment === 'bodice') setSaved({ ...saved, bodice: INITIAL.bodice });
+    const keys: Partial<Record<Garment, keyof Saved>> = { trousers: 'trousers', tee: 'tee', knit_dress: 'knitDress', hoodie: 'hoodie', jumpsuit: 'jumpsuit', lingerie: 'lingerie', jacket: 'jacket', coat: 'coat' };
+    // A dress not yet styled on its own is drawn from the skirt and bodice picks: it keeps them when those start over,
+    // and starts over itself from the first visit's skirt and bodice, not the sewist's.
+    const ownDress = saved.dress ?? dressOf(saved);
+    if (garment === 'skirt') setSaved({ ...saved, choices: INITIAL.choices, dress: ownDress });
+    else if (garment === 'bodice') setSaved({ ...saved, bodice: INITIAL.bodice, dress: ownDress });
+    else if (garment === 'dress') setSaved({ ...saved, dress: dressOf(INITIAL) });
     else if (keys[garment]) setSaved({ ...saved, [keys[garment]!]: undefined });
   };
   // "How did it fit?" from the print screen: the pattern is kept (if it can be) and its fit notes open on Your account.
@@ -746,7 +753,7 @@ export default function App() {
               onBringLink={async (link) => {
                 const at = link.indexOf('#');
                 const b = at >= 0 ? await readMoveLink<Saved>(link.slice(at)) : null;
-                if (!b) return false;
+                if (!b || b === 'broken') return false;
                 setMoving(b);
                 setStep('move');
                 return true;

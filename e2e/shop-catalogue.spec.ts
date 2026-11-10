@@ -49,9 +49,9 @@ test('a shop catalogue lists its fabrics, searchable, and a pick goes to the sho
   await expect(strip).toContainText(/\d+ yd for your skirt · about \$\d+/);
   // Not yet approved by the shop's affiliate programme: Buy opens the shop's own page plainly.
   await expect(strip.getByRole('link', { name: /Buy at NY Designer/ })).toHaveAttribute('href', 'https://shop.example/products/cotton-0');
-  // Saved work keeps the pick after a reload, before the catalogue loads again.
+  // Saved work keeps the pick on a later visit, before the catalogue loads again.
   await page.route('**/shops/cotton.json', (r) => r.fulfill({ json: [] }));
-  await page.reload();
+  await page.goto('/');
   await page.getByRole('button', { name: /Carry on with your skirt/i }).click();
   await goPrint(page);
   await expect(main.locator('.yourfabric h2')).toContainText('Cotton lawn');

@@ -129,8 +129,9 @@ test('in the home-screen app, work from Safari comes across with a pasted link',
   await openAccount(page);
   await main(page).getByRole('region', { name: /Your data/ }).locator('summary').first().click();
   await main(page).getByRole('button', { name: 'Send to another device' }).click();
+  // The link is made after the click (the work is packed first), so wait for it.
+  await expect.poll(() => page.evaluate(() => (window as unknown as { shared?: string }).shared ?? '')).toContain('#move=');
   const link = await page.evaluate(() => (window as unknown as { shared: string }).shared);
-  expect(link).toContain('#move=');
 
   // The home-screen app: its own storage, opened in standalone mode.
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, baseURL: test.info().project.use.baseURL });

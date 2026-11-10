@@ -1,6 +1,6 @@
 import { DropMenu } from '../ui/DropMenu';
 import { useTablet, useWide } from '../ui/StyleLayout';
-import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { SendToDevice } from '../ui/SendToDevice';
 import { OVERLAP, PAGE_MARGIN, Paper, Sheet, layout, pageCount, pageName, pageSize, tileGrid, toSvg, usedTiles } from '../engine/export';
 import { checkPattern } from '../engine/qc';
@@ -1171,8 +1171,11 @@ function toBase64(bytes: Uint8Array) {
 function EmailPdf({ ready, fileName, title, onSent, checked }: { ready: Uint8Array | null; fileName: string; title: string; onSent: () => void; checked: (go: () => void) => () => void }) {
   const [open, setOpen] = useState(false);
   const [to, setTo] = useState('');
-  const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'limit' | 'failed'>('idle');
+  const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'limit' | 'off' | 'big' | 'failed'>('idle');
   const [sentTo, setSentTo] = useState('');
+  // The latest onSent when the send comes back, not the one from when it started, so nothing changed meanwhile is lost.
+  const sentNow = useRef(onSent);
+  sentNow.current = onSent;
   if (!open)
     return (
       <button type="button" className="secondary" onClick={() => setOpen(true)} disabled={!ready}>
@@ -1186,13 +1189,13 @@ function EmailPdf({ ready, fileName, title, onSent, checked }: { ready: Uint8Arr
       const res = await fetch('/.netlify/functions/email-pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: to.trim(), title, fileName, pdf: toBase64(ready) }),
+        body: JSON.stringify({ to: to.trim(), title: title.slice(0, 200), fileName, pdf: toBase64(ready) }),
       });
       if (res.ok) {
         setSentTo(to.trim());
         setState('sent');
-        onSent();
-      } else setState(res.status === 429 ? 'limit' : 'failed');
+        sentNow.current();
+      } else setState(res.status === 429 ? 'limit' : res.status === 503 ? 'off' : res.status === 413 ? 'big' : 'failed');
     } catch {
       setState('failed');
     }
@@ -1219,6 +1222,10 @@ function EmailPdf({ ready, fileName, title, onSent, checked }: { ready: Uint8Arr
       ) : state === 'limit' ? (
         <p className="msg small" role="status">
           That's as many emails as we can send today. Download the PDF instead, or try again tomorrow.
+        </p>
+      ) : state === 'off' || state === 'big' ? (
+        <p className="msg small" role="status">
+          {state === 'off' ? "Emailing isn't working just now." : 'This PDF is too big to email.'} Download the PDF instead.
         </p>
       ) : state === 'failed' ? (
         <p className="msg small" role="status">

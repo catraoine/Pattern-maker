@@ -15,8 +15,8 @@ export const EMAIL_CAPS = { visitor: 5, all: 90 };
 const EmailSchema = z
   .object({
     to: z.string().trim().max(254).email(),
-    // The pattern's name, as on the Print screen, such as "knee A-line skirt".
-    title: z.string().trim().min(1).max(80),
+    // The pattern's name, as on the Print screen, such as "knee A-line skirt" (cut to 80 letters in the email).
+    title: z.string().trim().min(1).max(200),
     fileName: z.string().trim().max(120).regex(/^[a-z0-9-]+\.pdf$/),
     // The PDF itself, base64. "JVBER" is how "%PDF-" starts in base64, so only a PDF is ever attached.
     pdf: z.string().max(PDF_MAX_B64).regex(/^JVBER[A-Za-z0-9+/]+={0,2}$/),
