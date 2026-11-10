@@ -267,6 +267,8 @@ export interface DrapeOptions {
   /** Below this level (the front's own pattern y) the fronts hang parted: each centre front edge held off the centre
    *  line by `cm` at the level `to` (its hem), in proportion between (a shirt worn with one button done up). */
   partBelow?: { y: number; cm: number; to: number };
+  /** A jacket or coat's buttoned extension laid over the other front (see the drape's passes). */
+  layExtension?: boolean;
   /** How much harder than the light pull a skirt's cloth hangs (clothCard.ts: a fluid or heavy cloth). */
   fall?: number;
   /** Which cloth the fall pulls: a skirt's every panel, or a dress's skirt (left off a top: see drape()). */
@@ -4017,7 +4019,9 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
   // on its own, it curled forward off the other front by a cm and more or was drawn in under the centre line, and the
   // front edge between the break and the top button bowed in or stood out: Cat saw it as a zigzag between a
   // double-breasted front's buttons, Nov 8. (Below the break, coming in over 2 cm there.)
-  if (o.pinFront?.length && !knob('__noLayExt')) {
+  // (A jacket or coat's only: on a shirt worn open with one button done up, its turned neck counted as a lapel and the
+  // front laid over the other stretched it at the button.)
+  if (o.pinFront?.length && o.layExtension && !knob('__noLayExt')) {
     // (Three times over: a point of the extension next to the centre line is laid on cloth whose triangles it shares.)
     for (let pass = 0; pass < 3; pass++) for (const p of B.panels) {
       if (p.role !== 'front' || p.hidden) continue;
@@ -6662,7 +6666,7 @@ export function drapeOuter(sp: Space, d: OuterDraft, o: DrapeOptions = {}): Drap
     { sleeve: shell.filter((pc) => /sleeve/i.test(pc.name)), collars: collarsOf(d.pieces).map((c) => ((d as { popped?: boolean }).popped ? { ...c, roll: undefined } : c)) },
     // A lapel that breaks high (a coat or jacket buttoned over the chest) is pressed onto the front; a plunging one,
     // breaking near the waist, is left to hang (pressing drags its long front down).
-    { pad: d.pads, stiff: !!o.crisp || !!o.stiffBend, boxCut: d.base.waistDarts.front + d.base.waistDarts.back < 0.5, stiffMax: d.hood ? HOOD_BEND : stiffBendNow(), lieLapel: !!d.lapel && base.front.waistCentre.y - d.lapel.breakPt.y > 10, ...o, buttons: { y: d.buttons.at, r: d.buttons.sizeCm / 2, waistY: base.front.waistCentre.y, ...(d.buttons.columns.length > 1 ? { x: d.buttons.columns } : {}) }, ...(o.crisp ? { boxy: false, bendK: d.hood ? HOOD_BEND : stiffBendNow(), thick: Math.min(o.thick ?? STIFF_THICK, STIFF_THICK) } : o.stiffBend ? { bendK: Math.min(d.hood ? HOOD_BEND : stiffBendNow(), o.stiffBend), thick: Math.min(o.thick ?? STIFF_THICK, STIFF_THICK) } : {}), pinFront: knob("__pinAll") ? [{ y: 52, span: 12 }] : knob('__oldPins') || d.hood ? d.buttons.at.map((y) => ({ y, span: 2 })) : frontPins(d.buttons.at, shell) },
+    { pad: d.pads, stiff: !!o.crisp || !!o.stiffBend, boxCut: d.base.waistDarts.front + d.base.waistDarts.back < 0.5, stiffMax: d.hood ? HOOD_BEND : stiffBendNow(), lieLapel: !!d.lapel && base.front.waistCentre.y - d.lapel.breakPt.y > 10, layExtension: true, ...o, buttons: { y: d.buttons.at, r: d.buttons.sizeCm / 2, waistY: base.front.waistCentre.y, ...(d.buttons.columns.length > 1 ? { x: d.buttons.columns } : {}) }, ...(o.crisp ? { boxy: false, bendK: d.hood ? HOOD_BEND : stiffBendNow(), thick: Math.min(o.thick ?? STIFF_THICK, STIFF_THICK) } : o.stiffBend ? { bendK: Math.min(d.hood ? HOOD_BEND : stiffBendNow(), o.stiffBend), thick: Math.min(o.thick ?? STIFF_THICK, STIFF_THICK) } : {}), pinFront: knob("__pinAll") ? [{ y: 52, span: 12 }] : knob('__oldPins') || d.hood ? d.buttons.at.map((y) => ({ y, span: 2 })) : frontPins(d.buttons.at, shell) },
   );
   if (cs)
     for (const pnl of out.panels) {
