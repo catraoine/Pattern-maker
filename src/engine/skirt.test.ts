@@ -31,8 +31,20 @@ describe('skirt block', () => {
     }
   });
 
-  it('refuses a waist larger than the hip', () => {
-    expect(() => draftSkirt({ ...m, waist: 110 })).toThrow(/waist is larger/);
+  // A waist larger than the hip is drafted from the waist down (Cat, Nov 10, 2026): the hip line is as wide as the
+  // waist, the front has no darts, and every shape still has matching side seams and a waist that fits the band.
+  it.each(['straight', 'a_line', 'pencil', 'trumpet', 'circle'] as const)('drafts a waist larger than the hip from the waist down (%s)', (silhouette) => {
+    const big = { ...m, waist: 110 };
+    const d = draftSkirt(big, { silhouette, length: 'knee' });
+    const [front, back] = d.pieces;
+    expect(d.finishedWaist).toBeGreaterThanOrEqual(110);
+    expect(d.finishedHip).toBeGreaterThanOrEqual(d.finishedWaist);
+    if (silhouette !== 'circle') {
+      expect(front.meta.dartsCm).toEqual([]);
+      expect(Math.abs(taggedLength(front.outline, 'side') - taggedLength(back.outline, 'side'))).toBeLessThan(0.05);
+    }
+    const waist = 2 * (taggedLength(front.outline, 'waist') + taggedLength(back.outline, 'waist'));
+    expect(Math.abs(waist - d.finishedWaist)).toBeLessThan(1);
   });
 
   it('exports SVG and a tiled PDF', async () => {

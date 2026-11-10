@@ -970,7 +970,9 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
   // darts, and the elastic gathers it in. A pencil skirt's shape is all in its darts, so it keeps its zip.
   const elastic = s.waist === 'elastic' && !s.joinTo;
   if (elastic && s.silhouette === 'pencil') throw new DraftError('A pencil skirt is shaped by its darts, so it needs a waistband and zip. Choose a straighter or fuller shape for an elastic waist.');
-  const pullOn = Math.max(m.full_hip + ease.hip, m.full_hip + PULL_ON_EASE);
+  // Where the waist is the widest point, the band has to pass the waist instead.
+  const widest = Math.max(m.full_hip, m.waist);
+  const pullOn = Math.max(m.full_hip + ease.hip, widest + PULL_ON_EASE);
   const shape = s.shape;
   const length =
     s.lengthCm !== undefined
@@ -985,9 +987,12 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
   const waistQ = join ? (join.front + join.back) / 2 : elastic ? pullOn / 4 : (m.waist + ease.waist) / 4;
   const split = elastic ? { front: 0, back: 0 } : { front: join ? join.front - waistQ : 0.5, back: join ? join.back - waistQ : -0.5 };
   // Where the waist is only a little under the hip, the waist's ease (or a dress bodice's) can make it the wider of
-  // the two once made up. The hip is then cut as wide as the waist, and the skirt hangs straight down from it. A waist
-  // that is itself larger than the hip is still turned away below.
-  const finishedHip = Math.max(elastic ? pullOn : m.full_hip + ease.hip, m.full_hip >= m.waist ? 4 * waistQ : 0);
+  // the two once made up. The hip is then cut as wide as the waist, and the skirt hangs straight down from it.
+  // A waist that is itself larger than the hip is drafted from the waist down: the hip line is cut as wide as the
+  // front's waist (the back's is 0.5 cm less, so it keeps a small dart), and the side seams fall straight or flare out
+  // from there. A tummy still gets its extra front length from the centre front measurement (centreDrops).
+  const overHip = m.waist > m.full_hip;
+  const finishedHip = Math.max(elastic ? pullOn : m.full_hip + ease.hip, overHip ? 4 * (waistQ + Math.max(0, split.front)) : 4 * waistQ);
   const hipQ = finishedHip / 4;
 
   const finishedWaist = join ? 4 * waistQ : elastic ? pullOn : m.waist + ease.waist;
@@ -1057,7 +1062,7 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
   // Without a photo, circle skirts are exactly a full or a half circle. Matching a photo, every shape
   // but the trumpet is drafted the same way: as a darted skirt flared to the photo's hem, switching to
   // part of a circle when that's fuller than darts and side seams can manage (below).
-  if (isCircle(s.silhouette) && (!targetHem || waistQ > hipQ)) {
+  if (isCircle(s.silhouette) && (!targetHem || waistQ > hipQ || overHip)) {
     return targetHem ? matchedCircle(targetHem) : standardCircle(s.silhouette === 'circle' ? 1 : 0.5);
   }
 

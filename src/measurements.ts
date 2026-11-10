@@ -509,11 +509,16 @@ export function checkMeasurements(v: MeasurementValues, unit: Unit, garment: Gar
   // A T-shirt (and a hoodie, built on it) hangs from the shoulders and is cut from the bust down, so only the top's
   // checks apply. A knit dress stretches over the hip, so a waist larger than the hip drafts too.
   if (garment !== 'bodice' && garment !== 'tee' && garment !== 'hoodie') {
-    if (waist && full_hip && waist > full_hip && garment !== 'knit_dress') {
+    // Skirts and dresses are drafted from the waist down for these bodies (Cat, Nov 10, 2026); trousers can't be yet.
+    // A jacket or coat hangs past the waist from the shoulders, so it drafts as usual and needs no word.
+    const legs = garment === 'trousers' || garment === 'jumpsuit';
+    if (waist && full_hip && waist > full_hip && (legs || garment === 'skirt' || garment === 'dress')) {
       out.push({
         id: 'waist',
         level: 'warning',
-        message: "Your waist is larger than your hip. That's right for some bodies, but this skirt block can't draft it yet.",
+        message: legs
+          ? "Your waist is larger than your hip. That's right for some bodies, but trousers can't be drafted for it yet."
+          : "Your waist is larger than your hip. That's right for some bodies: the skirt is drafted from your waist down, so sew a toile first.",
       });
     }
     if (waist_to_knee && waist_to_floor && waist_to_knee >= waist_to_floor) {
