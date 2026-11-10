@@ -1791,9 +1791,13 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
     }
     // A wrap front's own half, cut a little past the centre (ownHalf): the centre line itself stays on the centre
     // plane, and the strip past it laps over the other front, as a buttoned front's extension does.
+    // (Where the wrap front meets the waist, sewn into a dress's waist seam or tied, the strip past the centre is held
+    // there too: left free, a deeper bust dart, at least 3.8 cm from Rodica's review of Nov 9, rumpled its end into a
+    // sawtooth.)
     if (p.role === 'front' && p.mesh.runs.wrap) {
+      const waist = new Set((p.mesh.runs.waist ?? []).flat());
       pts.forEach((q, i) => {
-        if (Math.abs(q.x) < 0.6 && !p.turned[i]) centre.push(i + p.base);
+        if ((Math.abs(q.x) < 0.6 || (q.x < 0 && waist.has(i))) && !p.turned[i]) centre.push(i + p.base);
       });
     }
     const edgeSet = new Map<string, number[]>();
