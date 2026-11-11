@@ -229,3 +229,91 @@ export function hit(s: Surface, from: V3, dir: V3, part: Part = 'all'): V3 | und
 export function join(...parts: TapePt[][]): TapePt[] {
   return parts.reduce((all, p) => all.concat(all.length ? p.slice(1) : p), [] as TapePt[]);
 }
+
+/** The surface's own way out at each point (the average of its triangles' faces there). */
+const normalsOf = new WeakMap<Surface, Float32Array>();
+function normals(s: Surface) {
+  let nn = normalsOf.get(s);
+  if (nn) return nn;
+  nn = new Float32Array(s.pos.length);
+  for (let t = 0; t < s.idx.length; t += 3) {
+    const [i0, i1, i2] = [s.idx[t], s.idx[t + 1], s.idx[t + 2]];
+    const f = cross(sub(P(s, i1), P(s, i0)), sub(P(s, i2), P(s, i0)));
+    for (const i of [i0, i1, i2]) for (let k = 0; k < 3; k++) nn[i * 3 + k] += f[k];
+  }
+  normalsOf.set(s, nn);
+  return nn;
+}
+
+/** The tape laid flush: at each point its face turned to the surface's own way out there (so it lies along a
+ *  sloping neck or shoulder, not standing off it), its middle kept where the cut put it. `part` picks which points
+ *  of the surface are read; the surface's facing is made to point away from the inside (`inside`). */
+export function flush(path: TapePt[], s: Surface, part: Part, reach = 0.08): TapePt[] {
+  const nn = normals(s);
+  const ok = (i: number) => (part === 'all' ? true : part === 'body' ? s.arm[i] <= 0.3 : s.arm[i] >= 0.5 && (part === 'armL' ? s.pos[i * 3] > 0 : s.pos[i * 3] < 0));
+  // A coarse grid of the points, to find those near each tape point quickly.
+  const G = 0.1, grid = new Map<string, number[]>();
+  const key = (x: number, y: number, z: number) => `${Math.floor(x / G)},${Math.floor(y / G)},${Math.floor(z / G)}`;
+  for (let i = 0; i < s.pos.length / 3; i++) {
+    if (!ok(i)) continue;
+    const k = key(s.pos[i * 3], s.pos[i * 3 + 1], s.pos[i * 3 + 2]);
+    (grid.get(k) ?? grid.set(k, []).get(k)!).push(i);
+  }
+  const n = path.length;
+  // Which way the mesh's normals face (its winding may run either way): the way most of them agree with the cut's.
+  let agree = 0;
+  const near = path.map((q) => {
+    const [x, y, z] = q.p;
+    const found: [number, number][] = [];
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++) {
+      for (const i of grid.get(`${Math.floor(x / G) + dx},${Math.floor(y / G) + dy},${Math.floor(z / G) + dz}`) ?? []) {
+        const d = Math.hypot(s.pos[i * 3] - x, s.pos[i * 3 + 1] - y, s.pos[i * 3 + 2] - z);
+        if (d > reach) continue;
+        found.push([i, 1 - d / reach]);
+        agree += Math.sign(nn[i * 3] * q.n[0] + nn[i * 3 + 1] * q.n[1] + nn[i * 3 + 2] * q.n[2]);
+      }
+    }
+    return found;
+  });
+  const way = agree < 0 ? -1 : 1;
+  let raw: V3[] = path.map((q, j) => {
+    let acc: V3 = [0, 0, 0];
+    for (const [i, w] of near[j]) {
+      const v = scale(norm([nn[i * 3], nn[i * 3 + 1], nn[i * 3 + 2]]), way);
+      // Skin facing away from the tape (the inside of the arm under a shoulder tape, say) is not what it lies on.
+      if (dot(v, q.n) < 0.2) continue;
+      acc = add(acc, scale(v, w * w));
+    }
+    return Math.hypot(...acc) > 1e-6 ? norm(acc) : q.n;
+  });
+  // Smoothed along the tape, so a real tape's gentle twist and not each little facet of the mesh.
+  for (let pass = 0; pass < 20; pass++) raw = raw.map((v, j) => norm(add(add(scale(v, 2), raw[Math.max(0, j - 1)]), raw[Math.min(n - 1, j + 1)])));
+  const out = raw.map((v, j) => {
+    const t = norm(sub(path[Math.min(n - 1, j + 1)].p, path[Math.max(0, j - 1)].p));
+    const f = sub(v, scale(t, dot(v, t)));
+    if (Math.hypot(...f) < 1e-6) return path[j].n;
+    // Never turned more than about 30 degrees from the cut's own facing: past that a tape over a sharp ridge (the top
+    // of the shoulder) stands on its edge and reads as a gap (Cat, Nov 11).
+    const c = norm(f), k = dot(c, path[j].n);
+    if (k >= 0.87) return c;
+    const side = norm(sub(c, scale(path[j].n, k)));
+    return norm(add(scale(path[j].n, 0.87), scale(side, 0.49)));
+  });
+  return path.map((q, j) => ({ p: q.p, n: out[j] }));
+}
+
+/** A tape laid from a to b over the top of the surface, as a hand smooths it down: each point dropped onto the
+ *  surface from `out` (above, for a shoulder), the line then eased so the mesh's facets don't kink it. */
+export function drape(s: Surface, a: V3, b: V3, out: V3, part: Part, opts: { lift: number; step?: number }): TapePt[] {
+  const o = norm(out);
+  const n = Math.max(2, Math.ceil(Math.hypot(...sub(b, a)) / (opts.step ?? 0.006)));
+  let pts: V3[] = [];
+  for (let i = 0; i <= n; i++) {
+    const q = add(a, scale(sub(b, a), i / n));
+    pts.push(hit(s, add(q, scale(o, 0.3)), scale(o, -1), part) ?? q);
+  }
+  for (let pass = 0; pass < 8; pass++) pts = pts.map((q, i) => (i === 0 || i === n ? q : scale(add(add(scale(q, 2), pts[i - 1]), pts[i + 1]), 0.25)));
+  // Eased points sit a touch inside a convex top: back out along the drop line to the surface.
+  pts = pts.map((q, i) => (i === 0 || i === n ? q : hit(s, add(q, scale(o, 0.3)), scale(o, -1), part) ?? q));
+  return pts.map((p) => ({ p: add(p, scale(o, opts.lift)), n: o }));
+}

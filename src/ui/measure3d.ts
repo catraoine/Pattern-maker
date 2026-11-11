@@ -8,7 +8,7 @@ import { FORM_FLOOR, FORM_LEG, FORM_LEG_X } from './ContourForm';
 import { cap, material, sweep } from './allRoundMesh';
 import { GILD, GROUND, hex } from './palette';
 import LIMBS from './measureLimbs.json';
-import { girthOn, hit, join, lengthOn, type Part, type Surface } from './measure3dPaths';
+import { drape, flush, girthOn, hit, join, lengthOn, type Part, type Surface } from './measure3dPaths';
 
 type V3 = [number, number, number];
 const TAU = Math.PI * 2;
@@ -177,6 +177,8 @@ export interface MeasureShot {
   girthY?: number;
   /** With the string round the waist. */
   string?: boolean;
+  /** The string's own path on the form, where it has been worked out there. */
+  stringPath?: TapePt[];
   /** Where the camera reads it from: the form's turn, the height looked at, and how close. */
   view?: { turn: number; lookY: number; dist: number; rise?: number; aim?: V3 };
 }
@@ -232,7 +234,33 @@ export function formShot(id: string, surf: Surface, joints: Record<string, V3>, 
   const mid = (y: number) => (front(y)[2] + back(y)[2]) / 2;
   // At the armpit the body's own side is part of the arm's skin: there it falls back to the form's ring.
   const side = (y: number, s = 1): V3 => along([s * 5, y, mid(y)], [-s, 0, 0]) ?? [s * formR(HALF_PI, y), y, mid(y)];
-  const hip = seatLevel();
+  // The waist where the body is narrowest, the hip where it is widest (round the seat and the tops of the thighs,
+  // not lower than a little above the crotch): read off the form's own girths, level by level (Cat, Nov 11: the
+  // waist sat a tad high, the hip was not at the widest point).
+  const around = (y: number) => {
+    const r = girthOn(surf, [0, y, 0], [0, 1, 0], 'body', { zero: [0, 0, 1], toward: [1, 0, 0], width: 0.001, overlap: 0, lift: 0, step: 0.02 });
+    return r.slice(1).reduce((a, q, i) => a + Math.hypot(...sub(q.p, r[i].p)), 0);
+  };
+  const extreme = (lo: number, hi: number, sign: 1 | -1) => {
+    let best = lo, bv = -Infinity;
+    for (let y = lo; y <= hi + 1e-9; y += 0.01) {
+      const v = sign * around(y);
+      if (v > bv) [bv, best] = [v, y];
+    }
+    return best;
+  };
+  const crotchY = along([0, 5, mid(1.2)], [0, -1, 0])![1];
+  const WY = extreme(-0.3, 0.45, -1);
+  // Lower down the hull keeps growing as it takes in both thighs, so the hip is where the seat stands out furthest
+  // (a hand's width out from the middle of the back), well above the crotch.
+  const hip = (() => {
+    let best = WY + 0.5, bz = Infinity;
+    for (let y = WY + 0.5; y <= crotchY - 0.25; y += 0.01) {
+      const z = along([0.25, y, -5], [0, 0, 1])?.[2] ?? Infinity;
+      if (z < bz) [bz, best] = [z, y];
+    }
+    return best;
+  })();
   const nape = back(-1.47);
   // The base of the neck: the nape at the back, a little lower at the front.
   const neckFront = front(-1.36);
@@ -279,23 +307,35 @@ export function formShot(id: string, surf: Surface, joints: Record<string, V3>, 
     const across = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...zs) - Math.min(...zs));
     return { turn, lookY: (lo + hi) / 2, dist: Math.max(5.2, (hi - lo) * 4.2, across * 3.2), aim };
   };
-  const make = (path: MeasureShot['path'], turn: number, extra: Partial<MeasureShot> = {}, rise?: number): MeasureShot => ({ path, ...extra, view: { ...viewOf(path, turn), ...(rise === undefined ? {} : { rise }) } });
-  const waistF = () => front(L.waist), waistB = () => back(L.waist), waistS = () => side(L.waist);
+  // The string tied round the waist, on the form itself; on in every clip (Cat, Nov 11).
+  const stringPath = girthOn(surf, [0, WY, 0], [0, 1, 0], 'body', { zero: [0, 0, 1], toward: [1, 0, 0], width: 0.002, overlap: 0, lift: 0.002 });
+  const make = (path: MeasureShot['path'], turn: number, extra: Partial<MeasureShot> = {}, rise?: number): MeasureShot => {
+    const laid = flush(path, surf, 'all');
+    return { path: laid, ...extra, string: true, stringPath, view: { ...viewOf(laid, turn), ...(rise === undefined ? {} : { rise }) } };
+  };
+  const waistF = () => front(WY), waistB = () => back(WY), waistS = () => side(WY);
   switch (id) {
+    case 'string':
+      // The opening clip: the string alone, tied round the waist.
+      return { path: [], string: true, stringPath, view: { turn: 0.6, lookY: WY, dist: 7.5, aim: [0, WY, mid(WY)] } };
     case 'waist':
-      return make(girth(L.waist), 0);
+      return make(girth(WY), 0);
     case 'full_hip':
       return make(girth(hip), 0);
     case 'full_bust':
       return make(girth(L.full_bust), 0);
     case 'high_bust':
-      return make(girth(-0.95), 0);
+      // Snug up under the armpits, above the bust: where the chest is narrowest between the two (Cat, Nov 11: it sat
+      // too high).
+      return make(girth(extreme(-0.9, -0.72, -1)), 0);
     case 'neck': {
       // Round the base of the neck, over the bump at the back, dipping a little to the front: read from the neck
       // only (not the shoulders below it).
       const o: V3 = [0, -1.53, (nape[2] + neckFront[2]) / 2];
       const n = norm([0, 1, -0.22]);
-      return make(girthOn(surf, o, n, 'body', { ...g, overlap: 2 / CM, zero: [0, 0, 1], toward: [1, 0, 0], near: 0.42 }), -0.3, {}, 0.9);
+      // Cut along one line, not across the tape's whole width: the lower edge's cut caught the slope down into the
+      // back and held the tape off the neck there (Cat, Nov 11: it looked like an intentional gap).
+      return make(girthOn(surf, o, n, 'body', { ...g, width: 0.002, lift: lift * 1.5, overlap: 2 / CM, zero: [0, 0, 1], toward: [1, 0, 0], near: 0.42 }), -0.3, {}, 0.9);
     }
     case 'waist_to_hip':
       return make(len(waistS(), side(hip), [1, 0, 0]), SIDE_TURN, { string: true });
@@ -324,7 +364,7 @@ export function formShot(id: string, surf: Surface, joints: Record<string, V3>, 
       return make(len(nape, waistB(), [0, 0, -1]), Math.PI, { string: true });
     case 'front_hps_to_waist': {
       const a = apex(1);
-      return make(join(len(hps(1), a, norm([0, -0.4, 1])), len(a, front(L.waist, a[0]), [0, 0, 1])), -0.35, { string: true });
+      return make(join(len(hps(1), a, norm([0, -0.4, 1])), len(a, front(WY, a[0]), [0, 0, 1])), -0.35, { string: true });
     }
     case 'bust_depth':
       return make(len(hps(1), apex(1), norm([0, -0.4, 1])), -0.35);
@@ -333,7 +373,9 @@ export function formShot(id: string, surf: Surface, joints: Record<string, V3>, 
     case 'shoulder_width':
       return make(len(sp(-1), sp(1), norm([0, -0.35, -1]), 'all'), Math.PI);
     case 'shoulder_length':
-      return make(len(hps(1), sp(1), [0, -1, 0], 'all'), -0.4, {}, 1.6);
+      // Dropped onto the top of the shoulder rather than cut through it, so it lies flat along the ridge (Cat, Nov 11:
+      // the tape sat oddly here).
+      return make(drape(surf, hps(1), sp(1), [0, -1, 0], 'all', { lift }), -0.4, {}, 1.6);
     case 'across_back': {
       const y = nape[1] + 12 / CM;
       return make(len(crease(y, -1, -1), crease(y, 1, -1), [0, 0, -1]), Math.PI);
@@ -348,10 +390,10 @@ export function formShot(id: string, surf: Surface, joints: Record<string, V3>, 
       return make(len(waistB(), sp(1), [0, 0, -1], 'all'), Math.PI + 0.35, { string: true });
     case 'armscye': {
       // Round the arm where it joins the body: a cut through the arm just inside the shoulder joint, from the
-      // shoulder point over the top to up under the armpit.
+      // shoulder point over the top and round to its zero up under the armpit, where the overlap is hidden (Cat, Nov 11).
       const j = joints.shoulderL;
       // Up under the armpit: the hull closes straight across beneath it, as the tape does.
-      return make(girthOn(surf, [j[0] - 0.1, j[1], j[2]], [1, 0, 0], 'all', { ...g, overlap: 2 / CM, zero: [0, -1, 0], toward: [0, 0, 1], near: 0.6, keep: (q) => q[1] <= ARMPIT_Y }), -0.9, {}, 0.6);
+      return make(girthOn(surf, [j[0] - 0.07, j[1], j[2]], norm([1, 0.35, 0]), 'all', { ...g, overlap: 2 / CM, zero: [0, 1, 0], toward: [0, 0, 1], near: 0.6, keep: (q) => q[1] <= ARMPIT_Y }), -0.9, {}, 0.6);
     }
     case 'upper_arm': {
       const a = joints.shoulderL, e = joints.elbowL;
@@ -383,6 +425,9 @@ export interface MeasureFrame {
   rise?: number;
   /** A point on the form to look at (it turns with the form), in place of the centre line at lookY. */
   aim?: V3;
+  /** How much of the waist string is on, 0 to 1, and how far its knot is tied, 0 to 1 (both on when left out). */
+  string?: number;
+  knot?: number;
 }
 
 /** How the form is lifted off the black ground (mock-ups for Cat, Nov 10: "the black on black is hard to see"):
@@ -522,7 +567,8 @@ function fitBody(body: WholeBody) {
   const sideFac = Math.max(1, ringSide(HAND_TO) / (sideWidth(HAND_TO, 0.1) || 1));
   // Where a point of the real body goes on the form, w being how much it moves with an arm.
   const place = (x: number, y0: number, z: number, w: number): V3 => {
-    const y = Math.max(y0, NECK_TOP);
+    // Cut just under the ring's own top, whose very front flares out into a lip that stood up like a fin.
+    const y = Math.max(y0, NECK_TOP + 0.06);
     const a = Math.atan2(x, z);
     const ring = formR(a, y);
     const rr = Math.hypot(x, z) || 1;
@@ -641,7 +687,9 @@ export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot,
   }
   const neck = material('satin');
   neck.color.set(0x0e0c0a);
-  turning.add(new THREE.Mesh(cap((a) => bodyAt(a, NECK_TOP), [0, -1, 0]), neck));
+  const lid = new THREE.Mesh(cap((a) => bodyAt(a, NECK_TOP), [0, -1, 0]), neck);
+  lid.visible = !whole;
+  turning.add(lid);
   for (const leg of limbs || whole ? [] : [-1, 1]) {
     const T = (a: number, t: number): V3 => {
       const y = LEG_TOP + (FORM_FLOOR - LEG_TOP) * t;
@@ -721,10 +769,35 @@ export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot,
     scene.background = t;
   }
 
+  const STRING_SEGS = 400;
+  let stringMesh: THREE.Mesh | undefined;
+  const knot = new THREE.Group();
   if (shot.string) {
     const m = new THREE.MeshStandardMaterial({ color: hex(GILD), roughness: 0.6 });
-    turning.add(new THREE.Mesh(waistString(bodyLandmarks().waist), m));
+    const sp = shot.stringPath;
+    // Started from its knot at the right side (away from the side the side lengths are read on), so it can be drawn
+    // on going round, as a hand ties it.
+    const k = sp ? sp.reduce((bi, q, i) => (q.p[0] < sp[bi].p[0] ? i : bi), 0) : 0;
+    const from = sp ? [...sp.slice(k), ...sp.slice(0, k)] : undefined;
+    const geo = from ? new THREE.TubeGeometry(new THREE.CatmullRomCurve3(from.map((q) => new THREE.Vector3(...q.p)), true), STRING_SEGS, 0.0045, 6, true) : waistString(bodyLandmarks().waist);
+    stringMesh = new THREE.Mesh(geo, m);
+    turning.add(stringMesh);
+    if (from) {
+      // A small knot with two short ends hanging from it.
+      const at = from[0];
+      const out = norm(at.n);
+      knot.add(new THREE.Mesh(new THREE.SphereGeometry(0.016, 12, 8), m));
+      for (const s of [-1, 1]) {
+        const tail = new THREE.CatmullRomCurve3([new THREE.Vector3(0, 0, 0), new THREE.Vector3(...add(scale(out, 0.008), [0, 0.06, s * 0.015])), new THREE.Vector3(...add(scale(out, 0.006), [0, 0.16, s * 0.035]))]);
+        knot.add(new THREE.Mesh(new THREE.TubeGeometry(tail, 24, 0.004, 6, false), m));
+      }
+      knot.position.set(...add(at.p, scale(out, 0.004)));
+      turning.add(knot);
+    }
   }
+  const hasTape = shot.path.length > 1;
+  // The opening clip shows the string alone: an unseen stand-in keeps the tape's parts below from failing.
+  if (!hasTape) shot = { ...shot, path: [{ p: [0, 9, 0], n: [0, 0, 1] }, { p: [0.01, 9, 0], n: [0, 0, 1] }] };
 
   const tex = tapeTexture(renderer.capabilities.getMaxAnisotropy(), darkTape, tapeColours);
   const tapeMat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.75, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 });
@@ -746,7 +819,7 @@ export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot,
     const j = Math.max(0, Math.min(p.length - 1, i));
     const t = norm(sub(p[Math.min(p.length - 1, j + 1)].p, p[Math.max(0, j - 1)].p));
     const n = p[j].n;
-    const across = norm(cross(n, t));
+    const across = norm(cross(t, n)); // t, n, across in that order: a true turn, not a mirror
     const basis = new THREE.Matrix4().makeBasis(new THREE.Vector3(...across), new THREE.Vector3(...scale(t, dir)), new THREE.Vector3(...n));
     m.quaternion.setFromRotationMatrix(basis);
     m.position.set(...add(p[j].p, add(scale(n, 0.002), scale(t, (dir * -0.45) / CM))));
@@ -770,8 +843,13 @@ export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot,
     const k = Math.round(n * Math.max(0, Math.min(1, f.play)));
     rib.geo.setDrawRange(0, k * 6);
     shadowRib.geo.setDrawRange(0, k * 6);
-    tapeMesh.visible = k > 0;
-    end.visible = k > 0;
+    tapeMesh.visible = hasTape && k > 0;
+    end.visible = hasTape && k > 0;
+    shadowMesh.visible = hasTape && tapeShadow;
+    if (stringMesh) stringMesh.geometry.setDrawRange(0, Math.round(STRING_SEGS * Math.max(0, Math.min(1, f.string ?? 1))) * 6 * 6);
+    const kt = Math.max(0, Math.min(1, f.knot ?? 1));
+    knot.visible = kt > 0;
+    knot.scale.setScalar(Math.max(0.001, kt));
     place(end, 0, 1);
     renderer.render(scene, camera);
   };
