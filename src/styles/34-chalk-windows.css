@@ -144,3 +144,36 @@ section[aria-label='Preview'] > .preview .draft-caption {
 section[aria-label='Preview'] > .preview:has(.watch-draft) .draft-caption {
   bottom: 52px;
 }
+
+/* The Draw menu opens as a black box over the window, so its words keep the champagne of the app around it, not the
+   window's dark ink (Cat, Nov 11: dark words on black, hard to read). Written out, because --gild and --ink are ink
+   inside the window. */
+section[aria-label='Preview'] > .preview .drawmenu-list {
+  border-color: #d9c49b;
+}
+section[aria-label='Preview'] > .preview .drawmenu-list button {
+  color: #d9c49b;
+}
+section[aria-label='Preview'] > .preview .drawmenu-list button + button {
+  border-top-color: #4a4338;
+}
+
+/* The length and width handles on chalk (Cat, Nov 11: "the big black dot is not refined and the text is hard to
+   read"). They were drawn for black: a black disc with a light ring. On chalk that became a heavy black blob, and the
+   label's black outline (made for pale fabric on black) smudged it over the form's dark legs. Now a pale disc with a
+   fine ink ring and a small ink centre, like a pin head, and the words sit on a chalk halo so they read over the legs. */
+section[aria-label='Preview'] > .preview .shape .handle circle:not(.hit) {
+  fill: #f6f2ea;
+  stroke: var(--ink);
+}
+section[aria-label='Preview'] > .preview .shape .handle .dot {
+  fill: var(--ink);
+  stroke: none;
+}
+section[aria-label='Preview'] > .preview .shape .handle text {
+  fill: var(--ink);
+  paint-order: stroke;
+  stroke: var(--chalk);
+  stroke-width: 0.7;
+  stroke-linejoin: round;
+}
