@@ -83,6 +83,10 @@ export interface DrawnNeck {
   width: number;
   backDepth: number;
   fullness: number;
+  /** A slip's strap, sleeveless: the shoulder cut in at the armhole until the strap left beside the neck is this
+   * wide, in cm, so a narrow neckline still has a narrow strap, sitting over the middle of the shoulder. With it the
+   * neckline may go lower, to 2 cm above the bust point (In testing, Cat 2026-11-11, SS27 Look 07). */
+  strap?: number;
 }
 
 /** A front neckline drawn differently on the two sides (see uneven.ts), cut across a whole front: its
@@ -283,6 +287,10 @@ export const OVERSIZED = { armholeEase: 26, range: { min: 20, max: 36 } };
  * armhole shows none of it. A top cut below the shoulders, a draped neckline and the oversized cut keep their own.
  */
 const SLEEVELESS = { ease: 2.5, easeShare: 0.25, raise: 2, cutIn: 1.2 };
+/** The narrowest a slip's strap is cut, in cm (see DrawnNeck.strap). */
+const STRAP_MIN = 2.5;
+/** How far outside a slip strap's end the armhole passes at the across back and across front, in cm. */
+const STRAP_ACROSS = { back: 1.5, front: 0.8 };
 /** Sleeveless and cut clean (see SLEEVELESS). */
 const cleanSleeveless = (s: BodiceStyle) => s.sleeve === 'none' && s.fit !== 'oversized' && !isTop(s.neckline) && !isDraped(s);
 
@@ -872,14 +880,17 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   const plunging = s.neckline === 'plunge' && !s.neck && s.plungeDepth !== 'waist';
   const neckWidth = s.neckline === 'plunge' && !s.neck && s.plungeDepth === 'waist' ? PLUNGE.waistWidth : nl.width;
   // Otherwise a clean sleeveless shoulder stops short of the shoulder point (a boxy one runs past it instead).
-  const cutIn = plunging && (!s.sleeve || s.sleeve === 'none') ? Math.max(0, (SL - PLUNGE.strap) / 2) : cleanSleeveless(s) && s.fit !== 'boxy' ? SLEEVELESS.cutIn : 0;
-  const widen = plunging ? Math.max(0, SL - PLUNGE.strap) - cutIn : Math.max(0, Math.min(neckWidth, SL - 5));
+  // A slip's strap: the neck widens as drawn, and the armhole is cut in until the strap between them is as asked.
+  const strap = !plunging && cleanSleeveless(s) && s.fit !== 'boxy' && s.neck?.strap !== undefined ? Math.max(STRAP_MIN, Math.min(s.neck.strap, SL - SLEEVELESS.cutIn)) : undefined;
+  const strapWiden = strap !== undefined ? Math.max(0, Math.min(neckWidth, SL - strap - SLEEVELESS.cutIn)) : 0;
+  const cutIn = strap !== undefined ? SL - strapWiden - strap : plunging && (!s.sleeve || s.sleeve === 'none') ? Math.max(0, (SL - PLUNGE.strap) / 2) : cleanSleeveless(s) && s.fit !== 'boxy' ? SLEEVELESS.cutIn : 0;
+  const widen = strap !== undefined ? strapWiden : plunging ? Math.max(0, SL - PLUNGE.strap) - cutIn : Math.max(0, Math.min(neckWidth, SL - 5));
   // A boxy shoulder runs on past the body's shoulder point.
   const ext = (s.fit === 'boxy' ? BOXY.extend : 0) - cutIn;
   const hpsB = add(hpsB0, mul(p(Math.cos(backSlope), Math.sin(backSlope)), widen));
   // A plunge's strap is too narrow to ease anything into: its back strap is cut the front's width, the shoulder's usual
   // ease cut away at the armhole (the gold slip's straps came out 2.5 cm front, 3.5 cm back; CLO, Nov 10 2026).
-  const backExt = ext - (plunging && cutIn ? blen - SL : 0);
+  const backExt = ext - ((plunging && cutIn) || strap !== undefined ? blen - SL : 0);
   backSlope = dropped(backSlope, blen - widen + backExt);
   const spB = add(hpsB, mul(p(Math.cos(backSlope), Math.sin(backSlope)), blen - widen + backExt));
   if (!cutIn && Math.abs(spB.x - ext - SW / 2) > 2.5) {
@@ -893,7 +904,9 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   const bd = backStyle === 'scoop' || backStyle === 'v' ? backDepthFor(backStyle, NW) : Math.min(12, Math.max(0, nl.backDepth));
   const key = backStyle === 'keyhole' ? KEYHOLE.length : 0;
 
-  const abPt = p(AB / 2, scye / 2 + 1);
+  // (A slip's strap: the armhole runs in a hollow curve from the strap's end to the underarm, so the across back, and
+  // the across front below, come in to just outside the strap's end rather than standing out past it.)
+  const abPt = p(strap !== undefined ? Math.min(AB / 2, spB.x + STRAP_ACROSS.back) : AB / 2, scye / 2 + 1);
   const wb = NW;
 
   const suppB = backW - backWq;
@@ -944,7 +957,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   frontSlope = dropped(frontSlope, SL - widen + ext);
   // Deep necklines stop 5 cm above the bust point; a plunge runs on past it, nearly to the waist.
   const plunge = s.neckline === 'plunge' && !s.neck;
-  const cfNeck = p(0, Math.max(cfNeck0.y, Math.min(cfNeck0.y + nl.frontDepth, plunge ? wf - (s.plungeDepth === 'waist' ? PLUNGE.toWaist : PLUNGE.aboveWaist) : apex.y - 5)));
+  const cfNeck = p(0, Math.max(cfNeck0.y, Math.min(cfNeck0.y + nl.frontDepth, plunge ? wf - (s.plungeDepth === 'waist' ? PLUNGE.toWaist : PLUNGE.aboveWaist) : apex.y - (strap !== undefined ? 2 : 5))));
 
   // A neck gape pinned out at the toile is closed the way a pattern cutter does it: slash from the
   // middle of the neckline to the bust point, and pivot the shoulder, armhole and upper side seam
@@ -962,7 +975,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   const hpsF = pivot(hpsFit);
   const uF = unit(sub(spF, hpsF));
 
-  const afPt = pivot(p(AF / 2, (hpsFit.y + (SL - widen) * Math.sin(frontSlope) + scye) / 2 + 1.5));
+  const afPt = pivot(p(strap !== undefined ? Math.min(AF / 2, hpsFit.x + (SL - widen + ext) * Math.cos(frontSlope) + STRAP_ACROSS.front) : AF / 2, (hpsFit.y + (SL - widen) * Math.sin(frontSlope) + scye) / 2 + 1.5));
 
   // A small cup's bust dart is made up to MIN_BUST_DART the way a pattern cutter takes in a gaping armhole: up to
   // ARMHOLE_PIN is pinned out of the armhole at the across front and pivoted into the side dart, the lower armhole and
@@ -1105,7 +1118,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
       { n: '2', at: p(0, wb), note: `0 to 2, nape to waist: ${cm(NW)}. Square across for the waist line.${below ? ` The hem is ${cm(drop)} below.` : ''}` },
       { n: '3', at: hpsB0, note: `Back neck width: a fifth of the neck less 0.2 cm, ${cm(nw)} across and 2 cm up. ${widen ? `The neckline then widens ${cm(widen)} along the shoulder.` : ''}`.trim() },
       { n: '4', at: spB, note: `Shoulder: your shoulder length plus 1 cm to ease into the front, ${cm(blen)}, at ${deg(backSlope)} degrees${m.back_shoulder_slope && backSlope !== BACK_SLOPE && !fit.backSlope && !dropShoulder ? `, so the shoulder point is your back shoulder slope, ${cm(m.back_shoulder_slope)}, from the centre back waist` : ''}.` },
-      { n: '5', at: abPt, note: `Half the across back: ${cm(AB / 2)}, 1 cm below halfway down the armhole.` },
+      { n: '5', at: abPt, note: strap !== undefined && abPt.x < AB / 2 - 0.05 ? `The armhole of a strap: ${cm(abPt.x)} from the centre back here, ${cm(STRAP_ACROSS.back)} outside the strap's end, 1 cm below halfway down the armhole.` : `Half the across back: ${cm(AB / 2)}, 1 cm below halfway down the armhole.` },
       { n: '6', at: sideB, note: `A quarter of the bust with ease, less ${cm(shift)} moved to the front for the bust: ${cm(backW)}${forward > 0.05 ? `, then ${cm(forward)} more: the whole side seam is moved forward so the back armhole is a little longer than the front` : ''}.` },
       {
         n: '7',
@@ -1137,7 +1150,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     cut: backCut,
     seamAllowance: s.seamAllowance,
     allowances: { neck: s.neckArmholeAllowance, armhole: s.neckArmholeAllowance, hem: s.hemAllowance, ...(key ? { keyhole: KEYHOLE.allowance } : {}) },
-    meta: { ...(slitCm ? { slitCm } : {}), ...(backStyle !== 'plain' ? { backNeck: backStyle } : {}), ...(backStyle === 'v' ? { pointedAtCentre: ['neck'] } : {}), ...(plunging && cutIn ? { shoulderEase: 0 } : {}) },
+    meta: { ...(slitCm ? { slitCm } : {}), ...(backStyle !== 'plain' ? { backNeck: backStyle } : {}), ...(backStyle === 'v' ? { pointedAtCentre: ['neck'] } : {}), ...((plunging && cutIn) || strap !== undefined ? { shoulderEase: 0 } : {}) },
   };
 
   // ---- front, below the across front -----------------------------------------
@@ -1292,7 +1305,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
       },
       { n: '2', at: spF, note: `Shoulder: your shoulder length, ${cm(SL)}, at ${deg(frontSlope + turnF)} degrees${m.front_shoulder_slope && frontSlope !== FRONT_SLOPE && !fit.frontSlope && !turnF && !dropShoulder ? `, so the shoulder point is your front shoulder slope, ${cm(m.front_shoulder_slope)}, from the centre front waist` : ''}.` },
       { n: '3', at: apex, note: `Bust point: half the apex separation, ${cm(AS / 2)}, across, and the bust depth, ${cm(BD)}, from the neck point.` },
-      { n: '4', at: afPt, note: `Half the across front: ${cm(AF / 2)}.` },
+      { n: '4', at: afPt, note: strap !== undefined ? `The armhole of a strap: ${cm(STRAP_ACROSS.front)} outside the strap's end here.` : `Half the across front: ${cm(AF / 2)}.` },
       { n: '5', at: sideF, note: `Underarm: sized from the high bust, so the armhole fits the frame of the body.` },
       { n: '6', at: sideBust, note: `A quarter of the bust with ease, plus ${cm(shift)} for the bust: ${cm(frontW)}${forward > 0.05 ? `, less ${cm(forward)} with the side seam moved forward` : ''}. The side seam swings out to here.` },
       { n: '7', at: p(0, wf), note: `Centre front waist: your front shoulder to waist, ${cm(FL)}, measured down over the bust point.` },

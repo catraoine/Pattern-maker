@@ -53,6 +53,8 @@ export function lookFabric(words: string): MyFabric {
   return {
     ...(fibre ? { fibre } : {}),
     ...(special ? { special: special === 'sequin' ? 'sequins' : special } : sheer ? { special: 'sheer' } : {}),
+    // A sheer satin only hints at the body: a satin, faintly see-through.
+    ...(special === 'satin' && sheer ? { seeThrough: 'faint' as const } : {}),
     ...(colour ? { colour } : {}),
     ...(print ? { print } : {}),
     ...(crisp ? { drape: 'crisp' } : {}),

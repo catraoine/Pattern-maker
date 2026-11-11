@@ -17,7 +17,7 @@ import { HemChoice, HemMarks } from './HemMarks';
 import { useEnlarged } from './EnlargeSketch';
 import { SHADOW } from './palette';
 import { useLengthStep, useNarrow } from './StyleLayout';
-import { ClothDefs, ClothOverlay, SHEER_OPACITY, borderHems, useFabricLook } from './ClothLook';
+import { ClothDefs, ClothOverlay, throughOpacity, borderHems, useFabricLook } from './ClothLook';
 
 type Measures = { full_bust?: number; waist: number; full_hip?: number; waist_to_hip?: number; waist_to_knee?: number; waist_to_floor?: number };
 
@@ -958,9 +958,9 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
         <g className="cloth" filter={`url(#${cast})`}>
           {pieces.map((d, i) => (
             <g key={`c${i}`}>
-              <path d={d} className="cloth-fill" strokeWidth={0.3} strokeLinejoin="round" fillOpacity={look?.sheer ? SHEER_OPACITY : undefined} />
+              <path d={d} className="cloth-fill" strokeWidth={0.3} strokeLinejoin="round" fillOpacity={throughOpacity(look)} />
               <ClothOverlay d={d} uid={uid} k={`p${i}`} look={look} hemY={hems[i]} />
-              <path d={d} fill={`url(#${shade})`} stroke="none" opacity={look?.sheer ? 0.6 : undefined} />
+              <path d={d} fill={`url(#${shade})`} stroke="none" opacity={look?.faint ? 0.9 : look?.sheer ? 0.6 : undefined} />
               <path d={d} fill={`url(#down${uid})`} stroke="none" />
               {body.head && (
                 <>

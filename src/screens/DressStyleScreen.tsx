@@ -594,6 +594,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                   {label}
                   {optionInTesting(g.id, id) && <TestingTag tool="new_details" />}
                   {g.id === 'neckline' && id === 'plunge' && <TestingTag tool="plunge" />}
+                  {g.id === 'noSeam' && id === 'bias' && <TestingTag tool="bias_dress" />}
                   {g.id === 'plungeDepth' && id === 'waist' && <TestingTag tool="waist_plunge" />}
                   {g.id === 'sleeveFullness' && id === 'full' && <TestingTag tool="full_sleeve" />}
                   {g.id === 'gathers' && <TestingTag tool="fullness" />}
@@ -760,7 +761,9 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
         {draft && <FabricSummary metres={dressFabricMetres([...pieces, ...(draft ? layoutExtras(draft.skirt) : [])])} fabric={fabric} />}
         <p className="muted small">
           {draft?.noSeam
-            ? `Cut in one with no waist seam: front and back each one piece from the shoulder to the hem${draft.noSeam === 'sheath' ? `, shaped at the waist by darts pointed at both ends${draft.pieces.some((pc) => pc.meta.slitCm) ? ', with a walking slit at the back' : ''}` : ', hanging straight from the bust'}.`
+            ? draft.noSeam === 'bias'
+              ? 'Cut in one on the bias, with no waist seam and no zip: front and back are each one whole piece from the shoulder to the hem, the cloth clings over the hip, and the dress goes on over your head.'
+              : `Cut in one with no waist seam: front and back each one piece from the shoulder to the hem${draft.noSeam === 'sheath' ? `, shaped at the waist by darts pointed at both ends${draft.pieces.some((pc) => pc.meta.slitCm) ? ', with a walking slit at the back' : ''}` : ', hanging straight from the bust'}.`
             : choices.skirt.silhouette === 'slip'
             ? 'The skirt is cut on the bias, for a slip dress: it has no darts, its waist seam is drafted to the bodice, and the cloth moulds to the hip.'
             : choices.skirt.silhouette === 'gathered'

@@ -49,6 +49,7 @@ export type TestingTool =
   | 'drop_yoke'
   | 'low_rise'
   | 'bias_mini'
+  | 'bias_dress'
   | 'polo_collar'
   | 'trouser_ruffle'
   | 'slip_slit'
@@ -120,6 +121,8 @@ export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; p
   // For the SS27 black knife-pleat skirt (Cat, 2026-11-01: "make the skirt low rise"; design options need no flag).
   low_rise: { name: 'Low-rise skirt', where: 'the Rise chips on a skirt', proof: 'two testers sew a low-rise skirt and it sits level on the hip without slipping, the hem where it was' },
   // For the SS27 shell top and bias mini (Cat, 2026-11-02: "Mini"; a design option, no freeze flag).
+  // For SS27 Look 07, from Cat's picture of a bias maxi with no waist seam (2026-11-11: "Build bias"; a design option, no freeze flag).
+  bias_dress: { name: 'Bias slip dress', where: 'the Bias slip chip under Cut on a dress', proof: 'two testers sew a bias slip dress and it goes on over the head, clings at the hip and hangs level without twisting, the neckline lying flat' },
   bias_mini: { name: 'Bias slip mini', where: 'the Slip chip on a skirt cut above the knee', proof: 'two testers sew a bias slip mini and it moulds over the hip and swings without twisting, the hem level' },
   // For the SS27 cropped polo set from Cat's picture (2026-11-02, "Let's make it this"; a design option, no flag).
   polo_collar: { name: 'Open polo collar', where: 'the Open polo chip under Collar on a top', proof: 'two testers sew an open polo collar and the slit lies flat and open, the collar points sitting level on the chest' },

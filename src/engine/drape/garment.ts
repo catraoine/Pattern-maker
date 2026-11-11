@@ -19,6 +19,7 @@ import { trouserDetails } from './trouserLines';
 import { levelSkirtHem } from './levelHem';
 import { closeHemCorners } from './hemCorners';
 import { Space, boxed } from './space';
+import { fairBiasSkirt } from './biasFair';
 import { knob, setKnob } from './knob';
 import { frontPins, tapeRollLines } from './rollLine';
 import { fairFrontCentre } from './fairFront';
@@ -1829,7 +1830,9 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
     // (A piece cut on the bias, a slip, gives up to 0.3: along its length the cloth is all bias, and pulled down it
     // narrows round the hip and thigh, as a bias slip clings. Fabric behaviour round 2; at 0.6 a silk slip gown's back
     // folded through itself once the skirt was kept from passing through itself, release M.)
-    const biasOf = o.bias && (o.fallOn === 'all' || (o.fallOn === 'skirt' && p.role.startsWith('peplum'))) && !knob('__noBias') ? knob('__bias') ?? (p.pc.meta.bias ? Math.min(0.3, o.bias * 3) : p.pc.meta.waistRadius ? o.bias * (knob('__circleBias') ?? 0.5) : o.bias) : 0;
+    // (A bias slip dress, cut in one from the shoulder: its cloth gives from under the bust down, see biasBelow.)
+    const biasBelow = o.fallOn === 'skirt' && !p.role.startsWith('peplum') ? (p.pc.meta.biasBelow as number | undefined) : undefined;
+    const biasOf = o.bias && (o.fallOn === 'all' || (o.fallOn === 'skirt' && (p.role.startsWith('peplum') || biasBelow !== undefined))) && !knob('__noBias') ? knob('__bias') ?? (p.pc.meta.bias ? Math.min(0.3, o.bias * 3) : p.pc.meta.waistRadius ? o.bias * (knob('__circleBias') ?? 0.5) : o.bias) : 0;
     const holdHere = !!extra.trousers && !!o.fall && o.fall > 1 && o.fallOn === 'all' && !knob('__noHold');
     const gr = p.pc.grain ? [p.pc.grain[1].x - p.pc.grain[0].x, p.pc.grain[1].y - p.pc.grain[0].y] : [0, 1];
     const grL = Math.hypot(gr[0], gr[1]) || 1;
@@ -1837,9 +1840,12 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
       const [u, v] = k.split(',').map(Number);
       edges.push(u + p.base, v + p.base);
       rest.push(Math.hypot(pts[u].x - pts[v].x, pts[u].y - pts[v].y));
-      if (biasOf) {
+      if (biasOf && (biasBelow === undefined || (pts[u].y + pts[v].y) / 2 > biasBelow)) {
         const c = ((pts[v].x - pts[u].x) * gr[0] + (pts[v].y - pts[u].y) * gr[1]) / grL / (rest[rest.length - 1] || 1);
-        edgeW.set(edges.length / 2 - 1, 1 - biasOf * 4 * c * c * (1 - c * c));
+        // (A bias slip dress gives round the hip and thigh, where it clings, and less and less towards its hem: given
+        // all the way down, its hem's spare width folded into one sharp crease instead of swinging.)
+        const fade = biasBelow === undefined ? 1 : Math.max(0, Math.min(1, 1 - ((pts[u].y + pts[v].y) / 2 - biasBelow - (knob('__biasFadeFrom') ?? 50)) / (knob('__biasFadeOver') ?? 25)));
+        edgeW.set(edges.length / 2 - 1, 1 - biasOf * fade * 4 * c * c * (1 - c * c));
       }
       // (Down a trouser leg that falls harder than the light pull: held to its cut length too, so its weight drops it
       // straight off the hip rather than stretching it 3 times its cut, Fabric behaviour round 4. Not a skirt: held so,
@@ -2275,14 +2281,18 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
   // yoke) stretched to 4 to 10 times its cut, and a big peplum or a cowl folded into fins, Fabric behaviour 2026-11-07.
   // A skirt with a yoke keeps the light pull: its yoke carries the whole skirt.)
   if (o.fall && o.fall > 1 && o.fallOn && !knob('__noFall')) {
-    const hung = B.panels.filter((p) => (o.fallOn === 'all' || p.role.startsWith('peplum')) && !p.hidden);
+    const hung = B.panels.filter((p) => (o.fallOn === 'all' || p.role.startsWith('peplum') || p.pc.meta.biasBelow !== undefined) && !p.hidden);
     // (Nor a full circle: see fullCircle.)
     if (hung.length && !fullCircle(extra.skirt) && !B.panels.some((p) => /yoke/i.test(p.pc.name))) {
       const sc = new Float32Array(pos.length / 3).fill(1);
       const fall = knob('__fall') ?? (o.fallOn === 'skirt' ? Math.min(o.fall, knob('__dressFall') ?? 1.4) : extra.trousers ? Math.min(3, o.fall * (knob('__trouserFallX') ?? 5 / 3)) : o.fall);
       // (A bias-cut piece in a fluid cloth hangs twice as hard, up to 3: its weight is what draws it in to cling. In a
       // cotton, pulled harder, the slip's back was drawn 2.5 times its cut.)
-      for (const p of hung) for (let i = 0; i < p.mesh.pts.length; i++) sc[p.base + i] = p.pc.meta.bias ? Math.min(3, fall * 2) : fall;
+      for (const p of hung) {
+        // (A bias slip dress hangs so from under the bust down; above it, its straps carry it as any bodice's do.)
+        const from = o.fallOn === 'skirt' && !p.role.startsWith('peplum') ? (p.pc.meta.biasBelow as number | undefined) : undefined;
+        for (let i = 0; i < p.mesh.pts.length; i++) if (from === undefined || p.mesh.pts[i].y > from) sc[p.base + i] = p.pc.meta.bias ? Math.min(3, fall * (from === undefined ? 2 : knob('__biasDressFall') ?? 1)) : fall;
+      }
       input.gScale = sc;
     }
   }
@@ -6562,8 +6572,10 @@ export function drapeDress(sp: Space, d: DressDraft, sleeve?: SleeveDraft, o: Dr
   const slit = (d.skirt as { slit?: { at: string; cm: number } } | undefined)?.slit;
   const slitCm = o.openSlit && slit?.at === 'side' ? slit.cm : undefined;
   const sk = d.skirt as { asym?: unknown; hem?: unknown } | undefined;
-  const out = drapeBodice(sp, d.bodice, sleeve, { heavySkirt: true, ...(sk?.asym || sk?.hem ? { shapedHem: true } : {}), ...o }, { pieces: d.pieces, skirt: hungSkirt(madeUpSkirt(d.pieces, d.skirt).filter(isSkirt), d.skirt?.volume as never, { hip: d.skirt?.finishedHip, hem: d.skirt?.hemCm }), drop: d.seamDrop ?? 0, tiers: d.skirt?.volume?.tiers?.bands, under: d.pieces.filter(isUnder), ...(slitCm ? { slitCm } : {}) });
+  // (A bias slip dress is sewn from its halves, as drafted: its printed pieces are the same halves traced whole.)
+  const out = drapeBodice(sp, d.bodice, sleeve, { heavySkirt: true, ...(sk?.asym || sk?.hem ? { shapedHem: true } : {}), ...o }, { pieces: d.noSeam === 'bias' ? d.bodice.pieces : d.pieces, skirt: hungSkirt(madeUpSkirt(d.pieces, d.skirt).filter(isSkirt), d.skirt?.volume as never, { hip: d.skirt?.finishedHip, hem: d.skirt?.hemCm }), drop: d.seamDrop ?? 0, tiers: d.skirt?.volume?.tiers?.bands, under: d.pieces.filter(isUnder), ...(slitCm ? { slitCm } : {}) });
   if (d.noSeam) levelHemSpikes(out);
+  if (d.noSeam === 'bias') fairBiasSkirt(out);
   else if (!(sk?.asym || sk?.hem) && !knob('__noLevelSkirt')) levelSkirtHem(out);
   return out;
 }

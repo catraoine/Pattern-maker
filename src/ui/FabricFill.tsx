@@ -139,8 +139,9 @@ function fabricLook(fabric: MyFabric | undefined, base: string): FabricLook | un
   const special = shopFabric(fabric?.shop)?.special ?? fabric?.special;
   const kind = printShown(fabric);
   const soft = !special && fabric?.sheen === 'soft';
-  if (!special && kind !== 'border' && !soft) return undefined;
-  return { special, sheer: special === 'sheer' || special === 'lace', ...(soft ? { sheen: 'soft' as const } : {}), ...(kind === 'border' ? { border: { href: printImage('border', base), size: printTileCm('border', undefined) } } : {}) };
+  if (!special && kind !== 'border' && !soft && fabric?.seeThrough !== 'faint') return undefined;
+  const faint = fabric?.seeThrough === 'faint' && special !== 'sheer' && special !== 'lace';
+  return { special, sheer: special === 'sheer' || special === 'lace' || faint, ...(faint ? { faint } : {}), ...(soft ? { sheen: 'soft' as const } : {}), ...(kind === 'border' ? { border: { href: printImage('border', base), size: printTileCm('border', undefined) } } : {}) };
 }
 
 /** How a fabric is painted: the swatch (or drawn checks) at its size in cm, the colour table that tints it,

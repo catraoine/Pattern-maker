@@ -15,6 +15,7 @@ import { BUTTONS_STOP_ABOVE_HEM, openSkirtFront, skirtFrontFacing } from './skir
 import { DraftError, FIT_EASE, LENGTHS, NoSeam, Silhouette, SkirtDraft, SkirtMeasurements, SkirtStyle, draftSkirt, flareRange, lengthRange } from './skirt';
 import { wrapSkirtAllowed } from './wrapSkirt';
 import { walkingSlit } from './slit';
+import { BIAS_GRAIN, SLIP_HEM, wholePiece } from './slip';
 import { isTop } from './corset';
 import { volumeOf } from './skirtVolume';
 import type { SleeveMeasurements } from './sleeve';
@@ -190,7 +191,9 @@ export const noSeamAllowed = (b: Partial<BodiceStyle>) =>
  * straight from the bust, easing out a little to the hem. One zip opens the centre back to below the
  * waist. The skirt is drafted too, for its length and the steps it shares, but not cut.
  */
-function noSeamDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyle>, skirtStyle: Partial<SkirtStyle>, kind: NoSeam): DressDraft {
+function noSeamDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyle>, skirtStyle: Partial<SkirtStyle>, cut: NoSeam): DressDraft {
+  // A bias slip dress is drafted as a shift, then each piece is cut whole on the bias (see biasCut).
+  const kind: 'sheath' | 'shift' = cut === 'bias' ? 'shift' : cut;
   const plain: Partial<SkirtStyle> = { ...skirtStyle, silhouette: 'straight', pleats: undefined, godets: undefined, flounce: undefined, asymHem: undefined, pockets: undefined, hem: undefined, flareCm: undefined, shape: undefined, ruched: undefined };
   const belowWaist = plain.lengthCm !== undefined ? lengthRange(m).clamp(plain.lengthCm) : LENGTHS[plain.length ?? 'knee'](m);
   const bodice = draftBodice(m, {
@@ -201,7 +204,8 @@ function noSeamDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyle>, sk
     peplum: 'none',
     closure: 'back_zip',
     // A dress's hem: deeper than a top's, the weight helps it hang.
-    hemAllowance: skirtStyle.hemAllowance ?? 4,
+    // (A bias slip's is its narrow rolled hem and the spare to level it after it has hung.)
+    hemAllowance: skirtStyle.hemAllowance ?? (cut === 'bias' ? SLIP_HEM : 4),
     ...(kind === 'shift' ? { darts: 'bust' as const } : {}),
     // A shift's flare: the skirt's own flare setting, else the standard easing out (see DRESS_HEM_TAPER).
     dressHem: { belowWaist, shape: kind, ...(kind === 'shift' && skirtStyle.flareCm !== undefined ? { flare: Math.min(flareRange(m, belowWaist, 'a_line').max, Math.max(0, skirtStyle.flareCm)) } : {}) },
@@ -226,6 +230,33 @@ function noSeamDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyle>, sk
   const bf = pieces.find((pc) => !pc.kind && /front/i.test(pc.name));
   const bb = pieces.find((pc) => !pc.kind && /back/i.test(pc.name));
   const ring = bf && bb ? 2 * (widthAt(bf, bodice.front.waistCentre.y + zipBelow + 1) + widthAt(bb, cbWaist + zipBelow + 1)) : Infinity;
+  if (cut === 'bias') {
+    // No zip: the dress goes on over the head, so nothing below the bust may be smaller than the bust itself.
+    let warnings = bodice.finishedWaist < m.full_bust ? [...bodice.warnings, 'This dress has no zip and goes on over your head: choose a looser fit so its waist passes over your bust.'] : bodice.warnings;
+    // (Cut whole on the bias a long dress lies corner to corner on the cloth, and past a length it is wider than any
+    // cloth sold: said here, so the maker hears it before buying, not at the cutting layout.)
+    const across = Math.max(...pieces.filter((pc) => !pc.kind).map(biasWidth));
+    if (across > WIDEST_CLOTH) warnings = [...warnings, `Cut whole on the bias, this dress needs cloth ${Math.ceil(across / 5) * 5} cm wide, wider than most cloth is sold. Choose a shorter length or less flare at the hem.`];
+    // (The drape sews the halves: below the bust their cloth gives and hangs as bias does.)
+    const noCentreSeam = (o: Piece['outline']) => Object.assign(Object.create(Object.getPrototypeOf(o)), o, { tags: o.tags.map((t) => (t === 'centre' ? 'fold' : t)) });
+    const halves = pieces.map((pc) => (pc.kind ? pc : { ...pc, outline: noCentreSeam(pc.outline), grain: pc.grain ? ([pc.grain[0], add(pc.grain[0], p(2 * BIAS_GRAIN, 2 * BIAS_GRAIN))] as [P, P]) : pc.grain, meta: { ...pc.meta, bias: true, biasBelow: (/back/i.test(pc.name) ? bodice.back : bodice.front).waistCentre.y - BIAS_ABOVE_WAIST } }));
+    return {
+      bodice: { ...bodice, pieces: halves, zipCm: 0 },
+      skirt,
+      pieces: pieces.map((pc) => (pc.kind ? pc : biasCut(pc, bodice.armholeDepth))),
+      zipCm: 0,
+      zipBelowWaist: 0,
+      overHead: true,
+      lengthCm: bodice.backLength,
+      noSeam: cut,
+      seamDrop: 0,
+      seamRange: { min: 0, max: 0 },
+      finishedBust: bodice.finishedBust,
+      finishedWaist: bodice.finishedWaist,
+      finishedHip: bodice.finishedHip ?? skirt.finishedHip,
+      warnings,
+    };
+  }
   return {
     bodice,
     skirt,
@@ -241,6 +272,40 @@ function noSeamDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyle>, sk
     finishedWaist: bodice.finishedWaist,
     finishedHip: bodice.finishedHip ?? skirt.finishedHip,
     warnings: bodice.warnings,
+  };
+}
+
+/** How far above the waist a bias slip dress's cloth starts to give and cling in the drawing, in cm: from under the bust. */
+const BIAS_ABOVE_WAIST = 8;
+
+/** The widest cloth the layouts are planned on, in cm. */
+const WIDEST_CLOTH = 150;
+
+/** The width of cloth a half piece needs once cut whole on the bias: its width across the cloth when it lies at 45
+ *  degrees, its seam allowance both sides and the selvedges kept clear. */
+function biasWidth(pc: Piece): number {
+  const pts = pc.outline.points(12).flatMap((q) => [q, p(-q.x, q.y)]);
+  const along = pts.map((q) => (q.x + q.y) / Math.SQRT2);
+  return Math.max(...along) - Math.min(...along) + 2 * pc.seamAllowance + 3;
+}
+
+/**
+ * A shift's half piece made a bias slip's: traced whole across its centre line, with no centre back seam or zip, and
+ * its grain turned 45 degrees, so the cloth gives round the body and clings as it hangs. Cut single layer.
+ */
+function biasCut(pc: Piece, scye: number): Piece {
+  const whole = wholePiece(pc);
+  const cut = 'Cut 1, single layer, on the bias';
+  const { pts, tags } = whole.outline.taggedPoints(12);
+  const bottom = Math.min(...pts.filter((_, i) => tags[i] === 'hem').map((q) => q.y));
+  const mid = Math.min(bottom - 4 - BIAS_GRAIN, Math.max(scye + 6 + BIAS_GRAIN, (scye + bottom) / 2));
+  return {
+    ...whole,
+    cut,
+    grain: [p(-BIAS_GRAIN, mid - BIAS_GRAIN), p(BIAS_GRAIN, mid + BIAS_GRAIN)],
+    notches: whole.notches,
+    labels: whole.labels.filter((l) => l.text !== 'SLIT ENDS').map((l) => (l.text === pc.cut ? { ...l, text: cut } : l)),
+    meta: { ...whole.meta, bias: true, singleLayer: true },
   };
 }
 

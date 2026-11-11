@@ -1,7 +1,7 @@
 import { useId } from 'react';
 import type { Flat } from '../engine/flat';
 import { SHADE_STOPS } from './FormSketch';
-import { ClothDefs, ClothOverlay, SHEER_OPACITY, borderHems, useFabricLook } from './ClothLook';
+import { ClothDefs, ClothOverlay, throughOpacity, borderHems, useFabricLook } from './ClothLook';
 
 const d = (pts: { x: number; y: number }[], close = false) =>
   pts.map((q, i) => `${i ? 'L' : 'M'}${q.x.toFixed(2)},${q.y.toFixed(2)}`).join('') + (close ? 'Z' : '');
@@ -38,9 +38,9 @@ export function TechFlatView({ flat, title }: { flat: Flat; title: string }) {
             </defs>
             {v.shapes.map((s, i) => (
               <g key={i}>
-                <path d={d(s, true)} className="flat-shape" fillOpacity={look?.sheer ? SHEER_OPACITY : undefined} />
+                <path d={d(s, true)} className="flat-shape" fillOpacity={throughOpacity(look)} />
                 <ClothOverlay d={d(s, true)} uid={`${uid}${k}`} k={`s${i}`} look={look} hemY={hems[i]} />
-                <path d={d(s, true)} className="flat-shade" style={{ fill: `url(#${shade})` }} opacity={look?.sheer ? 0.6 : undefined} />
+                <path d={d(s, true)} className="flat-shade" style={{ fill: `url(#${shade})` }} opacity={look?.faint ? 0.9 : look?.sheer ? 0.6 : undefined} />
               </g>
             ))}
             {v.lines.map((l, i) => (
