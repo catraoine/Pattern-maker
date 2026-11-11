@@ -44,6 +44,8 @@ export function outerGuide(
   // Sleeveless (a waistcoat, In testing): no sleeves to cut, set in or line; the armholes are bagged out with the lining.
   const bare = !!d.sleeveless;
   const vent = d.vent;
+  // (Named a vest in the steps when it has no sleeves: Fable cut check of the Look 02 vest, Nov 11.)
+  const word = bare ? 'vest' : kind;
   // A seam across the chest (the Look 02 vest): the front and back are each cut in two, a yoke above the seam.
   const yoked = !!d.chestSeam;
   const darts = !princess && d.base.bustDart > 0.3;
@@ -57,7 +59,8 @@ export function outerGuide(
   const notions = [
     `${fabricM} m of ${width} cm wide fabric`,
     ...(finish.liningM ? [`${finish.liningM} m of lining`] : []),
-    `${finish.interfacingM ?? (kind === 'coat' ? 1.5 : 1)} m of fusible weft interfacing`,
+    `${finish.interfacingM ?? (kind === 'coat' || bare ? 1.5 : 1)} m of fusible weft interfacing`,
+    ...(bare ? ['3 m of 1 cm fusible stay tape, for the armholes and the roll line'] : []),
     ...(zip
       ? [`An open-ended (separating) zip, about ${Math.round(d.lengthCm - (rib ? rib.hem : 0))} cm long: buy the nearest length and set its bottom stop at the ${rib ? 'hem band seam' : 'hem'}`]
       : [`${count} buttons, ${n1(d.buttons.sizeCm)} across${d.buttons.columns.length > 1 ? `, plus one small button for the inside` : ''}`]),
@@ -84,7 +87,7 @@ export function outerGuide(
     },
     {
       title: 'Interface',
-      text: `Fuse interfacing to the wrong side of the front facings${collar === 'hood' ? ", a 3 cm strip along each hood piece's face edge" : collar !== 'none' ? ', both collar pieces' : ''}, and the top 10 cm of each ${princess ? 'centre front' : 'front'} and the back${pockets ? ', and the top fold of each pocket' : ''}${welts ? ', the welts, and a 5 cm strip behind each welt pocket box' : ''}${flaps ? ', the pocket flaps and jets, and a 5 cm strip behind each pocket box' : ''}${chest ? ', the chest welt and a strip behind its box' : ''}${vent ? ', and the vent underlaps' : ''}. ${rib ? `The hem${bare ? '' : ' and sleeve edges'} take${bare ? 's a rib band' : ' rib bands'}, so ${bare ? 'it needs' : 'they need'} no strip.` : `Fuse a 5 cm strip along the hem of every shell piece${bare ? '' : ' and the sleeve hems'}.`} Use a press cloth and hold the iron still for 10 seconds at a time; let each piece cool flat before you move it.`,
+      text: `${bare ? `For a crisp, boxy vest, fuse interfacing to the whole of each front${yoked ? ', each front yoke, each back yoke' : ''}, the front facings and both collar pieces${welts ? ', the welts, and a 5 cm strip behind each welt pocket box' : ''}${vent ? ', and the vent underlaps' : ''}. Then press 1 cm stay tape over the armhole seam line all round and along the roll line, 3 mm short of its length so the lapel hugs the chest. Fuse a 5 cm strip along the back hem. Use a press cloth and hold the iron still for 10 seconds at a time; let each piece cool flat before you move it.` : `Fuse interfacing to the wrong side of the front facings${collar === 'hood' ? ", a 3 cm strip along each hood piece's face edge" : collar !== 'none' ? ', both collar pieces' : ''}, and the top 10 cm of each ${princess ? 'centre front' : 'front'} and the back${pockets ? ', and the top fold of each pocket' : ''}${welts ? ', the welts, and a 5 cm strip behind each welt pocket box' : ''}${flaps ? ', the pocket flaps and jets, and a 5 cm strip behind each pocket box' : ''}${chest ? ', the chest welt and a strip behind its box' : ''}${vent ? ', and the vent underlaps' : ''}. ${rib ? `The hem${bare ? '' : ' and sleeve edges'} take${bare ? 's a rib band' : ' rib bands'}, so ${bare ? 'it needs' : 'they need'} no strip.` : `Fuse a 5 cm strip along the hem of every shell piece${bare ? '' : ' and the sleeve hems'}.`} Use a press cloth and hold the iron still for 10 seconds at a time; let each piece cool flat before you move it.`}`,
     },
     ...(darts || waistDarts
       ? [
@@ -160,7 +163,7 @@ export function outerGuide(
       ? [
           {
             title: 'Sew in the raglan sleeves',
-            text: `Sew each raglan sleeve front to its sleeve back along the top seam, from the neck down to the wrist: this seam stands in for the shoulder seam${d.pads ? ', and the pads sit under it' : ''}. Press it open. Pin each sleeve into its opening right sides together, the sleeve front to the ${kind} front and the sleeve back to the back, matching the notches, and sew from the neck down the raglan line, round the underarm and back up to the neck on the other side. Sew the underarm seam of each sleeve and press it open.${d.pads ? ' Slip in raglan shoulder pads (the rounded kind), centred on the top seam, and tack them by hand to the seam allowances.' : ''}`,
+            text: `Sew each raglan sleeve front to its sleeve back along the top seam, from the neck down to the wrist: this seam stands in for the shoulder seam${d.pads ? ', and the pads sit under it' : ''}. Press it open. Pin each sleeve into its opening right sides together, the sleeve front to the ${word} front and the sleeve back to the back, matching the notches, and sew from the neck down the raglan line, round the underarm and back up to the neck on the other side. Sew the underarm seam of each sleeve and press it open.${d.pads ? ' Slip in raglan shoulder pads (the rounded kind), centred on the top seam, and tack them by hand to the seam allowances.' : ''}`,
           },
         ]
       : []),
@@ -175,8 +178,8 @@ export function outerGuide(
     ...(collar === 'notched'
       ? [
           {
-            title: 'Sew the collar to the jacket',
-            text: `Use one collar as the under collar. Sew it to the neck of the ${kind} from one gorge mark to the other, matching the centre back notch, and stop exactly at the end of each gorge line. Clip the neck seam allowance at the shoulder seams and press the seam open.`,
+            title: `Sew the collar to the ${word}`,
+            text: `Use one collar as the under collar. Sew it to the neck of the ${word} from one gorge mark to the other, matching the centre back notch, and stop exactly at the end of each gorge line. Clip the neck seam allowance at the shoulder seams and press the seam open.`,
           },
           {
             title: 'Sew the upper collar to the facings',
@@ -184,7 +187,7 @@ export function outerGuide(
           },
           {
             title: 'Join the collar and lapels',
-            text: `Pin the facings and upper collar to the ${kind} right sides together, matching the gorge seams exactly. Sew round the outer edge of the collar, pivot at the notches without stitching across the seam, and carry on down the lapels to the break point and the front edge to the hem. Trim, clip the notch corners, and turn. Roll the lapels and collar along the roll line and press so the seam rolls just to the underside.`,
+            text: `Pin the facings and upper collar to the ${word} right sides together, matching the gorge seams exactly. Sew round the outer edge of the collar, pivot at the notches without stitching across the seam, and carry on down the lapels to the break point and the front edge to the hem. Trim, clip the notch corners, and turn. Roll the lapels and collar along the roll line and press so the seam rolls just to the underside.${bare ? ' Before you sew, trim 3 mm off the under collar\'s outer edge and off each front\'s lapel edge from the gorge to the break, so the top collar and the facings are a little bigger and the seam rolls out of sight.' : ''}`,
           },
         ]
       : [
@@ -192,9 +195,9 @@ export function outerGuide(
             title: collar === 'stand' ? 'Sew the stand collar' : collar === 'hood' ? 'Make and sew on the hood' : 'Face the neck and front',
             text:
               collar === 'hood'
-                ? `Sew the two hood pieces together along the curved seam from the neck up over the head to the face edge, right sides together, ${curve} from the edge; clip the curve and press the seam open. Turn the face edge under 2.5 cm and stitch it down, or bind it. Pin the hood to the neck of the ${kind} right sides together, matching the centre back notch, its front edges meeting the front edges${zip ? ' at the top of the zip' : ''}, and sew it on. Pin the front facings to the fronts right sides together and sew up each front edge and across the hood seam to the shoulder${raglan ? ' line' : ' seam'}; trim, turn and press. The rest of the neck seam is covered by the lining.`
+                ? `Sew the two hood pieces together along the curved seam from the neck up over the head to the face edge, right sides together, ${curve} from the edge; clip the curve and press the seam open. Turn the face edge under 2.5 cm and stitch it down, or bind it. Pin the hood to the neck of the ${word} right sides together, matching the centre back notch, its front edges meeting the front edges${zip ? ' at the top of the zip' : ''}, and sew it on. Pin the front facings to the fronts right sides together and sew up each front edge and across the hood seam to the shoulder${raglan ? ' line' : ' seam'}; trim, turn and press. The rest of the neck seam is covered by the lining.`
                 : collar === 'stand'
-                  ? `Sew one collar piece to the neck of the ${kind}, matching the centre back and the ends to the front edges. Sew the other to the neck edge of each front facing, from the front edge to the shoulder end of the facing; its middle stays free for now and is sewn to the lining's back neck later. Pin the facings to the fronts right sides together and sew up each front edge, round the collar and down the other front. Trim, clip the curves and turn.`
+                  ? `Sew one collar piece to the neck of the ${word}, matching the centre back and the ends to the front edges. Sew the other to the neck edge of each front facing, from the front edge to the shoulder end of the facing; its middle stays free for now and is sewn to the lining's back neck later. Pin the facings to the fronts right sides together and sew up each front edge, round the collar and down the other front. Trim, clip the curves and turn.`
                   : `Pin the front facings to the fronts right sides together, and sew up each front edge and round the neck as far as the shoulder seam, ${curve} from the edge. Trim and clip the curve, then understitch the facing and press it to the inside. The back neck is finished by the lining.`,
           },
         ]),
@@ -209,11 +212,11 @@ export function outerGuide(
     rib
       ? {
           title: 'Sew on the rib bands',
-          text: `Join the short ends of the hem band into a ring and fold it in half lengthwise, wrong sides together, so both raw edges are together. Divide the band and the ${kind}'s hem into quarters with pins. Pin the band to the hem right sides together, raw edges level, matching the pins, and sew with a narrow zigzag or a stretch stitch, stretching the band to fit between the pins so the ${kind} gathers in evenly onto it. ${bare ? '' : 'Make each cuff band the same way, in a ring, and sew it to the sleeve hem. '} Press the seams up into the ${kind}, never flattening the rib.`,
+          text: `Join the short ends of the hem band into a ring and fold it in half lengthwise, wrong sides together, so both raw edges are together. Divide the band and the ${word}'s hem into quarters with pins. Pin the band to the hem right sides together, raw edges level, matching the pins, and sew with a narrow zigzag or a stretch stitch, stretching the band to fit between the pins so the ${word} gathers in evenly onto it. ${bare ? '' : 'Make each cuff band the same way, in a ring, and sew it to the sleeve hem. '} Press the seams up into the ${word}, never flattening the rib.`,
         }
       : {
           title: 'Hem the shell',
-          text: `Turn up the ${kind} hem by ${n1(hem)}${bare ? '' : ` and the sleeve hems by ${n1(sleeveHem)}`}, press, and catch-stitch the raw edges by hand to the interfacing. Leave the front facings unfolded at the hem for now.${vent ? " At the vent, mitre the corner of the right back facing and turn the left back underlap's hem up with the rest." : ''}`,
+          text: `Turn up the ${word} hem by ${n1(hem)}${bare ? '' : ` and the sleeve hems by ${n1(sleeveHem)}`}, press, and catch-stitch the raw edges by hand to the interfacing. Leave the front facings unfolded at the hem for now.${vent ? " At the vent, mitre the corner of the right back facing and turn the left back underlap's hem up with the rest." : ''}`,
         },
     {
       title: 'Make the lining',
@@ -230,12 +233,12 @@ export function outerGuide(
             ? " and the inner collar to the lining's back neck"
             : collar === 'hood'
               ? ", and its back neck to the hood's neck seam allowance, right sides together, so the lining covers the seam"
-              : `, and its back neck to the ${kind}'s back neck between the ${raglan ? 'raglan seams' : 'shoulder seams'}, right sides together`
+              : `, and its back neck to the ${word}'s back neck between the ${raglan ? 'raglan seams' : 'shoulder seams'}, right sides together`
       }, matching the notches.`,
     },
     {
       title: 'Bag the lining',
-      text: `With the ${kind} and its lining right sides together, sew the lining to the ${rib ? 'hem band seam allowance' : 'hem allowance'} of the ${kind} all round, 1 cm from the lining's edge, so a small fold of lining (the jump hem) stands below the stitching.${vent ? " Sew the back linings' lower edges round the vent: the left one to the underlap's edge, the right one to the vent facing's edge." : ''}${bare ? ` Then pin each armhole of the lining to the armhole of the ${kind}, right sides together, matching the shoulder seams and the side seams, and sew round it ${curve} from the edge; trim to 5 mm, clip the curve every 1 cm and understitch the lining where you can reach.` : ` Reach into each sleeve and sew the sleeve lining hems to the ${rib ? 'cuff band seam allowances' : 'sleeve hems'} the same way.`} Turn the ${kind} right side out through the gap in the ${bare ? 'lining side seam' : 'sleeve lining'}, then close the gap by machine close to the edge.${bare ? ' Roll each armhole edge so the lining sits 2 mm inside and press it.' : ''}`,
+      text: `With the ${word} and its lining right sides together, sew the lining to the ${rib ? 'hem band seam allowance' : 'hem allowance'} of the ${word} all round, 1 cm from the lining's edge, so a small fold of lining (the jump hem) stands below the stitching.${vent ? " Sew the back linings' lower edges round the vent: the left one to the underlap's edge, the right one to the vent facing's edge." : ''}${bare ? ` Then pin each armhole of the lining to the armhole of the ${word}, right sides together, matching the shoulder seams and the side seams, and sew round it ${curve} from the edge; trim to 5 mm, clip the curve every 1 cm and understitch the lining where you can reach.` : ` Reach into each sleeve and sew the sleeve lining hems to the ${rib ? 'cuff band seam allowances' : 'sleeve hems'} the same way.`} Turn the ${word} right side out through the gap in the ${bare ? 'lining side seam' : 'sleeve lining'}, then close the gap by machine close to the edge.${bare ? ' Roll each armhole edge so the lining sits 2 mm inside and press it.' : ''}`,
     },
     ...(zip
       ? []
@@ -247,7 +250,7 @@ export function outerGuide(
         ]),
     {
       title: 'Final press',
-      text: `Press the whole ${kind} from the wrong side with a press cloth, ${d.lapel ? 'rolling the lapels over your hand rather than pressing a crease into the roll line, and ' : ''}letting each part cool before it moves.`,
+      text: `Press the whole ${word} from the wrong side with a press cloth, ${d.lapel ? 'rolling the lapels over your hand rather than pressing a crease into the roll line, and ' : ''}letting each part cool before it moves.`,
     },
   ];
   return { notions, steps };
