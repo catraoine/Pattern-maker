@@ -24,7 +24,7 @@ const STRAIN = 1.8;
 /** How a collar is leaned in: a vest's as above; a sleeved jacket's or coat's, whose collar stood 2 to 4 cm off the neck
  *  round the sides from close to the gorge, further round from the front, further in, and kept only while the collar's
  *  strained share stays under the quality check's (STRAIN_SHARE). */
-export interface HugHow { from: number; full: number; most: number; share?: number }
+interface HugHow { from: number; full: number; most: number; share?: number }
 export const VEST_HUG: HugHow = { from: FROM, full: FULL, most: MOST };
 /** A little under the quality check's share of strained edges in a piece (1%), so leaning in never fails it. */
 const STRAIN_SHARE = 0.008;
