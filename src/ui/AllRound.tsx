@@ -562,7 +562,7 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
             const text = `${t.name} ${t.ease > 0 ? '+' : t.ease < 0 ? '\u2212' : ''}${Math.abs(t.ease)} cm`;
             g.save();
             g.globalAlpha = a;
-            g.font = '600 12px "Space Grotesk", system-ui, sans-serif';
+            g.font = '600 12px "Instrument Sans", system-ui, sans-serif';
             const tw = g.measureText(text).width;
             const [bw, bh] = [tw + 12, 20];
             const x0 = Math.max(2, Math.min(w - bw - 2, at.x - bw / 2));

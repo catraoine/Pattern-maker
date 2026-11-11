@@ -10,15 +10,15 @@ const OUT = process.argv[2] ?? 'public/demos';
 const ONLY = process.argv[3];
 const APP = process.env.APP ?? 'http://127.0.0.1:5173';
 
-const PAGE = `<html><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500&family=Chakra+Petch&display=swap"><style>
+const PAGE = `<html><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500&family=Chakra+Petch&display=swap"><style>
 html,body{margin:0;background:#000000;overflow:hidden}
 #app{position:fixed;left:0;top:0;width:432px;height:672px;border:0;border-bottom:1px solid rgba(239,228,204,.3)}
-#cap{position:fixed;left:0;right:0;bottom:0;height:96px;box-sizing:border-box;padding:16px 20px;background:#000000;color:#efe4cc;font:500 16px/1.35 'Space Grotesk',sans-serif;transition:opacity .35s;opacity:0}
+#cap{position:fixed;left:0;right:0;bottom:0;height:96px;box-sizing:border-box;padding:16px 20px;background:#000000;color:#efe4cc;font:500 16px/1.35 'Instrument Sans',sans-serif;transition:opacity .35s;opacity:0}
 #cap small{display:block;font:400 10px/1 'Chakra Petch',monospace;letter-spacing:.22em;text-transform:uppercase;opacity:.7;margin-bottom:6px}
 #tap,#pen{position:fixed;z-index:9;border-radius:50%;pointer-events:none;opacity:0}
 #tap{width:44px;height:44px;margin:-22px 0 0 -22px;border:2px solid #efe4cc;background:rgba(239,228,204,.25)}
 #pen{width:18px;height:18px;margin:-9px 0 0 -9px;background:rgba(239,228,204,.55);transition:opacity .3s}
-#card{position:fixed;inset:0;z-index:10;background:#000000;color:#efe4cc;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;transition:opacity .6s;font-family:'Space Grotesk',sans-serif}
+#card{position:fixed;inset:0;z-index:10;background:#000000;color:#efe4cc;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;transition:opacity .6s;font-family:'Instrument Sans',sans-serif}
 #card .k{font:400 11px/1 'Chakra Petch',monospace;letter-spacing:.3em;text-transform:uppercase;opacity:.75}
 body.focus #app{height:768px;border:0;transform-origin:0 0;transition:opacity .35s}
 body.focus #cap{top:56px;bottom:auto;height:auto;background:none;text-align:center;padding:0 28px;z-index:8}

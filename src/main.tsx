@@ -7,9 +7,9 @@ import { keepUpToDate } from './swUpdate';
 // The typefaces ship with the app, so no visitor's browser has to ask Google for them.
 import '@fontsource/chakra-petch/400.css';
 import '@fontsource/chakra-petch/500.css';
-import '@fontsource/space-grotesk/300.css';
-import '@fontsource/space-grotesk/400.css';
-import '@fontsource/space-grotesk/500.css';
+// Instrument Sans for reading (Cat's pick A, Nov 11): it has no 300, so light text shows at 400.
+import '@fontsource/instrument-sans/400.css';
+import '@fontsource/instrument-sans/500.css';
 import '@fontsource-variable/archivo/wdth.css';
 import './styles.css';
 import { PLACE_KEY } from './navigation';
