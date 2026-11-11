@@ -3,7 +3,7 @@
 // (AC1009), which every apparel CAD package reads. Units are millimetres, y up.
 import { P, add, len, mul, sub } from './geometry';
 import { Piece, cutLine } from './piece';
-import { allNotches, drillHoles, notchSlit } from './marks';
+import { allNotches, dartsOf, drillHoles, notchSlit } from './marks';
 
 // AAMA layer numbers.
 export const LAYER = {
@@ -240,6 +240,47 @@ export function dxfCut(pc: Piece): { cut: P[]; notches: P[] } {
   return { cut, notches };
 }
 
+/** The stitching line as the file writes it: cleaned, and with each dart that opens on an edge sewn into it as a V, in
+ *  from one leg's end to the dart point and out to the other's. The drafted line runs across the dart's opening (its
+ *  cap); CLO 3D sews only the outline, so it could not close a dart drawn as legs inside the piece (CLO trial, Nov 10
+ *  2026). The cutting line keeps the cap, so a cutting room cuts exactly as before. */
+export function sewLine(pc: Piece): P[] {
+  return withDartVs(pc, cleanRing(pc.outline.points(), !pc.cutOutline));
+}
+
+/** A closed line with each of the piece's edge darts let into it as a V, in place of the cap between its legs. */
+export function withDartVs(pc: Piece, line: P[]): P[] {
+  const ring = [...line];
+  for (const { near, tip, far } of dartsOf(pc)) {
+    // Already a V (a file read back in).
+    if (ring.some((q) => len(sub(q, tip)) < 1e-4)) continue;
+    const n = ring.length;
+    const at = (q: P) => {
+      let best = -1;
+      let bestD = 0.02;
+      ring.forEach((r, i) => {
+        const d = len(sub(r, q));
+        if (d < bestD) [bestD, best] = [d, i];
+      });
+      return best;
+    };
+    const a = at(near);
+    const b = at(far);
+    if (a < 0 || b < 0 || a === b) continue;
+    // The short way round from one leg to the other: the cap, a corner or two.
+    const fwd = (b - a + n) % n;
+    const back = (a - b + n) % n;
+    const [from, steps] = fwd <= back ? [a, fwd] : [b, back];
+    if (steps > 4) continue;
+    const drop = Array.from({ length: steps - 1 }, (_, k) => (from + 1 + k) % n);
+    const keep = ring.filter((_, i) => !drop.includes(i));
+    const insertAfter = keep.indexOf(ring[from]);
+    keep.splice(insertAfter + 1, 0, tip);
+    ring.splice(0, ring.length, ...keep);
+  }
+  return ring;
+}
+
 /** The internal lines the file writes on layer 8, each with whether it is a closed shape. A fish-eye dart is drawn round
  *  and back to its start, so it is written as a closed shape: CLO 3D (and Gerber) read an open line that ends where it
  *  began as a stray line, not a dart (CLO trial, Nov 10 2026). Each pleat's placement line goes in too, beside its fold
@@ -305,7 +346,7 @@ export function toDxf(pieces: Piece[], info: DxfInfo): string {
     w.g(3, blockName(pc, i));
 
     w.polyline(cuts[i], LAYER.boundary, true);
-    w.polyline(cleanRing(pc.outline.points(), !pc.cutOutline), LAYER.sew, true);
+    w.polyline(sewLine(pc), LAYER.sew, true);
     internalLines(pc).forEach((ln) => w.polyline(ln.pts, LAYER.internal, ln.closed));
     if (pc.grain) w.line(pc.grain[0], pc.grain[1], LAYER.grain);
     if (pc.fold) w.line(pc.fold[0], pc.fold[1], LAYER.mirror);
