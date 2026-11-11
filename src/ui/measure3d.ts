@@ -7,6 +7,7 @@ import { bodyHalf, bodyLandmarks, reach } from '../engine/body';
 import { FORM_FLOOR, FORM_LEG, FORM_LEG_X } from './ContourForm';
 import { cap, material, sweep } from './allRoundMesh';
 import { GILD, GROUND, hex } from './palette';
+import LIMBS from './measureLimbs.json';
 
 type V3 = [number, number, number];
 const TAU = Math.PI * 2;
@@ -205,7 +206,7 @@ export interface MeasureFrame {
 
 /** How the form is lifted off the black ground (mock-ups for Cat, Nov 10: "the black on black is hard to see"):
  *  A a fine champagne edge round the form, B a charcoal satin, C a soft pool of light behind it. */
-export type Lift = 'none' | 'A' | 'B' | 'C';
+export type Lift = 'none' | 'A' | 'B' | 'C' | 'D';
 
 /** A fine edge round a surface: its back faces pushed out a touch and drawn flat in champagne, so only a thin line
  *  shows past the form's own edge. */
@@ -217,7 +218,20 @@ function edgeOf(geo: THREE.BufferGeometry, width: number) {
   return new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: hex(GILD), side: THREE.BackSide, transparent: true, opacity: 0.85 }));
 }
 
-export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot, lift: Lift = 'none') {
+/** MakeHuman's own legs and arms (CC0, the same young female average the torso is read from), mapped onto the form's
+ *  units by scripts/body-table/limbs.py: real limbs in place of the plain tube legs (Cat, Nov 10: "the legs look
+ *  terrible"), and arms for the arm measurements. */
+function limbMesh(part: { pos: number[]; idx: number[] }, mat: THREE.Material) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(part.pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(new Array((part.pos.length / 3) * 2).fill(0), 2));
+  g.setAttribute('shade', new THREE.Float32BufferAttribute(new Array(part.pos.length / 3).fill(0), 1));
+  g.setIndex(part.idx);
+  g.computeVertexNormals();
+  return new THREE.Mesh(g, mat);
+}
+
+export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot, lift: Lift = 'none', limbs = true) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, preserveDrawingBuffer: true });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NeutralToneMapping;
@@ -251,7 +265,7 @@ export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot,
   const neck = material('satin');
   neck.color.set(0x0e0c0a);
   turning.add(new THREE.Mesh(cap((a) => bodyAt(a, NECK_TOP), [0, -1, 0]), neck));
-  for (const leg of [-1, 1]) {
+  for (const leg of limbs ? [] : [-1, 1]) {
     const T = (a: number, t: number): V3 => {
       const y = LEG_TOP + (FORM_FLOOR - LEG_TOP) * t;
       const r = FORM_LEG(y);
@@ -262,6 +276,15 @@ export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot,
     const legMesh = new THREE.Mesh(sweep({ at: T, out: (a) => [Math.sin(a), 0, Math.cos(a)] }, -Math.PI, Math.PI, 64, 80), m);
     formMeshes.push(legMesh);
     turning.add(legMesh);
+  }
+  if (limbs) {
+    for (const part of [LIMBS.legs, LIMBS.arms]) {
+      const m = material('satin');
+      satins.push(m);
+      const mesh = limbMesh(part, m);
+      formMeshes.push(mesh);
+      turning.add(mesh);
+    }
   }
   // The floor: a faint champagne ring where the form stands.
   const floor = new THREE.Mesh(new THREE.RingGeometry(0.62, 0.635, 128), new THREE.MeshBasicMaterial({ color: hex(GILD), transparent: true, opacity: 0.25, side: THREE.DoubleSide }));
@@ -274,6 +297,11 @@ export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot,
     m.color.set(0x4a4540);
     m.emissive.set(0x121110);
     m.roughness = 0.32;
+  }
+  // D: a light chalk ground (the fresh-look chalk, #e9e4da) behind the black form.
+  if (lift === 'D') {
+    scene.background = new THREE.Color('#e9e4da').convertSRGBToLinear();
+    floor.material.color.set(0x8a7f6c);
   }
   if (lift === 'C') {
     const c = document.createElement('canvas');
