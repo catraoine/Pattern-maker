@@ -480,6 +480,19 @@ function drawstringSteps(g: SewingGuide, d: BodiceDraft): SewingGuide {
   return { notions: [...g.notions.slice(0, -1), `${bindingM.toFixed(1)} m of 12 mm silk bias binding, for the drawstring channel`, `${cordM.toFixed(1)} m of fine silk cord, 2 to 3 mm, for the drawstring`, ...g.notions.slice(-1)], steps };
 }
 
+/** A trim over the shoulder panel seams and along the V (BodiceDraft.panelTrim): sewn on by hand once the neckline is
+ * finished, so its ends can be tucked under at the shoulder and mitred at the points. */
+function panelTrimSteps(g: SewingGuide, d: BodiceDraft): SewingGuide {
+  if (!d.panelTrim) return g;
+  const trim: SewStep = {
+    title: 'Sew on the trim',
+    text: 'Lay the trim along one edge of the V on the right side, from the shoulder seam down to the point, and pin. At the point fold it into a neat mitre and carry on up the other edge. Sew it on by hand with small stitches along both of its edges, catching the finished neckline only. Then lay a length over each panel seam, from the armhole edge down to the V, tuck its lower end under the trim on the V, and sew it on the same way. The end at the armhole is caught in the armhole seam or its binding.',
+  };
+  const at = g.steps.findIndex((s) => /^(Bind|Face|Line) the neck/.test(s.title));
+  const steps = at < 0 ? [...g.steps.slice(0, -1), trim, ...g.steps.slice(-1)] : [...g.steps.slice(0, at + 1), trim, ...g.steps.slice(at + 1)];
+  return { notions: [...g.notions.slice(0, -1), `${(d.panelTrim.cm / 100).toFixed(1)} m of narrow trim or beaded braid, about 6 mm wide, for the panel seams and the V`, ...g.notions.slice(-1)], steps };
+}
+
 function bodiceSteps(draft: BodiceDraft, _style: { length: BodiceLength }, fabricM: number, bindingM: number, finish: BodiceFinish = {}): SewingGuide {
   const below = draft.finishedHem !== undefined;
   const sw = finish.seams ?? SEAM_WIDTHS.home;
@@ -654,7 +667,7 @@ function bodiceSteps(draft: BodiceDraft, _style: { length: BodiceLength }, fabri
   // and a low or keyhole back's (backNeck.ts).
   return withBackNeck(
     mirroredGuide(draft, drapeBodiceSteps(
-      drawstringSteps(pullOnSteps(wrapSteps(shirredSteps(topSteps(styleBodiceSteps(guide, draft, { seam, curve, edges, sleeve: !!sleeve }), draft, { seam, curve, fabricM, liningM: finish.liningM, coutilM: finish.coutilM, width: finish.width }), draft, { seam }), draft, { curve }), draft), draft),
+      panelTrimSteps(drawstringSteps(pullOnSteps(wrapSteps(shirredSteps(topSteps(styleBodiceSteps(guide, draft, { seam, curve, edges, sleeve: !!sleeve }), draft, { seam, curve, fabricM, liningM: finish.liningM, coutilM: finish.coutilM, width: finish.width }), draft, { seam }), draft, { curve }), draft), draft), draft),
       draft,
       { seam, curve, edges, sleeve: !!sleeve },
     )),

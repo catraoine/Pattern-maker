@@ -417,6 +417,8 @@ export interface BodiceDraft {
   pullOn?: true;
   /** A drawstring in a channel just above the hem (BodiceStyle.hemTie): the cord's length. */
   hemTie?: { cordCm: number };
+  /** A narrow trim over a plunge's shoulder panel seams and along its V (Yoke.trim): the length to buy. */
+  panelTrim?: { cm: number };
   /** Front landmarks for drawing the bodice as worn: waist and hem, at the side and centre front. */
   front: { apex: P; waistSide: P; waistCentre: P; hemSide: P; hemCentre: P };
   /** The same for the back, plus the centre back neck and where the zip ends. */

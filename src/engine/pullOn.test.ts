@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { draftBodice } from './bodice';
 import { bodiceGuide } from './instructions';
+import { bodiceFlat } from './flat';
 import { lookFlat, COLLECTION } from '../collection';
 import { EXAMPLE_BODY } from '../measurements';
 import { DEFAULT_BODICE } from '../garments';
@@ -95,6 +96,25 @@ describe('a shoulder panel on a plunge', () => {
     const darted = draftBodice(EXAMPLE_BODY as never, blouse({ fit: 'fitted', bustEase: undefined, sides: undefined, pullOn: false, darts: 'bust', neckline: 'crew', yoke: { front: 8, frontSlant: 13 } }));
     const ds = darted.styleSeams?.find((s) => s.side === 'front')?.pts;
     if (ds) expect(ds[ds.length - 1].y).toBeCloseTo(ds[0].y, 5);
+  });
+
+  it('takes a trim over its seams and along the V: enough to buy, a step after the neckline, a band on the flat', () => {
+    const plain = draftBodice(EXAMPLE_BODY as never, blouse({ yoke: { front: 0, back: 10, frontSlant: 13 } }));
+    const d = draftBodice(EXAMPLE_BODY as never, blouse({ yoke: { front: 0, back: 10, frontSlant: 13, trim: true } }));
+    expect(plain.panelTrim).toBeUndefined();
+    const seam = d.styleSeams!.find((s) => s.side === 'front')!.pts;
+    const seamLen = Math.hypot(seam[seam.length - 1].x - seam[0].x, seam[seam.length - 1].y - seam[0].y);
+    expect(d.panelTrim!.cm).toBeGreaterThan(2 * seamLen + 60);
+    expect(d.panelTrim!.cm).toBeLessThan(200);
+    const g = bodiceGuide(d, { length: 'hip' }, 1.5, 2);
+    const titles = g.steps.map((s) => s.title);
+    expect(titles.indexOf('Sew on the trim')).toBe(titles.indexOf('Bind the neckline') + 1);
+    expect(g.notions.join(' ')).toMatch(/narrow trim or beaded braid/);
+    const lines = (x: typeof d) => bodiceFlat(x).views[0].lines.filter((l) => l.kind === 'seam').length;
+    expect(lines(d)).toBe(lines(plain) + 4);
+    // A yoke right across a high neck has no V to trim.
+    const crew = draftBodice(EXAMPLE_BODY as never, blouse({ neckline: 'crew', pullOn: false, yoke: { front: 8, trim: true } }));
+    expect(crew.panelTrim).toBeUndefined();
   });
 
   it('is the Lilac Lace Blouse: panels, no zip, and it passes the All round check in lace', async () => {

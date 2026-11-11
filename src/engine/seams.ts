@@ -32,6 +32,9 @@ export interface Yoke {
   /** A plunge's shoulder panels only (set by a look): the front seam slanted, this many cm lower where it meets the
    * edge of the V than at the armhole, as a lace shoulder panel is cut. */
   frontSlant?: number;
+  /** A plunge's shoulder panels only (set by a look): a narrow trim sewn over each panel seam and on along the edge of
+   * the V, as a beaded braid edges a lace panel. */
+  trim?: boolean;
 }
 
 /** Side panels: where the seam leaves the armhole, 0 at the shoulder to 1 at the underarm. */
@@ -366,6 +369,8 @@ interface Seamed {
   sewnDart?: P[];
   moved: boolean;
   warnings: string[];
+  /** Trim over a plunge's panel seams and along its V: the length to buy, in cm. */
+  trimCm?: number;
 }
 
 // ---- yoke --------------------------------------------------------------------------------------
@@ -392,7 +397,7 @@ function yokeLevel(r: Ring, depth: number, side: 'front' | 'back', apex: P, notc
   return Math.max(lo, y);
 }
 
-function yokeSide(pc: Piece, depth: number, side: 'front' | 'back', apex: P, bustDart: number, pleat = false, slant = 0): { pieces: [Piece, Piece]; seam: P[]; sewnDart?: P[]; moved: boolean } | undefined {
+function yokeSide(pc: Piece, depth: number, side: 'front' | 'back', apex: P, bustDart: number, pleat = false, slant = 0): { pieces: [Piece, Piece]; seam: P[]; sewnDart?: P[]; moved: boolean; vEdge?: number } | undefined {
   const r = ringOf(pc.outline);
   const y = yokeLevel(r, depth, side, apex, pc.notches);
   if (y === undefined) return undefined;
@@ -441,7 +446,7 @@ function yokeSide(pc: Piece, depth: number, side: 'front' | 'back', apex: P, bus
       body = dressed({ ...moved, meta }, name, body.cut);
     }
   }
-  return { pieces: [body, yoke], seam, sewnDart, moved: !!sewnDart };
+  return { pieces: [body, yoke], seam, sewnDart, moved: !!sewnDart, vEdge: panel ? polyLen(run(r, 'neck')) : undefined };
 }
 
 /**
@@ -551,6 +556,8 @@ function yoke(d: BodiceDraft, y: Yoke, pleat = false): Seamed | undefined {
     sewnDart: f?.sewnDart,
     moved: !!f?.moved,
     warnings,
+    // Both sides' panel seams and V edges, and 10 cm for the turnings at the four ends.
+    trimCm: y.trim && f?.vEdge ? Math.ceil((2 * (polyLen(f.seam) + f.vEdge) + 10) / 5) * 5 : undefined,
   };
 }
 
@@ -825,6 +832,7 @@ export function styleSeams(d: BodiceDraft, s: BodiceStyle): BodiceDraft {
       back: lines('back'),
     },
     styleSeams: out.seams,
+    ...(out.trimCm ? { panelTrim: { cm: out.trimCm } } : {}),
     warnings: [...d.warnings, ...out.warnings],
   };
 }

@@ -70,6 +70,9 @@ function inside(q: P, pts: P[]): boolean {
 }
 
 /** A run of points moved `d` cm into the shape, keeping only the part that stays inside it. */
+/** How wide a shoulder panel's trim is drawn, in cm. */
+const PANEL_TRIM = 0.6;
+
 function inset(run: P[], d: number, shape: P[]): P[][] {
   const out: P[][] = [[]];
   run.forEach((q, i) => {
@@ -1265,6 +1268,22 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
     const frontNeckY = uneven ? centreCrossing(uneven) : front.run[0].y;
     const lines: FlatView['lines'] = h.darts.flatMap((dt) => both(dt).map((pts) => ({ pts, kind: 'dart' as const })));
     for (const sl of (i === 0 ? style?.front : style?.back) ?? []) lines.push(...both(sl.pts.map(h.move)).map((pts) => ({ pts, kind: sl.kind })));
+    // A trim over the shoulder panel seams and along the V: drawn as a narrow band, a second line beside each.
+    if (i === 0 && d.panelTrim) {
+      for (const sl of style?.front ?? []) {
+        if (sl.kind !== 'seam' || sl.pts.length < 2) continue;
+        // (On the panel's side of the seam: the side nearer the shoulder.)
+        const pts = sl.pts.map(h.move);
+        const t = unit(sub(pts[pts.length - 1], pts[0]));
+        const n = t.x > 0 ? p(t.y, -t.x) : p(-t.y, t.x);
+        // (Its end at the V stopped a little short, so the band's upper edge meets the V's edge and does not cross it.)
+        const band = pts.map((q) => add(q, mul(n, PANEL_TRIM)));
+        const v = Math.abs(band[0].x) < Math.abs(band[band.length - 1].x) ? 0 : band.length - 1;
+        band[v] = add(band[v], mul(t, (v === 0 ? 1 : -1) * PANEL_TRIM * 0.8));
+        lines.push(...both(band).map((r) => ({ pts: r, kind: 'seam' as const })));
+      }
+      for (const run of along(h, 'neck')) for (const pts of [run, mirror(run)]) for (const r of inset(pts, PANEL_TRIM, shape)) lines.push({ pts: r, kind: 'seam' });
+    }
     if (i === 0 && h.tags.includes('shoulder')) {
       // The back neckline shows through a lower front neck.
       const shift = sub(hps(front), hps(back));
