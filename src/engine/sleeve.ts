@@ -365,7 +365,10 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
       return w * 0.86;
     }
     const k = { short: 0.98, elbow: 0.93, three_quarter: 0.88, long: 0.82 }[length];
-    return Math.max(w * k, length === 'long' ? hand + 2 : 0);
+    // An oversized sleeve widened for a big armhole tapers back to the hem it would have had: on full busts
+    // the house shirt's elbow sleeve opened 29 cm wider than the arm, against the sample's 17 (Fable cut review, 2026-11-11).
+    const from = s.fit === 'oversized' ? Math.min(w, m.upper_arm! + ease.bicep) : w;
+    return Math.max(from * k, length === 'long' ? hand + 2 : 0);
   };
 
   let { h, cx } = fitCrown();

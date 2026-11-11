@@ -5,11 +5,11 @@ import type { MyFabric } from './engine/fabrics';
 import { COLOURS } from './engine/shopFabrics';
 import { dressBelt, skirtBelt } from './engine/belt';
 import type { Choices } from './savedWork';
-import { draftBodice } from './engine/bodice';
+import { crotchGuess, draftBodice } from './engine/bodice';
 import { draftDress } from './engine/dress';
 import { Flat, bodiceFlat, dressFlat, outerFlat, skirtFlat, teeFlat, trousersFlat } from './engine/flat';
 import { draftOuter } from './engine/outerwear';
-import { draftSkirt, skirtFitOf } from './engine/skirt';
+import { LENGTHS, draftSkirt, skirtFitOf } from './engine/skirt';
 import { SleeveDraft, draftSleeve, needsArms } from './engine/sleeve';
 import { draftTrousers } from './engine/trousers';
 import { draftTee } from './engine/tee';
@@ -218,6 +218,9 @@ export const COLLECTION: HouseLook[] = [
  *  2026-11-01). It sews clean on 40 of 41 bodies in its crisp wool (Nov 11). */
 export const houseVest = (c: { sleeve?: string; lapel?: string }) => c.sleeve === 'none' && c.lapel === 'high';
 
+/** How far below the judged crotch level a mini dress look ends at the least, in cm. */
+const MINI_CLEAR = 10.5;
+
 /**
  * A look's choices for the body it is made for. A length or a leg width drawn in centimetres was drawn on the sample
  * body, and the same centimetres on another body make another garment (Fable cut review, 2026-11-11: the Bermuda's 68 cm
@@ -226,6 +229,13 @@ export const houseVest = (c: { sleeve?: string; lapel?: string }) => c.sleeve ==
  */
 export function lookChoices(look: Pick<HouseLook, 'choices'>, m: MeasurementValues): PatternChoices {
   const c = look.choices;
+  // A mini dress is never so short that it ends within MINI_CLEAR of the judged crotch level: the named mini came to 4 cm
+  // below it on a long rise. Only then is its length set in centimetres; most bodies keep the named mini.
+  if (isDress(c) && c.skirt.length === 'mini' && c.skirt.lengthCm === undefined && m.waist_to_knee && m.waist_to_hip) {
+    const body = { waist_to_hip: m.waist_to_hip, waist_to_knee: m.waist_to_knee, full_hip: m.full_hip };
+    const least = Math.round((crotchGuess(body) + MINI_CLEAR) * 2) / 2;
+    return least > LENGTHS.mini(body as never) ? { ...c, skirt: { ...c.skirt, lengthCm: least } } : c;
+  }
   if (!isTrousers(c) || (c.lengthCm === undefined && !c.legCm)) return c;
   const half = (v: number) => Math.round(v * 2) / 2;
   const long = m.waist_to_knee ? m.waist_to_knee / (EXAMPLE_BODY.waist_to_knee ?? m.waist_to_knee) : 1;
