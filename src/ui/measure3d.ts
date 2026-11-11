@@ -700,8 +700,10 @@ export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot,
   }
   // D: the app's chalk ground behind the form (C1 warm stone, #dcd5c7, Cat Nov 11: the measure demos carry the same
   // chalk as the style windows).
+  // Cleared to it rather than set as the scene's background, so the exposure and tone mapping that light the form
+  // leave it alone and it matches the app's chalk exactly.
   if (lift === 'D') {
-    scene.background = new THREE.Color('#dcd5c7').convertSRGBToLinear();
+    renderer.setClearColor(new THREE.Color('#dcd5c7'), 1);
     floor.material.color.set(0x8a7f6c);
   }
   if (lift === 'C') {
