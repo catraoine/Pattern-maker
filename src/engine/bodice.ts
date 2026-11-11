@@ -136,6 +136,8 @@ export interface BodiceStyle {
   /** A shift's back with one small fish-eye dart each side, so it follows the hollow of the back instead of hanging
    * from the shoulder blades like a tube (see SHIFT_BACK). Set by a look; shifts without it hang straight. */
   shiftBack?: 'shaped';
+  /** The back closed with small buttons and rouleau loops in place of the zip (see sheerTop.ts). Set by a look. */
+  backLoops?: true;
   sleeve?: SleeveLength;
   sleeveShape?: SleeveShape;
   /** A dragged hem: cm below the waist (0 for the waist), in place of the named length. */
@@ -398,6 +400,8 @@ export interface BodiceDraft {
   /** The zip runs through the waist to the hem, shortened there if it is longer: the waist is too narrow to pull on
    *  over the bust with the back closed below a zip that stops at the waist. */
   zipThrough?: boolean;
+  /** The back opening closes with buttons and rouleau loops, edge to edge, in place of the zip (see sheerTop.ts). */
+  backLoops?: boolean;
   /** Front landmarks for drawing the bodice as worn: waist and hem, at the side and centre front. */
   front: { apex: P; waistSide: P; waistCentre: P; hemSide: P; hemCentre: P };
   /** The same for the back, plus the centre back neck and where the zip ends. */
@@ -1412,6 +1416,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     backLength: r(backHem + hemAt.back - bd, 1),
     zipCm,
     ...(zipThrough ? { zipThrough } : {}),
+    ...(s.backLoops && zipCm > 0 ? { backLoops: true } : {}),
     front: { apex, waistSide: swF, waistCentre: p(0, wf), hemSide: add(hemF, p(0, hemAt.side)), hemCentre: p(0, cfHem + hemAt.front) },
     back: { waistSide: swB, waistCentre: p(0, wb), hemSide: add(hemB, p(0, hemAt.side)), hemCentre: p(0, backHem + hemAt.back), neckCentre: p(0, bd), zipEnd },
     neckBlock: { front: { neckY: cfNeck0.y, neckX: nwF }, back: { neckY: 0, neckX: nw } },

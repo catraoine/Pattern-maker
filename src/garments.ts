@@ -63,6 +63,8 @@ export interface BodiceChoices {
   shirtCut?: ShirtCut;
   /** A shift's back with a small fish-eye dart each side (see SHIFT_BACK in bodice.ts), set by a look: older saves have none. */
   shiftBack?: 'shaped';
+  /** The back closed with small buttons and rouleau loops in place of the zip (see sheerTop.ts), set by a look: older saves have none. */
+  backLoops?: true;
   /** Older saves have the block's side bust dart, no princess seams, a back zip and no collar. */
   bustDart?: DartPlace;
   princess?: PrincessLine;
