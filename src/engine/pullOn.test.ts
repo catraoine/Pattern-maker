@@ -159,15 +159,22 @@ describe('a shoulder panel on a plunge', () => {
     expect(whole(d)).toBeCloseTo(whole(open), 5);
     const seam = d.styleSeams!.find((s) => s.side === 'front')!.pts;
     expect(seam[0].x).toBeCloseTo(0, 5);
-    // The strip is never out past the turn, and the gathers are only on the slanted stretch.
+    // The strip is never out past the turn, the turn is a curve with no corner sharper than 12 degrees, and the gathers
+    // are only on the slanted stretch.
     for (const q of seam.slice(0, -2)) expect(q.x).toBeLessThan(seam[seam.length - 2].x);
+    const upper = seam.filter((q) => q.y < seam[seam.length - 1].y + 24);
+    for (let i = 1; i < upper.length - 1; i++) {
+      const [u, v] = [[upper[i].x - upper[i - 1].x, upper[i].y - upper[i - 1].y], [upper[i + 1].x - upper[i].x, upper[i + 1].y - upper[i].y]];
+      const bendDeg = (Math.abs(Math.atan2(u[0] * v[1] - u[1] * v[0], u[0] * v[0] + u[1] * v[1])) * 180) / Math.PI;
+      expect(bendDeg).toBeLessThan(12);
+    }
     expect(taggedLength(front.outline, 'yoke') - taggedLength(panel.outline, 'yoke')).toBeCloseTo(front.meta.gatherTake as number, 5);
     expect(front.meta.gatherTake as number).toBeGreaterThan(2);
     expect(d.warnings).toEqual([]);
     expect(checkPattern(d.pieces).filter((c) => !c.ok)).toEqual([]);
     expect(yokesJoined(d.pieces).map((pc) => pc.name)).toEqual(['Bodice front', 'Bodice back']);
     const g = bodiceGuide(d, { length: 'hip' }, 1.5, 2);
-    expect(g.steps.find((st) => st.title === 'Join the yokes')!.text).toMatch(/together along their short centre front edges.*clip into the corners/);
+    expect(g.steps.find((st) => st.title === 'Join the yokes')!.text).toMatch(/together along their short centre front edges.*clip into the curves/);
     // The stay tape is still cut to the whole edge of the V, though that edge is now on the panels.
     const tape = (x: typeof d) => bodiceGuide(x, { length: 'hip' }, 1.5, 2).steps.find((st) => st.title === 'Tape the plunge')!.text.match(/tape ([\d.]+) cm long/)![1];
     expect(Number(tape(d))).toBeGreaterThan(35);

@@ -487,7 +487,7 @@ function panelTrimSteps(g: SewingGuide, d: BodiceDraft): SewingGuide {
   if (!d.panelTrim) return g;
   const trim: SewStep = {
     title: 'Sew on the trim',
-    text: 'Lay the trim along one edge of the V on the right side, from the shoulder seam down to the point, and pin. At the point fold it into a neat mitre and carry on up the other edge. Sew it on by hand with small stitches along both of its edges, catching the finished neckline only. Then lay a length over each panel seam, from the armhole edge to the other end of the seam, folding a small mitre wherever the seam turns. Tuck that end under the trim on the V, or mitre the two lengths together where the panels meet under the point of the V, and sew it on the same way. The end at the armhole is caught in the armhole seam or its binding.',
+    text: 'Lay the trim along one edge of the V on the right side, from the shoulder seam down to the point, and pin. At the point fold it into a neat mitre and carry on up the other edge. Sew it on by hand with small stitches along both of its edges, catching the finished neckline only. Then lay a length over each panel seam, from the armhole edge to the other end of the seam, easing it round the curve where the seam turns. Tuck that end under the trim on the V, or mitre the two lengths together where the panels meet under the point of the V, and sew it on the same way. The end at the armhole is caught in the armhole seam or its binding.',
   };
   const at = g.steps.findIndex((s) => /^(Bind|Face|Line) the neck/.test(s.title));
   const steps = at < 0 ? [...g.steps.slice(0, -1), trim, ...g.steps.slice(-1)] : [...g.steps.slice(0, at + 1), trim, ...g.steps.slice(at + 1)];

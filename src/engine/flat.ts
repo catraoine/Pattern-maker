@@ -1268,32 +1268,42 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
     const frontNeckY = uneven ? centreCrossing(uneven) : front.run[0].y;
     const lines: FlatView['lines'] = h.darts.flatMap((dt) => both(dt).map((pts) => ({ pts, kind: 'dart' as const })));
     for (const sl of (i === 0 ? style?.front : style?.back) ?? []) lines.push(...both(sl.pts.map(h.move)).map((pts) => ({ pts, kind: sl.kind })));
+    // A shoulder panel's seam from where it leaves any strip down the V and slants out to the armhole: the stretch the
+    // gathers and the trim's second line are drawn along.
+    const slanted = (pts: P[]) => {
+      let k = pts.length - 1;
+      while (k > 0 && Math.abs(pts[k].x - pts[k - 1].x) > Math.abs(pts[k].y - pts[k - 1].y) / 3) k--;
+      return pts.slice(Math.min(k, pts.length - 2));
+    };
+    const panelSeams = i === 0 && (d.panelGather || d.panelTrim) ? (style?.front ?? []).filter((sl) => sl.kind === 'seam' && sl.pts.length > 1).map((sl) => slanted(sl.pts.map(h.move))) : [];
     // Gathers under a shoulder panel: short strokes falling from the seam, longer and shorter by turns.
-    if (i === 0 && d.panelGather) {
-      for (const sl of style?.front ?? []) {
-        if (sl.kind !== 'seam' || sl.pts.length < 2) continue;
-        // (Only on the seam's slanted stretch to the armhole: a strip down the V before it is sewn flat.)
-        const pts = sl.pts.map(h.move);
-        const [a, b] = [pts[pts.length - 2], pts[pts.length - 1]];
-        const n = Math.max(4, Math.round(len(sub(b, a)) / 2.2));
+    if (d.panelGather) {
+      for (const pts of panelSeams) {
+        const total = pts.slice(1).reduce((sum, q, j) => sum + len(sub(q, pts[j])), 0);
+        const n = Math.max(4, Math.round(total / 2.2));
         for (let k = 1; k < n; k++) {
-          const q = lerp(a, b, k / n);
+          let left = (total * k) / n;
+          let j = 1;
+          while (j < pts.length - 1 && left > len(sub(pts[j], pts[j - 1]))) {
+            left -= len(sub(pts[j], pts[j - 1]));
+            j++;
+          }
+          const q = lerp(pts[j - 1], pts[j], Math.min(1, left / Math.max(1e-9, len(sub(pts[j], pts[j - 1])))));
           lines.push(...both([add(q, p(0, 0.4)), add(q, p(0, k % 2 ? 2.6 : 1.7))]).map((r) => ({ pts: r, kind: 'seam' as const })));
         }
       }
     }
     // A trim over the shoulder panel seams and along the V: drawn as a narrow band, a second line beside each.
     if (i === 0 && d.panelTrim) {
-      for (const sl of style?.front ?? []) {
-        if (sl.kind !== 'seam' || sl.pts.length < 2) continue;
-        // (On the panel's side of the seam, the side nearer the shoulder, and only along its slanted stretch: a strip
-        // down the V is too narrow to take a second line.)
-        const pts = sl.pts.map(h.move).slice(-2);
-        const t = unit(sub(pts[pts.length - 1], pts[0]));
-        const n = t.x > 0 ? p(t.y, -t.x) : p(-t.y, t.x);
-        // (Its end at the V stopped a little short, so the band's upper edge meets the V's edge and does not cross it.)
-        const band = pts.map((q) => add(q, mul(n, PANEL_TRIM)));
+      for (const pts of panelSeams) {
+        // (On the panel's side of the seam, the side nearer the shoulder; a strip down the V is too narrow to take a
+        // second line. Its end nearer the V stops a little short, so it meets the V's edge and does not cross it.)
+        const band = pts.map((q, j) => {
+          const t = unit(sub(pts[Math.min(j + 1, pts.length - 1)], pts[Math.max(j - 1, 0)]));
+          return add(q, mul(t.x > 0 ? p(t.y, -t.x) : p(-t.y, t.x), PANEL_TRIM));
+        });
         const v = Math.abs(band[0].x) < Math.abs(band[band.length - 1].x) ? 0 : band.length - 1;
+        const t = unit(sub(pts[pts.length - 1], pts[0]));
         band[v] = add(band[v], mul(t, (v === 0 ? 1 : -1) * PANEL_TRIM * 0.8));
         lines.push(...both(band).map((r) => ({ pts: r, kind: 'seam' as const })));
       }

@@ -431,9 +431,17 @@ function yokeSide(pc: Piece, depth: number, side: 'front' | 'back', apex: P, bus
         const bend = lerp(ta, tb, band / (tb.x - ta.x));
         const wide = (q: P) => BAND_END + (band - BAND_END) * Math.max(0, Math.min(1, (point.y - q.y) / (point.y - bend.y)));
         // (Only the V's edge below the turn, and never out past it: the strip's edge runs one way, down and in.)
-        const edge = neck.filter((q) => q.y > bend.y + 1).map((q) => p(q.x + wide(q), q.y)).filter((q) => q.x < bend.x - 0.3);
+        const edge = neck.filter((q) => q.y > bend.y + BAND_TURN * 0.7).map((q) => p(q.x + wide(q), q.y)).filter((q) => q.x < bend.x - 0.3);
         // (Under the point the strip's edge runs straight on to the centre front, BAND_DROP below, and past it for the cut.)
-        const banded = cutRing(r, [p(-1, point.y + BAND_DROP + BAND_DROP / BAND_END), ...edge, bend, p(far, tb.y - k * (far - tb.x))], 'yoke');
+        // The turn is a soft curve, not a corner (Cat, Nov 11: "The line looks to sharp"): one curve from
+        // the strip's edge a little below the turn to BAND_TURN on up the slant (no more than half of that stretch).
+        const c0 = edge[edge.length - 1] ?? p(BAND_END, point.y);
+        const c2 = add(bend, mul(unit(sub(tb, bend)), Math.min(BAND_TURN, len(sub(tb, bend)) / 2)));
+        const turn = Array.from({ length: 9 }, (_, i) => {
+          const u = i / 8;
+          return add(add(mul(c0, (1 - u) * (1 - u)), mul(bend, 2 * u * (1 - u))), mul(c2, u * u));
+        });
+        const banded = cutRing(r, [p(-1, point.y + BAND_DROP + BAND_DROP / BAND_END), ...edge, ...turn, p(far, tb.y - k * (far - tb.x))], 'yoke');
         if (banded && ['fold', 'centre'].includes(banded.on[0]) && banded.on[1] === 'armhole') cut = banded;
       }
     }
@@ -481,8 +489,21 @@ function yokeSide(pc: Piece, depth: number, side: 'front' | 'back', apex: P, bus
 
 /** How wide a banded shoulder panel's strip is at the V's point, in cm (measured across, not square to its edge). */
 const BAND_END = 1;
+/** How far either side of its turn a banded panel's seam is rounded off, in cm. */
+const BAND_TURN = 7;
 /** How far under the V's point the two strips meet on the centre front, in cm. */
 const BAND_DROP = 3;
+
+/**
+ * Where a shoulder panel's seam, as the first `first` edges of a ring, leaves the strip down the V and slants out to
+ * the armhole: the index its last run of edges more across than a third of down begins at. (A seam with no strip
+ * slants all the way: 0.)
+ */
+function slantStart(pts: P[], first: number): number {
+  let i = first;
+  while (i > 0 && Math.abs(pts[i].x - pts[i - 1].x) > Math.abs(pts[i].y - pts[i - 1].y) / 3) i--;
+  return Math.min(i, first - 1);
+}
 
 /** The edges a front below a shoulder panel may have for its gathers to be added: nothing with a dart or a shaped edge. */
 const GATHER_EDGES = ['yoke', 'armhole', 'side', 'hem', 'fold', 'centre', 'neck'];
@@ -498,12 +519,16 @@ function spread(r: Ring, g: number): Ring | undefined {
   const first = r.tags.findIndex((t) => t !== 'yoke');
   const hem = r.tags.indexOf('hem');
   if (first < 1 || hem <= first || r.tags.slice(first, hem).some((t) => t !== 'armhole' && t !== 'side')) return undefined;
-  // Along the seam's slanted stretch (its last, to the armhole) the extra is shared evenly, none where it starts and
+  // Along the seam's slanted stretch (from its turn to the armhole) the extra is shared evenly, none where it starts and
   // all of it at the armhole; a strip down the V before it is left as it is.
+  const from = slantStart(r.pts, first);
+  // (Shared by how far up the stretch each point is, which moving the points out does not change: taking the same
+  // amount back off gives the first outline again.)
+  const rise = r.pts[from].y - r.pts[first].y;
   const pts = r.pts.map((q, i) => {
     // (A hem that is not one straight line keeps its shape: each of its points goes out by its share of the way across.)
     const onHem = i > hem && (r.tags[i] === 'hem' || r.tags[(i - 1 + n) % n] === 'hem');
-    const k = i < first ? 0 : i <= hem ? 1 : onHem ? Math.max(0, Math.min(1, q.x / Math.max(1e-9, r.pts[hem].x))) : 0;
+    const k = i <= from ? 0 : i < first ? (rise > 1e-6 ? (r.pts[from].y - q.y) / rise : 1) : i <= hem ? 1 : onHem ? Math.max(0, Math.min(1, q.x / Math.max(1e-9, r.pts[hem].x))) : 0;
     return p(q.x + g * k, q.y);
   });
   return { pts, tags: [...r.tags] };
@@ -520,7 +545,7 @@ function gathered(body: Piece, g: number, name: string): Piece {
   if (!r) return body;
   const first = r0.tags.findIndex((t) => t !== 'yoke');
   const hem = r0.tags.indexOf('hem');
-  const seamEnd = r0.pts[first];
+  const from = slantStart(r0.pts, first);
   const sideX = r0.pts[hem].x;
   // Marks go with the edge they sit on: all the way out on the armhole and side, part of the way on the seam and hem.
   const move = (q: P): P => {
@@ -534,7 +559,7 @@ function gathered(body: Piece, g: number, name: string): Piece {
       if (dist < d) [d, best] = [dist, i];
     });
     const t = r0.tags[best];
-    const k = t === 'armhole' || t === 'side' ? 1 : t === 'yoke' ? (best === first - 1 ? len(sub(q, r0.pts[first - 1])) / Math.max(1e-9, len(sub(seamEnd, r0.pts[first - 1]))) : 0) : t === 'hem' ? q.x / Math.max(1e-9, sideX) : 0;
+    const k = t === 'armhole' || t === 'side' ? 1 : t === 'yoke' ? (best >= from ? (r0.pts[from].y - q.y) / Math.max(1e-9, r0.pts[from].y - r0.pts[first].y) : 0) : t === 'hem' ? q.x / Math.max(1e-9, sideX) : 0;
     return p(q.x + g * Math.max(0, Math.min(1, k)), q.y);
   };
   const take = polyLen(r.pts.slice(0, first + 1)) - polyLen(r0.pts.slice(0, first + 1));
