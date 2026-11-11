@@ -161,7 +161,7 @@ export const COLLECTION: HouseLook[] = [
     line: 'Lilac lace plunging to the waist, with full bishop sleeves gathered at the wrist. Worn with gold micro shorts.',
     fabric: 'Lilac silk lace',
     garment: 'bodice',
-    choices: bodice({ fit: 'regular', darts: 'bust', neckline: 'plunge', plungeDepth: 'waist', sleeve: 'long', sleeveShape: 'bishop', sleeveFullness: 'full', sleeveCuff: 'elastic', length: 'high_hip' }),
+    choices: bodice({ fit: 'relaxed', bustEase: 20, darts: 'bust', neckline: 'plunge', plungeDepth: 'waist', sleeve: 'long', sleeveShape: 'bishop', sleeveFullness: 'full', sleeveCuff: 'elastic', length: 'hip' }),
   },
   {
     // From Cat's picture of a relaxed bias satin maxi (2026-11-11, "Build bias and correct the neckline for lower
