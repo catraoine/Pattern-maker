@@ -250,7 +250,10 @@ export function formShot(id: string, surf: Surface, joints: Record<string, V3>, 
     return best;
   };
   const crotchY = along([0, 5, mid(1.2)], [0, -1, 0])![1];
-  const WY = extreme(-0.3, 0.45, -1);
+  // The natural waist, as a tailor takes it: the narrowest part, level with the elbows. On this form that narrowest
+  // stretch runs about 2 cm deep, and the string sits at its foot, where it reads as the waist rather than the ribs
+  // (Cat, Nov 11: it sat too high; W1, 1.5 cm lower. 3 cm lower was already widening toward the hip).
+  const WY = extreme(-0.3, 0.45, -1) + 1.5 / CM;
   // Lower down the hull keeps growing as it takes in both thighs, so the hip is where the seat stands out furthest
   // (a hand's width out from the middle of the back), well above the crotch.
   // The seat stays near its fullest over a few cm, and the hips below it keep widening: the low end of that stretch,
