@@ -548,6 +548,10 @@ export interface SkirtDraft {
   finishedHip: number;
   /** A low rise: how far below the natural waist the skirt's top sits, in cm. */
   lowRise?: number;
+  /** A low rise's band, cut curved: its top edge's finished length, the body there plus ease. The band's lower edge is
+   *  the finished waist, sewn to the skirt (Fable check of the Look 02 skirt, Nov 11: a straight band stood 6 cm off the
+   *  body at its top edge, the body being a cone below the waist). */
+  bandTop?: number;
   /** For circle skirts, how much of a circle the skirt makes (1 is a full circle). */
   circleShare?: number;
   /** Hem circumference, to show how full the skirt is. */
@@ -691,7 +695,10 @@ export function draftSkirt(m: SkirtMeasurements, style: Partial<SkirtStyle> = {}
   if (style.rise === 'low' && lowRiseAllowed(style)) {
     const r = lowRiseCm(m);
     const { rise: _r, ...rest } = style;
-    return { ...draftSkirt(lowered(m, r), rest), lowRise: r };
+    const d = draftSkirt(lowered(m, r), rest);
+    // (The band's top edge, WAISTBAND_CM higher, on the body there with the same ease as its lower edge.)
+    const top = lowered(m, Math.max(0, r - WAISTBAND_CM)).waist + (d.finishedWaist - lowered(m, r).waist);
+    return { ...d, lowRise: r, ...(d.waistband && !d.elastic && !d.waistFinish && !d.faced && top < d.finishedWaist - 0.5 ? { bandTop: Math.round(top * 10) / 10 } : {}) };
   }
   const s = validCut({ ...DEFAULT_STYLE, ...style });
   if (s.wrap && wrapSkirtAllowed(s)) return wrapped(drafted(m, { ...s, hem: undefined }), s);

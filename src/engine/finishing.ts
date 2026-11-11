@@ -15,6 +15,69 @@ const r1 = (v: number) => Math.round(v * 10) / 10;
  * the one on the left turns under inside, and it folds along the middle. It runs from centre back to
  * centre back, ending flush with the invisible zip, and is cut on the lengthwise grain so it won't stretch.
  */
+/**
+ * A low rise's band, cut curved (Fable check of the Look 02 skirt, Nov 11): an arc whose lower edge is the finished
+ * waist sewn to the skirt and whose top edge is the shorter round of the body WAISTBAND_CM higher, so it lies on the
+ * body's cone instead of standing off it at the top. Not folded: an outer band and its facing, each cut once. Drawn
+ * along the y axis like the straight band, the lower (sewn) edge at x = 0 in the middle.
+ */
+function curvedBand(draft: SkirtDraft, sa: number): Piece {
+  const W = WAISTBAND_CM;
+  const L = draft.finishedWaist;
+  const T = draft.bandTop!;
+  const theta = (L - T) / W;
+  const Ro = L / theta;
+  const Ri = Ro - W;
+  const backQ = draft.waistband.sideMark - sa;
+  const at = (rad: number, s: number) => {
+    const phi = s / rad - theta / 2;
+    return p(Ro - rad * Math.cos(phi), rad * Math.sin(phi) + Ro * Math.sin(theta / 2));
+  };
+  const N = 48;
+  const lower = Array.from({ length: N + 1 }, (_, i) => at(Ro, (L * i) / N));
+  const upper = Array.from({ length: N + 1 }, (_, i) => at(Ri, (T * (N - i)) / N));
+  const outline = new Path(lower[0]);
+  for (const q of lower.slice(1)) outline.line(q, 'waist');
+  outline.line(upper[0], 'end');
+  for (const q of upper.slice(1)) outline.line(q, 'band');
+  outline.line(lower[0], 'end');
+  outline.closed = true;
+  const marks = [backQ, L / 2, L - backQ];
+  const notches: [P, P][] = marks.flatMap((y): [P, P][] => {
+    const a = at(Ro, y);
+    const b = at(Ri, (y * T) / L);
+    const out = unit(sub(a, b));
+    return [
+      [a, out],
+      [b, mul(out, -1)],
+    ];
+  });
+  const mid = at(Ro - W / 2, L * 0.62);
+  const tag = (s0: number, text: string) => ({ at: at(Ro - W * 0.75, s0), text, size: 0.55, rotate: 90 });
+  const cut = 'Cut 2 (band and facing) + interfacing';
+  return {
+    name: 'Waistband',
+    kind: 'waistband',
+    outline,
+    lines: [],
+    // (The grain along the band at the centre front, where the band runs straight.)
+    grain: [add(at(Ro - W / 2, L / 2), p(0, -4)), add(at(Ro - W / 2, L / 2), p(0, 4))],
+    notches,
+    labels: [
+      { at: mid, text: 'WAISTBAND, CURVED', size: 0.8, rotate: 90 },
+      { at: at(Ro - W / 2, L * 0.75), text: cut, size: 0.5, rotate: 90 },
+      tag(L / 2 - 3, 'CENTRE FRONT'),
+      tag(backQ + 2.6, 'SIDE SEAM'),
+      tag(L - backQ - 2.6, 'SIDE SEAM'),
+    ],
+    cut,
+    fabric: 'Self + interfacing',
+    seamAllowance: sa,
+    allowances: {},
+    meta: { finishedWidth: W, lengthCm: r1(L), topCm: r1(T), curved: true },
+  };
+}
+
 export function waistbandPiece(draft: SkirtDraft, sa: number): Piece {
   const W = 2 * WAISTBAND_CM;
   const L = draft.finishedWaist;
@@ -22,6 +85,7 @@ export function waistbandPiece(draft: SkirtDraft, sa: number): Piece {
   if (draft.elastic) return casingPiece(L, [[backQ, 'SIDE SEAM'], [L / 2, 'CENTRE FRONT'], [L - backQ, 'SIDE SEAM']], sa);
   if (draft.wrap?.ties) return wrapBand(draft.finishedWaist, draft.wrap.frontWaist, sa);
   if (draft.buttons) return buttonBand(draft, sa);
+  if (draft.bandTop && !draft.wrap && draft.opening !== 'left_side') return curvedBand(draft, sa);
   const outline = new Path(p(0, 0)).line(p(W, 0), 'end').line(p(W, L), 'waist').line(p(0, L), 'end').line(p(0, 0), 'band');
   outline.closed = true;
   const marks = [backQ, L / 2, L - backQ];

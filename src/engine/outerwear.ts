@@ -4,7 +4,7 @@
 // extension for single or double-breasted buttons, and a notched lapel with its collar, a stand
 // collar or a plain collarless edge. Facings, a full lining and patch pockets are cut from the
 // pieces as drafted, and the sleeve is drafted to the armhole with jacket or coat ease.
-import { CHEST_SEAM_RANGE, chestSeam } from './chestSeam';
+import { CHEST_SEAM_RANGE, clearOfUnderarm, underarmOf, chestSeam } from './chestSeam';
 import { P, Path, add, len, lerp, mul, p, sub, taggedLength, unit } from './geometry';
 import type { Piece } from './piece';
 import { BUST_EASE_RANGE, BodiceDraft, BodiceFitting, BodiceMeasurements, BodiceStyle, OVERSIZED, blockOf, draftBodice } from './bodice';
@@ -86,10 +86,20 @@ interface OuterStyle {
   buttonholes?: 'horizontal' | 'vertical';
   /** A seam straight across the chest, front and back, this far below the centre front neck (In testing). */
   yokeCm?: number;
+  /** The house vest's cut (Look 02, Fable check Nov 11): the sides straight from the bust to the hem; the lengths
+   *  above (drop, break, chest seam, button gap) given for the sample body and scaled to hers; the stand as wide as the
+   *  button; the lapel breaking at the chest seam, the top button a set distance under it. */
+  houseCut?: boolean;
   seamAllowance: number;
   hemAllowance: number;
   fitting?: BodiceFitting;
 }
+
+/** A house cut's least room at the hem over the body, so it hangs straight and still goes over the set's skirt. */
+const HOUSE_HIP_ROOM = 16;
+
+/** The sample body a house cut's lengths are given for (EXAMPLE_VALUES): back length and waist to knee, cm. */
+const HOUSE_SAMPLE = { back: 41, knee: 58 };
 
 /** The lengths each garment offers. */
 export const OUTER_LENGTHS: Record<OuterKind, OuterLength[]> = { jacket: ['cropped', 'hip', 'long'], coat: ['thigh', 'knee', 'midi'] };
@@ -1140,6 +1150,13 @@ function ribBand(name: string, edgeCm: number, depth: number, sa: number, cut: s
 export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { kind: OuterKind }): OuterDraft {
   let s: OuterStyle = { ...DEFAULT_OUTER[style.kind], ...style };
   if (!(m.full_hip && m.waist_to_hip)) throw new DraftError(`Add your full hip and waist to hip measurements to make a ${s.kind}.`);
+  if (s.houseCut) {
+    // (Given for the sample body, 41 cm back and 58 cm waist to knee: the hem by her waist to knee, the rest by her back.)
+    const back = (m.nape_to_waist ?? HOUSE_SAMPLE.back) / HOUSE_SAMPLE.back;
+    const knee = (m.waist_to_knee ?? HOUSE_SAMPLE.knee) / HOUSE_SAMPLE.knee;
+    const by = (v: number | undefined, k: number) => (v !== undefined && Number.isFinite(v) ? Math.round(v * k * 10) / 10 : v);
+    s = { ...s, dropCm: by(s.dropCm, knee), breakCm: by(s.breakCm, back), buttonGapCm: by(s.buttonGapCm, back) };
+  }
   if (s.kind === 'coat' && !m.waist_to_knee) throw new DraftError('Add your waist to knee measurement to make a coat.');
   if (!(m.arm_length && m.upper_arm)) throw new DraftError(`Add your arm length and upper arm measurements for the ${s.kind}'s sleeves.`);
   // A shoulder measured off a photo: the shoulder point moved out (or in) along the shoulder, so the armhole, and
@@ -1192,6 +1209,8 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
       ...s.fitting,
       ...(ease > easeRange.max ? { bustEase: (s.fitting?.bustEase ?? 0) + ease - easeRange.max } : {}),
       ...(s.flare === 'flared' && s.fit === 'fitted' && !rib ? { waistEase: (s.fitting?.waistEase ?? 0) - FLARED_CINCH } : {}),
+      // (Straight sides: the hem the bust's width, or the hip plus room enough to go over a skirt.)
+      ...(s.houseCut ? { straightRoom: HOUSE_HIP_ROOM } : {}),
     },
     shoulderPad: pad,
     closure: 'back_zip',
@@ -1224,13 +1243,23 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
   const [bf0, bb0] = blockOf(base);
   const block: [Piece, Piece] = [prep(bf0), prep(bb0)];
 
-  const ext = OUTER_EXTENSION[s.kind][s.front];
+  // (A house cut's stand is the button's own width, the tailor's rule: 2 cm left 5 mm past a 3 cm button.)
+  const ext = s.houseCut && s.front === 'single' && s.buttonSizeCm ? Math.max(OUTER_EXTENSION[s.kind][s.front], s.buttonSizeCm) : OUTER_EXTENSION[s.kind][s.front];
   const foot = Math.max(...block[0].outline.points(4).filter((q) => Math.abs(q.x) < 1e-6).map((q) => q.y));
   const neckY = block[0].outline.start.y;
   const apexY = base.front.apex.y;
   const waistY = base.front.waistCentre.y;
   const measuredBreak = s.breakCm !== undefined && Number.isFinite(s.breakCm) && s.front !== 'zip' ? neckY + Math.min(waistY - neckY + 4, Math.max(lapelled(s.collar) ? 10 : 1.5, s.breakCm)) : undefined;
-  const breakY = measuredBreak !== undefined
+  // (Under a chest seam the first button sits just below it, as in Cat's SS27 vest picture; the seam is kept clear of the
+  // underarm as chestSeam does, so the button follows it.)
+  const seamY0 = s.yokeCm !== undefined && Number.isFinite(s.yokeCm) ? neckY + Math.min(CHEST_SEAM_RANGE.max, Math.max(CHEST_SEAM_RANGE.min, s.yokeCm)) : undefined;
+  // (A house cut's seam runs a centimetre above the underarm on everyone, where Cat placed it on the sample body: by a
+  // fixed or a scaled distance from the neck it dropped below the underarm on long backs, Nov 11.)
+  const seamY = seamY0 === undefined ? undefined : s.houseCut ? clearOfUnderarm(block[0], underarmOf(block[0])) : clearOfUnderarm(block[0], seamY0);
+  const houseBreak = s.houseCut && seamY !== undefined && lapelled(s.collar) && s.front === 'single';
+  const breakY = houseBreak
+    ? seamY!
+    : measuredBreak !== undefined
     ? measuredBreak
     : plunges(s)
     ? waistY - 1.5
@@ -1247,9 +1276,10 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
   const lastY = s.kind === 'coat' ? Math.min(foot - 15, waistY + (m.waist_to_hip ?? 20) + 12) : foot - (length === 'cropped' ? 3.5 : 9);
   // A cutaway front curves back from below the last button, so the buttons stop above it.
   const cutTop = s.cutawayCm ? foot - Math.min(s.cutawayCm, foot - breakY - 18) - 4 - OUTER_BUTTON[s.kind] / 2 : Infinity;
-  // (Under a chest seam the first button sits just below it, as in Cat's SS27 vest picture.)
-  const seamY = s.yokeCm !== undefined && Number.isFinite(s.yokeCm) ? neckY + Math.min(CHEST_SEAM_RANGE.max, Math.max(CHEST_SEAM_RANGE.min, s.yokeCm)) : undefined;
-  const firstButton = seamY !== undefined && seamY + 2 > breakY && seamY < breakY + 8 ? seamY + 2 : breakY;
+  // (A house cut's top button sits the same distance under the seam on everyone: its own half width and 1.3 cm.)
+  const firstButton = houseBreak
+    ? seamY! + (s.buttonSizeCm ?? OUTER_BUTTON[s.kind]) / 2 + 1.3
+    : seamY !== undefined && seamY + 2 > breakY && seamY < breakY + 8 ? seamY + 2 : breakY;
   const buttons = buttonsFor(s, ext, firstButton, Math.max(firstButton + 12, Math.min(lastY, cutTop)));
 
   const fronts: Piece[] = [];

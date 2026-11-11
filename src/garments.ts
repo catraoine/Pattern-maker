@@ -352,6 +352,9 @@ export interface OuterChoices {
   buttonholes?: 'horizontal' | 'vertical';
   /** A seam across the chest, cm below the centre front neck (In testing). Older saves have none. */
   yokeCm?: number;
+  /** The house vest's cut (Look 02, In testing): straight sides, lengths scaled from the sample body, a stand the
+   *  button's width, the lapel breaking at the chest seam. Set by the look, no chip. Older saves have none. */
+  houseCut?: boolean;
   /** A welt pocket on the left chest (In testing). Older saves have none. */
   chest?: ChestPocket;
 }

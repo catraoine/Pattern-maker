@@ -111,7 +111,7 @@ export const COLLECTION: HouseLook[] = [
     line: 'A long, boxy vest with square corners and straight sides, a big collar pointing down over a small lapel, and three big buttons below a seam across the chest.',
     fabric: 'Black crisp wool gabardine',
     garment: 'jacket',
-    choices: { ...DEFAULT_JACKET_CHOICES, fit: 'oversized', length: 'long', shaping: 'boxy', collar: 'notched', lapel: 'high', pockets: 'welt', sleeve: 'none', pads: 'none', dropCm: 30, easeCm: 29, breakCm: 17, buttons: 3, buttonGapCm: 14, shoulderCm: 9.5, buttonSizeCm: 3, buttonholes: 'horizontal', yokeCm: 19 },
+    choices: { ...DEFAULT_JACKET_CHOICES, fit: 'oversized', length: 'long', shaping: 'boxy', collar: 'notched', lapel: 'high', pockets: 'welt', sleeve: 'none', pads: 'none', dropCm: 30, easeCm: 29, breakCm: 17, buttons: 3, buttonGapCm: 14, shoulderCm: 9.5, buttonSizeCm: 3, buttonholes: 'horizontal', yokeCm: 19, vent: 'none', houseCut: true },
   },
   {
     // Wide box pleats only in this set (Cat, Nov 8). Low on the hip (Cat, Nov 11: "I would like that").
@@ -122,7 +122,7 @@ export const COLLECTION: HouseLook[] = [
     line: 'Wide box pleats from low on the hip to just above the knee, crisp enough to hold their shape.',
     fabric: 'Black crisp wool gabardine',
     garment: 'skirt',
-    choices: skirt({ silhouette: 'a_line', length: 'above_knee', pleats: 'box', pleatWidth: 'wide', flareCm: 40, rise: 'low' }),
+    choices: skirt({ silhouette: 'a_line', length: 'above_knee', kneeShare: 0.93, pleats: 'box', pleatWidth: 'wide', flareCm: 10, rise: 'low' }),
   },
   {
     id: 'gold-shorts',

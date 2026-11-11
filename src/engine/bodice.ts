@@ -175,6 +175,9 @@ export interface BodiceFitting {
   waistEase?: number;
   /** Below the waist: more room at the hem, for a heavy fabric. */
   hipEase?: number;
+  /** Below the waist, straight sides (the Look 02 vest, Fable check Nov 11): the hem as wide as the finished bust, or
+   *  the body there plus this much room if that is wider, in place of the fit's own hip ease. */
+  straightRoom?: number;
   armhole?: number;
   frontSlope?: number;
   backSlope?: number;
@@ -846,7 +849,8 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   let hemFull = 0;
   if (below) {
     const he = Math.max(2, BODICE_HIP_EASE[s.fit] + bodiceEase(s).bust - BODICE_FIT_EASE[s.fit].bust) + (fit.hipEase ?? 0);
-    hemFull = girthBelowWaist({ waist: W, full_hip: m.full_hip!, waist_to_hip: m.waist_to_hip!, high_hip: m.high_hip }, drop) + he;
+    const girth = girthBelowWaist({ waist: W, full_hip: m.full_hip!, waist_to_hip: m.waist_to_hip!, high_hip: m.high_hip }, drop);
+    hemFull = fit.straightRoom !== undefined ? Math.max(B + be, girth + fit.straightRoom) : girth + he;
   }
 
   // ---- back ---------------------------------------------------------------
