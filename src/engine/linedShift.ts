@@ -6,7 +6,7 @@
 import type { SewingGuide } from './instructions';
 
 /** How much shorter the finished lining hangs than the dress, in cm. */
-export const LINING_SHORTER = 2.5;
+const LINING_SHORTER = 2.5;
 
 /** The sewing guide for a lined shift: a deep hand-finished hem, and the lining hemmed on its own. */
 export function withLinedShiftHem(g: SewingGuide, hemCm: number): SewingGuide {
