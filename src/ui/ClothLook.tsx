@@ -9,6 +9,8 @@ import { SHADOW } from './palette';
 
 export interface FabricLook {
   special?: Special;
+  /** A sateen's soft lustre: a quiet band of light down the cloth, on a cloth that is otherwise plain. */
+  sheen?: 'soft';
   /** The form shows through: a sheer or a lace. */
   sheer: boolean;
   /** A border print: the swatch drawn along the hem, its bottom on the hem line. */
@@ -53,6 +55,18 @@ export function ClothDefs({ uid, x1, x2, look }: { uid: string; x1: number; x2: 
           )}
         </linearGradient>
       )}
+      {!s && look.sheen === 'soft' && (
+        <linearGradient id={`sheen${uid}`} gradientUnits="userSpaceOnUse" x1={f(x1)} x2={f(x2)} y1="0" y2="0">
+          <stop offset="0" stopColor={SHADOW} stopOpacity="0.04" />
+          <stop offset="0.16" stopColor="#fff" stopOpacity="0" />
+          <stop offset="0.3" stopColor="#fff" stopOpacity="0.2" />
+          <stop offset="0.46" stopColor="#fff" stopOpacity="0" />
+          <stop offset="0.62" stopColor={SHADOW} stopOpacity="0.04" />
+          <stop offset="0.73" stopColor="#fff" stopOpacity="0.07" />
+          <stop offset="0.84" stopColor={SHADOW} stopOpacity="0.06" />
+          <stop offset="1" stopColor={SHADOW} stopOpacity="0.16" />
+        </linearGradient>
+      )}
       {s === 'corduroy' && (
         <pattern id={`weave${uid}`} patternUnits="userSpaceOnUse" width="1" height="4">
           <rect x="0" y="0" width="0.45" height="4" fill={SHADOW} fillOpacity="0.28" />
@@ -95,7 +109,8 @@ export function ClothDefs({ uid, x1, x2, look }: { uid: string; x1: number; x2: 
 export function ClothOverlay({ d, uid, look, hemY, k }: { d: string; uid: string; look: FabricLook | undefined; hemY?: number; k: string }) {
   if (!look) return null;
   const s = look.special;
-  const sheen = s === 'leather' || s === 'satin' || s === 'velvet';
+  const soft = !s && look.sheen === 'soft';
+  const sheen = s === 'leather' || s === 'satin' || s === 'velvet' || soft;
   const weave = s === 'corduroy' || s === 'denim' || s === 'sequins' || s === 'lace' || s === 'sheer';
   const B = look.border;
   return (
@@ -114,7 +129,8 @@ export function ClothOverlay({ d, uid, look, hemY, k }: { d: string; uid: string
         </>
       )}
       {weave && <path d={d} fill={`url(#weave${uid})`} stroke="none" fillOpacity={look.sheer ? 0.6 : 1} />}
-      {sheen && <path d={d} fill={`url(#sheen${uid})`} stroke="none" />}
+      {/* The soft sheen is set by style, as the flat's own rule (.techflat path) switches off a fill attribute. */}
+      {sheen && (soft ? <path d={d} style={{ fill: `url(#sheen${uid})` }} stroke="none" /> : <path d={d} fill={`url(#sheen${uid})`} stroke="none" />)}
     </>
   );
 }

@@ -42,7 +42,8 @@ const withFabric = (finish: Finish, fabric: MyFabric): Finish => ({ ...finish, f
  * usually comes in, so the fabric check can speak to it. */
 export function pickFabric(finish: Finish, id: string | undefined): Finish {
   const { shop, ...rest } = finish.fabric ?? {};
-  const now: MyFabric = shop ? { ...rest, name: undefined } : rest;
+  // Picking a cloth by hand leaves a look's sateen lustre behind with the cloth it came on.
+  const now: MyFabric = { ...(shop ? { ...rest, name: undefined } : rest), sheen: undefined };
   if (!id) return withFabric(finish, { ...now, fibre: undefined, special: undefined, knit: undefined, photo: undefined });
   if (isKnit(id)) {
     if (now.knit === id && !shop) return withFabric(finish, { ...now, knit: undefined, fibre: undefined });
@@ -67,7 +68,8 @@ const PHOTO_CM = 20;
  * picked stays, as what the cloth is, for the advice and the cutting. */
 export function pickPhoto(finish: Finish, id: string): Finish {
   const { shop, ...rest } = finish.fabric ?? {};
-  const now: MyFabric = shop ? { ...rest, name: undefined } : rest;
+  // Picking a cloth by hand leaves a look's sateen lustre behind with the cloth it came on.
+  const now: MyFabric = { ...(shop ? { ...rest, name: undefined } : rest), sheen: undefined };
   return withFabric(finish, { ...now, colour: undefined, photo: { id, size: finish.fabric?.photo?.size ?? PHOTO_CM } });
 }
 
@@ -136,8 +138,9 @@ const mix = (a: string, b: string, t: number) => {
 function fabricLook(fabric: MyFabric | undefined, base: string): FabricLook | undefined {
   const special = shopFabric(fabric?.shop)?.special ?? fabric?.special;
   const kind = printShown(fabric);
-  if (!special && kind !== 'border') return undefined;
-  return { special, sheer: special === 'sheer' || special === 'lace', ...(kind === 'border' ? { border: { href: printImage('border', base), size: printTileCm('border', undefined) } } : {}) };
+  const soft = !special && fabric?.sheen === 'soft';
+  if (!special && kind !== 'border' && !soft) return undefined;
+  return { special, sheer: special === 'sheer' || special === 'lace', ...(soft ? { sheen: 'soft' as const } : {}), ...(kind === 'border' ? { border: { href: printImage('border', base), size: printTileCm('border', undefined) } } : {}) };
 }
 
 /** How a fabric is painted: the swatch (or drawn checks) at its size in cm, the colour table that tints it,

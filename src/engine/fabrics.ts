@@ -31,6 +31,9 @@ export interface MyFabric {
   fibre?: Fibre;
   weight?: Weight;
   drape?: Drape;
+  /** A soft lustre in the drawings: a sateen, glossier than plain cotton and far quieter than satin (Cat, 2026-11-11).
+   *  Only how the cloth is drawn; the pattern and the sewing advice are the fibre's. */
+  sheen?: 'soft';
   /** A cloth that changes the cutting and sewing (denim, leather, velvet...). */
   special?: Special;
   /** The knit, for the T-shirt (knitFabrics.ts): jersey, rib, interlock... */

@@ -72,6 +72,6 @@ test('the Chocolate Barrel Trouser: made low on the hip with two pleats, in choc
   await look.getByRole('button', { name: 'Make this look' }).click();
   await expectStyle(page, 'Trousers');
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('pattern-maker:skirt') ?? '{}'));
-  expect(saved.finish?.fabric).toMatchObject({ fibre: 'cotton', colour: '#3d2418', drape: 'crisp' });
+  expect(saved.finish?.fabric).toMatchObject({ fibre: 'cotton', colour: '#3d2418', drape: 'crisp', sheen: 'soft' });
   expect(saved.trousers).toMatchObject({ leg: 'barrel', rise: 'low', pleats: 'double', loops: 'loops', length: 'full' });
 });

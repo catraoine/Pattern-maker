@@ -56,6 +56,7 @@ export function lookFabric(words: string): MyFabric {
     ...(colour ? { colour } : {}),
     ...(print ? { print } : {}),
     ...(crisp ? { drape: 'crisp' } : {}),
+    ...(/sateen/.test(w) && !special ? { sheen: 'soft' as const } : {}),
     ...(photo ? { photo } : {}),
   };
 }
