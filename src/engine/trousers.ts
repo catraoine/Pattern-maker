@@ -571,7 +571,8 @@ export function draftTrousers(body: TrousersMeasurements, style: Partial<Trouser
   const closure = elastic || (s.joinTo && s.closure !== 'fly') ? 'none' : s.closure;
   const fly = closure === 'fly';
   // A side zip opens to just past the hip line, so the trousers pull on over the hips: 18 to 25 cm.
-  let zipCm = elastic ? 0 : fly ? Math.min(FLY_ZIP, cd - 6) : Math.min(25, Math.max(18, Math.ceil(hd + 2)));
+  // (Whole centimetres: the fly zip is bought by its length, and the notes said "a 17.125 cm fly zip" on a low rise, Nov 11.)
+  let zipCm = elastic ? 0 : fly ? Math.min(FLY_ZIP, Math.floor(cd - 6)) : Math.min(25, Math.max(18, Math.ceil(hd + 2)));
 
   // Centre waists: the front 1 cm in from the hip line, the back raised and in for the seat. A tummy or
   // a sway back measured (or found on a toile) raises or lowers them.
