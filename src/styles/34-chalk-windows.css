@@ -29,6 +29,12 @@ section[aria-label='Preview'] > .preview .all-round-feel-step {
   background: transparent;
   border-color: var(--gild);
 }
+/* The picked one (Fit map on) fills with the ink, like a picked tab. */
+section[aria-label='Preview'] > .preview .all-round-tools button[aria-pressed='true'] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--chalk);
+}
 section[aria-label='Preview'] > .preview .testing-tag {
   background: var(--ink);
   color: var(--chalk);
