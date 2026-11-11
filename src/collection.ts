@@ -221,9 +221,29 @@ export const COLLECTION: HouseLook[] = [
  *  2026-11-01). It sews clean on 40 of 41 bodies in its crisp wool (Nov 11). */
 export const houseVest = (c: { sleeve?: string; lapel?: string }) => c.sleeve === 'none' && c.lapel === 'high';
 
-/** Which saved choices a look's garment lives under. */
-export function lookPatch(look: HouseLook): { garment: Garment } & Record<string, unknown> {
-  const { garment, choices } = look;
+/**
+ * A look's choices for the body it is made for. A length or a leg width drawn in centimetres was drawn on the sample
+ * body, and the same centimetres on another body make another garment (Fable cut review, 2026-11-11: the Bermuda's 68 cm
+ * ended 1 to 18 cm below the knee, and its 66 cm leg pinched in under a fuller hip). So a trouser's drawn length goes
+ * with the waist to knee and its drawn leg with the hip; on the sample body, or without those measurements, nothing changes.
+ */
+export function lookChoices(look: Pick<HouseLook, 'choices'>, m: MeasurementValues): PatternChoices {
+  const c = look.choices;
+  if (!isTrousers(c) || (c.lengthCm === undefined && !c.legCm)) return c;
+  const half = (v: number) => Math.round(v * 2) / 2;
+  const long = m.waist_to_knee ? m.waist_to_knee / (EXAMPLE_BODY.waist_to_knee ?? m.waist_to_knee) : 1;
+  const round = m.full_hip ? m.full_hip / (EXAMPLE_BODY.full_hip ?? m.full_hip) : 1;
+  return {
+    ...c,
+    ...(c.lengthCm !== undefined ? { lengthCm: half(c.lengthCm * long) } : {}),
+    ...(c.legCm ? { legCm: { knee: half(c.legCm.knee * round), hem: half(c.legCm.hem * round) } } : {}),
+  };
+}
+
+/** Which saved choices a look's garment lives under, its drawn centimetres fitted to the measurements when given. */
+export function lookPatch(look: HouseLook, m?: MeasurementValues): { garment: Garment } & Record<string, unknown> {
+  const { garment } = look;
+  const choices = m ? lookChoices(look, m) : look.choices;
   if (isDress(choices)) return { garment, dress: choices };
   if (isBodice(choices)) return { garment, bodice: choices };
   if (isTrousers(choices)) return { garment, trousers: choices };
@@ -248,7 +268,7 @@ export function lookValues(look: HouseLook, values: MeasurementValues): { values
 
 /** The look's technical flat, drafted to the given measurements; undefined if it can't be drafted for them. */
 export function lookFlat(look: HouseLook, m: MeasurementValues): Flat | undefined {
-  return choicesFlat(look.choices, m);
+  return choicesFlat(lookChoices(look, m), m);
 }
 
 /** The technical flat of any set of choices (a look, a saved pattern), drafted to the given measurements. */

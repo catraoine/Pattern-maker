@@ -5,6 +5,7 @@
 // the crease line and is pressed toward the centre front; a second pleat sits a hand's width toward the side.
 import { P, Path, p } from './geometry';
 import type { Label, Piece } from './piece';
+import { SLANT } from './pockets';
 import { WAISTBAND_CM, cm } from './skirt';
 
 export type TrouserPleats = 'none' | 'single' | 'double';
@@ -16,6 +17,8 @@ export const PLEAT_OPEN: Record<Exclude<TrouserPleats, 'none'>, number[]> = { si
  *  second pleat stays clear of a slant pocket's facing at the waist (SLANT.in + SLANT.along from the side, plus 1 cm). */
 const PLEAT_GAP = { most: 3.5, least: 1 };
 const POCKET_CLEAR = 10;
+/** The waist a slant pocket needs between the side seam and the second pleat: its opening (SLANT.in) and 2.5 cm to sew. */
+const POCKET_ROOM = SLANT.in + 2.5;
 /** Each pleat is stitched down from the waist this far, then pressed. */
 export const PLEAT_STITCH_CM = 4;
 
@@ -32,9 +35,13 @@ export interface PleatedFront {
 }
 
 /** Where the slash for pleat k lies on the unspread front, and how far it opens. */
-function slashes(crease: number, dart: number, open: number[]): { at: number; open: number }[] {
+function slashes(crease: number, dart: number, open: number[], sideWaist = 0): { at: number; open: number }[] {
   const out = [{ at: crease, open: open[0] }];
-  const gap = Math.min(PLEAT_GAP.most, Math.max(PLEAT_GAP.least, crease - dart / 2 - POCKET_CLEAR - open[1]));
+  // On a waist much smaller than the hip the side seam comes well in at the waist, and the second pleat was left too
+  // near it for a slant pocket to be cut: the pocket was dropped without a word (15 of 151 bodies, Fable cut review,
+  // 2026-11-11). The second pleat moves toward the first, as near as PLEAT_GAP.least, to leave the pocket its room.
+  const room = crease - dart / 2 - sideWaist - POCKET_ROOM;
+  const gap = Math.max(PLEAT_GAP.least, Math.min(PLEAT_GAP.most, Math.max(PLEAT_GAP.least, crease - dart / 2 - POCKET_CLEAR - open[1]), room));
   if (open.length > 1) out.push({ at: crease - dart / 2 - gap, open: open[1] });
   return out;
 }
@@ -49,7 +56,10 @@ export function pleatedFront(front: Piece, kind: Exclude<TrouserPleats, 'none'>,
   const crease = front.meta.creaseX as number;
   const dartCm = ((front.meta.dartsCm as number[] | undefined) ?? [])[0] ?? 0;
   const open = PLEAT_OPEN[kind];
-  const cuts = slashes(crease, dartCm, open);
+  // Where the side seam meets the waist: the end of the waist's run.
+  const waistEnd = front.outline.segs.findIndex((_, k) => front.outline.tags[k] !== 'waist' && front.outline.tags[k] !== 'dart');
+  const sideWaist = waistEnd > 0 ? front.outline.segs[waistEnd - 1].to.x : 0;
+  const cuts = slashes(crease, dartCm, open, Math.max(0, sideWaist));
   const shift = (x: number) => cuts.reduce((t, c) => t + (x > c.at + 1e-6 ? c.open : 0), 0);
   const mv = (q: P): P => p(q.x + shift(q.x), q.y);
   // The pleats on the spread front: the first folds on the dart's outer leg and takes the dart in with it, its
