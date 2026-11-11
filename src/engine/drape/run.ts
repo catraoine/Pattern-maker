@@ -186,12 +186,16 @@ export function runDrape(job: DrapeJob): DrapedLite {
   const fitTags: NonNullable<DrapedLite['fitTags']> = [];
   for (const pin of pins) {
     let at: [number, number, number] | undefined;
-    for (const p of d.panels) {
-      if (p.hidden || p.role === 'sleeve' || p.role === 'collar') continue;
-      for (let i = 0; i < p.mesh.pts.length; i++) {
-        const k = (p.base + i) * 3;
-        if (Math.abs(d.pos[k]) < 3 && Math.abs(d.pos[k + 1] - pin.c) < 1.5 && d.pos[k + 2] > 0 && (!at || d.pos[k + 2] > at[2])) at = [0, pin.c, d.pos[k + 2]];
+    // (Within 3 cm of the centre front, or, where a plunge leaves it open, within 12: the bust label went missing.)
+    for (const reach of [3, 12]) {
+      for (const p of d.panels) {
+        if (p.hidden || p.role === 'sleeve' || p.role === 'collar') continue;
+        for (let i = 0; i < p.mesh.pts.length; i++) {
+          const k = (p.base + i) * 3;
+          if (Math.abs(d.pos[k]) < reach && Math.abs(d.pos[k + 1] - pin.c) < 1.5 && d.pos[k + 2] > 0 && (!at || d.pos[k + 2] > at[2])) at = [0, pin.c, d.pos[k + 2]];
+        }
       }
+      if (at) break;
     }
     if (at) fitTags.push({ name: pin.name, ease: Math.round(pin.ease * 2) / 2, at });
   }
