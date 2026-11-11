@@ -260,16 +260,16 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
         <circle cx={at.x} cy={at.y} r={r} strokeWidth={0.22} />
         <circle cx={at.x} cy={at.y} r={0.45 * k} className="dot" />
         <path d={arrows} strokeWidth={0.22} fill="none" />
-        {/* Each handle says what it does (Cat's H, 2026-11-02): Length under the hem's, Width beside the side's, so
-            the two never run into each other. */}
+        {/* Each handle says what it does (Cat's H, 2026-11-02): Length to the left of the hem's (beside it, not under it
+            across the legs: Cat, Nov 11), Width to the right of the side's, so the two never run into each other. */}
         {/* Caught on a named length while dragging (dragLength holds it there), its name pops, as on every garment. */}
         <text
           key={active && kind === 'hem' && !choices.lengthCm ? choices.length : ''}
           className={active && kind === 'hem' && !choices.lengthCm ? 'caught' : undefined}
-          x={kind === 'hem' ? at.x : at.x + r + 2.6 * k}
-          y={kind === 'hem' ? at.y + r + 4.6 * k : at.y + 0.9 * k}
+          x={kind === 'hem' ? at.x - r - 1.5 * k : at.x + r + 2.6 * k}
+          y={at.y + 0.9 * k}
           fontSize={2.6 * k}
-          textAnchor={kind === 'hem' ? 'middle' : 'start'}
+          textAnchor={kind === 'hem' ? 'end' : 'start'}
         >
           {(kind === 'hem' ? `↕ Length · ${text}` : `↔ Width · ${text}`).toUpperCase()}
         </text>
