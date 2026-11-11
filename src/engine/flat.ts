@@ -312,6 +312,17 @@ function zip(top: number, cm: number): FlatView['lines'] {
   ];
 }
 
+/** Where a closed outline crosses the level y, as x values. */
+function crossingsAt(pts: P[], y: number): number[] {
+  const xs: number[] = [];
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i];
+    const b = pts[(i + 1) % pts.length];
+    if ((a.y - y) * (b.y - y) < 0) xs.push(a.x + ((y - a.y) * (b.x - a.x)) / (b.y - a.y));
+  }
+  return xs;
+}
+
 /** Front and back side by side, from the top left at 0, 0. */
 export function arrange(views: Omit<FlatView, 'at' | 'origin'>[]): Flat {
   const all = (v: Omit<FlatView, 'at' | 'origin'>) => [...v.shapes.flat(), ...v.lines.flatMap((l) => l.pts)];
@@ -1307,7 +1318,8 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
         if (X > 1) lines.push({ pts: [p(-X + 0.3, y), p(X - 0.3, y)], kind: 'stitch' });
       }
     }
-    if (i === 1 && zipped && !d.shirred && d.closure !== 'front_buttons' && d.closure !== 'wrap') {
+    // A back with no zip (a bias slip that goes on over the head) is cut whole: no centre back seam to draw.
+    if (i === 1 && zipped && d.zipCm > 0 && !d.shirred && d.closure !== 'front_buttons' && d.closure !== 'wrap') {
       // A keyhole opens at the top, its button and loop at the neck, the seam and zip starting below it.
       const key = keyholeOf(d);
       const top = Math.min(...h.run.filter((q) => Math.abs(q.x) < 1e-6).map((q) => q.y)) + key;
@@ -1720,6 +1732,13 @@ export function outerFlat(d: OuterDraft): Flat {
       const bottom = hw * 0.92;
       shapes.push([p(-top, y0), p(top, y0), p(bottom, y0 + d.rib.hem), p(-bottom, y0 + d.rib.hem)]);
       for (let x = -bottom + 1.2; x < bottom - 0.6; x += 1.2) lines.push({ pts: [p(x * (top / bottom), y0 + 0.3), p(x, y0 + d.rib.hem - 0.3)], kind: 'stitch' });
+    }
+    // The seam across the chest (the Look 02 vest), front and back: it was cut into the pieces but missing from the
+    // flat, so the vest read as one plain panel (Nov 11). Drawn straight across the garment at its height.
+    if (d.chestSeam) {
+      const y = h.move(p(0, isFront ? d.chestSeam.front : d.chestSeam.back)).y;
+      const xs = crossingsAt(whole(h.run), y);
+      if (xs.length >= 2) lines.push({ pts: [p(Math.min(...xs), y), p(Math.max(...xs), y)], kind: 'seam' });
     }
     for (const o of over) shapes.push(isFront ? mirror(o) : o, ...(isFront ? [o] : []));
     // Menswear buttons left over right: the same front seen in a mirror.

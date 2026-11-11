@@ -78,6 +78,9 @@ function curvedBand(draft: SkirtDraft, sa: number): Piece {
   };
 }
 
+/** Whether the skirt's band is cut curved (a low rise), as two pieces: band and facing, not folded. */
+export const curvedBandOf = (draft: SkirtDraft): boolean => !draft.elastic && !draft.wrap && !draft.buttons && !!draft.bandTop && draft.opening !== 'left_side';
+
 export function waistbandPiece(draft: SkirtDraft, sa: number): Piece {
   const W = 2 * WAISTBAND_CM;
   const L = draft.finishedWaist;
@@ -85,7 +88,7 @@ export function waistbandPiece(draft: SkirtDraft, sa: number): Piece {
   if (draft.elastic) return casingPiece(L, [[backQ, 'SIDE SEAM'], [L / 2, 'CENTRE FRONT'], [L - backQ, 'SIDE SEAM']], sa);
   if (draft.wrap?.ties) return wrapBand(draft.finishedWaist, draft.wrap.frontWaist, sa);
   if (draft.buttons) return buttonBand(draft, sa);
-  if (draft.bandTop && !draft.wrap && draft.opening !== 'left_side') return curvedBand(draft, sa);
+  if (curvedBandOf(draft)) return curvedBand(draft, sa);
   const outline = new Path(p(0, 0)).line(p(W, 0), 'end').line(p(W, L), 'waist').line(p(0, L), 'end').line(p(0, 0), 'band');
   outline.closed = true;
   const marks = [backQ, L / 2, L - backQ];

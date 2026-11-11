@@ -1,5 +1,6 @@
 // Plain-language sewing steps for the drafted skirt and bodice, shown in the app and added to the end of the PDF.
 // Keep to plain ASCII punctuation: the PDF uses a standard font without curly quotes.
+import { curvedBandOf } from './finishing';
 import { buttonFrontSteps, yokeSteps } from './skirtFront';
 import { taggedLength } from './geometry';
 import { shirredSteps } from './shirred';
@@ -109,6 +110,9 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
   const slit = draft.slit;
   // A pull-on elastic waist: no zip, and the back on the fold when it fits.
   const elastic = draft.elastic;
+  // A low rise's band is cut curved, as a band and its facing: it isn't folded and has no HOOK and EYE marks (the Look 02
+  // skirt's steps still folded a straight band, Nov 11).
+  const curved = curvedBandOf(draft);
   const backSeam = !draft.pieces[1].fold;
   const pockets = !!draft.pocket;
   // The lining is the same skirt without its pleats, godets or flounce, 2.5 cm shorter: it has darts
@@ -134,7 +138,9 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
       title: 'Cut the waistband',
       text: elastic
         ? "Cut the waistband from its pattern piece with the grain arrow along the selvedge. It is a casing for the elastic, as long as the skirt's waist so the skirt pulls on over your hips, and it has no interfacing so it can gather. Snip the notches for the side seams and the centre front on both long edges."
-        : 'Cut the waistband from its pattern piece with the grain arrow along the selvedge, so it won\'t stretch. Snip the notches for the centre front and the side seams on both long edges, and at each end of the fold line.',
+        : curved
+          ? 'Cut the curved waistband twice, once for the band and once for its facing, with the grain arrow along the selvedge so it won\'t stretch. Snip the notches for the centre front and the side seams on both long edges.'
+          : 'Cut the waistband from its pattern piece with the grain arrow along the selvedge, so it won\'t stretch. Snip the notches for the centre front and the side seams on both long edges, and at each end of the fold line.',
     },
     ...(lined
       ? [
@@ -149,7 +155,9 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
       : [
           {
             title: 'Interface the waistband',
-            text: 'Fuse lightweight interfacing to the wrong side of the waistband, on the half marked HOOK and EYE (from the edge that joins the skirt to the fold line). This half will be the outside.',
+            text: curved
+              ? 'Fuse lightweight interfacing to the wrong side of the outer band, so the curve cannot stretch. The facing is left soft.'
+              : 'Fuse lightweight interfacing to the wrong side of the waistband, on the half marked HOOK and EYE (from the edge that joins the skirt to the fold line). This half will be the outside.',
           },
         ]),
     {
@@ -219,11 +227,15 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
       : [
           {
             title: 'Attach the waistband',
-            text: `Pin the interfaced long edge of the waistband to the skirt waist, right sides together. Match the centre front notch to the centre front, the side notches to the side seams, and let each end extend ${seam} past the zip. Sew ${waist} from the edge and press the seam up into the band.`,
+            text: curved
+              ? `Pin the outer band's longer, lower edge to the skirt waist, right sides together. Match the centre front notch to the centre front, the side notches to the side seams, and let each end extend ${seam} past the zip. Sew ${waist} from the edge, clip the skirt's allowance where it curves, and press the seam up into the band.`
+              : `Pin the interfaced long edge of the waistband to the skirt waist, right sides together. Match the centre front notch to the centre front, the side notches to the side seams, and let each end extend ${seam} past the zip. Sew ${waist} from the edge and press the seam up into the band.`,
           },
           {
             title: 'Finish the waistband',
-            text: `Fold the band along its fold line, right sides together, and sew across each end ${seam} in. Trim the corners and turn it right side out. Press under ${seam} on the loose edge, then hand-stitch it over the seam inside, or stitch in the ditch from the outside.`,
+            text: curved
+              ? `Pin the facing to the outer band along their shorter, top edges, right sides together, and sew ${seam} from the edge, then across each end ${seam} in. Trim, clip the curve and the corners, and turn it right side out. Understitch the facing to the seam allowance so it rolls to the inside, and press over a ham to keep the curve. Press under ${seam} on the facing's lower edge, then hand-stitch it over the seam inside.`
+              : `Fold the band along its fold line, right sides together, and sew across each end ${seam} in. Trim the corners and turn it right side out. Press under ${seam} on the loose edge, then hand-stitch it over the seam inside, or stitch in the ditch from the outside.`,
           },
         ]),
     {
@@ -244,7 +256,9 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
       title: 'Finish',
       text: elastic
         ? `${ELASTIC_FINISH} Give the skirt a final press.`
-        : 'Sew the hook and eye to the waistband ends at the HOOK and EYE marks. Give the skirt a final press.',
+        : curved
+          ? 'Sew a hook and eye inside the band\'s ends, just clear of the zip, so the ends meet edge to edge. Give the skirt a final press.'
+          : 'Sew the hook and eye to the waistband ends at the HOOK and EYE marks. Give the skirt a final press.',
     },
   ];
 
