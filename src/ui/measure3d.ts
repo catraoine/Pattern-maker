@@ -291,7 +291,10 @@ export function formShot(id: string, surf: Surface, joints: Record<string, V3>, 
       if (Math.abs(y - L.full_bust) > 0.2 || s * x < 0.08 || s * x > 0.5) continue;
       if (z > bz) [bz, best] = [z, [x, y, z]];
     }
-    return best;
+    // The form's bust is a smooth shelf, so its furthest-forward point lands on the inner side of each mound: the
+    // bust point is the centre of the mound, about 2 cm further out (Fable's check, Nov 11: 14 cm apart, 17-19 is right).
+    const x = best[0] + s * 2 / CM;
+    return along([x, best[1], 5], [0, 0, -1]) ?? best;
   };
   // Where the arm meets the body at height y, on the front (f = 1) or back (f = -1).
   // Where the arm meets the body at height y, on the front (f = 1) or back (f = -1): in from the shoulder point by
@@ -312,8 +315,9 @@ export function formShot(id: string, surf: Surface, joints: Record<string, V3>, 
   };
   // The string tied round the waist, on the form itself; on in every clip (Cat, Nov 11).
   const stringPath = girthOn(surf, [0, WY, 0], [0, 1, 0], 'body', { zero: [0, 0, 1], toward: [1, 0, 0], width: 0.002, overlap: 0, lift: 0.002 });
-  const make = (path: MeasureShot['path'], turn: number, extra: Partial<MeasureShot> = {}, rise?: number): MeasureShot => {
-    const laid = flush(path, surf, 'all');
+  // asHeld: a tape held straight off the body (as a ruler), keeping its own facing rather than turned to the skin.
+  const make = (path: MeasureShot['path'], turn: number, extra: Partial<MeasureShot> = {}, rise?: number, asHeld = false): MeasureShot => {
+    const laid = asHeld ? path : flush(path, surf, 'all');
     return { path: laid, ...extra, string: true, stringPath, view: { ...viewOf(laid, turn), ...(rise === undefined ? {} : { rise }) } };
   };
   const waistF = () => front(WY), waistB = () => back(WY), waistS = () => side(WY);
@@ -334,7 +338,9 @@ export function formShot(id: string, surf: Surface, joints: Record<string, V3>, 
     case 'neck': {
       // Round the base of the neck, over the bump at the back, dipping a little to the front: read from the neck
       // only (not the shoulders below it).
-      const o: V3 = [0, -1.53, (nape[2] + neckFront[2]) / 2];
+      // Its lower edge on the neck bone at the back, through the side-of-neck points (Fable's check, Nov 11: it sat
+      // about 2.5 cm up the neck, like a choker).
+      const o: V3 = [0, -1.53 + 1.2 / CM, (nape[2] + neckFront[2]) / 2];
       const n = norm([0, 1, -0.22]);
       // Cut along one line, not across the tape's whole width: the lower edge's cut caught the slope down into the
       // back and held the tape off the neck there (Cat, Nov 11: it looked like an intentional gap).
@@ -358,11 +364,21 @@ export function formShot(id: string, surf: Surface, joints: Record<string, V3>, 
       return make(len(waistS(), [out[0], floor, out[2]], [1, 0, 0]), SIDE_TURN, { string: true });
     }
     case 'crotch_depth': {
+      // Straight down, as a ruler held upright against the hip, not round the hip's curve (Fable's check, Nov 11): level
+      // with the string at the top, down to the crotch's level, just clear of the widest point of the hip.
       const c = along([0, 5, mid(1.2)], [0, -1, 0])!;
-      return make(len(waistS(), side(c[1]), [1, 0, 0]), SIDE_TURN, { string: true });
+      // Held a little behind the side seam, where the hanging arm doesn't hide it.
+      const z = waistS()[2] - 0.2;
+      let x = 0;
+      for (let y = WY; y <= c[1]; y += 0.02) x = Math.max(x, along([5, y, z], [-1, 0, 0], 'body')?.[0] ?? 0);
+      const steps = Math.ceil((c[1] - WY) / 0.006);
+      const straight = Array.from({ length: steps + 1 }, (_, i): TapePt => ({ p: [x + lift, WY + ((c[1] - WY) * i) / steps, z], n: [1, 0, 0] }));
+      return make(straight, SIDE_TURN, { string: true }, undefined, true);
     }
     case 'crotch_length':
-      return make(len(waistF(), waistB(), [0, 1, 0], 'all', 0.5), CROTCH_TURN, { string: true }, -0.6);
+      // Cut on one line, not across the tape's width: the width's outer cuts caught the thighs and held the tape about
+      // 6.5 cm below the crotch, the very sag the app warns about (Fable's check, Nov 11).
+      return make(lengthOn(surf, waistF(), waistB(), [0, 1, 0], 'all', { width: 0.002, lift, reach: 0.5 }), CROTCH_TURN, { string: true }, -0.6);
     case 'nape_to_waist':
       return make(len(nape, waistB(), [0, 0, -1]), Math.PI, { string: true });
     case 'front_hps_to_waist': {
@@ -374,13 +390,16 @@ export function formShot(id: string, surf: Surface, joints: Record<string, V3>, 
     case 'apex_separation':
       return make(len(apex(-1), apex(1), [0, 0, 1]), 0);
     case 'shoulder_width':
-      return make(len(sp(-1), sp(1), norm([0, -0.35, -1]), 'all'), Math.PI);
+      // Straight and level across the back between the shoulder points, not climbing toward the neck (Fable, Nov 11).
+      return make(len(sp(-1), sp(1), [0, 0, -1], 'all'), Math.PI);
     case 'shoulder_length':
       // Dropped onto the top of the shoulder rather than cut through it, so it lies flat along the ridge (Cat, Nov 11:
       // the tape sat oddly here).
       return make(drape(surf, hps(1), sp(1), [0, -1, 0], 'all', { lift }), -0.4, {}, 1.6);
     case 'across_back': {
-      const y = nape[1] + 12 / CM;
+      // About 12 cm down on a person; this form's underarm is only 13 cm below its neck bone, so here it goes halfway
+      // between shoulder top and underarm, as the tip means it (Fable's check, Nov 11: it sat at the armpits).
+      const y = nape[1] + 8.5 / CM;
       return make(len(crease(y, -1, -1), crease(y, 1, -1), [0, 0, -1]), Math.PI);
     }
     case 'across_front': {
@@ -411,7 +430,9 @@ export function formShot(id: string, surf: Surface, joints: Record<string, V3>, 
     case 'arm_length': {
       const r = joints.wristL;
       const wb = along([r[0] + 2, r[1], r[2]], [-1, 0, 0], 'armL')!;
-      return make(len(sp(1), wb, [1, 0, 0], 'all'), -HALF_PI);
+      // Over the point of the slightly bent elbow, at the back of the arm (Fable's check, Nov 11; the clip uses the
+      // form with that elbow bent).
+      return make(len(sp(1), wb, norm([1, 0, -1]), 'all'), -HALF_PI);
     }
     default:
       return undefined;
@@ -825,7 +846,8 @@ export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot,
     const across = norm(cross(t, n)); // t, n, across in that order: a true turn, not a mirror
     const basis = new THREE.Matrix4().makeBasis(new THREE.Vector3(...across), new THREE.Vector3(...scale(t, dir)), new THREE.Vector3(...n));
     m.quaternion.setFromRotationMatrix(basis);
-    m.position.set(...add(p[j].p, add(scale(n, 0.002), scale(t, (dir * -0.45) / CM))));
+    // Its outer edge is the tape's zero, so it lies on the tape from the point inward, never past it (Cat, Nov 11).
+    m.position.set(...add(p[j].p, add(scale(n, 0.002), scale(t, (dir * 0.45) / CM))));
   };
 
   const camera = new THREE.PerspectiveCamera(24, 1, 0.05, 50);

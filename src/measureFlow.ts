@@ -85,7 +85,7 @@ const TIP: Partial<Record<MeasurementId, [string, string]>> = {
 };
 /** The string tied round the waist (Cat, 2026-10-24): suggested on the waist page, then every length that starts or
  *  ends at the waist starts from it. */
-const FROM_WAIST = new Set<MeasurementId>(['waist_to_hip', 'waist_to_knee', 'waist_to_floor', 'crotch_depth', 'front_waist_to_hip', 'back_waist_to_hip', 'nape_to_waist', 'front_hps_to_waist']);
+const FROM_WAIST = new Set<MeasurementId>(['waist_to_hip', 'waist_to_knee', 'waist_to_floor', 'crotch_depth', 'crotch_length', 'front_waist_to_hip', 'back_waist_to_hip', 'nape_to_waist', 'front_hps_to_waist', 'front_shoulder_slope', 'back_shoulder_slope']);
 export function stringOf(id: MeasurementId, helper: boolean, form?: FormKind): string | undefined {
   const l =
     id === 'waist'
@@ -165,6 +165,8 @@ const MISTAKES: Partial<Record<MeasurementId, string[]>> = {
   arm_length: ['A straight arm: bend the elbow a little.', 'Ending at the knuckles, not the wrist bone.'],
   crotch_length: ['Letting the tape sag between the legs.', 'Stopping below the waist at the back. A friend holding the back end helps most here.'],
   crotch_depth: ['Sitting on a soft chair or sofa.', 'Measuring at an angle, not straight down.'],
+  // Round the body like a girth, but held firm as a bra band sits, so not the girths' one-finger ease.
+  underbust: ['Measuring over clothes.', 'The tape twisted or not level all the way round.', 'Holding the tape loose: breathe out and hold it firm.'],
 };
 /** Another way for anyone measuring seated or alone (the accessibility review, 2026-10-30): the "How to do it" sheet
  *  assumed standing barefoot and reaching your own back. Written to the wearer measuring on their own. */
@@ -176,7 +178,7 @@ const SEATED: Partial<Record<MeasurementId, string>> = {
   waist_to_floor:
     'Can\'t stand for this one? Lay full-length trousers that fit you flat. Measure the side from the top of the waistband to the hem, then add the gap between the hem and the floor when you wear them.',
   waist_to_knee: 'Seated or alone? Lay a skirt that ends at your knee flat and measure it at the side, waistband top to hem.',
-  waist_to_hip: 'Seated? Measure from your waist down the side of your hip to the chair seat.',
+  waist_to_hip: 'Seated? Sitting hides the fullest part of your hip. Stand for a moment with a hand on a chair back if you can. If you can\'t, lie on your side and measure from your waist to the fullest part of your hip.',
   shoulder_width:
     'Can\'t reach your back? Lay a woven shirt that fits you well flat, buttoned, and measure across the back from one shoulder seam to the other.',
   across_back:
