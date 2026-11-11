@@ -298,7 +298,7 @@ function applyFinish(m: THREE.MeshStandardMaterial, finish: Finish) {
   }
 }
 
-export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot, lift: Lift = 'none', limbs = true, finish: Finish = 'satin', limbData: typeof LIMBS = LIMBS, darkTape = false) {
+export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot, lift: Lift = 'none', limbs = true, finish: Finish = 'satin', limbData: typeof LIMBS = LIMBS, darkTape = false, shade?: string) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, preserveDrawingBuffer: true });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NeutralToneMapping;
@@ -353,7 +353,15 @@ export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot,
       turning.add(mesh);
     }
   }
-  if (finish !== 'satin') {
+  // A matte crepe in any shade (Cat, Nov 10: "the matte black was better. Can we try more shades of charcoal").
+  if (shade) {
+    applyFinish(satin, 'F1');
+    for (const m of [...satins, neck]) {
+      applyFinish(m, 'F1');
+      m.color.set(shade);
+    }
+  }
+  if (finish !== 'satin' && !shade) {
     for (const m of [...satins, neck]) applyFinish(m, finish);
     // The linen's weave laid on by position (the surfaces carry no cloth coordinates of their own).
     if (finish === 'F3' || finish === 'F5') {
