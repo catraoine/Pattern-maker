@@ -19,11 +19,39 @@ def rot(axis, deg):
     return np.eye(3) + math.sin(t) * K + (1 - math.cos(t)) * K @ K
 
 def hand_curl(side, deg):
+    """A relaxed hand, as a mannequin's: the fingers brought in together (MakeHuman's rest hand has them spread wide),
+    each curled a little more at the middle joint than the others, and the thumb laid in toward the index finger.
+    Each bone's turn is returned as a matrix, already signed so the fingers close toward the palm."""
+    wrist = head[f'wrist.{side}']
     across = head[f'finger5-1.{side}'] - head[f'finger2-1.{side}']
+    along = head[f'finger3-1.{side}'] - wrist
+    n = np.cross(along, across); n /= np.linalg.norm(n)
+    def plane(d):
+        d = d - n * (d @ n); return d / np.linalg.norm(d)
+    mid = plane(tail[f'finger3-1.{side}'] - head[f'finger3-1.{side}'])
+    def toward(d, target, share):
+        # The turn about the palm's normal that takes direction d share of the way round to target.
+        a = math.degrees(math.atan2(np.cross(d, target) @ n, d @ target))
+        return rot(n, a * share)
+    def closing(b, axis, deg, M=np.eye(3)):
+        # Of the two ways to turn, the one that brings the finger's tip nearer the thumb's base: toward the palm.
+        base = head[f'finger1-1.{side}']
+        best = None
+        for s_ in (1, -1):
+            R = rot(axis, s_ * deg) @ M
+            d = np.linalg.norm(head[b] + R @ (tail[b] - head[b]) - base)
+            if best is None or d < best[0]: best = (d, R)
+        return best[1]
     out = {}
     for fi in (2, 3, 4, 5):
-        for j in (1, 2, 3):
-            out[f'finger{fi}-{j}.{side}'] = (across, deg * (0.7 if j == 1 else 1))
+        b1 = f'finger{fi}-1.{side}'
+        S_ = toward(plane(tail[b1] - head[b1]), mid, 0.85) if fi != 3 else np.eye(3)
+        for j, k in ((1, 0.8), (2, 1.6), (3, 1.1)):
+            b = f'finger{fi}-{j}.{side}'
+            out[b] = closing(b, across, deg * k, S_ if j == 1 else np.eye(3))
+    t1 = f'finger1-1.{side}'
+    idx = plane(tail[f'finger2-1.{side}'] - head[f'finger2-1.{side}'])
+    out[t1] = toward(plane(tail[t1] - head[t1]), idx, 0.8)
     return out
 
 S = 1 if head['upperarm01.L'][0] > 0 else -1  # x sign of the .L side
@@ -41,7 +69,7 @@ X = np.array([1.0, 0, 0]); Y = np.array([0, 1.0, 0]); Z = np.array([0, 0, 1.0])
 POSES = {
     'rest': {},
     # P1 Poised: arms down close by the sides, elbows soft, hands relaxed; standing straight, feet together.
-    'poised': {**arms(-33, -33, 8, 8, curl=14), 'upperleg01.L': (Z, -2.5 * S), 'upperleg01.R': (Z, 2.5 * S)},
+    'poised': {**arms(-33, -33, 8, 8, curl=7), 'upperleg01.L': (Z, -2.5 * S), 'upperleg01.R': (Z, 2.5 * S)},
     # P2 Contrapposto: the weight on one leg, the free knee bent forward and in, its heel lifted; one arm easy
     # forward.
     'shift': {**arms(-40, -34, 6, 30, 0, 10, curl=14), 'upperleg01.R': (X, -24), 'upperleg02.R': (Z, -6 * S), 'lowerleg01.R': (X, 44), 'foot.R': (X, -30), 'upperleg01.L': (Z, -2 * S)},
@@ -50,22 +78,13 @@ POSES = {
 }
 pose = POSES[POSE]
 
-# Finger curl direction: toward the palm, read as bringing the fingertips nearer the base of the thumb.
-for b, (ax, deg) in list(pose.items()):
-    if b.startswith('finger'):
-        side = b[-1]
-        tip, base = tail[b], head[f'finger1-1.{side}']
-        def d_after(s):
-            R = rot(ax, s * deg); return np.linalg.norm(head[b] + R @ (tip - head[b]) - base)
-        if d_after(-1) < d_after(1): pose[b] = (ax, -deg)
-
 G = {}
 def glob(b):
     if b in G: return G[b]
     par = bones[b]['parent']
     M = np.eye(4)
     if b in pose:
-        R = rot(*pose[b]); h = head[b]
+        R = pose[b] if isinstance(pose[b], np.ndarray) else rot(*pose[b]); h = head[b]
         L = np.eye(4); L[:3, :3] = R; L[:3, 3] = h - R @ h
         M = L
     G[b] = (glob(par) @ M) if par else M
