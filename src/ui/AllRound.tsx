@@ -1196,6 +1196,13 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
           st.ay += (8 + (st.fy - top0) * S0 - st.ay) * k;
         }
       } else st.zoom = st.zoomTo;
+      // Turning on its own, it draws 30 pictures a second, not 60: at its slow turn the two look the same, and a phone
+      // does half the work (Cat's pick, the phone weight check 2026-11-10). A finger on it, a zoom or the draw tool
+      // keep every frame.
+      if (!st.dragging && st.target === null && st.zoom === st.zoomTo && !drawing && now - drewAt < 30) {
+        raf = requestAnimationFrame(loop);
+        return;
+      }
       draw(now);
       drewAt = now;
       raf = requestAnimationFrame(loop);
