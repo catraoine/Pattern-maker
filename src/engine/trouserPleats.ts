@@ -91,7 +91,12 @@ export function pleatedFront(front: Piece, kind: Exclude<TrouserPleats, 'none'>,
   for (; i < o.segs.length; i++) {
     const s = o.segs[i];
     if (s.kind === 'L') out.line(mv(s.to), o.tags[i]);
-    else out.curve(mv(s.c1), mv(s.c2), mv(s.to), o.tags[i]);
+    else if (o.tags[i] === 'hem') {
+      // The hem's handles move with the corner each belongs to, so it stays square to the side seam and the inside
+      // leg when a slash falls between a corner and its handle (a barrel leg's narrow hem under two pleats).
+      const from = i > 0 ? o.segs[i - 1].to : o.start;
+      out.curve(p(s.c1.x + shift(from.x), s.c1.y), p(s.c2.x + shift(s.to.x), s.c2.y), mv(s.to), o.tags[i]);
+    } else out.curve(mv(s.c1), mv(s.c2), mv(s.to), o.tags[i]);
   }
   out.closed = true;
 

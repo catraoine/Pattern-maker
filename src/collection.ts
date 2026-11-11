@@ -33,7 +33,7 @@ import {
 import { EXAMPLE_BODY, Garment, MeasurementValues, isComplete } from './measurements';
 
 /** The house's own colours, named in a look's fabric words and not on the shop's list (SS27, 2026-11-05). */
-const HOUSE_COLOURS: [string, string][] = [['gold', '#C9962E'], ['ice', '#9CC3E6'], ['lavender', '#a796c4'], ['blue-grey', '#B9C3CF']];
+const HOUSE_COLOURS: [string, string][] = [['gold', '#C9962E'], ['ice', '#9CC3E6'], ['lavender', '#a796c4'], ['blue-grey', '#B9C3CF'], ['chocolate', '#3d2418']];
 
 /** The house's own prints, photographed from the real cloth: the words that name one in a look's fabric, its tile in
  * public/prints/house (see fabricPhoto.ts) and how wide one tile shows on the garment, in cm. */
@@ -173,6 +173,16 @@ export const COLLECTION: HouseLook[] = [
       yoke: { back: 9 },
       shirtCut: 'house',
     }),
+  },
+  {
+    // A low-rise barrel leg in the snakeskin brown of the leopard cloth, so it links to Look 08 (Cat, 2026-11-11).
+    id: 'chocolate-barrel',
+    number: 9,
+    name: 'Chocolate Barrel Trouser',
+    line: 'Slung low on the hip, two deep pleats opening into a barrel leg that curves out round the knee and falls to the floor, in a crisp chocolate sateen.',
+    fabric: 'Chocolate crisp cotton sateen',
+    garment: 'trousers',
+    choices: { ...DEFAULT_TROUSERS_CHOICES, fit: 'relaxed', leg: 'barrel', length: 'full', rise: 'low', pockets: 'slant', pleats: 'double', loops: 'loops' },
   },
 ];
 
