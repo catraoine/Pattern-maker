@@ -368,7 +368,36 @@ export function casingSteps(e: Elastic, seam: string, waist: string, garment: st
 /** Sewing steps for the bodice: centre back zip, the neck (and, sleeveless, the armholes) bias-bound, faced or
  * lined, and set-in sleeves when it has them. */
 export function bodiceGuide(draft: BodiceDraft, style: { length: BodiceLength }, fabricM: number, bindingM: number, finish: BodiceFinish = {}): SewingGuide {
-  return withSleeveCut(withPlungeTape(bodiceSteps(draft, style, fabricM, bindingM, finish), draft), finish.sleeve, finish.seams);
+  return withSleeveCut(withPlungeTape(withZipThrough(bodiceSteps(draft, style, fabricM, bindingM, finish), draft), draft), finish.sleeve, finish.seams);
+}
+
+/**
+ * A top too narrow at the waist to pull on over a zip that stops there (BodiceDraft.zipThrough) zips right through to
+ * its hem: the zip goes in down to the hem edge, a longer one shortened there, and no centre back seam is left to close
+ * below it, on the top or its lining.
+ */
+function withZipThrough(g: SewingGuide, draft: BodiceDraft): SewingGuide {
+  if (!draft.zipThrough || draft.closure !== 'back_zip') return g;
+  const edge = draft.peplum ? 'the bottom edge, where the peplum joins' : 'the hem edge';
+  const steps = g.steps
+    .filter((st) => st.title !== 'Close the centre back')
+    .map((st) =>
+      st.title === 'Put in the zip'
+        ? {
+            ...st,
+            text:
+              st.text.replace('stopping at the ZIP ENDS notch.', `running all the way down to ${edge}: your waist is narrower than your bust, so the top opens right out to go on.`) +
+              ` If the zip is longer than the opening, close it, stitch across its teeth several times 1 cm above ${draft.peplum ? 'the seam line' : 'where the hem will fold'}, and cut the rest off 2 cm below the stitching.`,
+          }
+        : st.title === 'Make the lining'
+          ? { ...st, text: st.text.replace(', and its centre back seam below the ZIP ENDS notch,', ',') }
+          : st.title === 'Hem' && !draft.peplum
+            ? { ...st, text: `${st.text} Turn the ends of the hem in neatly beside the zip and slip-stitch them to its tape.` }
+            : st.title === 'Finish'
+              ? { ...st, text: st.text.replace('Sew a hook and eye at the top of the zip, inside the neckline.', `Sew a hook and eye at the top of the zip, inside the neckline${draft.peplum ? '' : ', and another at its foot, inside the hem'}.`) }
+              : st,
+    );
+  return { ...g, steps };
 }
 
 /**

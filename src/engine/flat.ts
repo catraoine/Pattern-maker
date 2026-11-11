@@ -1304,7 +1304,8 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
       // A keyhole opens at the top, its button and loop at the neck, the seam and zip starting below it.
       const key = keyholeOf(d);
       const top = Math.min(...h.run.filter((q) => Math.abs(q.x) < 1e-6).map((q) => q.y)) + key;
-      lines.push({ pts: [p(0, top), p(0, h.run[h.run.length - 1].y)], kind: 'seam' }, ...zip(top, d.zipCm), ...keyButton(top - key, key));
+      // A zip run through to the hem is shortened there (BodiceDraft.zipThrough), so it is drawn no longer than the back.
+      lines.push({ pts: [p(0, top), p(0, h.run[h.run.length - 1].y)], kind: 'seam' }, ...zip(top, Math.min(d.zipCm, h.run[h.run.length - 1].y - top)), ...keyButton(top - key, key));
     }
     const shapes = [shape, ...(wrapped?.tie ?? [])];
     // Spaghetti straps, from the top edge up over the shoulder.

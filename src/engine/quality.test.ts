@@ -145,7 +145,9 @@ describe('bodice block across random bodies', () => {
       if (d.waistDarts.front > 8 || d.waistDarts.back > 6) failures.push(`${tag}: waist darts ${JSON.stringify(d.waistDarts)}`);
       const apex = front.lines[front.lines.length - 1].points()[0];
       if (!inside(apex, front.outline.points())) failures.push(`${tag}: bust point outside the front`);
-      if (d.zipCm > d.backLength) failures.push(`${tag}: ${d.zipCm} cm zip in a ${d.backLength} cm back`);
+      // A zip run through to the hem (zipThrough: the waist too narrow to pull on) is the next standard length up,
+      // shortened at the hem; any other zip is no longer than the back.
+      if (d.zipCm > d.backLength + (d.zipThrough ? 5.5 : 0)) failures.push(`${tag}: ${d.zipCm} cm zip in a ${d.backLength} cm back`);
       if (!style.length || style.length === 'waist') {
         // Waist seam with darts closed should be the finished waist.
         const waist = 2 * (taggedLength(front.outline, 'waist') + taggedLength(back.outline, 'waist'));
@@ -183,7 +185,9 @@ describe('bodices shaped by hand across random bodies', () => {
       for (const pc of d.pieces) pieceProblems(pc).forEach((pr) => failures.push(`${tag} ${pc.name}: ${pr}`));
       if (Math.abs(d.sideSeam.frontLessDart - d.sideSeam.back) > 0.05) failures.push(`${tag}: side seams differ`);
       if (d.shoulder.front < 4.9) failures.push(`${tag}: shoulder ${d.shoulder.front} cm`);
-      if (d.zipCm > d.backLength) failures.push(`${tag}: ${d.zipCm} cm zip in a ${d.backLength} cm back`);
+      // A zip run through to the hem (zipThrough: the waist too narrow to pull on) is the next standard length up,
+      // shortened at the hem; any other zip is no longer than the back.
+      if (d.zipCm > d.backLength + (d.zipThrough ? 5.5 : 0)) failures.push(`${tag}: ${d.zipCm} cm zip in a ${d.backLength} cm back`);
       const apex = front.lines[front.lines.length - 1].points()[0];
       if (!inside(apex, front.outline.points())) failures.push(`${tag}: bust point outside the front`);
       if ((neck.fullness < POINTED_NECK) !== Boolean(front.meta.pointedAtCentre)) failures.push(`${tag}: pointed neck not marked`);

@@ -400,7 +400,7 @@ export function roundBodice(draft: BodiceDraft, m: Nape, sleeve?: SleeveDraft): 
     sleeve,
     styleLines: draft.styleLines,
     buttons: draft.closure === 'front_buttons' ? draft.buttons?.at : undefined,
-    zipCm: draft.closure === 'back_zip' ? draft.zipCm : undefined,
+    zipCm: draft.closure === 'back_zip' ? (draft.zipThrough ? Math.min(draft.zipCm, draft.back.zipEnd.y - draft.back.neckCentre.y) : draft.zipCm) : undefined,
     girth: { bust: draft.finishedBust, waist: draft.finishedWaist, hip },
     finishedWaist: draft.finishedWaist,
   });

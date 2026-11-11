@@ -131,6 +131,40 @@ describe('bodice measured against the body', () => {
     expect(failures.slice(0, 10), `${failures.length} failures`).toEqual([]);
   });
 
+  // Fable fit check of the SS27 looks, 2026-11-11: a zip that stopped at the waist left a fitted waist closed below it,
+  // and the top could not be pulled on over the bust (the peplum top on every body).
+  it(`opens far enough to pull on: the zip runs to the hem wherever the waist is narrower than the bust, for ${BODIES} bodies`, () => {
+    const failures: string[] = [];
+    const styles = [
+      { fit: 'fitted', length: 'waist' },
+      { fit: 'regular', length: 'waist' },
+      { fit: 'relaxed', length: 'high_hip' },
+      { fit: 'fitted', length: 'waist', dropCm: 6, peplum: 'flared', peplumSize: 'big' },
+      { fit: 'regular', length: 'high_hip', neckline: 'plunge', plungeDepth: 'waist' },
+      { fit: 'boxy', length: 'hip' },
+    ] as const;
+    for (let seed = 1; seed <= BODIES; seed++) {
+      const m = randomBody(rng(seed + 8000));
+      for (const st of styles) {
+        const tag = `seed ${seed} ${st.fit} ${st.length}`;
+        const d = draftBodice(m, st as never);
+        const run = d.back.hemCentre.y - d.back.neckCentre.y;
+        const marked = d.pieces.some((pc) => pc.labels.some((l) => l.text === 'ZIP ENDS'));
+        if (d.zipThrough) {
+          // Through to the hem: the zip at least as long as the centre back, no ZIP ENDS mark, nothing closed below it.
+          if (Math.abs(d.back.zipEnd.y - d.back.hemCentre.y) > 0.01) failures.push(`${tag}: through zip ends ${r1(d.back.hemCentre.y - d.back.zipEnd.y)} cm above the hem`);
+          if (d.zipCm < run - 0.5 || d.zipCm > run + 5.5) failures.push(`${tag}: a ${d.zipCm} cm zip for a ${r1(run)} cm centre back`);
+          if (marked) failures.push(`${tag}: ZIP ENDS still marked`);
+        } else {
+          // Stopping at the waist: the waist below it passes the bust.
+          if (d.finishedWaist < m.full_bust + 2 - 0.2) failures.push(`${tag}: waist ${d.finishedWaist} closed under a ${r1(m.full_bust)} bust`);
+          if (!marked) failures.push(`${tag}: no ZIP ENDS mark`);
+        }
+      }
+    }
+    expect(failures.slice(0, 10), `${failures.length} failures`).toEqual([]);
+  });
+
   it(`drafts close to the measured bodice from a tester's short list of measurements, for ${BODIES} bodies`, () => {
     const failures: string[] = [];
     for (let seed = 1; seed <= BODIES; seed++) {

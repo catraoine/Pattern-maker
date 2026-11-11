@@ -361,6 +361,9 @@ export interface BodiceDraft {
   /** Centre back length from the neck edge to the hem. */
   backLength: number;
   zipCm: number;
+  /** The zip runs through the waist to the hem, shortened there if it is longer: the waist is too narrow to pull on
+   *  over the bust with the back closed below a zip that stops at the waist. */
+  zipThrough?: boolean;
   /** Front landmarks for drawing the bodice as worn: waist and hem, at the side and centre front. */
   front: { apex: P; waistSide: P; waistCentre: P; hemSide: P; hemCentre: P };
   /** The same for the back, plus the centre back neck and where the zip ends. */
@@ -724,6 +727,8 @@ function draftBlock(m: BodiceMeasurements, style: BodiceStyle): BodiceDraft {
 
 const ZIPS = [20, 22, 25, 30, 35, 40, 45, 50, 55, 60];
 /** The longest standard invisible zip that fits the centre back opening. */
+/** A top pulls on over a zip that stops at the waist only if the waist below it is this much more than the bust. */
+const PULL_ON_CM = 2;
 const zipFor = (opening: number) => [...ZIPS].reverse().find((z) => z <= opening) ?? ZIPS[0];
 
 /** Side seam below the waist: out from the waist and straight down at the hem, like a skirt's hip curve. */
@@ -1077,8 +1082,16 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   // The zip runs down the centre back from the neck edge, ending at the waist (just above a
   // waist-length hem) so the top goes on over the head and shoulders; a dress's runs on below the
   // waist so it steps on over the hips.
-  const zipCm = zipFor(wb - bd - key + (s.dressHem ? DRESS_ZIP_BELOW : below ? 0 : -2));
-  const zipEnd = p(0, bd + key + zipCm);
+  // A top whose waist is narrower than the bust can't be pulled on over a zip that stops at the waist: below it the
+  // waist would be a closed ring the bust and shoulders don't pass (Fable fit check, 2026-11-11: the fitted peplum top
+  // on every body, the regular blouse on half). There the zip runs on through the waist to the hem, where the top opens
+  // right out: the next standard zip up, shortened to the hem, or the longest there is on a top longer than that.
+  const waistRing = 2 * (backW + frontW - 2 * sideSupp - dartB - dartF);
+  const cbRun = backHem + (hemShape?.back[0] ?? 0) - bd - key;
+  const tight = !s.dressHem && waistRing < m.full_bust + PULL_ON_CM;
+  const zipThrough = tight && cbRun <= ZIPS[ZIPS.length - 1] + 0.5;
+  const zipCm = zipThrough ? (ZIPS.find((z) => z >= cbRun - 0.5) ?? ZIPS[ZIPS.length - 1]) : zipFor(tight ? cbRun - 2 : wb - bd - key + (s.dressHem ? DRESS_ZIP_BELOW : below ? 0 : -2));
+  const zipEnd = p(0, bd + key + (zipThrough ? cbRun : zipCm));
   const backCut = 'Cut 2 (1 pair)';
   const backDraft = {
     frame: [
@@ -1112,13 +1125,13 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     notches: [
       [add(abPt, p(0, -0.5)), p(1, 0)], // double notch = back
       [add(abPt, p(0, 0.5)), p(1, 0)],
-      [zipEnd, p(-1, 0)],
+      ...(zipThrough ? [] : [[zipEnd, p(-1, 0)] as [P, P]]),
       ...(slitCm ? [[p(0, backHem - slitCm), p(-1, 0)] as [P, P]] : []),
     ],
     labels: [
       { at: p(backW * 0.42, scye - 7), text: 'BODICE BACK', size: 1.4 },
       { at: p(backW * 0.42, scye - 5), text: backCut, size: 0.9 },
-      { at: add(zipEnd, p(3.2, 0.3)), text: 'ZIP ENDS', size: 0.7 },
+      ...(zipThrough ? [] : [{ at: add(zipEnd, p(3.2, 0.3)), text: 'ZIP ENDS', size: 0.7 }]),
       ...(slitCm ? [{ at: p(3.2, backHem - slitCm + 0.3), text: 'SLIT ENDS', size: 0.7 }] : []),
     ],
     cut: backCut,
@@ -1347,6 +1360,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     ...(s.dressHem ? { finishedHip: r(2 * (hipB.x + hipF.x), 1) } : {}),
     backLength: r(backHem + hemAt.back - bd, 1),
     zipCm,
+    ...(zipThrough ? { zipThrough } : {}),
     front: { apex, waistSide: swF, waistCentre: p(0, wf), hemSide: add(hemF, p(0, hemAt.side)), hemCentre: p(0, cfHem + hemAt.front) },
     back: { waistSide: swB, waistCentre: p(0, wb), hemSide: add(hemB, p(0, hemAt.side)), hemCentre: p(0, backHem + hemAt.back), neckCentre: p(0, bd), zipEnd },
     neckBlock: { front: { neckY: cfNeck0.y, neckX: nwF }, back: { neckY: 0, neckX: nw } },
