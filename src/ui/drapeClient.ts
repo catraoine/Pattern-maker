@@ -50,9 +50,24 @@ function sewnJob(job: DrapeJob): DrapeJob {
   return { ...job, draft: next } as DrapeJob;
 }
 
+/** Jobs still sewing, by key: the same design asked for again while it sews waits for that sewing, rather than queueing
+ *  a second one behind it (the view asked up to three times as a style screen settled; the phone weight check,
+ *  2026-11-10). */
+const sewing = new Map<string, Promise<DrapedLite>>();
+
 export function requestDrape(job: DrapeJob, key = drapeKey(job)): Promise<DrapedLite> {
   const hit = done.get(key);
   if (hit) return Promise.resolve(hit);
+  const already = sewing.get(key);
+  if (already) return already;
+  const p = sewOnce(job, key);
+  sewing.set(key, p);
+  const clear = () => sewing.delete(key);
+  p.then(clear, clear);
+  return p;
+}
+
+function sewOnce(job: DrapeJob, key: string): Promise<DrapedLite> {
   // A piece the maker cut off with Draw a line is sewn back to the piece it came off, its seam drawn on the cloth
   // (Design: Pattern tools round 3, Cat 2026-11-07): sewn, a yoke with its darts closed hangs as the piece with its
   // darts sewn. Anything still unsewn falls back to the Front drawing, as any design that can't be sewn does.
