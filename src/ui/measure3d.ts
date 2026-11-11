@@ -98,14 +98,15 @@ export function lengthPath(a: number, y0: number, y1: number): TapePt[] {
 
 /** The tape's face: ivory, a long mark each centimetre and a short one every 2 mm, all from its top edge; no numbers
  *  (Cat, 2026-10-28). One tile is 10 cm. */
-function tapeTexture(maxAniso: number) {
+function tapeTexture(maxAniso: number, dark = false) {
   const c = document.createElement('canvas');
   c.width = 2048;
   c.height = 128;
   const g = c.getContext('2d')!;
-  g.fillStyle = TAPE;
+  // On a light finish the tape is dark with ivory marks, so it still stands out.
+  g.fillStyle = dark ? '#1d1a16' : TAPE;
   g.fillRect(0, 0, c.width, c.height);
-  g.fillStyle = TAPE_INK;
+  g.fillStyle = dark ? TAPE : TAPE_INK;
   const perMm = c.width / 100;
   for (let mm = 0; mm < 100; mm += 2) {
     const long = mm % 10 === 0;
@@ -226,15 +227,19 @@ function limbMesh(part: { pos: number[]; idx: number[] }, mat: THREE.Material) {
   g.setAttribute('position', new THREE.Float32BufferAttribute(part.pos, 3));
   g.setAttribute('uv', new THREE.Float32BufferAttribute(new Array((part.pos.length / 3) * 2).fill(0), 2));
   g.setAttribute('shade', new THREE.Float32BufferAttribute(new Array(part.pos.length / 3).fill(0), 1));
-  g.setIndex(part.idx);
+  // Mapped onto the form (y turned to run down), the triangles wind the other way: turned back, so their fronts
+  // face out and they are lit as the torso is.
+  const idx = part.idx.slice();
+  for (let i = 0; i < idx.length; i += 3) [idx[i + 1], idx[i + 2]] = [idx[i + 2], idx[i + 1]];
+  g.setIndex(idx);
   g.computeVertexNormals();
   return new THREE.Mesh(g, mat);
 }
 
 /** The form's surface (mock-ups for Cat, Nov 10: "this black shiny body looks weird"): F1 matte black crepe, F2
  *  ivory plaster, F3 natural linen like a tailor's form, F4 champagne satin. 'satin' is All round's black satin. */
-export type Finish = 'satin' | 'F1' | 'F2' | 'F3' | 'F4';
-function linenTexture() {
+export type Finish = 'satin' | 'F1' | 'F2' | 'F3' | 'F4' | 'F5';
+function linenTexture(bold = false) {
   const c = document.createElement('canvas');
   c.width = c.height = 256;
   const g = c.getContext('2d')!;
@@ -242,9 +247,9 @@ function linenTexture() {
   g.fillRect(0, 0, 256, 256);
   // A fine plain weave: warp and weft threads, each a little lighter or darker than the last.
   for (let i = 0; i < 256; i += 2) {
-    g.fillStyle = `rgba(${Math.random() < 0.5 ? '255,250,240' : '90,75,55'},${0.05 + Math.random() * 0.08})`;
+    g.fillStyle = `rgba(${Math.random() < 0.5 ? '255,250,240' : '90,75,55'},${(bold ? 0.12 : 0.05) + Math.random() * (bold ? 0.16 : 0.08)})`;
     g.fillRect(i, 0, 1, 256);
-    g.fillStyle = `rgba(${Math.random() < 0.5 ? '255,250,240' : '90,75,55'},${0.05 + Math.random() * 0.08})`;
+    g.fillStyle = `rgba(${Math.random() < 0.5 ? '255,250,240' : '90,75,55'},${(bold ? 0.12 : 0.05) + Math.random() * (bold ? 0.16 : 0.08)})`;
     g.fillRect(0, i, 256, 1);
   }
   const t = new THREE.CanvasTexture(c);
@@ -274,6 +279,16 @@ function applyFinish(m: THREE.MeshStandardMaterial, finish: Finish) {
       m.roughness = 1;
       m.metalness = 0;
       break;
+    case 'F5':
+      // Champagne linen (Cat, Nov 10): the linen's weave in the brand champagne, matte.
+      // Kept pale and greyed: a warmer champagne read as bare skin.
+      m.color.set(0xe9dcc2);
+      m.map = linenTexture(true);
+      m.map.repeat.set(24, 24);
+      m.emissive.set(0x000000);
+      m.roughness = 1;
+      m.metalness = 0;
+      break;
     case 'F4':
       m.color.set(0xcdb68a);
       m.emissive.set(0x000000);
@@ -283,7 +298,7 @@ function applyFinish(m: THREE.MeshStandardMaterial, finish: Finish) {
   }
 }
 
-export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot, lift: Lift = 'none', limbs = true, finish: Finish = 'satin', limbData: typeof LIMBS = LIMBS) {
+export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot, lift: Lift = 'none', limbs = true, finish: Finish = 'satin', limbData: typeof LIMBS = LIMBS, darkTape = false) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, preserveDrawingBuffer: true });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NeutralToneMapping;
@@ -341,7 +356,7 @@ export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot,
   if (finish !== 'satin') {
     for (const m of [...satins, neck]) applyFinish(m, finish);
     // The linen's weave laid on by position (the surfaces carry no cloth coordinates of their own).
-    if (finish === 'F3') {
+    if (finish === 'F3' || finish === 'F5') {
       for (const mesh of formMeshes) {
         const pos = mesh.geometry.getAttribute('position');
         const uv = new Float32Array(pos.count * 2);
@@ -390,7 +405,7 @@ export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot,
     turning.add(new THREE.Mesh(waistString(bodyLandmarks().waist), m));
   }
 
-  const tex = tapeTexture(renderer.capabilities.getMaxAnisotropy());
+  const tex = tapeTexture(renderer.capabilities.getMaxAnisotropy(), darkTape);
   const tapeMat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.75, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 });
   const rib = ribbon(shot.path, TAPE_W);
   const tapeMesh = new THREE.Mesh(rib.geo, tapeMat);
