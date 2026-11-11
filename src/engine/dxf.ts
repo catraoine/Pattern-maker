@@ -186,9 +186,9 @@ export function cleanRing(pts: P[], straight = true): P[] {
   }
   return kept.length > 3 ? kept : ring;
 }
-/** How near a point must lie to the line through its neighbours to count as on a straight run (cm): a hundredth of a
+/** How near a point must lie to the line through its neighbours to count as on a straight run (cm): a twentieth of a
  *  millimetre. */
-const STRAIGHT = 0.001;
+const STRAIGHT = 0.005;
 
 /** The cutting line as the file writes it, cleaned, with a point of its own at every notch, and the notches. Gerber
  *  (and most cutting-room software) keeps a notch only where it falls on a point of the cutting line; ours fell between
@@ -245,7 +245,8 @@ export function dxfCut(pc: Piece): { cut: P[]; notches: P[] } {
  *  cap); CLO 3D sews only the outline, so it could not close a dart drawn as legs inside the piece (CLO trial, Nov 10
  *  2026). The cutting line keeps the cap, so a cutting room cuts exactly as before. */
 export function sewLine(pc: Piece): P[] {
-  return withDartVs(pc, cleanRing(pc.outline.points(), !pc.cutOutline));
+  // The darts first, so their legs are corners the cleaning keeps.
+  return cleanRing(withDartVs(pc, open(pc.outline.points())), !pc.cutOutline);
 }
 
 /** A closed line with each of the piece's edge darts let into it as a V, in place of the cap between its legs. */
