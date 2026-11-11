@@ -102,6 +102,9 @@ export interface DressDraft {
   lengthCm: number;
   /** Cut with no waist seam: the front and back each one piece, from the shoulder to the hem. */
   noSeam?: NoSeam;
+  /** A bias look cut to a set height clear of the floor: the height its hem is marked at once it has hung, in cm up
+   *  from the floor, for the sewing guide. */
+  hemOffFloor?: number;
   finishedBust: number;
   finishedWaist: number;
   finishedHip: number;
@@ -184,6 +187,11 @@ export const noSeamAllowed = (b: Partial<BodiceStyle>) =>
   !b.panel &&
   b.structure !== 'boned';
 
+/** How far below where it is cut a bias hem is taken to hang once the cloth has dropped, in cm: a look cut 13 cm clear
+ *  of the floor is hemmed 10 cm clear. A guess at the least a silk satin drops; CLO's own satin dropped the whole
+ *  13 cm (2026-11-11), so the guide has the hem marked up from the floor after hanging, whatever the drop was. */
+const BIAS_DROP = 3;
+
 /**
  * A sheath or a shift: the bodice block drafted on past the hip to the dress's hem, so there is no
  * waist seam. A sheath keeps its waist darts as fish-eye darts and narrows a little to the hem, with a
@@ -252,6 +260,7 @@ function noSeamDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyle>, sk
       overHead: true,
       lengthCm: bodice.backLength,
       noSeam: cut,
+      ...(plain.floorClear !== undefined && plain.lengthCm === undefined ? { hemOffFloor: Math.max(2, plain.floorClear - BIAS_DROP) } : {}),
       seamDrop: 0,
       seamRange: { min: 0, max: 0 },
       finishedBust: bodice.finishedBust,
