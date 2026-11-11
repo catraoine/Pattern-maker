@@ -26,7 +26,7 @@ export const SHEER_OPACITY = 0.5;
 const f = (n: number) => n.toFixed(2);
 
 /** The defs one drawing needs for its cloth's look: lit from the left across x1 to x2, as the shade is. */
-export function ClothDefs({ uid, x1, x2, look }: { uid: string; x1: number; x2: number; look: FabricLook | undefined }) {
+export function ClothDefs({ uid, x1, x2, look, flat }: { uid: string; x1: number; x2: number; look: FabricLook | undefined; flat?: boolean }) {
   if (!look) return null;
   const s = look.special;
   return (
@@ -40,6 +40,18 @@ export function ClothDefs({ uid, x1, x2, look }: { uid: string; x1: number; x2: 
               <stop offset="0.38" stopColor={SHADOW} stopOpacity="0.1" />
               <stop offset="0.7" stopColor={SHADOW} stopOpacity="0.3" />
               <stop offset="1" stopColor={SHADOW} stopOpacity="0.55" />
+            </>
+          ) : s === 'leather' && flat ? (
+            // A flat lies wide and unshaped, so the form's narrow catch of light reads as a hard stripe on it: here it is broad and low.
+            <>
+              <stop offset="0" stopColor={SHADOW} stopOpacity="0.1" />
+              <stop offset="0.08" stopColor="#fff" stopOpacity="0" />
+              <stop offset="0.3" stopColor="#fff" stopOpacity="0.17" />
+              <stop offset="0.54" stopColor="#fff" stopOpacity="0" />
+              <stop offset="0.66" stopColor={SHADOW} stopOpacity="0.08" />
+              <stop offset="0.76" stopColor="#fff" stopOpacity="0.05" />
+              <stop offset="0.86" stopColor={SHADOW} stopOpacity="0.15" />
+              <stop offset="1" stopColor={SHADOW} stopOpacity="0.4" />
             </>
           ) : (
             <>
@@ -128,9 +140,9 @@ export function ClothOverlay({ d, uid, look, hemY, k }: { d: string; uid: string
           <rect x="-1000" y={f(hemY - B.size)} width="2000" height={f(B.size)} fill={`url(#band${uid}${k})`} clipPath={`url(#bclip${uid}${k})`} />
         </>
       )}
-      {weave && <path d={d} fill={`url(#weave${uid})`} stroke="none" fillOpacity={look.sheer ? 0.6 : 1} />}
-      {/* The soft sheen is set by style, as the flat's own rule (.techflat path) switches off a fill attribute. */}
-      {sheen && (soft ? <path d={d} style={{ fill: `url(#sheen${uid})` }} stroke="none" /> : <path d={d} fill={`url(#sheen${uid})`} stroke="none" />)}
+      {/* Fills are set by style: the flat's own rule (.techflat path) switches off a fill attribute, which left flats without shine or weave. */}
+      {weave && <path d={d} style={{ fill: `url(#weave${uid})` }} stroke="none" fillOpacity={look.sheer ? 0.6 : 1} />}
+      {sheen && <path d={d} style={{ fill: `url(#sheen${uid})` }} stroke="none" />}
     </>
   );
 }

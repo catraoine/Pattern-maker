@@ -28,7 +28,7 @@ export function TechFlatView({ flat, title }: { flat: Flat; title: string }) {
         const hems = look?.border ? borderHems(v.shapes) : [];
         return (
           <g key={v.label}>
-            <ClothDefs uid={`${uid}${k}`} x1={left + (right - left) * 0.1} x2={right - (right - left) * 0.1} look={look} />
+            <ClothDefs uid={`${uid}${k}`} x1={left + (right - left) * 0.1} x2={right - (right - left) * 0.1} look={look} flat />
             <defs>
               <linearGradient id={shade} gradientUnits="userSpaceOnUse" x1={(left + (right - left) * 0.1).toFixed(2)} x2={(right - (right - left) * 0.1).toFixed(2)} y1="0" y2="0">
                 {SHADE_STOPS.map(([offset, color, opacity]) => (
