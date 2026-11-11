@@ -8,7 +8,7 @@ import type { Choices } from '../savedWork';
 import { skirtFlat, wornLines, wornShapes } from '../engine/flat';
 import type { P } from '../engine/geometry';
 import { HEM_SAMPLES, HemShape, flatHem, isShaped, offsetAt } from '../engine/hem';
-import { LENGTHS, Length, Silhouette, SkirtDraft, SkirtMeasurements, flareRange, isCircle, lengthRange, presetFlare } from '../engine/skirt';
+import { LENGTHS, Length, Silhouette, SkirtDraft, SkirtMeasurements, flareRange, isCircle, draftedMeasures, lengthRange, presetFlare } from '../engine/skirt';
 import { GROUPS } from '../skirtChoices';
 import { skirtForm } from './DrawOnForm';
 import { FormLayers, SQUEEZE, formFrame, hemCorner, wornCloth, wornFolds, wornMapper } from './FormSketch';
@@ -79,7 +79,7 @@ const silName = (id: Silhouette) => GROUPS[1].options.find((o) => o[0] === id)![
 export function dragLength(m: SkirtMeasurements, c: Choices, cm: number, catchCm = 1.5): Choices {
   const v = lengthRange(m).clamp(cm);
   const named = LENGTH_IDS.map((id) => ({ id, at: LENGTHS[id](m) })).sort((a, b) => Math.abs(a.at - v) - Math.abs(b.at - v))[0];
-  const { look: _look, lengthCm: _l, ...rest } = c;
+  const { look: _look, lengthCm: _l, kneeShare: _k, ...rest } = c;
   return Math.abs(named.at - v) < catchCm ? { ...rest, length: named.id } : { ...rest, length: named.id, lengthCm: Math.round(v * 2) / 2 };
 }
 
@@ -149,6 +149,8 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
   // The hem as it hangs, for reading a drawn hem against.
   const w = useMemo(() => worn(draft, side), [draft, side]);
   const body = useMemo(() => skirtForm(m), [m]);
+  // Lengths count from the skirt's top: below the waist on a low-rise skirt (the draft's own measurements).
+  const dm = useMemo(() => draftedMeasures(m, choices), [m, choices]);
   // The skirt as cloth on the form: its technical flat's shapes for this side, laid on the form as worn.
   const flat = useMemo(() => skirtFlat(draft, skirtBelt(choices.belt, draft)), [draft, choices.belt]);
   const view = side === 'front' ? 0 : 1;
@@ -190,7 +192,7 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
   const hemSide = hemCorner(skirt) ?? { x: w.hem[0].x, y: w.hem[0].y };
 
   // Dragged, the hem catches on each named length as on every garment: a finger's few millimetres either side of it.
-  const marksAt = LENGTH_IDS.map((id) => LENGTHS[id](m)).sort((a, b) => a - b);
+  const marksAt = LENGTH_IDS.map((id) => LENGTHS[id](dm)).sort((a, b) => a - b);
   const catchCm = Math.min(CATCH * k, CATCH_SHARE * Math.min(...marksAt.slice(1).map((y, i) => y - marksAt[i])));
   const toSvg = (e: PointerEvent): P => {
     const ctm = svg.current!.getScreenCTM()!.inverse();
@@ -210,8 +212,8 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
       const at = toSvg(e);
       const next =
         drag.kind === 'hem'
-          ? dragLength(m, drag.base, drag.length + at.y - drag.start.y, catchCm)
-          : dragFlare(m, drag.base, draft.lengthCm, drag.flare + ((at.x - drag.start.x) * (drag.start.x >= cx ? 1 : -1)) / SQUEEZE);
+          ? dragLength(dm, drag.base, drag.length + at.y - drag.start.y, catchCm)
+          : dragFlare(dm, drag.base, draft.lengthCm, drag.flare + ((at.x - drag.start.x) * (drag.start.x >= cx ? 1 : -1)) / SQUEEZE);
       onLive(next);
     } else if (stroke) {
       setStroke([...stroke, toSvg(e)]);
@@ -235,7 +237,7 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
     }
   };
 
-  const lengthLabel = choices.lengthCm ? `${Math.round(draft.lengthCm)} cm` : lengthName(choices.length);
+  const lengthLabel = choices.lengthCm || choices.kneeShare ? `${Math.round(draft.lengthCm)} cm` : lengthName(choices.length);
   const flareLabel = choices.flareCm !== undefined ? `${choices.flareCm > 0 ? '+' : ''}${choices.flareCm} cm` : silName(choices.silhouette);
   const guide = (y: number, text: string) => (
     <g className="guide">
@@ -287,7 +289,7 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
             if (step === undefined) return;
             e.preventDefault();
             const base = unpin(choices, draft);
-            const next = kind === 'hem' ? dragLength(m, base, draft.lengthCm + step * 2) : dragFlare(m, base, draft.lengthCm, (draft.flareCm ?? 0) + step);
+            const next = kind === 'hem' ? dragLength(dm, base, draft.lengthCm + step * 2) : dragFlare(dm, base, draft.lengthCm, (draft.flareCm ?? 0) + step);
             onDone(choices, next);
           }}
         />

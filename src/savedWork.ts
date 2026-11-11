@@ -28,6 +28,8 @@ export interface Choices {
   shape?: SkirtShape;
   /** Set by dragging the hem on the sketch: a length in cm between the named ones. */
   lengthCm?: number;
+  /** A house look's length between the named ones, as a share of the way to the knee (engine/skirt.ts). */
+  kneeShare?: number;
   /** Set by dragging the side seam on the sketch: the flare at the hem in cm. */
   flareCm?: number;
   /** Drawn on the sketch: a shaped hem. */

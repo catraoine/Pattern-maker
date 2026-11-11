@@ -48,6 +48,8 @@ export interface Flat {
   views: FlatView[];
   width: number;
   height: number;
+  /** How far below the waist the garment's top sits when worn (a low-rise skirt), in cm; unset, at the waist. */
+  wornDrop?: number;
 }
 
 const GAP = 12; // cm between the front and back views
@@ -410,14 +412,16 @@ export function wornShapes(flat: Flat, view = 0, withSleeves = false): P[][] {
   if (!v) return [];
   const sleeves = new Set(withSleeves ? [] : v.sleeves ?? []);
   const shapes = v.armless && !withSleeves ? [v.armless, ...v.shapes.slice(1)] : v.shapes;
-  return shapes.filter((_, i) => !sleeves.has(i)).map((s) => s.map((q) => p(q.x - v.origin.x, q.y - v.origin.y)));
+  const drop = flat.wornDrop ?? 0;
+  return shapes.filter((_, i) => !sleeves.has(i)).map((s) => s.map((q) => p(q.x - v.origin.x, q.y - v.origin.y + drop)));
 }
 
 /** One view's lines (seams, darts, stitching, zip) in the pieces' own coordinates, as `wornShapes` gives its shapes. */
 export function wornLines(flat: Flat, view = 0): P[][] {
   const v = flat.views[view];
   if (!v) return [];
-  return v.lines.map((l) => l.pts.map((q) => p(q.x - v.origin.x, q.y - v.origin.y)));
+  const drop = flat.wornDrop ?? 0;
+  return v.lines.map((l) => l.pts.map((q) => p(q.x - v.origin.x, q.y - v.origin.y + drop)));
 }
 
 /** The skirt: waistband, darts, centre back seam and zip, and its slit when it has one. */
@@ -425,7 +429,10 @@ export function skirtFlat(d: SkirtDraft, belt?: BeltDraft): Flat {
   // A slip, and a faced or high waist, have facings inside, so no band shows.
   const band = !d.faced && !d.waistFinish;
   const views = skirtViews(d, { band, zipCm: d.zipCm });
-  return arrange(belt ? views.map((v) => beltOn(v, band ? v.waistY - WAISTBAND_CM / 2 : v.waistY, belt, band ? WAISTBAND_CM : undefined)) : views);
+  const flat = arrange(belt ? views.map((v) => beltOn(v, band ? v.waistY - WAISTBAND_CM / 2 : v.waistY, belt, band ? WAISTBAND_CM : undefined)) : views);
+  // A low-rise skirt is drafted from where its top sits, below the waist: worn, it is lowered by as much, so on the
+  // form its band sits low and its hem stays where it falls on the body (it was drawn at the waist, the hem lifted).
+  return d.lowRise ? { ...flat, wornDrop: d.lowRise } : flat;
 }
 
 /** Where a horizontal line at y crosses the garment's outline, as the half-width there. */

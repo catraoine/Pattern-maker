@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { P } from './geometry';
-import { DraftError, draftSkirt } from './skirt';
+import { DraftError, draftSkirt, draftedMeasures, lowRiseCm } from './skirt';
 import { draftBodice } from './bodice';
 import { randomArms, randomBody, rng } from './randomBodies';
 import { SHAPES_FOR_LENGTH, draftSleeve } from './sleeve';
-import { Flat, FlatView, bodiceFlat, skirtFlat } from './flat';
+import { Flat, FlatView, bodiceFlat, skirtFlat, wornLines, wornShapes } from './flat';
 
 const xs = (pts: P[]) => pts.map((q) => q.x);
 const width = (pts: P[]) => Math.max(...xs(pts)) - Math.min(...xs(pts));
@@ -143,6 +143,42 @@ describe('technical flats', () => {
             expect(bottom).toBeGreaterThan(Math.min(...v.shapes[0].map((q) => q.y)) + 12);
           }
         }
+    }
+  });
+});
+
+describe('a low-rise skirt on the form', () => {
+  // The Front view drew a low-rise skirt's band at the waist and lifted its hem by the drop (Cat's Look 02 skirt, Nov 11).
+  const lowM = { waist: 70, full_hip: 96, waist_to_hip: 20.5, waist_to_knee: 58, waist_to_floor: 104 };
+  const top = (shapes: P[][]) => Math.min(...shapes.flat().map((q) => q.y));
+  const hem = (shapes: P[][]) => Math.max(...shapes.flat().map((q) => q.y));
+  it('sits the drop below the waist, its hem where the same skirt at the waist ends', () => {
+    const r = lowRiseCm(lowM);
+    const atWaist = skirtFlat(draftSkirt(lowM, { lengthCm: 50 }));
+    const low = skirtFlat(draftSkirt(lowM, { rise: 'low', lengthCm: 50 - r }));
+    expect(low.wornDrop).toBeCloseTo(r);
+    expect(top(wornShapes(low)) - top(wornShapes(atWaist))).toBeCloseTo(r, 1);
+    expect(hem(wornShapes(low))).toBeCloseTo(hem(wornShapes(atWaist)), 0);
+    expect(top(wornLines(low))).toBeGreaterThanOrEqual(top(wornShapes(low)) - 0.01);
+    expect(atWaist.wornDrop).toBeUndefined();
+  });
+  it('counts its lengths from its top, as its draft does', () => {
+    expect(draftedMeasures(lowM, { rise: 'low' }).waist_to_knee).toBeCloseTo(lowM.waist_to_knee - lowRiseCm(lowM));
+    expect(draftedMeasures(lowM, { rise: 'low', waist: 'high' })).toBe(lowM);
+    expect(draftedMeasures(lowM, {})).toBe(lowM);
+  });
+});
+
+describe("a house look's length between the named ones", () => {
+  // The Look 02 skirt, low rise, 4 cm longer than above the knee on the example body (Cat, Nov 11): it falls the
+  // same against every body's knee, not a fixed number of cm that would hang past a short body's knee.
+  it('falls the same share of the way to each knee, low rise or not', () => {
+    for (const k of [50, 58, 66]) {
+      const body = { waist: 70, full_hip: 96, waist_to_hip: 20.5, waist_to_knee: k, waist_to_floor: k * 1.8 };
+      const r = lowRiseCm(body);
+      expect(draftSkirt(body, { kneeShare: 0.93 }).lengthCm).toBeCloseTo(0.93 * k, 1);
+      expect(draftSkirt(body, { rise: 'low', kneeShare: 0.93 }).lengthCm).toBeCloseTo(0.93 * (k - r), 1);
+      expect(draftSkirt(body, { rise: 'low', kneeShare: 0.93, lengthCm: 40 }).lengthCm).toBe(40);
     }
   });
 });

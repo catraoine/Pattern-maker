@@ -110,13 +110,14 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
   // pleats goes back to the zipped waistband.
   const choose = (picked: Choices, group: keyof Choices) => {
     const c = elasticAllowed(picked) ? picked : { ...picked, waist: undefined };
-    const { lengthCm, flareCm, look, shape: photo, ...valid } = validCut(c);
+    const { lengthCm, kneeShare, flareCm, look, shape: photo, ...valid } = validCut(c);
     const rest = group === 'asymHem' && valid.asymHem !== 'none' ? { ...valid, hem: undefined } : valid;
     const shape = c.silhouette === choices.silhouette && c.length === choices.length ? photo : undefined;
     change({
       ...rest,
       ...(shape ? { shape } : {}),
       ...(group !== 'length' && lengthCm !== undefined ? { lengthCm } : {}),
+      ...(group !== 'length' && kneeShare !== undefined ? { kneeShare } : {}),
       ...(group !== 'silhouette' && flareCm !== undefined ? { flareCm } : {}),
       ...(currentLook(c) ? { look } : {}),
     });
