@@ -1445,7 +1445,19 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
           </p>
           {/* (A skirt's or a dress's skirt only: the cloth's own stiffness and fall show where it hangs free, clothCard.ts.) */}
           {!standIn && (drape?.kind === 'skirt' || drape?.kind === 'dress') && <FeelControl feel={feel} onFeel={setFeel} />}
-          <p className="all-round-note">{inTesting ? inTestingNote(sewnNow && sewnNow !== 'pending' ? sewnNow.d.quality?.problems : undefined, standIn, gaveUp) : 'A shape preview, not a cloth simulation.'}</p>
+          {/* The note that All round can't show a design stands out on a champagne band with a small "i" (Cat's D, Nov 11). */}
+          {inTesting ? (
+            <p className="all-round-note all-round-note-testing">
+              <svg className="all-round-note-mark" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+                <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" strokeWidth="1.3" />
+                <line x1="8" y1="7" x2="8" y2="11.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <circle cx="8" cy="4.7" r="0.95" fill="currentColor" />
+              </svg>
+              <span>{inTestingNote(sewnNow && sewnNow !== 'pending' ? sewnNow.d.quality?.problems : undefined, standIn, gaveUp)}</span>
+            </p>
+          ) : (
+            <p className="all-round-note">A shape preview, not a cloth simulation.</p>
+          )}
         </div>
       )}
     </div>

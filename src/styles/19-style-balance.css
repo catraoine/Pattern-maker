@@ -209,6 +209,8 @@
   padding-top: 6px;
 }
 .watch-draft .link.small span {
+  /* Only the words are underlined: the underline broke at the gap before the arrow and ran on under it (Cat, Nov 11). */
+  display: inline-block;
   margin-left: 6px;
   font-size: 0.8em;
 }
