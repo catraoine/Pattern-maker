@@ -45,7 +45,7 @@
 - Style screen picture windows (Nov 11, Cat's B): chalk #dcd5c7 (C1, a warm stone) inside the window with dark ink lines (#2a2622, #1d1a17)
   and ink-on-white flats, so garments read clearly; everything around the windows stays black.
 - Fonts (three, checked in the code Oct 30): **Chakra Petch** for the wordmark, buttons and small
-  spaced labels; **Archivo**, capitals at its normal width, for h1/h2 headings; **Instrument Sans** for body text (was Space Grotesk until Nov 11; the How it works film and the measuring clips still show it until they are made again).
+  spaced labels; **Archivo**, capitals at its normal width, for h1/h2 headings; **Instrument Sans** for body text (was Space Grotesk until Nov 11; the How it works film still shows it until it is recorded again at the end).
   No Bodoni or italic serif (removed Oct 18). Mock-ups, option sheets and video titles use the same
   three. **One width, always** (Cat, Nov 2): never narrow, flatten or stretch a font to fit
   (no font-stretch other than 100%, no scaleX on text); wrap or reword instead.
