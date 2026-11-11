@@ -765,6 +765,8 @@ const ZIPS = [20, 22, 25, 30, 35, 40, 45, 50, 55, 60];
 /** The longest standard invisible zip that fits the centre back opening. */
 /** A top pulls on over a zip that stops at the waist only if the waist below it is this much more than the bust. */
 const PULL_ON_CM = 2;
+/** Zips for a top that opens right through to its hem: the tops' own, and a dress's longer ones for a long top. */
+const THROUGH_ZIPS = [...ZIPS, 65, 70, 75];
 const zipFor = (opening: number) => [...ZIPS].reverse().find((z) => z <= opening) ?? ZIPS[0];
 
 /** Side seam below the waist: out from the waist and straight down at the hem, like a skirt's hip curve. */
@@ -955,6 +957,9 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   if (below) hemFull = Math.max(hemFull, 2 * (backW + frontW - 2 * sideSupp - dartB - dartF));
   // A boxy or oversized hem is no narrower than the bust: it hangs straight down, or eases out over a fuller hip.
   if (below && straightCut(s.fit)) hemFull = Math.max(hemFull, B + be);
+  // A top longer than the longest zip, on a body whose hip is under its bust, would still be a closed ring below the
+  // zip: there the hem is let out until the bust passes it.
+  if (below && !s.dressHem && wb + drop + (hemShape?.back[0] ?? 0) - bd - key > THROUGH_ZIPS[THROUGH_ZIPS.length - 1] + 0.5) hemFull = Math.max(hemFull, B + 2 * PULL_ON_CM);
   // ---- front --------------------------------------------------------------
   const nwF = nw - 0.2;
   const hpsF0 = p(nwF, -2);
@@ -1133,8 +1138,10 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   const cbRun = backHem + (hemShape?.back[0] ?? 0) - bd - key;
   // (A hem round a hip smaller than the bust is as closed a ring as the waist.)
   const tight = !s.dressHem && Math.min(waistRing, below ? hemFull : Infinity) < m.full_bust + PULL_ON_CM;
-  const zipThrough = tight && cbRun <= ZIPS[ZIPS.length - 1] + 0.5;
-  const zipCm = zipThrough ? (ZIPS.find((z) => z >= cbRun - 0.5) ?? ZIPS[ZIPS.length - 1]) : zipFor(tight ? cbRun - 2 : wb - bd - key + (s.dressHem ? DRESS_ZIP_BELOW : below ? 0 : -2));
+  // (A long top takes a dress zip, up to 75 cm: with tops' own longest, 60 cm, a hip-length or long top on a body whose
+  // hip is under its bust stayed closed below the zip. Cat, 2026-11-11: "move forward with top fix".)
+  const zipThrough = tight && cbRun <= THROUGH_ZIPS[THROUGH_ZIPS.length - 1] + 0.5;
+  const zipCm = zipThrough ? (THROUGH_ZIPS.find((z) => z >= cbRun - 0.5) ?? THROUGH_ZIPS[THROUGH_ZIPS.length - 1]) : tight ? THROUGH_ZIPS[THROUGH_ZIPS.length - 1] : zipFor(wb - bd - key + (s.dressHem ? DRESS_ZIP_BELOW : below ? 0 : -2));
   const zipEnd = p(0, bd + key + (zipThrough ? cbRun : zipCm));
   const backCut = 'Cut 2 (1 pair)';
   const backDraft = {

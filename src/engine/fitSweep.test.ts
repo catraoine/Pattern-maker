@@ -142,6 +142,9 @@ describe('bodice measured against the body', () => {
       { fit: 'fitted', length: 'waist', dropCm: 6, peplum: 'flared', peplumSize: 'big' },
       { fit: 'regular', length: 'high_hip', neckline: 'plunge', plungeDepth: 'waist' },
       { fit: 'boxy', length: 'hip' },
+      // Long tops take a dress zip through to the hem; longer than the longest, the zip passes the waist and the hem is let out.
+      { fit: 'fitted', length: 'hip' },
+      { fit: 'regular', length: 'long' },
     ] as const;
     for (let seed = 1; seed <= BODIES; seed++) {
       const m = randomBody(rng(seed + 8000));
@@ -157,7 +160,10 @@ describe('bodice measured against the body', () => {
           if (marked) failures.push(`${tag}: ZIP ENDS still marked`);
         } else {
           // Stopping at the waist: the waist below it passes the bust.
-          if (d.finishedWaist < m.full_bust + 2 - 0.2) failures.push(`${tag}: waist ${d.finishedWaist} closed under a ${r1(m.full_bust)} bust`);
+          // Stopping short of the hem: whatever is closed below the zip passes the bust (the waist, unless the zip runs on past it; the hem).
+          const pastWaist = d.back.zipEnd.y > d.back.waistCentre.y + 12;
+          if (!pastWaist && d.finishedWaist < m.full_bust + 2 - 0.2) failures.push(`${tag}: waist ${d.finishedWaist} closed under a ${r1(m.full_bust)} bust`);
+          if (d.finishedHem !== undefined && d.finishedHem < m.full_bust + 2 - 0.2) failures.push(`${tag}: hem ${d.finishedHem} closed under a ${r1(m.full_bust)} bust`);
           if (!marked) failures.push(`${tag}: no ZIP ENDS mark`);
         }
       }
