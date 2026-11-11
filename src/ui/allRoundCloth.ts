@@ -4,6 +4,7 @@
 // their own panels (so a print breaks at the side seams, as cut cloth does), and lit from the front left so the
 // garment reads round, not flat. The same paint as the style sketch (fabricPaint), so the two always agree.
 import type { FabricPaint } from './FabricFill';
+import { FAINT_OPACITY } from './ClothLook';
 
 /** One patch of cloth: its four corners on the screen and on the cloth (in cm), how far toward you it sits,
  * and how much light it catches (0 dark to 1 lit). */
@@ -29,6 +30,8 @@ export interface ClothTiles {
   border?: HTMLCanvasElement;
   borderSize?: number;
   sheer: boolean;
+  /** See-through only faintly (a fine satin): laid nearly solid. */
+  faint?: boolean;
   /** A lace: its tile is already thinned to a net between the motifs, so it is laid nearly solid (see laceTile). */
   lace?: boolean;
   /** Satin, leather and velvet catch the light. */
@@ -203,7 +206,7 @@ export async function clothTiles(p: FabricPaint): Promise<ClothTiles> {
   const avg = kind ? cleanCloth(body, kind) : undefined;
   // Lace is thinned to its net once the swatch is clean, so the motifs keep the cleaned colour.
   if (s === 'lace') laceTile(body);
-  const out: ClothTiles = { kind, avg, body, bodySize: p.size, sheer: !!p.look?.sheer, ...(s === 'lace' ? { lace: true } : {}), sheen: s === 'satin' || s === 'leather' ? 'gloss' : s === 'velvet' ? 'pile' : undefined, lift: p.lift, plain: p.plain };
+  const out: ClothTiles = { kind, avg, body, bodySize: p.size, sheer: !!p.look?.sheer, ...(p.look?.faint ? { faint: true } : {}), ...(s === 'lace' ? { lace: true } : {}), sheen: s === 'satin' || s === 'leather' ? 'gloss' : s === 'velvet' ? 'pile' : undefined, lift: p.lift, plain: p.plain };
   const B = p.look?.border;
   if (B) {
     const b = canvas();
@@ -375,7 +378,7 @@ export function paintCloth(g: CanvasRenderingContext2D, layers: ClothLayers, til
   cg.globalCompositeOperation = 'source-over';
   g.save();
   // A lace is thinned on its tile, between the motifs; a plain sheer is faded whole.
-  g.globalAlpha = tiles.lace ? 0.95 : tiles.sheer ? 0.6 : 1;
+  g.globalAlpha = tiles.lace ? 0.95 : tiles.faint ? FAINT_OPACITY : tiles.sheer ? 0.6 : 1;
   g.drawImage(layers.cloth, 0, 0, w, h);
   g.restore();
 }

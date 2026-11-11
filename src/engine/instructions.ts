@@ -832,8 +832,56 @@ function noSeamGuide(draft: DressDraft, fabricM: number, bindingM: number, finis
         }
       : { ...st, text: dress(st.title === 'Make the lining' ? lining(st.text) : st.text) + (st.title === 'Put in the zip' ? OVER_HEAD(draft) : '') },
   );
+  if (draft.noSeam === 'bias') return biasDressGuide({ ...g, steps }, (finish.seams ?? SEAM_WIDTHS.home).seam);
   const r = draft.skirt.ruche;
   return { ...g, notions: r ? [...g.notions, rucheNotion(r)] : g.notions, steps: rucheSteps(steps, r, 'dress') };
+}
+
+/**
+ * A bias slip dress: a shift's steps with each piece cut whole on the bias, single layer, and no zip or centre back
+ * seam. Its neckline and armholes are stayed before anything else, so the bias cannot stretch them (the CLO drapes of
+ * Nov 10 2026: an unstayed bias neckline stood away from the body), and it hangs for a day before its hem is
+ * levelled and rolled, as the slip skirt does.
+ */
+function biasDressGuide(g: SewingGuide, seamCm: number): SewingGuide {
+  const seam = n1(seamCm);
+  const steps = g.steps.flatMap((st): SewStep[] => {
+    switch (st.title) {
+      case 'Put in the zip':
+      case 'Close the centre back':
+        return [];
+      case 'Cut out':
+        return [
+          {
+            ...st,
+            text: 'Lay the fabric out flat in a single layer, right side up. The dress front and the dress back are each cut whole, once. Lay each piece with its grain arrow parallel to the selvedge: that puts the piece at 45 degrees across the cloth, on the true bias. Hold the pieces with weights, or pin inside the seam allowances only, and cut without lifting or pulling the cloth. Snip the small notches, and chalk-mark the dart lines and the bust point on both sides of the front.',
+          },
+          {
+            title: 'Stay the neckline and armholes',
+            text: 'Do this before you handle the pieces any further: bias edges stretch. Cut narrow stay tape (or strips of the selvedge) to the length of each neckline and armhole measured on the paper pattern, not on the cloth. Sew it to the wrong side just inside the seam line, easing the cloth back to the tape where it has grown.',
+          },
+        ];
+      case 'Neaten the edges':
+        return [{ ...st, text: 'Zigzag or overlock the shoulder and side edges without stretching them, so they will not fray inside. In a fine silk or a satin, sew French seams instead and skip this step.' }];
+      case 'Sew the shoulders':
+        return [{ ...st, text: `Pin the front to the back at the shoulders, right sides together: the straps are the same width, front and back. Sew ${seam} from the edge and press the seams open.` }];
+      case 'Sew the side seams':
+        return [{ ...st, text: `Pin the front to the back at the sides, right sides together, matching the underarms and the hem without stretching either edge. Sew ${seam} from the edge with a narrow zigzag or a short straight stitch, pulling the seam very slightly as it feeds, so the stitching gives with the bias and does not pucker or snap. Press the seams open. Try the dress on now, over your head: this is the easiest moment to take it in or let it out at the sides.` }];
+      case 'Hem':
+        return [
+          {
+            ...st,
+            text: `Hang the dress up for a day before hemming, on a hanger or a dress form: cut on the bias, it drops as it hangs, unevenly and often by 2 cm or more. The hem allowance has ${n1(SLIP_LEVEL)} spare for this. Try it on with the shoes you will wear and have someone mark the hem with pins measured up from the floor. Trim 1 cm below the marks. Finish with a narrow rolled hem: press up 0.5 cm, then 0.5 cm more, and stitch close to the fold, or roll it by hand in silk.`,
+          },
+        ];
+      case 'Finish':
+        return [{ ...st, text: 'Give the dress a final press, moving the iron along the grain arrow\'s line, not down the length of the dress, so the bias is not pressed out of shape.' }];
+      default:
+        return [st];
+    }
+  });
+  const notions = [...g.notions.filter((x) => !/zip|hook and eye/i.test(x)), 'Narrow stay tape, 6 mm wide, for the neckline and armholes'];
+  return { ...g, notions, steps };
 }
 
 /**

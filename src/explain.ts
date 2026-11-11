@@ -42,6 +42,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       seam: ['A bodice and a skirt joined at the waist, so you pick the skirt’s shape.', 'easy'],
       sheath: ['Cut in one from shoulder to hem, darted in at the waist and close over the hips.', 'skill'],
       shift: ['Cut in one from shoulder to hem, hanging straight from the bust with no waist shaping.', 'easy'],
+      bias: ['Cut in one on the bias, with no zip: it clings over the hip, swings at the hem and goes on over your head.', 'skill'],
     },
     asymHem: {
       none: ['The hem is the same length all the way round.', 'easy'],
@@ -445,6 +446,7 @@ const SHORT: Record<string, string> = {
   'noSeam.seam': 'Bodice and skirt joined at the waist.',
   'noSeam.sheath': 'One piece, close at waist and hips.',
   'noSeam.shift': 'One piece, straight from the bust.',
+  'noSeam.bias': 'One piece on the bias, no zip.',
   'asymHem.high_low': 'Shorter at the front, longer behind.',
   'slit.front': 'A slit up the centre front.',
   'slit.side': 'A slit up the left side seam.',

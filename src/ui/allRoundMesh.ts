@@ -13,6 +13,7 @@ import { bodyHalf, reach as bodyReach } from '../engine/body';
 import { FORM_DEPTH, FORM_FLOOR, FORM_LEG, FORM_LEG_X } from './ContourForm';
 import type { DrapedLite } from '../engine/drape/run';
 import type { ClothTiles } from './allRoundCloth';
+import { FAINT_OPACITY } from './ClothLook';
 import { RoundShape, WAIST } from './allRoundShape';
 import { hex, CHALK, SHADOW as SHADOW_HEX, type Tone } from './palette';
 
@@ -77,7 +78,7 @@ const FINISH: Record<string, { rough: number; sheen?: number; sheenRough?: numbe
 /** The material for a garment's cloth: its swatch, its opacity, and the finish its kind of cloth has. */
 /** A lace's tile is already a net, so it is laid nearly solid; a plain sheer fades to 0.6. */
 function opacityOf(cloth: ClothTiles): number {
-  return cloth.lace ? 0.95 : cloth.sheer ? 0.6 : 1;
+  return cloth.lace ? 0.95 : cloth.faint ? FAINT_OPACITY : cloth.sheer ? 0.6 : 1;
 }
 
 function clothFinish(mode: Mode, cloth: ClothTiles, map: THREE.Texture, scale: number): RoundMaterial {

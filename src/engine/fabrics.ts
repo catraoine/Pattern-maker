@@ -36,6 +36,9 @@ export interface MyFabric {
   sheen?: 'soft';
   /** A cloth that changes the cutting and sewing (denim, leather, velvet...). */
   special?: Special;
+  /** A cloth that only hints at the body under it, a fine satin or a washed silk: the drawings lay it nearly solid,
+   * where a sheer shows the form clearly (In testing, Cat 2026-11-11, SS27 Look 07). */
+  seeThrough?: 'faint';
   /** The knit, for the T-shirt (knitFabrics.ts): jersey, rib, interlock... */
   knit?: Knit;
   /** Checks or stripes to match at the seams. */

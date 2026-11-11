@@ -34,6 +34,7 @@ export const CHOICE_PICS = new Set([
   'skirt-asymHem-diagonal',
   'skirt-asymHem-high_low',
   'skirt-asymHem-none',
+  'skirt-noSeam-bias',
   'skirt-noSeam-seam',
   'skirt-noSeam-sheath',
   'skirt-noSeam-shift',

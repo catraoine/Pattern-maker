@@ -104,6 +104,7 @@ testing". A tag comes off by hand, once its proof is in: delete the entry and th
 | Jumpsuit: the top and trousers joined at the waist, cut lower in the body to sit in, back zip or buttons and fly; playsuit at shorts length (Garment range, 2026-11-07) | Jumpsuit on "What would you like to make?" | two testers sew a jumpsuit, sit down in it without the crotch pulling, and the waist seam sits at their waist |
 | Lace drawn on the turning garment (All round; the cloth thinned to a net between flower motifs on a 4 cm trellis, so the form shows through between them, in place of a plain sheer; 2026-11-06) | All round, with a lace fabric picked | the lace drawing matched against two bought laces |
 | Ruffles, ruching, cape and balloon hem (ruffled hems and sleeve hems, ruched sides, cape, balloon hem) | the chips for each on the Style screens | three testers sew a ruffled hem, ruched sides and a cape and each hangs as drawn |
+| Bias slip dress: a dress cut in one from the shoulder to the hem, front and back each one whole piece on the bias, no zip, with a slip's strap beside a low scoop; and satin that is faintly see-through (SS27 Look 07, 2026-11-11) | the Bias slip chip under Cut on a dress | two testers sew a bias slip dress and it goes on over the head, clings at the hip and hangs level without twisting, the neckline lying flat |
 
 Lingerie and swimwear stay hidden (`?lingerie=preview`, PR #102). Tracé Engine, Atelier Nights, Deadstock and
 Cut For You are sign-ups only: nothing more is built behind them before the gate.

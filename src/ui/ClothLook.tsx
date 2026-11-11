@@ -13,6 +13,8 @@ export interface FabricLook {
   sheen?: 'soft';
   /** The form shows through: a sheer or a lace. */
   sheer: boolean;
+  /** See-through only faintly (MyFabric.seeThrough): laid nearly solid, the form just showing. */
+  faint?: boolean;
   /** A border print: the swatch drawn along the hem, its bottom on the hem line. */
   border?: { href: string; size: number; filter?: string };
 }
@@ -21,7 +23,11 @@ export const FabricLookContext = createContext<FabricLook | undefined>(undefined
 export const useFabricLook = () => useContext(FabricLookContext);
 
 /** How much of the cloth's colour a sheer piece shows. */
-export const SHEER_OPACITY = 0.5;
+const SHEER_OPACITY = 0.5;
+/** And a cloth that is only faintly see-through. */
+export const FAINT_OPACITY = 0.85;
+/** How solid a see-through cloth's fill is drawn, or undefined for a solid cloth. */
+export const throughOpacity = (look: FabricLook | undefined) => (look?.faint ? FAINT_OPACITY : look?.sheer ? SHEER_OPACITY : undefined);
 
 const f = (n: number) => n.toFixed(2);
 

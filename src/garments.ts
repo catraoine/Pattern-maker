@@ -97,6 +97,7 @@ export const DRESS_CUTS: [string, string][] = [
   ['seam', 'Waist seam'],
   ['sheath', 'Sheath'],
   ['shift', 'Shift'],
+  ['bias', 'Bias slip'],
 ];
 
 export interface DressChoices {

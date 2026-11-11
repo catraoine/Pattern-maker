@@ -119,6 +119,13 @@ const SKIRT: Record<string, Record<string, ReactNode>> = {
       </>
     ),
     shift: <path d="M15 5L20 8L25 5L27 13L28.5 43H11.5L13 13z" />,
+    // A bias slip: straps, close over the hip, swinging out to the hem, its grain at 45 degrees.
+    bias: (
+      <>
+        <path d="M15.5 5L17 5C17.5 13 22.5 13 23 5L24.5 5L26.5 13L26 26L29.5 43H10.5L14 26L13.5 13z" />
+        <path className="pic-faint" d="M17 24L23 30" />
+      </>
+    ),
   },
 };
 

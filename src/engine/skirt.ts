@@ -39,7 +39,8 @@ export type Silhouette = 'straight' | 'pencil' | 'a_line' | 'trumpet' | 'half_ci
 /** Circle skirts are cut as arcs from the waist rather than drafted from the block. */
 export const isCircle = (s: Silhouette) => s === 'half_circle' || s === 'circle';
 export type Length = 'mini' | 'above_knee' | 'knee' | 'midi' | 'maxi';
-export type NoSeam = 'sheath' | 'shift';
+/** 'bias' is the bias slip dress: a shift's shape, each piece cut whole on the bias, with no zip (In testing, Cat 2026-11-11, SS27 Look 07). */
+export type NoSeam = 'sheath' | 'shift' | 'bias';
 
 export interface SkirtStyle {
   fit: Fit;

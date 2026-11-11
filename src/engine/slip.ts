@@ -242,7 +242,7 @@ function mirrorOutline(o: Path): Path {
 }
 
 /** A half piece traced off and turned over along its centre line, for cutting whole, single layer. */
-function wholePiece(pc: Piece): Piece {
+export function wholePiece(pc: Piece): Piece {
   const outline = mirrorOutline(pc.outline);
   const lines = [...pc.lines, ...pc.lines.map((l) => {
     const pts = l.points(2);
@@ -345,7 +345,7 @@ function downSide(pc: Piece, dist: number, plusX: boolean): P {
   return plusX ? pts[run[run.length - 1] + 1] : pts[run[run.length - 1]];
 }
 
-const BIAS_GRAIN = 6; // half the grain arrow's run across, in cm
+export const BIAS_GRAIN = 6; // half the grain arrow's run across, in cm
 
 /**
  * The skirt cut whole. The front is mirrored into one whole piece; the back too, unless the skirt is a

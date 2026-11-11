@@ -15,7 +15,7 @@ export function describePattern(c: PatternChoices) {
     // Cut in one from shoulder to hem: "Knee sheath dress with a boat neck and short sleeves".
     if (c.skirt.noSeam && noSeamAllowed(c.bodice)) {
       const len = c.skirt.lengthCm !== undefined ? `${Math.round(c.skirt.lengthCm)} cm` : GROUPS[2].options.find((o) => o[0] === c.skirt.length)![1];
-      return `${len} ${c.fit === 'boxy' ? 'boxy ' : ''}${c.skirt.noSeam} dress with ${bodiceDetails(c.bodice)}${belted ? `, and ${belted}` : ''}`;
+      return `${len} ${c.fit === 'boxy' ? 'boxy ' : ''}${c.skirt.noSeam === 'bias' ? 'bias slip' : c.skirt.noSeam} dress with ${bodiceDetails(c.bodice)}${belted ? `, and ${belted}` : ''}`;
     }
     // "Knee A-line dress with knife pleats, a scoop neck and short sleeves". A hem named on the skirt
     // ("with a high-low hem") goes last: "... dress with a crew neck, and a high-low hem". The dress's
