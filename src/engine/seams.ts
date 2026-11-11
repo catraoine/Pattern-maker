@@ -35,6 +35,9 @@ export interface Yoke {
   /** A plunge's shoulder panels only (set by a look): a narrow trim sewn over each panel seam and on along the edge of
    * the V, as a beaded braid edges a lace panel. */
   trim?: boolean;
+  /** A plunge's shoulder panels only (set by a look): the front below each panel cut this many cm wider, the extra
+   * gathered into the panel seam. */
+  frontGather?: number;
 }
 
 /** Side panels: where the seam leaves the armhole, 0 at the shoulder to 1 at the underarm. */
@@ -371,6 +374,8 @@ interface Seamed {
   warnings: string[];
   /** Trim over a plunge's panel seams and along its V: the length to buy, in cm. */
   trimCm?: number;
+  /** The front cut wider below its panels, the extra gathered into their seams: cm added to each half. */
+  gather?: number;
 }
 
 // ---- yoke --------------------------------------------------------------------------------------
@@ -397,7 +402,7 @@ function yokeLevel(r: Ring, depth: number, side: 'front' | 'back', apex: P, notc
   return Math.max(lo, y);
 }
 
-function yokeSide(pc: Piece, depth: number, side: 'front' | 'back', apex: P, bustDart: number, pleat = false, slant = 0): { pieces: [Piece, Piece]; seam: P[]; sewnDart?: P[]; moved: boolean; vEdge?: number } | undefined {
+function yokeSide(pc: Piece, depth: number, side: 'front' | 'back', apex: P, bustDart: number, pleat = false, slant = 0, gather = 0): { pieces: [Piece, Piece]; seam: P[]; sewnDart?: P[]; moved: boolean; vEdge?: number; gather?: number } | undefined {
   const r = ringOf(pc.outline);
   const y = yokeLevel(r, depth, side, apex, pc.notches);
   if (y === undefined) return undefined;
@@ -435,7 +440,8 @@ function yokeSide(pc: Piece, depth: number, side: 'front' | 'back', apex: P, bus
   const name = front ? 'Bodice front' : 'Bodice back';
   const yoke = part(pc, upper, `${name} yoke`, cutFor(front && !panel), { notches: seamNotches(at, seam, upper), meta: { yoke: true } });
   let body = part(pc, lower, name, cutFor(front), { notches: seamNotches(at, seam, lower), points: [note] });
-  delete body.meta.pointedAtCentre;
+  // (Below a yoke right across, the front has no neckline left; below shoulder panels it keeps the V and its point.)
+  if (!panel) delete body.meta.pointedAtCentre;
   if (pleat && !front) body = boxPleated(body, y, name);
   let sewnDart: P[] | undefined;
   if (moves) {
@@ -446,7 +452,86 @@ function yokeSide(pc: Piece, depth: number, side: 'front' | 'back', apex: P, bus
       body = dressed({ ...moved, meta }, name, body.cut);
     }
   }
-  return { pieces: [body, yoke], seam, sewnDart, moved: !!sewnDart, vEdge: panel ? polyLen(run(r, 'neck')) : undefined };
+  // Gathers under a shoulder panel: only on a front with no dart, where the seam is one straight line.
+  if (panel && gather > 0 && !sewnDart && bustDart < 0.3) body = gathered(body, gather, name);
+  return { pieces: [body, yoke], seam, sewnDart, moved: !!sewnDart, vEdge: panel ? polyLen(run(r, 'neck')) : undefined, gather: body.meta.gather as number | undefined };
+}
+
+/** The edges a front below a shoulder panel may have for its gathers to be added: nothing with a dart or a shaped edge. */
+const GATHER_EDGES = ['yoke', 'armhole', 'side', 'hem', 'fold', 'centre', 'neck'];
+
+/**
+ * A piece's outline with its armhole and side seam moved `g` cm out from the centre, square to the grain: the yoke
+ * seam's edge and the hem grow by that much and nothing else changes length. `g` negative takes it back again.
+ * (The ring starts at the yoke seam's end on the neck edge and runs along the seam to the armhole first.)
+ */
+function spread(r: Ring, g: number): Ring | undefined {
+  const n = r.pts.length;
+  if (r.tags.some((t) => !GATHER_EDGES.includes(t)) || r.tags[0] !== 'yoke') return undefined;
+  const first = r.tags.findIndex((t) => t !== 'yoke');
+  const hem = r.tags.indexOf('hem');
+  if (first < 1 || hem <= first || r.tags.slice(first, hem).some((t) => t !== 'armhole' && t !== 'side')) return undefined;
+  // Along the seam the extra is shared evenly, none at the neck edge and all of it at the armhole.
+  const L = polyLen(r.pts.slice(0, first + 1));
+  let acc = 0;
+  const pts = r.pts.map((q, i) => {
+    if (i > 0 && i <= first) acc += len(sub(q, r.pts[i - 1]));
+    // (A hem that is not one straight line keeps its shape: each of its points goes out by its share of the way across.)
+    const onHem = i > hem && (r.tags[i] === 'hem' || r.tags[(i - 1 + n) % n] === 'hem');
+    const k = i === 0 ? 0 : i < first ? acc / L : i <= hem ? 1 : onHem ? Math.max(0, Math.min(1, q.x / Math.max(1e-9, r.pts[hem].x))) : 0;
+    return p(q.x + g * k, q.y);
+  });
+  return { pts, tags: [...r.tags] };
+}
+
+/**
+ * Gathers under a shoulder panel: the front below the panel cut `g` cm wider each side, from the panel seam to the
+ * hem, and the seam's longer edge gathered to fit the panel. The armhole, side seam and neck edge keep their shape, so
+ * the sleeve and the back still fit; only the panel seam's edge and the hem are longer.
+ */
+function gathered(body: Piece, g: number, name: string): Piece {
+  const r0 = ringOf(body.outline);
+  const r = spread(r0, g);
+  if (!r) return body;
+  const first = r0.tags.findIndex((t) => t !== 'yoke');
+  const hem = r0.tags.indexOf('hem');
+  const seamEnd = r0.pts[first];
+  const sideX = r0.pts[hem].x;
+  // Marks go with the edge they sit on: all the way out on the armhole and side, part of the way on the seam and hem.
+  const move = (q: P): P => {
+    let best = 0;
+    let d = Infinity;
+    r0.pts.forEach((a, i) => {
+      const b = r0.pts[(i + 1) % r0.pts.length];
+      const ab = sub(b, a);
+      const u = Math.max(0, Math.min(1, ((q.x - a.x) * ab.x + (q.y - a.y) * ab.y) / Math.max(1e-9, ab.x * ab.x + ab.y * ab.y)));
+      const dist = len(sub(q, add(a, mul(ab, u))));
+      if (dist < d) [d, best] = [dist, i];
+    });
+    const t = r0.tags[best];
+    const k = t === 'armhole' || t === 'side' ? 1 : t === 'yoke' ? len(sub(q, r0.pts[0])) / Math.max(1e-9, len(sub(seamEnd, r0.pts[0]))) : t === 'hem' ? q.x / Math.max(1e-9, sideX) : 0;
+    return p(q.x + g * Math.max(0, Math.min(1, k)), q.y);
+  };
+  const take = polyLen(r.pts.slice(0, first + 1)) - polyLen(r0.pts.slice(0, first + 1));
+  const pc: Piece = {
+    ...body,
+    outline: pathOf(r),
+    notches: body.notches.map(([q, d]) => [move(q), d] as [P, P]),
+    balance: body.balance?.map((b) => ({ ...b, pts: b.pts.map(move) })),
+    draft: body.draft && {
+      frame: body.draft.frame,
+      points: [
+        ...body.draft.points,
+        {
+          n: 'G',
+          at: r.pts[first],
+          note: `Gathers: below the panel seam the front is cut ${cm(g)} wider, the armhole and side seam moved straight out by that much. The panel seam's edge is ${cm(take)} longer than the panel's, and is gathered to fit it.`,
+        },
+      ],
+    },
+    meta: { ...body.meta, gather: g, gatherTake: take },
+  };
+  return dressed(pc, name, pc.cut);
 }
 
 /**
@@ -512,7 +597,9 @@ export function yokesJoined(pieces: Piece[]): Piece[] {
     if (at < 0) continue;
     const body = out[at];
     const b0 = ringOf(body.outline);
-    const b1 = from(b0, runStart(b0, 'yoke'));
+    // (Gathers under a shoulder panel are drawn up: the front as sewn is as wide as it was before they were added.)
+    const started = from(b0, runStart(b0, 'yoke'));
+    const b1 = (body.meta.gather ? spread(started, -(body.meta.gather as number)) : undefined) ?? started;
     // The pleat's extra beyond the centre is folded under: the back as sewn ends at the centre line.
     const flat: Ring = { pts: [], tags: [] };
     b1.pts.forEach((q, i) => {
@@ -531,7 +618,7 @@ export function yokesJoined(pieces: Piece[]): Piece[] {
     if (a < 1 || j < 1 || len(sub(y1.pts[a], flat.pts[j])) > 0.05 || len(sub(y1.pts[0], flat.pts[0])) > 0.05) continue;
     const seam = seamLine(flat.pts.slice(0, j + 1));
     // (The pleat's own folds are not drawn: the cloth's mesh is too coarse to carry two lines 3 cm apart.)
-    const { boxPleat: _b, ...meta } = body.meta;
+    const { boxPleat: _b, gather: _g, gatherTake: _t, ...meta } = body.meta;
     out[at] = {
       ...body,
       outline: pathOf({ pts: [...y1.pts.slice(0, a), ...flat.pts.slice(j)], tags: [...y1.tags.slice(0, a), ...flat.tags.slice(j)] }),
@@ -546,7 +633,7 @@ export function yokesJoined(pieces: Piece[]): Piece[] {
 
 function yoke(d: BodiceDraft, y: Yoke, pleat = false): Seamed | undefined {
   const [front, back] = d.pieces;
-  const f = y.front !== undefined ? yokeSide(front, y.front, 'front', d.front.apex, d.bustDart, false, y.frontSlant ?? 0) : undefined;
+  const f = y.front !== undefined ? yokeSide(front, y.front, 'front', d.front.apex, d.bustDart, false, y.frontSlant ?? 0, y.frontGather ?? 0) : undefined;
   const b = y.back !== undefined ? yokeSide(back, y.back, 'back', d.front.apex, 0, pleat) : undefined;
   if (!f && !b) return undefined;
   const warnings = [...(y.front !== undefined && !f ? ['the neckline sits too low for a front yoke above the bust; it is left out'] : []), ...(y.back !== undefined && !b ? ['there is no room for a back yoke; it is left out'] : [])];
@@ -557,6 +644,7 @@ function yoke(d: BodiceDraft, y: Yoke, pleat = false): Seamed | undefined {
     moved: !!f?.moved,
     warnings,
     // Both sides' panel seams and V edges, and 10 cm for the turnings at the four ends.
+    gather: f?.gather,
     trimCm: y.trim && f?.vEdge ? Math.ceil((2 * (polyLen(f.seam) + f.vEdge) + 10) / 5) * 5 : undefined,
   };
 }
@@ -833,6 +921,15 @@ export function styleSeams(d: BodiceDraft, s: BodiceStyle): BodiceDraft {
     },
     styleSeams: out.seams,
     ...(out.trimCm ? { panelTrim: { cm: out.trimCm } } : {}),
+    // Gathers under the panels make the front wider all the way down: the finished bust and hem, and a drawstring's cord.
+    ...(out.gather
+      ? {
+          panelGather: out.gather,
+          finishedBust: d.finishedBust + 2 * out.gather,
+          ...(d.finishedHem !== undefined ? { finishedHem: d.finishedHem + 2 * out.gather } : {}),
+          ...(d.hemTie ? { hemTie: { cordCm: Math.ceil((d.hemTie.cordCm + 2 * out.gather) / 5) * 5 } } : {}),
+        }
+      : {}),
     warnings: [...d.warnings, ...out.warnings],
   };
 }

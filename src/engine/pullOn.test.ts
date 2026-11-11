@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { draftBodice } from './bodice';
 import { bodiceGuide } from './instructions';
 import { bodiceFlat } from './flat';
+import { checkPattern } from './qc';
+import { yokesJoined } from './seams';
+import { taggedLength } from './geometry';
 import { lookFlat, COLLECTION } from '../collection';
 import { EXAMPLE_BODY } from '../measurements';
 import { DEFAULT_BODICE } from '../garments';
@@ -115,6 +118,30 @@ describe('a shoulder panel on a plunge', () => {
     // A yoke right across a high neck has no V to trim.
     const crew = draftBodice(EXAMPLE_BODY as never, blouse({ neckline: 'crew', pullOn: false, yoke: { front: 8, trim: true } }));
     expect(crew.panelTrim).toBeUndefined();
+  });
+
+  it('gathers the front into its panels: a wider front, the same armhole, side and neck, and the seams still match', () => {
+    const yoke = { front: 0, back: 10, frontSlant: 13 };
+    const plain = draftBodice(EXAMPLE_BODY as never, blouse({ yoke, hemTie: 'drawstring' }));
+    const d = draftBodice(EXAMPLE_BODY as never, blouse({ yoke: { ...yoke, frontGather: 4 }, hemTie: 'drawstring' }));
+    const [f0, f1] = [plain.pieces[0], d.pieces[0]];
+    for (const tag of ['armhole', 'side', 'neck']) expect(taggedLength(f1.outline, tag)).toBeCloseTo(taggedLength(f0.outline, tag), 5);
+    // (The hem is not quite level, so it grows by a hair under 4 cm.)
+    expect(taggedLength(f1.outline, 'hem')).toBeCloseTo(taggedLength(f0.outline, 'hem') + 4, 2);
+    expect(taggedLength(f1.outline, 'yoke')).toBeGreaterThan(taggedLength(f0.outline, 'yoke') + 2);
+    expect(d.finishedBust).toBe(plain.finishedBust + 8);
+    expect(d.finishedHem).toBe(plain.finishedHem! + 8);
+    expect(d.hemTie!.cordCm).toBeGreaterThanOrEqual(d.finishedHem! + 55);
+    // The pattern's own checks pass, the point of the V and the gathered seam included.
+    expect(checkPattern(d.pieces).filter((c) => !c.ok)).toEqual([]);
+    expect(checkPattern(plain.pieces).filter((c) => !c.ok)).toEqual([]);
+    // On the form the gathers are drawn up: the front joined to its panels is the shape it was without them.
+    const [j0, j1] = [yokesJoined(plain.pieces)[0].outline.points(1), yokesJoined(d.pieces)[0].outline.points(1)];
+    expect(j1.length).toBe(j0.length);
+    j1.forEach((q, i) => expect(Math.hypot(q.x - j0[i].x, q.y - j0[i].y)).toBeLessThan(1e-6));
+    const g = bodiceGuide(d, { length: 'hip' }, 1.5, 2);
+    expect(g.steps.find((st) => st.title === 'Join the yokes')!.text).toMatch(/gathering stitches.*shoulder panels.*Draw up the gathering threads/);
+    expect(bodiceFlat(d).views[0].lines.length).toBeGreaterThan(bodiceFlat(plain).views[0].lines.length + 8);
   });
 
   it('is the Lilac Lace Blouse: panels, no zip, and it passes the All round check in lace', async () => {

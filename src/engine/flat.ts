@@ -1268,6 +1268,19 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
     const frontNeckY = uneven ? centreCrossing(uneven) : front.run[0].y;
     const lines: FlatView['lines'] = h.darts.flatMap((dt) => both(dt).map((pts) => ({ pts, kind: 'dart' as const })));
     for (const sl of (i === 0 ? style?.front : style?.back) ?? []) lines.push(...both(sl.pts.map(h.move)).map((pts) => ({ pts, kind: sl.kind })));
+    // Gathers under a shoulder panel: short strokes falling from the seam, longer and shorter by turns.
+    if (i === 0 && d.panelGather) {
+      for (const sl of style?.front ?? []) {
+        if (sl.kind !== 'seam' || sl.pts.length < 2) continue;
+        const pts = sl.pts.map(h.move);
+        const [a, b] = [pts[0], pts[pts.length - 1]];
+        const n = Math.max(4, Math.round(len(sub(b, a)) / 2.2));
+        for (let k = 1; k < n; k++) {
+          const q = lerp(a, b, k / n);
+          lines.push(...both([add(q, p(0, 0.4)), add(q, p(0, k % 2 ? 2.6 : 1.7))]).map((r) => ({ pts: r, kind: 'seam' as const })));
+        }
+      }
+    }
     // A trim over the shoulder panel seams and along the V: drawn as a narrow band, a second line beside each.
     if (i === 0 && d.panelTrim) {
       for (const sl of style?.front ?? []) {

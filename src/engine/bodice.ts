@@ -419,6 +419,8 @@ export interface BodiceDraft {
   hemTie?: { cordCm: number };
   /** A narrow trim over a plunge's shoulder panel seams and along its V (Yoke.trim): the length to buy. */
   panelTrim?: { cm: number };
+  /** The front cut wider below a plunge's shoulder panels and gathered into their seams (Yoke.frontGather): cm each side. */
+  panelGather?: number;
   /** Front landmarks for drawing the bodice as worn: waist and hem, at the side and centre front. */
   front: { apex: P; waistSide: P; waistCentre: P; hemSide: P; hemCentre: P };
   /** The same for the back, plus the centre back neck and where the zip ends. */

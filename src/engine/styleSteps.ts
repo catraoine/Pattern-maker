@@ -57,7 +57,12 @@ function seamSteps(draft: BodiceDraft, seam: string): { darts?: SewStep; join: S
           text: `Open the back out flat, right side up. Crease it along each pleat line, ${cm(pleat / 2)} either side of the middle, and bring the two centre back notches together underneath so they meet at the middle: the box pleat lies ${cm(pleat)} across on the right side. Pin it and tack across the top edge. Pin the back yoke to the top edge of the back, right sides together, matching the centre back and the double notches. Sew ${seam} from the edge, and press the seam up toward the yoke. The pleat hangs free below the seam.`,
         },
       };
-    const text = [front ? `Pin the front yoke to the top edge of the bodice front, right sides together, matching the centre front and the notch. Sew ${seam} from the edge, and press the seam up toward the yoke.` : '', back ? backText : ''];
+    // A plunge's front yoke is a shoulder panel each side of the V, and the front below may be gathered into it.
+    const panels = named(/front yoke/).some((pc) => /pair/.test(pc.cut));
+    const frontText = panels
+      ? `${draft.panelGather ? `Sew two rows of long gathering stitches along each top edge of the bodice front, from the edge of the V to the armhole, one just inside the seam line and one 0.5 cm nearer the edge. ` : ''}Pin each front yoke (the shoulder panels) to a top edge of the bodice front, right sides together, from the edge of the V to the armhole, matching the notch.${draft.panelGather ? ' Draw up the gathering threads until the front fits the panel, spread the gathers evenly and pin closely.' : ''} Sew ${seam} from the edge${draft.panelGather ? ' with the gathers uppermost' : ''}, and press the seam up toward the panel.`
+      : `Pin the front yoke to the top edge of the bodice front, right sides together, matching the centre front and the notch. Sew ${seam} from the edge, and press the seam up toward the yoke.`;
+    const text = [front ? frontText : '', back ? backText : ''];
     return { join: { title: `Join the ${which}`, text: text.filter(Boolean).join(' ') } };
   }
   if (kind === 'empire') {
