@@ -17,7 +17,6 @@ const BODY_BOTTOM = 1.3;
 /** Centimetres to a form unit (ContourForm.tsx CM_PER_UNIT). */
 const CM = 22.5;
 /** A real tape is about 1.6 cm wide. */
-const TAPE_W = 1.6 / CM;
 /** The tape lies just off the satin, so the surface never shows through it. */
 const LIFT = 0.006;
 const TAPE = '#e3d3ad';
@@ -423,18 +422,40 @@ export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot,
     // A girth lies on whichever stands further out at each angle: the ring, or the body itself.
     const gy = shot.girthY;
     if (gy !== undefined) {
-      const NB = 180;
-      const far = new Float32Array(NB);
-      for (let i = 0; i < fitted.length / 3; i++) {
-        if (whole.arm[i] > 0.3 || Math.abs(fitted[i * 3 + 1] - gy) > tapeCm / CM / 2 + 0.03) continue;
-        const b = ((Math.round((Math.atan2(fitted[i * 3], fitted[i * 3 + 2]) / TAU) * NB) % NB) + NB) % NB;
-        far[b] = Math.max(far[b], Math.hypot(fitted[i * 3], fitted[i * 3 + 2]));
+      // Cut the body's triangles at several heights across the tape's width, and keep, per angle, how far the
+      // body stands out past the ring at that height. Cutting triangles (not just reading corners) catches a
+      // bulge that falls between corners, which otherwise pokes through the tape's edge.
+      const NB = 360;
+      const out = new Float32Array(NB);
+      const half = tapeCm / CM / 2 + 0.012;
+      const levels = Array.from({ length: 9 }, (_, k) => gy - half + (2 * half * k) / 8);
+      const idx = whole.idx;
+      const P = (i: number): V3 => [fitted[i * 3], fitted[i * 3 + 1], fitted[i * 3 + 2]];
+      for (let t = 0; t < idx.length; t += 3) {
+        const [i0, i1, i2] = [idx[t], idx[t + 1], idx[t + 2]];
+        if (whole.arm[i0] > 0.3 || whole.arm[i1] > 0.3 || whole.arm[i2] > 0.3) continue;
+        const tri = [P(i0), P(i1), P(i2)];
+        const lo = Math.min(tri[0][1], tri[1][1], tri[2][1]), hi = Math.max(tri[0][1], tri[1][1], tri[2][1]);
+        if (hi < levels[0] || lo > levels[8]) continue;
+        for (const l of levels) {
+          if (l < lo || l > hi) continue;
+          for (let e = 0; e < 3; e++) {
+            const A = tri[e], B = tri[(e + 1) % 3];
+            if ((A[1] - l) * (B[1] - l) > 0 || A[1] === B[1]) continue;
+            const u = (l - A[1]) / (B[1] - A[1]);
+            const x = A[0] + (B[0] - A[0]) * u, z = A[2] + (B[2] - A[2]) * u;
+            const a = Math.atan2(x, z);
+            const b = ((Math.round((a / TAU) * NB) % NB) + NB) % NB;
+            out[b] = Math.max(out[b], Math.hypot(x, z) - reach(bodyHalf(l), a, l));
+          }
+        }
       }
+      // Smooth it, so the tape runs in an even line rather than stepping over each triangle.
+      const spread = Array.from({ length: NB }, (_, b) => { let r = 0; for (let d = -5; d <= 5; d++) r = Math.max(r, out[(b + d + NB) % NB]); return r; });
+      const even = spread.map((_, b) => { let s = 0; for (let d = -4; d <= 4; d++) s += spread[(b + d + NB) % NB]; return s / 9; });
       const past = (a: number) => {
-        const b = ((Math.round((a / TAU) * NB) % NB) + NB) % NB;
-        let r = 0;
-        for (let d = -3; d <= 3; d++) r = Math.max(r, far[(b + d + NB) % NB]);
-        return Math.max(0, r - reach(bodyHalf(gy), a, gy));
+        const f = ((((a / TAU) * NB) % NB) + NB) % NB, b = Math.floor(f), u = f - b;
+        return Math.max(0, even[b] * (1 - u) + even[(b + 1) % NB] * u) + 0.003;
       };
       shot = { ...shot, path: girthPath(gy, undefined, past) };
     }
@@ -536,7 +557,7 @@ export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot,
   if (tapeShadow) turning.add(shadowMesh);
   // The flush metal end (Cat's E2, 2026-10-27) at the tape's zero.
   const endMat = new THREE.MeshStandardMaterial({ color: hex(TAPE_END), metalness: 0.7, roughness: 0.35 });
-  const end = new THREE.Mesh(new THREE.BoxGeometry(TAPE_W * 1.04, 0.9 / CM, 0.003), endMat);
+  const end = new THREE.Mesh(new THREE.BoxGeometry((tapeCm / CM) * 1.04, 0.9 / CM, 0.003), endMat);
   turning.add(end);
   const place = (m: THREE.Mesh, i: number, dir: 1 | -1) => {
     const p = shot.path;
