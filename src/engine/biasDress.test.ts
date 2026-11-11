@@ -112,4 +112,15 @@ describe('bias slip dress', () => {
       expect(at(m, {}) - at(m, { floorClear: 13 })).toBeCloseTo(6, 0);
     }
   });
+  it('tells the sewist the height to mark the hem at, once a look cut clear of the floor has hung', () => {
+    // (CLO's satin dropped the whole 13 cm the Ivory Bias Slip is cut clear of the floor, 2026-11-11: the hem is
+    // marked up from the floor after hanging, so the drop is trimmed off whatever it was.)
+    const hem = (skirt: object) => {
+      const style = { silhouette: 'straight', length: 'maxi', noSeam: 'bias', flareCm: 16, slit: 'none', ...skirt };
+      const d = draftDress(EXAMPLE_BODY as never, { fit: 'regular', neckline: 'scoop', sleeve: 'none', darts: 'bust', bustEase: 4, neck: NECK } as never, style as never);
+      return dressGuide(d, style as never, 3, 3, {}).steps.find((st) => st.title === 'Hem')!.text;
+    };
+    expect(hem({ floorClear: 13 })).toContain('measured up from the floor, 10 cm above it all the way round');
+    expect(hem({})).toContain('measured up from the floor. Trim');
+  });
 });

@@ -832,7 +832,7 @@ function noSeamGuide(draft: DressDraft, fabricM: number, bindingM: number, finis
         }
       : { ...st, text: dress(st.title === 'Make the lining' ? lining(st.text) : st.text) + (st.title === 'Put in the zip' ? OVER_HEAD(draft) : '') },
   );
-  if (draft.noSeam === 'bias') return biasDressGuide({ ...g, steps }, (finish.seams ?? SEAM_WIDTHS.home).seam);
+  if (draft.noSeam === 'bias') return biasDressGuide({ ...g, steps }, (finish.seams ?? SEAM_WIDTHS.home).seam, draft.hemOffFloor);
   const r = draft.skirt.ruche;
   return { ...g, notions: r ? [...g.notions, rucheNotion(r)] : g.notions, steps: rucheSteps(steps, r, 'dress') };
 }
@@ -843,7 +843,7 @@ function noSeamGuide(draft: DressDraft, fabricM: number, bindingM: number, finis
  * Nov 10 2026: an unstayed bias neckline stood away from the body), and it hangs for a day before its hem is
  * levelled and rolled, as the slip skirt does.
  */
-function biasDressGuide(g: SewingGuide, seamCm: number): SewingGuide {
+function biasDressGuide(g: SewingGuide, seamCm: number, hemOffFloor?: number): SewingGuide {
   const seam = n1(seamCm);
   const steps = g.steps.flatMap((st): SewStep[] => {
     switch (st.title) {
@@ -871,7 +871,7 @@ function biasDressGuide(g: SewingGuide, seamCm: number): SewingGuide {
         return [
           {
             ...st,
-            text: `Hang the dress up for a day before hemming, on a hanger or a dress form: cut on the bias, it drops as it hangs, unevenly and often by 2 cm or more. The hem allowance has ${n1(SLIP_LEVEL)} spare for this. Try it on with the shoes you will wear and have someone mark the hem with pins measured up from the floor. Trim 1 cm below the marks. Finish with a narrow rolled hem: press up 0.5 cm, then 0.5 cm more, and stitch close to the fold, or roll it by hand in silk.`,
+            text: `Hang the dress up for a day before hemming, on a hanger or a dress form: cut on the bias, it drops as it hangs, unevenly and often by 2 cm or more. The hem allowance has ${n1(SLIP_LEVEL)} spare for this. Try it on with the shoes you will wear and have someone mark the hem with pins measured up from the floor${hemOffFloor !== undefined ? `, ${n1(hemOffFloor)} above it all the way round: that is this dress's length, just above the ankle, however far the cloth has dropped` : ''}. Trim 1 cm below the marks. Finish with a narrow rolled hem: press up 0.5 cm, then 0.5 cm more, and stitch close to the fold, or roll it by hand in silk.`,
           },
         ];
       case 'Finish':
