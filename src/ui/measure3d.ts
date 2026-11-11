@@ -308,48 +308,23 @@ const SHOULDER_Y = -1.34;
 function fitBody(body: WholeBody) {
   const { pos, arm } = body;
   const n = pos.length / 3;
-  const NB = 96;
-  const ROW = 0.025;
-  const TOP = NECK_TOP;
-  const rows = Math.round((BODY_BOTTOM - TOP) / ROW) + 1;
-  const own = Array.from({ length: rows }, () => new Float32Array(NB));
-  const bin = (x: number, z: number) => ((Math.round((Math.atan2(x, z) / TAU) * NB) % NB) + NB) % NB;
-  for (let i = 0; i < n; i++) {
-    if (arm[i] > 0.3) continue;
-    const y = pos[i * 3 + 1];
-    const r = Math.round((y - TOP) / ROW);
-    if (r < 0 || r >= rows) continue;
-    const b = bin(pos[i * 3], pos[i * 3 + 2]);
-    own[r][b] = Math.max(own[r][b], Math.hypot(pos[i * 3], pos[i * 3 + 2]));
-  }
-  const fac = own.map((row, r) => {
-    const y = TOP + r * ROW;
-    for (let pass = 0; pass < NB; pass++) for (let k = 0; k < NB; k++) if (!row[k]) row[k] = Math.max(row[(k + 1) % NB], row[(k + NB - 1) % NB]);
-    const raw = Array.from({ length: NB }, (_, k) => (row[k] ? Math.max(0.6, Math.min(1.6, reach(bodyHalf(y), (k / NB) * TAU, y) / row[k])) : 1));
-    return raw.map((_, k) => (raw[(k + NB - 2) % NB] + 2 * raw[(k + NB - 1) % NB] + 3 * raw[k] + 2 * raw[(k + 1) % NB] + raw[(k + 2) % NB]) / 9);
-  });
-  // And smoothed down the body, row into row.
-  const facS = fac.map((row, r) => row.map((_, k) => (fac[Math.max(0, r - 1)][k] + 2 * row[k] + fac[Math.min(rows - 1, r + 1)][k]) / 4));
-  const facAt = (y: number, a: number) => {
-    const t = Math.max(0, Math.min(rows - 1, (y - TOP) / ROW));
-    const r0 = Math.floor(t), r1 = Math.min(rows - 1, r0 + 1), u = t - r0;
-    const kt = ((((a / TAU) * NB) % NB) + NB) % NB;
-    const k0 = Math.floor(kt) % NB, k1 = (k0 + 1) % NB, v = kt - Math.floor(kt);
-    const at = (r: number) => facS[r][k0] * (1 - v) + facS[r][k1] * v;
-    return at(r0) * (1 - u) + at(r1) * u;
+  // How wide the real body is at the sides around height y (its torso and legs, not its arms), read over a band of
+  // heights because the mesh's points are spread out down the body.
+  const sideWidth = (y: number, band: number) => {
+    let w = 0;
+    for (let i = 0; i < n; i++) if (arm[i] <= 0.3 && Math.abs(pos[i * 3 + 1] - y) <= band) w = Math.max(w, Math.abs(pos[i * 3]));
+    return w;
   };
-  // How far the shoulder's side moved: the arms go out (or in) by as much.
-  const shoulderShift = (side: number) => {
-    const a = side * (Math.PI / 2);
-    return reach(bodyHalf(SHOULDER_Y), a, SHOULDER_Y) * (1 - 1 / facAt(SHOULDER_Y, a));
-  };
-  const shift = [shoulderShift(-1), shoulderShift(1)];
+  const ringSide = (y: number) => reach(bodyHalf(y), Math.PI / 2, y);
+  // How far the shoulder's side moved: both arms go out (or in) by as much.
+  const shift = ringSide(SHOULDER_Y) - sideWidth(SHOULDER_Y, 0.06);
   const MID_THIGH = 1.95;
   // Above the hips each point lies on the form's own ring (a smooth dress-form surface, no anatomy); from the hips
   // down it hands over to the real legs, drawn out by the hip ring's own width at the sides and easing back to their
   // own shape by mid-thigh.
   const HAND_FROM = 0.97, HAND_TO = 1.18;
-  const sideFac = (facAt(HAND_FROM, Math.PI / 2) + facAt(HAND_FROM, -Math.PI / 2)) / 2;
+  // The legs are drawn out by what it takes, at the end of the hand-over, for their sides to meet the ring there.
+  const sideFac = Math.max(1, ringSide(HAND_TO) / (sideWidth(HAND_TO, 0.1) || 1));
   const out = new Float32Array(pos.length);
   for (let i = 0; i < n; i++) {
     const x = pos[i * 3], z = pos[i * 3 + 2];
@@ -363,7 +338,7 @@ function fitBody(body: WholeBody) {
     const kLeg = 1 + (sideFac - 1) * (1 - v * v * (3 - 2 * v));
     const tx = (x / rr) * ring * (1 - toLeg) + x * kLeg * toLeg;
     const tz = (z / rr) * ring * (1 - toLeg) + z * kLeg * toLeg;
-    const ax = x + (x < 0 ? -shift[0] : shift[1]) * Math.sign(x || 1), az = z;
+    const ax = x + shift * Math.sign(x || 1), az = z;
     const w = arm[i];
     out[i * 3] = tx * (1 - w) + ax * w;
     out[i * 3 + 1] = y;
