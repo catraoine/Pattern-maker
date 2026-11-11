@@ -166,7 +166,7 @@ const OPTIONS_IN_TESTING: Record<string, readonly string[]> = {
   volume: ['ruffle', 'balloon', 'ruched'],
   ruched: ['ruched'],
   collar: ['cape'],
-  sleeveCuff: ['ruffle'],
+  sleeveCuff: ['ruffle', 'turnback'],
   belt: ['side_tie'],
 };
 

@@ -772,7 +772,7 @@ const SLEEVE_WORDS: Record<SleeveLength, string> = { none: '', short: 'short', e
 function sleeveWordsOf({ length, shape, cm, cuff, cut }: ReturnType<typeof sleeveOf>): string {
   if (length === 'none') return '';
   const kind = `${cut ? `${cut === 'drop' ? 'dropped-shoulder' : cut} ` : ''}${shape === 'straight' ? '' : `${shape} `}`;
-  const cuffs = cuff === 'ruffle' ? ' with ruffled hems' : cuff ? ` with ${cuff === 'shirt' ? 'shirt' : cuff === 'oversized' ? 'oversized' : cuff === 'tie' ? 'tie' : 'elastic'} cuffs` : '';
+  const cuffs = cuff === 'ruffle' ? ' with ruffled hems' : cuff === 'turnback' ? ' with turned-back cuffs' : cuff ? ` with ${cuff === 'shirt' ? 'shirt' : cuff === 'oversized' ? 'oversized' : cuff === 'tie' ? 'tie' : 'elastic'} cuffs` : '';
   if (shape === 'cap' || shape === 'flutter' || cm !== undefined) return `${kind}sleeves${cuffs}`;
   return `${SLEEVE_WORDS[length]} ${kind}sleeves${cuffs}`;
 }

@@ -199,6 +199,8 @@ export const COLLECTION: HouseLook[] = [
       closure: 'front_buttons',
       sleeve: 'elbow',
       sleeveShape: 'straight',
+      // A 5 cm cuff turned back over the sleeve's hem (Nov 11).
+      sleeveCuff: 'turnback',
       length: 'long',
       dropCm: 47,
       bustEase: 36,

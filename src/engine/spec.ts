@@ -124,7 +124,7 @@ export function sleeveSpec(m: SleeveMeasurements, s: SleeveDraft): SpecRow[] {
   return [
     row('Upper arm (bicep)', m.upper_arm, s.bicep),
     row(s.cut === 'kimono' ? 'Sleeve length, shoulder point to hem' : 'Sleeve length, crown to hem', undefined, s.lengthCm),
-    row(s.cuff ? `${s.cuff.kind === 'shirt' ? 'Shirt cuff' : s.cuff.kind === 'tie' ? 'Tie cuff' : s.cuff.kind === 'ruffle' ? 'Sleeve hem, under the ruffle' : 'Elastic cuff'}, round` : s.gathers ? 'Sleeve band, round' : 'Sleeve hem, round', undefined, s.hemCm),
+    row(s.cuff ? `${s.cuff.kind === 'shirt' ? 'Shirt cuff' : s.cuff.kind === 'tie' ? 'Tie cuff' : s.cuff.kind === 'ruffle' ? 'Sleeve hem, under the ruffle' : s.cuff.kind === 'turnback' ? 'Sleeve hem, under the cuff' : 'Elastic cuff'}, round` : s.gathers ? 'Sleeve band, round' : 'Sleeve hem, round', undefined, s.hemCm),
     ...(s.cuff ? [row(s.cuff.kind === 'elastic' ? 'Cuff casing depth' : s.cuff.kind === 'ruffle' ? 'Sleeve ruffle depth' : 'Cuff depth', undefined, s.cuff.depth)] : []),
     ...(s.cuff?.kind === 'elastic' ? [row('Cuff elastic, cut', undefined, s.cuff.elasticCm!)] : []),
     ...(s.cuff?.kind === 'tie' ? [row('Cuff ties, each', undefined, s.cuff.tieCm!)] : []),

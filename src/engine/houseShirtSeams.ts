@@ -44,8 +44,8 @@ export function withHouseShirtSeams(g: SewingGuide, seam: string): SewingGuide {
         out.push(st);
     }
   }
-  // The sleeve hems are turned once the sleeves are closed.
-  const hs = out.findIndex((s) => s.title === 'Hem the sleeves');
+  // The sleeve hems (or cuffs) are finished once the sleeves are closed.
+  const hs = out.findIndex((s) => s.title === 'Hem the sleeves' || /^Attach the .*cuffs$/.test(s.title));
   const sides = out.findIndex((s) => s.title === 'Sew the side and sleeve seams');
   if (hs >= 0 && sides > hs) {
     const [h] = out.splice(hs, 1);
