@@ -8,6 +8,7 @@ import { FORM_FLOOR, FORM_LEG, FORM_LEG_X } from './ContourForm';
 import { cap, material, sweep } from './allRoundMesh';
 import { GILD, GROUND, hex } from './palette';
 import LIMBS from './measureLimbs.json';
+import { girthOn, hit, join, lengthOn, type Part, type Surface } from './measure3dPaths';
 
 type V3 = [number, number, number];
 const TAU = Math.PI * 2;
@@ -176,6 +177,8 @@ export interface MeasureShot {
   girthY?: number;
   /** With the string round the waist. */
   string?: boolean;
+  /** Where the camera reads it from: the form's turn, the height looked at, and how close. */
+  view?: { turn: number; lookY: number; dist: number; rise?: number; aim?: V3 };
 }
 
 /** The height of the fullest part of the seat. */
@@ -205,6 +208,171 @@ export function shotFor(id: string): MeasureShot | undefined {
   }
 }
 
+const HALF_PI = Math.PI / 2;
+/** Lengths down the side are read from behind and to the side, where the arm (hanging a touch forward) leaves the
+ *  side seam in view. */
+const SIDE_TURN = -2.25;
+/** The crotch is read from low at the side and a little behind, below the hand. */
+const CROTCH_TURN = -2.6;
+/** Where the arm parts from the body, up under the armpit. */
+const ARMPIT_Y = -0.9;
+
+/** Every measurement laid on the fitted whole form (the one-piece body): its tape's path and where it is read from.
+ *  The landmarks are found on the form itself: the centre front and back and the sides by looking in from outside at
+ *  each height, the shoulder points by looking down onto the shoulders above the shoulder joints, the bust points
+ *  where the bust stands furthest forward. */
+export function formShot(id: string, surf: Surface, joints: Record<string, V3>, tapeW: number): MeasureShot | undefined {
+  const L = bodyLandmarks();
+  const lift = LIFT;
+  const w = tapeW;
+  const g = { width: w, overlap: 3 / CM, lift };
+  const along = (o: V3, d: V3, part: Part = 'body') => hit(surf, o, d, part);
+  const front = (y: number, x = 0) => along([x, y, 5], [0, 0, -1])!;
+  const back = (y: number, x = 0) => along([x, y, -5], [0, 0, 1])!;
+  const mid = (y: number) => (front(y)[2] + back(y)[2]) / 2;
+  // At the armpit the body's own side is part of the arm's skin: there it falls back to the form's ring.
+  const side = (y: number, s = 1): V3 => along([s * 5, y, mid(y)], [-s, 0, 0]) ?? [s * formR(HALF_PI, y), y, mid(y)];
+  const hip = seatLevel();
+  const nape = back(-1.47);
+  // The base of the neck: the nape at the back, a little lower at the front.
+  const neckFront = front(-1.36);
+  const neckN = (() => {
+    const d = sub(neckFront, nape);
+    return norm(cross([1, 0, 0], d));
+  })();
+  const neckMid: V3 = [0, (nape[1] + neckFront[1]) / 2, (nape[2] + neckFront[2]) / 2];
+  const hps = (s: number) => {
+    // Out at the side of the neck along its base plane.
+    const dir = norm(cross(neckN, [0, 0, 1]));
+    const d: V3 = scale(dir, s * Math.sign(dir[0] || 1));
+    return along(add(neckMid, scale(d, 3)), scale(d, -1))!;
+  };
+  const sp = (s: number) => {
+    const j = joints[s > 0 ? 'shoulderL' : 'shoulderR'];
+    return along([j[0] + s * 0.01, -3, j[2]], [0, 1, 0], 'all')!;
+  };
+  const apex = (s: number) => {
+    let best: V3 = [s * 0.3, L.full_bust, 0];
+    let bz = -Infinity;
+    for (let i = 0; i < surf.pos.length / 3; i++) {
+      if (surf.arm[i] > 0.3) continue;
+      const x = surf.pos[i * 3], y = surf.pos[i * 3 + 1], z = surf.pos[i * 3 + 2];
+      if (Math.abs(y - L.full_bust) > 0.2 || s * x < 0.08 || s * x > 0.5) continue;
+      if (z > bz) [bz, best] = [z, [x, y, z]];
+    }
+    return best;
+  };
+  // Where the arm meets the body at height y, on the front (f = 1) or back (f = -1).
+  // Where the arm meets the body at height y, on the front (f = 1) or back (f = -1): in from the shoulder point by
+  // a tailor's share (the arm's skin wraps round onto the chest and back here, so the body's own edge is no guide).
+  const crease = (y: number, s: number, f: number): V3 => {
+    const x = s * Math.abs(sp(s)[0]) * (f > 0 ? 0.85 : 0.9);
+    return along([x, y, f * 5], [0, 0, -f], 'all') ?? [x, y, f > 0 ? front(y)[2] : back(y)[2]];
+  };
+  const girth = (y: number) => girthOn(surf, [0, y, 0], [0, 1, 0], 'body', { ...g, zero: [0, 0, 1], toward: [1, 0, 0] });
+  const len = (a: V3, b: V3, out: V3, part: Part = 'body', reach = 0) => lengthOn(surf, a, b, out, part, { width: w, lift, reach });
+  const viewOf = (path: { p: V3 }[], turn: number) => {
+    const ys = path.map((q) => q.p[1]);
+    const lo = Math.min(...ys), hi = Math.max(...ys);
+    const xs = path.map((q) => q.p[0]), zs = path.map((q) => q.p[2]);
+    const aim: V3 = [(Math.min(...xs) + Math.max(...xs)) / 2, (lo + hi) / 2, (Math.min(...zs) + Math.max(...zs)) / 2];
+    const across = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...zs) - Math.min(...zs));
+    return { turn, lookY: (lo + hi) / 2, dist: Math.max(5.2, (hi - lo) * 4.2, across * 3.2), aim };
+  };
+  const make = (path: MeasureShot['path'], turn: number, extra: Partial<MeasureShot> = {}, rise?: number): MeasureShot => ({ path, ...extra, view: { ...viewOf(path, turn), ...(rise === undefined ? {} : { rise }) } });
+  const waistF = () => front(L.waist), waistB = () => back(L.waist), waistS = () => side(L.waist);
+  switch (id) {
+    case 'waist':
+      return make(girth(L.waist), 0);
+    case 'full_hip':
+      return make(girth(hip), 0);
+    case 'full_bust':
+      return make(girth(L.full_bust), 0);
+    case 'high_bust':
+      return make(girth(-0.95), 0);
+    case 'neck': {
+      // Round the base of the neck, over the bump at the back, dipping a little to the front: read from the neck
+      // only (not the shoulders below it).
+      const o: V3 = [0, -1.53, (nape[2] + neckFront[2]) / 2];
+      const n = norm([0, 1, -0.22]);
+      return make(girthOn(surf, o, n, 'body', { ...g, overlap: 2 / CM, zero: [0, 0, 1], toward: [1, 0, 0], near: 0.42 }), -0.3, {}, 0.9);
+    }
+    case 'waist_to_hip':
+      return make(len(waistS(), side(hip), [1, 0, 0]), SIDE_TURN, { string: true });
+    case 'front_waist_to_hip':
+      return make(len(waistF(), front(hip), [0, 0, 1]), -0.5, { string: true });
+    case 'back_waist_to_hip':
+      return make(len(waistB(), back(hip), [0, 0, -1]), Math.PI - 0.5, { string: true });
+    case 'waist_to_knee': {
+      const k = joints.kneeL;
+      return make(len(waistS(), along([5, k[1], k[2]], [-1, 0, 0])!, [1, 0, 0]), SIDE_TURN, { string: true });
+    }
+    case 'waist_to_floor': {
+      const a = joints.ankleL;
+      const out = along([5, a[1], a[2]], [-1, 0, 0])!;
+      let floor = -Infinity;
+      for (let i = 1; i < surf.pos.length; i += 3) floor = Math.max(floor, surf.pos[i]);
+      return make(len(waistS(), [out[0], floor, out[2]], [1, 0, 0]), SIDE_TURN, { string: true });
+    }
+    case 'crotch_depth': {
+      const c = along([0, 5, mid(1.2)], [0, -1, 0])!;
+      return make(len(waistS(), side(c[1]), [1, 0, 0]), SIDE_TURN, { string: true });
+    }
+    case 'crotch_length':
+      return make(len(waistF(), waistB(), [0, 1, 0], 'body', 0.5), CROTCH_TURN, { string: true }, -0.6);
+    case 'nape_to_waist':
+      return make(len(nape, waistB(), [0, 0, -1]), Math.PI, { string: true });
+    case 'front_hps_to_waist': {
+      const a = apex(1);
+      return make(join(len(hps(1), a, norm([0, -0.4, 1])), len(a, front(L.waist, a[0]), [0, 0, 1])), -0.35, { string: true });
+    }
+    case 'bust_depth':
+      return make(len(hps(1), apex(1), norm([0, -0.4, 1])), -0.35);
+    case 'apex_separation':
+      return make(len(apex(-1), apex(1), [0, 0, 1]), 0);
+    case 'shoulder_width':
+      return make(len(sp(-1), sp(1), norm([0, -0.35, -1]), 'all'), Math.PI);
+    case 'shoulder_length':
+      return make(len(hps(1), sp(1), [0, -1, 0], 'all'), -0.4, {}, 1.6);
+    case 'across_back': {
+      const y = nape[1] + 12 / CM;
+      return make(len(crease(y, -1, -1), crease(y, 1, -1), [0, 0, -1]), Math.PI);
+    }
+    case 'across_front': {
+      const y = (hps(1)[1] + neckFront[1]) / 2 + 8 / CM;
+      return make(len(crease(y, -1, 1), crease(y, 1, 1), [0, 0, 1]), 0);
+    }
+    case 'front_shoulder_slope':
+      return make(len(waistF(), sp(1), [0, 0, 1], 'all'), -0.35, { string: true });
+    case 'back_shoulder_slope':
+      return make(len(waistB(), sp(1), [0, 0, -1], 'all'), Math.PI + 0.35, { string: true });
+    case 'armscye': {
+      // Round the arm where it joins the body: a cut through the arm just inside the shoulder joint, from the
+      // shoulder point over the top to up under the armpit.
+      const j = joints.shoulderL;
+      // Up under the armpit: the hull closes straight across beneath it, as the tape does.
+      return make(girthOn(surf, [j[0] - 0.1, j[1], j[2]], [1, 0, 0], 'all', { ...g, overlap: 2 / CM, zero: [0, -1, 0], toward: [0, 0, 1], near: 0.6, keep: (q) => q[1] <= ARMPIT_Y }), -0.9, {}, 0.6);
+    }
+    case 'upper_arm': {
+      const a = joints.shoulderL, e = joints.elbowL;
+      const o = add(a, scale(sub(e, a), 0.3));
+      return make(girthOn(surf, o, norm(sub(e, a)), 'armL', { ...g, overlap: 2 / CM, zero: [1, 0, 0], toward: [0, 0, 1], near: 0.35 }), -HALF_PI);
+    }
+    case 'wrist': {
+      const e = joints.elbowL, r = joints.wristL;
+      const o = add(r, scale(sub(e, r), 0.05));
+      return make(girthOn(surf, o, norm(sub(r, e)), 'armL', { ...g, overlap: 2 / CM, zero: [1, 0, 0], toward: [0, 0, 1], near: 0.25 }), -HALF_PI);
+    }
+    case 'arm_length': {
+      const r = joints.wristL;
+      const wb = along([r[0] + 2, r[1], r[2]], [-1, 0, 0], 'armL')!;
+      return make(len(sp(1), wb, [1, 0, 0], 'all'), -HALF_PI);
+    }
+    default:
+      return undefined;
+  }
+}
+
 /** One frame: how far the tape has played (0 to 1), the form's turn, and the camera's height, distance and aim. */
 export interface MeasureFrame {
   play: number;
@@ -213,6 +381,8 @@ export interface MeasureFrame {
   dist: number;
   /** How far above the aim the camera stands (form units). */
   rise?: number;
+  /** A point on the form to look at (it turns with the form), in place of the centre line at lookY. */
+  aim?: V3;
 }
 
 /** How the form is lifted off the black ground (mock-ups for Cat, Nov 10: "the black on black is hard to see"):
@@ -312,7 +482,7 @@ function applyFinish(m: THREE.MeshStandardMaterial, finish: Finish) {
  *  drawn out or in, angle by angle round the body, to lie on the form's own ring there (the rings the tapes are laid
  *  on and the app drafts from); below the torso the legs ease back to their own shape by mid-thigh. The arms are
  *  carried out with the shoulders, by how much each point moves with an arm. */
-export interface WholeBody { pos: number[]; idx: number[]; arm: number[] }
+export interface WholeBody { pos: number[]; idx: number[]; arm: number[]; limb?: number[]; joints?: Record<string, V3> }
 const SHOULDER_Y = -1.34;
 function fitBody(body: WholeBody) {
   const { pos, arm } = body;
@@ -350,10 +520,9 @@ function fitBody(body: WholeBody) {
   const HAND_FROM = 0.97, HAND_TO = 1.18;
   // The legs are drawn out by what it takes, at the end of the hand-over, for their sides to meet the ring there.
   const sideFac = Math.max(1, ringSide(HAND_TO) / (sideWidth(HAND_TO, 0.1) || 1));
-  const out = new Float32Array(pos.length);
-  for (let i = 0; i < n; i++) {
-    const x = pos[i * 3], z = pos[i * 3 + 2];
-    const y = Math.max(pos[i * 3 + 1], NECK_TOP);
+  // Where a point of the real body goes on the form, w being how much it moves with an arm.
+  const place = (x: number, y0: number, z: number, w: number): V3 => {
+    const y = Math.max(y0, NECK_TOP);
     const a = Math.atan2(x, z);
     const ring = formR(a, y);
     const rr = Math.hypot(x, z) || 1;
@@ -364,15 +533,21 @@ function fitBody(body: WholeBody) {
     const tx = (x / rr) * ring * (1 - toLeg) + x * kLeg * toLeg;
     const tz = (z / rr) * ring * (1 - toLeg) + z * kLeg * toLeg;
     const ax = x + shift * Math.sign(x || 1), az = z;
-    const w = arm[i];
-    out[i * 3] = tx * (1 - w) + ax * w;
-    out[i * 3 + 1] = y;
-    out[i * 3 + 2] = tz * (1 - w) + az * w;
+    return [tx * (1 - w) + ax * w, y, tz * (1 - w) + az * w];
+  };
+  const out = new Float32Array(pos.length);
+  for (let i = 0; i < n; i++) out.set(place(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2], arm[i]), i * 3);
+  // The joints: the arm's carried out with the arm, the legs' with the legs (a joint is inside the body, so it is
+  // moved, not laid on the surface as a torso point is).
+  const joints: Record<string, V3> = {};
+  for (const [k, q] of Object.entries(body.joints ?? {})) {
+    const isArm = /shoulder|elbow|wrist/.test(k);
+    joints[k] = isArm ? [q[0] + shift * Math.sign(q[0] || 1), q[1], q[2]] : [q[0] * (q[1] < MID_THIGH ? sideFac : 1), q[1], q[2]];
   }
-  return out;
+  return { pos: out, joints };
 }
 
-export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot, lift: Lift = 'none', limbs = true, finish: Finish = 'satin', limbData: typeof LIMBS = LIMBS, darkTape = false, shade?: string, tapeColours?: { face: string; ink: string }, tapeShadow = false, whole?: WholeBody, tapeCm = 1.6) {
+export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot, lift: Lift = 'none', limbs = true, finish: Finish = 'satin', limbData: typeof LIMBS = LIMBS, darkTape = false, shade?: string, tapeColours?: { face: string; ink: string }, tapeShadow = false, whole?: WholeBody, tapeCm = 1.6, id?: string) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, preserveDrawingBuffer: true });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NeutralToneMapping;
@@ -408,7 +583,8 @@ export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot,
     const m = material('satin');
     satins.push(m);
     const g = new THREE.BufferGeometry();
-    const fitted = fitBody(whole);
+    const fit = fitBody(whole);
+    const fitted = fit.pos;
     g.setAttribute('position', new THREE.BufferAttribute(fitted, 3));
     g.setAttribute('uv', new THREE.Float32BufferAttribute(new Array((fitted.length / 3) * 2).fill(0), 2));
     g.setAttribute('shade', new THREE.Float32BufferAttribute(new Array(fitted.length / 3).fill(0), 1));
@@ -419,9 +595,12 @@ export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot,
     const mesh = new THREE.Mesh(g, m);
     formMeshes.push(mesh);
     turning.add(mesh);
-    // A girth lies on whichever stands further out at each angle: the ring, or the body itself.
+    // Laid on the fitted form itself, where the measurement has been worked out there.
+    const onForm = id ? formShot(id, { pos: fitted, idx: whole.idx, arm: whole.limb ?? whole.arm }, fit.joints, tapeCm / CM) : undefined;
+    if (onForm) shot = onForm;
+    // Otherwise a girth lies on whichever stands further out at each angle: the ring, or the body itself.
     const gy = shot.girthY;
-    if (gy !== undefined) {
+    if (!onForm && gy !== undefined) {
       // Cut the body's triangles at several heights across the tape's width, and keep, per angle, how far the
       // body stands out past the ring at that height. Cutting triangles (not just reading corners) catches a
       // bulge that falls between corners, which otherwise pokes through the tape's edge.
@@ -577,8 +756,11 @@ export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot,
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
-    camera.position.set(0, f.lookY - (f.rise ?? 0.25), f.dist);
-    camera.lookAt(0, f.lookY, 0);
+    // The aim turns with the form: a point at (x, z) turned by the form's turn.
+    const [ax, ay, az] = f.aim ?? [0, f.lookY, 0];
+    const wx = ax * Math.cos(f.turn) + az * Math.sin(f.turn), wz = -ax * Math.sin(f.turn) + az * Math.cos(f.turn);
+    camera.position.set(wx, ay - (f.rise ?? 0.25), wz + f.dist);
+    camera.lookAt(wx, ay, wz);
     turning.rotation.y = f.turn;
     // Played on from its zero end, the metal end held at the start: the first k segments.
     const n = shot.path.length - 1;
@@ -590,5 +772,5 @@ export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot,
     place(end, 0, 1);
     renderer.render(scene, camera);
   };
-  return { render, total: rib.total * CM };
+  return { render, total: rib.total * CM, view: shot.view };
 }

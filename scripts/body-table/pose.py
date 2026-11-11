@@ -134,6 +134,14 @@ for b in ARM_BONES:
     for i, w in W.get(b, []):
         armw[i] += w
 armw = np.clip(armw / np.maximum(wsum, 1e-9), 0, 1)
+# The arm itself, from the shoulder joint down (not the shoulder's top, which is the body's): how the tapes tell
+# the arm's skin from the body's.
+LIMB_BONES = [b for b in ARM_BONES if not b.startswith('shoulder01')]
+limbw = np.zeros(len(v))
+for b in LIMB_BONES:
+    for i, w in W.get(b, []):
+        limbw[i] += w
+limbw = np.clip(limbw / np.maximum(wsum, 1e-9), 0, 1)
 keep = (v[f][:, :, 1] < 5.95).all(1)
 faces = f[keep]
 ids = np.unique(faces)
@@ -142,5 +150,11 @@ pos = []
 for k in ids:
     p = posed[k]
     pos += [round(float(p[0] * SX), 4), round(float(form_y(p[1])), 4), round(float((p[2] - ZC) * SX), 4)]
-json.dump({'pos': pos, 'idx': [idx[int(k)] for fc in faces for k in fc], 'arm': [round(float(armw[k]), 3) for k in ids]}, open(OUT, 'w'))
+# The joints the tapes are laid from (shoulder, elbow, wrist, knee, ankle), posed and in the form's units: where
+# a bone's head goes when posed is its own transform applied to it.
+def joint(b):
+    M = glob(b); q = M[:3, :3] @ head[b] + M[:3, 3]
+    return [round(float(q[0] * SX), 4), round(float(form_y(q[1])), 4), round(float((q[2] - ZC) * SX), 4)]
+joints = {f'{name}{side}': joint(f'{bone}.{side}') for side in ('L', 'R') for name, bone in (('shoulder', 'upperarm01'), ('elbow', 'lowerarm01'), ('wrist', 'wrist'), ('knee', 'lowerleg01'), ('ankle', 'foot'))}
+json.dump({'pos': pos, 'idx': [idx[int(k)] for fc in faces for k in fc], 'arm': [round(float(armw[k]), 3) for k in ids], 'limb': [round(float(limbw[k]), 3) for k in ids], 'joints': joints}, open(OUT, 'w'))
 print(POSE, 'ok', len(ids), 'verts')
