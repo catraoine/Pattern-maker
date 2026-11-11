@@ -416,3 +416,19 @@ button.step-next {
   min-height: 0;
   background: none;
 }
+
+/* "Do these look right?" with no form (Cat, Nov 11: "it can be plain"): the words start a little way down the page,
+   the rows have room between them, and the button sits clear of the list. */
+.measure-step:not(.has-hero):not(.centred):has(.check-list) {
+  padding-top: clamp(24px, 9vh, 96px);
+}
+.measure-step:not(.has-hero):not(.centred):has(.check-list) .step-tip {
+  margin-bottom: 20px;
+}
+.measure-step:not(.has-hero):not(.centred):has(.check-list) .check-list button {
+  min-height: 56px;
+  align-items: center;
+}
+.measure-step:not(.has-hero):not(.centred):has(.check-list) .check-list + * {
+  margin-top: 28px;
+}

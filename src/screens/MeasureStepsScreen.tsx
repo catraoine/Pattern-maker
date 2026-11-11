@@ -302,7 +302,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
 
   if (page.kind === 'check')
     return (
-      <Shell eyebrow={returning ? 'Welcome back' : helper ? 'Their base measurements' : 'Your base measurements'} title="Do these look right?" hero={<TapeDemo id="waist" name="" mode="all" kind={form} />}>
+      <Shell eyebrow={returning ? 'Welcome back' : helper ? 'Their base measurements' : 'Your base measurements'} title="Do these look right?">
         <p className="muted step-tip">
           {returning ? `${helper ? 'Their' : 'Your'} measurements are saved on this device. Check they still look right, then carry on. ` : ''}Tap a number to change it.
         </p>
