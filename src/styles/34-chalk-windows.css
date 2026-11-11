@@ -183,3 +183,21 @@ section[aria-label='Preview'] > .preview .shape .handle text {
   stroke-width: 0.7;
   stroke-linejoin: round;
 }
+
+/* The note that All round can't show a design yet (Cat's D, Nov 11): dark ink on a champagne band, with a small "i",
+   so the eye finds it. */
+.all-round-note.all-round-note-testing {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 8px 10px;
+  border-radius: 2px;
+  background: #cbb68c;
+  color: #1d1a17;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+.all-round-note-mark {
+  flex: none;
+  margin-top: 2px;
+}
