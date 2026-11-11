@@ -203,7 +203,21 @@ export interface MeasureFrame {
   rise?: number;
 }
 
-export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot) {
+/** How the form is lifted off the black ground (mock-ups for Cat, Nov 10: "the black on black is hard to see"):
+ *  A a fine champagne edge round the form, B a charcoal satin, C a soft pool of light behind it. */
+export type Lift = 'none' | 'A' | 'B' | 'C';
+
+/** A fine edge round a surface: its back faces pushed out a touch and drawn flat in champagne, so only a thin line
+ *  shows past the form's own edge. */
+function edgeOf(geo: THREE.BufferGeometry, width: number) {
+  const g = geo.clone();
+  const pos = g.getAttribute('position') as THREE.BufferAttribute;
+  const nor = g.getAttribute('normal') as THREE.BufferAttribute;
+  for (let i = 0; i < pos.count; i++) pos.setXYZ(i, pos.getX(i) + nor.getX(i) * width, pos.getY(i) + nor.getY(i) * width, pos.getZ(i) + nor.getZ(i) * width);
+  return new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: hex(GILD), side: THREE.BackSide, transparent: true, opacity: 0.85 }));
+}
+
+export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot, lift: Lift = 'none') {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, preserveDrawingBuffer: true });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NeutralToneMapping;
@@ -228,8 +242,12 @@ export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot)
   const turning = new THREE.Group();
   scene.add(turning);
 
+  const satins: THREE.MeshStandardMaterial[] = [];
+  const formMeshes: THREE.Mesh[] = [];
   const satin = material('satin');
-  turning.add(new THREE.Mesh(sweep({ at: (a, t) => bodyAt(a, NECK_TOP + (BODY_BOTTOM - NECK_TOP) * t), out: (a) => [Math.sin(a), 0, Math.cos(a)] }, -Math.PI, Math.PI, 160, 200), satin));
+  satins.push(satin);
+  formMeshes.push(new THREE.Mesh(sweep({ at: (a, t) => bodyAt(a, NECK_TOP + (BODY_BOTTOM - NECK_TOP) * t), out: (a) => [Math.sin(a), 0, Math.cos(a)] }, -Math.PI, Math.PI, 160, 200), satin));
+  turning.add(formMeshes[0]);
   const neck = material('satin');
   neck.color.set(0x0e0c0a);
   turning.add(new THREE.Mesh(cap((a) => bodyAt(a, NECK_TOP), [0, -1, 0]), neck));
@@ -239,13 +257,38 @@ export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot)
       const r = FORM_LEG(y);
       return [leg * FORM_LEG_X + Math.sin(a) * r, y, Math.cos(a) * r];
     };
-    turning.add(new THREE.Mesh(sweep({ at: T, out: (a) => [Math.sin(a), 0, Math.cos(a)] }, -Math.PI, Math.PI, 64, 80), material('satin')));
+    const m = material('satin');
+    satins.push(m);
+    const legMesh = new THREE.Mesh(sweep({ at: T, out: (a) => [Math.sin(a), 0, Math.cos(a)] }, -Math.PI, Math.PI, 64, 80), m);
+    formMeshes.push(legMesh);
+    turning.add(legMesh);
   }
   // The floor: a faint champagne ring where the form stands.
   const floor = new THREE.Mesh(new THREE.RingGeometry(0.62, 0.635, 128), new THREE.MeshBasicMaterial({ color: hex(GILD), transparent: true, opacity: 0.25, side: THREE.DoubleSide }));
   floor.rotation.x = Math.PI / 2;
   floor.position.y = FORM_FLOOR;
   scene.add(floor);
+
+  if (lift === 'A') for (const m of formMeshes) turning.add(edgeOf(m.geometry, 0.012));
+  if (lift === 'B') for (const m of satins) {
+    m.color.set(0x4a4540);
+    m.emissive.set(0x121110);
+    m.roughness = 0.32;
+  }
+  if (lift === 'C') {
+    const c = document.createElement('canvas');
+    c.width = c.height = 512;
+    const g = c.getContext('2d')!;
+    const r = g.createRadialGradient(256, 230, 10, 256, 256, 300);
+    r.addColorStop(0, '#3a3128');
+    r.addColorStop(0.55, '#1a1612');
+    r.addColorStop(1, '#000000');
+    g.fillStyle = r;
+    g.fillRect(0, 0, 512, 512);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    scene.background = t;
+  }
 
   if (shot.string) {
     const m = new THREE.MeshStandardMaterial({ color: hex(GILD), roughness: 0.6 });
