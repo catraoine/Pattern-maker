@@ -129,6 +129,9 @@ export interface BodiceStyle {
   /** The house shirt cut (see collar.ts): a long-point shirt collar and a shirttail hem that may run on past the
    * hip. Older saves have none. */
   shirtCut?: ShirtCut;
+  /** A shift's back with one small fish-eye dart each side, so it follows the hollow of the back instead of hanging
+   * from the shoulder blades like a tube (see SHIFT_BACK). Set by a look; shifts without it hang straight. */
+  shiftBack?: 'shaped';
   sleeve?: SleeveLength;
   sleeveShape?: SleeveShape;
   /** A dragged hem: cm below the waist (0 for the waist), in place of the named length. */
@@ -306,6 +309,10 @@ const crotchGuess = (m: { waist_to_hip?: number; waist_to_knee: number; full_hip
   Math.min(Math.max((m.waist_to_hip ?? 0) + 5.5, 0.43 * m.waist_to_knee + Math.max(0, (m.full_hip ?? 90) - 90) * 0.05), m.waist_to_knee - 14);
 /** The house shirt hangs straight from the bust: its hem is let out only for a hip within this much of it. */
 const HOUSE_SHIRT_HIP_EASE = 16;
+
+/** A shaped shift's back dart: up to this wide each side, and never so wide that the dress is left with less than
+ *  this much room round the waist. It skims; the front still hangs clean from the bust. */
+const SHIFT_BACK = { dart: 2, room: 12 };
 
 /** Drawn necklines flatter than this come to a point at the centre front, like a V. */
 export const POINTED_NECK = 0.2;
@@ -928,7 +935,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   const easySide = low > 0 ? Math.min(2.5, 0.4 * low) : low;
   // A shift hangs straight from the bust: no waist shaping at all.
   const sideSupp = shiftDress ? 0 : waistDarts ? Math.max(easySide, suppF - FRONT_DART_MAX, suppB - BACK_DART_MAX) : easySide;
-  const dartB = waistDarts ? Math.max(0, suppB - sideSupp) : 0;
+  const dartB = waistDarts ? Math.max(0, suppB - sideSupp) : shiftDress && s.shiftBack === 'shaped' ? Math.max(0, Math.min(SHIFT_BACK.dart, backW + frontW - (W + SHIFT_BACK.room) / 2)) : 0;
   const dartF = waistDarts ? Math.max(0, suppF - sideSupp) : 0;
   const swB0 = p(backW - sideSupp, wb);
   // A hem below the waist is never cut narrower than the bodice at the waist, so it doesn't pull in.

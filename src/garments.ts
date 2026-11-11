@@ -61,6 +61,8 @@ export interface BodiceChoices {
   sleeveCut?: SleeveCut;
   /** The house shirt cut (see collar.ts), set by a look: older saves have none. */
   shirtCut?: ShirtCut;
+  /** A shift's back with a small fish-eye dart each side (see SHIFT_BACK in bodice.ts), set by a look: older saves have none. */
+  shiftBack?: 'shaped';
   /** Older saves have the block's side bust dart, no princess seams, a back zip and no collar. */
   bustDart?: DartPlace;
   princess?: PrincessLine;

@@ -98,7 +98,7 @@ export const COLLECTION: HouseLook[] = [
     line: 'A sleeveless shift above the knee, with a little room at the bust and a hem that flares just enough.',
     fabric: 'Blush wool crepe',
     garment: 'dress',
-    choices: dress('regular', { neckline: 'crew', sleeve: 'none', darts: 'bust', bustDart: 'french', bustEase: 5 }, { silhouette: 'straight', length: 'mini', noSeam: 'shift', flareCm: 4 }),
+    choices: dress('regular', { neckline: 'crew', sleeve: 'none', darts: 'bust', bustDart: 'french', bustEase: 5, shiftBack: 'shaped' }, { silhouette: 'straight', length: 'mini', noSeam: 'shift', flareCm: 4 }),
   },
   {
     // Cat's SS27 Look 02 picture, measured and refined with her Nov 7-8: a long boxy vest in crisp black wool, its

@@ -474,7 +474,7 @@ function bodiceSteps(draft: BodiceDraft, _style: { length: BodiceLength }, fabri
             text: [
               bust ? `Fold each bust dart with right sides together so the dart lines meet, stitch from the side seam to the point, and press it down.${pivoted ? ` The side bust dart is ${draft.bustDart} cm wide; the rest of the bust shaping is carried in the waist dart, which is wider than usual.` : ''}` : '',
               waist && below
-                ? 'The waist darts are pointed at both ends. Fold each one along its centre, stitch from one point through the widest part at the waist to the other point, then clip into the fold at the waist so it lies flat. Press toward the centre.'
+                ? `The ${draft.waistDarts.front > 0.3 ? 'waist darts' : 'two waist darts on the back'} are pointed at both ends. Fold each one along its centre, stitch from one point through the widest part at the waist to the other point, then clip into the fold at the waist so it lies flat. Press toward the centre.`
                 : waist
                   ? 'Fold each waist dart the same way, stitch from the waist edge to the point, and press toward the centre.'
                   : '',
