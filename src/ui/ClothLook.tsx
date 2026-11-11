@@ -128,9 +128,9 @@ export function ClothOverlay({ d, uid, look, hemY, k }: { d: string; uid: string
           <rect x="-1000" y={f(hemY - B.size)} width="2000" height={f(B.size)} fill={`url(#band${uid}${k})`} clipPath={`url(#bclip${uid}${k})`} />
         </>
       )}
-      {weave && <path d={d} fill={`url(#weave${uid})`} stroke="none" fillOpacity={look.sheer ? 0.6 : 1} />}
-      {/* The soft sheen is set by style, as the flat's own rule (.techflat path) switches off a fill attribute. */}
-      {sheen && (soft ? <path d={d} style={{ fill: `url(#sheen${uid})` }} stroke="none" /> : <path d={d} fill={`url(#sheen${uid})`} stroke="none" />)}
+      {/* Fills are set by style: the flat's own rule (.techflat path) switches off a fill attribute, which left flats without shine or weave. */}
+      {weave && <path d={d} style={{ fill: `url(#weave${uid})` }} stroke="none" fillOpacity={look.sheer ? 0.6 : 1} />}
+      {sheen && <path d={d} style={{ fill: `url(#sheen${uid})` }} stroke="none" />}
     </>
   );
 }
