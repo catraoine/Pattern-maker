@@ -49,7 +49,8 @@ export function WaitlistForm({ onJoined, onCode, linkMessage, onRetry }: { onJoi
 
   return (
     <div className="stack waitlist">
-      <p className="waitlist-line">Opening 2027</p>
+      {/* Why to join, naming only what is decided: no prices (Cat's B1, 2026-11-10) */}
+      <p className="waitlist-line">Opening 2027. The waitlist gets first claim on 250 numbered Founding places.</p>
       <form className="stack" onSubmit={join}>
         {/* The language is a small tag at the end of the email line, not a line of its own (Cat's L1, 2026-10-25): it
             shows the language's short name and opens the full list. */}
