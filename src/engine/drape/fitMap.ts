@@ -126,8 +126,14 @@ export function fitRoom(d: Draped, sp: Space, thick: (i: number) => number, pins
     const fix = pins
       .map((pin) => {
         // (The whole ring nearest the level, within 2 cm: the bust line itself can sit a hair above the first ring read.)
+        // (A plunge or an open front leaves no whole ring at the bust: then the nearest whole ring within 6 cm below
+        // it stands in. Dropping the pin let the waist seam's correction run up the bodice, and a plunge slip with 7 cm
+        // of bust ease read red, tight, all over, where CLO found it fine; Nov 11.)
         let best: (typeof rings)[number] | undefined;
-        for (const g of rings) if (g.ok && Math.abs(g.c - pin.c) <= 2 && (!best || Math.abs(g.c - pin.c) < Math.abs(best.c - pin.c))) best = g;
+        for (const reach of [2, 6]) {
+          for (const g of rings) if (g.ok && Math.abs(g.c - pin.c) <= reach && (!best || Math.abs(g.c - pin.c) < Math.abs(best.c - pin.c))) best = g;
+          if (best) break;
+        }
         return best ? { c: best.c, by: pin.ease - best.ease, ease: pin.ease } : undefined;
       })
       .filter((x): x is { c: number; by: number; ease: number } => !!x)
