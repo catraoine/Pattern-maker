@@ -81,7 +81,7 @@ svg.stepdg .dg-cloth {
   }
 }
 .style-layout.lights-up section[aria-label='Preview'] > .preview {
-  animation: chalk-lights-up 700ms ease-out 250ms both;
+  animation: chalk-lights-up 1800ms ease-in-out 400ms both;
 }
 @media (prefers-reduced-motion: reduce) {
   .style-layout.lights-up section[aria-label='Preview'] > .preview {
