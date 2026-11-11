@@ -81,6 +81,10 @@ const TIP: Partial<Record<MeasurementId, [string, string]>> = {
   waist_to_floor: ['Down your side, standing barefoot.', 'Ask them to stand barefoot. Hold the tape at their waist and let it fall down their side.'],
   shoulder_width: ['Across your back, shoulder point to shoulder point, arms relaxed at your sides.', 'Across their back, shoulder point to shoulder point, their arms relaxed at their sides.'],
   waist_to_hip: ['Down your side to the fullest part of your hip.', 'Hold the tape at their waist and measure down their side to the fullest part of their hip.'],
+  nape_to_waist: [
+    'Straight down your spine, from the bone at the back of your neck to your waist. Bow your head to find the bone, then look straight ahead again before you measure.',
+    'Straight down their spine, from the bone at the back of their neck to their waist. Ask them to bow their head so you can find the bone, then to look straight ahead again before you measure.',
+  ],
   waist_to_knee: ['Down your side to the middle of your knee.', 'Hold the tape at their waist and measure down their side to the middle of their knee.'],
 };
 /** The string tied round the waist (Cat, 2026-10-24): suggested on the waist page, then every length that starts or
@@ -104,6 +108,11 @@ export function tipOf(id: MeasurementId, helper: boolean, form?: FormKind) {
 
 /** The "How to do it" steps. [for the wearer, for a helper] */
 const STEPS: Partial<Record<MeasurementId, [string[], string[]]>> = {
+  // Its own helper words: the tip turned for a helper told them to bow their own head (tailor review, Nov 11).
+  nape_to_waist: [
+    ['Bow your head and find the bone at the back of your neck.', 'Look straight ahead again.', 'Measure straight down your spine to the string at your waist.', 'Keep the tape straight, then read the number.'],
+    ['Ask them to bow their head, and find the bone at the back of their neck.', 'Ask them to look straight ahead again.', 'Measure straight down their spine to the string at their waist.', 'Keep the tape straight, then read the number.'],
+  ],
   height: [
     ['Take off your shoes and stand against a wall, heels touching it.', 'Look straight ahead, standing tall.', 'Rest something flat (a book) on your head, level against the wall.', 'Mark where it meets the wall and measure down to the floor.'],
     ['Ask them to take off their shoes and stand against a wall, heels touching it.', 'Ask them to look straight ahead, standing tall.', 'Rest something flat (a book) on their head, level against the wall.', 'Mark where it meets the wall and measure down to the floor.'],

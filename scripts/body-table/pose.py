@@ -85,8 +85,8 @@ POSES = {
     # P1 Poised: arms hanging loose close by the sides, a little back, elbows nearly straight, hands relaxed;
     # standing straight, feet together.
     'poised': {**arms(-34, -34, 5, 5, -3, -3, curl=7), 'upperleg01.L': (Z, -2.5 * S), 'upperleg01.R': (Z, 2.5 * S)},
-    # Poised with the left elbow a little bent, for the arm length clip: the tape goes over a slightly bent elbow.
-    'poisedbent': {**arms(-34, -34, 22, 5, -3, -3, curl=7), 'upperleg01.L': (Z, -2.5 * S), 'upperleg01.R': (Z, 2.5 * S)},
+    # Poised with the left elbow a little bent forward, for the arm length clip: the tape goes over a slightly bent elbow.
+    'poisedbent': {**arms(-34, -34, -13, 5, -3, -3, curl=7), 'upperleg01.L': (Z, -2.5 * S), 'upperleg01.R': (Z, 2.5 * S)},
     # P2 Contrapposto: the weight on one leg, the free knee bent forward and in, its heel lifted; one arm easy
     # forward.
     'shift': {**arms(-40, -34, 6, 30, 0, 10, curl=14), 'upperleg01.R': (X, -24), 'upperleg02.R': (Z, -6 * S), 'lowerleg01.R': (X, 44), 'foot.R': (X, -30), 'upperleg01.L': (Z, -2 * S)},
