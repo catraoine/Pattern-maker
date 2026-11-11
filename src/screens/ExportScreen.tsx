@@ -35,6 +35,7 @@ import { canShareFiles, download } from '../ui/download';
 import { LabelCard } from '../ui/LabelCard';
 import { TestingTag } from '../ui/TestingTag';
 import { DemoButton } from '../ui/DemoButton';
+import { reloadPending } from './load';
 import { isKnit, isLowerBody } from '../measurements';
 
 /** What to print: the drafted pieces of either garment, with its notes and sewing steps. */
@@ -149,6 +150,8 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
   // sewists, beginners too, project instead of taping pages.
   const paper: Output = picked;
   const [pdf, setPdf] = useState<{ paper: Output; bytes: Uint8Array; total: number } | null>(null);
+  // A PDF that couldn't be made says so, instead of "Making your PDF…" for ever (Anna, Nov 10).
+  const [pdfFailed, setPdfFailed] = useState(false);
   const [shareNote, setShareNote] = useState('');
   const [projecting, setProjecting] = useState(false);
   const special = finish.fabric?.special;
@@ -204,13 +207,15 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
     if (!sheet || !guide) return;
     let live = true;
     setPdf(null);
+    setPdfFailed(false);
     let countPages = async (_: Uint8Array) => 0;
     import('../engine/pdf')
       .then(({ toTiledPdf, toProjectorPdf, pdfPageCount }) => {
         countPages = pdfPageCount;
         return isProjector(paper) ? toProjectorPdf(sheet, { dark: paper === 'projectorDark', title }) : toTiledPdf(sheet, paper, { title, guide, summary, unit });
       })
-      .then(async (bytes) => live && setPdf({ paper, bytes, total: await countPages(bytes) }));
+      .then(async (bytes) => live && setPdf({ paper, bytes, total: await countPages(bytes) }))
+      .catch(() => live && !reloadPending() && setPdfFailed(true));
     return () => {
       live = false;
     };
@@ -347,8 +352,13 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
             </fieldset>
             <div className="stack">
               <button type="button" className="primary" onClick={checked(download_)} disabled={!ready}>
-                {ready ? `Download PDF (${pages} ${pages === 1 ? 'page' : 'pages'})` : 'Making your PDF…'}
+                {ready ? `Download PDF (${pages} ${pages === 1 ? 'page' : 'pages'})` : pdfFailed ? 'PDF not made' : 'Making your PDF…'}
               </button>
+              {pdfFailed && (
+                <p className="msg error" role="alert">
+                  The PDF couldn't be made. Reload the page to try again: you'll stay on Print.
+                </p>
+              )}
               {canShareFiles && (
                 <button type="button" className="secondary" onClick={checked(share)} disabled={!ready}>
                   Send to email or a printer
