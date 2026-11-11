@@ -29,6 +29,9 @@ export type SeamKind = 'yoke' | 'empire' | 'panel';
 export interface Yoke {
   front?: number;
   back?: number;
+  /** A plunge's shoulder panels only (set by a look): the front seam slanted, this many cm lower where it meets the
+   * edge of the V than at the armhole, as a lace shoulder panel is cut. */
+  frontSlant?: number;
 }
 
 /** Side panels: where the seam leaves the armhole, 0 at the shoulder to 1 at the underarm. */
@@ -389,13 +392,25 @@ function yokeLevel(r: Ring, depth: number, side: 'front' | 'back', apex: P, notc
   return Math.max(lo, y);
 }
 
-function yokeSide(pc: Piece, depth: number, side: 'front' | 'back', apex: P, bustDart: number, pleat = false): { pieces: [Piece, Piece]; seam: P[]; sewnDart?: P[]; moved: boolean } | undefined {
+function yokeSide(pc: Piece, depth: number, side: 'front' | 'back', apex: P, bustDart: number, pleat = false, slant = 0): { pieces: [Piece, Piece]; seam: P[]; sewnDart?: P[]; moved: boolean } | undefined {
   const r = ringOf(pc.outline);
   const y = yokeLevel(r, depth, side, apex, pc.notches);
   if (y === undefined) return undefined;
   const far = Math.max(...r.pts.map((q) => q.x)) + 5;
-  const cut = cutRing(r, [p(-1, y), p(far, y)], 'yoke');
   const front = side === 'front';
+  const level = cutRing(r, [p(-1, y), p(far, y)], 'yoke');
+  // A slanted shoulder panel: the seam turned about its armhole end, lower at the edge of the V, as far down as the
+  // bust point's level (the V's edge is well clear of the bust point there, and there is no dart to cross).
+  let cut = level;
+  if (front && slant > 0 && level?.on[0] === 'neck' && bustDart < 0.3) {
+    const [a, b] = [level.seam[0], level.seam[level.seam.length - 1]];
+    const drop = Math.min(slant, apex.y - y);
+    if (drop > 0.5 && b.x - a.x > 2) {
+      const k = drop / (b.x - a.x);
+      const turned = cutRing(r, [p(-1, b.y + k * (b.x + 1)), p(far, b.y - k * (far - b.x))], 'yoke');
+      if (turned && turned.on[0] === 'neck' && turned.on[1] === 'armhole') cut = turned;
+    }
+  }
   // A plunge front's yoke starts on the edge of the V: a shoulder panel each side, cut as a pair.
   const panel = front && cut?.on[0] === 'neck';
   if (!cut || !(['fold', 'centre'].includes(cut.on[0]) || panel) || cut.on[1] !== 'armhole') return undefined;
@@ -410,7 +425,7 @@ function yokeSide(pc: Piece, depth: number, side: 'front' | 'back', apex: P, bus
   const note: DraftPoint = {
     n: 'Y',
     at: p(0, y),
-    note: `Yoke: ruled straight across, square to the centre ${side}, ${cm(y - neckPoint.y)} below the neck point.${moves ? ' The bust dart is closed at the side and opens on the yoke seam over the bust point.' : ''}`,
+    note: `Yoke: ruled straight across, ${cut !== level ? `slanting down to the edge of the neckline, ${cm(cut!.seam[0].y - y)} lower there than at the armhole` : `square to the centre ${side}`}, ${cm(y - neckPoint.y)} below the neck point${cut !== level ? ' at the armhole' : ''}.${moves ? ' The bust dart is closed at the side and opens on the yoke seam over the bust point.' : ''}`,
   };
   const name = front ? 'Bodice front' : 'Bodice back';
   const yoke = part(pc, upper, `${name} yoke`, cutFor(front && !panel), { notches: seamNotches(at, seam, upper), meta: { yoke: true } });
@@ -526,7 +541,7 @@ export function yokesJoined(pieces: Piece[]): Piece[] {
 
 function yoke(d: BodiceDraft, y: Yoke, pleat = false): Seamed | undefined {
   const [front, back] = d.pieces;
-  const f = y.front !== undefined ? yokeSide(front, y.front, 'front', d.front.apex, d.bustDart) : undefined;
+  const f = y.front !== undefined ? yokeSide(front, y.front, 'front', d.front.apex, d.bustDart, false, y.frontSlant ?? 0) : undefined;
   const b = y.back !== undefined ? yokeSide(back, y.back, 'back', d.front.apex, 0, pleat) : undefined;
   if (!f && !b) return undefined;
   const warnings = [...(y.front !== undefined && !f ? ['the neckline sits too low for a front yoke above the bust; it is left out'] : []), ...(y.back !== undefined && !b ? ['there is no room for a back yoke; it is left out'] : [])];

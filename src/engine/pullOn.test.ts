@@ -81,6 +81,22 @@ describe('a shoulder panel on a plunge', () => {
     expect(seam[seam.length - 1].y).toBeCloseTo(seam[0].y, 5);
   });
 
+  it('slants from just under the shoulder tip down to the edge of the V, no lower than the bust point', () => {
+    const d = draftBodice(EXAMPLE_BODY as never, blouse({ yoke: { front: 0, back: 10, frontSlant: 13 } }));
+    const seam = d.styleSeams!.find((s) => s.side === 'front')!.pts;
+    const [a, b] = [seam[0], seam[seam.length - 1]];
+    expect(a.y - b.y).toBeGreaterThan(13);
+    expect(a.x).toBeLessThan(b.x - 8);
+    // However steep it is asked for, its point stays on the V's edge and the panel is still cut.
+    const steep = draftBodice(EXAMPLE_BODY as never, blouse({ yoke: { front: 0, back: 10, frontSlant: 80 } }));
+    expect(steep.pieces.map((pc) => pc.name)).toContain('Bodice front yoke');
+    expect(steep.warnings).toEqual([]);
+    // A darted front keeps a level seam: the slant would cross the dart.
+    const darted = draftBodice(EXAMPLE_BODY as never, blouse({ fit: 'fitted', bustEase: undefined, sides: undefined, pullOn: false, darts: 'bust', neckline: 'crew', yoke: { front: 8, frontSlant: 13 } }));
+    const ds = darted.styleSeams?.find((s) => s.side === 'front')?.pts;
+    if (ds) expect(ds[ds.length - 1].y).toBeCloseTo(ds[0].y, 5);
+  });
+
   it('is the Lilac Lace Blouse: panels, no zip, and it passes the All round check in lace', async () => {
     const { sewDesign } = await import('../drapeSweep');
     const look = COLLECTION.find((l) => l.id === 'lilac-lace')!;
