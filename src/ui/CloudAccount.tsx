@@ -61,19 +61,20 @@ export function CloudAccount({ cloud }: { cloud: Cloud }) {
         {cloud.status === 'ask' && (
           <div className="stack" data-testid="cloud-ask">
             <p className="small">
-              <b>This device was last signed in to another account, and its work is still here.</b> Nothing has been saved to your account yet.
+              <b>Someone else was signed in on this device before you.</b> Their patterns and measurements are still here. Nothing has been saved to your account yet.
             </p>
-            <div className="row wrap">
+            <div className="stack">
               <button type="button" className="primary" onClick={() => cloud.answerDevice('account')}>
-                Start from my account only
+                Use only my account
               </button>
-              <button type="button" className="secondary sm" onClick={() => cloud.answerDevice('add')}>
-                Add it to my account
-              </button>
+              <p className="muted small">Their work is removed from this device. It stays in their own account.</p>
             </div>
-            <p className="muted small">
-              Start from my account only clears this device first. Add it to my account copies its measurements and patterns into yours, with the other person's own measurements kept as a person of their own.
-            </p>
+            <div className="stack">
+              <button type="button" className="secondary sm" onClick={() => cloud.answerDevice('add')}>
+                Copy their work into my account
+              </button>
+              <p className="muted small">Their patterns are added to yours. Their measurements are kept as a separate person, never mixed with yours.</p>
+            </div>
           </div>
         )}
         {STATUS[cloud.status] && (

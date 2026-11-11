@@ -151,15 +151,15 @@ async function usedByAnother(page: Page) {
 
 // The engineering review (Nov 10): on a shared computer the first person's work went into the next person's account.
 // Cat's pick (a): signing in on a device last signed in to another account asks first.
-test('signing in on a computer another account used asks first; "Start from my account only" brings nothing over', async ({ page }, info) => {
+test('signing in on a computer another account used asks first; "Use only my account" brings nothing over', async ({ page }, info) => {
   await usedByAnother(page);
   const data = await signIn(page, 'second@example.com');
   const ask = data.getByTestId('cloud-ask');
-  await expect(ask).toContainText('This device was last signed in to another account');
+  await expect(ask).toContainText('Someone else was signed in on this device before you');
   if (SHOTS) await data.screenshot({ path: `${SHOTS}/signin-ask-${info.project.name}.png` });
   // Nothing goes to the account before the answer.
   expect((await page.evaluate((k) => JSON.parse(localStorage.getItem(k)!), FAKE)).users['second@example.com'].backup).toBeNull();
-  await ask.getByRole('button', { name: 'Start from my account only' }).click();
+  await ask.getByRole('button', { name: 'Use only my account' }).click();
   await expect(data.getByRole('status').first()).toHaveText('Saved to your account.');
   await expect(savedRows(page)).toHaveCount(0);
   const store = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)!), FAKE);
@@ -167,10 +167,10 @@ test('signing in on a computer another account used asks first; "Start from my a
   expect(store.users['first@example.com'].backup.account.patterns).toHaveLength(1);
 });
 
-test('"Add it to my account" brings the other account\'s patterns over', async ({ page }) => {
+test('"Copy their work into my account" brings the other account\'s patterns over', async ({ page }) => {
   await usedByAnother(page);
   const data = await signIn(page, 'second@example.com');
-  await data.getByTestId('cloud-ask').getByRole('button', { name: 'Add it to my account' }).click();
+  await data.getByTestId('cloud-ask').getByRole('button', { name: 'Copy their work into my account' }).click();
   await expect(data.getByRole('status').first()).toHaveText('Saved to your account.');
   await expect(savedRows(page)).toHaveCount(1);
   const store = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)!), FAKE);
