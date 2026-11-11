@@ -79,7 +79,7 @@ const silName = (id: Silhouette) => GROUPS[1].options.find((o) => o[0] === id)![
 export function dragLength(m: SkirtMeasurements, c: Choices, cm: number, catchCm = 1.5): Choices {
   const v = lengthRange(m).clamp(cm);
   const named = LENGTH_IDS.map((id) => ({ id, at: LENGTHS[id](m) })).sort((a, b) => Math.abs(a.at - v) - Math.abs(b.at - v))[0];
-  const { look: _look, lengthCm: _l, kneeShare: _k, ...rest } = c;
+  const { look: _look, lengthCm: _l, kneeShare: _k, floorClear: _f, ...rest } = c;
   return Math.abs(named.at - v) < catchCm ? { ...rest, length: named.id } : { ...rest, length: named.id, lengthCm: Math.round(v * 2) / 2 };
 }
 
@@ -237,7 +237,7 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
     }
   };
 
-  const lengthLabel = choices.lengthCm || choices.kneeShare ? `${Math.round(draft.lengthCm)} cm` : lengthName(choices.length);
+  const lengthLabel = choices.lengthCm || choices.kneeShare || choices.floorClear ? `${Math.round(draft.lengthCm)} cm` : lengthName(choices.length);
   const flareLabel = choices.flareCm !== undefined ? `${choices.flareCm > 0 ? '+' : ''}${choices.flareCm} cm` : silName(choices.silhouette);
   const guide = (y: number, text: string) => (
     <g className="guide">

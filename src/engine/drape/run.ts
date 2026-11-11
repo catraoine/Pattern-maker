@@ -27,6 +27,8 @@ import { clearCollars } from './collarClear';
 import { hugCollars } from './collarHug';
 import { fairBackCentre } from './fairFront';
 import { layLapelFoot } from './lapelFoot';
+import { fairStraps } from './strapFair';
+import { fairCowl } from './cowlFair';
 
 export type DrapeJob = { m: RoundMeasurements; armhole: RoundGarment['armhole']; fibre?: Fibre; crisp?: boolean; /** How the cloth behaves (clothCard.ts); without it, the card of the fibre and crisp fields. */ card?: ClothCard; /** A side tie knotted at the left side seam at the waist (belt.ts). */ sideTie?: SideTieSpec } & (
   | { kind: 'skirt'; draft: SkirtDraft }
@@ -152,6 +154,9 @@ export function runDrape(job: DrapeJob): DrapedLite {
   const sk = job.kind === 'skirt' ? job.draft : job.kind === 'dress' ? job.draft.skirt : undefined;
   // A collar's fall over the shoulders lifted out where the sim sank it into them.
   if (!knob('__noCollarClear')) clearCollars(d, sp);
+  // A sleeveless shoulder's strap laid straight over the shoulder, not fanned out past its seam.
+  if (job.kind === 'dress' || job.kind === 'bodice') fairStraps(d);
+  if (job.kind === 'dress' || job.kind === 'bodice') fairCowl(d, sp);
   // A vest's tailored collar leans in to hug the neck round the sides and back (collarHug.ts; the Look 02 vest, Nov 11).
   if (job.kind === 'outer' && job.draft.sleeveless && job.draft.lapel && !knob('__noCollarHug')) hugCollars(d, sp);
   const quality = drapeQuality(d, sp, { seams: d.seams, levelHem: !!sk && !sk.asym && !sk.hem, legs: job.kind === 'trousers' });

@@ -7,6 +7,7 @@
 // fold into one quiet line under it (Cat's Q2 Quiet in Calico, 2026-10-31: the view read like engineering).
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { widensForm } from '../engine/drape/widen';
+import { squaredShoulder } from './formShoulder';
 import type { MyFabric } from '../engine/fabrics';
 import { FabricPaint, fabricPaint } from './FabricFill';
 import { useFabricPhoto } from '../fabricPhoto';
@@ -208,8 +209,9 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
   // The form stands at the wearer's shoulder width, as the body the cloth is sewn on does.
   const formX = useMemo(() => (x: number, y: number, z: number) => {
     const s = spaceOf.scale(y);
-    return spaceOf.widen(x * s, spaceOf.cOf(y), z * s) / s;
-  }, [spaceOf]);
+    // (Its shoulder's very end squared off where it is drawn out: see formShoulder.ts.)
+    return (widenForm ? squaredShoulder(spaceOf.widen(x * s, spaceOf.cOf(y), z * s), x * s, spaceOf.tip.x) : spaceOf.widen(x * s, spaceOf.cOf(y), z * s)) / s;
+  }, [spaceOf, widenForm]);
   const toFormOf = useMemo(() => {
     const sp = spaceOf;
     // The form's height table flattens above the neck point: a collar standing up the neck is carried on at the

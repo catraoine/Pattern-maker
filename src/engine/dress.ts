@@ -195,7 +195,10 @@ function noSeamDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyle>, sk
   // A bias slip dress is drafted as a shift, then each piece is cut whole on the bias (see biasCut).
   const kind: 'sheath' | 'shift' = cut === 'bias' ? 'shift' : cut;
   const plain: Partial<SkirtStyle> = { ...skirtStyle, silhouette: 'straight', pleats: undefined, godets: undefined, flounce: undefined, asymHem: undefined, pockets: undefined, hem: undefined, flareCm: undefined, shape: undefined, ruched: undefined };
-  const belowWaist = plain.lengthCm !== undefined ? lengthRange(m).clamp(plain.lengthCm) : LENGTHS[plain.length ?? 'knee'](m);
+  // (A look's own long hem, set in cm clear of the floor: the bias slip's, cut above the ankle so it still clears the
+  // floor once the bias has dropped. Measured up from the floor, not as a share of the way to the knee: on a body
+  // short below the knee that share came out under 1 cm above a maxi where the example body's came out 6.)
+  const belowWaist = plain.lengthCm !== undefined ? lengthRange(m).clamp(plain.lengthCm) : plain.floorClear !== undefined ? lengthRange(m).clamp(m.waist_to_floor - plain.floorClear) : LENGTHS[plain.length ?? 'knee'](m);
   const bodice = draftBodice(m, {
     ...bodiceStyle,
     length: 'hip',

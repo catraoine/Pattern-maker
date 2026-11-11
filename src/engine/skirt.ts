@@ -55,6 +55,9 @@ export interface SkirtStyle {
   /** A house look's own length, between the named ones: the hem this share of the way from the skirt's top to the
    * knee, so it falls the same against every body's knee. A dragged length or a photo's replaces it. */
   kneeShare?: number;
+  /** A house look's own long hem: this many cm clear of the floor, so it sits the same against every body's ankle
+   * (a share of the way to the knee doesn't: legs differ below the knee). A dragged length or a photo's replaces it. */
+  floorClear?: number;
   /** How far the hem flares out past the hip at each side seam, in cm, set by dragging. Negative tapers in. */
   flareCm?: number;
   /** A hand-drawn hem shape. */
@@ -997,7 +1000,9 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
         ? clamp(shape.hemAt * m.waist_to_floor, hipDepth + 8, m.waist_to_floor - 2)
         : s.kneeShare !== undefined
           ? lengthRange(m).clamp(s.kneeShare * m.waist_to_knee)
-          : LENGTHS[s.length](m);
+          : s.floorClear !== undefined
+            ? lengthRange(m).clamp(m.waist_to_floor - s.floorClear)
+            : LENGTHS[s.length](m);
   if (!(length > hipDepth + 5)) throw new DraftError('The skirt length must reach well below the hip line.');
 
   // Joined to a bodice, the waist is the bodice's; otherwise 0.5 cm moves from the back to the front.

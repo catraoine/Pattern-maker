@@ -130,7 +130,7 @@ export const COLLECTION: HouseLook[] = [
     id: 'gold-shorts',
     number: 3,
     name: 'Gold Python Bermuda',
-    line: 'Loose pleated Bermudas falling straight from the hip to just below the knee, belt loops at the waist, in the same gold python as the slip.',
+    line: 'Loose pleated Bermudas falling straight from the hip to just below the knee, belt loops at the waist, in gold python silk.',
     fabric: 'Gold python silk',
     garment: 'trousers',
     choices: { ...DEFAULT_TROUSERS_CHOICES, fit: 'relaxed', leg: 'wide', length: 'knee', lengthCm: 68, legCm: { knee: 66, hem: 66 }, pockets: 'slant', pleats: 'double', loops: 'loops' },
@@ -167,13 +167,16 @@ export const COLLECTION: HouseLook[] = [
     // From Cat's picture of a relaxed bias satin maxi (2026-11-11, "Build bias and correct the neckline for lower
     // narrower scoop"; "the dress straps should be a touch narrower"): it replaces the Gold Python Slip. The hem is
     // flared 16 cm, the most that still cuts whole on the bias from 150 cm cloth at the example size.
+    // The hem is cut 13 cm clear of the floor, 6 cm shorter than a maxi on every body (Cat, 2026-11-11: "match length
+    // of inspo", "seems like it should be shorter"): the picture's hem clears the floor by about 10 cm, and bias
+    // cloth drops a few cm as it hangs.
     id: 'ivory-slip',
     number: 7,
     name: 'Ivory Bias Slip',
-    line: 'The house slip, cut in one on the bias from the shoulder to the ankle: a low, narrow scoop, slim straps, no waist seam and no zip, in a satin you can just see through.',
+    line: 'The house slip, cut in one on the bias from the shoulder to just above the ankle: a low, narrow scoop, slim straps, no waist seam and no zip, in a satin you can just see through.',
     fabric: 'Ivory sheer silk satin',
     garment: 'dress',
-    choices: dress('regular', { neckline: 'scoop', sleeve: 'none', darts: 'bust', bustEase: 4, neck: { frontDepth: 14.5, width: 3.5, backDepth: 18, fullness: 0.85, strap: 3 } }, { silhouette: 'straight', length: 'maxi', noSeam: 'bias', flareCm: 16, slit: 'none' }),
+    choices: dress('regular', { neckline: 'scoop', sleeve: 'none', darts: 'bust', bustEase: 4, neck: { frontDepth: 14.5, width: 3.5, backDepth: 18, fullness: 0.85, strap: 3 } }, { silhouette: 'straight', length: 'maxi', floorClear: 13, noSeam: 'bias', flareCm: 16, slit: 'none' }),
   },
   {
     // Cat's own Japanese leopard and python cotton, and the house shirt cut (2026-11-10).
