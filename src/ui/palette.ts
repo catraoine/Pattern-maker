@@ -16,6 +16,6 @@ export const hex = (c: string) => parseInt(c.slice(1), 16);
 export type Tone = { ground: string; groundRgb: string; gild: string; glow: string; muted: string };
 /** Black ground, champagne lines: the app everywhere outside the style screen's picture windows. */
 export const DARK: Tone = { ground: GROUND, groundRgb: GROUND_RGB, gild: GILD, glow: GLOW, muted: MUTED };
-/** The style screen's picture windows (Cat's B, Nov 11): chalk inside the window, the lines in dark ink so they
+/** The style screen's picture windows (Cat's B, Nov 11; C1 warm stone depth): chalk inside the window, the lines in dark ink so they
  *  still show. Match --chalk and the window's colours in src/styles/34-chalk-windows.css. */
-export const CHALK: Tone = { ground: '#e9e4da', groundRgb: '233,228,218', gild: '#2a2622', glow: '#1d1a17', muted: '#6c6250' };
+export const CHALK: Tone = { ground: '#dcd5c7', groundRgb: '220,213,199', gild: '#2a2622', glow: '#1d1a17', muted: '#6c6250' };
