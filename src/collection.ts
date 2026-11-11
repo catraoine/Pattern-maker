@@ -1,6 +1,7 @@
 // The Maison collection: the house's signature designs, each a set of style choices drafted to the
 // sewist's own measurements like any other pattern. Making a look opens its style screen with the
 // choices set, so every detail can still be changed.
+import type { Finish } from './savedWork';
 import type { MyFabric } from './engine/fabrics';
 import { COLOURS } from './engine/shopFabrics';
 import { dressBelt, skirtBelt } from './engine/belt';
@@ -77,6 +78,9 @@ export interface HouseLook {
   /** A look of two pieces sewn as a set (SS27 Look 02, the black vest and pleated skirt): both share the look's number
    * and are shown together, each made on its own. */
   set?: string;
+  /** How the look is finished when it is made, over the maker's own setting: the Blush Shift comes lined to the hem
+   *  (Nov 11). The maker can still change it on the print screen. */
+  finish?: Pick<Finish, 'bodiceEdges'>;
 }
 
 const skirt = (c: Partial<Choices>): Choices => ({ fit: 'regular', silhouette: 'a_line', length: 'knee', ...c });
@@ -101,6 +105,8 @@ export const COLLECTION: HouseLook[] = [
     fabric: 'Blush wool crepe',
     garment: 'dress',
     choices: dress('regular', { neckline: 'crew', sleeve: 'none', darts: 'bust', bustDart: 'french', bustEase: 5, shiftBack: 'shaped' }, { silhouette: 'straight', length: 'mini', noSeam: 'shift', flareCm: 4 }),
+    // Lined to the hem, the neck and armholes finished with the lining and a deep hand-stitched hem (linedShift.ts).
+    finish: { bodiceEdges: 'lined' },
   },
   {
     // Cat's SS27 Look 02 picture, measured and refined with her Nov 7-8: a long boxy vest in crisp black wool, its

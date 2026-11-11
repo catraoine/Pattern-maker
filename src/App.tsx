@@ -943,7 +943,7 @@ export default function App() {
                 const { garment: g, ...next } = lookPatch(look, lookValues(look, values).values);
                 // The look comes in the cloth it's named for, so the drawing and the Fabric step open in it.
                 const cloth = lookFabric(look.fabric);
-                const withCloth = keepFinish(storedFinish, { ...finish, fabric: cloth, cloth: clothFor(cloth, finish.cloth) }, mode);
+                const withCloth = keepFinish(storedFinish, { ...finish, ...look.finish, fabric: cloth, cloth: clothFor(cloth, finish.cloth) }, mode);
                 switchGarment(g, { ...next, archive: archiveCut(look.id)?.id, finish: withCloth } as Partial<Saved>, 'style');
                 window.scrollTo(0, 0);
               }}

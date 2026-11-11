@@ -1,4 +1,5 @@
 import { finishesNeck } from './engine/collar';
+import { withLinedShiftHem } from './engine/linedShift';
 import { loopCount, withBackLoops, withSheerTop } from './engine/sheerTop';
 import { beltNote, beltPieces, dressBelt, skirtBelt, withBelt } from './engine/belt';
 import { SkirtDraft, SkirtMeasurements, draftSkirt } from './engine/skirt';
@@ -282,9 +283,14 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
     const pieces = allow([...top, ...(sleeve?.pieces ?? []), ...skirtPcs, ...facings, ...beltPieces(belt, seams.seam)]);
     const lays = layPlans([...pieces, ...allow(layoutExtras(d.skirt))], finish.fabricWidth, nap, hide, false, border);
     const metres = (f: 'self' | 'lining' | 'interlining') => lays.find((l) => l.fabric === f)?.metres ?? bodiceFabricMetres(d.bodice, sleeve) + fabricMetres(d.skirt);
+    // A dress with no waist seam is lined in one piece to the hem: a full lining, not just the bodice's.
+    const fullLining = edges === 'lined' && !!d.noSeam && d.noSeam !== 'bias';
     const edgeWords = sleeve
-      ? { binding: 'a bias-bound neckline', facings: 'a faced neckline', lined: 'a lined bodice' }[edges]
-      : { binding: 'bias-bound neck and armholes', facings: 'a faced neck and armholes', lined: 'a lined bodice' }[edges];
+      ? { binding: 'a bias-bound neckline', facings: 'a faced neckline', lined: fullLining ? 'a full lining' : 'a lined bodice' }[edges]
+      : { binding: 'bias-bound neck and armholes', facings: 'a faced neck and armholes', lined: fullLining ? 'a full lining' : 'a lined bodice' }[edges];
+    const dressHem = pieces.find((pc) => /^(Skirt|Flounce|Dress) front/.test(pc.name) && pc.allowances.hem !== undefined)?.allowances.hem ?? (d.skirt.volume?.tiers ? 2 : 4);
+    // A shift lined to the hem: a deep hem catch-stitched by hand, the lining hemmed on its own (linedShift.ts).
+    const linedShift = (g: SewingGuide) => (fullLining && d.noSeam === 'shift' && finish.route !== 'couture' && !couture ? withLinedShiftHem(g, dressHem) : g);
     return {
       pieces,
       notes: [
@@ -302,14 +308,14 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
         ...fittingNotes,
       ],
       guide: route(
-        withBelt(dressGuide(d, dress.skirt, metres('self'), bindingMetres(d.bodice, { neck: edges === 'binding' && !finishesNeck(d.bodice.collar), armholes: sleeve ? edges === 'lined' : edges === 'binding' }), {
+        linedShift(withBelt(dressGuide(d, dress.skirt, metres('self'), bindingMetres(d.bodice, { neck: edges === 'binding' && !finishesNeck(d.bodice.collar), armholes: sleeve ? edges === 'lined' : edges === 'binding' }), {
           seams,
           edges,
           width: finish.fabricWidth,
           liningM: metres('lining'),
           coutilM: d.bodice.top?.boned ? metres('interlining') : undefined,
           sleeve,
-        }), belt, { band: false, sideZip: !!d.zipSide }),
+        }), belt, { band: false, sideZip: !!d.zipSide })),
         { garment: 'dress', lined: edges === 'lined', zipCm: d.zipCm },
       ),
       spec: dressSpec(values as DressMeasurements, d, sleeve),
