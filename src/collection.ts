@@ -204,9 +204,10 @@ export const COLLECTION: HouseLook[] = [
     }),
   },
   {
-    // A low-rise barrel leg in the snakeskin brown of the leopard cloth, so it links to Look 08 (Cat, 2026-11-11).
+    // A low-rise barrel leg in the snakeskin brown of the leopard cloth, so it links to the Leopard Shirt Dress (Cat,
+    // 2026-11-11). Look 10 since Look 02 became a set and the looks after it moved down one.
     id: 'chocolate-barrel',
-    number: 9,
+    number: 10,
     name: 'Chocolate Barrel Trouser',
     line: 'Slung low on the hip, two deep pleats opening into a barrel leg that curves out round the knee and falls to the floor, in a crisp chocolate sateen.',
     fabric: 'Chocolate crisp cotton sateen',
