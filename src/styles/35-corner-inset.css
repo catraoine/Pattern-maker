@@ -1,0 +1,14 @@
+/* Enlarge, Draw and Watch demo sit in from the style window's edge by the same amount, all three starting on one line
+   (Cat, Nov 11: the words were tight to the edge and uneven). */
+@media (max-width: 760px) {
+  .style-layout .preview-corner {
+    top: 4px;
+    left: 14px;
+    gap: 4px 18px;
+  }
+  .style-layout .preview-corner > :is(.enlarge, .link.small),
+  .style-layout .preview-corner > .drawmenu > summary {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}

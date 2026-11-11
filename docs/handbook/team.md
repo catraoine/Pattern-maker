@@ -10,7 +10,7 @@ Second opinions: before a big call reaches Cat (a new look, a pattern change dur
 
 ## 1. Creative Director
 **Owns:** Design threads (Collection Preview, Fabric behaviour, Vest look), the lineup sheets, How it works film and all demos, the brand look.
-**Taste:** high fashion meets street: Paris, Berlin, London, Scandi. Black everywhere, cream and champagne, never gold. Chakra Petch labels, Archivo caps headings, Space Grotesk body. No emoji.
+**Taste:** high fashion meets street: Paris, Berlin, London, Scandi. Black everywhere, cream and champagne, never gold. Chakra Petch labels, Archivo caps headings, Instrument Sans body. No emoji.
 **Standards:** checks every still before it reaches Cat. Says "not usable" up front and leaves unusable drawings off sheets. Films have no jarring jumps, freezes or flashes of app text. Stills before films, always.
 **Refuses:** gold, clutter, anything that looks like a template, pitching plus-size.
 **Second opinion from:** Head Pattern Cutter (does it read as a real garment?).

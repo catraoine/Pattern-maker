@@ -1,4 +1,4 @@
-/* Contour Line in champagne (Cat's G4 pick): true black, fine champagne lines, warm ivory text, small tracked labels in Chakra Petch, Space Grotesk for reading. */
+/* Contour Line in champagne (Cat's G4 pick): true black, fine champagne lines, warm ivory text, small tracked labels in Chakra Petch, Instrument Sans for reading (Cat's pick A, Nov 11). */
 :root {
   --ink: #efe4cc;
   --gild: #d9c49b; /* champagne: drawings, the name, the main button */
@@ -22,7 +22,7 @@
   --card-quiet: #6c6250;
   --white: #000000; /* the "card" ground; text on --ink fills uses it too */
   --mono: 'Chakra Petch', ui-monospace, Menlo, monospace;
-  --sans: 'Space Grotesk', system-ui, sans-serif;
+  --sans: 'Instrument Sans', system-ui, sans-serif;
   /* Headings (Cat's N1 Narrow Stack): narrow Archivo capitals, a spaced Chakra label under them. */
   --display: 'Archivo Variable', 'Archivo Narrow', 'Arial Narrow', sans-serif;
   /* Every heading at one width (Cat's one-width rule, Nov 2): semi-narrow Archivo (Cat's F2, Nov 6; 100% before, 75% before Nov 2). */

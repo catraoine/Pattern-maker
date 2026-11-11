@@ -64,8 +64,8 @@ export const STYLES: Record<LineStyle, { width: number; dash?: number[]; grey: n
 
 const FONT_FAMILY: Record<Face, string> = {
   label: "'Chakra Petch', Helvetica, Arial, sans-serif",
-  body: "'Space Grotesk', Helvetica, Arial, sans-serif",
-  bodyMedium: "'Space Grotesk', Helvetica, Arial, sans-serif",
+  body: "'Instrument Sans', Helvetica, Arial, sans-serif",
+  bodyMedium: "'Instrument Sans', Helvetica, Arial, sans-serif",
 };
 
 function arrowHeads(a: P, b: P, head = 1.2): P[][] {

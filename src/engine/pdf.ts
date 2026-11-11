@@ -42,7 +42,7 @@ function bytes(b64: string): Uint8Array {
   return out;
 }
 
-/** The Contour Line typefaces: Chakra Petch for labels, Space Grotesk for text. */
+/** The Contour Line typefaces: Chakra Petch for labels, Instrument Sans for text. */
 async function embedFonts(doc: PDFDocument): Promise<Fonts> {
   doc.registerFontkit(fontkit);
   const [label, body, bodyMedium] = await Promise.all(
