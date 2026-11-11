@@ -59,12 +59,19 @@ def arms(down_l, down_r, bend_l=12, bend_r=12, fwd_l=0, fwd_r=0, curl=14):
     p = {}
     for side, down, bend, fwd in (('L', down_l, bend_l, fwd_l), ('R', down_r, bend_r, fwd_r)):
         sx = S if side == 'L' else -S
-        p[f'upperarm01.{side}'] = (np.array([0, 0, 1.0]) * sx, down)
-        if fwd: p[f'upperarm02.{side}'] = (np.array([1.0, 0, 0]), fwd)
-        p[f'lowerarm01.{side}'] = (np.array([1.0, 0, 0]), bend)
+        # The whole arm swings from the shoulder: down, then back (or forward) by fwd. (Turning the upper arm's
+        # second bone instead put a kink halfway down the upper arm.)
+        p[f'upperarm01.{side}'] = rot(np.array([1.0, 0, 0]), fwd) @ rot(np.array([0, 0, 1.0]) * sx, down)
+        # The forearm in line with the upper arm (MakeHuman's rest arm is bent a little at the elbow), then bent by
+        # bend.
+        ua = tail[f'upperarm02.{side}'] - head[f'upperarm01.{side}']
+        la = tail[f'lowerarm02.{side}'] - head[f'lowerarm01.{side}']
+        ax_ = np.cross(la, ua)
+        straight = rot(ax_, math.degrees(math.atan2(np.linalg.norm(ax_), la @ ua))) if np.linalg.norm(ax_) > 1e-9 else np.eye(3)
+        p[f'lowerarm01.{side}'] = rot(np.array([1.0, 0, 0]), bend) @ straight
         # The hand hangs straight on from the forearm, loose, rather than held out at the wrist as MakeHuman's
         # rest hand is.
-        fa = tail[f'lowerarm02.{side}'] - head[f'lowerarm02.{side}']
+        fa = tail[f'lowerarm02.{side}'] - head[f'lowerarm01.{side}']
         hd = head[f'finger3-1.{side}'] - head[f'wrist.{side}']
         ax = np.cross(hd, fa)
         if np.linalg.norm(ax) > 1e-9:
@@ -77,7 +84,7 @@ POSES = {
     'rest': {},
     # P1 Poised: arms hanging loose close by the sides, a little back, elbows nearly straight, hands relaxed;
     # standing straight, feet together.
-    'poised': {**arms(-38, -38, 0, 0, 20, 20, curl=7), 'upperleg01.L': (Z, -2.5 * S), 'upperleg01.R': (Z, 2.5 * S)},
+    'poised': {**arms(-38, -38, 3, 3, 6, 6, curl=7), 'upperleg01.L': (Z, -2.5 * S), 'upperleg01.R': (Z, 2.5 * S)},
     # P2 Contrapposto: the weight on one leg, the free knee bent forward and in, its heel lifted; one arm easy
     # forward.
     'shift': {**arms(-40, -34, 6, 30, 0, 10, curl=14), 'upperleg01.R': (X, -24), 'upperleg02.R': (Z, -6 * S), 'lowerleg01.R': (X, 44), 'foot.R': (X, -30), 'upperleg01.L': (Z, -2 * S)},
