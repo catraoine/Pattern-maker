@@ -329,6 +329,16 @@ function ends(pts: P[]): [P, P] {
   return best;
 }
 
+/** A pleat's placement line, not a dart: three points like a dart's legs, but its two ends lie further apart than its
+ *  shorter half is long (a dart's legs meet the edge close together). Our own export writes each pleat's placement line
+ *  beside its fold line, so CLO 3D can fold the pleat (Nov 2026). */
+function isPlacement(l: Path): boolean {
+  const pts = l.points();
+  if (pts.length !== 3) return false;
+  const [a, b, c] = pts;
+  return len(sub(a, c)) > Math.min(len(sub(a, b)), len(sub(c, b)));
+}
+
 /** A path through the points; tags[i] names the edge pts[i] -> pts[i + 1], the closing edge last. */
 const foldShapeOf = (shapes: Shape[]) => shapes.some((s) => s.layer === '6' && s.pts.length > 1);
 
@@ -527,7 +537,8 @@ export function importDxf(text: string): ImportedPattern {
       const piece: Piece = {
         name,
         outline: pathOf(sewRing.map(m), true, sewTags),
-        lines: lines.map(mp),
+        lines: lines.filter((l) => !isPlacement(l)).map(mp),
+        balance: lines.filter(isPlacement).map((l) => ({ pts: mp(l).points(), label: 'PLACEMENT' })),
         grain: grainShape ? (ends(grainShape.pts.map(toCm)).map(m) as [P, P]) : undefined,
         fold: foldShape ? (ends(foldShape.pts.map(toCm)).map(m) as [P, P]) : undefined,
         notches: notches.map(([q, d]) => [m(q), d]),
