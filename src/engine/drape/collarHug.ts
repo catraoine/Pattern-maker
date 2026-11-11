@@ -21,7 +21,16 @@ const MOST = 1;
 /** How much longer than it is cut a stretch of collar may be drawn before the quality check reads it as strained. */
 const STRAIN = 1.8;
 
-export function hugCollars(d: Pick<Draped, 'panels' | 'pos' | 'posMirror'>, sp: Pick<Space, 'bodyR'>): void {
+/** How a collar is leaned in: a vest's as above; a sleeved jacket's or coat's, whose collar stood 2 to 4 cm off the neck
+ *  round the sides from close to the gorge, further round from the front, further in, and kept only while the collar's
+ *  strained share stays under the quality check's (STRAIN_SHARE). */
+interface HugHow { from: number; full: number; most: number; share?: number }
+export const VEST_HUG: HugHow = { from: FROM, full: FULL, most: MOST };
+/** A little under the quality check's share of strained edges in a piece (1%), so leaning in never fails it. */
+const STRAIN_SHARE = 0.008;
+export const JACKET_HUG: HugHow = { from: 35, full: 65, most: 2.5, share: STRAIN_SHARE };
+
+export function hugCollars(d: Pick<Draped, 'panels' | 'pos' | 'posMirror'>, sp: Pick<Space, 'bodyR'>, how: HugHow = VEST_HUG): void {
   for (const pos of [d.pos, ...(d.posMirror ? [d.posMirror] : [])])
     for (const p of d.panels) {
       if (p.hidden || p.role !== 'collar') continue;
@@ -36,10 +45,13 @@ export function hugCollars(d: Pick<Draped, 'panels' | 'pos' | 'posMirror'>, sp: 
       // fall's ends lie out over the shoulder, where the form is wider than the neck).
       const seam = new Map<number, number>();
       const top = new Map<number, number>();
+      const neck = new Set((p.mesh.runs.neck ?? []).flat());
       for (let k = 0; k < n; k++) {
         const q = at(k);
         const b = Math.round(q.deg / BIN);
-        seam.set(b, Math.max(seam.get(b) ?? -Infinity, q.c));
+        // (A jacket's fall reaches out over the shoulder lower than its neck seam: there the seam's level is read from
+        // the seam itself, else a point just above the seam was read as high on the stand and moved in off it.)
+        if (!how.share || neck.has(k)) seam.set(b, Math.max(seam.get(b) ?? -Infinity, q.c));
         top.set(b, Math.min(top.get(b) ?? Infinity, q.c));
       }
       const room = new Map<number, number>();
@@ -62,15 +74,17 @@ export function hugCollars(d: Pick<Draped, 'panels' | 'pos' | 'posMirror'>, sp: 
       const move = new Float64Array(n);
       for (let k = 0; k < n; k++) {
         const q = at(k);
-        const round = Math.min(1, Math.max(0, (q.deg - FROM) / (FULL - FROM)));
+        const round = Math.min(1, Math.max(0, (q.deg - how.from) / (how.full - how.from)));
         if (!round) continue;
-        const off = Math.min(MOST, read(room, q.deg) - HUG);
+        const off = Math.min(how.most, read(room, q.deg) - HUG);
         if (off <= 0) continue;
         const s = read(seam, q.deg);
         const h = s - read(top, q.deg);
         if (h <= 0) continue;
         // (The higher above the seam, the further in: the stand leans about its seam, the fall over it with it.)
-        move[k] = off * round * Math.min(1, Math.max(0, (s - q.c) / h));
+        // (A jacket's fall rides in with the top of the stand it turns over, all of it, so it isn't drawn out between
+        // its roll and its edge; it stops on the shoulder, below.)
+        move[k] = off * round * (how.share && p.turned[k] ? 1 : Math.min(1, Math.max(0, (s - q.c) / h)));
       }
       const held = new Set((p.mesh.runs.neck ?? []).flat());
       // (Nor where the collar is already drawn out longer than it is cut, reaching round a wide neck: leaned in there it
@@ -80,7 +94,7 @@ export function hugCollars(d: Pick<Draped, 'panels' | 'pos' | 'posMirror'>, sp: 
         for (const [u, v] of [[t[0], t[1]], [t[1], t[2]], [t[2], t[0]]]) {
           const cut = Math.hypot(p.mesh.pts[u].x - p.mesh.pts[v].x, p.mesh.pts[u].y - p.mesh.pts[v].y);
           const [a, b] = [P3(u), P3(v)];
-          if (cut > 0.05 && Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]) / cut > 1.5) held.add(u).add(v);
+          if (!how.share && cut > 0.05 && Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]) / cut > 1.5) held.add(u).add(v);
         }
       const nb: number[][] = Array.from({ length: n }, () => []);
       for (const [a, b, c] of p.mesh.tris) {
@@ -94,12 +108,15 @@ export function hugCollars(d: Pick<Draped, 'panels' | 'pos' | 'posMirror'>, sp: 
       }
       // (And not at all if leaning it in draws any of it out longer than before: on 2 bodies in 41, both with a wide
       // neck for their size, a few more points of the collar ended over the quality check's limit.)
+      let edges = 0;
       const strained = () => {
         let c = 0;
+        edges = 0;
         for (const t of p.mesh.tris)
           for (const [u, v] of [[t[0], t[1]], [t[1], t[2]], [t[2], t[0]]]) {
             const cut = Math.hypot(p.mesh.pts[u].x - p.mesh.pts[v].x, p.mesh.pts[u].y - p.mesh.pts[v].y);
             const [a, b] = [P3(u), P3(v)];
+            if (cut > 0.05) edges++;
             if (cut > 0.05 && Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]) / cut > STRAIN) c++;
           }
         return c;
@@ -109,10 +126,11 @@ export function hugCollars(d: Pick<Draped, 'panels' | 'pos' | 'posMirror'>, sp: 
       for (let k = 0; k < n; k++) {
         if (!move[k] || held.has(k)) continue;
         const q = at(k);
-        const f = (q.r - move[k]) / (q.r || 1);
+        const f = Math.max(q.r - move[k], how.share && p.turned[k] ? Math.min(q.r, sp.bodyR(q.a, q.c) + 0.4) : 0) / (q.r || 1);
         pos[q.I] *= f;
         pos[q.I + 2] *= f;
       }
-      if (strained() > before) pos.set(was, p.base * 3);
+      const after = strained();
+      if (how.share ? after > before && after > how.share * edges : after > before) pos.set(was, p.base * 3);
     }
 }
