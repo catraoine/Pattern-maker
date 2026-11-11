@@ -14,6 +14,9 @@ import { Title } from './Title';
 import { UndoTools, type Undo } from './useUndo';
 import type { MyFabric } from '../engine/fabrics';
 
+/** Whether the style window has lit up yet in this visit. */
+let litOnce = false;
+
 // Every style screen, laid out as Cat's B Pinned Sketch with a Looks tab (2026-10-18): the sketch stays
 // pinned at the top, a row of tabs sits under it, and only one tab's choices show at a time, so choosing
 // never means scrolling away from the drawing. The summary is its own Review page before Print, and the
@@ -420,6 +423,13 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   }, []);
   const [tabs, setTabs] = useState<string[]>([]);
   const root = useRef<HTMLDivElement>(null);
+  // The first time Style opens in a visit, its picture window lights up from black to chalk (Cat, Nov 11), easing the
+  // black of measuring into the chalk the garment sits on. Once only, and never with reduced motion (the CSS skips it).
+  useEffect(() => {
+    if (litOnce) return;
+    litOnce = true;
+    root.current?.classList.add('lights-up');
+  }, []);
   const panel = useRef<HTMLDivElement>(null);
   const swipe = useRef<{ x: number; y: number; sideways: boolean }>();
   const wide = useWide();

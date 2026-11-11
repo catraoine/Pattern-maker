@@ -69,3 +69,22 @@ svg.stepdg {
 svg.stepdg .dg-cloth {
   fill: #f6f2ea;
 }
+
+/* Lights up (Cat, Nov 11): the first time Style opens in a visit, the window fades from the page's black to chalk,
+   just after the page arrives, so the step from measuring into the garment is felt rather than a jump. */
+@keyframes chalk-lights-up {
+  from {
+    background-color: #000;
+  }
+  to {
+    background-color: #e9e4da;
+  }
+}
+.style-layout.lights-up section[aria-label='Preview'] > .preview {
+  animation: chalk-lights-up 700ms ease-out 250ms both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .style-layout.lights-up section[aria-label='Preview'] > .preview {
+    animation: none;
+  }
+}
