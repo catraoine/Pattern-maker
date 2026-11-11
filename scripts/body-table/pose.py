@@ -27,7 +27,7 @@ def hand_curl(side, deg):
     return out
 
 S = 1 if head['upperarm01.L'][0] > 0 else -1  # x sign of the .L side
-def arms(down_l, down_r, bend_l=12, bend_r=12, fwd_l=0, fwd_r=0, curl=28):
+def arms(down_l, down_r, bend_l=12, bend_r=12, fwd_l=0, fwd_r=0, curl=14):
     p = {}
     for side, down, bend, fwd in (('L', down_l, bend_l, fwd_l), ('R', down_r, bend_r, fwd_r)):
         sx = S if side == 'L' else -S
@@ -37,14 +37,16 @@ def arms(down_l, down_r, bend_l=12, bend_r=12, fwd_l=0, fwd_r=0, curl=28):
         p.update(hand_curl(side, curl))
     return p
 
+X = np.array([1.0, 0, 0]); Y = np.array([0, 1.0, 0]); Z = np.array([0, 0, 1.0])
 POSES = {
     'rest': {},
-    # P1 Poised: arms down close by the sides, elbows soft, hands relaxed; standing straight.
-    'poised': arms(-36, -36),
-    # P2 Weight shift: one knee eased forward and the foot turned out, the arms easy.
-    'shift': {**arms(-38, -33, 10, 18), 'upperleg01.R': (np.array([1.0, 0, 0]), -9), 'lowerleg01.R': (np.array([1.0, 0, 0]), 17), 'foot.R': (np.array([0, 1.0, 0]), 14 * -S)},
-    # P3 Editorial step: the free foot set a little in front of the other, one arm drawn slightly back.
-    'step': {**arms(-38, -36, 8, 20, 0, -8), 'upperleg01.R': (np.array([1.0, 0, 0]), -14), 'upperleg02.R': (np.array([0, 0, 1.0]), -3 * -S), 'lowerleg01.R': (np.array([1.0, 0, 0]), 22), 'foot.R': (np.array([0, 1.0, 0]), 20 * -S)},
+    # P1 Poised: arms down close by the sides, elbows soft, hands relaxed; standing straight, feet together.
+    'poised': {**arms(-33, -33, 8, 8, curl=14), 'upperleg01.L': (Z, -2.5 * S), 'upperleg01.R': (Z, 2.5 * S)},
+    # P2 Contrapposto: the weight on one leg, the free knee bent forward and in, its heel lifted; one arm easy
+    # forward.
+    'shift': {**arms(-40, -34, 6, 30, 0, 10, curl=14), 'upperleg01.R': (X, -24), 'upperleg02.R': (Z, -6 * S), 'lowerleg01.R': (X, 44), 'foot.R': (X, -30), 'upperleg01.L': (Z, -2 * S)},
+    # P3 Editorial: feet set apart, arms held a little out with the elbows bent, hands by the thighs.
+    'step': {**arms(-26, -26, 28, 28, -6, -6, curl=14), 'upperleg01.L': (Z, 7 * S), 'upperleg01.R': (Z, -7 * S), 'foot.L': (Y, -10 * S), 'foot.R': (Y, 10 * S)},
 }
 pose = POSES[POSE]
 
