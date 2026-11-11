@@ -534,6 +534,28 @@ table.history td.moved {
   margin-top: 6px;
 }
 
+/* A set (SS27 Look 02): its pieces side by side under one look, across the whole row on wide screens */
+.house-set {
+  grid-column: 1 / -1;
+}
+
+.set-pieces {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+  gap: 40px 48px;
+}
+
+.set-piece {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.set-piece h3 {
+  font-size: 22px;
+  margin: 0;
+}
+
 .shape .body-outline {
   stroke: var(--muted);
   opacity: 0.5;

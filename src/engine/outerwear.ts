@@ -1434,6 +1434,8 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     finishedHem,
     drop: r1(drop),
     lengthCm: r1(cbFoot - cbTop),
-    warnings: [...base.warnings, ...sleeve.warnings],
+    // (Sleeveless, a waistcoat: the armhole is its edge, cut to the vest, with no sleeve it must be long enough to take,
+    // so the block's armhole-length nudge, which showed on the Look 02 vest for every body, doesn't apply. Nov 11.)
+    warnings: [...(bare ? base.warnings.filter((w) => !/^armhole .* could not reach/.test(w)) : base.warnings), ...sleeve.warnings],
   };
 }

@@ -356,7 +356,9 @@ function layoutFor(kind: 'knife' | 'box', hipQ: number, boxFace = BOX_FACE): Lay
     const depth = clamp(0.6 * face, 2.5, 4);
     return { kind, n, face, depth, under: 2 * depth, sideHalf: depth };
   }
-  const n = Math.max(1, Math.round(hipQ / boxFace - 0.5));
+  // (Wide pleats keep at least two to each quarter: on a small hip a single one came out about 15 cm across and stood
+  // out as a fin in 3D on the Look 02 skirt, Nov 11.)
+  const n = Math.max(boxFace > BOX_FACE ? 2 : 1, Math.round(hipQ / boxFace - 0.5));
   const face = hipQ / (n + 0.5);
   // (A wide pleat's folds go no deeper than 3 cm: at the usual 4 its deep side pleats sawtoothed down a knee-length
   // A-line's side seams on the form, 2026-11-08.)

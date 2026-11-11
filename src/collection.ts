@@ -18,6 +18,7 @@ import type { BodiceDraft } from './engine/bodice';
 import {
   BodiceChoices,
   DEFAULT_BODICE,
+  DEFAULT_JACKET_CHOICES,
   DEFAULT_TROUSERS_CHOICES,
   DressChoices,
   PatternChoices,
@@ -71,6 +72,9 @@ export interface HouseLook {
   fabric: string;
   garment: Garment;
   choices: PatternChoices;
+  /** A look of two pieces sewn as a set (SS27 Look 02, the black vest and pleated skirt): both share the look's number
+   * and are shown together, each made on its own. */
+  set?: string;
 }
 
 const skirt = (c: Partial<Choices>): Choices => ({ fit: 'regular', silhouette: 'a_line', length: 'knee', ...c });
@@ -97,8 +101,32 @@ export const COLLECTION: HouseLook[] = [
     choices: dress('regular', { neckline: 'crew', sleeve: 'none', darts: 'bust', bustDart: 'french', bustEase: 5 }, { silhouette: 'straight', length: 'mini', noSeam: 'shift', flareCm: 4 }),
   },
   {
-    id: 'gold-shorts',
+    // Cat's SS27 Look 02 picture, measured and refined with her Nov 7-8: a long boxy vest in crisp black wool, its
+    // shoulder well past hers, a big collar pointing down over a small lapel, a seam across the chest just under the
+    // arms, and three 3 cm buttons with buttonholes across (Cat, Nov 11: into the collection before the Nov 16 freeze).
+    id: 'black-vest',
     number: 2,
+    set: 'The Black Vest Set',
+    name: 'Black Vest',
+    line: 'A long, boxy vest with square corners and straight sides, a big collar pointing down over a small lapel, and three big buttons below a seam across the chest.',
+    fabric: 'Black crisp wool gabardine',
+    garment: 'jacket',
+    choices: { ...DEFAULT_JACKET_CHOICES, fit: 'oversized', length: 'long', shaping: 'boxy', collar: 'notched', lapel: 'high', pockets: 'welt', sleeve: 'none', pads: 'none', dropCm: 30, easeCm: 29, breakCm: 17, buttons: 3, buttonGapCm: 14, shoulderCm: 9.5, buttonSizeCm: 3, buttonholes: 'horizontal', yokeCm: 19 },
+  },
+  {
+    // Wide box pleats only in this set (Cat, Nov 8). Low on the hip (Cat, Nov 11: "I would like that").
+    id: 'black-pleated-skirt',
+    number: 2,
+    set: 'The Black Vest Set',
+    name: 'Black Pleated Skirt',
+    line: 'Wide box pleats from low on the hip to just above the knee, crisp enough to hold their shape.',
+    fabric: 'Black crisp wool gabardine',
+    garment: 'skirt',
+    choices: skirt({ silhouette: 'a_line', length: 'above_knee', pleats: 'box', pleatWidth: 'wide', flareCm: 40, rise: 'low' }),
+  },
+  {
+    id: 'gold-shorts',
+    number: 3,
     name: 'Gold Python Bermuda',
     line: 'Loose pleated Bermudas falling straight from the hip to just below the knee, belt loops at the waist, in the same gold python as the slip.',
     fabric: 'Gold python silk',
@@ -107,7 +135,7 @@ export const COLLECTION: HouseLook[] = [
   },
   {
     id: 'ivory-palazzo',
-    number: 3,
+    number: 4,
     name: 'Ivory Palazzo',
     line: 'Wide and easy, falling from slanted pockets to the floor. Ivory, and nothing else.',
     fabric: 'Ivory linen',
@@ -116,7 +144,7 @@ export const COLLECTION: HouseLook[] = [
   },
   {
     id: 'pleat-dress',
-    number: 4,
+    number: 5,
     name: 'Red Pleat Dress',
     line: 'A scoop neck over a dropped waist, and knife pleats from the hip to the mid-calf, in a crisp red sateen.',
     fabric: 'Red crisp cotton sateen',
@@ -125,7 +153,7 @@ export const COLLECTION: HouseLook[] = [
   },
   {
     id: 'ice-peplum',
-    number: 5,
+    number: 6,
     name: 'Ice Peplum Top',
     line: 'Sheer ice blue, ruffled at the neck, with bishop sleeves and a big flared peplum from a lowered waist.',
     fabric: 'Ice sheer silk organza',
@@ -134,7 +162,7 @@ export const COLLECTION: HouseLook[] = [
   },
   {
     id: 'lilac-lace',
-    number: 6,
+    number: 7,
     name: 'Lilac Lace Blouse',
     line: 'Lilac lace plunging to the waist, with full bishop sleeves gathered at the wrist. Worn with gold micro shorts.',
     fabric: 'Lilac silk lace',
@@ -143,7 +171,7 @@ export const COLLECTION: HouseLook[] = [
   },
   {
     id: 'gold-slip',
-    number: 7,
+    number: 8,
     name: 'Gold Python Slip',
     line: 'The house slip, cut on the bias to the floor, plunging at the front and dipping to a V at the back.',
     fabric: 'Gold python silk satin',
@@ -153,7 +181,7 @@ export const COLLECTION: HouseLook[] = [
   {
     // Cat's own Japanese leopard and python cotton, and the house shirt cut (2026-11-10).
     id: 'leopard-shirt-dress',
-    number: 8,
+    number: 9,
     name: 'Leopard Shirt Dress',
     line: 'A big shirt cut down to a mini: a long-point collar, a back yoke with a box pleat, wide sleeves to the elbow, and a shirttail hem that hangs longer at the back.',
     fabric: 'Ivory leopard python cotton',
@@ -186,6 +214,11 @@ export const COLLECTION: HouseLook[] = [
     choices: { ...DEFAULT_TROUSERS_CHOICES, fit: 'relaxed', leg: 'barrel', length: 'full', rise: 'low', pockets: 'slant', pleats: 'double', loops: 'loops' },
   },
 ];
+
+/** The Look 02 vest, or a jacket cut as it is (sleeveless with the high lapel): drawn sewn in All round, collar, buttons
+ *  and chest seam, while other jackets and coats keep the earlier All round until their lapels are at the bar (Cat,
+ *  2026-11-01). It sews clean on 40 of 41 bodies in its crisp wool (Nov 11). */
+export const houseVest = (c: { sleeve?: string; lapel?: string }) => c.sleeve === 'none' && c.lapel === 'high';
 
 /** Which saved choices a look's garment lives under. */
 export function lookPatch(look: HouseLook): { garment: Garment } & Record<string, unknown> {

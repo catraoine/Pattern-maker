@@ -36,6 +36,7 @@ import { PiecesList, SummaryActions, formViews } from '../ui/StyleSummary';
 
 import { outerFabricMetres } from '../fabricAmounts';
 import { sewnOuter } from '../ui/drapeClient';
+import { houseVest } from '../collection';
 
 interface Props {
   /** Start from a photo, and the photo this garment was matched to while the app is open. */
@@ -79,7 +80,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const flat = useMemo(() => (draft ? outerFlat(draft) : undefined), [draft]);
   const title = describeOuter(choices);
   const round = useMemo(() => (draft ? roundOuter(draft, values) : undefined), [draft, values]);
-  const drapeJob = useMemo(() => (draft && sewnOuter() ? ({ kind: 'outer', draft, boxy: choices.shaping === 'boxy' || (choices.fit as string) === 'oversized' } as const) : undefined), [draft, choices]);
+  const drapeJob = useMemo(() => (draft && (sewnOuter() || houseVest(choices)) ? ({ kind: 'outer', draft, boxy: choices.shaping === 'boxy' || (choices.fit as string) === 'oversized' } as const) : undefined), [draft, choices]);
   const extra = fabricEase(fabric, kind);
 
   const m = values as OuterMeasurements;

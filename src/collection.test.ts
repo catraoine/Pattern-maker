@@ -5,7 +5,14 @@ import { EXAMPLE_VALUES, isComplete } from './measurements';
 
 describe('the Maison collection', () => {
   it('numbers its looks in order, with unique names', () => {
-    expect(COLLECTION.map((l) => l.number)).toEqual(COLLECTION.map((_, i) => i + 1));
+    // A set's pieces share their look's number, side by side.
+    const numbers = [...new Set(COLLECTION.map((l) => l.number))];
+    expect(numbers).toEqual(numbers.map((_, i) => i + 1));
+    for (const n of numbers) {
+      const pieces = COLLECTION.filter((l) => l.number === n);
+      if (pieces.length > 1) expect(new Set(pieces.map((l) => l.set)).size, `look ${n}`).toBe(1);
+      if (pieces.length > 1) expect(pieces[0].set, `look ${n}`).toBeDefined();
+    }
     expect(new Set(COLLECTION.map((l) => l.id)).size).toBe(COLLECTION.length);
   });
 

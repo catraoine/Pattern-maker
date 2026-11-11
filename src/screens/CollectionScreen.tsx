@@ -149,6 +149,17 @@ function Record({ cut, values, onMake }: { cut: ArchiveCut; values: MeasurementV
   );
 }
 
+/** The looks grouped by number: a set's pieces (SS27 Look 02) shown together under one look. */
+function sets<T extends { look: HouseLook }>(looks: T[]): T[][] {
+  const out: T[][] = [];
+  for (const l of looks) {
+    const last = out[out.length - 1];
+    if (last && last[0].look.number === l.look.number) last.push(l);
+    else out.push([l]);
+  }
+  return out;
+}
+
 /** The Maison collection, laid out like a lookbook: each house look drawn flat to the sewist's measurements. */
 export function CollectionScreen({ values, onMake, onBack, backLabel = 'Back to styling' }: Props) {
   const [shelf, setShelf] = useState<Shelf>('house');
@@ -190,18 +201,29 @@ export function CollectionScreen({ values, onMake, onBack, backLabel = 'Back to 
           {/* Hidden until a drop has its own piece; it opens with a clear word on what a drop is (Cat, 2026-10-29). */}
           {dropLook(NEXT_DROP) && <DropSlot values={values} onMake={onMake} />}
           <ol className="lookbook" aria-labelledby="ctitle">
-            {looks.map(({ look, flat }) => (
-              <li key={look.id} className="house-look">
-                <p className="eyebrow">{lookNo(look.number)}</p>
-                <div className="house-flat">{flat ? <GarmentFabric fabric={lookFabric(look.fabric)}><TechFlatView flat={flat} title={describePattern(look.choices).toLowerCase()} /></GarmentFabric> : <p className="muted small">This look can&rsquo;t be drafted to these measurements.</p>}</div>
-                <h2>{look.name}</h2>
-                <p className="muted">{look.line}</p>
-                <p className="muted small">Cut in {look.fabric[0].toLowerCase() + look.fabric.slice(1)}.</p>
-                <button type="button" className="secondary" onClick={() => onMake(look)}>
-                  Make this look
-                </button>
-              </li>
-            ))}
+            {sets(looks).map((pieces) => {
+              const [{ look }] = pieces;
+              const set = pieces.length > 1 ? look.set : undefined;
+              return (
+                <li key={look.id} className={set ? 'house-look house-set' : 'house-look'}>
+                  <p className="eyebrow">{lookNo(look.number)}</p>
+                  {set && <h2>{set}</h2>}
+                  <div className={set ? 'set-pieces' : undefined}>
+                    {pieces.map(({ look: piece, flat }) => (
+                      <div key={piece.id} className="set-piece">
+                        <div className="house-flat">{flat ? <GarmentFabric fabric={lookFabric(piece.fabric)}><TechFlatView flat={flat} title={describePattern(piece.choices).toLowerCase()} /></GarmentFabric> : <p className="muted small">This look can&rsquo;t be drafted to these measurements.</p>}</div>
+                        {set ? <h3>{piece.name}</h3> : <h2>{piece.name}</h2>}
+                        <p className="muted">{piece.line}</p>
+                        <p className="muted small">Cut in {piece.fabric[0].toLowerCase() + piece.fabric.slice(1)}.</p>
+                        <button type="button" className="secondary" onClick={() => onMake(piece)}>
+                          {set ? `Make the ${piece.name.split(' ').pop()!.toLowerCase()}` : 'Make this look'}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </li>
+              );
+            })}
           </ol>
         </>
       ) : (

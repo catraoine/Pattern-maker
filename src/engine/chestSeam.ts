@@ -11,6 +11,9 @@ import { Piece } from './piece';
 /** How far below the centre front neck the seam can run, in cm. */
 export const CHEST_SEAM_RANGE = { min: 8, max: 40 };
 
+/** How far clear of the underarm the seam runs, in cm. */
+const UNDERARM_CLEAR = 1;
+
 /** Where the side seam starts (the underarm): the highest point on it. */
 function underarm(pc: Piece): number | undefined {
   const r = ringOf(pc.outline, 8);
@@ -120,6 +123,9 @@ export function chestSeam(front: Piece, back: Piece, yFront: number): { pieces: 
   const uf = underarm(front);
   const ub = underarm(back);
   if (uf === undefined || ub === undefined) return undefined;
+  // (A seam within a centimetre of the underarm is moved up to a centimetre above it, into the armhole: right on it, the
+  // yoke kept a sliver of side seam a millimetre long, too short to sew, on the Look 02 vest for small busts, Nov 11.)
+  if (Math.abs(yFront - uf) < UNDERARM_CLEAR) yFront = uf - UNDERARM_CLEAR;
   const yBack = ub + (yFront - uf);
   const f = cutPiece(front, yFront, `${front.name} yoke`);
   const b = cutPiece(back, yBack, `${back.name} yoke`);

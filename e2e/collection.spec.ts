@@ -8,8 +8,9 @@ test('the Maison collection: open it from styling, draw every look, make one', a
   await expect(main.getByRole('heading', { level: 1, name: 'The collection' })).toBeVisible();
   // Every look is drawn flat, front and back.
   const looks = main.getByRole('listitem');
-  await expect(looks).toHaveCount(9);
-  await expect(main.getByRole('img', { name: /Technical flat/ })).toHaveCount(9);
+  // Ten looks; Look 02 is a set of two pieces, the vest and the skirt, side by side (Nov 11).
+  await expect(looks).toHaveCount(10);
+  await expect(main.getByRole('img', { name: /Technical flat/ })).toHaveCount(11);
   // The House shows one season at a time.
   await expect(main.getByText('SS27 · Spring Summer 2027')).toBeVisible();
 
@@ -20,6 +21,31 @@ test('the Maison collection: open it from styling, draw every look, make one', a
   // It comes in the cloth it's named for (red crisp cotton sateen), not the last fabric picked.
   const cloth = await page.evaluate(() => JSON.parse(localStorage.getItem('pattern-maker:skirt') ?? '{}').finish?.fabric);
   expect(cloth).toMatchObject({ fibre: 'cotton', colour: 'Red', drape: 'crisp' });
+});
+
+test('Look 02, the Black Vest Set: both pieces in one look, each made on its own', async ({ page }) => {
+  await startWithExample(page);
+  const main = page.getByRole('main');
+  await openLooks(page);
+  await main.getByRole('button', { name: 'Start from the Maison collection' }).click();
+  const set = main.getByRole('listitem').filter({ has: page.getByRole('heading', { name: 'The Black Vest Set' }) });
+  await expect(set).toContainText('SS27 · Look 02');
+  await expect(set.getByRole('img', { name: /Technical flat/ })).toHaveCount(2);
+  // The skirt: wide box pleats, low on the hip, in crisp black wool.
+  await set.getByRole('button', { name: 'Make the skirt' }).click();
+  await expectStyle(page, 'Skirt');
+  const skirt = await page.evaluate(() => JSON.parse(localStorage.getItem('pattern-maker:skirt') ?? '{}'));
+  expect(skirt.choices).toMatchObject({ pleats: 'box', pleatWidth: 'wide', rise: 'low' });
+  expect(skirt.finish?.fabric).toMatchObject({ fibre: 'wool', colour: 'Black', drape: 'crisp' });
+  // The vest: a sleeveless jacket with the high lapel and the chest seam.
+  await page.goto('/');
+  await page.getByRole('button', { name: /^Carry on with your/ }).first().click();
+  await openLooks(page);
+  await main.getByRole('button', { name: 'Start from the Maison collection' }).click();
+  await main.getByRole('button', { name: 'Make the vest' }).click();
+  await expectStyle(page, 'Jacket');
+  const vest = await page.evaluate(() => JSON.parse(localStorage.getItem('pattern-maker:skirt') ?? '{}'));
+  expect(vest.jacket).toMatchObject({ sleeve: 'none', lapel: 'high', yokeCm: 19, buttons: 3 });
 });
 
 test('the Leopard Shirt Dress: made in the house print, with its long-point collar and shirttail', async ({ page }) => {
