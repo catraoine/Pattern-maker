@@ -1,6 +1,7 @@
 // Plain-language sewing steps for the drafted skirt and bodice, shown in the app and added to the end of the PDF.
 // Keep to plain ASCII punctuation: the PDF uses a standard font without curly quotes.
 import { buttonFrontSteps, yokeSteps } from './skirtFront';
+import { taggedLength } from './geometry';
 import { shirredSteps } from './shirred';
 import { isBandCollar } from './collar';
 import { BackNeck, withBackNeck } from './backNeck';
@@ -374,13 +375,21 @@ export function bodiceGuide(draft: BodiceDraft, style: { length: BodiceLength },
  * A plunge's edges stay-taped before the neckline is finished, so the bias of the V can't stretch and gape open over
  * the bust (fit rule 53). All round draws it taped; the sewist is told to tape it too (Nov 7 audit, Cat).
  */
+/** How much shorter than the plunge's edge its stay tape is cut. */
+const TAPE_TAKE = 0.03;
+
 function withPlungeTape(g: SewingGuide, draft: BodiceDraft): SewingGuide {
   const front = draft.pieces.find((pc) => !pc.kind && /front/i.test(pc.name));
   if (!front?.meta.plungeTape) return g;
   const toWaist = !!front.meta.narrowPlunge;
+  // The tape is cut TAPE_TAKE shorter than the V's edge: draped in CLO (Nov 10 2026), the gold slip's untaped V stretched
+  // 12% on the body and stood open; held to 97% of its length it lay flat on the bust.
+  const edge = taggedLength(front.outline, 'neck');
+  const tape = Math.round(edge * (1 - TAPE_TAKE) * 2) / 2;
+  const ease = Math.round((edge - tape) * 10) / 10;
   const step = {
     title: 'Tape the plunge',
-    text: `Before the neckline is finished, sew a strip of narrow stay tape along each side of the plunge, on the wrong side, just inside the seam line, from the shoulder down to the point of the V. Lay the tape flat without stretching it, and ease the cloth onto it very slightly as you go${toWaist ? ', most of all over the bust' : ''}: the tape holds the bias edge to its cut length, so the V lies close to the body instead of gaping open.`,
+    text: `Before the neckline is finished, cut two strips of narrow stay tape ${n1(tape)} long, ${n1(ease)} shorter than each side of the plunge (${n1(Math.round(edge * 10) / 10)} on the seam line). On the wrong side, just inside the seam line, pin one along each side from the shoulder down to the point of the V, the ends matched, and ease the cloth onto it evenly${toWaist ? ', most of all over the bust' : ''}. Stitch it on without stretching the tape: it holds the bias edge a little shorter than it was cut, so the V lies close to the body instead of gaping open.`,
   };
   // Taped while the front is still flat: before the shoulders are joined, else before the neckline is finished.
   const shoulders = g.steps.findIndex((st) => /^Sew the (shoulders|overarm)/.test(st.title));

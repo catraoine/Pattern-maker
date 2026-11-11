@@ -872,8 +872,11 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   // A boxy shoulder runs on past the body's shoulder point.
   const ext = (s.fit === 'boxy' ? BOXY.extend : 0) - cutIn;
   const hpsB = add(hpsB0, mul(p(Math.cos(backSlope), Math.sin(backSlope)), widen));
-  backSlope = dropped(backSlope, blen - widen + ext);
-  const spB = add(hpsB, mul(p(Math.cos(backSlope), Math.sin(backSlope)), blen - widen + ext));
+  // A plunge's strap is too narrow to ease anything into: its back strap is cut the front's width, the shoulder's usual
+  // ease cut away at the armhole (the gold slip's straps came out 2.5 cm front, 3.5 cm back; CLO, Nov 10 2026).
+  const backExt = ext - (plunging && cutIn ? blen - SL : 0);
+  backSlope = dropped(backSlope, blen - widen + backExt);
+  const spB = add(hpsB, mul(p(Math.cos(backSlope), Math.sin(backSlope)), blen - widen + backExt));
   if (!cutIn && Math.abs(spB.x - ext - SW / 2) > 2.5) {
     warnings.push(
       `shoulder width ${SW} cm and shoulder length ${SL} cm don't agree (the pattern's shoulders are ${r(2 * spB.x, 1)} cm wide); please re-measure both`,
@@ -1121,7 +1124,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     cut: backCut,
     seamAllowance: s.seamAllowance,
     allowances: { neck: s.neckArmholeAllowance, armhole: s.neckArmholeAllowance, hem: s.hemAllowance, ...(key ? { keyhole: KEYHOLE.allowance } : {}) },
-    meta: { ...(slitCm ? { slitCm } : {}), ...(backStyle !== 'plain' ? { backNeck: backStyle } : {}), ...(backStyle === 'v' ? { pointedAtCentre: ['neck'] } : {}) },
+    meta: { ...(slitCm ? { slitCm } : {}), ...(backStyle !== 'plain' ? { backNeck: backStyle } : {}), ...(backStyle === 'v' ? { pointedAtCentre: ['neck'] } : {}), ...(plunging && cutIn ? { shoulderEase: 0 } : {}) },
   };
 
   // ---- front, below the across front -----------------------------------------
