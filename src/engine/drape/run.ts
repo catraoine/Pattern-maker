@@ -24,7 +24,7 @@ import { knob } from './knob';
 import { fairDroppedSeam } from './seamFair';
 import { BUST_Y, fitRoom, type FitPin } from './fitMap';
 import { clearCollars } from './collarClear';
-import { hugCollars } from './collarHug';
+import { hugCollars, JACKET_HUG } from './collarHug';
 import { fairBackCentre } from './fairFront';
 import { layLapelFoot } from './lapelFoot';
 
@@ -152,8 +152,10 @@ export function runDrape(job: DrapeJob): DrapedLite {
   const sk = job.kind === 'skirt' ? job.draft : job.kind === 'dress' ? job.draft.skirt : undefined;
   // A collar's fall over the shoulders lifted out where the sim sank it into them.
   if (!knob('__noCollarClear')) clearCollars(d, sp);
-  // A vest's tailored collar leans in to hug the neck round the sides and back (collarHug.ts; the Look 02 vest, Nov 11).
-  if (job.kind === 'outer' && job.draft.sleeveless && job.draft.lapel && !knob('__noCollarHug')) hugCollars(d, sp);
+  // A tailored collar leans in to hug the neck round the sides and back (collarHug.ts): a vest's from the Look 02 fixes,
+  // a jacket's or coat's further round towards the gorge, where it stood off the neck as a funnel (Cat "move forward
+  // with collar", Nov 11).
+  if (job.kind === 'outer' && job.draft.lapel && !knob('__noCollarHug')) hugCollars(d, sp, job.draft.sleeveless ? undefined : JACKET_HUG);
   const quality = drapeQuality(d, sp, { seams: d.seams, levelHem: !!sk && !sk.asym && !sk.hem, legs: job.kind === 'trousers' });
   // A sleeve piece the drape left out (a raglan's back half) is cloth missing from the drawing, which no measure of the
   // cloth that is there can see: the eye check's oversized raglan jacket passed with its shoulders open (2026-11-02).
