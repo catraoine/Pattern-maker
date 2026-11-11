@@ -7,7 +7,8 @@ import { yokesJoined } from './seams';
 import { taggedLength } from './geometry';
 import { lookFlat, COLLECTION } from '../collection';
 import { EXAMPLE_BODY } from '../measurements';
-import { DEFAULT_BODICE } from '../garments';
+import { DEFAULT_BODICE, sleeveOf } from '../garments';
+import { draftSleeve } from './sleeve';
 import type { BodiceChoices } from '../garments';
 
 // A top that pulls on over the head, with straight sides (the Lilac Lace Blouse; Cat, 2026-11-11, on taking it "to a
@@ -207,5 +208,31 @@ describe('a drawstring hem', () => {
     const foot = Math.max(...body.map((q) => q.y));
     const cords = front.shapes.filter((sh) => sh !== body && sh.every((q) => q.x > right - 3 && q.y > foot - 6) && sh.some((q) => q.y > foot + 3));
     expect(cords).toHaveLength(2);
+  });
+});
+
+describe('a softly gathered sleeve head', () => {
+  const sleeveFor = (c: BodiceChoices) => {
+    const b = draftBodice(EXAMPLE_BODY as never, c);
+    const { length, shape, cuff, fullness, headGather } = sleeveOf(c);
+    return { b, sl: draftSleeve(b, EXAMPLE_BODY as never, { length: length as 'long', shape, cuff, fullness, headGather, fit: c.fit, seamAllowance: 1.5, armholeAllowance: 1, hemAllowance: 2.5 }) };
+  };
+
+  it('cuts a bishop sleeve crown 5 cm longer, gathered between the notches, and says so in the steps', () => {
+    const plain = sleeveFor(blouse({ sleeve: 'long', sleeveShape: 'bishop', sleeveCuff: 'elastic' }));
+    const soft = sleeveFor(blouse({ sleeve: 'long', sleeveShape: 'bishop', sleeveCuff: 'elastic', sleeveHead: 'gathered' }));
+    expect(plain.sl.gathers?.crown).toBeUndefined();
+    const ease = (x: typeof plain) => x.sl.crownEase.front + x.sl.crownEase.back;
+    expect(ease(soft) - ease(plain)).toBeCloseTo(5, 0);
+    expect(soft.sl.gathers!.crown).toBeCloseTo(ease(soft), 0);
+    expect(soft.sl.pieces[0].labels.map((l) => l.text)).toContain('GATHER BETWEEN NOTCHES');
+    expect(checkPattern([...soft.b.pieces, ...soft.sl.pieces]).filter((c) => !c.ok)).toEqual([]);
+    const g = bodiceGuide(soft.b, { length: 'hip' }, 1.5, 2, { sleeve: soft.sl });
+    expect(g.steps.find((st) => st.title === 'Gather the sleeve heads')!.text).toMatch(/soft fullness at the head/);
+  });
+
+  it('is only for a set-in bishop sleeve', () => {
+    expect(sleeveOf(blouse({ sleeve: 'long', sleeveShape: 'straight', sleeveHead: 'gathered' })).headGather).toBeUndefined();
+    expect(sleeveOf(blouse({ sleeve: 'long', sleeveShape: 'bishop', sleeveHead: 'gathered', yoke: undefined, sleeveCut: 'drop' })).headGather).toBeUndefined();
   });
 });

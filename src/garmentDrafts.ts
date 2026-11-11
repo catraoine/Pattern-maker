@@ -50,7 +50,7 @@ export interface DraftInputs {
 
 /** The sleeve for a bodice, drafted to its armhole with its allowances, when one is chosen and the arms are measured. */
 function sleeveFor(bodice: BodiceDraft, choices: BodiceChoices, values: MeasurementValues): SleeveDraft | undefined {
-  const { length, shape, cm, cuff, fullness } = sleeveOf(choices);
+  const { length, shape, cm, cuff, fullness, headGather } = sleeveOf(choices);
   if (length === 'none' || needsArms(values as SleeveMeasurements)) return undefined;
   return draftSleeve(bodice, values as SleeveMeasurements, {
     length,
@@ -58,6 +58,7 @@ function sleeveFor(bodice: BodiceDraft, choices: BodiceChoices, values: Measurem
     ...(cm !== undefined ? { lengthCm: cm } : {}),
     ...(cuff ? { cuff } : {}),
     ...(fullness ? { fullness } : {}),
+    ...(headGather ? { headGather } : {}),
     fit: choices.fit,
     seamAllowance: bodice.pieces[0].seamAllowance,
     armholeAllowance: bodice.pieces[0].allowances.armhole ?? 1,

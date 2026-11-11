@@ -1093,7 +1093,7 @@ function sleeveSteps(sl: SleeveDraft, seam: string, curve: string, lined: boolea
     puff
       ? {
           title: 'Gather the sleeve heads',
-          text: `Sew two rows of long gathering stitches across each crown between the front and back notches, one just inside the seam line and one 0.5 cm further out. Leave long thread ends. The crown is ${sl.gathers!.crown} cm longer than the armhole: that is the puff.`,
+          text: `Sew two rows of long gathering stitches across each crown between the front and back notches, one just inside the seam line and one 0.5 cm further out. Leave long thread ends. The crown is ${sl.gathers!.crown} cm longer than the armhole: that is the ${sl.pieces[0]?.meta.softHead ? 'soft fullness at the head' : 'puff'}.`,
         }
       : {
           title: 'Ease the sleeve heads',

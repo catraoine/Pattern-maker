@@ -161,7 +161,7 @@ export const COLLECTION: HouseLook[] = [
     line: 'Lilac lace plunging to the waist, with full bishop sleeves gathered at the wrist. Worn with gold micro shorts.',
     fabric: 'Lilac silk lace',
     garment: 'bodice',
-    choices: bodice({ fit: 'relaxed', bustEase: 20, darts: 'none', sides: 'straight', pullOn: true, neckline: 'plunge', plungeDepth: 'waist', sleeve: 'long', sleeveShape: 'bishop', sleeveFullness: 'full', sleeveCuff: 'elastic', length: 'hip', yoke: { front: 0, back: 10, frontSlant: 13, trim: true, frontGather: 4, frontBand: 3.5 }, hemTie: 'drawstring' }),
+    choices: bodice({ fit: 'relaxed', bustEase: 20, darts: 'none', sides: 'straight', pullOn: true, neckline: 'plunge', plungeDepth: 'waist', sleeve: 'long', sleeveShape: 'bishop', sleeveFullness: 'full', sleeveCuff: 'elastic', sleeveHead: 'gathered', length: 'hip', yoke: { front: 0, back: 10, frontSlant: 13, trim: true, frontGather: 4, frontBand: 3.5 }, hemTie: 'drawstring' }),
   },
   {
     // From Cat's picture of a relaxed bias satin maxi (2026-11-11, "Build bias and correct the neckline for lower
@@ -263,12 +263,12 @@ export function lookPatch(look: HouseLook, m?: MeasurementValues): { garment: Ga
 }
 
 function sleeveFor(b: BodiceDraft, c: BodiceChoices, own: MeasurementValues): SleeveDraft | undefined {
-  const { length, shape, cm, cuff, fullness } = sleeveOf(c);
+  const { length, shape, cm, cuff, fullness, headGather } = sleeveOf(c);
   // Measured for the body but not the arms yet: the drawing borrows the sample arms, so a shirt still shows its
   // sleeves (it came out sleeveless; 2026-10-30).
   const m = needsArms(own as never) ? { ...EXAMPLE_BODY, ...own } : own;
   if (length === 'none' || needsArms(m as never)) return undefined;
-  return draftSleeve(b, m as never, { length, shape, ...(cm !== undefined ? { lengthCm: cm } : {}), ...(cuff ? { cuff } : {}), ...(fullness ? { fullness } : {}), fit: c.fit, seamAllowance: b.pieces[0].seamAllowance, armholeAllowance: b.pieces[0].allowances.armhole ?? 1, hemAllowance: 2.5 });
+  return draftSleeve(b, m as never, { length, shape, ...(cm !== undefined ? { lengthCm: cm } : {}), ...(cuff ? { cuff } : {}), ...(fullness ? { fullness } : {}), ...(headGather ? { headGather } : {}), fit: c.fit, seamAllowance: b.pieces[0].seamAllowance, armholeAllowance: b.pieces[0].allowances.armhole ?? 1, hemAllowance: 2.5 });
 }
 
 /** The measurements a look is drawn to: the sewist's own when the garment has all it needs, or the sample set. */
