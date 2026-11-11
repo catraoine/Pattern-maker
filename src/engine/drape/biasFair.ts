@@ -88,8 +88,49 @@ export function fairBiasSkirt(out: Draped): void {
       }
     }
     const after = ring();
+    // Each level of the lower skirt put out at least to the round its own cloth makes, not only to the round it
+    // settled at: the sim folds a flared hem's spare width into a crease or two at the side seams, which the softening
+    // above then irons flat, and the 151 cm of cloth round the hem was drawn as a 107 cm column (CLO drape of the Ivory
+    // Bias Slip, Nov 11: it clings over the hip and swings out to a full hem). `__swing` 0 turns it off.
+    const FILL = knob('__swing') ?? 0.9;
+    const want = new Map<number, number>();
+    if (FILL > 0) {
+      const span = new Map<number, Map<number, [number, number]>>();
+      for (const p of panels)
+        p.mesh.pts.forEach((q, i) => {
+          const g = p.base + i;
+          if (!share[g]) return;
+          const l = level(g);
+          const m = span.get(l) ?? span.set(l, new Map()).get(l)!;
+          const e = m.get(p.base) ?? m.set(p.base, [Infinity, -Infinity]).get(p.base)!;
+          e[0] = Math.min(e[0], q.x);
+          e[1] = Math.max(e[1], q.x);
+        });
+      for (const [l, m] of span) {
+        let w = 0;
+        for (const [a, b] of m.values()) w += b - a;
+        want.set(l, (2 * w * FILL) / (2 * Math.PI));
+      }
+    }
+    // (Each level's scale eased with its neighbours' and read between levels by height: scaled level by level, the
+    // skirt's sides were drawn as a stack of steps.)
+    const ls = [...after.keys()].sort((a, b) => a - b);
+    let fac = ls.map((l) => {
+      let r1 = before.get(l) ?? 1;
+      if (FILL > 0) r1 = Math.max(r1, want.get(l) ?? 0);
+      return r1 / (after.get(l) || 1);
+    });
+    if (FILL > 0)
+      for (let it = 0; it < 6; it++) fac = fac.map((f, k) => (k === 0 || k === fac.length - 1 ? f : (fac[k - 1] + 2 * f + fac[k + 1]) / 4));
+    const facAt = (y: number) => {
+      const u = y / 2;
+      if (!ls.length) return 1;
+      if (u <= ls[0]) return fac[0];
+      for (let k = 0; k + 1 < ls.length; k++) if (u <= ls[k + 1]) return fac[k] + ((fac[k + 1] - fac[k]) * (u - ls[k])) / (ls[k + 1] - ls[k] || 1);
+      return fac[fac.length - 1];
+    };
     for (const i of ids) {
-      const k = 1 + ((before.get(level(i)) ?? 1) / (after.get(level(i)) || 1) - 1) * share[i];
+      const k = 1 + ((FILL > 0 ? facAt(pos[i * 3 + 1]) : (before.get(level(i)) ?? 1) / (after.get(level(i)) || 1)) - 1) * share[i];
       pos[i * 3] *= k;
       pos[i * 3 + 2] *= k;
     }
