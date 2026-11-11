@@ -30,6 +30,8 @@ export interface Choices {
   lengthCm?: number;
   /** A house look's length between the named ones, as a share of the way to the knee (engine/skirt.ts). */
   kneeShare?: number;
+  /** A house look's long hem, in cm clear of the floor (engine/skirt.ts). */
+  floorClear?: number;
   /** Set by dragging the side seam on the sketch: the flare at the hem in cm. */
   flareCm?: number;
   /** Drawn on the sketch: a shaped hem. */

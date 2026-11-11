@@ -195,9 +195,10 @@ function noSeamDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyle>, sk
   // A bias slip dress is drafted as a shift, then each piece is cut whole on the bias (see biasCut).
   const kind: 'sheath' | 'shift' = cut === 'bias' ? 'shift' : cut;
   const plain: Partial<SkirtStyle> = { ...skirtStyle, silhouette: 'straight', pleats: undefined, godets: undefined, flounce: undefined, asymHem: undefined, pockets: undefined, hem: undefined, flareCm: undefined, shape: undefined, ruched: undefined };
-  // (A length set as a share of the waist to knee, as a skirt takes it: a look's own hem that still scales with the
-  // wearer, here the bias slip's, cut above the ankle so it clears the floor once the bias has dropped.)
-  const belowWaist = plain.lengthCm !== undefined ? lengthRange(m).clamp(plain.lengthCm) : plain.kneeShare !== undefined ? lengthRange(m).clamp(plain.kneeShare * m.waist_to_knee) : LENGTHS[plain.length ?? 'knee'](m);
+  // (A look's own long hem, set in cm clear of the floor: the bias slip's, cut above the ankle so it still clears the
+  // floor once the bias has dropped. Measured up from the floor, not as a share of the way to the knee: on a body
+  // short below the knee that share came out under 1 cm above a maxi where the example body's came out 6.)
+  const belowWaist = plain.lengthCm !== undefined ? lengthRange(m).clamp(plain.lengthCm) : plain.floorClear !== undefined ? lengthRange(m).clamp(m.waist_to_floor - plain.floorClear) : LENGTHS[plain.length ?? 'knee'](m);
   const bodice = draftBodice(m, {
     ...bodiceStyle,
     length: 'hip',

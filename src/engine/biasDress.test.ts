@@ -103,12 +103,13 @@ describe('bias slip dress', () => {
     expect(wide(16, 'maxi')).toEqual([]);
     expect(wide(24, 'midi')).toEqual([]);
   });
-  it("takes a look's own hem as a share of the waist to knee, shorter than a maxi and scaled to the wearer", () => {
-    // (The Ivory Bias Slip, 2026-11-11: cut above the ankle so the hem clears the floor once the bias has dropped.)
+  it("takes a look's own hem in cm clear of the floor, 6 cm above a maxi on every body", () => {
+    // (The Ivory Bias Slip, 2026-11-11: cut above the ankle so the hem clears the floor once the bias has dropped.
+    // Set first as a share of the way to the knee, it came out under 1 cm above a maxi on a body short below the knee.)
     const at = (m: Parameters<typeof draftDress>[0], skirt: object) => draftDress(m, { fit: 'regular', neckline: 'scoop', sleeve: 'none', darts: 'bust', bustEase: 4, neck: NECK } as never, { silhouette: 'straight', length: 'maxi', noSeam: 'bias', flareCm: 16, slit: 'none', ...skirt } as never).skirt.lengthCm;
-    for (const m of [EXAMPLE_BODY, randomBody(rng(2)), randomBody(rng(9))] as Parameters<typeof draftDress>[0][]) {
-      expect(at(m, { kneeShare: 1.58 })).toBeCloseTo(1.58 * m.waist_to_knee, 0);
-      expect(at(m, { kneeShare: 1.58 })).toBeLessThan(at(m, {}));
+    for (const m of [EXAMPLE_BODY, randomBody(rng(2)), randomBody(rng(9)), { ...EXAMPLE_BODY, waist_to_knee: 61, waist_to_floor: 104.1 }] as Parameters<typeof draftDress>[0][]) {
+      expect(at(m, { floorClear: 13 })).toBeCloseTo(m.waist_to_floor - 13, 0);
+      expect(at(m, {}) - at(m, { floorClear: 13 })).toBeCloseTo(6, 0);
     }
   });
 });
