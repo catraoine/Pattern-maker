@@ -9,6 +9,12 @@ const SHEATH: SweepDesign = {
   saved: { dress: { garment: 'dress', fit: 'fitted', bodice: { garment: 'bodice', fit: 'fitted', neckline: 'crew', length: 'waist', darts: 'bust_waist', sleeve: 'none', sleeveShape: 'straight', closure: 'back_zip', collar: 'none' }, skirt: { fit: 'fitted', silhouette: 'pencil', length: 'knee', asymHem: 'none' }, waistSeam: 'natural' } as Saved['dress'] },
   fibre: 'wool',
 };
+// The plunge slip (Look 07, live Nov 11): no whole ring at the bust, as the V is open there.
+const PLUNGE_SLIP: SweepDesign = {
+  garment: 'dress',
+  saved: { dress: { garment: 'dress', fit: 'regular', bodice: { garment: 'bodice', fit: 'regular', neckline: 'plunge', length: 'waist', darts: 'bust_waist', sleeve: 'none', sleeveShape: 'straight', back: 'v' }, skirt: { fit: 'regular', silhouette: 'slip', length: 'maxi' } } as Saved['dress'] },
+  fibre: 'cotton',
+};
 const A_LINE: SweepDesign = { garment: 'skirt', saved: { choices: { fit: 'regular', silhouette: 'a_line', length: 'knee', asymHem: 'none' } as Saved['choices'] }, fibre: 'wool' };
 
 describe('the fit map', () => {
@@ -45,5 +51,19 @@ describe('the fit map', () => {
     };
     expect(at(2, 5)).toBeLessThan(5);
     expect(at(50, 58)).toBeGreaterThan(20);
+  }, 120_000);
+
+  it('reads a plunge bodice by its bust ease, not tight (CLO found it fine, Nov 11)', () => {
+    const d = drapeDesign(PLUNGE_SLIP);
+    expect(d.fitTags?.map((t) => t.name)).toEqual(['Bust', 'Waist', 'Hip']);
+    // (Between the bust line and the waist seam: cm below the waist, as the form's levels run.)
+    for (const p of d.panels.filter((p) => p.role !== 'collar' && !p.hidden))
+      for (let i = 0; i < p.uv.length / 2; i++) {
+        const k = p.base + i;
+        const c = d.pos[k * 3 + 1];
+        if (c < -17 || c > -2) continue;
+        const v = d.fit![k];
+        if (Number.isFinite(v)) expect(v).toBeGreaterThan(1.5);
+      }
   }, 120_000);
 });
