@@ -144,6 +144,35 @@ describe('a shoulder panel on a plunge', () => {
     expect(bodiceFlat(d).views[0].lines.length).toBeGreaterThan(bodiceFlat(plain).views[0].lines.length + 8);
   });
 
+  it('carries on down the V as a narrowing strip that meets its pair under the point', () => {
+    const yoke = { front: 0, back: 10, frontSlant: 13, trim: true, frontGather: 4 };
+    const open = draftBodice(EXAMPLE_BODY as never, blouse({ yoke }));
+    const d = draftBodice(EXAMPLE_BODY as never, blouse({ yoke: { ...yoke, frontBand: 3.5 } }));
+    const panel = d.pieces.find((pc) => pc.name === 'Bodice front yoke')!;
+    const front = d.pieces[0];
+    expect(panel.cut).toBe('Cut 2 (1 pair)');
+    // The panel has the whole edge of the V and a short seam to its pair; the front below has none of the V.
+    expect(taggedLength(front.outline, 'neck')).toBe(0);
+    expect(taggedLength(panel.outline, 'centre')).toBeCloseTo(3, 1);
+    const whole = (x: typeof d) => x.pieces.filter((pc) => /^Bodice front/.test(pc.name)).reduce((sum, pc) => sum + taggedLength(pc.outline, 'neck'), 0);
+    expect(whole(d)).toBeCloseTo(whole(open), 5);
+    const seam = d.styleSeams!.find((s) => s.side === 'front')!.pts;
+    expect(seam[0].x).toBeCloseTo(0, 5);
+    // The strip is never out past the turn, and the gathers are only on the slanted stretch.
+    for (const q of seam.slice(0, -2)) expect(q.x).toBeLessThan(seam[seam.length - 2].x);
+    expect(taggedLength(front.outline, 'yoke') - taggedLength(panel.outline, 'yoke')).toBeCloseTo(front.meta.gatherTake as number, 5);
+    expect(front.meta.gatherTake as number).toBeGreaterThan(2);
+    expect(d.warnings).toEqual([]);
+    expect(checkPattern(d.pieces).filter((c) => !c.ok)).toEqual([]);
+    expect(yokesJoined(d.pieces).map((pc) => pc.name)).toEqual(['Bodice front', 'Bodice back']);
+    const g = bodiceGuide(d, { length: 'hip' }, 1.5, 2);
+    expect(g.steps.find((st) => st.title === 'Join the yokes')!.text).toMatch(/together along their short centre front edges.*clip into the corners/);
+    // The stay tape is still cut to the whole edge of the V, though that edge is now on the panels.
+    const tape = (x: typeof d) => bodiceGuide(x, { length: 'hip' }, 1.5, 2).steps.find((st) => st.title === 'Tape the plunge')!.text.match(/tape ([\d.]+) cm long/)![1];
+    expect(Number(tape(d))).toBeGreaterThan(35);
+    expect(tape(d)).toBe(tape(draftBodice(EXAMPLE_BODY as never, blouse())));
+  });
+
   it('is the Lilac Lace Blouse: panels, no zip, and it passes the All round check in lace', async () => {
     const { sewDesign } = await import('../drapeSweep');
     const look = COLLECTION.find((l) => l.id === 'lilac-lace')!;

@@ -1272,8 +1272,9 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
     if (i === 0 && d.panelGather) {
       for (const sl of style?.front ?? []) {
         if (sl.kind !== 'seam' || sl.pts.length < 2) continue;
+        // (Only on the seam's slanted stretch to the armhole: a strip down the V before it is sewn flat.)
         const pts = sl.pts.map(h.move);
-        const [a, b] = [pts[0], pts[pts.length - 1]];
+        const [a, b] = [pts[pts.length - 2], pts[pts.length - 1]];
         const n = Math.max(4, Math.round(len(sub(b, a)) / 2.2));
         for (let k = 1; k < n; k++) {
           const q = lerp(a, b, k / n);
@@ -1285,8 +1286,9 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
     if (i === 0 && d.panelTrim) {
       for (const sl of style?.front ?? []) {
         if (sl.kind !== 'seam' || sl.pts.length < 2) continue;
-        // (On the panel's side of the seam: the side nearer the shoulder.)
-        const pts = sl.pts.map(h.move);
+        // (On the panel's side of the seam, the side nearer the shoulder, and only along its slanted stretch: a strip
+        // down the V is too narrow to take a second line.)
+        const pts = sl.pts.map(h.move).slice(-2);
         const t = unit(sub(pts[pts.length - 1], pts[0]));
         const n = t.x > 0 ? p(t.y, -t.x) : p(-t.y, t.x);
         // (Its end at the V stopped a little short, so the band's upper edge meets the V's edge and does not cross it.)

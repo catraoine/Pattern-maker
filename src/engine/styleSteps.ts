@@ -6,6 +6,7 @@ import type { BodiceDraft } from './bodice';
 import type { SewStep, SewingGuide } from './instructions';
 import type { DartPlace } from './manipulate';
 import { dartsOf } from './marks';
+import { taggedLength } from './geometry';
 import { cm } from './skirt';
 
 const PRESS: Record<DartPlace, string> = {
@@ -59,8 +60,10 @@ function seamSteps(draft: BodiceDraft, seam: string): { darts?: SewStep; join: S
       };
     // A plunge's front yoke is a shoulder panel each side of the V, and the front below may be gathered into it.
     const panels = named(/front yoke/).some((pc) => /pair/.test(pc.cut));
+    // (Panels carried on down the V as a strip are joined to each other under its point, and their seam turns a corner.)
+    const strip = named(/front yoke/).some((pc) => taggedLength(pc.outline, 'centre') > 0.5);
     const frontText = panels
-      ? `${draft.panelGather ? `Sew two rows of long gathering stitches along each top edge of the bodice front, from the edge of the V to the armhole, one just inside the seam line and one 0.5 cm nearer the edge. ` : ''}Pin each front yoke (the shoulder panels) to a top edge of the bodice front, right sides together, from the edge of the V to the armhole, matching the notch.${draft.panelGather ? ' Draw up the gathering threads until the front fits the panel, spread the gathers evenly and pin closely.' : ''} Sew ${seam} from the edge${draft.panelGather ? ' with the gathers uppermost' : ''}, and press the seam up toward the panel.`
+      ? `${strip ? 'Sew the two front yokes (the shoulder panels) together along their short centre front edges, right sides together, and press the seam open. Staystitch the top edge of the bodice front just inside the seam line for 2 cm either side of each corner, and clip into the corners up to the stitching. ' : ''}${draft.panelGather ? `Sew two rows of long gathering stitches along each top edge of the bodice front, from ${strip ? 'the corner' : 'the edge of the V'} to the armhole, one just inside the seam line and one 0.5 cm nearer the edge. ` : ''}Pin each front yoke (the shoulder panels) to a top edge of the bodice front, right sides together, from ${strip ? 'the centre front' : 'the edge of the V'} to the armhole, matching the notch${strip ? ' and turning the corner with the needle down' : ''}.${draft.panelGather ? ' Draw up the gathering threads until the front fits the panel, spread the gathers evenly and pin closely.' : ''} Sew ${seam} from the edge${draft.panelGather ? ' with the gathers uppermost' : ''}, and press the seam up toward the panel.`
       : `Pin the front yoke to the top edge of the bodice front, right sides together, matching the centre front and the notch. Sew ${seam} from the edge, and press the seam up toward the yoke.`;
     const text = [front ? frontText : '', back ? backText : ''];
     return { join: { title: `Join the ${which}`, text: text.filter(Boolean).join(' ') } };

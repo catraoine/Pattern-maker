@@ -414,7 +414,8 @@ function withPlungeTape(g: SewingGuide, draft: BodiceDraft): SewingGuide {
   const toWaist = !!front.meta.narrowPlunge;
   // The tape is cut TAPE_TAKE shorter than the V's edge: draped in CLO (Nov 10 2026), the gold slip's untaped V stretched
   // 12% on the body and stood open; held to 97% of its length it lay flat on the bust.
-  const edge = taggedLength(front.outline, 'neck');
+  // (With shoulder panels the V's edge is shared between the front and its panel, or is all on the panel.)
+  const edge = draft.pieces.filter((pc) => !pc.kind && /^Bodice front( yoke)?$/.test(pc.name)).reduce((sum, pc) => sum + taggedLength(pc.outline, 'neck'), 0) || taggedLength(front.outline, 'neck');
   const tape = Math.round(edge * (1 - TAPE_TAKE) * 2) / 2;
   const ease = Math.round((edge - tape) * 10) / 10;
   const step = {
@@ -486,7 +487,7 @@ function panelTrimSteps(g: SewingGuide, d: BodiceDraft): SewingGuide {
   if (!d.panelTrim) return g;
   const trim: SewStep = {
     title: 'Sew on the trim',
-    text: 'Lay the trim along one edge of the V on the right side, from the shoulder seam down to the point, and pin. At the point fold it into a neat mitre and carry on up the other edge. Sew it on by hand with small stitches along both of its edges, catching the finished neckline only. Then lay a length over each panel seam, from the armhole edge down to the V, tuck its lower end under the trim on the V, and sew it on the same way. The end at the armhole is caught in the armhole seam or its binding.',
+    text: 'Lay the trim along one edge of the V on the right side, from the shoulder seam down to the point, and pin. At the point fold it into a neat mitre and carry on up the other edge. Sew it on by hand with small stitches along both of its edges, catching the finished neckline only. Then lay a length over each panel seam, from the armhole edge to the other end of the seam, folding a small mitre wherever the seam turns. Tuck that end under the trim on the V, or mitre the two lengths together where the panels meet under the point of the V, and sew it on the same way. The end at the armhole is caught in the armhole seam or its binding.',
   };
   const at = g.steps.findIndex((s) => /^(Bind|Face|Line) the neck/.test(s.title));
   const steps = at < 0 ? [...g.steps.slice(0, -1), trim, ...g.steps.slice(-1)] : [...g.steps.slice(0, at + 1), trim, ...g.steps.slice(at + 1)];
