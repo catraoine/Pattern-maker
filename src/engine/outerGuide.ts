@@ -44,6 +44,8 @@ export function outerGuide(
   // Sleeveless (a waistcoat, In testing): no sleeves to cut, set in or line; the armholes are bagged out with the lining.
   const bare = !!d.sleeveless;
   const vent = d.vent;
+  // A seam across the chest (the Look 02 vest): the front and back are each cut in two, a yoke above the seam.
+  const yoked = !!d.chestSeam;
   const darts = !princess && d.base.bustDart > 0.3;
   const waistDarts = !princess && (d.base.waistDarts.front > 0.3 || d.base.waistDarts.back > 0.3);
   const count = d.buttons.at.length * d.buttons.columns.length + (d.buttons.show?.columns.length ?? 0);
@@ -72,7 +74,7 @@ export function outerGuide(
     },
     {
       title: 'Cut the fabric',
-      text: `Fold the fabric in half with the selvedges together. Cut the ${princess ? 'centre fronts, side fronts, side backs' : 'fronts'}${vent ? ', the backs' : ''}${bare ? '' : ` and the ${sleevesWord}`} on both layers so you get pairs${vent ? '' : ', and the back on the fold'}. Cut the front facings${collar === 'hood' ? ' and the two hood pieces' : collar !== 'none' ? ' and the collar' : ''}${rib ? `, and the hem band${bare ? '' : ' and cuff bands'} from rib knit, the ribs running across the band` : ''}${pockets ? ' and the pockets' : ''}${welts ? ', the welts and the pocket facings' : ''}${flaps ? ', the pocket flaps, the jets and the pocket facings' : ''}${chest ? ', the chest welt and its facing' : ''} too. Keep each grain arrow parallel to the selvedge. Snip the notches and chalk-mark the ${darts || waistDarts ? 'darts, the ' : ''}${zip ? 'centre front' : 'buttonholes'}${d.lapel ? ', the roll line' : ''}${pockets ? ' and the pocket corners' : ''}${welts || flaps ? ' and the pocket boxes' : ''}${chest ? ', the chest pocket box on the left front only' : ''}${vent ? ' and the top of the vent' : ''}.`,
+      text: `Fold the fabric in half with the selvedges together. Cut the ${princess ? 'centre fronts, side fronts, side backs' : yoked ? 'fronts and front yokes' : 'fronts'}${vent ? (yoked ? ', the backs and back yokes' : ', the backs') : ''}${bare ? '' : ` and the ${sleevesWord}`} on both layers so you get pairs${vent ? '' : ', and the back on the fold'}. Cut the front facings${collar === 'hood' ? ' and the two hood pieces' : collar !== 'none' ? ' and the collar' : ''}${rib ? `, and the hem band${bare ? '' : ' and cuff bands'} from rib knit, the ribs running across the band` : ''}${pockets ? ' and the pockets' : ''}${welts ? ', the welts and the pocket facings' : ''}${flaps ? ', the pocket flaps, the jets and the pocket facings' : ''}${chest ? ', the chest welt and its facing' : ''} too. Keep each grain arrow parallel to the selvedge. Snip the notches and chalk-mark the ${darts || waistDarts ? 'darts, the ' : ''}${zip ? 'centre front' : 'buttonholes'}${d.lapel ? ', the roll line' : ''}${pockets ? ' and the pocket corners' : ''}${welts || flaps ? ' and the pocket boxes' : ''}${chest ? ', the chest pocket box on the left front only' : ''}${vent ? ' and the top of the vent' : ''}.`,
     },
     {
       title: 'Cut the lining',
@@ -129,6 +131,14 @@ export function outerGuide(
           {
             title: 'Make the chest pocket',
             text: `On the left front only. The box rises a little toward the side, as a chest pocket does: keep the welt on that slant. Fold the chest welt in half lengthwise, right side out, and press. Lay it below the box, raw edges up to the box's lower line, and stitch along that line. Lay the facing, edge to the upper line, and stitch along it, stopping 0.5 cm short of each end. Cut between the lines and into each corner, push the facing through, flip the welt up over the opening and press. Sew a bag to the welt's allowance and one to the facing's, sew the bags together, and slip-stitch the welt's ends down by hand.`,
+          },
+        ]
+      : []),
+    ...(yoked
+      ? [
+          {
+            title: 'Sew the chest seam',
+            text: `Sew each front yoke to its front, and each back yoke to its back, right sides together along the straight edge, 1 cm from the edge, matching the two ends. Press the seams open and flat with a press cloth, so the seam lies as one clean line across the chest: the front, the back and the armhole are then sewn as whole pieces. When you sew the side seams later, check that the front and back chest seams meet in one line at the armhole.`,
           },
         ]
       : []),
@@ -225,7 +235,7 @@ export function outerGuide(
     },
     {
       title: 'Bag the lining',
-      text: `With the ${kind} and its lining right sides together, sew the lining to the ${rib ? 'hem band seam allowance' : 'hem allowance'} of the ${kind} all round, 1 cm from the lining's edge, so a small fold of lining (the jump hem) stands below the stitching.${vent ? " Sew the back linings' lower edges round the vent: the left one to the underlap's edge, the right one to the vent facing's edge." : ''}${bare ? ` Then pin each armhole of the lining to the armhole of the ${kind}, right sides together, matching the shoulder seams and the side seams, and sew round it ${seam} from the edge; trim to 5 mm, clip the curve every 1 cm and understitch the lining where you can reach.` : ` Reach into each sleeve and sew the sleeve lining hems to the ${rib ? 'cuff band seam allowances' : 'sleeve hems'} the same way.`} Turn the ${kind} right side out through the gap in the ${bare ? 'lining side seam' : 'sleeve lining'}, then close the gap by machine close to the edge.${bare ? ' Roll each armhole edge so the lining sits 2 mm inside and press it.' : ''}`,
+      text: `With the ${kind} and its lining right sides together, sew the lining to the ${rib ? 'hem band seam allowance' : 'hem allowance'} of the ${kind} all round, 1 cm from the lining's edge, so a small fold of lining (the jump hem) stands below the stitching.${vent ? " Sew the back linings' lower edges round the vent: the left one to the underlap's edge, the right one to the vent facing's edge." : ''}${bare ? ` Then pin each armhole of the lining to the armhole of the ${kind}, right sides together, matching the shoulder seams and the side seams, and sew round it ${curve} from the edge; trim to 5 mm, clip the curve every 1 cm and understitch the lining where you can reach.` : ` Reach into each sleeve and sew the sleeve lining hems to the ${rib ? 'cuff band seam allowances' : 'sleeve hems'} the same way.`} Turn the ${kind} right side out through the gap in the ${bare ? 'lining side seam' : 'sleeve lining'}, then close the gap by machine close to the edge.${bare ? ' Roll each armhole edge so the lining sits 2 mm inside and press it.' : ''}`,
     },
     ...(zip
       ? []

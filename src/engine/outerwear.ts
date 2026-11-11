@@ -1376,7 +1376,9 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     w = r1(Math.max(Math.min(w, 11), Math.min(w, hi - from - 2)));
     const x = Math.max(from, Math.min(hi - w - 2, s.pocketAt ? s.pocketAt.x - w / 2 : (from + hi) / 2 - w / 2));
     pocket = { x, y, w, h, kind: flapped ? 'flap' : welt ? 'welt' : 'patch' };
-    const bagDepth = s.kind === 'coat' ? 22 : 17;
+    // (The bag ends above the hem's turn-up, never shorter than 10 cm: on a long vest with its pockets low, the full bag
+    // hung into the turn-up on half the bodies and to the hem's fold on a few. Fable check of Look 02, Nov 11.)
+    const bagDepth = Math.max(10, Math.min(s.kind === 'coat' ? 22 : 17, r1(foot - s.hemAllowance - 1.5 - (y + h))));
     pocketPieces = flapped ? flapPieces(w, s.kind, bagDepth, sa) : welt ? weltPieces(w, h, bagDepth, sa) : [patchPocket(w, h, sa)];
     const i = fronts.indexOf(carrier);
     // A flap's outline is marked below its opening, where it hangs.
