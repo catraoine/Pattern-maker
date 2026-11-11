@@ -4914,6 +4914,10 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
       // the body from its neck point by cut length, that armhole was drawn round toward the centre front, the upper
       // chest stretched twice its cut and the side seam's top dragged 4 cm, All round quality 2026-11-04.)
       if (Math.abs(pts[neck[ny.indexOf(Math.max(...ny))]].x) > 2) continue;
+      // (Only a plunge, whose pattern is taped: any neck 15 cm deep was walked this way, and a scoop, a V or a square
+      // neck came out with its edge bent, a hook at the shoulder and a flat, angled foot where the pattern's curve is
+      // smooth. Cat, 2026-11-11, of the bias slip's scoop: "Neckline doesn't seem smooth?". Left to settle they lie as cut.)
+      if (!p.pc.meta.plungeTape && !knob('__stayAll')) continue;
       // (A plunge to the waist is a narrow V between covered shoulders: settled, its edge lies 4 cm further round the
       // body than its cut distance from the centre, the front's cloth spread over the bust, and within 2.5 cm of the
       // body. Walked all the way back to its cut distance it tore the cloth beside it 2.6 times its cut, 2026-11-06,
