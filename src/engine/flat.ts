@@ -903,7 +903,9 @@ function sleeveSide(h: Half, sl: SleeveDraft, yoke?: RaglanYoke): { shape: P[]; 
   const gathered = !!sl.gathers;
   // A cuff is drawn as the band it is, as deep as it is finished; elastic as its casing.
   const ruffle = sl.cuff?.kind === 'ruffle' ? sl.cuff.depth : 0;
-  const band = sl.cuff && !ruffle ? sl.cuff.depth : gathered ? BAND_CM : 0;
+  // A turned-back cuff lies over the sleeve's own length: only its top edge is drawn, across the sleeve.
+  const turnback = sl.cuff?.kind === 'turnback' ? sl.cuff.depth : 0;
+  const band = sl.cuff && !ruffle && !turnback ? sl.cuff.depth : gathered ? BAND_CM : 0;
   const L = sl.lengthCm - band;
   const Ho = add(S, add(sub(top, S), mul(a, L - len(sub(top, S)))));
   const lines: FlatView['lines'] = [];
@@ -924,7 +926,7 @@ function sleeveSide(h: Half, sl: SleeveDraft, yoke?: RaglanYoke): { shape: P[]; 
       }
       return { shape, band: [Ho, Hi, ...edge], lines };
     }
-    lines.push({ pts: [add(Ho, mul(a, -lift)), add(Hi, mul(a, -lift))], kind: 'stitch' });
+    lines.push(turnback ? { pts: [add(add(Ho, mul(a, -turnback)), mul(n, -0.3)), add(add(Hi, mul(a, -turnback)), mul(n, 0.3))], kind: 'seam' } : { pts: [add(Ho, mul(a, -lift)), add(Hi, mul(a, -lift))], kind: 'stitch' });
     // The wrist vent: a short slit up the underseam from the hem.
     if (sl.vent) lines.push({ pts: [add(Hi, mul(n, -0.4)), add(add(Hi, mul(n, -0.4)), mul(a, -sl.vent.lengthCm))], kind: 'seam' });
     // A two-piece sleeve's back seam, seen from the back: from above the back notch down to the wrist.
