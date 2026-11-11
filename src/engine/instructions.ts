@@ -427,6 +427,42 @@ function withPlungeTape(g: SewingGuide, draft: BodiceDraft): SewingGuide {
   return { ...g, notions: [...g.notions.slice(0, -1), `${toWaist ? '1.2' : '0.8'} m of narrow stay tape, for the plunge`, ...g.notions.slice(-1)], steps };
 }
 
+/** A top that pulls on over the head (BodiceDraft.pullOn): no zip to put in, no centre back seam, the back cut on the fold. */
+function pullOnSteps(g: SewingGuide, d: BodiceDraft): SewingGuide {
+  if (!d.pullOn) return g;
+  const steps: SewStep[] = [];
+  for (const s of g.steps) {
+    switch (s.title) {
+      case 'Put in the zip':
+      case 'Close the centre back':
+      case 'Finish the lining at the zip':
+        continue;
+      case 'Cut out':
+        steps.push({ ...s, text: s.text.replace('Place the bodice front on the fold, and the bodice back on both layers so you get a pair.', 'Place the bodice front and the bodice back on the fold: the top pulls on over your head, so the back has no seam and no zip.') });
+        continue;
+      case 'Neaten the edges':
+        steps.push({ ...s, text: s.text.replace('shoulder, side and centre back edges', 'shoulder and side edges') });
+        continue;
+      case 'Face the neckline':
+        steps.push({ ...s, text: s.text.replace(', with its centre back ends folded back over the zip tape', '') });
+        continue;
+      case 'Make the lining':
+        steps.push({ ...s, text: s.text.replace(/,? and its centre back seam below the ZIP ENDS notch,/, ',') });
+        continue;
+      case 'Line the neck and armholes':
+      case 'Line the neckline':
+        steps.push({ ...s, text: s.text.replace(/, from one centre back seam line to the other/, ', all the way round') });
+        continue;
+      case 'Finish':
+        steps.push({ ...s, text: s.text.replace(/Sew a hook and eye at the top of the zip, inside the neckline\. ?/, '') });
+        continue;
+      default:
+        steps.push(s);
+    }
+  }
+  return { notions: g.notions.filter((n) => !/invisible zip|Hook and eye/.test(n)), steps };
+}
+
 function bodiceSteps(draft: BodiceDraft, _style: { length: BodiceLength }, fabricM: number, bindingM: number, finish: BodiceFinish = {}): SewingGuide {
   const below = draft.finishedHem !== undefined;
   const sw = finish.seams ?? SEAM_WIDTHS.home;
@@ -601,7 +637,7 @@ function bodiceSteps(draft: BodiceDraft, _style: { length: BodiceLength }, fabri
   // and a low or keyhole back's (backNeck.ts).
   return withBackNeck(
     mirroredGuide(draft, drapeBodiceSteps(
-      wrapSteps(shirredSteps(topSteps(styleBodiceSteps(guide, draft, { seam, curve, edges, sleeve: !!sleeve }), draft, { seam, curve, fabricM, liningM: finish.liningM, coutilM: finish.coutilM, width: finish.width }), draft, { seam }), draft, { curve }),
+      pullOnSteps(wrapSteps(shirredSteps(topSteps(styleBodiceSteps(guide, draft, { seam, curve, edges, sleeve: !!sleeve }), draft, { seam, curve, fabricM, liningM: finish.liningM, coutilM: finish.coutilM, width: finish.width }), draft, { seam }), draft, { curve }), draft),
       draft,
       { seam, curve, edges, sleeve: !!sleeve },
     )),

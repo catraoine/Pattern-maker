@@ -114,7 +114,7 @@ export function bodiceSpec(m: BodiceMeasurements, d: BodiceDraft, length: Bodice
     row('Shoulder seam (back)', m.shoulder_length, d.shoulder.back),
     { label: 'Shoulder angle, front / back', finished: `${d.shoulderSlope.front} / ${d.shoulderSlope.back} degrees` },
     ...drapeSpec(d),
-    ...(d.wrap ? tieRows(d.wrap.ties) : [{ label: d.drape?.kind === 'one_shoulder' ? `Invisible zip, ${zipSide(d)} side` : 'Invisible zip, centre back', finished: `${d.zipCm}` }]),
+    ...(d.wrap ? tieRows(d.wrap.ties) : d.pullOn ? [{ label: 'Opening', finished: 'none: it pulls on' }] : [{ label: d.drape?.kind === 'one_shoulder' ? `Invisible zip, ${zipSide(d)} side` : 'Invisible zip, centre back', finished: `${d.zipCm}` }]),
   );
   return rows;
 }

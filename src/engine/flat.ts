@@ -1307,7 +1307,7 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
         if (X > 1) lines.push({ pts: [p(-X + 0.3, y), p(X - 0.3, y)], kind: 'stitch' });
       }
     }
-    if (i === 1 && zipped && !d.shirred && d.closure !== 'front_buttons' && d.closure !== 'wrap') {
+    if (i === 1 && zipped && !d.shirred && !d.pullOn && d.closure !== 'front_buttons' && d.closure !== 'wrap') {
       // A keyhole opens at the top, its button and loop at the neck, the seam and zip starting below it.
       const key = keyholeOf(d);
       const top = Math.min(...h.run.filter((q) => Math.abs(q.x) < 1e-6).map((q) => q.y)) + key;

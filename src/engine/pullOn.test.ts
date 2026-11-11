@@ -1,0 +1,68 @@
+import { describe, expect, it } from 'vitest';
+import { draftBodice } from './bodice';
+import { bodiceGuide } from './instructions';
+import { lookFlat, COLLECTION } from '../collection';
+import { EXAMPLE_BODY } from '../measurements';
+import { DEFAULT_BODICE } from '../garments';
+import type { BodiceChoices } from '../garments';
+
+// A top that pulls on over the head, with straight sides (the Lilac Lace Blouse; Cat, 2026-11-11, on taking it "to a
+// 10": no darts, no zip, no waist curve in a sheer lace that shows all three).
+const SA = { seamAllowance: 1.5, neckArmholeAllowance: 1, hemAllowance: 3 };
+const blouse = (more: Partial<BodiceChoices> = {}) => ({ ...DEFAULT_BODICE, fit: 'relaxed', bustEase: 20, darts: 'none', sides: 'straight', pullOn: true, neckline: 'plunge', plungeDepth: 'waist', sleeve: 'none', length: 'hip', ...more, ...SA }) as never;
+const back = (d: ReturnType<typeof draftBodice>) => d.pieces.find((pc) => /^Bodice back/.test(pc.name))!;
+
+describe('a top that pulls on', () => {
+  it('has no zip, and its back is cut on the fold', () => {
+    const d = draftBodice(EXAMPLE_BODY as never, blouse());
+    expect(d.pullOn).toBe(true);
+    expect(d.zipCm).toBe(0);
+    expect(back(d).cut).toBe('Cut 1 on fold');
+    expect(back(d).fold).toBeDefined();
+    expect(back(d).labels.some((l) => l.text === 'ZIP ENDS')).toBe(false);
+  });
+
+  it('keeps its zip where it could not go on: a high neck, or a waist the bust would not pass', () => {
+    const crew = draftBodice(EXAMPLE_BODY as never, blouse({ neckline: 'crew' }));
+    expect(crew.pullOn).toBeUndefined();
+    expect(crew.zipCm).toBeGreaterThan(0);
+    expect(back(crew).cut).toBe('Cut 2 (1 pair)');
+    const fitted = draftBodice(EXAMPLE_BODY as never, blouse({ fit: 'fitted', bustEase: undefined, sides: undefined, darts: 'bust_waist' }));
+    expect(fitted.pullOn).toBeUndefined();
+    expect(fitted.zipCm).toBeGreaterThan(0);
+  });
+
+  it('leaves the opening to buttons or a wrap where there is one', () => {
+    const d = draftBodice(EXAMPLE_BODY as never, blouse({ closure: 'wrap', neckline: 'v', length: 'waist' }));
+    expect(d.pullOn).toBeUndefined();
+    expect(d.wrap).toBeDefined();
+  });
+
+  it('is sewn with no zip steps, and asks for no zip', () => {
+    const d = draftBodice(EXAMPLE_BODY as never, blouse());
+    const g = bodiceGuide(d, { length: 'hip' }, 1.5, 2);
+    expect(g.steps.map((s) => s.title)).not.toContain('Put in the zip');
+    expect(g.steps.map((s) => s.title)).not.toContain('Close the centre back');
+    const all = [...g.notions, ...g.steps.map((s) => s.text)].join(' ');
+    expect(all).not.toMatch(/zip|hook and eye|centre back edges/i);
+    expect(all).toMatch(/bodice back on the fold/);
+  });
+});
+
+describe('straight sides', () => {
+  it('fall from the bust to the waist with no shaping', () => {
+    const d = draftBodice(EXAMPLE_BODY as never, blouse());
+    expect(d.finishedWaist).toBeGreaterThanOrEqual(d.finishedBust - 0.5);
+    const shaped = draftBodice(EXAMPLE_BODY as never, blouse({ sides: undefined, pullOn: false }));
+    expect(shaped.finishedWaist).toBeLessThan(shaped.finishedBust - 5);
+  });
+});
+
+describe('the Lilac Lace Blouse', () => {
+  it('draws with no zip or seam down its back', () => {
+    const f = lookFlat(COLLECTION.find((l) => l.id === 'lilac-lace')!, EXAMPLE_BODY as never)!;
+    const backView = f.views.find((v) => /back/i.test(v.label))!;
+    expect(backView.lines.some((l) => l.kind === 'zip')).toBe(false);
+    expect(backView.lines.some((l) => l.kind === 'seam' && l.pts.every((q) => Math.abs(q.x - backView.at.x) < 0.01))).toBe(false);
+  });
+});
