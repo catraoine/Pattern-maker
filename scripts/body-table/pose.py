@@ -82,22 +82,31 @@ m = wsum > 0
 posed[m] = acc[m] / wsum[m][:, None]
 
 ZC = 0.33
-GAP = [(0.3, 3.1), (0.55, 2.9), (0.8, 2.8), (1.05, 2.6), (1.3, 2.6), (1.55, 2.55), (1.8, 2.35), (2.05, 2.2), (2.3, 2.05), (2.55, 1.95), (2.8, 1.85), (3.05, 1.8), (3.3, 1.65), (3.55, 1.58), (3.7, 1.5)]
-def cutx(y):
-    if y >= 3.7: return 1.5
-    if y <= 0.3: return 3.1
-    for (y0, x0), (y1, x1) in zip(GAP, GAP[1:]):
-        if y0 <= y <= y1: return x0 + (x1 - x0) * (y - y0) / (y1 - y0)
-c = v[f].mean(1)  # classified at rest
-arm = np.array([abs(x) > cutx(y) and y > 0.2 for x, y, _ in c])
-leg = (v[f][:, :, 1] < -0.45).all(1)
-SX = 0.845 / 1.82; SY = 3.42 / 7.58; SA = 0.485
-legmap = lambda p: (p[0] * SX, 1.3 + (-0.6 - p[1]) * SY, (p[2] - ZC) * SX)
-def armmap(p):
-    s = 1 if p[0] > 0 else -1
-    return (s * (0.724 + (abs(p[0]) - 1.5) * SA), -1.34 + (4.95 - p[1]) * SA, (p[2] - ZC) * SA)
-def pack(faces, mapf):
-    ids = np.unique(faces); idx = {int(k): i for i, k in enumerate(ids)}
-    return {'pos': [round(float(t), 4) for k in ids for t in mapf(posed[k])], 'idx': [idx[int(k)] for fc in faces for k in fc]}
-json.dump({'legs': pack(f[leg], legmap), 'arms': pack(f[arm], armmap)}, open(OUT, 'w'))
-print(POSE, 'ok')
+SX = 0.845 / 1.82
+SY = 3.42 / 7.58
+LANDMARKS = [(5.72, -1.75), (5.37, -1.47), (4.95, -1.34), (3.4, -0.58), (2.15, 0.1), (0.1, 0.82), (-0.6, 1.3)]
+def form_y(my):
+    if my <= -0.6: return 1.3 + (-0.6 - my) * SY
+    for (m0, f0), (m1, f1) in zip(LANDMARKS, LANDMARKS[1:]):
+        if m1 <= my <= m0: return f0 + (my - m0) * (f1 - f0) / (m1 - m0)
+    return -1.75 - (my - 5.72) * 0.8
+
+# The whole body below the top of the neck, in one piece: torso, arms and legs (the app shapes each height of it to
+# the form's own rings, measure3d.ts fitBody). Each point carries how much of it moves with an arm (the skin weights
+# of the shoulder and arm bones), so the app can carry the arms out with the shoulders.
+ARM_BONES = [b for b in bones if any(b.startswith(k) for k in ('shoulder01', 'upperarm', 'lowerarm', 'wrist', 'finger', 'metacarpal'))]
+armw = np.zeros(len(v))
+for b in ARM_BONES:
+    for i, w in W.get(b, []):
+        armw[i] += w
+armw = np.clip(armw / np.maximum(wsum, 1e-9), 0, 1)
+keep = (v[f][:, :, 1] < 5.95).all(1)
+faces = f[keep]
+ids = np.unique(faces)
+idx = {int(k): i for i, k in enumerate(ids)}
+pos = []
+for k in ids:
+    p = posed[k]
+    pos += [round(float(p[0] * SX), 4), round(float(form_y(p[1])), 4), round(float((p[2] - ZC) * SX), 4)]
+json.dump({'pos': pos, 'idx': [idx[int(k)] for fc in faces for k in fc], 'arm': [round(float(armw[k]), 3) for k in ids]}, open(OUT, 'w'))
+print(POSE, 'ok', len(ids), 'verts')

@@ -52,11 +52,11 @@ export type TapePt = { p: V3; n: V3 };
 
 /** A girth: level round the body at height y, starting and ending at the centre front with a little overlap, the
  *  far end lying over the zero end where it is read. */
-export function girthPath(y: number, overlap = 3 / CM): TapePt[] {
+export function girthPath(y: number, overlap = 3 / CM, past: (a: number) => number = () => 0): TapePt[] {
   const pts: TapePt[] = [];
   const N = 240;
   // Round from the centre front, across the wearer's right, behind and back to the front.
-  const at = (a: number, out: number) => ({ p: bodyAt(a, y, LIFT + out), n: normalAt(a, y) });
+  const at = (a: number, out: number) => ({ p: bodyAt(a, y, LIFT + out + past(a)), n: normalAt(a, y) });
   for (let i = 0; i <= N; i++) pts.push(at((TAU * i) / N, 0));
   // On past the zero end, lying over it.
   const r = reach(bodyHalf(y), 0, y);
@@ -164,6 +164,8 @@ function waistString(y: number) {
 export interface MeasureShot {
   /** The tape's path. */
   path: TapePt[];
+  /** For a girth, its height: laid again over the body where it stands out past the ring. */
+  girthY?: number;
   /** With the string round the waist. */
   string?: boolean;
 }
@@ -180,13 +182,13 @@ export function shotFor(id: string): MeasureShot | undefined {
   const L = bodyLandmarks();
   switch (id) {
     case 'waist':
-      return { path: girthPath(L.waist) };
+      return { path: girthPath(L.waist), girthY: L.waist };
     case 'full_hip':
       // Round the fullest part of the seat: where the body stands furthest out behind. (bodyLandmarks' widest level
       // below the waist is where the torso meets the legs, which is not where a tape goes.)
-      return { path: girthPath(seatLevel()) };
+      return { path: girthPath(seatLevel()), girthY: seatLevel() };
     case 'full_bust':
-      return { path: girthPath(L.full_bust) };
+      return { path: girthPath(L.full_bust), girthY: L.full_bust };
     case 'nape_to_waist':
       // From the bone where the neck meets the shoulders, down the centre back to the string at the waist.
       return { path: lengthPath(Math.PI, -1.47, L.waist), string: true };
@@ -298,7 +300,80 @@ function applyFinish(m: THREE.MeshStandardMaterial, finish: Finish) {
   }
 }
 
-export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot, lift: Lift = 'none', limbs = true, finish: Finish = 'satin', limbData: typeof LIMBS = LIMBS, darkTape = false, shade?: string, tapeColours?: { face: string; ink: string }, tapeShadow = false) {
+/** The whole form from MakeHuman's one body (torso, arms and legs in a single surface), each height of its torso
+ *  drawn out or in, angle by angle round the body, to lie on the form's own ring there (the rings the tapes are laid
+ *  on and the app drafts from); below the torso the legs ease back to their own shape by mid-thigh. The arms are
+ *  carried out with the shoulders, by how much each point moves with an arm. */
+export interface WholeBody { pos: number[]; idx: number[]; arm: number[] }
+const SHOULDER_Y = -1.34;
+function fitBody(body: WholeBody) {
+  const { pos, arm } = body;
+  const n = pos.length / 3;
+  const NB = 96;
+  const ROW = 0.025;
+  const TOP = NECK_TOP;
+  const rows = Math.round((BODY_BOTTOM - TOP) / ROW) + 1;
+  const own = Array.from({ length: rows }, () => new Float32Array(NB));
+  const bin = (x: number, z: number) => ((Math.round((Math.atan2(x, z) / TAU) * NB) % NB) + NB) % NB;
+  for (let i = 0; i < n; i++) {
+    if (arm[i] > 0.3) continue;
+    const y = pos[i * 3 + 1];
+    const r = Math.round((y - TOP) / ROW);
+    if (r < 0 || r >= rows) continue;
+    const b = bin(pos[i * 3], pos[i * 3 + 2]);
+    own[r][b] = Math.max(own[r][b], Math.hypot(pos[i * 3], pos[i * 3 + 2]));
+  }
+  const fac = own.map((row, r) => {
+    const y = TOP + r * ROW;
+    for (let pass = 0; pass < NB; pass++) for (let k = 0; k < NB; k++) if (!row[k]) row[k] = Math.max(row[(k + 1) % NB], row[(k + NB - 1) % NB]);
+    const raw = Array.from({ length: NB }, (_, k) => (row[k] ? Math.max(0.6, Math.min(1.6, reach(bodyHalf(y), (k / NB) * TAU, y) / row[k])) : 1));
+    return raw.map((_, k) => (raw[(k + NB - 2) % NB] + 2 * raw[(k + NB - 1) % NB] + 3 * raw[k] + 2 * raw[(k + 1) % NB] + raw[(k + 2) % NB]) / 9);
+  });
+  // And smoothed down the body, row into row.
+  const facS = fac.map((row, r) => row.map((_, k) => (fac[Math.max(0, r - 1)][k] + 2 * row[k] + fac[Math.min(rows - 1, r + 1)][k]) / 4));
+  const facAt = (y: number, a: number) => {
+    const t = Math.max(0, Math.min(rows - 1, (y - TOP) / ROW));
+    const r0 = Math.floor(t), r1 = Math.min(rows - 1, r0 + 1), u = t - r0;
+    const kt = ((((a / TAU) * NB) % NB) + NB) % NB;
+    const k0 = Math.floor(kt) % NB, k1 = (k0 + 1) % NB, v = kt - Math.floor(kt);
+    const at = (r: number) => facS[r][k0] * (1 - v) + facS[r][k1] * v;
+    return at(r0) * (1 - u) + at(r1) * u;
+  };
+  // How far the shoulder's side moved: the arms go out (or in) by as much.
+  const shoulderShift = (side: number) => {
+    const a = side * (Math.PI / 2);
+    return reach(bodyHalf(SHOULDER_Y), a, SHOULDER_Y) * (1 - 1 / facAt(SHOULDER_Y, a));
+  };
+  const shift = [shoulderShift(-1), shoulderShift(1)];
+  const MID_THIGH = 1.95;
+  // Above the hips each point lies on the form's own ring (a smooth dress-form surface, no anatomy); from the hips
+  // down it hands over to the real legs, drawn out by the hip ring's own width at the sides and easing back to their
+  // own shape by mid-thigh.
+  const HAND_FROM = 0.97, HAND_TO = 1.18;
+  const sideFac = (facAt(HAND_FROM, Math.PI / 2) + facAt(HAND_FROM, -Math.PI / 2)) / 2;
+  const out = new Float32Array(pos.length);
+  for (let i = 0; i < n; i++) {
+    const x = pos[i * 3], z = pos[i * 3 + 2];
+    const y = Math.max(pos[i * 3 + 1], NECK_TOP);
+    const a = Math.atan2(x, z);
+    const ring = reach(bodyHalf(Math.min(y, BODY_BOTTOM)), a, Math.min(y, BODY_BOTTOM));
+    const rr = Math.hypot(x, z) || 1;
+    const u = Math.max(0, Math.min(1, (y - HAND_FROM) / (HAND_TO - HAND_FROM)));
+    const toLeg = u * u * (3 - 2 * u);
+    const v = Math.max(0, Math.min(1, (y - HAND_TO) / (MID_THIGH - HAND_TO)));
+    const kLeg = 1 + (sideFac - 1) * (1 - v * v * (3 - 2 * v));
+    const tx = (x / rr) * ring * (1 - toLeg) + x * kLeg * toLeg;
+    const tz = (z / rr) * ring * (1 - toLeg) + z * kLeg * toLeg;
+    const ax = x + (x < 0 ? -shift[0] : shift[1]) * Math.sign(x || 1), az = z;
+    const w = arm[i];
+    out[i * 3] = tx * (1 - w) + ax * w;
+    out[i * 3 + 1] = y;
+    out[i * 3 + 2] = tz * (1 - w) + az * w;
+  }
+  return out;
+}
+
+export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot, lift: Lift = 'none', limbs = true, finish: Finish = 'satin', limbData: typeof LIMBS = LIMBS, darkTape = false, shade?: string, tapeColours?: { face: string; ink: string }, tapeShadow = false, whole?: WholeBody, tapeCm = 1.6) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, preserveDrawingBuffer: true });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NeutralToneMapping;
@@ -328,11 +403,46 @@ export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot,
   const satin = material('satin');
   satins.push(satin);
   formMeshes.push(new THREE.Mesh(sweep({ at: (a, t) => bodyAt(a, NECK_TOP + (BODY_BOTTOM - NECK_TOP) * t), out: (a) => [Math.sin(a), 0, Math.cos(a)] }, -Math.PI, Math.PI, 160, 200), satin));
+  if (whole) formMeshes[0].visible = false;
   turning.add(formMeshes[0]);
+  if (whole) {
+    const m = material('satin');
+    satins.push(m);
+    const g = new THREE.BufferGeometry();
+    const fitted = fitBody(whole);
+    g.setAttribute('position', new THREE.BufferAttribute(fitted, 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(new Array((fitted.length / 3) * 2).fill(0), 2));
+    g.setAttribute('shade', new THREE.Float32BufferAttribute(new Array(fitted.length / 3).fill(0), 1));
+    const idx = whole.idx.slice();
+    for (let i = 0; i < idx.length; i += 3) [idx[i + 1], idx[i + 2]] = [idx[i + 2], idx[i + 1]];
+    g.setIndex(idx);
+    g.computeVertexNormals();
+    const mesh = new THREE.Mesh(g, m);
+    formMeshes.push(mesh);
+    turning.add(mesh);
+    // A girth lies on whichever stands further out at each angle: the ring, or the body itself.
+    const gy = shot.girthY;
+    if (gy !== undefined) {
+      const NB = 180;
+      const far = new Float32Array(NB);
+      for (let i = 0; i < fitted.length / 3; i++) {
+        if (whole.arm[i] > 0.3 || Math.abs(fitted[i * 3 + 1] - gy) > tapeCm / CM / 2 + 0.03) continue;
+        const b = ((Math.round((Math.atan2(fitted[i * 3], fitted[i * 3 + 2]) / TAU) * NB) % NB) + NB) % NB;
+        far[b] = Math.max(far[b], Math.hypot(fitted[i * 3], fitted[i * 3 + 2]));
+      }
+      const past = (a: number) => {
+        const b = ((Math.round((a / TAU) * NB) % NB) + NB) % NB;
+        let r = 0;
+        for (let d = -3; d <= 3; d++) r = Math.max(r, far[(b + d + NB) % NB]);
+        return Math.max(0, r - reach(bodyHalf(gy), a, gy));
+      };
+      shot = { ...shot, path: girthPath(gy, undefined, past) };
+    }
+  }
   const neck = material('satin');
   neck.color.set(0x0e0c0a);
   turning.add(new THREE.Mesh(cap((a) => bodyAt(a, NECK_TOP), [0, -1, 0]), neck));
-  for (const leg of limbs ? [] : [-1, 1]) {
+  for (const leg of limbs || whole ? [] : [-1, 1]) {
     const T = (a: number, t: number): V3 => {
       const y = LEG_TOP + (FORM_FLOOR - LEG_TOP) * t;
       const r = FORM_LEG(y);
@@ -344,7 +454,7 @@ export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot,
     formMeshes.push(legMesh);
     turning.add(legMesh);
   }
-  if (limbs) {
+  if (limbs && !whole) {
     for (const part of [limbData.legs, limbData.arms]) {
       const m = material('satin');
       satins.push(m);
@@ -415,12 +525,12 @@ export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot,
 
   const tex = tapeTexture(renderer.capabilities.getMaxAnisotropy(), darkTape, tapeColours);
   const tapeMat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.75, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 });
-  const rib = ribbon(shot.path, TAPE_W);
+  const rib = ribbon(shot.path, tapeCm / CM);
   const tapeMesh = new THREE.Mesh(rib.geo, tapeMat);
   turning.add(tapeMesh);
   // A soft shadow just past the tape's edges, so it reads as a band lying on the body rather than a gap in it
   // (Cat, Nov 10: "the ivory tape looks like a gap in the torso").
-  const shadowRib = ribbon(shot.path, TAPE_W * 1.35);
+  const shadowRib = ribbon(shot.path, (tapeCm / CM) * 1.35);
   const shadowMesh = new THREE.Mesh(shadowRib.geo, new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.38, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 }));
   shadowMesh.visible = tapeShadow;
   if (tapeShadow) turning.add(shadowMesh);
