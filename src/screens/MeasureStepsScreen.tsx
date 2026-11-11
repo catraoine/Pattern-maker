@@ -4,6 +4,7 @@ import { BASE, baseDone, begun, fieldOf, fullSetMissing, GARMENT_NAME, GARMENTS,
 import { createPortal } from 'react-dom';
 import { clearTapeRest, introLeft, takeIntroLeft, takeTapeRest } from '../ui/tapeHandoff';
 import { WEIGHT_HARD, WeightEntry, fromKg, weightUnitOf } from '../ui/WeightEntry';
+import { HowClip } from '../ui/HowClip';
 import { CARRY_MS, FormPicture, labelLevel, neckOnPicture, readCamera, TapeDemo, TAPE_PX } from '../ui/ContourForm';
 import { canGoBack, goBack, usePageHistory } from '../nav';
 import { estimateOne } from '../estimate';
@@ -1098,6 +1099,7 @@ export function MeasurePage({
       {how && (
         <div className="how-sheet" role="dialog" aria-modal="true" aria-labelledby="how-title" onClick={() => setHow(false)}>
           <div className="how-panel" onClick={(e) => e.stopPropagation()}>
+            {form !== 'menswear' && <HowClip id={id} />}
             <p id="how-title" className="eyebrow">
               How to measure {helper ? 'their' : 'your'} {(titleOf(id, false, form).replace(/^Your /, '') || fieldLabel).toLowerCase()}
             </p>

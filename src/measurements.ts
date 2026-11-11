@@ -158,7 +158,7 @@ const BODICE_ALL: MeasurementField[] = [
     label: 'Neck',
     hard: [25, 60],
     typical: [30, 48],
-    tip: 'Around the base of your neck, where it meets your shoulders, over the bump at the back of your neck.',
+    tip: 'Around the base of your neck, where it meets your shoulders, over the bone at the back of your neck.',
   },
   {
     id: 'shoulder_width',
@@ -196,7 +196,7 @@ const BODICE_ALL: MeasurementField[] = [
     hard: [28, 60],
     typical: [35, 50],
     helper: true,
-    tip: 'Straight down your spine, from the bone at the back of your neck (bow your head to find it) to your waist.',
+    tip: 'Straight down your spine, from the bone at the back of your neck to your waist. Bow your head to find the bone, then look straight ahead again before you measure.',
   },
   {
     id: 'front_hps_to_waist',
@@ -646,7 +646,7 @@ function proportions(v: MeasurementValues, mode: 'out' | 'near'): CrossCheck[] {
   // Lengths against the height: the body's proportions vary, but a length far off its share of the height is
   // usually a tape that started or stopped in the wrong place, or a height typed in the wrong unit.
   ratio('nape_to_waist', 'height', 0.2, 0.3,
-    'Back length looks short next to your height. Measure from the bone at the back of the neck (bow your head to find it) straight down to the waist.',
+    'Back length looks short next to your height. Measure from the bone at the back of the neck (bow your head to find it, then look ahead again) straight down to the waist.',
     'Back length looks long next to your height. It stops at the waist, where a ribbon tied round settles; check your height too.');
   ratio('waist_to_floor', 'height', 0.55, 0.68,
     'Waist to floor looks short next to your height. Measure down the side from the waist to the floor in bare feet; check your height too.',

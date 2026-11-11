@@ -81,11 +81,15 @@ const TIP: Partial<Record<MeasurementId, [string, string]>> = {
   waist_to_floor: ['Down your side, standing barefoot.', 'Ask them to stand barefoot. Hold the tape at their waist and let it fall down their side.'],
   shoulder_width: ['Across your back, shoulder point to shoulder point, arms relaxed at your sides.', 'Across their back, shoulder point to shoulder point, their arms relaxed at their sides.'],
   waist_to_hip: ['Down your side to the fullest part of your hip.', 'Hold the tape at their waist and measure down their side to the fullest part of their hip.'],
+  nape_to_waist: [
+    'Straight down your spine, from the bone at the back of your neck to your waist. Bow your head to find the bone, then look straight ahead again before you measure.',
+    'Straight down their spine, from the bone at the back of their neck to their waist. Ask them to bow their head so you can find the bone, then to look straight ahead again before you measure.',
+  ],
   waist_to_knee: ['Down your side to the middle of your knee.', 'Hold the tape at their waist and measure down their side to the middle of their knee.'],
 };
 /** The string tied round the waist (Cat, 2026-10-24): suggested on the waist page, then every length that starts or
  *  ends at the waist starts from it. */
-const FROM_WAIST = new Set<MeasurementId>(['waist_to_hip', 'waist_to_knee', 'waist_to_floor', 'crotch_depth', 'front_waist_to_hip', 'back_waist_to_hip', 'nape_to_waist', 'front_hps_to_waist']);
+const FROM_WAIST = new Set<MeasurementId>(['waist_to_hip', 'waist_to_knee', 'waist_to_floor', 'crotch_depth', 'crotch_length', 'front_waist_to_hip', 'back_waist_to_hip', 'nape_to_waist', 'front_hps_to_waist', 'front_shoulder_slope', 'back_shoulder_slope']);
 export function stringOf(id: MeasurementId, helper: boolean, form?: FormKind): string | undefined {
   const l =
     id === 'waist'
@@ -104,6 +108,11 @@ export function tipOf(id: MeasurementId, helper: boolean, form?: FormKind) {
 
 /** The "How to do it" steps. [for the wearer, for a helper] */
 const STEPS: Partial<Record<MeasurementId, [string[], string[]]>> = {
+  // Its own helper words: the tip turned for a helper told them to bow their own head (tailor review, Nov 11).
+  nape_to_waist: [
+    ['Bow your head and find the bone at the back of your neck.', 'Look straight ahead again.', 'Measure straight down your spine to the string at your waist.', 'Keep the tape straight, then read the number.'],
+    ['Ask them to bow their head, and find the bone at the back of their neck.', 'Ask them to look straight ahead again.', 'Measure straight down their spine to the string at their waist.', 'Keep the tape straight, then read the number.'],
+  ],
   height: [
     ['Take off your shoes and stand against a wall, heels touching it.', 'Look straight ahead, standing tall.', 'Rest something flat (a book) on your head, level against the wall.', 'Mark where it meets the wall and measure down to the floor.'],
     ['Ask them to take off their shoes and stand against a wall, heels touching it.', 'Ask them to look straight ahead, standing tall.', 'Rest something flat (a book) on their head, level against the wall.', 'Mark where it meets the wall and measure down to the floor.'],
@@ -165,6 +174,8 @@ const MISTAKES: Partial<Record<MeasurementId, string[]>> = {
   arm_length: ['A straight arm: bend the elbow a little.', 'Ending at the knuckles, not the wrist bone.'],
   crotch_length: ['Letting the tape sag between the legs.', 'Stopping below the waist at the back. A friend holding the back end helps most here.'],
   crotch_depth: ['Sitting on a soft chair or sofa.', 'Measuring at an angle, not straight down.'],
+  // Round the body like a girth, but held firm as a bra band sits, so not the girths' one-finger ease.
+  underbust: ['Measuring over clothes.', 'The tape twisted or not level all the way round.', 'Holding the tape loose: breathe out and hold it firm.'],
 };
 /** Another way for anyone measuring seated or alone (the accessibility review, 2026-10-30): the "How to do it" sheet
  *  assumed standing barefoot and reaching your own back. Written to the wearer measuring on their own. */
@@ -176,7 +187,7 @@ const SEATED: Partial<Record<MeasurementId, string>> = {
   waist_to_floor:
     'Can\'t stand for this one? Lay full-length trousers that fit you flat. Measure the side from the top of the waistband to the hem, then add the gap between the hem and the floor when you wear them.',
   waist_to_knee: 'Seated or alone? Lay a skirt that ends at your knee flat and measure it at the side, waistband top to hem.',
-  waist_to_hip: 'Seated? Measure from your waist down the side of your hip to the chair seat.',
+  waist_to_hip: 'Seated? Sitting hides the fullest part of your hip. Stand for a moment with a hand on a chair back if you can. If you can\'t, lie on your side and measure from your waist to the fullest part of your hip.',
   shoulder_width:
     'Can\'t reach your back? Lay a woven shirt that fits you well flat, buttoned, and measure across the back from one shoulder seam to the other.',
   across_back:
