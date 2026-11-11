@@ -62,14 +62,22 @@ def arms(down_l, down_r, bend_l=12, bend_r=12, fwd_l=0, fwd_r=0, curl=14):
         p[f'upperarm01.{side}'] = (np.array([0, 0, 1.0]) * sx, down)
         if fwd: p[f'upperarm02.{side}'] = (np.array([1.0, 0, 0]), fwd)
         p[f'lowerarm01.{side}'] = (np.array([1.0, 0, 0]), bend)
+        # The hand hangs straight on from the forearm, loose, rather than held out at the wrist as MakeHuman's
+        # rest hand is.
+        fa = tail[f'lowerarm02.{side}'] - head[f'lowerarm02.{side}']
+        hd = head[f'finger3-1.{side}'] - head[f'wrist.{side}']
+        ax = np.cross(hd, fa)
+        if np.linalg.norm(ax) > 1e-9:
+            p[f'wrist.{side}'] = rot(ax, math.degrees(math.atan2(np.linalg.norm(ax), hd @ fa)))
         p.update(hand_curl(side, curl))
     return p
 
 X = np.array([1.0, 0, 0]); Y = np.array([0, 1.0, 0]); Z = np.array([0, 0, 1.0])
 POSES = {
     'rest': {},
-    # P1 Poised: arms down close by the sides, elbows soft, hands relaxed; standing straight, feet together.
-    'poised': {**arms(-33, -33, 8, 8, curl=7), 'upperleg01.L': (Z, -2.5 * S), 'upperleg01.R': (Z, 2.5 * S)},
+    # P1 Poised: arms hanging loose close by the sides, a little back, elbows nearly straight, hands relaxed;
+    # standing straight, feet together.
+    'poised': {**arms(-38, -38, 0, 0, 20, 20, curl=7), 'upperleg01.L': (Z, -2.5 * S), 'upperleg01.R': (Z, 2.5 * S)},
     # P2 Contrapposto: the weight on one leg, the free knee bent forward and in, its heel lifted; one arm easy
     # forward.
     'shift': {**arms(-40, -34, 6, 30, 0, 10, curl=14), 'upperleg01.R': (X, -24), 'upperleg02.R': (Z, -6 * S), 'lowerleg01.R': (X, 44), 'foot.R': (X, -30), 'upperleg01.L': (Z, -2 * S)},

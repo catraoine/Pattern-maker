@@ -23,10 +23,19 @@ const TAPE = '#e3d3ad';
 const TAPE_INK = '#2b2418';
 const TAPE_END = '#b8a274';
 
+/** How much the form is drawn in at its sides at height y, set by fitBody: the form's rings hull over the shoulder
+ *  caps and armpits (they are what the drafting reads), which with real arms hanging beside them reads as broad, square
+ *  shoulders and a boxy upper body. 1 everywhere until a whole body is fitted. */
+let sideIn: (y: number) => number = () => 1;
+/** The form's radius at angle a and height y, as drawn. */
+function formR(a: number, y: number) {
+  const yy = Math.min(Math.max(y, NECK_TOP), BODY_BOTTOM);
+  const s = Math.sin(a);
+  return reach(bodyHalf(yy), a, yy) * (1 - (1 - sideIn(yy)) * s * s);
+}
 /** A point of the form's surface at angle a round it (0 straight ahead, toward the viewer) and height y. */
 function bodyAt(a: number, y: number, out = 0): V3 {
-  const yy = Math.max(y, NECK_TOP);
-  const r = reach(bodyHalf(Math.min(yy, BODY_BOTTOM)), a, yy) + out;
+  const r = formR(a, y) + out;
   return [Math.sin(a) * r, y, Math.cos(a) * r];
 }
 /** Which way is out from the surface there. */
@@ -69,7 +78,7 @@ export function lengthPath(a: number, y0: number, y1: number): TapePt[] {
   const N = 160;
   const raw = Array.from({ length: N + 1 }, (_, i) => {
     const y = y0 + ((y1 - y0) * i) / N;
-    return { y, r: reach(bodyHalf(Math.min(y, BODY_BOTTOM)), a, y) };
+    return { y, r: formR(a, y) };
   });
   // The outer hull in (y, r): a point stays only where it is not under the straight line between its neighbours.
   const hull: typeof raw = [];
@@ -315,7 +324,23 @@ function fitBody(body: WholeBody) {
     for (let i = 0; i < n; i++) if (arm[i] <= 0.3 && Math.abs(pos[i * 3 + 1] - y) <= band) w = Math.max(w, Math.abs(pos[i * 3]));
     return w;
   };
-  const ringSide = (y: number) => reach(bodyHalf(y), Math.PI / 2, y);
+  // From the shoulders down to the bust, draw the form's sides in to the real body's width (never by more than a
+  // quarter), so the shoulders and upper body keep a woman's proportions beside the arms. Read on a grid and smoothed.
+  const IN_TOP = -1.45, IN_BOT = -0.5, STEP = 0.05;
+  const grid = Array.from({ length: Math.round((IN_BOT - IN_TOP) / STEP) + 1 }, (_, k) => {
+    const y = IN_TOP + k * STEP;
+    return Math.max(0.75, Math.min(1, sideWidth(y, 0.08) / reach(bodyHalf(y), Math.PI / 2, y)));
+  });
+  const smooth = grid.map((_, k) => (grid[Math.max(0, k - 1)] + 2 * grid[k] + grid[Math.min(grid.length - 1, k + 1)]) / 4);
+  sideIn = (y: number) => {
+    if (y <= IN_TOP || y >= IN_BOT) return 1;
+    const t = (y - IN_TOP) / STEP, k = Math.floor(t), u = t - k;
+    const v = smooth[k] * (1 - u) + smooth[Math.min(smooth.length - 1, k + 1)] * u;
+    // Eased in from the neck and out into the bust, so the drawing-in leaves no step.
+    const e = Math.min(1, (y - IN_TOP) / 0.12, (IN_BOT - y) / 0.15);
+    return 1 - (1 - v) * e * e * (3 - 2 * e);
+  };
+  const ringSide = (y: number) => formR(Math.PI / 2, y);
   // How far the shoulder's side moved: both arms go out (or in) by as much.
   const shift = ringSide(SHOULDER_Y) - sideWidth(SHOULDER_Y, 0.06);
   const MID_THIGH = 1.95;
@@ -330,7 +355,7 @@ function fitBody(body: WholeBody) {
     const x = pos[i * 3], z = pos[i * 3 + 2];
     const y = Math.max(pos[i * 3 + 1], NECK_TOP);
     const a = Math.atan2(x, z);
-    const ring = reach(bodyHalf(Math.min(y, BODY_BOTTOM)), a, Math.min(y, BODY_BOTTOM));
+    const ring = formR(a, y);
     const rr = Math.hypot(x, z) || 1;
     const u = Math.max(0, Math.min(1, (y - HAND_FROM) / (HAND_TO - HAND_FROM)));
     const toLeg = u * u * (3 - 2 * u);
@@ -421,7 +446,7 @@ export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot,
             const x = A[0] + (B[0] - A[0]) * u, z = A[2] + (B[2] - A[2]) * u;
             const a = Math.atan2(x, z);
             const b = ((Math.round((a / TAU) * NB) % NB) + NB) % NB;
-            out[b] = Math.max(out[b], Math.hypot(x, z) - reach(bodyHalf(l), a, l));
+            out[b] = Math.max(out[b], Math.hypot(x, z) - formR(a, l));
           }
         }
       }
