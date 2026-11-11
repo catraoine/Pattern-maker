@@ -231,7 +231,59 @@ function limbMesh(part: { pos: number[]; idx: number[] }, mat: THREE.Material) {
   return new THREE.Mesh(g, mat);
 }
 
-export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot, lift: Lift = 'none', limbs = true) {
+/** The form's surface (mock-ups for Cat, Nov 10: "this black shiny body looks weird"): F1 matte black crepe, F2
+ *  ivory plaster, F3 natural linen like a tailor's form, F4 champagne satin. 'satin' is All round's black satin. */
+export type Finish = 'satin' | 'F1' | 'F2' | 'F3' | 'F4';
+function linenTexture() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const g = c.getContext('2d')!;
+  g.fillStyle = '#cdbfa5';
+  g.fillRect(0, 0, 256, 256);
+  // A fine plain weave: warp and weft threads, each a little lighter or darker than the last.
+  for (let i = 0; i < 256; i += 2) {
+    g.fillStyle = `rgba(${Math.random() < 0.5 ? '255,250,240' : '90,75,55'},${0.05 + Math.random() * 0.08})`;
+    g.fillRect(i, 0, 1, 256);
+    g.fillStyle = `rgba(${Math.random() < 0.5 ? '255,250,240' : '90,75,55'},${0.05 + Math.random() * 0.08})`;
+    g.fillRect(0, i, 256, 1);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+function applyFinish(m: THREE.MeshStandardMaterial, finish: Finish) {
+  switch (finish) {
+    case 'F1':
+      m.color.set(0x1a1816);
+      m.emissive.set(0x000000);
+      m.roughness = 0.92;
+      m.metalness = 0;
+      break;
+    case 'F2':
+      m.color.set(0xe6ddcd);
+      m.emissive.set(0x000000);
+      m.roughness = 0.88;
+      m.metalness = 0;
+      break;
+    case 'F3':
+      m.color.set(0xffffff);
+      m.map = linenTexture();
+      m.map.repeat.set(40, 40);
+      m.emissive.set(0x000000);
+      m.roughness = 1;
+      m.metalness = 0;
+      break;
+    case 'F4':
+      m.color.set(0xcdb68a);
+      m.emissive.set(0x000000);
+      m.roughness = 0.38;
+      m.metalness = 0.15;
+      break;
+  }
+}
+
+export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot, lift: Lift = 'none', limbs = true, finish: Finish = 'satin', limbData: typeof LIMBS = LIMBS) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, preserveDrawingBuffer: true });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NeutralToneMapping;
@@ -278,12 +330,27 @@ export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot,
     turning.add(legMesh);
   }
   if (limbs) {
-    for (const part of [LIMBS.legs, LIMBS.arms]) {
+    for (const part of [limbData.legs, limbData.arms]) {
       const m = material('satin');
       satins.push(m);
       const mesh = limbMesh(part, m);
       formMeshes.push(mesh);
       turning.add(mesh);
+    }
+  }
+  if (finish !== 'satin') {
+    for (const m of [...satins, neck]) applyFinish(m, finish);
+    // The linen's weave laid on by position (the surfaces carry no cloth coordinates of their own).
+    if (finish === 'F3') {
+      for (const mesh of formMeshes) {
+        const pos = mesh.geometry.getAttribute('position');
+        const uv = new Float32Array(pos.count * 2);
+        for (let i = 0; i < pos.count; i++) {
+          uv[i * 2] = (pos.getX(i) + pos.getZ(i)) * 0.6;
+          uv[i * 2 + 1] = pos.getY(i) * 0.6;
+        }
+        mesh.geometry.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+      }
     }
   }
   // The floor: a faint champagne ring where the form stands.
