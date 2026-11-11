@@ -117,17 +117,8 @@ export const COLLECTION: HouseLook[] = [
     choices: { ...DEFAULT_TROUSERS_CHOICES, fit: 'relaxed', leg: 'wide', length: 'full', pockets: 'slant' },
   },
   {
-    id: 'pleat-dress',
-    number: 4,
-    name: 'Red Pleat Dress',
-    line: 'A scoop neck over a dropped waist, and knife pleats from the hip to the mid-calf, in a crisp red sateen.',
-    fabric: 'Red crisp cotton sateen',
-    garment: 'dress',
-    choices: { ...dress('regular', { neckline: 'scoop', sleeve: 'none', darts: 'bust', bustDart: 'french' }, { silhouette: 'straight', length: 'midi', pleats: 'knife' }), waistSeam: 'dropped' },
-  },
-  {
     id: 'ice-peplum',
-    number: 5,
+    number: 4,
     name: 'Ice Peplum Top',
     line: 'Sheer ice blue, ruffled at the neck, with bishop sleeves and a big flared peplum from a lowered waist.',
     fabric: 'Ice sheer silk organza',
@@ -136,7 +127,7 @@ export const COLLECTION: HouseLook[] = [
   },
   {
     id: 'lilac-lace',
-    number: 6,
+    number: 5,
     name: 'Lilac Lace Blouse',
     line: 'Lilac lace plunging to the waist, with full bishop sleeves gathered at the wrist. Worn with gold micro shorts.',
     fabric: 'Lilac silk lace',
@@ -144,18 +135,21 @@ export const COLLECTION: HouseLook[] = [
     choices: bodice({ fit: 'regular', darts: 'bust', neckline: 'plunge', plungeDepth: 'waist', sleeve: 'long', sleeveShape: 'bishop', sleeveFullness: 'full', sleeveCuff: 'elastic', length: 'high_hip' }),
   },
   {
-    id: 'gold-slip',
-    number: 7,
-    name: 'Gold Python Slip',
-    line: 'The house slip, cut on the bias to the floor, plunging at the front and dipping to a V at the back.',
-    fabric: 'Gold python silk satin',
+    // From Cat's picture of a relaxed bias satin maxi (2026-11-11, "Build bias and correct the neckline for lower
+    // narrower scoop"; "the dress straps should be a touch narrower"): it replaces the Gold Python Slip. The hem is
+    // flared 16 cm, the most that still cuts whole on the bias from 150 cm cloth at the example size.
+    id: 'ivory-slip',
+    number: 6,
+    name: 'Ivory Bias Slip',
+    line: 'The house slip, cut in one on the bias from the shoulder to the ankle: a low, narrow scoop, slim straps, no waist seam and no zip, in a satin you can just see through.',
+    fabric: 'Ivory sheer silk satin',
     garment: 'dress',
-    choices: dress('regular', { neckline: 'plunge', sleeve: 'none', back: 'v' }, { silhouette: 'slip', length: 'maxi' }),
+    choices: dress('regular', { neckline: 'scoop', sleeve: 'none', darts: 'bust', bustEase: 4, neck: { frontDepth: 14.5, width: 3.5, backDepth: 18, fullness: 0.85, strap: 3 } }, { silhouette: 'straight', length: 'maxi', noSeam: 'bias', flareCm: 16, slit: 'none' }),
   },
   {
     // Cat's own Japanese leopard and python cotton, and the house shirt cut (2026-11-10).
     id: 'leopard-shirt-dress',
-    number: 8,
+    number: 7,
     name: 'Leopard Shirt Dress',
     line: 'A big shirt cut down to a mini: a long-point collar, a back yoke with a box pleat, wide sleeves to the elbow, and a shirttail hem that hangs longer at the back.',
     fabric: 'Ivory leopard python cotton',
@@ -178,9 +172,9 @@ export const COLLECTION: HouseLook[] = [
     }),
   },
   {
-    // A low-rise barrel leg in the snakeskin brown of the leopard cloth, so it links to Look 08 (Cat, 2026-11-11).
+    // A low-rise barrel leg in the snakeskin brown of the leopard cloth, so it links to the Leopard Shirt Dress (Cat, 2026-11-11).
     id: 'chocolate-barrel',
-    number: 9,
+    number: 8,
     name: 'Chocolate Barrel Trouser',
     line: 'Slung low on the hip, two deep pleats opening into a barrel leg that curves out round the knee and falls to the floor, in a crisp chocolate sateen.',
     fabric: 'Chocolate crisp cotton sateen',
