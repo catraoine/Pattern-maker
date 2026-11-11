@@ -698,9 +698,10 @@ export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot,
     m.emissive.set(0x121110);
     m.roughness = 0.32;
   }
-  // D: a light chalk ground (the fresh-look chalk, #e9e4da) behind the black form.
+  // D: the app's chalk ground behind the form (C1 warm stone, #dcd5c7, Cat Nov 11: the measure demos carry the same
+  // chalk as the style windows).
   if (lift === 'D') {
-    scene.background = new THREE.Color('#e9e4da').convertSRGBToLinear();
+    scene.background = new THREE.Color('#dcd5c7').convertSRGBToLinear();
     floor.material.color.set(0x8a7f6c);
   }
   if (lift === 'C') {
