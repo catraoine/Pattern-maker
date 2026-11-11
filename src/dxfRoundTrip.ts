@@ -4,7 +4,7 @@
 // drafted size: the same pieces, names and quantities, cutting and stitching lines to a tenth of a millimetre, the seam
 // allowances, grain and fold lines, internal lines, and every notch and drill hole within half a millimetre.
 // dxfRoundTrip.test.ts runs it on every pull request and nightly, held to src/dxfKnown.json.
-import { toDxf, quantity, ascii, cleanRing, dxfCut } from './engine/dxf';
+import { toDxf, quantity, ascii, cleanRing, dxfCut, internalLines } from './engine/dxf';
 import { ImportedPattern, importDxf } from './engine/importDxf';
 import { allNotches, drillHoles, notchSlit } from './engine/marks';
 import { P, len, sub } from './engine/geometry';
@@ -100,10 +100,16 @@ export function compareBack(pieces: Piece[], back: ImportedPattern): string[] {
     else if (sewOff > LINE_TOL) say(`stitching line moves up to ${r2(sewOff * 10)} mm`);
 
     // The seam allowances are the distance between the two lines, so they come back when both lines do.
-    if (got.lines.length !== want.lines.length) say(`${want.lines.length} internal lines drawn, ${got.lines.length} read back`);
+    // Internal lines as the file writes them: darts, and each pleat's fold and placement lines (a closed one, a
+    // fish-eye dart, comes back round to its start).
+    const wantLines = internalLines(want).map((ln) => (ln.closed ? [...ln.pts, ln.pts[0]] : ln.pts));
+    const gotLines = internalLines(got).map((ln) => (ln.closed ? [...ln.pts, ln.pts[0]] : ln.pts));
+    if (gotLines.length !== wantLines.length) say(`${wantLines.length} internal lines drawn, ${gotLines.length} read back`);
     else
-      want.lines.forEach((ln, k) => {
-        const off = lineOff(ln.points(), got.lines[k].points(), shift);
+      // In any order: a pleat's placement line can come back with the piece's other lines or apart from them.
+      wantLines.forEach((ln) => {
+        const offs = gotLines.map((g) => lineOff(ln, g, shift)).filter((o): o is number => typeof o === 'number');
+        const off = offs.length ? Math.min(...offs) : 'no line with as many points';
         if (typeof off === 'string' || off > LINE_TOL) say(`an internal line (darts, placement) does not read back where it was drawn`);
       });
     if (!!want.grain !== !!got.grain) say(want.grain ? 'the grain line is lost' : 'a grain line appears that was not drawn');

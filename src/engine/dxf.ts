@@ -140,7 +140,7 @@ function offSegment(q: P, a: P, b: P): number {
 }
 /** A closed line with points closer than MIN_STEP merged: of each close pair the gentler point goes, so long as the line
  *  without it stays within DRIFT of where it was (corners stay exactly where they were drafted). */
-export function cleanRing(pts: P[]): P[] {
+export function cleanRing(pts: P[], straight = true): P[] {
   const ring = [...open(pts)];
   let changed = true;
   while (changed && ring.length > 3) {
@@ -158,8 +158,37 @@ export function cleanRing(pts: P[]): P[] {
       changed = true;
     }
   }
-  return ring;
+  // Points along a straight run are dropped too, however far apart: a side seam drafted four points a centimetre came
+  // out as hundreds of 2.5 mm steps, which CLO 3D reads as that many separate edges, so a seam could not be picked
+  // corner to corner (CLO trial, Nov 10 2026). Only points within STRAIGHT of the line through their neighbours go, so
+  // curves keep every point.
+  // Each run is held against every drafted point it replaces, so small steps never add up to a drift.
+  const n = ring.length;
+  if (n <= 3 || !straight) return ring;
+  // Start at the sharpest corner, which always stays.
+  let start = 0;
+  for (let i = 1; i < n; i++) if (turnAt(ring[(i + n - 1) % n], ring[i], ring[(i + 1) % n]) > turnAt(ring[(start + n - 1) % n], ring[start], ring[(start + 1) % n])) start = i;
+  const at = (k: number) => ring[(start + k) % n];
+  const kept: P[] = [at(0)];
+  let a = 0;
+  while (a < n) {
+    let b = a + 1;
+    while (b + 1 <= n) {
+      const c = b + 1;
+      let onLine = true;
+      for (let k = a + 1; k < c && onLine; k++) if (offSegment(at(k), at(a), at(c)) >= STRAIGHT) onLine = false;
+      if (!onLine) break;
+      b = c;
+    }
+    if (b >= n) break;
+    kept.push(at(b));
+    a = b;
+  }
+  return kept.length > 3 ? kept : ring;
 }
+/** How near a point must lie to the line through its neighbours to count as on a straight run (cm): a hundredth of a
+ *  millimetre. */
+const STRAIGHT = 0.001;
 
 /** The cutting line as the file writes it, cleaned, with a point of its own at every notch, and the notches. Gerber
  *  (and most cutting-room software) keeps a notch only where it falls on a point of the cutting line; ours fell between
@@ -167,7 +196,8 @@ export function cleanRing(pts: P[]): P[] {
  *  0.4 mm of a point moves onto it; one beside a point that is no corner takes that point's place where the line moves
  *  less than DRIFT; any other is added to the line where it falls. */
 export function dxfCut(pc: Piece): { cut: P[]; notches: P[] } {
-  const cut = cleanRing(cutLine(pc));
+  // A cutting line read from a file is written back as it came (its notches are points of it already).
+  const cut = cleanRing(cutLine(pc), !pc.cutOutline);
   const notches: P[] = [];
   for (const [q, d] of allNotches(pc)) {
     const at = nearestOn(cut, notchSlit(pc, q, d)[0]);
@@ -208,6 +238,20 @@ export function dxfCut(pc: Piece): { cut: P[]; notches: P[] } {
     notches.push(at);
   }
   return { cut, notches };
+}
+
+/** The internal lines the file writes on layer 8, each with whether it is a closed shape. A fish-eye dart is drawn round
+ *  and back to its start, so it is written as a closed shape: CLO 3D (and Gerber) read an open line that ends where it
+ *  began as a stray line, not a dart (CLO trial, Nov 10 2026). Each pleat's placement line goes in too, beside its fold
+ *  line: with the fold line alone CLO had nothing to fold the pleat to (the pleat dress, Nov 10 2026). */
+export function internalLines(pc: Piece): { pts: P[]; closed: boolean }[] {
+  const out = pc.lines.map((ln) => {
+    const pts = ln.points();
+    const closed = pts.length > 3 && len(sub(pts[0], pts[pts.length - 1])) < 1e-6;
+    return { pts: closed ? pts.slice(0, -1) : pts, closed };
+  });
+  for (const b of pc.balance ?? []) if (b.label === 'PLACEMENT' && b.pts.length > 1) out.push({ pts: b.pts, closed: false });
+  return out;
 }
 
 const blockName = (pc: Piece, i: number) => `P${i + 1}_${ascii(pc.name).toUpperCase().replace(/[^A-Z0-9]+/g, '_')}`;
@@ -261,8 +305,8 @@ export function toDxf(pieces: Piece[], info: DxfInfo): string {
     w.g(3, blockName(pc, i));
 
     w.polyline(cuts[i], LAYER.boundary, true);
-    w.polyline(cleanRing(pc.outline.points()), LAYER.sew, true);
-    pc.lines.forEach((ln) => w.polyline(ln.points(), LAYER.internal, false));
+    w.polyline(cleanRing(pc.outline.points(), !pc.cutOutline), LAYER.sew, true);
+    internalLines(pc).forEach((ln) => w.polyline(ln.pts, LAYER.internal, ln.closed));
     if (pc.grain) w.line(pc.grain[0], pc.grain[1], LAYER.grain);
     if (pc.fold) w.line(pc.fold[0], pc.fold[1], LAYER.mirror);
     // AAMA notches are points on the cut line: the seam and dart notches the PDF cuts, each pushed out
