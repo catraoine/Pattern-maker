@@ -105,7 +105,7 @@ export const LEG_WORDS: Record<Leg, string> = { straight: 'straight-leg trousers
 
 /** A drawn leg's widths, round the leg in cm: the knee from snug to culotte-wide, the hem from the
  * narrowest a foot goes through to a wide flare, as shares of the finished hip. */
-const LEG_CM = { knee: { min: 0.38, max: 0.7 }, hem: { max: 0.8 } };
+const LEG_CM = { knee: { min: 0.38, max: 0.7 }, hem: { max: 0.9 } };
 
 /** How far the waistband can be drawn from the waist: a low rise down to 8 cm below, a high rise up to 5 cm above. */
 export const RISE_RANGE = { min: -8, max: 5 };

@@ -140,7 +140,8 @@ export const COLLECTION: HouseLook[] = [
     line: 'Wide and easy, falling from slanted pockets to the floor. Ivory, and nothing else.',
     fabric: 'Ivory linen',
     garment: 'trousers',
-    choices: { ...DEFAULT_TROUSERS_CHOICES, fit: 'relaxed', leg: 'wide', length: 'full', pockets: 'slant' },
+    // The leg is drawn: a wide leg's own hem (two thirds of the hip, 59 cm here) read as a wide-leg trouser, not a palazzo.
+    choices: { ...DEFAULT_TROUSERS_CHOICES, fit: 'relaxed', leg: 'wide', length: 'full', legCm: { knee: 63, hem: 78 }, pockets: 'slant' },
   },
   {
     id: 'pleat-dress',
