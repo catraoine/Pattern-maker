@@ -246,7 +246,24 @@ export function dxfCut(pc: Piece): { cut: P[]; notches: P[] } {
  *  2026). The cutting line keeps the cap, so a cutting room cuts exactly as before. */
 export function sewLine(pc: Piece): P[] {
   // The darts first, so their legs are corners the cleaning keeps.
-  return cleanRing(withDartVs(pc, open(pc.outline.points())), !pc.cutOutline);
+  const ring = cleanRing(withDartVs(pc, open(pc.outline.points())), !pc.cutOutline);
+  // A point of its own wherever a pleat's fold or placement line meets the edge, so CLO can sew each pleat shut at the
+  // waist from point to point (the pleat dress's pleats gathered instead of folding without them, Nov 10 2026).
+  for (const ln of internalLines(pc)) {
+    if (ln.closed) continue;
+    for (const end of [ln.pts[0], ln.pts[ln.pts.length - 1]]) {
+      const n = ring.length;
+      if (ring.some((q) => len(sub(q, end)) < MIN_STEP)) continue;
+      let seg = -1;
+      let segD = MIN_STEP;
+      for (let i = 0; i < n; i++) {
+        const d = offSegment(end, ring[i], ring[(i + 1) % n]);
+        if (d < segD) [segD, seg] = [d, i];
+      }
+      if (seg >= 0) ring.splice(seg + 1, 0, end);
+    }
+  }
+  return ring;
 }
 
 /** A closed line with each of the piece's edge darts let into it as a V, in place of the cap between its legs. */
