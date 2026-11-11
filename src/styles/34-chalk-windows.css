@@ -88,3 +88,47 @@ svg.stepdg .dg-cloth {
     animation: none;
   }
 }
+
+/* Watch demo player: a soft fade to black as it opens over the stone window, and a soft ease back to the stone as it
+   closes (Cat, Nov 11: "keep black but ... a soft fade to black at the beginning and soft ease to light at the end").
+   The black comes in first and the film after it, and on close the film goes first and then the black lifts, so the
+   page and the film never show through each other. The leave length matches LEAVE_MS in DemoButton.tsx. */
+@keyframes demo-dark-in {
+  from {
+    background-color: transparent;
+  }
+}
+@keyframes demo-dark-out {
+  to {
+    background-color: transparent;
+  }
+}
+@keyframes demo-show {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes demo-hide {
+  to {
+    opacity: 0;
+  }
+}
+.tour.demo-fade {
+  animation: demo-dark-in 700ms ease-in-out both;
+}
+.tour.demo-fade > * {
+  animation: demo-show 450ms ease-out 600ms both;
+}
+.tour.demo-fade.demo-leaving {
+  animation: demo-dark-out 800ms ease-in-out 300ms both;
+  pointer-events: none;
+}
+.tour.demo-fade.demo-leaving > * {
+  animation: demo-hide 350ms ease-in both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tour.demo-fade,
+  .tour.demo-fade > * {
+    animation: none;
+  }
+}

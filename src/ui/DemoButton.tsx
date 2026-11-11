@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { FilmBar, useFilm } from './FilmControls';
 import { FilmWords, type FilmPart } from './TourPlayer';
@@ -143,11 +143,21 @@ export function DemoButton({ demo }: { demo: DemoName }) {
   );
 }
 
-function DemoPlayer({ demo, onClose }: { demo: Demo; onClose: () => void }) {
+// How long the player takes to ease back to the page as it closes; 34-chalk-windows.css has the same length.
+const LEAVE_MS = 1100;
+
+function DemoPlayer({ demo, onClose: done }: { demo: Demo; onClose: () => void }) {
   const video = useRef<HTMLVideoElement>(null);
   const close = useRef<HTMLButtonElement>(null);
   const [at, setAt] = useState(0);
   const film = useFilm(video);
+  // A soft fade to black as it opens and back to the stone window as it closes (Cat, Nov 11).
+  const [leaving, setLeaving] = useState(false);
+  const onClose = useCallback(() => {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return done();
+    setLeaving(true);
+    window.setTimeout(done, LEAVE_MS);
+  }, [done]);
 
   useEffect(() => {
     close.current?.focus();
@@ -165,7 +175,7 @@ function DemoPlayer({ demo, onClose }: { demo: Demo; onClose: () => void }) {
   const part = parts.reduce((p, x, i) => (at >= x.from ? i : p), 0);
 
   return (
-    <div className="tour" role="dialog" aria-modal="true" aria-label={demo.title}>
+    <div className={leaving ? 'tour demo-fade demo-leaving' : 'tour demo-fade'} role="dialog" aria-modal="true" aria-label={demo.title}>
       <div className="tour-top">
         <span className="tour-tag">
           {demo.title} · {parts[part].name}
