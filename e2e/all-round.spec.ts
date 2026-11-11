@@ -81,7 +81,7 @@ test('the fit map shows the room the garment leaves, and Fabric puts the cloth b
   await main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round', exact: true }).click();
   await expect(main.locator('canvas.all-round-canvas')).toHaveAttribute('data-sewn', 'ready', { timeout: 90_000 });
   await main.getByRole('button', { name: 'Fit map' }).click();
-  await expect(main.getByRole('note').filter({ hasText: "The room between you and the garment, from your pattern's ease." })).toBeVisible();
+  await expect(main.getByRole('note').filter({ hasText: "The room your pattern leaves around you." })).toBeVisible();
   await expect(main.getByRole('button', { name: 'Fabric' })).toHaveAttribute('aria-pressed', 'true');
   await main.getByRole('button', { name: 'Fabric' }).click();
   await expect(main.getByRole('button', { name: 'Fit map' })).toBeVisible();

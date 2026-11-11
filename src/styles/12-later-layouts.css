@@ -60,14 +60,15 @@ input.inline:focus,
 
 .all-round-closer {
   min-height: 32px;
-  padding: 6px 10px;
+  padding: 6px 12px;
   border: 1px solid color-mix(in srgb, var(--muted) 45%, transparent);
-  border-radius: 999px;
+  /* Square, like the option boxes under the window (Cat's A, Nov 11: the round pills looked out of place). */
+  border-radius: var(--pill);
   background: rgba(0, 0, 0, 0.55);
   color: var(--ink);
   font-family: var(--mono);
   font-size: 0.72rem;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--track);
   text-transform: uppercase;
   cursor: pointer;
 }
@@ -78,8 +79,7 @@ input.inline:focus,
 .all-round-key {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  margin: 2px 0 4px;
+  gap: 2px;
 }
 
 .all-round-key-bar {
@@ -115,6 +115,8 @@ input.inline:focus,
 
 .all-round-closer[aria-pressed='true'] {
   border-color: var(--ink);
+  background: var(--ink);
+  color: var(--white);
 }
 
 /* The Front drawing standing in for a sewn drawing that failed its score: as wide as the drawing is on Front. */
@@ -210,7 +212,7 @@ input.inline:focus,
   min-height: 26px;
   padding: 3px 8px;
   border: 1px solid color-mix(in srgb, var(--muted) 45%, transparent);
-  border-radius: 999px;
+  border-radius: var(--pill);
   background: transparent;
   color: var(--ink);
   font-family: var(--mono);

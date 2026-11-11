@@ -562,20 +562,21 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
             const text = `${t.name} ${t.ease > 0 ? '+' : t.ease < 0 ? '\u2212' : ''}${Math.abs(t.ease)} cm`;
             g.save();
             g.globalAlpha = a;
-            g.font = '600 12px "Space Grotesk", system-ui, sans-serif';
+            // Small square label tags (Cat, Nov 11: the bigger round-cornered ones covered the bodice).
+            g.font = '500 10px "Chakra Petch", ui-monospace, monospace';
             const tw = g.measureText(text).width;
-            const [bw, bh] = [tw + 12, 20];
+            const [bw, bh] = [tw + 8, 15];
             const x0 = Math.max(2, Math.min(w - bw - 2, at.x - bw / 2));
             g.fillStyle = 'rgba(0, 0, 0, 0.72)';
             g.strokeStyle = '#fff';
             g.lineWidth = 1;
             g.beginPath();
-            g.roundRect(x0, at.y - bh / 2, bw, bh, 3);
+            g.rect(x0, at.y - bh / 2, bw, bh);
             g.fill();
             g.stroke();
             g.fillStyle = '#fff';
             g.textBaseline = 'middle';
-            g.fillText(text, x0 + 6, at.y + 0.5);
+            g.fillText(text, x0 + 4, at.y + 0.5);
             g.restore();
           }
       } else {
@@ -1436,16 +1437,20 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
                 <span>Easy</span>
                 <span>Loose</span>
               </span>
-              <span className="all-round-key-line">The room between you and the garment, from your pattern's ease.</span>
+              <span className="all-round-key-line">The room your pattern leaves around you.</span>
             </div>
           )}
-          <p className="all-round-checked">
-            <span className="all-round-mark" aria-hidden="true" />
-            {checked(rows)}
-          </p>
+          {/* With the fit map on, its key takes the checked line's place, so the window keeps the garment at full size
+              (Cat, Nov 11: the bodice shrank under the key and its tags covered it). */}
+          {!(canFit && fitOn) && (
+            <p className="all-round-checked">
+              <span className="all-round-mark" aria-hidden="true" />
+              {checked(rows)}
+            </p>
+          )}
           {/* (A skirt's or a dress's skirt only: the cloth's own stiffness and fall show where it hangs free, clothCard.ts.) */}
           {!standIn && (drape?.kind === 'skirt' || drape?.kind === 'dress') && <FeelControl feel={feel} onFeel={setFeel} />}
-          <p className="all-round-note">{inTesting ? inTestingNote(sewnNow && sewnNow !== 'pending' ? sewnNow.d.quality?.problems : undefined, standIn, gaveUp) : 'A shape preview, not a cloth simulation.'}</p>
+          {!(canFit && fitOn && !inTesting) && <p className="all-round-note">{inTesting ? inTestingNote(sewnNow && sewnNow !== 'pending' ? sewnNow.d.quality?.problems : undefined, standIn, gaveUp) : 'A shape preview, not a cloth simulation.'}</p>}
         </div>
       )}
     </div>
