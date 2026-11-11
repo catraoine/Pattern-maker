@@ -21,6 +21,7 @@ import { closeHemCorners } from './hemCorners';
 import { Space, boxed } from './space';
 import { knob, setKnob } from './knob';
 import { frontPins, tapeRollLines } from './rollLine';
+import { boxCreases, boxPoint } from './boxPleats';
 import { fairFrontCentre } from './fairFront';
 import { pressCollar, standStiff } from './structured';
 import { CollarOnFront, collarOnFront } from './collarEnd';
@@ -384,6 +385,11 @@ function creasesOf(pc: Piece): [P, P][] {
   if (!folds || folds.length < 2) return [];
   // (An inverted pleat: only the fold edge down the V; its first fold is the centre line itself.)
   if (pc.meta.pleatKind === 'inverted') return [[folds[1].hip, folds[1].hem]];
+  // (Box pleats: the meeting lines, the V each opens to below the hip, and the lit fold edges beside it, boxPleats.ts.)
+  if (pc.meta.pleatKind === 'box' && !knob('__oldBox')) {
+    const pts = pc.outline.taggedPoints(12).pts;
+    return boxCreases(folds, (y) => spanOf(pts, y)[1]);
+  }
   const out: [P, P][] = folds.map((f) => [f.hip, f.hem]);
   if (pc.meta.pleatKind !== 'box') {
     const w = shadowW(folds[1].hip.x - folds[0].hip.x);
@@ -3143,6 +3149,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
       }
     }
     const inverted = p.pc.meta.pleatKind === 'inverted';
+    const outlinePts = p.pc.outline.taggedPoints(12).pts;
     p.mesh.pts.forEach((q, i) => {
       if (q.y < hipY - 4) return;
       const xs = folds.map((f) => foldAt(f, q.y));
@@ -3159,6 +3166,16 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
         const rho = Math.hypot(res[I], res[I + 2]) || 1e-9;
         res[I] *= (rho - 0.5 * ramp * (1 - t)) / rho;
         res[I + 2] *= (rho - 0.5 * ramp * (1 - t)) / rho;
+        return;
+      }
+      if (box && !knob('__oldBox')) {
+        // (Eased off toward the side seam, which the front and back are sewn along: a V set back on one side of it and
+        // not the other opened the seam, on a small body whose last pleat comes close to it.)
+        const b = boxPoint(folds, q, (y) => spanOf(outlinePts, y)[1]);
+        shade![p.base + i] = b.shade;
+        const rho = Math.hypot(res[I], res[I + 2]) || 1e-9;
+        res[I] *= (rho + b.off) / rho;
+        res[I + 2] *= (rho + b.off) / rho;
         return;
       }
       const s = xs[1] - xs[0];
@@ -3188,7 +3205,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
       nb[b].push(a, c);
       nb[c].push(a, b);
     }
-    for (let pass = 0; pass < (box ? 1 : 0); pass++) {
+    for (let pass = 0; pass < (box && knob('__oldBox') ? 1 : 0); pass++) {
       const nx = p.mesh.pts.map((_, i) => (shade![p.base + i] * 2 + nb[i].reduce((a, j) => a + shade![p.base + j], 0) / (nb[i].length || 1)) / 3);
       nx.forEach((v, i) => (shade![p.base + i] = v));
     }
