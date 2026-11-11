@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_CRASHES_PER_VISIT, Reporter, browserFamily, cleanSource, rememberSource } from './report';
+import { MAX_CRASHES_PER_VISIT, Reporter, browserFamily, cleanSource, rememberSource, firstVisitToday } from './report';
 import { checkBeacon } from '../server/reports';
 
 const make = (counting = true) => {
@@ -113,5 +113,34 @@ describe('where a visitor came from', () => {
     r.flush();
     expect(last().counts).toEqual({ visit: 1, 'signup:pinterestboard': 1, 'fit_reported:skirt': 1 });
     expect(checkBeacon(JSON.stringify(last()))).not.toBeNull();
+  });
+});
+
+describe('visits counted once a day (the waitlist review, 2026-11-10)', () => {
+  const store = () => {
+    const m = new Map<string, string>();
+    return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v) };
+  };
+  it('counts the first load of the day, not reloads', () => {
+    const s = store();
+    const day = new Date('2026-11-11T10:00:00Z');
+    expect(firstVisitToday(s, day)).toBe(true);
+    expect(firstVisitToday(s, day)).toBe(false);
+    expect(firstVisitToday(s, new Date('2026-11-12T10:00:00Z'))).toBe(true);
+  });
+  it('never counts a let-in device', () => {
+    const s = store();
+    s.setItem('maison-trace-access', 'tester');
+    expect(firstVisitToday(s)).toBe(false);
+  });
+  it('counts when storage is off', () => {
+    expect(firstVisitToday(undefined)).toBe(true);
+  });
+  it('leaves the visit out but still counts steps when countVisit is false', () => {
+    const sent: string[] = [];
+    const r = new Reporter({ send: (b) => (sent.push(b), true), version: 'v', browser: 'b', counting: true, countVisit: false });
+    r.count('printed', 'skirt');
+    r.flush();
+    expect(JSON.parse(sent[0]).counts).toEqual({ 'printed:skirt': 1 });
   });
 });

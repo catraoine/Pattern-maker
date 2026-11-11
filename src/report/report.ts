@@ -1,8 +1,9 @@
 // Crash reports and anonymous visit counts. Everything waits in memory and goes in one small request when the visit
 // ends or the tab is hidden, so a visit costs at most one or two requests. No cookies, no stored ids: a visit is a
-// page load. Never measurements, names or photos: a crash report is the error's message and stack, the screen, the
+// browser's first load of the day (only the date is kept). Never measurements, names or photos: a crash report is the error's message and stack, the screen, the
 // app version and the browser family.
 import type { Garment } from '../measurements';
+import { ACCESS_KEY } from '../access';
 
 const ENDPOINT = '/.netlify/functions/report';
 export const MAX_CRASHES_PER_VISIT = 5;
@@ -63,7 +64,27 @@ interface Options {
   browser: string;
   /** False when the browser asks not to be tracked: crash reports still go, counts don't. */
   counting: boolean;
+  /** False when this load isn't a new visitor today: a reload, a second tab the same day, or a let-in device (Cat's,
+   *  a tester's). Its steps still count; only the visit doesn't (the waitlist review, Cat's C, 2026-11-10). */
+  countVisit?: boolean;
   now?: () => Date;
+}
+
+const VISIT_DAY_KEY = 'maison-trace-visit-day';
+
+/** Whether this load counts as a visit: once a day per browser, never on a let-in device. Keeps only today's date
+ *  (no id), so the scorecard's "visits that join" reads real visitors, not reloads, testers and test runs. */
+export function firstVisitToday(storage: Pick<Storage, 'getItem' | 'setItem'> | undefined, now = new Date()): boolean {
+  const today = now.toISOString().slice(0, 10);
+  try {
+    if (!storage) return true;
+    if (storage.getItem(ACCESS_KEY)) return false;
+    if (storage.getItem(VISIT_DAY_KEY) === today) return false;
+    storage.setItem(VISIT_DAY_KEY, today);
+    return true;
+  } catch {
+    return true;
+  }
 }
 
 /** The family and major version of a browser, and its system, from the user agent: "Safari 17 iOS". An iPad's Safari
@@ -114,7 +135,7 @@ export class Reporter {
   private seen = new Set<string>();
 
   constructor(private opts: Options) {
-    this.count('visit');
+    if (opts.countVisit !== false) this.count('visit');
   }
 
   /** Counts a step of the way, once per visit. The suffix is the garment it was for, or a sign-up's source. */
@@ -160,17 +181,21 @@ let reporter: Reporter | null = null;
 export function startReports(version: string) {
   if (reporter || typeof window === 'undefined') return;
   const nav = navigator as Navigator & { globalPrivacyControl?: boolean };
-  const source = rememberSource(window.location.search, (() => {
+  const store = (() => {
     try {
       return window.localStorage;
     } catch {
       return undefined;
     }
-  })());
+  })();
+  const source = rememberSource(window.location.search, store);
+  const countVisit = firstVisitToday(store);
   reporter = new Reporter({
     version,
     browser: browserFamily(nav.userAgent, nav.maxTouchPoints),
-    counting: !(nav.doNotTrack === '1' || nav.globalPrivacyControl === true),
+    // A browser driven by a test (our own checks and screenshots) isn't a visitor either.
+    counting: !(nav.doNotTrack === '1' || nav.globalPrivacyControl === true || nav.webdriver === true),
+    countVisit,
     send: (body) => {
       // The dev server has no functions: show what would go instead.
       if (import.meta.env.DEV) return console.info('[report]', JSON.parse(body)), true;
@@ -184,7 +209,7 @@ export function startReports(version: string) {
     },
   });
   // A visit that arrived by a tracked link is counted against its source too, so sign-ups per source have a base.
-  if (cleanSource(new URLSearchParams(window.location.search).get('src'))) reporter.count('visit', source);
+  if (countVisit && cleanSource(new URLSearchParams(window.location.search).get('src'))) reporter.count('visit', source);
   window.addEventListener('error', (e) => reporter?.crash(e.error ?? e.message, 'error'));
   window.addEventListener('unhandledrejection', (e) => reporter?.crash(e.reason, 'promise'));
   document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && reporter?.flush());

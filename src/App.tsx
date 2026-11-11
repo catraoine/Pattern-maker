@@ -283,7 +283,9 @@ export default function App() {
   }, [step]);
   // The loading screen plays when someone first opens the app, on the way into the welcome. People coming
   // back to their work go straight to it.
-  const [opening, setOpening] = useState(step === 'welcome' && !(restore && !gated));
+  // Strangers on the waitlist skip the loading screen: the Join box is there from the first second, not after about nine
+  // (the waitlist review, Cat's A + B1, 2026-11-10). Testers and Cat still get the full opening.
+  const [opening, setOpening] = useState(step === 'welcome' && !gated && !restore);
   useEffect(() => {
     if (restore && !gated) setStep(restore);
   // eslint-disable-next-line react-hooks/exhaustive-deps -- once on opening: back to the screen this tab was on

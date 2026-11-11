@@ -150,6 +150,21 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
   // Down, the waitlist is out of the way and the form takes Begin's room. Up, the form's canvas keeps that full height
   // and the hero shrinks over it, cropping the form from the bottom while the waitlist rises into the room.
   const curtainFrom = useRef(0);
+  // With no loading screen (strangers on the waitlist), the curtain is already up when the page first shows: the form
+  // keeps Begin's full height, cropped from the bottom, and the Join box sits under the words at once (Cat's A,
+  // 2026-11-10). Measured here, before the first paint, so the page never shows the curtain down.
+  const [atOnce, setAtOnce] = useState(false);
+  // No loading screen on the waitlist: the words are there from the start too, so nothing may move once shown.
+  const waitlistNow = useRef(!!waitlist && formStart !== 'wait').current;
+  useLayoutEffect(() => {
+    if (curtain !== 'down' || formStart === 'wait') return;
+    const el = hero.current;
+    if (!el) return setCurtain('off');
+    el.style.setProperty('--curtain-h', `${el.clientHeight}px`);
+    setAtOnce(true);
+    setCurtain('up');
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on the first paint
+  }, []);
   useEffect(() => {
     if (curtain !== 'down' || formStart === 'wait') return;
     const t = window.setTimeout(() => {
@@ -197,7 +212,7 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
   );
 
   return (
-    <div className={['welcome', formStart !== 'wait' && 'go', leaving && 'leaving', touring && 'pulling', waitlist && 'waitlist-page', waitlist && curtain !== 'off' && `curtain-${curtain}`].filter(Boolean).join(' ')}>
+    <div className={['welcome', formStart !== 'wait' && 'go', leaving && 'leaving', touring && 'pulling', waitlist && 'waitlist-page', waitlist && curtain !== 'off' && `curtain-${curtain}`, atOnce && 'curtain-now', waitlistNow && 'waitlist-now'].filter(Boolean).join(' ')}>
       <section className="card welcome-card" aria-labelledby="wtitle">
         {leaving && pulled}
         <div className="welcome-hero" ref={hero}>

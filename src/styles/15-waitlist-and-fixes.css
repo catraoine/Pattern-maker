@@ -121,6 +121,27 @@
     transform: translateY(28px);
   }
 }
+/* Strangers on the waitlist: the curtain is up from the first paint, so the Join box is simply there (Cat's A,
+   2026-11-10). The play button still waits for the form's lines, which take 2.6s from fresh (Cat, 2026-11-06). */
+.welcome.curtain-up.curtain-now .welcome-card > .stack.waitlist,
+.welcome.curtain-up.curtain-now .welcome-card > .fineprint {
+  animation: none;
+}
+.welcome.curtain-up.curtain-now .tour-play {
+  animation-delay: 2.6s;
+}
+.welcome.curtain-up.curtain-now .tour-play-ring,
+.welcome.curtain-up.curtain-now .tour-play-ring::after {
+  animation-delay: 3.1s;
+}
+/* On a computer the words sit beside the form, sized to fit: the subtitle's letters drawing in from wide would
+   resize both columns and slide the form across while people look. With no loading screen to hide that, the
+   subtitle only fades in (the waitlist review, 2026-11-10). */
+@media (min-width: 960px) {
+  .welcome.waitlist-now .welcome-card h1 .t-label {
+    animation-name: label-fade;
+  }
+}
 /* The play button shows up just after the waitlist has risen, not while the form is still drawing (Cat, 2026-11-06),
    and its blinks start from then. */
 .welcome.curtain-down .tour-play {
