@@ -192,11 +192,16 @@ export function lengthOn(s: Surface, a: V3, b: V3, out: V3, part: Part, opts: { 
   if (chain[chain.length - 1][0] !== L || chain[chain.length - 1][1] !== 0) chain.push([L, 0]);
   const line = even(chain, opts.step ?? 0.006);
   const n = line.length;
+  // Out is away from the middle of the hull. Where the tape turns right round (down the back of the seat on its way
+  // under, Nov 11) "out" is no longer the way the bulge faces, and the old rule laid it facing in, under the skin.
+  const straight = chain.length === 2;
+  const cx = h.reduce((m, q) => m + q[0], 0) / h.length, cy = h.reduce((m, q) => m + q[1], 0) / h.length;
   return toTape(line, a, e1, e2, (q, i) => {
     const p0 = line[Math.max(0, i - 1)], p1 = line[Math.min(n - 1, i + 1)];
     const t: V2 = [p1[0] - p0[0], p1[1] - p0[1]];
     let nn: V2 = [-t[1], t[0]];
-    if (nn[1] < 0 || (nn[1] === 0 && q[1] < 0)) nn = [-nn[0], -nn[1]];
+    const away = straight ? nn[1] < 0 || (nn[1] === 0 && q[1] < 0) : nn[0] * (q[0] - cx) + nn[1] * (q[1] - cy) < 0;
+    if (away) nn = [-nn[0], -nn[1]];
     return nn;
   }, opts.lift);
 }

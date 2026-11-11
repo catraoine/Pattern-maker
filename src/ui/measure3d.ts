@@ -253,13 +253,13 @@ export function formShot(id: string, surf: Surface, joints: Record<string, V3>, 
   const WY = extreme(-0.3, 0.45, -1);
   // Lower down the hull keeps growing as it takes in both thighs, so the hip is where the seat stands out furthest
   // (a hand's width out from the middle of the back), well above the crotch.
+  // The seat stays near its fullest over a few cm, and the hips below it keep widening: the low end of that stretch,
+  // round the middle of the seat rather than across its top (Nov 11, seen from the back).
   const hip = (() => {
-    let best = WY + 0.5, bz = Infinity;
-    for (let y = WY + 0.5; y <= crotchY - 0.25; y += 0.01) {
-      const z = along([0.25, y, -5], [0, 0, 1])?.[2] ?? Infinity;
-      if (z < bz) [bz, best] = [z, y];
-    }
-    return best;
+    const at: [number, number][] = [];
+    for (let y = WY + 0.5; y <= crotchY - 0.25; y += 0.01) at.push([y, along([0.25, y, -5], [0, 0, 1])?.[2] ?? Infinity]);
+    const bz = Math.min(...at.map((q) => q[1]));
+    return Math.max(...at.filter((q) => q[1] <= bz + 0.01).map((q) => q[0]));
   })();
   const nape = back(-1.47);
   // The base of the neck: the nape at the back, a little lower at the front.
@@ -359,7 +359,7 @@ export function formShot(id: string, surf: Surface, joints: Record<string, V3>, 
       return make(len(waistS(), side(c[1]), [1, 0, 0]), SIDE_TURN, { string: true });
     }
     case 'crotch_length':
-      return make(len(waistF(), waistB(), [0, 1, 0], 'body', 0.5), CROTCH_TURN, { string: true }, -0.6);
+      return make(len(waistF(), waistB(), [0, 1, 0], 'all', 0.5), CROTCH_TURN, { string: true }, -0.6);
     case 'nape_to_waist':
       return make(len(nape, waistB(), [0, 0, -1]), Math.PI, { string: true });
     case 'front_hps_to_waist': {
