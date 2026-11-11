@@ -22,7 +22,7 @@ const WHAT: Record<QualityProblem['check'], (piece: string) => string> = {
   inside: (p) => `the ${p} sinks into the form`,
   collar: () => "the collar stands away from the neck instead of lying flat",
   hem: () => "the hem doesn't hang level yet",
-  missing: (p) => `the ${p} goes missing from the turning view`,
+  missing: (p) => `the ${p} goes missing from the all round view`,
   crossed: (p) => `the ${p}'s folds pass through each other as it turns`,
   diagonal: () => 'a diagonal hem would show as a point at the centre',
 };
@@ -34,6 +34,6 @@ const WHAT: Record<QualityProblem['check'], (piece: string) => string> = {
 export function inTestingNote(problems: readonly QualityProblem[] | undefined, standIn: boolean, gaveUp: boolean): string {
   const shown = standIn ? 'so here is its drawing' : 'so here is its shape';
   const first = problems?.[0];
-  if (gaveUp || !first) return `This design is too new for the turning view: it couldn't be sewn on the form in time, ${shown}. Your pattern is not affected.`;
-  return `The turning view can't show this design well yet: ${WHAT[first.check](pieceWord(first.part))}, ${shown}. Your pattern is not affected.`;
+  if (gaveUp || !first) return `This design is too new for the all round view: it couldn't be sewn on the form in time, ${shown}. Your pattern is not affected.`;
+  return `The all round view can't show this design well yet: ${WHAT[first.check](pieceWord(first.part))}, ${shown}. Your pattern is not affected.`;
 }

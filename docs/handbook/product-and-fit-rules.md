@@ -58,7 +58,7 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    hem checked") and the disclaimer is small text. With no fabric picked the garment turns in pale calico
    (the How it works film keeps its lines).
 9. **All round falls back to the Front drawing** (Nov 2, eye check): a design that fails the drape score shows its
-   garment's Front drawing with "The turning view of this design is still in testing, so this is its drawing", never
+   garment's Front drawing with "The all round view of this design is still in testing, so this is its drawing", never
    the old shape preview (which lost drawn details and broke on circle skirts, halters and flutter sleeves). A
    side slit is drawn open on the wearer's left, as the pattern cuts it. A sleeve the pattern has but the drawing
    dropped fails the score ("missing"). Developers: `?sewn=all` shows the cloth even when the score fails, `?sewn=outer`
