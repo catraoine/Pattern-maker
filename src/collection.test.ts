@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { COLLECTION, lookFabric, lookFlat, lookPatch, lookValues } from './collection';
+import { COLLECTION, lookChoices, lookFabric, lookFlat, lookPatch, lookValues } from './collection';
 import { randomBody, rng } from './engine/randomBodies';
-import { EXAMPLE_VALUES, isComplete } from './measurements';
+import { EXAMPLE_BODY, EXAMPLE_VALUES, isComplete } from './measurements';
 
 describe('the Maison collection', () => {
   it('numbers its looks in order, with unique names', () => {
@@ -58,5 +58,13 @@ describe('the Maison collection', () => {
     const without = lookFlat(shirt, noArms)!;
     // Sleeves out at each side make it about as wide as when drawn with the arms; without them it is far narrower.
     expect(without.width).toBeGreaterThan(withArms.width * 0.9);
+  });
+  it("fits a trouser look's drawn length and leg to the wearer, and leaves the sample body's as drawn", () => {
+    const bermuda = COLLECTION.find((l) => l.id === 'gold-shorts')!;
+    expect(lookChoices(bermuda, EXAMPLE_BODY)).toEqual(bermuda.choices);
+    const tall = lookChoices(bermuda, { ...EXAMPLE_BODY, waist_to_knee: EXAMPLE_BODY.waist_to_knee! * 1.1, full_hip: EXAMPLE_BODY.full_hip! * 1.2 }) as { lengthCm: number; legCm: { knee: number; hem: number } };
+    const drawn = bermuda.choices as { lengthCm: number; legCm: { knee: number; hem: number } };
+    expect(tall.lengthCm).toBeCloseTo(drawn.lengthCm * 1.1, 0);
+    expect(tall.legCm.hem).toBeCloseTo(drawn.legCm.hem * 1.2, 0);
   });
 });

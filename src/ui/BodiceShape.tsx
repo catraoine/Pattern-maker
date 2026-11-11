@@ -286,7 +286,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
     const deepest = Math.max(draft.front.waistCentre.y, draft.back.waistCentre.y) + (hip ? dropRange(m, choices.length, choices.shirtCut).max : 0);
     const base = formFrame(m, body, deepest + 7, arms, cloth);
     return { half: Math.max(half, base.half), top: Math.min(-8, base.top), bottom: base.bottom };
-  }, [m, hip, choices.fit, choices.length, draft.front.waistCentre.y, draft.back.waistCentre.y, body, arms, cloth]);
+  }, [m, hip, choices.fit, choices.length, choices.shirtCut, draft.front.waistCentre.y, draft.back.waistCentre.y, body, arms, cloth]);
 
   const cx = frame.half;
   const k = (frame.bottom - frame.top) / 80; // handle and label size, in proportion to the sketch

@@ -312,7 +312,7 @@ const HOUSE_SHIRT_HIP_EASE = 16;
 
 /** A shaped shift's back dart: up to this wide each side, and never so wide that the dress is left with less than
  *  this much room round the waist. It skims; the front still hangs clean from the bust. */
-const SHIFT_BACK = { dart: 2, room: 12 };
+const SHIFT_BACK = { dart: 1.5, room: 12 };
 
 /** Drawn necklines flatter than this come to a point at the centre front, like a V. */
 export const POINTED_NECK = 0.2;
