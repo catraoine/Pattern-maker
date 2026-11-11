@@ -1062,8 +1062,8 @@ export function createRoundView(): RoundView | undefined {
       add(sweep({ at: (a, t) => T(leg * FORM_LEG_X, a, FORM_LEG(LEG_TOP + (FORM_FLOOR - LEG_TOP) * t), LEG_TOP + (FORM_FLOOR - LEG_TOP) * t), out: radial }, -Math.PI, Math.PI, 48, 60), legs, 0, 'leg', leg);
     }
 
-    if (o.draped) {
-      if (o.draped !== 'pending') buildDraped(o.draped, cloth, add, (style) => {
+    if (o.draped && o.draped !== 'pending') {
+      buildDraped(o.draped, cloth, add, (style) => {
         const l = new Lines(style, turning);
         lineSets.push(l);
         return l;

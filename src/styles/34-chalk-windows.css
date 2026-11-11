@@ -132,3 +132,15 @@ svg.stepdg .dg-cloth {
     animation: none;
   }
 }
+
+/* Watch it draft's caption on chalk (Cat's black bar, Nov 11): it kept the black ground while its words took the
+   window's dark ink, so it read as an empty black bar, and it sat over the Watch it draft link. It takes the chalk
+   ground with dark ink, and sits just above the link. */
+section[aria-label='Preview'] > .preview .draft-caption {
+  background: var(--chalk);
+  border-color: var(--ink);
+  color: var(--ink);
+}
+section[aria-label='Preview'] > .preview:has(.watch-draft) .draft-caption {
+  bottom: 52px;
+}
