@@ -159,7 +159,9 @@ export function depthShare(y: number, front: boolean): number {
 }
 
 /** Where each girth belongs on the body: bust where it stands furthest forward above the waist (the apex), waist the
- *  narrowest, hip the widest below. */
+ *  narrowest, hip where the seat stands furthest back below it. (Not the widest below the waist: the torso's sides keep
+ *  widening down to where the legs join, so the widest was its bottom edge, 1.3, and the hip tape sat at the crotch,
+ *  not round the seat at about 0.85; found by the 3D measuring tutorial, Nov 10, 2026.) */
 export function bodyLandmarks(): Record<'full_bust' | 'waist' | 'full_hip', number> {
   const find = (a: number, b: number, of: (y: number) => number, better: (r: number, best: number) => boolean) => {
     let at = a;
@@ -169,6 +171,6 @@ export function bodyLandmarks(): Record<'full_bust' | 'waist' | 'full_hip', numb
   return {
     full_bust: find(-1.1, -0.2, (y) => reach(bodyHalf(y), 0, y), (r, b) => r > b),
     waist: find(-0.3, 0.5, bodyHalf, (r, b) => r < b),
-    full_hip: find(0.4, 1.3, bodyHalf, (r, b) => r > b),
+    full_hip: find(0.4, 1.3, (y) => reach(bodyHalf(y), Math.PI, y), (r, b) => r > b),
   };
 }
