@@ -8,8 +8,8 @@ test('the Maison collection: open it from styling, draw every look, make one', a
   await expect(main.getByRole('heading', { level: 1, name: 'The collection' })).toBeVisible();
   // Every look is drawn flat, front and back.
   const looks = main.getByRole('listitem');
-  await expect(looks).toHaveCount(8);
-  await expect(main.getByRole('img', { name: /Technical flat/ })).toHaveCount(8);
+  await expect(looks).toHaveCount(9);
+  await expect(main.getByRole('img', { name: /Technical flat/ })).toHaveCount(9);
   // The House shows one season at a time.
   await expect(main.getByText('SS27 · Spring Summer 2027')).toBeVisible();
 
@@ -59,4 +59,19 @@ test('the collection: the next drop stays hidden until it has a piece, and the A
   await expect(records.filter({ hasText: 'Tailleur' })).toContainText('Maison Tracé, AW26');
   await expect(main.getByRole('heading', { name: 'Tell me when the Archive opens' })).toBeVisible();
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/archive-${test.info().project.name}.png`, fullPage: true });
+});
+
+test('the Chocolate Barrel Trouser: made low on the hip with two pleats, in chocolate sateen', async ({ page }) => {
+  await startWithExample(page);
+  const main = page.getByRole('main');
+  await openLooks(page);
+  await main.getByRole('button', { name: 'Start from the Maison collection' }).click();
+  const look = main.getByRole('listitem').filter({ has: page.getByRole('heading', { name: 'Chocolate Barrel Trouser' }) });
+  await expect(look.getByRole('img', { name: /Technical flat/ })).toBeVisible();
+  if (process.env.SHOTS) await look.screenshot({ path: `${process.env.SHOTS}/chocolate-barrel-look-${test.info().project.name}.png` });
+  await look.getByRole('button', { name: 'Make this look' }).click();
+  await expectStyle(page, 'Trousers');
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('pattern-maker:skirt') ?? '{}'));
+  expect(saved.finish?.fabric).toMatchObject({ fibre: 'cotton', colour: '#3d2418', drape: 'crisp' });
+  expect(saved.trousers).toMatchObject({ leg: 'barrel', rise: 'low', pleats: 'double', loops: 'loops', length: 'full' });
 });
