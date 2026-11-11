@@ -163,10 +163,12 @@
   width: 44px;
   height: 44px;
   padding: 0;
-  border: 1px solid color-mix(in srgb, var(--gild) 50%, transparent);
+  /* Champagne written out, not var(--gild): the chalk window sets --gild to dark ink inside the preview, which left
+     this button dark grey on the black around the enlarged window (Cat, Nov 11: "X button too dark to see"). */
+  border: 1px solid #d9c49b;
   border-radius: 50%;
   background: var(--paper);
-  color: var(--gild);
+  color: #d9c49b;
 }
 .style-pin > section.live-big .preview-corner > .enlarge svg {
   display: block;
