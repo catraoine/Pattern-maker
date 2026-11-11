@@ -83,7 +83,7 @@ test('back on the enlarged drawing makes it smaller and stays on Style', async (
   await measurements(page);
 });
 
-test('after a reload, back from the welcome leaves rather than reopening old pages', async ({ page, consoleErrors }) => {
+test('after a reload mid-measuring, back climbs to the welcome and then leaves', async ({ page, consoleErrors }) => {
   // Leaving for a blank page, the test's own storage setup can't run there.
   consoleErrors.allow(/localStorage/);
   await openFresh(page);
@@ -93,6 +93,9 @@ test('after a reload, back from the welcome leaves rather than reopening old pag
   await main(page).getByRole('button', { name: 'Next' }).click();
   await page.reload();
   await skipLoading(page);
+  // The reload opens on the page still to take (tester journey, Nov 11), not the welcome.
+  await expect(h1(page, 'Your bust')).toBeVisible();
+  await page.goBack();
   await expect(h1(page, /sewing patterns for the piece/i)).toBeVisible();
   await page.goBack();
   await expect.poll(() => page.url()).not.toContain('localhost');

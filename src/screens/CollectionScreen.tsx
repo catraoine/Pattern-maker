@@ -15,6 +15,8 @@ interface Props {
   values: MeasurementValues;
   onMake: (look: HouseLook) => void;
   onBack: () => void;
+  /** The back link's words: back to styling, or just Back when opened from the list of what to make. */
+  backLabel?: string;
 }
 
 type Shelf = 'house' | 'archive';
@@ -148,7 +150,7 @@ function Record({ cut, values, onMake }: { cut: ArchiveCut; values: MeasurementV
 }
 
 /** The Maison collection, laid out like a lookbook: each house look drawn flat to the sewist's measurements. */
-export function CollectionScreen({ values, onMake, onBack }: Props) {
+export function CollectionScreen({ values, onMake, onBack, backLabel = 'Back to styling' }: Props) {
   const [shelf, setShelf] = useState<Shelf>('house');
   const looks = useMemo(
     () =>
@@ -180,7 +182,7 @@ export function CollectionScreen({ values, onMake, onBack }: Props) {
           ))}
         </div>
         <button type="button" className="link" onClick={onBack}>
-          Back to styling
+          {backLabel}
         </button>
       </header>
       {shelf === 'house' ? (

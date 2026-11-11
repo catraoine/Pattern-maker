@@ -936,8 +936,9 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           <ActiveTab.Provider value={active}>
             <Sections.Provider value={sections}>
             <TabPanel tab={LOOKS}>
-              {looks ?? <PhotoEntry onPhoto={onPhoto} photo={photo} />}
+              {/* The house looks first: the fit testers sew one of them (tester journey, Nov 11). */}
               <CollectionEntry />
+              {looks ?? <PhotoEntry onPhoto={onPhoto} photo={photo} />}
             </TabPanel>
             {options}
             {mode === 'all' ? (

@@ -49,6 +49,8 @@ export const ladder = (to: View, trail: View[]): View[] => {
   // there, not to the welcome (journey review, Nov 10: "Back returns to where you came from").
   const from = trail[trail.length - 1];
   if (to === 'measure' && (from === 'style' || from === 'export')) return [...trail, 'measure'];
+  // The collection opened from "What would you like to make?" hangs off it, so back returns to the list (tester journey, Nov 11).
+  if (to === 'collection' && from === 'steps') return [...trail, 'collection'];
   const rung = RUNGS[to];
   if (rung) return rung;
   const parent = HANGS_OFF[to];

@@ -20,6 +20,7 @@ import { Mode, shows } from '../mode';
 import { stillInTesting } from '../launch';
 import { GARMENTS, GARMENT_NAME } from '../measureFlow';
 import { InterestCard } from '../ui/InterestCard';
+import { TesterReport } from '../ui/TesterReport';
 import { YourPlan } from '../ui/PlanPrompts';
 import { savedLimit } from '../plans';
 import { findByCode, readCode } from '../labels';
@@ -512,6 +513,7 @@ function PatternRow({
       )}
       {fitting && (
         <>
+        {tester && <TesterReport lead="These notes stay with your saved pattern." />}
         <FitForm
           choices={pattern.choices}
           initial={pattern.fit}
@@ -528,7 +530,8 @@ function PatternRow({
               : undefined
           }
         />
-        <InterestCard offer="fitcheck" inset pattern={pattern.name} />
+        {/* A paid fit check would muddle a fit tester's report: not offered to them (tester journey, Nov 11). */}
+        {!tester && <InterestCard offer="fitcheck" inset pattern={pattern.name} />}
         </>
       )}
     </li>

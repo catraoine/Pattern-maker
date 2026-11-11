@@ -1,0 +1,55 @@
+/* ---- Tester journey fixes (Nov 11, 2026). ---- */
+
+/* The garment menu on a phone: it hung from the name's right edge, so on a phone it ran past the left side of the
+   screen and cut off Start from a look, Skirt, Dress and Bodice. On a phone it opens from the name's left edge. */
+@media (max-width: 760px) {
+  .drop.garment-drop .drop-list {
+    left: 0;
+    right: auto;
+    max-width: calc(100vw - 32px);
+  }
+}
+
+/* "In testing" on the collection's title: the same small tag as elsewhere, not a tall empty box. */
+.collection-head .testing-tag {
+  display: inline-block;
+  margin: 0 0 0 10px;
+  padding: 2px 8px;
+  min-height: 0;
+  line-height: 1.4;
+  vertical-align: middle;
+  border: 1px solid var(--line-strong);
+  background: none;
+}
+
+/* "What would you like to make?": the collection's looks first, across both columns. */
+.make-grid .make-looks {
+  grid-column: 1 / -1;
+  min-height: 60px;
+  border-color: var(--gild);
+  font-family: var(--mono);
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
+  text-transform: uppercase;
+  color: var(--gild);
+}
+
+/* A fit tester's way to the report form. */
+.tester-report {
+  margin: 12px 0;
+}
+/* Its link reads like the app's other quiet links (Send to my computer), not a browser-blue one. */
+.tester-report a.link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  align-self: flex-start;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

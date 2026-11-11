@@ -17,6 +17,8 @@ import { MAX_IDEA_CHARS, type IdeaReading, type IdeaResponse, type PhotoError } 
 import { testerHeaders } from '../ui/TesterCode';
 
 interface Props {
+  /** Opens the Maison collection from "What would you like to make?": the fit testers sew a house look (Nov 11). */
+  onLooks?: () => void;
   /** Sent with an idea to read, for a fit tester's larger daily allowance. */
   testerCode?: string;
   garment: Garment;
@@ -56,7 +58,7 @@ interface Props {
   onNews?: () => void;
 }
 
-export type StepsStart = { kind: 'choose' } | { kind: 'form' } | { kind: 'for'; garment: Garment } | { kind: 'redo'; garment: Garment; ids: MeasurementId[] };
+export type StepsStart = { kind: 'resume' } | { kind: 'choose' } | { kind: 'form' } | { kind: 'for'; garment: Garment } | { kind: 'redo'; garment: Garment; ids: MeasurementId[] };
 
 type Page =
   | { kind: 'intro' }
@@ -98,19 +100,28 @@ const aOrAn = (name: string) => (/(s|wear|lingerie)$/i.test(name) && !/dress$/i.
 // The first page asks who you are designing for, since "Someone else" words every page for the person holding the
 // tape and asks their name first (Cat's pick V2, 2026-10-17). A quiet "Measure later" in capitals sits under the
 // button wherever measuring can be skipped.
-export function MeasureStepsScreen({ testerCode, garment: current, unit, values, onUnit, onValues, helped = [], weight, onWeight, onDone, start, onSomeoneElse, theirs, onSkip, onLater, form = 'womenswear', onForm, onIdea, onPhoto, onMade, onNews }: Props) {
+export function MeasureStepsScreen({ testerCode, garment: current, unit, values, onUnit, onValues, helped = [], weight, onWeight, onDone, start, onSomeoneElse, theirs, onSkip, onLater, form = 'womenswear', onForm, onIdea, onPhoto, onLooks, onMade, onNews }: Props) {
   const aimed = start?.kind === 'for' ? start.garment : undefined;
   // Each page is a history entry, so the header's back and the phone's back go one page back.
   const [page, setPage] = usePageHistory<Page>(() => {
     if (start?.kind === 'redo') return { kind: 'extra', garment: start.garment, ids: start.ids, at: 0, redo: true };
     if (start?.kind === 'form') return { kind: 'form' };
+    // A reload, or the phone dropping the tab mid-measuring: the page still to take, not the first page again
+    // (tester journey, Nov 11). Every number typed so far is already kept.
+    if (start?.kind === 'resume') {
+      if (baseDone(values)) return { kind: 'check' };
+      if (begun(values)) return { kind: 'base', at: Math.max(0, BASE.findIndex((m) => values[m] === undefined)) };
+      return { kind: 'intro' };
+    }
     // Choosing another garment, or measuring for one, never goes back to the first-visit page once anything is
     // measured: straight to the garments, or to the pages that garment still needs (Cat's A, 2026-10-24).
     if (!baseDone(values) && !(begun(values) && (start?.kind === 'choose' || aimed))) return { kind: 'intro' };
     if (start?.kind === 'choose') return { kind: 'choose' };
     const ids = aimed ? neededFor(aimed, values, form).map((f) => f.id) : [];
     return ids.length ? { kind: 'extra', garment: aimed!, ids, at: 0 } : { kind: 'check' };
-  }, (s) => typeof s === 'object' && s !== null && 'kind' in s);
+    // A remembered first page is stale once the base measurements are in (back from the collection, Nov 11):
+    // open as if afresh, on the list or the check.
+  }, (s) => typeof s === 'object' && s !== null && 'kind' in s && !((s as Page).kind === 'intro' && baseDone(values)));
   // Opened on the check because the measurements were taken on an earlier visit: say so.
   // Not when stepping back into it during this visit: only on opening it afresh.
   const [returning] = useState(() => !start && baseDone(values) && (window.history.state as { sub?: unknown } | null)?.sub === undefined);
@@ -343,6 +354,11 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
       // was too small to read above the list).
       <Shell title="What would you like to make?" centred>
         <div className="make-grid" role="group" aria-labelledby="stitle">
+          {onLooks && (
+            <button type="button" className="make-looks" onClick={onLooks}>
+              Start from a look ›
+            </button>
+          )}
           {[...GARMENTS, 'other' as const].map((g) => (
             <button key={g} type="button" aria-current={picked === g || undefined} className={picked === g ? 'on' : ''} onClick={() => tapToMake(g)}>
               {g === 'other' ? 'Something else' : cap(GARMENT_NAME[g])}

@@ -1,4 +1,5 @@
 import { DropMenu } from '../ui/DropMenu';
+import { TesterReport } from '../ui/TesterReport';
 import { useTablet, useWide } from '../ui/StyleLayout';
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { SendToDevice } from '../ui/SendToDevice';
@@ -77,6 +78,8 @@ interface Props {
   onKeep?: () => void;
   /** After printing: "How did it fit?" opens the fit notes for this pattern (saving it first if need be). */
   onFitNotes?: () => void;
+  /** A fit tester's device: after printing, the tester form instead of the app's own fit notes. */
+  tester?: boolean;
   /** The fit already reported for this pattern, in a line, if there is one. */
   fitNote?: string;
   /** Corrections from toile fittings, and their notes, already in the pattern. */
@@ -134,7 +137,7 @@ const printedDate = () => new Date().toLocaleDateString('en-GB', { day: 'numeric
 
 
 
-export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPaper, onPaper, sendLink, profile, title, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, onFitNotes, fitNote, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label }: Props) {
+export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPaper, onPaper, sendLink, profile, title, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, onFitNotes, tester, fitNote, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label }: Props) {
   const can = (t: ProTool) => shows(mode, t);
   /** Knits fit by their stretch: tested in a spare knit, not a calico toile. */
   const knit = isKnit(garment);
@@ -398,7 +401,8 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
                 </p>
               )}
             </div>
-            {onFitNotes && !imported && (printed || fitNote) && (
+            {tester && !imported && (printed || fitNote) && <TesterReport />}
+            {onFitNotes && !tester && !imported && (printed || fitNote) && (
               <div className="stack fit-ask" role="status">
                 {fitNote ? (
                   <p className="small">Fit reported: {fitNote}</p>

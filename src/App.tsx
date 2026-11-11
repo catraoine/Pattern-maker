@@ -84,7 +84,7 @@ import { NEEDS_MEASUREMENTS, PARENT, PLACE_KEY, SIDE, STEPS, STEP_OF, ladder, ty
 
 
 /** The screens a reload may open again. */
-const RESTORABLE: View[] = ['measure', 'style', 'export', 'account'];
+const RESTORABLE: View[] = ['measure', 'steps', 'style', 'export', 'account', 'collection'];
 
 const MeasureScreen = screen(() => import('./screens/MeasureScreen').then((m) => m.MeasureScreen));
 const StyleScreen = screen(() => import('./screens/StyleScreen').then((m) => m.StyleScreen));
@@ -504,7 +504,10 @@ export default function App() {
   }, [step]);
 
   // Where the guided measuring opens: the list of what to make, the next measurement a garment needs, or one to redo.
-  const [stepsStart, setStepsStart] = useState<{ at: number; start?: StepsStart }>({ at: 0 });
+  // Where the collection was opened from: Style, or the list of what to make (tester journey, Nov 11).
+  const [lookFrom, setLookFrom] = useState<'style' | 'steps'>('style');
+  // A reload while measuring opens on the page still to take (tester journey, Nov 11).
+  const [stepsStart, setStepsStart] = useState<{ at: number; start?: StepsStart }>(() => ({ at: 0, start: restore === 'steps' ? { kind: 'resume' } : undefined }));
   const openSteps = (start?: StepsStart) => {
     setStepsStart({ at: stepsStart.at + 1, start });
     // Opened again from one of its own pages (a described idea, say): a fresh start on top, so back returns to that page.
@@ -809,6 +812,13 @@ export default function App() {
               }}
               onIdea={(c) => styleChoices(c)}
               onPhoto={() => setStep('photo')}
+              onLooks={() => {
+                // Back from the collection lands on the list again.
+                setStepsStart({ at: stepsStart.at + 1, start: { kind: 'choose' } });
+                setLookFrom('steps');
+                setStep('collection');
+                window.scrollTo(0, 0);
+              }}
               onMade={() => openLegal('made')}
               onNews={() => openLegal('news')}
               onLater={() => setStep('welcome')}
@@ -927,7 +937,8 @@ export default function App() {
           {step === 'collection' && (
             <CollectionScreen
               values={values}
-              onBack={() => setStep('style')}
+              onBack={lookFrom === 'steps' ? back : () => setStep('style')}
+              backLabel={lookFrom === 'steps' ? 'Back' : undefined}
               onMake={(look) => {
                 const { garment: g, ...next } = lookPatch(look);
                 // The look comes in the cloth it's named for, so the drawing and the Fabric step open in it.
@@ -941,7 +952,7 @@ export default function App() {
           {/* On Style it sits under the garment's name (Cat's K3, 2026-10-28), so StyleLayout draws it. */}
           {step === 'export' && exampleTag}
           <ExampleTag.Provider value={step === 'style' ? exampleTag : undefined}>
-          <CollectionLink.Provider value={step === 'style' ? () => { setStep('collection'); window.scrollTo(0, 0); } : undefined}>
+          <CollectionLink.Provider value={step === 'style' ? () => { setLookFrom('style'); setStep('collection'); window.scrollTo(0, 0); } : undefined}>
           {/* Switched in place from the title's drop-down: no new step in history, so ← still leaves the style screen. */}
           <GarmentPick.Provider value={step === 'style' ? { garment, onSwitch: (g) => (ready(measured, saved.unit, g, form) ? setSaved({ ...saved, garment: g }) : switchGarment(g, {}, 'style')) } : undefined}>
           {step === 'style' && photoSource && photoFor === garment && (
@@ -1159,6 +1170,7 @@ export default function App() {
               }}
               onKeep={saveState === 'can' ? () => setAccount(savePattern(account, current, describePattern(current), person.id)) : undefined}
               onFitNotes={saveState === 'full' && !savedNow ? undefined : openFitNotes}
+              tester={!!account.testerCode}
               fitNote={savedNow?.fit ? fitSummary(savedNow.fit, savedNow.choices) : undefined}
               garment={garment}
               profile={profile}

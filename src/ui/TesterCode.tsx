@@ -1,3 +1,4 @@
+import { TesterReport } from './TesterReport';
 import { useState } from 'react';
 import { TESTER_CAPS } from '../photo/limit';
 import { CODE_MESSAGE, checkCode } from '../access';
@@ -31,6 +32,7 @@ export function TesterCode({ code, onCode }: { code?: string; onCode: (code: str
     return (
       <div className="stack">
         <p className="small">Tester code on. You can read {TESTER_CAPS.visitor} photos a day while testing. Thank you for testing.</p>
+        <TesterReport lead="Sewn your toile?" />
         <button type="button" className="link" onClick={() => onCode(undefined)}>
           Remove the code
         </button>
