@@ -349,7 +349,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
     >
       <section className="card numbered" aria-labelledby="opts">
         {BODICE_GROUPS.filter((g) => shown(g.id)).map((g) => (
-          <Group key={g.id} label={g.label} tab={PRO_GROUPS.includes(g.id) ? PRO : undefined}>
+          <Group key={g.id} label={g.label} tab={PRO_GROUPS.includes(g.id) ? PRO : undefined} shaped={handShaped(choices, g.id) ? g.options.find(([id]) => id === valueOf(g.id))?.[1] : undefined}>
             <div className={chipsClass('bodice', g.id)}>
               {g.options.map(([id, label]) => (
                 <button

@@ -128,7 +128,9 @@ const steadyNow = () => {
  * tab of its own, the legend repeats the tab's name, so it is only read out, not shown. On a shared step only one
  * group is open at a time; the others fold to their name and their pick, and a tap on that line opens it.
  */
-export function Group({ label, tab, children, className }: { label: string; tab?: string; children: ReactNode; className?: string }) {
+/** `shaped` names the choice a dragged or drawn value tunes (an oversized top given its own ease): no chip is pressed
+ *  then, since tapping one would let go of the hand-shaped value, but the folded line still says what the piece is. */
+export function Group({ label, tab, children, className, shaped }: { label: string; tab?: string; children: ReactNode; className?: string; shaped?: string }) {
   const active = useContext(ActiveTab);
   const own = useContext(Sections);
   const fold = useContext(Fold);
@@ -141,7 +143,7 @@ export function Group({ label, tab, children, className }: { label: string; tab?
   // eslint-disable-next-line react-hooks/exhaustive-deps -- reads the page after every render; the check stops a loop
   useLayoutEffect(() => {
     const el = ref.current;
-    const text = el ? pickIn(el) : '';
+    const text = (el ? pickIn(el) : '') || (shaped ?? '');
     if (text !== pick) setPick(text);
   });
   const folds = !!fold && !solo && t !== PRO;

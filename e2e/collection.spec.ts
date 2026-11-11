@@ -62,6 +62,9 @@ test('the Leopard Shirt Dress: made in the house print, with its long-point coll
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('pattern-maker:skirt') ?? '{}'));
   expect(saved.finish?.fabric).toMatchObject({ fibre: 'cotton', print: 'oneway', photo: { id: 'house-leopard-python' } });
   expect(saved.bodice).toMatchObject({ collar: 'shirt', shirtCut: 'house', dropCm: 47 });
+  // Its own ease (36 cm) leaves no Fit chip pressed, but the folded Fit line still names the cut (bug hunt, Nov 11).
+  const fit = main.locator('fieldset.group[data-label="Fit"]');
+  if (await fit.locator('.fold-head').count()) await expect(fit.locator('.fold-pick')).toHaveText('Oversized');
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/leopard-style-${test.info().project.name}.png`, fullPage: true });
 });
 
