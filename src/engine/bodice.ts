@@ -1118,7 +1118,8 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   // right out: the next standard zip up, shortened to the hem, or the longest there is on a top longer than that.
   const waistRing = 2 * (backW + frontW - 2 * sideSupp - dartB - dartF);
   const cbRun = backHem + (hemShape?.back[0] ?? 0) - bd - key;
-  const tight = !s.dressHem && waistRing < m.full_bust + PULL_ON_CM;
+  // (A hem round a hip smaller than the bust is as closed a ring as the waist.)
+  const tight = !s.dressHem && Math.min(waistRing, below ? hemFull : Infinity) < m.full_bust + PULL_ON_CM;
   const zipThrough = tight && cbRun <= ZIPS[ZIPS.length - 1] + 0.5;
   const zipCm = zipThrough ? (ZIPS.find((z) => z >= cbRun - 0.5) ?? ZIPS[ZIPS.length - 1]) : zipFor(tight ? cbRun - 2 : wb - bd - key + (s.dressHem ? DRESS_ZIP_BELOW : below ? 0 : -2));
   const zipEnd = p(0, bd + key + (zipThrough ? cbRun : zipCm));

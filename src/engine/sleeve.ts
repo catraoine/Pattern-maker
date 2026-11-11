@@ -75,6 +75,8 @@ export const SLEEVE_EASE: Record<BodiceFit, { bicep: number; crown: number }> = 
 
 /** Share of the crown ease that goes into the back half. */
 const BACK_SHARE = 0.55;
+/** A full bishop sleeve's hem is cut no more than this many times the cuff or band it is gathered into. */
+const FULL_BISHOP_GATHER = 5;
 /** Width of a puff or bishop sleeve's band when finished, in cm. */
 export const BAND_CM = 3;
 /** How far a cap sleeve reaches below the underarm, in cm. */
@@ -350,7 +352,9 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
   const cuffHem = (plain: number) => (!cuff || cuff.kind === 'ruffle' ? plain : cuff.kind === 'elastic' ? Math.max(plain, hand + 4) : Math.max(plain, cuff.round + 6));
   const hemAt = (length: Named) => {
     if (shape === 'puff' || cap_ || flutter) return w;
-    if (shape === 'bishop') return w * (full ? 2.3 : 1.5);
+    // A full bishop on a full arm and a small wrist came to nearly seven times its cuff, too much to gather in evenly
+    // (Fable cut review, 2026-11-11): its hem is at most FULL_BISHOP_GATHER times what it is gathered into.
+    if (shape === 'bishop') return full ? Math.min(w * 2.3, Math.max(w * 1.5, FULL_BISHOP_GATHER * (cuff && cuff.kind !== 'ruffle' ? cuff.round : hand + 1))) : w * 1.5;
     if (s.outer && length === 'long') return shape === 'fitted' ? Math.max(wrist + (s.outer === 'coat' ? 14 : 11), hand + 5) : Math.max(w * 0.85, hand + 8);
     if (shape === 'fitted') {
       // A fitted long sleeve is woven (a knit tee's sleeve is drafted straight), so without an
