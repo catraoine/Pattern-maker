@@ -234,7 +234,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
         body={formWidth(draft, m)}
         m={m}
         legs={false}
-        bottom={Math.max(landmarks(draft).waistY + (hip ? dropRange(m, choices.length).max : 0) + 6, drawArm ? drawArm.wristY + 3 : 0)}
+        bottom={Math.max(landmarks(draft).waistY + (hip ? dropRange(m, choices.length, choices.shirtCut).max : 0) + 6, drawArm ? drawArm.wristY + 3 : 0)}
         arms={drawArm}
         // The bodice as cloth on the form, a calico toile until a fabric is picked, so each line visibly changes it.
         cloth={flat ? wornShapes(flat) : undefined}

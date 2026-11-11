@@ -170,7 +170,7 @@ const withDarts = (c: BodiceChoices): BodiceChoices => (DARTS_FOR_FIT[c.fit].inc
 export function dragDrop(m: BodiceMeasurements, c: BodiceChoices, cm: number): BodiceChoices {
   const { dropCm: _d, ...rest } = c;
   if (cm < DROP_MIN / 2) return { ...rest, length: 'waist' };
-  const range = dropRange(m, c.length);
+  const range = dropRange(m, c.length, c.shirtCut);
   const v = Math.min(range.max, Math.max(range.min, cm));
   const WH = m.waist_to_hip ?? 0;
   if (Math.abs(v - WH / 2) < 1.5) return { ...rest, length: 'high_hip' };
@@ -283,7 +283,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
   const frame = useMemo(() => {
     // Room at the sides for the arms.
     const half = SQUEEZE * ((m.full_bust + (choices.fit === 'oversized' ? OVERSIZED.range.max : BUST_EASE_RANGE.max)) / 4 + 6 + 0.2 * (m.armscye ?? 0.43 * m.full_bust));
-    const deepest = Math.max(draft.front.waistCentre.y, draft.back.waistCentre.y) + (hip ? dropRange(m, choices.length).max : 0);
+    const deepest = Math.max(draft.front.waistCentre.y, draft.back.waistCentre.y) + (hip ? dropRange(m, choices.length, choices.shirtCut).max : 0);
     const base = formFrame(m, body, deepest + 7, arms, cloth);
     return { half: Math.max(half, base.half), top: Math.min(-8, base.top), bottom: base.bottom };
   }, [m, hip, choices.fit, choices.length, draft.front.waistCentre.y, draft.back.waistCentre.y, body, arms, cloth]);

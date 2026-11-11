@@ -294,6 +294,18 @@ const straightCut = (f: BodiceFit) => f === 'boxy' || f === 'oversized';
 
 /** How far past the hip a long top runs, in cm: over the seat, like a shirt's tail. */
 export const LONG_BELOW_HIP = 14;
+/** The house shirt cut as a dress goes with the leg, not the hip's depth: its centre front may reach this share of the
+ *  waist to knee (the sample body's 39.5 cm). Capped by the hip's depth alone it ended 33 to 44 cm below the waist, and
+ *  its scooped sides at or above the crotch on a short waist to hip (Fable cut review, 2026-11-11). */
+const HOUSE_SHIRT_TO_KNEE = 0.637;
+/** And never so short that its scooped sides (7.5 cm above the centre front) ride up to the crotch: the centre front
+ *  clears the crotch level by this much. A top's wearer gives no crotch depth, so it is judged as the trouser block's
+ *  random bodies have it: the deeper of the hip's depth plus 5.5 and 0.43 of the waist to knee, a little more on a full hip. */
+const HOUSE_SHIRT_CLEAR = 12.5;
+const crotchGuess = (m: { waist_to_hip?: number; waist_to_knee: number; full_hip?: number }) =>
+  Math.min(Math.max((m.waist_to_hip ?? 0) + 5.5, 0.43 * m.waist_to_knee + Math.max(0, (m.full_hip ?? 90) - 90) * 0.05), m.waist_to_knee - 14);
+/** The house shirt hangs straight from the bust: its hem is let out only for a hip within this much of it. */
+const HOUSE_SHIRT_HIP_EASE = 16;
 
 /** Drawn necklines flatter than this come to a point at the centre front, like a V. */
 export const POINTED_NECK = 0.2;
@@ -317,12 +329,16 @@ export const DROP_MIN = 6;
 
 /** How low a dragged hem can go: a little past the full hip, or past the long length on a long top (picking
  * Long lets the hem down that far, so the shorter tops' drawings keep their size). */
-export const dropRange = (m: { waist_to_hip?: number }, length?: BodiceLength) => ({ min: DROP_MIN, max: (m.waist_to_hip ?? DROP_MIN) + 4 + (length === 'long' ? LONG_BELOW_HIP : 0) });
+export const dropRange = (m: { waist_to_hip?: number; waist_to_knee?: number; full_hip?: number }, length?: BodiceLength, shirtCut?: ShirtCut) => {
+  const max = (m.waist_to_hip ?? DROP_MIN) + 4 + (length === 'long' ? LONG_BELOW_HIP : 0);
+  if (shirtCut !== 'house' || length !== 'long' || !m.waist_to_knee) return { min: DROP_MIN, max };
+  return { min: DROP_MIN, max: Math.max(max, HOUSE_SHIRT_TO_KNEE * m.waist_to_knee, crotchGuess({ ...m, waist_to_knee: m.waist_to_knee }) + HOUSE_SHIRT_CLEAR) };
+};
 
 /** How far below the waist the hem sits, in cm: a dragged drop, or the named length's. */
-export function hemDrop(m: { waist_to_hip?: number }, s: { length: BodiceLength; dropCm?: number }): number {
+export function hemDrop(m: { waist_to_hip?: number; waist_to_knee?: number; full_hip?: number }, s: { length: BodiceLength; dropCm?: number; shirtCut?: ShirtCut }): number {
   const WH = m.waist_to_hip ?? 0;
-  if (s.dropCm !== undefined) return s.dropCm < DROP_MIN / 2 ? 0 : Math.min(dropRange(m, s.length).max, Math.max(DROP_MIN, s.dropCm));
+  if (s.dropCm !== undefined) return s.dropCm < DROP_MIN / 2 ? 0 : Math.min(dropRange(m, s.length, s.shirtCut).max, Math.max(DROP_MIN, s.dropCm));
   return s.length === 'long' ? WH + LONG_BELOW_HIP : s.length === 'hip' ? WH : s.length === 'high_hip' ? WH / 2 : 0;
 }
 
@@ -637,7 +653,7 @@ function finish(d: BodiceDraft, s: BodiceStyle, m: BodiceMeasurements & { arm_le
   if (closure === 'front_buttons') {
     const cfNeck = bf.outline.start;
     const foot = Math.max(...bf.outline.points(4).filter((q) => Math.abs(q.x) < 1e-6).map((q) => q.y));
-    buttons = buttonPlaces(cfNeck.y, foot, isBandCollar(collar) || collar === 'shirt', !needsHip(s.length), d.front.apex.y);
+    buttons = buttonPlaces(cfNeck.y, foot, isBandCollar(collar) || collar === 'shirt', !needsHip(s.length), d.front.apex.y, s.shirtCut === 'house');
     pieces = pieces.map((pc) => (pc.fold && /front/i.test(pc.name) ? openFront(pc, buttons) : /back/i.test(pc.name) ? backOnFold(pc) : pc));
     const openBlock = openFront(bf);
     const foldBlock = backOnFold(bb);
@@ -720,7 +736,9 @@ function draftBlock(m: BodiceMeasurements, style: BodiceStyle): BodiceDraft {
   const pin = result.armholePin ?? 0;
   // A slightly roomy armhole is harmless (it happens on big frames with a lot of ease); a tight one is not.
   // A boxy shoulder squared and carried on past the body's grows the armhole above the underarm, by design.
-  const grown = s.fit === 'boxy' ? 2 * (BOXY.square + BOXY.extend) : 0;
+  // An oversized body with more ease than the armhole takes a share of (the house shirt's 36 cm) is wider across, and
+  // its armhole longer with it, by design too.
+  const grown = s.fit === 'boxy' ? 2 * (BOXY.square + BOXY.extend) : s.fit === 'oversized' ? 0.5 * Math.max(0, ease.bust - OVERSIZED.armholeEase) : 0;
   if (!lower && (result.armhole + pin < target - 1 || result.armhole + pin > target + 3 + grown)) {
     result.warnings.push(`armhole ${result.armhole} cm could not reach ${target.toFixed(1)} cm within a sensible depth`);
   }
@@ -848,7 +866,8 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   // way: the high hip halfway down to the hip, the full hip at the hip, in between along the way.
   let hemFull = 0;
   if (below) {
-    const he = Math.max(2, BODICE_HIP_EASE[s.fit] + bodiceEase(s).bust - BODICE_FIT_EASE[s.fit].bust) + (fit.hipEase ?? 0);
+    // (The house shirt's side seams kicked out below the waist to a hem of the hip plus all its 36 cm of bust ease.)
+    const he = s.shirtCut === 'house' ? HOUSE_SHIRT_HIP_EASE + (fit.hipEase ?? 0) : Math.max(2, BODICE_HIP_EASE[s.fit] + bodiceEase(s).bust - BODICE_FIT_EASE[s.fit].bust) + (fit.hipEase ?? 0);
     const girth = girthBelowWaist({ waist: W, full_hip: m.full_hip!, waist_to_hip: m.waist_to_hip!, high_hip: m.high_hip }, drop);
     hemFull = fit.straightRoom !== undefined ? Math.max(B + be, girth + fit.straightRoom) : girth + he;
   }

@@ -81,12 +81,18 @@ export interface Buttons {
 
 /** Where the buttons go: the first just below the neck (or below the collar band), one level with the
  * bust point, the last a little above the waist or hem, about 8 cm apart. */
-export function buttonPlaces(top: number, bottom: number, banded: boolean, waistLength: boolean, bust?: number): Buttons {
+export function buttonPlaces(top: number, bottom: number, banded: boolean, waistLength: boolean, bust?: number, houseShirt = false): Buttons {
   const first = top + (banded ? 6 : 1.6);
   const last = bottom - (waistLength ? 2 : 8);
   const even = (a: number, b: number, n: number) => Array.from({ length: n + 1 }, (_, i) => a + ((b - a) * i) / n);
   let at: number[];
-  if (bust !== undefined && bust > first + 4 && bust < last - 4) {
+  if (houseShirt && banded && bust !== undefined && bust > top + 10 && bust < last - 4) {
+    // The house shirt spaces its buttons evenly all the way down from the collar band's own button, one still level with
+    // the bust point: the gap under the collar was up to 4.6 cm more than the rest (Fable cut review, 2026-11-11).
+    const above = Math.max(1, Math.round((bust - top) / 8.5));
+    const gap = (bust - top) / above;
+    at = [...even(top, bust, above).slice(1), ...even(bust, last, Math.max(1, Math.round((last - bust) / gap))).slice(1)];
+  } else if (bust !== undefined && bust > first + 4 && bust < last - 4) {
     // One button sits level with the bust point, where a front gapes first; the rest space out from it.
     at = [...even(first, bust, Math.max(1, Math.round((bust - first) / 8))), ...even(bust, last, Math.max(1, Math.round((last - bust) / 8))).slice(1)];
   } else {
