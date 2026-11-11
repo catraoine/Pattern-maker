@@ -46,9 +46,10 @@ function seamSteps(draft: BodiceDraft, seam: string): { darts?: SewStep; join: S
     const front = named(/front yoke/).length > 0;
     const back = named(/back yoke/).length > 0;
     const which = front && back ? 'yokes' : front ? 'front yoke' : 'back yokes';
-    const backText = front
+    // (After shoulder panels the back yoke gets its own words: it is not gathered, clipped or joined at the centre.)
+    const backText = front && !named(/front yoke/).some((pc) => /pair/.test(pc.cut))
       ? 'Join each back yoke to its back the same way, matching the double notches.'
-      : `Pin each back yoke to the top edge of its back, right sides together, matching the centre back and the double notches. Sew ${seam} from the edge, and press the seam up toward the yoke.`;
+      : `Pin ${named(/back yoke/).some((pc) => /fold/.test(pc.cut)) ? 'the back yoke to the top edge of the back' : 'each back yoke to the top edge of its back'}, right sides together, matching the centre back and the double notches. Sew ${seam} from the edge, and press the seam up toward the yoke.`;
     // A shirt's back yoke: one yoke on the fold, and the back's box pleat folded before it is joined.
     const pleat = named(/^Bodice back$/).find((pc) => pc.meta.boxPleat)?.meta.boxPleat as number | undefined;
     if (pleat && !front)

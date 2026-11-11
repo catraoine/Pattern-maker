@@ -1047,7 +1047,8 @@ const collarCut = (d: BodiceDraft) =>
 function sleeveSteps(sl: SleeveDraft, seam: string, curve: string, lined: boolean): SewStep[] {
   // A kimono sleeve is sewn up with the shoulders and side seams: only its hem is left.
   if (sl.cut === 'kimono') return [{ title: 'Hem the sleeves', text: 'Press up 1 cm round each sleeve hem, then 1.5 cm more, and stitch by hand or machine.' }];
-  const puff = sl.gathers?.crown !== undefined;
+  const gatheredHead = sl.gathers?.crown ?? sl.gathers?.head;
+  const puff = gatheredHead !== undefined;
   const band = !sl.cuff && sl.pieces.length > (sl.cut === 'raglan' ? 2 : 1);
   const cuff = sl.cuff;
   const ease = Math.round((sl.crownEase.front + sl.crownEase.back) * 10) / 10;
@@ -1093,7 +1094,7 @@ function sleeveSteps(sl: SleeveDraft, seam: string, curve: string, lined: boolea
     puff
       ? {
           title: 'Gather the sleeve heads',
-          text: `Sew two rows of long gathering stitches across each crown between the front and back notches, one just inside the seam line and one 0.5 cm further out. Leave long thread ends. The crown is ${sl.gathers!.crown} cm longer than the armhole: that is the ${sl.pieces[0]?.meta.softHead ? 'soft fullness at the head' : 'puff'}.`,
+          text: `Sew two rows of long gathering stitches across each crown between the front and back notches, one just inside the seam line and one 0.5 cm further out. Leave long thread ends. The crown is ${gatheredHead} cm longer than the armhole: that is the ${sl.gathers?.head !== undefined ? 'soft fullness at the head' : 'puff'}.`,
         }
       : {
           title: 'Ease the sleeve heads',

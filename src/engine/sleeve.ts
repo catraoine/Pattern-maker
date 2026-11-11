@@ -108,7 +108,9 @@ export interface SleeveDraft {
   /** Round the hem as finished: the hem, or the band on a gathered sleeve. */
   hemCm: number;
   /** Gathered sleeves: how much is gathered into the armhole (puff) and into the band. */
-  gathers?: { crown?: number; hem: number };
+  /** `crown`: a puff's crown, cut longer to stand up. `head`: a soft head (headGather), a little longer and gathered in
+   * flat, drawn and draped as the sleeve it is. */
+  gathers?: { crown?: number; head?: number; hem: number };
   elbowDart?: number;
   /** A fitted long sleeve's wrist vent: the sleeve seam left open from the hem up `lengthCm`, where
    * the vent notch is, and hemmed as a slit. */
@@ -217,7 +219,7 @@ export function draftSleeve(bodice: BodiceDraft, m: SleeveMeasurements, s: Sleev
 /** The pattern's note on the sleeve: its bicep and crown ease, or how a sleeve that isn't set in is cut. */
 export function sleeveNote(sl: SleeveDraft): string {
   if (sl.cut === 'kimono') return `Kimono sleeves, cut in one with the bodice: ${sl.lengthCm} cm from the shoulder point, ${sl.bicep} cm round under the arm, ${sl.hemCm} cm round the hem.`;
-  const crown = sl.gathers?.crown !== undefined ? `${sl.gathers.crown} cm gathered into the crown` : `crown ease ${sl.crownEase.front} cm front, ${sl.crownEase.back} cm back`;
+  const crown = (sl.gathers?.crown ?? sl.gathers?.head) !== undefined ? `${sl.gathers!.crown ?? sl.gathers!.head} cm gathered into the crown` : `crown ease ${sl.crownEase.front} cm front, ${sl.crownEase.back} cm back`;
   if (sl.cut === 'raglan') return `Raglan sleeves, each cut in two along the top of the arm with the shoulder on it: bicep ${sl.bicep} cm.`;
   if (sl.cut === 'drop') return `Dropped shoulder, ${DROP.out} cm past your shoulder point: bicep ${sl.bicep} cm, ${crown}.`;
   return `Sleeve: bicep ${sl.bicep} cm, ${crown}.`;
@@ -532,7 +534,7 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
       armhole: s.armholeAllowance,
       hem: cuff?.kind === 'elastic' ? cuff.depth + 0.5 : gathered || cuff ? s.seamAllowance : flutter ? 1 : cap_ ? Math.min(1.5, s.hemAllowance) : s.hemAllowance,
     },
-    meta: { capHeight: r1(h), ...(shape === 'puff' || headGather ? { gatheredCrown: true } : {}), ...(headGather ? { softHead: true } : {}), ...(flutter ? { flutter: true } : {}), ...(cap_ ? { cap: true } : {}), ...(full ? { full: true } : {}) },
+    meta: { capHeight: r1(h), ...(shape === 'puff' || headGather ? { gatheredCrown: true } : {}), ...(flutter ? { flutter: true } : {}), ...(cap_ ? { cap: true } : {}), ...(full ? { full: true } : {}) },
   };
   const named = namedAt(h);
   const lengthInfo = { cm: r1(setFor(h)), min: r1(h + MIN_UNDERSEAM), max: r1(named.long), named: Object.fromEntries(SLEEVE_LENGTHS.map((l) => [l, r1(named[l])])) as Record<Named, number> };
@@ -585,7 +587,7 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
       lengthCm: r1(L),
       length: lengthInfo,
       hemCm: cuff.round,
-      gathers: { ...(headGather ? { crown: r1(crownLen - front.length - back.length) } : {}), hem: r1(hemLen - cuff.round) },
+      gathers: { ...(headGather ? { head: r1(crownLen - front.length - back.length) } : {}), hem: r1(hemLen - cuff.round) },
       cuff,
       ...(ventTop ? { vent: { lengthCm: ventCm!, at: 'back seam' as const } } : {}),
       ...cutOf,
@@ -603,7 +605,8 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
     hemCm: r1(band ? (band.meta.lengthCm as number) : polyLen(hemRun)),
     gathers: gathered
       ? {
-          crown: shape === 'puff' || headGather ? r1(crownLen - front.length - back.length) : undefined,
+          crown: shape === 'puff' ? r1(crownLen - front.length - back.length) : undefined,
+          ...(headGather ? { head: r1(crownLen - front.length - back.length) } : {}),
           hem: r1(hemLen - (band!.meta.lengthCm as number)),
         }
       : undefined,

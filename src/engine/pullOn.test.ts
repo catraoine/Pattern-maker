@@ -7,7 +7,8 @@ import { yokesJoined } from './seams';
 import { taggedLength } from './geometry';
 import { lookFlat, COLLECTION } from '../collection';
 import { EXAMPLE_BODY } from '../measurements';
-import { DEFAULT_BODICE, sleeveOf } from '../garments';
+import { DEFAULT_BODICE, detailAllowed, sleeveOf, validDetails } from '../garments';
+import { bodiceSpec } from './spec';
 import { draftSleeve } from './sleeve';
 import type { BodiceChoices } from '../garments';
 
@@ -132,6 +133,7 @@ describe('a shoulder panel on a plunge', () => {
     expect(taggedLength(f1.outline, 'yoke')).toBeGreaterThan(taggedLength(f0.outline, 'yoke') + 2);
     expect(d.finishedBust).toBe(plain.finishedBust + 8);
     expect(d.finishedHem).toBe(plain.finishedHem! + 8);
+    expect(d.finishedWaist).toBe(plain.finishedWaist + 8);
     expect(d.hemTie!.cordCm).toBeGreaterThanOrEqual(d.finishedHem! + 55);
     // The pattern's own checks pass, the point of the V and the gathered seam included.
     expect(checkPattern(d.pieces).filter((c) => !c.ok)).toEqual([]);
@@ -179,6 +181,23 @@ describe('a shoulder panel on a plunge', () => {
     const tape = (x: typeof d) => bodiceGuide(x, { length: 'hip' }, 1.5, 2).steps.find((st) => st.title === 'Tape the plunge')!.text.match(/tape ([\d.]+) cm long/)![1];
     expect(Number(tape(d))).toBeGreaterThan(35);
     expect(tape(d)).toBe(tape(draftBodice(EXAMPLE_BODY as never, blouse())));
+  });
+
+  it('is a look\'s cut only: the picker offers no front yoke on a plunge, and a low neck that is not a plunge gets none', () => {
+    const c = { ...DEFAULT_BODICE, neckline: 'plunge', plungeDepth: 'waist' } as BodiceChoices;
+    expect(detailAllowed(c, 'yoke', 'front', 'bodice')).toBe(false);
+    expect(validDetails({ ...c, yoke: { front: 0, back: 10, frontSlant: 13 } }, 'bodice').yoke?.frontSlant).toBe(13);
+    const low = draftBodice(EXAMPLE_BODY as never, blouse({ neckline: 'crew', pullOn: false, neck: { frontDepth: 30, width: 6, backDepth: 2, fullness: 0.2 }, yoke: { front: 8 } }));
+    expect(low.pieces.map((pc) => pc.name)).not.toContain('Bodice front yoke');
+    expect(low.warnings.join(' ')).toMatch(/too low for a front yoke|no room for the yoke/);
+  });
+
+  it('lists the cord and the trim on the spec whether or not the top pulls on', () => {
+    const d = draftBodice(EXAMPLE_BODY as never, blouse({ pullOn: false, hemTie: 'drawstring', yoke: { front: 0, back: 10, frontSlant: 13, trim: true } }));
+    expect(d.pullOn).toBeUndefined();
+    const labels = bodiceSpec(EXAMPLE_BODY as never, d, 'hip').map((r) => r.label);
+    expect(labels).toContain('Drawstring cord, hem');
+    expect(labels).toContain('Trim, panel seams and V');
   });
 
   it('is the Lilac Lace Blouse: panels, no zip, and it passes the All round check in lace', async () => {
@@ -231,7 +250,9 @@ describe('a softly gathered sleeve head', () => {
     expect(plain.sl.gathers?.crown).toBeUndefined();
     const ease = (x: typeof plain) => x.sl.crownEase.front + x.sl.crownEase.back;
     expect(ease(soft) - ease(plain)).toBeCloseTo(5, 0);
-    expect(soft.sl.gathers!.crown).toBeCloseTo(ease(soft), 0);
+    // (A soft head is its own record: `crown` is a puff's, and makes the drawing and the form stand the sleeve up.)
+    expect(soft.sl.gathers!.crown).toBeUndefined();
+    expect(soft.sl.gathers!.head).toBeCloseTo(ease(soft), 0);
     expect(soft.sl.pieces[0].labels.map((l) => l.text)).toContain('GATHER BETWEEN NOTCHES');
     expect(checkPattern([...soft.b.pieces, ...soft.sl.pieces]).filter((c) => !c.ok)).toEqual([]);
     const g = bodiceGuide(soft.b, { length: 'hip' }, 1.5, 2, { sleeve: soft.sl });

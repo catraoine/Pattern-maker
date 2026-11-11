@@ -576,8 +576,9 @@ export function seamBlocked(c: BodiceChoices, kind: SeamKind, garment: 'bodice' 
   if (c.closure === 'wrap') return `${words} would cross the wrap's front edge. Choose the back zip first.`;
   if (kind === 'yoke' && side === 'front') {
     const depth = c.neck ? c.neck.frontDepth : NECKLINE_DEPTH[c.neckline];
-    // (A plunge takes a shoulder panel each side: its yoke line runs from the edge of the V to the armhole.)
-    if (depth > 4 && !(c.neckline === 'plunge' && !c.neck)) return 'A front yoke needs a high neckline: this one cuts through where the yoke goes.';
+    // (A look's plunge may take a shoulder panel each side, its seam slanted from the armhole to the edge of the V. It is
+    // set by the look only: the picker still offers no front yoke on a plunge, so it is not a new option to test.)
+    if (depth > 4 && !(c.neckline === 'plunge' && !c.neck && c.yoke?.frontSlant !== undefined)) return 'A front yoke needs a high neckline: this one cuts through where the yoke goes.';
   }
   if (kind === 'yoke' && side === 'back' && c.neck && c.neck.backDepth > 4) return 'A back yoke needs a high back neckline: this one cuts through where the yoke goes.';
   if (kind !== 'yoke' && garment === 'bodice' && c.length === 'cropped') return `${words} ${kind === 'panel' ? 'run' : 'runs'} to the waist, and a cropped top is cut off above it. Pick the waist length first.`;
@@ -655,10 +656,10 @@ export function validDetails(c: BodiceChoices, garment: 'bodice' | 'dress' = 'bo
   return out;
 }
 
-/** The sleeve as chosen, made valid: a shape the length allows. */
 /** How much longer than the armhole a softly gathered sleeve head is cut, in cm. */
 const HEAD_GATHER = 5;
 
+/** The sleeve as chosen, made valid: a shape the length allows. */
 export function sleeveOf(c: BodiceChoices): { length: SleeveLength; shape: SleeveShape; cm?: number; cuff?: Exclude<Cuff, 'none'>; cut?: Exclude<SleeveCut, 'set_in'>; fullness?: 'full'; headGather?: number } {
   const length = c.sleeve ?? 'none';
   // A kimono sleeve is cut on at its named length, with no shape, slider or cuff of its own.

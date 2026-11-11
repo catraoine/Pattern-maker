@@ -8,6 +8,7 @@ import type { SkirtDraft } from './skirt';
 import { WAISTBAND_CM } from './skirt';
 import { HIGH } from './skirtWaist';
 import { BodiceDraft, DRAWSTRING, blockOf } from './bodice';
+import { slantStart } from './seams';
 import { BANDS, EXTENSION_CM, isBandCollar } from './collar';
 import type { BodiceEdges } from './instructions';
 import { BAND_CM, SleeveDraft } from './sleeve';
@@ -69,10 +70,10 @@ function inside(q: P, pts: P[]): boolean {
   return c;
 }
 
-/** A run of points moved `d` cm into the shape, keeping only the part that stays inside it. */
 /** How wide a shoulder panel's trim is drawn, in cm. */
 const PANEL_TRIM = 0.6;
 
+/** A run of points moved `d` cm into the shape, keeping only the part that stays inside it. */
 function inset(run: P[], d: number, shape: P[]): P[][] {
   const out: P[][] = [[]];
   run.forEach((q, i) => {
@@ -1270,11 +1271,7 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
     for (const sl of (i === 0 ? style?.front : style?.back) ?? []) lines.push(...both(sl.pts.map(h.move)).map((pts) => ({ pts, kind: sl.kind })));
     // A shoulder panel's seam from where it leaves any strip down the V and slants out to the armhole: the stretch the
     // gathers and the trim's second line are drawn along.
-    const slanted = (pts: P[]) => {
-      let k = pts.length - 1;
-      while (k > 0 && Math.abs(pts[k].x - pts[k - 1].x) > Math.abs(pts[k].y - pts[k - 1].y) / 3) k--;
-      return pts.slice(Math.min(k, pts.length - 2));
-    };
+    const slanted = (pts: P[]) => pts.slice(slantStart(pts, pts.length - 1));
     const panelSeams = i === 0 && (d.panelGather || d.panelTrim) ? (style?.front ?? []).filter((sl) => sl.kind === 'seam' && sl.pts.length > 1).map((sl) => slanted(sl.pts.map(h.move))) : [];
     // Gathers under a shoulder panel: short strokes falling from the seam, longer and shorter by turns.
     if (d.panelGather) {

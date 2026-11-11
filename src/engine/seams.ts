@@ -385,7 +385,7 @@ interface Seamed {
 
 /** The range a yoke line can sit in on a piece: below the neck and the shoulder, above the bust point
  * (front) or well above the underarm (back), and clear of the armhole notches. */
-function yokeLevel(r: Ring, depth: number, side: 'front' | 'back', apex: P, notches: [P, P][]): number | undefined {
+function yokeLevel(r: Ring, depth: number, side: 'front' | 'back', apex: P, notches: [P, P][], plunge = false): number | undefined {
   const shoulder = run(r, 'shoulder');
   const armhole = run(r, 'armhole');
   if (!shoulder.length || !armhole.length) return undefined;
@@ -396,7 +396,7 @@ function yokeLevel(r: Ring, depth: number, side: 'front' | 'back', apex: P, notc
   const hi = side === 'front' ? Math.min(apex.y - 5, underarm.y - 3) : underarm.y - 5;
   // (A plunge's point is far below any yoke: its yoke line runs from the edge of the V to the armhole, a shoulder
   // panel each side, so only the shoulder sets how high it can sit.)
-  const plunged = side === 'front' && centreNeck.y > hi;
+  const plunged = plunge && side === 'front' && centreNeck.y > hi;
   const lo = Math.max(plunged ? -Infinity : centreNeck.y + (side === 'front' ? 2.5 : 3), tip.y + 1.5);
   if (lo > hi) return undefined;
   let y = Math.min(hi, Math.max(lo, neckPoint.y + depth));
@@ -405,9 +405,9 @@ function yokeLevel(r: Ring, depth: number, side: 'front' | 'back', apex: P, notc
   return Math.max(lo, y);
 }
 
-function yokeSide(pc: Piece, depth: number, side: 'front' | 'back', apex: P, bustDart: number, pleat = false, slant = 0, gather = 0, band = 0): { pieces: [Piece, Piece]; seam: P[]; sewnDart?: P[]; moved: boolean; vEdge?: number; gather?: number } | undefined {
+function yokeSide(pc: Piece, depth: number, side: 'front' | 'back', apex: P, bustDart: number, pleat = false, slant = 0, gather = 0, band = 0, plunge = false): { pieces: [Piece, Piece]; seam: P[]; sewnDart?: P[]; moved: boolean; vEdge?: number; gather?: number } | undefined {
   const r = ringOf(pc.outline);
-  const y = yokeLevel(r, depth, side, apex, pc.notches);
+  const y = yokeLevel(r, depth, side, apex, pc.notches, plunge);
   if (y === undefined) return undefined;
   const far = Math.max(...r.pts.map((q) => q.x)) + 5;
   const front = side === 'front';
@@ -448,7 +448,7 @@ function yokeSide(pc: Piece, depth: number, side: 'front' | 'back', apex: P, bus
   }
   const banded = !!cut && cut !== level && ['fold', 'centre'].includes(cut.on[0]);
   // A plunge front's yoke starts on the edge of the V: a shoulder panel each side, cut as a pair.
-  const panel = front && (cut?.on[0] === 'neck' || banded);
+  const panel = front && plunge && (cut?.on[0] === 'neck' || banded);
   if (!cut || !(['fold', 'centre'].includes(cut.on[0]) || panel) || cut.on[1] !== 'armhole') return undefined;
   // (A banded panel's short edge on the centre front is a seam: the two panels are joined there, under the V's point.)
   const whole = from(cut.a, runStart(cut.a, 'neck'));
@@ -458,12 +458,18 @@ function yokeSide(pc: Piece, depth: number, side: 'front' | 'back', apex: P, bus
   const L = polyLen(seam);
   // A notch on the front yoke seam (two on the back), between the centre and the bust dart on the front.
   const moves = front && bustDart > 0.3 && apex.x < seam[seam.length - 1].x - 2;
-  const at = front ? [moves ? p(apex.x * 0.5, y) : pointAlong(seam, L * 0.5).q] : [pointAlong(seam, L * 0.5 - 0.5).q, pointAlong(seam, L * 0.5 + 0.5).q];
+  // (On a shoulder panel the seam starts out on the V's edge, so halfway to the bust point may be off it.)
+  const at = front ? [moves && !panel ? p(apex.x * 0.5, y) : pointAlong(seam, L * 0.5).q] : [pointAlong(seam, L * 0.5 - 0.5).q, pointAlong(seam, L * 0.5 + 0.5).q];
   const neckPoint = run(r, 'shoulder')[0];
+  const armEnd = seam[seam.length - 1];
+  const slanting = cut !== level;
   const note: DraftPoint = {
     n: 'Y',
-    at: p(0, y),
-    note: `Yoke: ruled straight across, ${cut !== level ? `slanting down to the edge of the neckline, ${cm(cut!.seam[0].y - y)} lower there than at the armhole` : `square to the centre ${side}`}, ${cm(y - neckPoint.y)} below the neck point${cut !== level ? ' at the armhole' : ''}.${moves ? ' The bust dart is closed at the side and opens on the yoke seam over the bust point.' : ''}`,
+    // (A shoulder panel's seam starts out on the V, not at the centre: its note sits at its armhole end.)
+    at: panel ? armEnd : p(0, y),
+    note: banded
+      ? `Shoulder panel: from ${cm(armEnd.y - neckPoint.y)} below the neck point at the armhole the seam slants down toward the V, turns in a curve ${cm(band)} in from the V's edge and follows the edge down, the strip narrowing to ${cm(BAND_END)} at the point, to meet the centre front ${cm(BAND_DROP)} under the point.`
+      : `Yoke: ruled straight across, ${slanting ? `slanting down to the edge of the neckline, ${cm(seam[0].y - armEnd.y)} lower there than at the armhole` : `square to the centre ${side}`}, ${cm(y - neckPoint.y)} below the neck point${slanting ? ' at the armhole' : ''}.${moves ? ' The bust dart is closed at the side and opens on the yoke seam over the bust point.' : ''}`,
   };
   const name = front ? 'Bodice front' : 'Bodice back';
   const yoke = part(pc, upper, `${name} yoke`, cutFor(front && !panel), { notches: seamNotches(at, seam, upper), meta: { yoke: true, ...(banded ? { pointedAtCentre: ['neck', 'yoke'] } : {}) } });
@@ -499,7 +505,7 @@ const BAND_DROP = 3;
  * the armhole: the index its last run of edges more across than a third of down begins at. (A seam with no strip
  * slants all the way: 0.)
  */
-function slantStart(pts: P[], first: number): number {
+export function slantStart(pts: P[], first: number): number {
   let i = first;
   while (i > 0 && Math.abs(pts[i].x - pts[i - 1].x) > Math.abs(pts[i].y - pts[i - 1].y) / 3) i--;
   return Math.min(i, first - 1);
@@ -681,9 +687,9 @@ export function yokesJoined(pieces: Piece[]): Piece[] {
   return out;
 }
 
-function yoke(d: BodiceDraft, y: Yoke, pleat = false): Seamed | undefined {
+function yoke(d: BodiceDraft, y: Yoke, pleat = false, plunge = false): Seamed | undefined {
   const [front, back] = d.pieces;
-  const f = y.front !== undefined ? yokeSide(front, y.front, 'front', d.front.apex, d.bustDart, false, y.frontSlant ?? 0, y.frontGather ?? 0, y.frontBand ?? 0) : undefined;
+  const f = y.front !== undefined ? yokeSide(front, y.front, 'front', d.front.apex, d.bustDart, false, y.frontSlant ?? 0, y.frontGather ?? 0, y.frontBand ?? 0, plunge) : undefined;
   const b = y.back !== undefined ? yokeSide(back, y.back, 'back', d.front.apex, 0, pleat) : undefined;
   if (!f && !b) return undefined;
   const warnings = [...(y.front !== undefined && !f ? ['the neckline sits too low for a front yoke above the bust; it is left out'] : []), ...(y.back !== undefined && !b ? ['there is no room for a back yoke; it is left out'] : [])];
@@ -956,7 +962,7 @@ export function styleSeams(d: BodiceDraft, s: BodiceStyle): BodiceDraft {
   const warn = (w: string) => ({ ...d, warnings: [...d.warnings, w] });
   if (d.lowShoulder) return warn(`with one shoulder lower, the ${WORDS[kind]} is left out`);
   if (kind !== 'yoke' && d.drop > 0) return warn(`${kind === 'empire' ? 'an empire seam' : 'side panels'} need a waist-length bodice; left out`);
-  const out = kind === 'yoke' ? yoke(d, s.yoke!, shirtYoke(s)) : kind === 'empire' ? empire(d, s.empire!) : panels(d, s.panel!.at);
+  const out = kind === 'yoke' ? yoke(d, s.yoke!, shirtYoke(s), s.neckline === 'plunge' && !s.neck) : kind === 'empire' ? empire(d, s.empire!) : panels(d, s.panel!.at);
   if (!out) return warn(`there is no room for the ${WORDS[kind]} on this bodice; left out`);
   const [front, back] = d.pieces;
   const lines = (side: 'front' | 'back') => out.seams.filter((sm) => sm.side === side).map((sm) => ({ pts: sm.pts, kind: 'seam' as const }));
@@ -971,11 +977,12 @@ export function styleSeams(d: BodiceDraft, s: BodiceStyle): BodiceDraft {
     },
     styleSeams: out.seams,
     ...(out.trimCm ? { panelTrim: { cm: out.trimCm } } : {}),
-    // Gathers under the panels make the front wider all the way down: the finished bust and hem, and a drawstring's cord.
+    // Gathers under the panels make the front wider all the way down: the finished bust, waist and hem, and a drawstring's cord.
     ...(out.gather
       ? {
           panelGather: out.gather,
           finishedBust: d.finishedBust + 2 * out.gather,
+          finishedWaist: d.finishedWaist + 2 * out.gather,
           ...(d.finishedHem !== undefined ? { finishedHem: d.finishedHem + 2 * out.gather } : {}),
           ...(d.hemTie ? { hemTie: { cordCm: Math.ceil((d.hemTie.cordCm + 2 * out.gather) / 5) * 5 } } : {}),
         }
