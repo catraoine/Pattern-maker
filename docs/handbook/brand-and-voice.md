@@ -42,6 +42,8 @@
   (#DFBE84) and ivory text (#F3DFB7), muted #A28C69, shadows a deeper oxblood #080302, never black. Square outline buttons; no shadows or rounded cards. One fill only (Oct 31): champagne
   fill is for the main button; a picked choice is a heavier champagne outline, never a fill. One job per screen, one main
   button, few words.
+- Style screen picture windows (Nov 11, Cat's B): chalk #e9e4da inside the window with dark ink lines (#2a2622, #1d1a17)
+  and ink-on-white flats, so garments read clearly; everything around the windows stays black.
 - Fonts (three, checked in the code Oct 30): **Chakra Petch** for the wordmark, buttons and small
   spaced labels; **Archivo**, capitals at its normal width, for h1/h2 headings; **Space Grotesk** for body text.
   No Bodoni or italic serif (removed Oct 18). Mock-ups, option sheets and video titles use the same

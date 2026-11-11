@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { FormKind, MeasurementId } from '../measurements';
-import { GILD, GROUND, GROUND_RGB, INK } from './palette';
+import { DARK, INK, type Tone } from './palette';
 import { LEG, LEG_FLOOR, LEG_KNEE, LEG_X } from '../engine/form';
 import { lightOf } from './allRoundCloth';
 
@@ -11,7 +11,9 @@ import { lightOf } from './allRoundCloth';
 // figure and play an ivory tape once to where each measurement goes.
 
 // Champagne lines (Cat's G4 pick), matching --gild and --gild-glow in styles.css.
-const CHAMPAGNE = GILD;
+// The form's lines and the ground they fade into: black and champagne here, the window's own colours when All round
+// paints the figure (paintFigure's tone). Set only for the length of one painting.
+let ink: Tone = DARK;
 // The tape: an ivory band with tick marks, like a real tape measure.
 /** The tape's own colours, as the first page's strip draws it (--tape and --tape-ink in styles.css), so the tape
  *  round the body is the same tape that was pulled across the top (Cat, 2026-10-24). */
@@ -130,7 +132,7 @@ const EVEN: Light = () => 0.7;
 
 /** The neck above the form and the head on it. `spin` turns the lines round, as the form turns. */
 function paintHead(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: number) => number, lw: number, light: Light = EVEN, spin = 0, alpha = 1, neck = true) {
-  g.strokeStyle = CHAMPAGNE;
+  g.strokeStyle = ink.gild;
   // The neck: the form's long lines carry on up past its top and into the head.
   for (let j = 0; neck && j < 2 * LINES; j++) {
     const th = (Math.PI * (j + 0.5)) / LINES - spin;
@@ -149,7 +151,7 @@ function paintHead(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: nu
   // Black inside the head, so the top of the neck disappears into the jaw.
   const outline: Pt[] = [...HEAD_TS.map((t): Pt => [cx + headHalf(t) * S, Y(headY(t))]), ...[...HEAD_TS].reverse().map((t): Pt => [cx - headHalf(t) * S, Y(headY(t))])];
   g.globalAlpha = alpha;
-  g.fillStyle = GROUND;
+  g.fillStyle = ink.ground;
   g.beginPath();
   outline.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
   g.closePath();
@@ -177,12 +179,12 @@ function paintLegs(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: nu
   if (k <= 0) return;
   const f0 = Y(0.95), f1 = Y(1.3) + S * 0.14;
   const fade = g.createLinearGradient(0, f0, 0, f1);
-  fade.addColorStop(0, `rgba(${GROUND_RGB},0)`);
-  fade.addColorStop(1, GROUND);
+  fade.addColorStop(0, `rgba(${ink.groundRgb},0)`);
+  fade.addColorStop(1, ink.ground);
   g.globalAlpha = k;
   g.fillStyle = fade;
   g.fillRect(cx - S * 0.8, f0, S * 1.6, f1 - f0 + 2);
-  g.strokeStyle = CHAMPAGNE;
+  g.strokeStyle = ink.gild;
   const blend = (y: number) => {
     const q = inOut(clamp((y - 1.2) / 0.3, 0, 1));
     return (1 - q) * R(Math.min(y, 1.3)) + q * (LEG_X + LEG(Math.max(y, 1.3)));
@@ -203,7 +205,7 @@ function paintLegs(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: nu
 
 /** The torso: outline and long lines, each drawn as far as given; `spin` turns the long lines round. */
 function paintTorso(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: number) => number, lw: number, light: Light = EVEN, outline = 1, lines = 1, spin = 0, half: (y: number) => number = R) {
-  g.strokeStyle = CHAMPAGNE;
+  g.strokeStyle = ink.gild;
   g.lineCap = 'round';
   g.lineJoin = 'round';
   const edge = (u: number) => lw * (0.5 + Math.sin(Math.PI * u));
@@ -265,8 +267,8 @@ export const FADE_FROM = 0.78;
 
 function fadeBottom(g: CanvasRenderingContext2D, w: number, h: number) {
   const fade = g.createLinearGradient(0, h * FADE_FROM, 0, h);
-  fade.addColorStop(0, `rgba(${GROUND_RGB},0)`);
-  fade.addColorStop(1, `rgba(${GROUND_RGB},1)`);
+  fade.addColorStop(0, `rgba(${ink.groundRgb},0)`);
+  fade.addColorStop(1, `rgba(${ink.groundRgb},1)`);
   g.globalAlpha = 1;
   g.fillStyle = fade;
   g.fillRect(0, h * FADE_FROM, w, h * (1 - FADE_FROM));
@@ -278,7 +280,7 @@ function fadeBottom(g: CanvasRenderingContext2D, w: number, h: number) {
  */
 function settledForm(g: CanvasRenderingContext2D, w: number, h: number, outline = 1, lines = 1, light: Light = EVEN) {
   g.globalAlpha = 1;
-  g.fillStyle = GROUND;
+  g.fillStyle = ink.ground;
   g.fillRect(0, 0, w, h);
   const { S, cx, lw, Y } = layout(w, h);
   paintTorso(g, S, cx, Y, lw, light, outline, lines);
@@ -293,7 +295,7 @@ const DOWN = 1300;
 function draw(g: CanvasRenderingContext2D, w: number, h: number, t: number, drawn: boolean) {
   const t0 = drawn ? 0 : OUTLINE;
   g.globalAlpha = 1;
-  g.fillStyle = GROUND;
+  g.fillStyle = ink.ground;
   g.fillRect(0, 0, w, h);
   const { S, cx, lw, Y } = welcomeLayout(w, h);
   paintTorso(g, S, cx, Y, lw, EVEN, drawn ? 1 : inOut(seg(t, 0, OUTLINE - 100)), inOut(seg(t, t0, t0 + DOWN)));
@@ -396,13 +398,13 @@ function paintArms(g: CanvasRenderingContext2D, S: number, cx: number, lw: numbe
     const X = (r: number) => cx + side * r * S;
     // Black out the form's lines behind the arm, up to the form's own side.
     g.globalAlpha = 1;
-    g.fillStyle = GROUND;
+    g.fillStyle = ink.ground;
     g.beginPath();
     ARM_YS.forEach((y, i) => (i ? g.lineTo(X(ARM_OUT(y)), Y(y)) : g.moveTo(X(ARM_OUT(y)), Y(y))));
     [...inner].reverse().forEach((y) => g.lineTo(X(ARM_IN(y)), Y(y)));
     ARM_YS.filter((y) => y < UNDERARM).reverse().forEach((y) => g.lineTo(X(R(y)), Y(y)));
     g.fill();
-    g.strokeStyle = CHAMPAGNE;
+    g.strokeStyle = ink.gild;
     g.lineWidth = lw;
     path(g, ARM_YS.map((y): Pt => [X(ARM_OUT(y)), Y(y)]));
     path(g, inner.map((y): Pt => [X(ARM_IN(y)), Y(y)]));
@@ -539,7 +541,26 @@ export function paintFigure(
   legs = 1,
   withArms = false,
   turn?: number,
-  body?: { half: (y: number) => number; shape: (a: number, y: number) => number; satin?: boolean; head?: boolean },
+  body?: { half: (y: number) => number; shape: (a: number, y: number) => number; satin?: boolean; head?: boolean; tone?: Tone },
+) {
+  ink = body?.tone ?? DARK;
+  try {
+    paintFigureIn(g, S, cx, Y, lw, legs, withArms, turn, body);
+  } finally {
+    ink = DARK;
+  }
+}
+
+function paintFigureIn(
+  g: CanvasRenderingContext2D,
+  S: number,
+  cx: number,
+  Y: (y: number) => number,
+  lw: number,
+  legs: number,
+  withArms: boolean,
+  turn: number | undefined,
+  body: { half: (y: number) => number; shape: (a: number, y: number) => number; satin?: boolean; head?: boolean } | undefined,
 ) {
   const spin = turn ?? 0;
   if (turn === undefined) {
@@ -604,7 +625,7 @@ export function paintFigure(
 /** The legs as the form turns: each leg's lines round its own axis, the far leg fainter. */
 function paintLegsTurned(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: number) => number, lw: number, legs: number, spin: number) {
   if (legs <= 0) return;
-  g.strokeStyle = CHAMPAGNE;
+  g.strokeStyle = ink.gild;
   for (const side of [-1, 1]) {
     const lx = cx + side * LEG_X * Math.cos(spin) * S;
     const dy = -side * LEG_X * Math.sin(spin) * S * DEPTH;
@@ -889,7 +910,7 @@ function paintWaistString(g: CanvasRenderingContext2D, S: number, cx: number, Y:
   const r = at * S + lw;
   const wy = Y(0.1);
   g.save();
-  g.strokeStyle = CHAMPAGNE;
+  g.strokeStyle = ink.gild;
   g.lineWidth = Math.max(1.2, lw * 1.6);
   g.globalAlpha = 0.35;
   g.beginPath();
@@ -914,7 +935,7 @@ function paintWaistString(g: CanvasRenderingContext2D, S: number, cx: number, Y:
 /** One frame of a measuring page: `z` is how far the camera has come (0 to 1), `p` how far the tape has played. */
 function paintTape(g: CanvasRenderingContext2D, w: number, h: number, from: Cam, to: Cam, turn: [number, number], z: number, p: number, t: Tape | undefined) {
   g.globalAlpha = 1;
-  g.fillStyle = GROUND;
+  g.fillStyle = ink.ground;
   g.fillRect(0, 0, w, h);
   if (!w || !h) return;
   g.lineCap = 'round';
@@ -943,7 +964,7 @@ function paintTape(g: CanvasRenderingContext2D, w: number, h: number, from: Cam,
   const level = !t ? undefined : t.kind === 'height' || (t.kind === 'side' && t.to > 4) ? FLOOR : t.kind === 'side' && t.to === CROTCH ? CROTCH : t.kind === 'front' ? t.to : undefined;
   if (level !== undefined) {
     g.save();
-    g.strokeStyle = CHAMPAGNE;
+    g.strokeStyle = ink.gild;
     g.globalAlpha = 0.4;
     g.lineWidth = 1;
     g.setLineDash([3, 4]);
@@ -954,7 +975,7 @@ function paintTape(g: CanvasRenderingContext2D, w: number, h: number, from: Cam,
   if (t && isBack(t)) {
     g.save();
     g.globalAlpha = turn[0] === turn[1] ? 1 : seg(e, 0.8, 1);
-    g.fillStyle = CHAMPAGNE;
+    g.fillStyle = ink.gild;
     g.font = "500 9px 'Chakra Petch', sans-serif";
     try {
       (g as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = '2px';
@@ -1007,7 +1028,7 @@ function paintTape(g: CanvasRenderingContext2D, w: number, h: number, from: Cam,
       const lead = Math.hypot(full[1][0] - full[0][0], full[1][1] - full[0][1]);
       const all = full.slice(1).reduce((acc, q, i) => acc + Math.hypot(q[0] - full[i][0], q[1] - full[i][1]), 0);
       if (run * all >= lead) {
-        g.strokeStyle = GROUND;
+        g.strokeStyle = ink.ground;
         g.lineWidth = Math.max(1.5, tw * 0.22);
         g.lineCap = 'butt';
         stroke(g, [pts[0][0], pts[0][1] - tw * 0.5], [pts[0][0], pts[0][1] + tw * 0.5]);
@@ -1135,7 +1156,7 @@ function paintTapeLines(g: CanvasRenderingContext2D, S: number, cx: number, Y: (
       const th = (Math.PI * i) / 40;
       return [cx - Math.cos(th) * r * S, Y(y) + Math.sin(th) * r * S * DEPTH];
     });
-    g.strokeStyle = CHAMPAGNE;
+    g.strokeStyle = ink.gild;
     g.globalAlpha = 0.95;
     g.lineWidth = Math.max(1.2, lw * 1.3);
     g.setLineDash([2, 3]);
@@ -1224,7 +1245,7 @@ export function FormPicture({ kind, tapes = false, neckTape }: { kind: FormKind;
       pickForm(kind);
       // The body only, neck to hem, filling the card (Cat, 2026-10-21: no head on the first page).
       g.globalAlpha = 1;
-      g.fillStyle = GROUND;
+      g.fillStyle = ink.ground;
       g.fillRect(0, 0, w, h);
       const S = Math.min(w * 0.6, (h * 0.94) / (1.3 + 1.7));
       const wy = h * 0.03 + (0.1 + 1.7) * S;

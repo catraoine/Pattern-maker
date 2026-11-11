@@ -14,7 +14,7 @@ import { FORM_DEPTH, FORM_FLOOR, FORM_LEG, FORM_LEG_X } from './ContourForm';
 import type { DrapedLite } from '../engine/drape/run';
 import type { ClothTiles } from './allRoundCloth';
 import { RoundShape, WAIST } from './allRoundShape';
-import { hex, GILD as GILD_HEX, GLOW as GLOW_HEX, GROUND as GROUND_HEX, SHADOW as SHADOW_HEX } from './palette';
+import { hex, CHALK, SHADOW as SHADOW_HEX, type Tone } from './palette';
 
 const TAU = Math.PI * 2;
 const HALF = Math.PI / 2;
@@ -28,10 +28,18 @@ const LEG_TOP = 1.2;
 
 type V3 = [number, number, number];
 
-// Matching --gild, --gild-glow in styles.css.
-const GILD = hex(GILD_HEX);
-const GLOW = hex(GLOW_HEX);
+// The lines and ground of the window the figure is drawn in (palette.ts Tone), set by each build: chalk with dark ink
+// on the style screen (Cat's B, Nov 11), black with champagne in the draw tool. The figure is built and drawn in one go,
+// so two views never mix them.
+let GILD = hex(CHALK.gild);
+let GLOW = hex(CHALK.glow);
+let GROUND = CHALK.ground;
 const SHADOW = hex(SHADOW_HEX);
+const setTone = (t: Tone) => {
+  GILD = hex(t.gild);
+  GLOW = hex(t.glow);
+  GROUND = t.ground;
+};
 
 /** How a surface is drawn: in its cloth (matte, with a gloss or a pile), as the black satin form, or plain black. */
 type Mode = 'matte' | 'gloss' | 'pile' | 'satin' | 'black';
@@ -143,7 +151,7 @@ function material(mode: Mode, map?: THREE.Texture, scale = 1, opacity = 1, physi
     case 'black':
       // The page's ground, lit by nothing, so bare cloth sinks into it whatever the lamps do.
       mat.color.set(0x000000);
-      mat.emissive.set(hex(GROUND_HEX));
+      mat.emissive.set(hex(GROUND));
       mat.roughness = 1;
       mat.envMapIntensity = 0;
       break;
@@ -400,6 +408,8 @@ export interface BuildOptions {
   formX?: (x: number, y: number, z: number) => number;
   /** The fit map: the sewn garment coloured by the room it leaves the body (fitMap.ts) instead of its cloth. */
   fit?: boolean;
+  /** The window's colours: its ground and the ink its lines are drawn in. */
+  tone: Tone;
 }
 
 /** What one frame is drawn with: the turn, the canvas (CSS px and device pixel ratio) and the view's own scale,
@@ -982,6 +992,7 @@ export function createRoundView(): RoundView | undefined {
   };
 
   const build = (o: BuildOptions) => {
+    setTone(o.tone);
     clear();
     built = o;
     const { round, sh, cloth, film } = o;

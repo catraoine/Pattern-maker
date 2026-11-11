@@ -22,7 +22,7 @@ import type { RoundMeasurements } from './allRoundShape';
 import type { MyFabric } from '../engine/fabrics';
 import { tookEnlarged } from './EnlargeSketch';
 import { isLadderStep } from '../nav';
-import { SHADOW } from './palette';
+import { DARK, SHADOW } from './palette';
 
 type Measures = { full_bust?: number; neck?: number; waist: number; full_hip?: number; waist_to_hip?: number; waist_to_knee?: number; waist_to_floor?: number; crotch_depth?: number };
 
@@ -515,6 +515,7 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
               striped={allRound.striped}
               label={`Your garment turning on your form. Draw on it with one finger; turn it with two. ${help}`}
               draw={{ onStroke: roundStroke }}
+              tone={DARK}
             />
           ) : (
           <svg

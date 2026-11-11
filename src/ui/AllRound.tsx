@@ -22,7 +22,7 @@ import { placeOnForm } from './allRoundShape';
 import { cachedDrape, drapeKey, requestDrape, sewnAnyway } from './drapeClient';
 import { FEEL_STEPS, clothCard, type Feel } from '../engine/drape/clothCard';
 import { TestingTag } from './TestingTag';
-import { GILD, GLOW, GROUND, MUTED, SHADOW } from './palette';
+import { CHALK, SHADOW, type Tone } from './palette';
 import { inTestingNote } from './allRoundWhy';
 
 // Matching --gild, --gild-glow, --guide, --muted and --ok in styles.css.
@@ -69,6 +69,9 @@ interface Props {
   /** The garment's draft, to sew it from its own pattern pieces on the form (src/engine/drape): the cloth then hangs
    *  as the pattern cuts it, with its collars, lapels, peplums and sleeves as they are (Cat, 2026-11-01). */
   drape?: Omit<DrapeJob, 'm' | 'armhole'>;
+  /** The window's colours. The style screen's windows are chalk with dark ink lines (Cat's B, Nov 11); the draw tool
+   *  keeps black with champagne. */
+  tone?: Tone;
   /** What stands in when the sewn drawing fails its score (quality.ts): the garment's own Front drawing, which shows every
    *  drawn hem, neckline and seam as the maker set them. Without it the older shape preview stands in, which draws none of
    *  those and hangs some shapes badly (the All round eye check, 2026-11-02). */
@@ -138,7 +141,7 @@ export function checked(rows: Row[]): string {
 /** How long a design may take to sew before its Front drawing stands in (a slow phone sews a dress in a few seconds). */
 const SEW_LIMIT_MS = 30_000;
 
-export function AllRound({ round, m, striped = false, fabric, label, draw, drape, fallback }: Props) {
+export function AllRound({ round, m, striped = false, fabric, label, draw, drape, fallback, tone = CHALK }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
   const drawRef = useRef(draw);
   drawRef.current = draw;
@@ -286,6 +289,7 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
     if (!cv) return;
     const g = cv.getContext('2d');
     if (!g) return;
+    const { gild: GILD, glow: GLOW, ground: GROUND, muted: MUTED } = tone;
     const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const st = turn.current;
     let w = 0;
@@ -318,7 +322,7 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
     const v3 = through ? undefined : v3ref.current;
     const sewnIn = drapedNow && drapedNow !== 'pending' ? drapedNow : undefined;
     const fitNow = fitOn && !!sewnIn?.d.fit;
-    if (v3) v3.build({ round, sh, cloth, film, striped: !!striped, draped: drapedNow, formX, fit: fitNow });
+    if (v3) v3.build({ round, sh, cloth, film, striped: !!striped, draped: drapedNow, formX, fit: fitNow, tone });
     const { hemY, topY, wh, yAt, yOf, kY, N, krB, krW, krH, longest, highest, bandTop, arm, yS, yU, sl, ra, rh, neckOnly, radius, foldTilt, depthAt, shell, zAcross, clothDown, yE, yCap, axisX, capDepth, sleeveR, lg, yC, yH, legHemR, legR, legAxis, rAt, reach } = sh;
     /** The last frame's layout, for reading where a finger is. */
     let frame = { S: 1, cx: 0, top: 0, lw: 1, fig: 1 };
@@ -583,7 +587,7 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
       g.clip();
       g.globalAlpha = 0.6;
       g.strokeStyle = GILD;
-      paintFigure(g, S, cx, Y, lw, trousers ? 0 : 1, false, phi, { half: formHalfWidth, shape: shapeAt, satin: !through, head: false });
+      paintFigure(g, S, cx, Y, lw, trousers ? 0 : 1, false, phi, { half: formHalfWidth, shape: shapeAt, satin: !through, head: false, tone });
       // The cloth covers the form: under the garment the body is not drawn, so the garment is what reads.
       if (!trousers && !through && !cloth?.sheer) {
         // The shoulders and the neck still show through a top's yoke: the cloth is held to the body there.
@@ -625,7 +629,7 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
             g.fillStyle = GROUND;
             g.fillRect(0, 0, w, h);
             g.globalAlpha = 0.6;
-            paintFigure(g, S, cx, Y, lw, 1, false, phi, { half: formHalfWidth, shape: shapeAt, satin: !through, head: false });
+            paintFigure(g, S, cx, Y, lw, 1, false, phi, { half: formHalfWidth, shape: shapeAt, satin: !through, head: false, tone });
             g.restore();
           };
           // Through the neck: the chest, inside the top edge all round.
@@ -1401,7 +1405,7 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
       cv.removeEventListener('pointerup', up);
       cv.removeEventListener('pointercancel', up);
     };
-  }, [round, m, striped, tiles, layers, v3ready, drawing, drapedNow, formX, fitOn]);
+  }, [round, m, striped, tiles, layers, v3ready, drawing, drapedNow, formX, fitOn, tone]);
 
   return (
     <div className={`all-round${standIn ? ' all-round-stand-in' : ''}`}>

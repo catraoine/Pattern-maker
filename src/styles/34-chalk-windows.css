@@ -1,0 +1,39 @@
+/* Chalk style windows (Cat's B, Nov 11): inside every picture window on the style screen (Front, Flat, All round,
+   Pattern) the ground is chalk and the lines are dark ink, so the garment reads clearly; the app around the windows
+   stays black. The window's own words and buttons take the dark ink too. All round paints in the same colours
+   (src/ui/palette.ts CHALK): change both together. The draw tool keeps black. */
+section[aria-label='Preview'] > .preview {
+  --chalk: #e9e4da;
+  --ink: #1d1a17;
+  --gild: #2a2622;
+  --gild-glow: #1d1a17;
+  --muted: #5e5547;
+  --line-strong: #2a2622;
+  --guide: #b9b2a4;
+  color: var(--ink);
+  background: var(--chalk);
+}
+/* The soft champagne glow behind the Front drawing was light on black; on chalk the window stays plain. */
+.style-pin .preview:has(.form-still) {
+  background-image: none;
+}
+section[aria-label='Preview'] > .preview button {
+  color: var(--ink);
+}
+section[aria-label='Preview'] > .preview .demo-play-words,
+section[aria-label='Preview'] > .preview .demo-play-mark {
+  color: var(--muted);
+}
+section[aria-label='Preview'] > .preview .all-round-tools button,
+section[aria-label='Preview'] > .preview .all-round-feel-step {
+  background: transparent;
+  border-color: var(--gild);
+}
+section[aria-label='Preview'] > .preview .testing-tag {
+  background: var(--ink);
+  color: var(--chalk);
+}
+/* Flats drawn in ink on white, like a tailor's technical flat, instead of black shapes. */
+section[aria-label='Preview'] > .preview .techflat .flat-shape {
+  fill: var(--garment, #f6f2ea);
+}
