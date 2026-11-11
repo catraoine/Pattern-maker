@@ -143,6 +143,10 @@ export interface BodiceStyle {
    * a plunge neckline, and no part of the top below it narrower than the bust plus a little (else it keeps its
    * zip). Set by a look. */
   pullOn?: boolean;
+  /** A fine drawstring at the hem of a top below the waist (Cat, 2026-11-11: "I would like the fine drawstring"): a
+   * narrow channel sewn inside, just above the hem, with a cord that comes out at the left side seam, so the top
+   * can be drawn in to blouse or left to hang. Set by a look. */
+  hemTie?: 'drawstring';
   sleeve?: SleeveLength;
   sleeveShape?: SleeveShape;
   /** A dragged hem: cm below the waist (0 for the waist), in place of the named length. */
@@ -346,6 +350,10 @@ export function bodiceEase(s: { fit: BodiceFit; bustEase?: number; neckline?: Ne
   return { bust, waist: Math.max(1, base.waist + bust - base.bust) };
 }
 
+/** A drawstring hem: the channel's lower edge this far above the hem, the channel this wide, and the cord this much
+ * longer than the hem, to tie. */
+export const DRAWSTRING = { above: 2, channel: 1.2, tails: 60 };
+
 /** A dragged hem sits on the waist or at least this far below it, so fish-eye darts fit above it. */
 export const DROP_MIN = 6;
 
@@ -407,6 +415,8 @@ export interface BodiceDraft {
   zipThrough?: boolean;
   /** No opening: it goes on over the head, the back cut on the fold (BodiceStyle.pullOn, where it can). */
   pullOn?: true;
+  /** A drawstring in a channel just above the hem (BodiceStyle.hemTie): the cord's length. */
+  hemTie?: { cordCm: number };
   /** Front landmarks for drawing the bodice as worn: waist and hem, at the side and centre front. */
   front: { apex: P; waistSide: P; waistCentre: P; hemSide: P; hemCentre: P };
   /** The same for the back, plus the centre back neck and where the zip ends. */
@@ -1407,6 +1417,14 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     backDraft.points.push({ n: 'H', at: p(0, backHem + hemAt.back), note: note('back') });
   }
 
+  // A drawstring hem: where the channel goes, marked on both pieces. (Not on a shaped hem: its curve would pucker.)
+  const drawstring = s.hemTie === 'drawstring' && below && !s.dressHem && !hemShape && !s.peplum;
+  if (drawstring) {
+    const up = DRAWSTRING.above + DRAWSTRING.channel / 2;
+    frontPiece.balance = [...(frontPiece.balance ?? []), { pts: [p(0, cfHem - up), p(hemF.x, hemF.y - up)], label: 'DRAWSTRING CHANNEL' }];
+    backPiece.balance = [...(backPiece.balance ?? []), { pts: [p(0, backHem - up), p(hemB.x, hemB.y - up)], label: 'DRAWSTRING CHANNEL' }];
+  }
+
   // ---- checks -------------------------------------------------------------
   return {
     pieces: [frontPiece, backPiece],
@@ -1428,6 +1446,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     zipCm,
     ...(zipThrough ? { zipThrough } : {}),
     ...(pullOn ? { pullOn: true as const } : {}),
+    ...(drawstring ? { hemTie: { cordCm: Math.ceil((2 * (hemB.x + hemF.x) + DRAWSTRING.tails) / 5) * 5 } } : {}),
     front: { apex, waistSide: swF, waistCentre: p(0, wf), hemSide: add(hemF, p(0, hemAt.side)), hemCentre: p(0, cfHem + hemAt.front) },
     back: { waistSide: swB, waistCentre: p(0, wb), hemSide: add(hemB, p(0, hemAt.side)), hemCentre: p(0, backHem + hemAt.back), neckCentre: p(0, bd), zipEnd },
     neckBlock: { front: { neckY: cfNeck0.y, neckX: nwF }, back: { neckY: 0, neckX: nw } },

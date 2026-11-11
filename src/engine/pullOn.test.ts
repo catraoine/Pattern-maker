@@ -89,3 +89,31 @@ describe('a shoulder panel on a plunge', () => {
     expect(r.quality!.problems).toEqual([]);
   }, 60000);
 });
+
+describe('a drawstring hem', () => {
+  it('marks its channel on the front and back, and asks for the binding and a cord long enough to tie', () => {
+    const d = draftBodice(EXAMPLE_BODY as never, blouse({ hemTie: 'drawstring' }));
+    expect(d.hemTie!.cordCm).toBeGreaterThanOrEqual(d.finishedHem! + 55);
+    for (const name of ['Bodice front', 'Bodice back']) expect(d.pieces.find((pc) => pc.name === name)!.balance!.map((b) => b.label)).toContain('DRAWSTRING CHANNEL');
+    const g = bodiceGuide(d, { length: 'hip' }, 1.5, 2);
+    const titles = g.steps.map((s) => s.title);
+    expect(titles.indexOf('Sew the drawstring channel')).toBe(titles.indexOf('Hem') + 1);
+    expect(g.notions.join(' ')).toMatch(/silk bias binding, for the drawstring channel.*fine silk cord/);
+  });
+
+  it('is left off a top that ends at the waist', () => {
+    const d = draftBodice(EXAMPLE_BODY as never, blouse({ hemTie: 'drawstring', length: 'waist' }));
+    expect(d.hemTie).toBeUndefined();
+  });
+
+  it('is drawn on the flat: a second row of stitching and the cord ends at the left side seam', () => {
+    const look = COLLECTION.find((l) => l.id === 'lilac-lace')!;
+    const f = lookFlat(look, EXAMPLE_BODY as never)!;
+    const front = f.views.find((v) => /front/i.test(v.label))!;
+    const body = front.shapes[0];
+    const right = Math.max(...body.map((q) => q.x));
+    const foot = Math.max(...body.map((q) => q.y));
+    const cords = front.shapes.filter((sh) => sh !== body && sh.every((q) => q.x > right - 3 && q.y > foot - 6) && sh.some((q) => q.y > foot + 3));
+    expect(cords).toHaveLength(2);
+  });
+});

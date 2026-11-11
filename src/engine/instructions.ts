@@ -8,6 +8,7 @@ import { BackNeck, withBackNeck } from './backNeck';
 import { isCircle } from './skirt';
 import type { Elastic, Length, Silhouette, SkirtDraft } from './skirt';
 import type { BodiceDraft, BodiceLength } from './bodice';
+import { DRAWSTRING } from './bodice';
 import type { SleeveDraft } from './sleeve';
 import { cuffCutWords, cuffNotions, cuffStep, placketStep } from './cuffs';
 import type { DressDraft } from './dress';
@@ -463,6 +464,22 @@ function pullOnSteps(g: SewingGuide, d: BodiceDraft): SewingGuide {
   return { notions: g.notions.filter((n) => !/invisible zip|Hook and eye/.test(n)), steps };
 }
 
+/** A drawstring at the hem (BodiceDraft.hemTie): a narrow channel of silk binding sewn inside, just above the hem,
+ * and a fine cord through it that comes out at the left side seam. */
+function drawstringSteps(g: SewingGuide, d: BodiceDraft): SewingGuide {
+  if (!d.hemTie) return g;
+  const hem = d.finishedHem ?? 0;
+  const bindingM = Math.ceil((hem + 10) / 10) / 10;
+  const cordM = d.hemTie.cordCm / 100;
+  const channel: SewStep = {
+    title: 'Sew the drawstring channel',
+    text: `On the inside, pin the silk binding along the DRAWSTRING CHANNEL line, its folded edges turned under, starting and ending at the left side seam (as you wear it) with each end turned under 1 cm so the ends just meet. Stitch close to both long edges, leaving the ends open: the channel is ${n1(DRAWSTRING.channel)} wide and sits ${n1(DRAWSTRING.above)} above the hem, so the hem edge hangs free below it. Thread the cord through with a bodkin or a small safety pin, bring both ends out at the side seam and knot each end. Draw it in and tie it to blouse the top, or leave it loose and the top hangs straight.`,
+  };
+  const at = g.steps.findIndex((s) => s.title === 'Hem');
+  const steps = at < 0 ? [...g.steps, channel] : [...g.steps.slice(0, at + 1), channel, ...g.steps.slice(at + 1)];
+  return { notions: [...g.notions.slice(0, -1), `${bindingM.toFixed(1)} m of 12 mm silk bias binding, for the drawstring channel`, `${cordM.toFixed(1)} m of fine silk cord, 2 to 3 mm, for the drawstring`, ...g.notions.slice(-1)], steps };
+}
+
 function bodiceSteps(draft: BodiceDraft, _style: { length: BodiceLength }, fabricM: number, bindingM: number, finish: BodiceFinish = {}): SewingGuide {
   const below = draft.finishedHem !== undefined;
   const sw = finish.seams ?? SEAM_WIDTHS.home;
@@ -637,7 +654,7 @@ function bodiceSteps(draft: BodiceDraft, _style: { length: BodiceLength }, fabri
   // and a low or keyhole back's (backNeck.ts).
   return withBackNeck(
     mirroredGuide(draft, drapeBodiceSteps(
-      pullOnSteps(wrapSteps(shirredSteps(topSteps(styleBodiceSteps(guide, draft, { seam, curve, edges, sleeve: !!sleeve }), draft, { seam, curve, fabricM, liningM: finish.liningM, coutilM: finish.coutilM, width: finish.width }), draft, { seam }), draft, { curve }), draft),
+      drawstringSteps(pullOnSteps(wrapSteps(shirredSteps(topSteps(styleBodiceSteps(guide, draft, { seam, curve, edges, sleeve: !!sleeve }), draft, { seam, curve, fabricM, liningM: finish.liningM, coutilM: finish.coutilM, width: finish.width }), draft, { seam }), draft, { curve }), draft), draft),
       draft,
       { seam, curve, edges, sleeve: !!sleeve },
     )),

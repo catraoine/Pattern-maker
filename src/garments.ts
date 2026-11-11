@@ -65,6 +65,7 @@ export interface BodiceChoices {
   shiftBack?: 'shaped';
   sides?: 'straight';
   pullOn?: boolean;
+  hemTie?: 'drawstring';
   /** Older saves have the block's side bust dart, no princess seams, a back zip and no collar. */
   bustDart?: DartPlace;
   princess?: PrincessLine;

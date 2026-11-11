@@ -7,7 +7,7 @@ import type { Piece } from './piece';
 import type { SkirtDraft } from './skirt';
 import { WAISTBAND_CM } from './skirt';
 import { HIGH } from './skirtWaist';
-import { BodiceDraft, blockOf } from './bodice';
+import { BodiceDraft, DRAWSTRING, blockOf } from './bodice';
 import { BANDS, EXTENSION_CM, isBandCollar } from './collar';
 import type { BodiceEdges } from './instructions';
 import { BAND_CM, SleeveDraft } from './sleeve';
@@ -1283,6 +1283,25 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
     // A lowered peplum is sewn to the hem, so no hem stitching shows there.
     if (d.finishedHem !== undefined && !d.peplum)
       for (const run of along(h, 'hem')) for (const pts of [run, mirror(run)]) for (const r of inset(pts, 2, shape)) lines.push({ pts: r, kind: 'stitch' });
+    // A drawstring hem: the channel's second row of stitching, and the cord's two ends hanging at the left side seam.
+    const cords: P[][] = [];
+    if (d.hemTie && d.finishedHem !== undefined) {
+      for (const run of along(h, 'hem')) for (const pts of [run, mirror(run)]) for (const r of inset(pts, 2 + DRAWSTRING.channel, shape)) lines.push({ pts: r, kind: 'stitch' });
+      const hemRun = along(h, 'hem')[0];
+      if (hemRun?.length) {
+        // (The wearer's left: on the right of the front view, on the left of the back view. Drawn as thin shapes, so
+        // the drawing's frame takes them in, as it does a wrap's ties.)
+        const side = hemRun.reduce((a, q) => (Math.abs(q.x) > Math.abs(a.x) ? q : a));
+        const sx = (i === 0 ? 1 : -1) * Math.abs(side.x);
+        const from = p(sx, side.y - 2 - DRAWSTRING.channel / 2);
+        for (const [dx, drop] of [[0.6, 8], [1.8, 6.5]] as const) {
+          const k = Math.sign(sx) * dx;
+          const end = add(from, p(k * 1.6, drop));
+          const run = bend(from, add(from, p(k * 2.2, drop * 0.35)), end, 10);
+          cords.push([...run.map((q) => add(q, p(-0.12, 0))), add(end, p(-0.3, 0.6)), add(end, p(0.3, 0.6)), ...[...run].reverse().map((q) => add(q, p(0.12, 0)))]);
+        }
+      }
+    }
     if (i === 0 && d.closure === 'front_buttons' && d.buttons) {
       // The right front laps over the left (the left over the right for menswear): its edge, and the buttons on the centre front.
       const top = h.run[0].y;
@@ -1314,7 +1333,7 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
       // A zip run through to the hem is shortened there (BodiceDraft.zipThrough), so it is drawn no longer than the back.
       lines.push({ pts: [p(0, top), p(0, h.run[h.run.length - 1].y)], kind: 'seam' }, ...zip(top, Math.min(d.zipCm, h.run[h.run.length - 1].y - top)), ...keyButton(top - key, key));
     }
-    const shapes = [shape, ...(wrapped?.tie ?? [])];
+    const shapes = [shape, ...(wrapped?.tie ?? []), ...cords];
     // Spaghetti straps, from the top edge up over the shoulder.
     const st = d.top?.strapAt && (i === 0 ? d.top.strapAt.front : d.top.strapAt.back);
     // A halter's ties are wider bands, rising from the strap ends round the neck.
