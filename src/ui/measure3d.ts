@@ -98,15 +98,15 @@ export function lengthPath(a: number, y0: number, y1: number): TapePt[] {
 
 /** The tape's face: ivory, a long mark each centimetre and a short one every 2 mm, all from its top edge; no numbers
  *  (Cat, 2026-10-28). One tile is 10 cm. */
-function tapeTexture(maxAniso: number, dark = false) {
+function tapeTexture(maxAniso: number, dark = false, colours?: { face: string; ink: string }) {
   const c = document.createElement('canvas');
   c.width = 2048;
   c.height = 128;
   const g = c.getContext('2d')!;
   // On a light finish the tape is dark with ivory marks, so it still stands out.
-  g.fillStyle = dark ? '#1d1a16' : TAPE;
+  g.fillStyle = colours?.face ?? (dark ? '#1d1a16' : TAPE);
   g.fillRect(0, 0, c.width, c.height);
-  g.fillStyle = dark ? TAPE : TAPE_INK;
+  g.fillStyle = colours?.ink ?? (dark ? TAPE : TAPE_INK);
   const perMm = c.width / 100;
   for (let mm = 0; mm < 100; mm += 2) {
     const long = mm % 10 === 0;
@@ -298,7 +298,7 @@ function applyFinish(m: THREE.MeshStandardMaterial, finish: Finish) {
   }
 }
 
-export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot, lift: Lift = 'none', limbs = true, finish: Finish = 'satin', limbData: typeof LIMBS = LIMBS, darkTape = false, shade?: string) {
+export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot, lift: Lift = 'none', limbs = true, finish: Finish = 'satin', limbData: typeof LIMBS = LIMBS, darkTape = false, shade?: string, tapeColours?: { face: string; ink: string }, tapeShadow = false) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, preserveDrawingBuffer: true });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NeutralToneMapping;
@@ -413,11 +413,17 @@ export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot,
     turning.add(new THREE.Mesh(waistString(bodyLandmarks().waist), m));
   }
 
-  const tex = tapeTexture(renderer.capabilities.getMaxAnisotropy(), darkTape);
+  const tex = tapeTexture(renderer.capabilities.getMaxAnisotropy(), darkTape, tapeColours);
   const tapeMat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.75, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 });
   const rib = ribbon(shot.path, TAPE_W);
   const tapeMesh = new THREE.Mesh(rib.geo, tapeMat);
   turning.add(tapeMesh);
+  // A soft shadow just past the tape's edges, so it reads as a band lying on the body rather than a gap in it
+  // (Cat, Nov 10: "the ivory tape looks like a gap in the torso").
+  const shadowRib = ribbon(shot.path, TAPE_W * 1.35);
+  const shadowMesh = new THREE.Mesh(shadowRib.geo, new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.38, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 }));
+  shadowMesh.visible = tapeShadow;
+  if (tapeShadow) turning.add(shadowMesh);
   // The flush metal end (Cat's E2, 2026-10-27) at the tape's zero.
   const endMat = new THREE.MeshStandardMaterial({ color: hex(TAPE_END), metalness: 0.7, roughness: 0.35 });
   const end = new THREE.Mesh(new THREE.BoxGeometry(TAPE_W * 1.04, 0.9 / CM, 0.003), endMat);
@@ -447,6 +453,7 @@ export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot,
     const n = shot.path.length - 1;
     const k = Math.round(n * Math.max(0, Math.min(1, f.play)));
     rib.geo.setDrawRange(0, k * 6);
+    shadowRib.geo.setDrawRange(0, k * 6);
     tapeMesh.visible = k > 0;
     end.visible = k > 0;
     place(end, 0, 1);

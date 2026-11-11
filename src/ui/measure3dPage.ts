@@ -10,7 +10,7 @@ canvas.style.width = `${w}px`;
 canvas.style.height = `${h}px`;
 const pose = q.get('pose');
 const limbs = pose ? await (await fetch(`/measure-limbs/limbs-${pose}.json`)).json() : undefined;
-const scene = createMeasureScene(canvas, shot, (q.get('look') ?? 'none') as Lift, q.get('limbs') !== '0', (q.get('finish') ?? 'satin') as Finish, limbs, q.get('tape') === 'dark', q.get('shade') ?? undefined);
+const scene = createMeasureScene(canvas, shot, (q.get('look') ?? 'none') as Lift, q.get('limbs') !== '0', (q.get('finish') ?? 'satin') as Finish, limbs, q.get('tape') === 'dark', q.get('shade') ?? undefined, q.get('face') ? { face: q.get('face')!, ink: q.get('ink') ?? '#2b2418' } : undefined, q.get('shadow') === '1');
 const win = window as unknown as { __frame: (f: MeasureFrame) => void; __cm: number; __ready: boolean };
 win.__frame = (f) => scene.render(f, w, h);
 win.__cm = scene.total;
