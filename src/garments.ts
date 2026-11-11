@@ -573,7 +573,8 @@ export function seamBlocked(c: BodiceChoices, kind: SeamKind, garment: 'bodice' 
   if (c.closure === 'wrap') return `${words} would cross the wrap's front edge. Choose the back zip first.`;
   if (kind === 'yoke' && side === 'front') {
     const depth = c.neck ? c.neck.frontDepth : NECKLINE_DEPTH[c.neckline];
-    if (depth > 4) return 'A front yoke needs a high neckline: this one cuts through where the yoke goes.';
+    // (A plunge takes a shoulder panel each side: its yoke line runs from the edge of the V to the armhole.)
+    if (depth > 4 && !(c.neckline === 'plunge' && !c.neck)) return 'A front yoke needs a high neckline: this one cuts through where the yoke goes.';
   }
   if (kind === 'yoke' && side === 'back' && c.neck && c.neck.backDepth > 4) return 'A back yoke needs a high back neckline: this one cuts through where the yoke goes.';
   if (kind !== 'yoke' && garment === 'bodice' && c.length === 'cropped') return `${words} ${kind === 'panel' ? 'run' : 'runs'} to the waist, and a cropped top is cut off above it. Pick the waist length first.`;

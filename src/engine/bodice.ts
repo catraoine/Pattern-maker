@@ -968,7 +968,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   // A hem below the waist is never cut narrower than the bodice at the waist, so it doesn't pull in.
   if (below) hemFull = Math.max(hemFull, 2 * (backW + frontW - 2 * sideSupp - dartB - dartF));
   // A boxy or oversized hem is no narrower than the bust: it hangs straight down, or eases out over a fuller hip.
-  if (below && straightCut(s.fit)) hemFull = Math.max(hemFull, B + be);
+  if (below && (straightCut(s.fit) || s.sides === 'straight')) hemFull = Math.max(hemFull, B + be);
   // A top longer than the longest zip, on a body whose hip is under its bust, would still be a closed ring below the
   // zip: there the hem is let out until the bust passes it.
   if (below && !s.dressHem && wb + drop + (hemShape?.back[0] ?? 0) - bd - key > THROUGH_ZIPS[THROUGH_ZIPS.length - 1] + 0.5) hemFull = Math.max(hemFull, B + 2 * PULL_ON_CM);

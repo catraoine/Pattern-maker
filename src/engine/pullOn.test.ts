@@ -66,3 +66,26 @@ describe('the Lilac Lace Blouse', () => {
     expect(backView.lines.some((l) => l.kind === 'seam' && l.pts.every((q) => Math.abs(q.x - backView.at.x) < 0.01))).toBe(false);
   });
 });
+
+describe('a shoulder panel on a plunge', () => {
+  it('is cut from the edge of the V to the armhole, a pair, with the front below it still on the fold', () => {
+    const d = draftBodice(EXAMPLE_BODY as never, blouse({ yoke: { front: 12, back: 10 } }));
+    const names = d.pieces.map((pc) => `${pc.name}: ${pc.cut}`);
+    expect(names).toContain('Bodice front yoke: Cut 2 (1 pair)');
+    expect(names).toContain('Bodice front: Cut 1 on fold');
+    expect(names).toContain('Bodice back yoke: Cut 1 on fold');
+    expect(d.warnings).toEqual([]);
+    const seam = d.styleSeams!.find((s) => s.side === 'front')!.pts;
+    // The seam starts on the V's edge, clear of the centre front, and is level.
+    expect(seam[0].x).toBeGreaterThan(2);
+    expect(seam[seam.length - 1].y).toBeCloseTo(seam[0].y, 5);
+  });
+
+  it('is the Lilac Lace Blouse: panels, no zip, and it passes the All round check in lace', async () => {
+    const { sewDesign } = await import('../drapeSweep');
+    const look = COLLECTION.find((l) => l.id === 'lilac-lace')!;
+    const r = sewDesign({ garment: 'bodice', saved: { bodice: look.choices } as never, fibre: 'silk', fabric: { special: 'lace' } as never });
+    expect(r.error).toBeUndefined();
+    expect(r.quality!.problems).toEqual([]);
+  }, 60000);
+});

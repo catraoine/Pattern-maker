@@ -377,8 +377,11 @@ function yokeLevel(r: Ring, depth: number, side: 'front' | 'back', apex: P, notc
   const tip = shoulder[shoulder.length - 1];
   const underarm = armhole[armhole.length - 1];
   const centreNeck = run(r, 'neck')[0] ?? r.pts[0];
-  const lo = Math.max(centreNeck.y + (side === 'front' ? 2.5 : 3), tip.y + 1.5);
   const hi = side === 'front' ? Math.min(apex.y - 5, underarm.y - 3) : underarm.y - 5;
+  // (A plunge's point is far below any yoke: its yoke line runs from the edge of the V to the armhole, a shoulder
+  // panel each side, so only the shoulder sets how high it can sit.)
+  const plunged = side === 'front' && centreNeck.y > hi;
+  const lo = Math.max(plunged ? -Infinity : centreNeck.y + (side === 'front' ? 2.5 : 3), tip.y + 1.5);
   if (lo > hi) return undefined;
   let y = Math.min(hi, Math.max(lo, neckPoint.y + depth));
   // Not through a notch: the armhole's balance marks stay whole on one piece.
@@ -392,8 +395,10 @@ function yokeSide(pc: Piece, depth: number, side: 'front' | 'back', apex: P, bus
   if (y === undefined) return undefined;
   const far = Math.max(...r.pts.map((q) => q.x)) + 5;
   const cut = cutRing(r, [p(-1, y), p(far, y)], 'yoke');
-  if (!cut || !['fold', 'centre'].includes(cut.on[0]) || cut.on[1] !== 'armhole') return undefined;
   const front = side === 'front';
+  // A plunge front's yoke starts on the edge of the V: a shoulder panel each side, cut as a pair.
+  const panel = front && cut?.on[0] === 'neck';
+  if (!cut || !(['fold', 'centre'].includes(cut.on[0]) || panel) || cut.on[1] !== 'armhole') return undefined;
   const upper = from(cut.a, runStart(cut.a, 'neck'));
   const lower = from(cut.b, cut.b.pts.indexOf(cut.seam[0]));
   const seam = cut.seam;
@@ -408,7 +413,7 @@ function yokeSide(pc: Piece, depth: number, side: 'front' | 'back', apex: P, bus
     note: `Yoke: ruled straight across, square to the centre ${side}, ${cm(y - neckPoint.y)} below the neck point.${moves ? ' The bust dart is closed at the side and opens on the yoke seam over the bust point.' : ''}`,
   };
   const name = front ? 'Bodice front' : 'Bodice back';
-  const yoke = part(pc, upper, `${name} yoke`, cutFor(front), { notches: seamNotches(at, seam, upper), meta: { yoke: true } });
+  const yoke = part(pc, upper, `${name} yoke`, cutFor(front && !panel), { notches: seamNotches(at, seam, upper), meta: { yoke: true } });
   let body = part(pc, lower, name, cutFor(front), { notches: seamNotches(at, seam, lower), points: [note] });
   delete body.meta.pointedAtCentre;
   if (pleat && !front) body = boxPleated(body, y, name);
