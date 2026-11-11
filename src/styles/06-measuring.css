@@ -272,6 +272,18 @@ button.link.how-link {
   /* Solid, so the page underneath never shows through the steps. */
   background: var(--paper);
   border-top: var(--bw) solid var(--line-strong);
+  /* The clip makes it taller than a small phone: it scrolls rather than running off the top. */
+  max-height: 100dvh;
+  overflow-y: auto;
+}
+
+/* The measuring clip on the 3D form, in its own chalk window. */
+.how-clip {
+  display: block;
+  align-self: center;
+  height: min(38dvh, 400px);
+  aspect-ratio: 9 / 16;
+  background: #dcd5c7;
 }
 
 .how-panel .eyebrow {
