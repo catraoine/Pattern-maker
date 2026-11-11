@@ -155,3 +155,9 @@
     font-size: 26px;
   }
 }
+
+/* One question per screen (phone and upright iPad): no rule under the question. With nothing below it but the Next
+   bar, it read as a stray line (Cat, Nov 11). The computer keeps it, where it parts one question from the next. */
+.style-panel.one-q fieldset.fold.open > .fold-body {
+  border-bottom: 0;
+}
