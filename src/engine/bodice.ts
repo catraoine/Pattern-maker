@@ -313,7 +313,7 @@ const HOUSE_SHIRT_TO_KNEE = 0.637;
  *  clears the crotch level by this much. A top's wearer gives no crotch depth, so it is judged as the trouser block's
  *  random bodies have it: the deeper of the hip's depth plus 5.5 and 0.43 of the waist to knee, a little more on a full hip. */
 const HOUSE_SHIRT_CLEAR = 12.5;
-const crotchGuess = (m: { waist_to_hip?: number; waist_to_knee: number; full_hip?: number }) =>
+export const crotchGuess = (m: { waist_to_hip?: number; waist_to_knee: number; full_hip?: number }) =>
   Math.min(Math.max((m.waist_to_hip ?? 0) + 5.5, 0.43 * m.waist_to_knee + Math.max(0, (m.full_hip ?? 90) - 90) * 0.05), m.waist_to_knee - 14);
 /** The house shirt hangs straight from the bust: its hem is let out only for a hip within this much of it. */
 const HOUSE_SHIRT_HIP_EASE = 16;
