@@ -51,7 +51,7 @@ import { signinShown } from './cloud/flag';
 import { LegalScreen } from './screens/LegalScreen';
 import { PhotoAllowance, UnlockGarment } from './ui/PlanPrompts';
 import { BILLING_ON, canPhotoDraft, countPhotoDraft, hasGarment, plansShown, savedLimit } from './plans';
-import { countStep, setReportView } from './report/report';
+import { countStep, reportCrash, setReportView } from './report/report';
 import { PRIVACY, TERMS, legalPath } from './legal';
 import { readLink, type MeasureReply } from './measureLink';
 import { isMoveLink, moveLink, readMoveLink } from './moveLink';
@@ -353,23 +353,33 @@ export default function App() {
   const isOuterGarment = isOuterwear(garment);
   const outerChoices = useMemo(() => outerChoicesOf(inputs.saved, garment === 'coat' ? 'coat' : 'jacket'), [inputs, garment]);
 
-  const drafts = useMemo((): Drafts & { error?: string; crash?: boolean } => {
+  const drafts = useMemo((): Drafts & { error?: string; crash?: unknown } => {
     if (!canLeaveMeasure) return {};
     try {
       return drafting.draft(values, inputs, fitting);
     } catch (e) {
-      return { error: e instanceof DraftError ? e.message : 'Something went wrong drafting this pattern.', crash: !(e instanceof DraftError) };
+      return e instanceof DraftError ? { error: e.message } : { error: 'Something went wrong drafting this pattern.', crash: e ?? 'unknown' };
     }
   }, [values, inputs, fitting, drafting, canLeaveMeasure]);
 
   // A draft that crashes (not a DraftError, which is a message for the maker) is a saved choice the engine no longer
-  // knows, from an older release or a mistyped value: those choices go back to the garment's defaults, and the app
-  // carries on, rather than every screen showing "Something went wrong".
+  // knows, from an older release or a mistyped value, or a mix of body and design the engine trips on: those choices
+  // go back to the garment's defaults, and the app carries on, rather than every screen showing "Something went
+  // wrong". The maker is told, so she checks her picks before she prints (a fit tester could otherwise sew the
+  // standard design without noticing), and a crash report shows where in the code it tripped (code health check, Nov 11).
+  // The note stays until her next pick (the saved choices it was shown for are kept, and any change ends it): it
+  // shares the picture window, so the drawing sits small beside it while it shows.
+  const [resetNote, setResetNote] = useState<{ after: Saved; text: string }>();
   useEffect(() => {
     if (!drafts.crash) return;
-    if (Object.keys(drafting.reset).length) setSaved({ ...saved, ...drafting.reset });
+    reportCrash(drafts.crash, 'draft');
+    if (!Object.keys(drafting.reset).length) return;
+    const after = { ...saved, ...drafting.reset };
+    setSaved(after);
+    setResetNote({ after, text: `Your ${GARMENT_NAME[garment]} couldn't be drawn with the choices it had, so they went back to the standard design. Check your choices before you print. We've been sent a note so we can fix it.` });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only when a new draft comes back, so resetting the saved choices never loops
   }, [drafts]);
+  const styleError = drafts.error ?? (resetNote?.after === saved ? resetNote.text : undefined);
 
   // The drafts with any points moved or pieces cut on the flat pattern, so the preview, print and files all follow.
   const moved = pointEdits[garment];
@@ -975,7 +985,7 @@ export default function App() {
               onChooseGarment={chooseGarment}
               values={values}
               draft={result.skirt}
-              error={result.error}
+              error={styleError}
               onEditMeasurements={() => setStep('measure')}
               onNext={() => setStep('export')}
               saveState={saveState}
@@ -1003,7 +1013,7 @@ export default function App() {
               values={values}
               draft={result.bodice}
               sleeve={result.sleeve}
-              error={result.error}
+              error={styleError}
               onEditMeasurements={() => setStep('measure')}
               onNext={() => setStep('export')}
               saveState={saveState}
@@ -1027,7 +1037,7 @@ export default function App() {
               values={values}
               draft={result.dress}
               sleeve={result.sleeve}
-              error={result.error}
+              error={styleError}
               onEditMeasurements={() => setStep('measure')}
               onNext={() => setStep('export')}
               saveState={saveState}
@@ -1050,7 +1060,7 @@ export default function App() {
               onChooseGarment={chooseGarment}
               values={values}
               draft={result.trousers}
-              error={result.error}
+              error={styleError}
               onEditMeasurements={() => setStep('measure')}
               onNext={() => setStep('export')}
               saveState={saveState}
@@ -1073,7 +1083,7 @@ export default function App() {
               onChooseGarment={chooseGarment}
               values={values}
               draft={result.tee}
-              error={result.error}
+              error={styleError}
               onEditMeasurements={() => setStep('measure')}
               onNext={() => setStep('export')}
               saveState={saveState}
@@ -1097,7 +1107,7 @@ export default function App() {
               onChooseGarment={chooseGarment}
               values={values}
               draft={garment === 'knit_dress' ? result.knitDress : garment === 'hoodie' ? result.hoodie : result.jumpsuit}
-              error={result.error}
+              error={styleError}
               onEditMeasurements={() => setStep('measure')}
               onNext={() => setStep('export')}
               saveState={saveState}
@@ -1118,7 +1128,7 @@ export default function App() {
               onChooseGarment={chooseGarment}
               values={values}
               draft={result.lingerie}
-              error={result.error}
+              error={styleError}
               onEditMeasurements={() => setStep('measure')}
               onNext={() => setStep('export')}
               saveState={saveState}
@@ -1142,7 +1152,7 @@ export default function App() {
               onChooseGarment={chooseGarment}
               values={values}
               draft={result.outer}
-              error={result.error}
+              error={styleError}
               onEditMeasurements={() => setStep('measure')}
               onNext={() => setStep('export')}
               saveState={saveState}
@@ -1198,7 +1208,7 @@ export default function App() {
                       : { garment: 'skirt', silhouette: saved.choices.silhouette, length: saved.choices.length, asymHem: saved.choices.asymHem, pleats: saved.choices.pleats, godets: saved.choices.godets, flounce: saved.choices.flounce }
               }
               made={printable}
-              error={result.error}
+              error={styleError}
               fitting={ownFitting}
               fittingNotes={[...describeFitting(ownFitting, garment), ...carriedNotes]}
               alterations={alterations}

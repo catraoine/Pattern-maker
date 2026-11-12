@@ -39,3 +39,4 @@
 @import './styles/34-chalk-windows.css'; /* Chalk style windows with dark ink lines (Cat's B, Nov 11). */
 @import './styles/34-tester-journey.css'; /* Tester journey fixes: phone garment menu, tester form, looks first (Nov 11). */
 @import './styles/35-corner-inset.css'; /* Enlarge, Draw and Watch demo inset evenly from the window's edge (Cat, Nov 11). */
+@import './styles/36-window-note.css'; /* A message in a style picture window sits across its top, the drawing full size under it (Nov 11). */
