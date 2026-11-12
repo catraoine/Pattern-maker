@@ -15,7 +15,7 @@ import type { BodiceEdges } from './instructions';
 import { BAND_CM, SleeveDraft } from './sleeve';
 import type { DressDraft } from './dress';
 import type { TrousersDraft } from './trousers';
-import { LOOP_PLACES, loopShape } from './trouserPleats';
+import { loopPlaces, loopShape } from './trouserPleats';
 import { BACK_WELT, weltWidth } from './trouserBack';
 import { FLAP } from './jacketPockets';
 import { TeeDraft } from './tee';
@@ -1570,8 +1570,8 @@ export function trousersView(d: TrousersDraft, m: { waist_to_hip: number; crotch
       const box = [p(x0 - hwW, y0), p(x0 + hwW, y0), p(x0 + hwW, y0 + d.backWelt.depth), p(x0 - hwW, y0 + d.backWelt.depth), p(x0 - hwW, y0)];
       lines.push(...both(box).map((pts) => ({ pts, kind: 'seam' as const })));
     }
-    // Belt loops: halfway across each front and at each side, and at the centre back.
-    if (d.loops) for (const f of back ? LOOP_PLACES.back : LOOP_PLACES.front) for (const s of f === 0 ? [1] : [1, -1]) shapes.push(loopShape(W * f * s, top));
+    // Belt loops: halfway across each front and at each side, and at the centre back (and across each back, with seven).
+    if (d.loops) for (const f of back ? loopPlaces(d.loops).back : loopPlaces(d.loops).front) for (const s of f === 0 ? [1] : [1, -1]) shapes.push(loopShape(W * f * s, top));
     if (d.elastic) for (const s of [1, -1]) lines.push(...gathers(p(0, top), p(W * s, 0), WAISTBAND_CM));
     // Pockets, on the front: the slant opening and its topstitching, or an in-seam bag behind the side seam.
     const sideAt = (y: number) => (y >= hd ? hw : W + (hw - W) * Math.sin((Math.min(y, hd) / hd) * (Math.PI / 2)));

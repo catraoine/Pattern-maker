@@ -158,7 +158,7 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
             ? [
                 {
                   title: 'Make the belt loops',
-                  text: `Press the belt loop strip into thirds along its length, the raw edges inside, and topstitch close to both long edges. Cut it into ${loops} pieces at the notches. Pin a loop to the right side of the trousers waist at the centre back, at each side seam and halfway across each front, each hanging down the leg with its top end level with the waist edge, so the waistband seam catches it.`,
+                  text: `Press the belt loop strip into thirds along its length, the raw edges inside, and topstitch close to both long edges. Cut it into ${loops} pieces at the notches. Pin a loop to the right side of the trousers waist at the centre back, at each side seam and halfway across each front${loops > 5 ? ', and halfway across each back' : ''}, each hanging down the leg with its top end level with the waist edge, so the waistband seam catches it.`,
                 },
               ]
             : []),
