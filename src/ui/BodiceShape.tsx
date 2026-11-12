@@ -288,13 +288,18 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
     return { half: Math.max(half, base.half), top: Math.min(-8, base.top), bottom: base.bottom };
   }, [m, hip, choices.fit, choices.length, choices.shirtCut, draft.front.waistCentre.y, draft.back.waistCentre.y, body, arms, cloth]);
 
-  const cx = frame.half;
   const k = (frame.bottom - frame.top) / 80; // handle and label size, in proportion to the sketch
   // The handles sit on the top as drawn: its hem at the centre, and its side under the arm.
   const piece = cloth[0] ?? [];
   const hemCentre = piece.length ? piece.reduce((a, b) => (b.y > a.y ? b : a)) : { x: 0, y: waistY };
   const underarmY = land.underarm.y;
   const widest = piece.filter((q) => q.x > 0 && q.y >= underarmY - 1 && q.y <= waistY).reduce((a, b) => (b.x > a.x ? b : a), { x: body.width(underarmY), y: underarmY });
+  // The ease word's room beside the disc, on its longest line of two: an oversized top's disc sits out near the frame's
+  // edge, and with no room there its word was laid across the cloth (the Leopard Shirt Dress, Nov 12). The frame widens
+  // just enough to keep it on the ground.
+  const easeWords = choices.bustEase !== undefined ? `${choices.bustEase} cm ease` : fitName(choices.fit);
+  const longest = Math.max(...easeWords.split(' ').length > 1 ? [easeWords.slice(0, easeWords.lastIndexOf(' ')).length, easeWords.slice(easeWords.lastIndexOf(' ') + 1).length] : [easeWords.length]);
+  const cx = Math.max(frame.half, SQUEEZE * widest.x + 2.4 * k + 3.2 * k + longest * 2.6 * k * 0.85 + 1.5 * k);
 
   const toSvg = (e: PointerEvent): P => {
     const ctm = svg.current!.getScreenCTM()!.inverse();
@@ -335,7 +340,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
   };
 
   const lengthLabel = choices.dropCm !== undefined ? `${Math.round(draft.drop)} cm below` : lengthName(choices.length);
-  const easeLabel = choices.bustEase !== undefined ? `${choices.bustEase} cm ease` : fitName(choices.fit);
+  const easeLabel = easeWords;
   const guide = (y: number, text: string) => (
     <g className="guide">
       <line x1={0} x2={2 * cx} y1={y} y2={y} strokeWidth={0.12} strokeDasharray={`${k} ${k}`} />
@@ -349,7 +354,12 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
     const c = 1.1 * k;
     const o = r + 1.2 * k;
     // About how wide the word is: Chakra Petch caps with 0.2em tracking run close to 0.85 of the type size each.
-    const roomRight = at.x + r + 3.2 * k + text.length * 2.6 * k * 0.85 < 2 * cx - k;
+    const fits = (t: string) => at.x + r + 3.2 * k + t.length * 2.6 * k * 0.85 < 2 * cx - k;
+    // (Too wide for one line, on two beside the disc ("36 CM" over "EASE"), still on the ground: dropped below the disc,
+    // an oversized shirt's ease word lay across its cloth, the Leopard Shirt Dress, Nov 12.)
+    const cut = text.lastIndexOf(' ');
+    const two = kind !== 'hem' && !fits(text) && cut > 0 && fits(text.slice(0, cut)) && fits(text.slice(cut + 1)) ? [text.slice(0, cut), text.slice(cut + 1)] : undefined;
+    const roomRight = fits(text) || !!two;
     const arrows =
       kind === 'hem'
         ? `M${at.x - c} ${at.y - o + c} L${at.x} ${at.y - o} L${at.x + c} ${at.y - o + c} M${at.x - c} ${at.y + o - c} L${at.x} ${at.y + o} L${at.x + c} ${at.y + o - c}`
@@ -368,7 +378,12 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
           fontSize={2.6 * k}
           textAnchor={kind === 'hem' || roomRight ? 'start' : 'end'}
         >
-          {text.toUpperCase()}
+          {two ? two.map((line, i) => (
+                <tspan key={line} x={at.x + r + 3.2 * k} dy={i ? 3.1 * k : -1.4 * k}>
+                  {line.toUpperCase()}
+                </tspan>
+              ))
+            : text.toUpperCase()}
         </text>
         <circle
           cx={at.x}
