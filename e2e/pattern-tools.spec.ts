@@ -82,7 +82,7 @@ test('draws a line on the skirt to spread it, opens it more, cuts a yoke, and go
   await page.getByRole('group', { name: 'New piece' }).getByRole('button', { name: 'Done' }).click();
 
   // Back on the pieces, the pattern says it was edited, In testing.
-  await main.getByRole('button', { name: 'Back to pieces' }).click();
+  await main.getByRole('button', { name: 'Done moving points' }).click();
   await expect(main.locator('.pe-edited')).toContainText('Edited by you');
   await expect(main.locator('.pe-edited .testing-tag')).toBeVisible();
   await still(page, '5-edited-by-you');

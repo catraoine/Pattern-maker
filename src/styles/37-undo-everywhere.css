@@ -40,3 +40,9 @@ section.live-big .pattern-pane > .point-editor > .point-svg {
   min-height: 160px;
   height: auto;
 }
+
+/* Move points open: one Watch demo, its own, beside the how-to line under the pieces; the style's Watch demo in the
+   corner is put away until Done, so there aren't two (Cat, Nov 12, "add"). */
+.preview:has(.point-editor) .preview-corner > .demo-play {
+  display: none;
+}

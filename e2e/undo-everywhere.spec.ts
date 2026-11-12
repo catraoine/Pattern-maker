@@ -59,6 +59,9 @@ test('Move points enlarged: every piece shows whole in the window, with Undo', a
     expect(q.y).toBeLessThan(view.height);
   }
   await expect(main(page).getByRole('button', { name: 'Undo the last change to the pieces' })).toBeInViewport();
+  // One Watch demo, Move points' own, and Done to close the tool.
+  await expect(page.locator('section.live-big .demo-play:visible')).toHaveCount(1);
+  await expect(main(page).getByRole('button', { name: 'Done moving points' })).toBeVisible();
   // The window's own Undo for the style is put away while Move points has its own.
   await expect(page.locator('.big-undo')).toBeHidden();
 });

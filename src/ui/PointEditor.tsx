@@ -76,8 +76,9 @@ export function PatternPane({ children, onPlay }: { children: ReactNode; onPlay?
     <div className="pattern-pane">
       {on ? (
         <InCorner>
-          <button type="button" className="link small pe-open-tool on" aria-pressed="true" onClick={() => setOn(false)}>
-            <span className="tool-word">Back to pieces</span>
+          {/* "Done", not "Back to pieces": that read as a step back somewhere (Cat, Nov 12, "add"). */}
+          <button type="button" className="link small pe-open-tool on" aria-pressed="true" aria-label="Done moving points" onClick={() => setOn(false)}>
+            <span className="tool-word">Done</span>
           </button>
         </InCorner>
       ) : (
