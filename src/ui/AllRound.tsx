@@ -276,6 +276,7 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
   const [fitOn, setFitOn] = useState(false);
   const pulse = useRef(-1e9);
   const zoomRef = useRef<((on: boolean) => void) | undefined>(undefined);
+  const sideRef = useRef<HTMLDivElement>(null);
   const rows = useMemo(() => roundRows(round, striped), [round, striped]);
 
   // When the garment changes, it has been trued as it was drafted: the seams glow, softly, once.
@@ -554,31 +555,49 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
         g.restore();
         // The fit map's labels: the pattern's ease at the bust, waist and hip, on the front of the cloth while it
         // faces the viewer, fading as it turns away.
-        if (fitNow && sewnIn && !st.probe)
-          for (const t of sewnIn.d.fitTags ?? []) {
+        // The fit map's tags (Cat's A, Nov 11): beside the garment, each on a thin ink line from a dot where it reads
+        // the ease, so the cloth stays clear. The tags themselves are words in the page (sideRef), placed here each frame.
+        const side = sideRef.current;
+        if (fitNow && sewnIn && !st.probe) {
+          const tags = (sewnIn.d.fitTags ?? []).map((t) => {
             const at = v3.project(frame, sewnIn.toForm(t.at[0], t.at[1], t.at[2] + 1));
-            const a = Math.max(0, Math.min(1, (at.facing - 0.35) / 0.3));
-            if (a <= 0 || at.y > fig) continue;
-            const text = `${t.name} ${t.ease > 0 ? '+' : t.ease < 0 ? '\u2212' : ''}${Math.abs(t.ease)} cm`;
+            return { x: at.x, y: at.y, ty: at.y, a: at.y > fig ? 0 : Math.max(0, Math.min(1, (at.facing - 0.35) / 0.3)) };
+          });
+          // On a small garment the tags would sit on top of each other: each keeps a line's height from the one above,
+          // and its line bends to reach it.
+          const GAP = 13;
+          const order = tags.map((_, i) => i).sort((i, j) => tags[i].y - tags[j].y);
+          order.forEach((i, k) => {
+            if (k > 0) tags[i].ty = Math.max(tags[i].y, tags[order[k - 1]].ty + GAP);
+          });
+          tags.forEach((t, i) => {
+            const tag = side?.children[i] as HTMLElement | undefined;
+            // The tag starts at the canvas's right edge, or further in where the box has no room for it there.
+            let end = w;
+            if (tag && side) {
+              end = Math.min(w, side.clientWidth - tag.offsetWidth - 4 - cv.offsetLeft);
+              tag.style.top = `${cv.offsetTop + t.ty}px`;
+              tag.style.left = `${cv.offsetLeft + end}px`;
+              tag.style.opacity = String(t.a);
+            }
+            if (t.a <= 0) return;
             g.save();
-            g.globalAlpha = a;
-            // Small square label tags (Cat, Nov 11: the bigger round-cornered ones covered the bodice).
-            g.font = '500 10px "Chakra Petch", ui-monospace, monospace';
-            const tw = g.measureText(text).width;
-            const [bw, bh] = [tw + 8, 15];
-            const x0 = Math.max(2, Math.min(w - bw - 2, at.x - bw / 2));
-            g.fillStyle = 'rgba(0, 0, 0, 0.72)';
-            g.strokeStyle = '#fff';
+            g.globalAlpha = t.a;
+            g.strokeStyle = GILD;
+            g.fillStyle = GILD;
             g.lineWidth = 1;
             g.beginPath();
-            g.rect(x0, at.y - bh / 2, bw, bh);
+            g.arc(t.x, t.y, 2.5, 0, Math.PI * 2);
             g.fill();
+            const bend = Math.max(t.x, end - 8);
+            g.beginPath();
+            g.moveTo(t.x, t.y);
+            g.lineTo(bend, t.y);
+            g.lineTo(Math.max(t.x, end), t.ty);
             g.stroke();
-            g.fillStyle = '#fff';
-            g.textBaseline = 'middle';
-            g.fillText(text, x0 + 4, at.y + 0.5);
             g.restore();
-          }
+          });
+        }
       } else {
       // The figure stops above the hem line, so its legs don't run through it. Under trousers its legs
       // turn with the garment.
@@ -1413,6 +1432,16 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
   return (
     <div className={`all-round${standIn ? ' all-round-stand-in' : ''}`}>
       {standIn && fallback}
+      {canFit && fitOn && (
+        <div ref={sideRef} className="all-round-side-tags" aria-hidden="true">
+          {(sewnView?.d.fitTags ?? []).map((t) => (
+            <span key={t.name} className="all-round-side-tag">
+              {t.name} {t.ease > 0 ? '+' : t.ease < 0 ? '\u2212' : ''}
+              {Math.abs(t.ease)} cm
+            </span>
+          ))}
+        </div>
+      )}
       <canvas ref={ref} className={`all-round-canvas${round.legs ? ' all-round-tall' : ''}${drawing ? ' drawing' : ''}`} data-sewn={drapedNow === 'pending' ? 'pending' : inTesting ? 'testing' : drapedNow ? 'ready' : undefined} role="img" aria-label={label} hidden={standIn} />
       {!drawing && (
         <div className="all-round-quiet">
