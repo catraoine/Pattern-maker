@@ -33,7 +33,7 @@ export function ShareLink() {
 
   return (
     <div className="stack share-link">
-      <p className="waitlist-line">Bring three sewing friends and your first year of Premium is free (usually $49).</p>
+      <p className="waitlist-line">Bring three sewing friends and your first year of Premium is free, a $49 value.</p>
       <div className="field plain">
         <label htmlFor="share-url" className="visually-hidden">
           Your link

@@ -8,7 +8,7 @@ export const OWNER = {
   address: 'Vancouver, British Columbia, Canada',
   email: 'hello@maisontrace.co',
   law: 'British Columbia and the federal laws of Canada that apply there',
-  effective: '3 November 2026',
+  effective: '12 November 2026',
   minimumAge: '16',
   liabilityCap: 'CA$50',
   courts: 'British Columbia, sitting in Vancouver',
@@ -214,6 +214,7 @@ export const TERMS: LegalDoc = {
         'Maker pack for dressmakers and factories.|The tech pack and DXF files are provided to help a professional make your garment. Whoever makes it should review the pattern, measurements and construction notes, and make and fit a sample before cutting production fabric. We aren’t a party to any agreement between you and a dressmaker or factory, and we aren’t responsible for their work, pricing, materials or delivery. DXF files may open differently in different CAD programs, so check pieces against the PDF and the measurement table.',
         'Deadstock cloth and cutting (not open yet).|Deadstock lengths are limited and cut to order, so cut cloth can’t be returned, and colours can look different on screen. If you ask a cutting studio to cut your pieces, check your pattern and measurements first: the studio cuts exactly what the pattern shows. Signing up to hear when these open doesn’t reserve cloth or commit you to buy.',
         'Fabric from partner shops.|Buy buttons take you to the shop’s own site. You buy from the shop, under its prices, delivery and returns, and we aren’t a party to that sale. We may earn a commission when you buy, at no extra cost to you.',
+        'Friend rewards.|If three friends join the waitlist through your link and confirm their email, you get your first year of Premium free when paid plans start. Each friend must be a different real person, and links you use yourself don’t count. It’s one free year per person, it has no cash value and it can’t be transferred. We may change or end this offer at any time, but a free year you’ve already earned will still be given. We may withhold it if links are misused.',
       ],
     },
     {
