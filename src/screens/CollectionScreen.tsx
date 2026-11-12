@@ -10,6 +10,8 @@ import { TechFlatView } from '../ui/TechFlatView';
 import { GarmentFabric } from '../ui/FabricFill';
 import { lookFabric } from '../collection';
 import { TestingTag } from '../ui/TestingTag';
+import { EraShelf } from './EraShelf';
+import { ERA_PIECES } from '../eraLines';
 
 interface Props {
   values: MeasurementValues;
@@ -19,7 +21,7 @@ interface Props {
   backLabel?: string;
 }
 
-type Shelf = 'house' | 'archive';
+type Shelf = 'house' | 'eras' | 'archive';
 
 // Each look carries its season, as a house's lookbook does (Cat, 2026-10-30).
 const lookNo = (n: number) => `${SEASON.code} · Look ${String(n).padStart(2, '0')}`;
@@ -171,7 +173,7 @@ export function CollectionScreen({ values, onMake, onBack, backLabel = 'Back to 
       }),
     [values],
   );
-  const sample = (shelf === 'house' ? COLLECTION : ARCHIVE).some((l) => !lookValues(l, values).own);
+  const sample = (shelf === 'house' ? COLLECTION : shelf === 'eras' ? ERA_PIECES : ARCHIVE).some((l) => !lookValues(l, values).own);
 
   return (
     <div className="collection">
@@ -182,13 +184,15 @@ export function CollectionScreen({ values, onMake, onBack, backLabel = 'Back to 
         <p className="muted">
           {shelf === 'house'
             ? 'This season\u2019s house looks, in its colours, each drafted to your measurements. Make one, then change any detail you like.'
-            : 'Last season\u2019s house looks, and cuts from fashion history credited to the museum, dealer or pattern cutter they come from, all drafted to you.'}
+            : shelf === 'eras'
+              ? 'A whole line from each era, from Edwardian to the nineties: skirts, a top, a dress and a trouser, jacket or coat, each drafted to your measurements.'
+              : 'Last season\u2019s house looks, and cuts from fashion history credited to the museum, dealer or pattern cutter they come from, all drafted to you.'}
         </p>
         {sample && <p className="muted small">Looks you haven&rsquo;t measured for yet are drawn to sample measurements.</p>}
         <div className="seg shelves" role="group" aria-label="Collection">
-          {(['house', 'archive'] as const).map((s) => (
+          {(['house', 'eras', 'archive'] as const).map((s) => (
             <button key={s} type="button" aria-pressed={shelf === s} className={shelf === s ? 'on' : undefined} onClick={() => setShelf(s)}>
-              {s === 'house' ? 'House' : 'Archive'}
+              {s === 'house' ? 'House' : s === 'eras' ? 'Eras' : 'Archive'}
             </button>
           ))}
         </div>
@@ -226,6 +230,8 @@ export function CollectionScreen({ values, onMake, onBack, backLabel = 'Back to 
             })}
           </ol>
         </>
+      ) : shelf === 'eras' ? (
+        <EraShelf values={values} onMake={onMake} />
       ) : (
         <>
           <ol className="archive" aria-label="The Archive">
