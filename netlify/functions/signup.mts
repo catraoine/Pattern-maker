@@ -6,6 +6,7 @@ import { getStore } from '@netlify/blobs';
 import { blobCounts } from '../../src/server/blobCounts';
 import { checkSignup } from '../../src/server/reports';
 import { addToKit } from '../../src/server/kit';
+import { refCode } from '../../src/server/referral';
 
 // Provided by the Netlify runtime.
 declare const Netlify: { env: { get(name: string): string | undefined } };
@@ -49,5 +50,6 @@ export default async (req: Request, context: { ip?: string }) => {
       }
     }
   }
-  return Response.json({ ok: true });
+  // A waitlist sign-up gets its own referral code back, for the share link on "You're on the list".
+  return Response.json(signup.kind === 'news' ? { ok: true, ref: refCode(signup.email) } : { ok: true });
 };

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_CRASHES_PER_VISIT, Reporter, browserFamily, cleanSource, rememberSource, firstVisitToday } from './report';
+import { MAX_CRASHES_PER_VISIT, Reporter, browserFamily, cleanSource, rememberRef, rememberSource, firstVisitToday } from './report';
 import { checkBeacon } from '../server/reports';
 
 const make = (counting = true) => {
@@ -142,5 +142,25 @@ describe('visits counted once a day (the waitlist review, 2026-11-10)', () => {
     r.count('printed', 'skirt');
     r.flush();
     expect(JSON.parse(sent[0]).counts).toEqual({ 'printed:skirt': 1 });
+  });
+});
+
+describe('referral codes from a shared link', () => {
+  const mem = () => {
+    const m = new Map<string, string>();
+    return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), m };
+  };
+  it('keeps the first friend\'s code and counts the visit as from a friend', () => {
+    const s = mem();
+    expect(rememberRef('?ref=K7Q2M9AB', s)).toBe('k7q2m9ab');
+    expect(s.m.get('maison-trace-source')).toBe('friend');
+    expect(rememberRef('?ref=zz11yy22', s)).toBe('k7q2m9ab');
+  });
+  it('leaves a source already kept, and ignores a code that is not one', () => {
+    const s = mem();
+    s.setItem('maison-trace-source', 'ig');
+    rememberRef('?ref=k7q2m9ab', s);
+    expect(s.m.get('maison-trace-source')).toBe('ig');
+    expect(rememberRef('?ref=<script>', mem())).toBeUndefined();
   });
 });

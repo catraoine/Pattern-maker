@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { countStep, flushReports, signupSource } from '../report/report';
+import { countStep, flushReports, keepMyRef, signupRef, signupSource } from '../report/report';
 import { CODE_MESSAGE, checkCode } from '../access';
 import { SEW_LANGS, SEW_LANG_NAME, type SewLang } from '../langs';
 
@@ -26,8 +26,10 @@ export function WaitlistForm({ onJoined, onCode, linkMessage, onRetry }: { onJoi
     e.preventDefault();
     setState('sending');
     try {
-      const res = await fetch('/.netlify/functions/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind: 'news', email, src: signupSource(), lang, website }) });
+      const res = await fetch('/.netlify/functions/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind: 'news', email, src: signupSource(), lang, ref: signupRef(), website }) });
       if (!res.ok) return setState(res.status === 429 ? 'busy' : 'failed');
+      // Their own referral code, for the share link on "You're on the list".
+      keepMyRef(((await res.json().catch(() => null)) as { ref?: unknown } | null)?.ref);
     } catch {
       return setState('failed');
     }
