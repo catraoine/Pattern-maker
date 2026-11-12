@@ -10,7 +10,7 @@ const dress = (bodice: object, skirt: object, rest: object = {}) => ({ garment: 
 // Random mixes of options that All round showed as their flat drawing (sweep of Nov 7, 2026), now drawn clean.
 describe('All round: random mixes that fell back to the flat drawing', () => {
   afterEach(() => {
-    for (const k of ['__selfFlare', '__noSelfGather', '__silkR', '__selfWideAt', '__noSoftDrop', '__halfDiagonal']) setKnob(k, undefined);
+    for (const k of ['__selfFlare', '__noSelfGather', '__silkR', '__selfWideAt', '__noSoftDrop', '__halfDiagonal', '__noSecondTry']) setKnob(k, undefined);
   });
 
   // A trumpet skirt's flare (its hem under half as long again as its waist) wasn't held apart, and folded through itself.
@@ -77,6 +77,9 @@ describe('All round: random mixes that fell back to the flat drawing', () => {
   ])('%s in silk draws clean', (_, b) => {
     const d = { garment: 'bodice' as const, saved: { bodice: { ...DEFAULT_BODICE, ...b } } as never, fibre: 'silk' as const };
     expect(checks(d)).toEqual([]);
+    // (On the first sewing: a failed sleeved top is sewn a second time with its shoulders held further back, run.ts, and
+    // that second sewing alone draws the 0.72 elbow cap clean, which says nothing of the silk fix this checks.)
+    setKnob('__noSecondTry', 1);
     setKnob('__silkR', 0.72);
     expect(checks(d).length).toBeGreaterThan(0);
   }, 240_000);

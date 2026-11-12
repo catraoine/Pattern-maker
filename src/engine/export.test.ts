@@ -113,6 +113,16 @@ describe('packing the sheet', () => {
     });
   }
 
+  it('keeps a long garment name inside the title card', () => {
+    // The Leopard Shirt Dress's A0 print, Nov 12: its name, a sentence of its choices, ran out past the card under the sleeve.
+    const name = 'Oversized button-front shirt-collar back-yoke bodice with elbow-length sleeves with turned-back cuffs, 47 cm below the waist, with a shaped hem';
+    const sheet = layout(outer('jacket'), name, [], INFO);
+    const lines = sheet.prims.filter((pr) => pr.kind === 'text' && pr.face === 'bodyMedium' && pr.at.y < 3 + 4.4);
+    expect(lines.map((pr) => (pr.kind === 'text' ? pr.text : '')).join(' ')).toBe(name);
+    // The card runs from x = 13 to 59 (the sheet's 3 cm margin, the 10 cm square, then 46 cm).
+    for (const pr of lines) if (pr.kind === 'text') expect(pr.at.x + textWidth(pr.text, pr.size), pr.text).toBeLessThanOrEqual(59);
+  });
+
   it('leaves the title block its corner', () => {
     const pieces = outer('jacket');
     const sheet = layout(pieces, 'Jacket', [], INFO);

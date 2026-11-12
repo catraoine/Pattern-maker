@@ -247,6 +247,9 @@ interface TorsoPiece {
 }
 
 export interface DrapeOptions {
+  /** A sleeved top's or dress's shoulder seam held this far in front of the side (cm), in place of 0.5: run.ts's second
+   *  try when the first sewing fails the quality check. */
+  sleevedHoldZ?: number;
   /** A shirt worn open above a button: the roll line (break at the front edge, to just inside the neck point) the
    *  fronts above it turn back along, as a soft lapel. */
   rollFront?: [P, P];
@@ -2228,7 +2231,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
           // (A waistcoat, a jacket cut without sleeves, is held just behind the side, a little as a sleeveless top is:
           // held half a centimetre forward, a long boxy shoulder's tips poked up as points and a soft collar's neck seam
           // was stretched twice its length, Look 02 vest 2026-11-08. Held further back, its front stretched.)
-          { shoulderZ: knob('__holdZ') ?? (deepTop ? knob('__deepZ') ?? -1.5 : !sleeved && o.pinFront?.length ? -0.5 : 0.5), ...(sleeved && shortTop ? { shoulderZIn: 4 } : {}), ...(deepTop ? { shoulderZFree: true } : {}) }
+          { shoulderZ: knob('__holdZ') ?? (deepTop ? knob('__deepZ') ?? -1.5 : !sleeved && o.pinFront?.length ? -0.5 : sleeved && o.sleevedHoldZ !== undefined && !o.pinFront?.length && !extra.trousers ? o.sleevedHoldZ : 0.5), ...(sleeved && shortTop ? { shoulderZIn: 4 } : {}), ...(deepTop ? { shoulderZFree: true } : {}) }
       : {}),
   };
   // A flared peplum (or a hem's flounce) cut on the fold: the cloth beside the fold bends on round it rather than folding back flat
@@ -2824,8 +2827,10 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
       let D = moved.get(j)!;
       // (A gathered or bias strip's seam edge settles in a zigzag along its seam: a point carried by the one nearest
       // seam point took that point's own jog, and the strip tore between neighbours. Carried by the seam's movement
-      // averaged over the few centimetres of it nearest, it moves as one piece.)
-      if (carry) {
+      // averaged over the few centimetres of it nearest, it moves as one piece. A shirt's stand the same: under a
+      // sleeved shirt's weight its neck seam settles a little unevenly over the shoulder, and the top of the stand,
+      // carried point by point, was drawn out to twice its cut there, the Leopard Shirt Dress on the bug hunt, Nov 12.)
+      if (carry || !knob('__oldStandCarry')) {
         const sg = knob('__carrySigma') ?? 2;
         const acc: V3 = [0, 0, 0];
         let wt = 0;
@@ -3444,8 +3449,16 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
         const c = a1 > a0 ? c0 + ((c1 - c0) * Math.min(1, Math.max(0, (a - a0) / (a1 - a0)))) : c0;
         return Math.max(0, target - c);
       };
-      for (const g of ids) {
-        const t = Math.min(1, Math.max(0, (res[g * 3 + 1] - hipC) / Math.max(1, hemC0 - hipC)));
+      // (Eased in from the hip, or from higher up the cloth when the hem is close below the hip: a big peplum hung from
+      // a lowered waist has its hem a few cm under the hip, and let down over those few cm, the band of cloth there was
+      // drawn out to 2 to 5 times its cut and All round fell back to the drawing on every body, the Ice Peplum look on
+      // the bug hunt, Nov 12. Over four times the drop, the steepest the ease runs draws the cloth out by half at most.)
+      const all = flared.flatMap((p) => p.mesh.pts.map((_, i) => p.base + i));
+      const topC = Math.min(...all.map((g) => res[g * 3 + 1]));
+      const most = hem.reduce((m, [a]) => Math.max(m, dropAt(a)), 0);
+      const from = knob('__oldEvenRamp') ? hipC : Math.max(topC, Math.min(hipC, hemC0 - 4 * most));
+      for (const g of from < hipC ? all.filter((g) => res[g * 3 + 1] > from) : ids) {
+        const t = Math.min(1, Math.max(0, (res[g * 3 + 1] - from) / Math.max(1, hemC0 - from)));
         res[g * 3 + 1] += dropAt(Math.abs(Math.atan2(res[g * 3], res[g * 3 + 2]))) * t * t;
       }
     }
