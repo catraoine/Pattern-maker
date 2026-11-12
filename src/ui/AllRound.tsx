@@ -189,6 +189,8 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
   // the fabric's own card. Kept on this view only (it changes the drawing, not the pattern), and back to the fabric's
   // own when another fabric is picked.
   const [feel, setFeel] = useState<Feel>({});
+  // A short phone has no room for the Feel steps beside the garment: a Feel button there opens them over the view.
+  const [feelOpen, setFeelOpen] = useState(false);
   const fabricWho = `${fabric?.fibre}|${fabric?.weight}|${fabric?.drape}|${fabric?.special}|${fabric?.knit}|${fabric?.shop}|${fabric?.photo?.id}`;
   useEffect(() => setFeel({}), [fabricWho]);
   const job = useMemo<DrapeJob | undefined>(
@@ -1444,10 +1446,19 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
         <div className="all-round-quiet">
           {!standIn && (
             <div className="all-round-tools">
-              {!film && (drapedNow === 'pending' || !turned) && <span className="all-round-turn">{drapedNow === 'pending' ? 'Sewing your pattern…' : 'Drag to turn'}</span>}
+              {!film && (drapedNow === 'pending' || !turned) && (
+                <span className="all-round-hint" aria-hidden="true">
+                  {drapedNow === 'pending' ? 'Sewing your pattern…' : 'Drag to turn'}
+                </span>
+              )}
               {canFit && (
                 <button type="button" className="all-round-closer" aria-pressed={fitOn} onClick={() => setFitOn(!fitOn)}>
                   {fitOn ? 'Fabric' : 'Fit map'}
+                </button>
+              )}
+              {(drape?.kind === 'skirt' || drape?.kind === 'dress') && (
+                <button type="button" className="all-round-closer all-round-feel-toggle" aria-pressed={feelOpen} onClick={() => setFeelOpen(!feelOpen)}>
+                  Feel
                 </button>
               )}
               <button type="button" className="all-round-closer" onClick={() => zoomRef.current?.(!closer)}>
@@ -1472,7 +1483,7 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
           {/* No "Seams, hem and sleeves checked" line any more (Cat, Nov 11: "can't the user just assume that these things
               are checked because it's a quality app?"). The checks still run; a failed one still brings the note below. */}
           {/* (A skirt's or a dress's skirt only: the cloth's own stiffness and fall show where it hangs free, clothCard.ts.) */}
-          {!standIn && (drape?.kind === 'skirt' || drape?.kind === 'dress') && <FeelControl feel={feel} onFeel={setFeel} />}
+          {!standIn && (drape?.kind === 'skirt' || drape?.kind === 'dress') && <FeelControl feel={feel} onFeel={setFeel} open={feelOpen} />}
           {/* The note that All round can't show a design stands out on a champagne band with a small "i" (Cat's D, Nov 11). */}
           {!(canFit && fitOn && !inTesting) && (inTesting ? (
             <p className="all-round-note all-round-note-testing">
@@ -1495,7 +1506,7 @@ const feelWord = (v: number | undefined, up: string, down: string) => (!v ? unde
 
 /** The Feel row under All round (Cat's C): two pairs of steps from the fabric's own card, what they come to in words,
  *  and a way back. The steps stop at FEEL_STEPS each way, the range the cloth holds steady in (clothCard.ts). */
-function FeelControl({ feel, onFeel }: { feel: Feel; onFeel: (f: Feel) => void }) {
+function FeelControl({ feel, onFeel, open }: { feel: Feel; onFeel: (f: Feel) => void; open: boolean }) {
   const step = (k: keyof Feel, d: number) => onFeel({ ...feel, [k]: Math.max(-FEEL_STEPS, Math.min(FEEL_STEPS, (feel[k] ?? 0) + d)) });
   const words = [feelWord(feel.stiff, 'stiffer', 'softer'), feelWord(feel.weight, 'heavier', 'lighter')].filter(Boolean);
   const btn = (k: keyof Feel, d: number, label: string) => (
@@ -1504,9 +1515,10 @@ function FeelControl({ feel, onFeel }: { feel: Feel; onFeel: (f: Feel) => void }
     </button>
   );
   return (
-    <div className="all-round-feel" role="group" aria-label="How the cloth feels">
+    <div className={`all-round-feel${open ? ' open' : ''}`} role="group" aria-label="How the cloth feels">
       <p className="all-round-feel-head">
-        Feel <TestingTag tool="fabric_feel" />
+        {/* (Opened from the Feel button on a short phone, the button already says it: see 30-steady-view.css.) */}
+        <span className="all-round-feel-word">Feel</span> <TestingTag tool="fabric_feel" />
       </p>
       <div className="all-round-feel-row">
         {btn('stiff', -1, 'Softer')}
