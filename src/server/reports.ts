@@ -24,7 +24,7 @@ const CrashSchema = z
   .object({
     message: z.string().max(1_000),
     stack: z.string().max(8_000).optional(),
-    where: z.enum(['error', 'promise', 'render', 'sync']),
+    where: z.enum(['error', 'promise', 'render', 'sync', 'draft']),
     view: z.string().max(30),
     version: z.string().max(40),
     browser: z.string().max(40),

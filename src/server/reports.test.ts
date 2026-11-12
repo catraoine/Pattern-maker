@@ -53,6 +53,11 @@ describe('report beacons', () => {
     expect(checkBeacon(JSON.stringify({ counts: { visit: 1 } }))).toEqual({ counts: { visit: 1 } });
   });
 
+  it('accepts a drafting crash, the one that puts a design back to its standard choices', () => {
+    const b: Beacon = { crashes: [{ ...crash, where: 'draft' }] };
+    expect(checkBeacon(JSON.stringify(b))).toEqual(b);
+  });
+
   it('refuses anything else', () => {
     expect(checkBeacon('not json')).toBeNull();
     expect(checkBeacon(JSON.stringify({ counts: { 'clicked:button': 1 } }))).toBeNull();
