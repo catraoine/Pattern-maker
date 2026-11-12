@@ -30,7 +30,7 @@ export const OFFERS: Record<OfferId, Offer> = {
     eyebrow: `Founding Atelier · ${FOUNDING_PLACES} numbered places`,
     title: `Be one of the first ${FOUNDING_PLACES}`,
     text: 'Premium at a founding price, locked in for as long as you stay subscribed. Founding members also get early access, their own founding number and a say in what comes next.',
-    prices: [['Founding Premium', '$35 a year (usually $49)']],
+    prices: [['Founding Premium', '$35 a year (Premium will be $49 a year)']],
     button: 'Save my place',
     thanks: "Your place is saved. We'll email you when founding places open. Nothing is charged today.",
   },
