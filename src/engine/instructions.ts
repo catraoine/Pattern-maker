@@ -952,7 +952,7 @@ function biasDressGuide(g: SewingGuide, seamCm: number, hemOffFloor?: number): S
         return [
           {
             ...st,
-            text: `Hang the dress up for a day before hemming, on a hanger or a dress form: cut on the bias, it drops as it hangs, unevenly and often by 2 cm or more. The hem allowance has ${n1(SLIP_LEVEL)} spare for this. Try it on with the shoes you will wear and have someone mark the hem with pins measured up from the floor${hemOffFloor !== undefined ? `, ${n1(hemOffFloor)} above it all the way round: that is this dress's length, just above the ankle, however far the cloth has dropped` : ''}. Trim 1 cm below the marks. Finish with a narrow rolled hem: press up 0.5 cm, then 0.5 cm more, and stitch close to the fold, or roll it by hand in silk.`,
+            text: `Hang the dress up for a day before hemming, on a hanger or a dress form: cut on the bias, it drops as it hangs, unevenly and often by 2 cm or more. The hem allowance has ${n1(SLIP_LEVEL)} spare for this. Try it on with the shoes you will wear and have someone mark the hem with pins measured up from the floor${hemOffFloor !== undefined ? `, ${n1(hemOffFloor)} above it all the way round: that is this dress's length, just above the ankle, however far the cloth has dropped` : ''}. Trim 0.8 cm below the marks. Finish with a fine baby hem, about 3 mm deep, which lies flat on the bias where a deeper hem ripples: stitch round 0.6 cm from the cut edge without stretching it, press the edge up along that stitching and stitch 2 mm from the fold. Trim the spare close to this row with small sharp scissors, turn the edge up once more and stitch over the last row. In a fine silk you can roll it by hand instead.`,
           },
         ];
       case 'Finish':

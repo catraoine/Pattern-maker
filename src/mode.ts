@@ -40,8 +40,11 @@ export const SIMPLE_FINISH = { allowances: 'home', skirtLined: false, bodiceEdge
 
 const HIDDEN = Object.keys(SIMPLE_FINISH) as (keyof typeof SIMPLE_FINISH)[];
 
-/** The finish the pattern is drafted and printed with: in the simple view, its hidden choices are the simple ones. */
-export const finishFor = (stored: Finish, mode: Mode): Finish => (mode === 'simple' ? { ...stored, ...SIMPLE_FINISH } : stored);
+/**
+ * The finish the pattern is drafted and printed with: in the simple view, its hidden choices are the simple ones,
+ * except where a house look is finished its own way (the Blush Shift lined to the hem): that look comes as made.
+ */
+export const finishFor = (stored: Finish, mode: Mode, house?: Partial<Finish>): Finish => (mode === 'simple' ? { ...stored, ...SIMPLE_FINISH, ...house } : stored);
 
 /**
  * The finish to keep after a change made in this view. The simple view only changes what it shows (fabric,

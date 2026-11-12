@@ -86,7 +86,7 @@ export const outerChoicesOf = (saved: DraftInputs['saved'], g: 'jacket' | 'coat'
   g === 'coat' ? { ...DEFAULT_COAT_CHOICES, ...saved.coat } : { ...DEFAULT_JACKET_CHOICES, ...saved.jacket };
 // The menswear form's tee has no bust shaping: front and back cut alike.
 const teeStyleOf = (i: DraftInputs) => ({ ...teeChoicesOf(i.saved), ...(i.form === 'menswear' ? { flatFront: true } : {}) });
-const trousersStyleOf = (i: DraftInputs, f: Fitting | undefined) => ({
+export const trousersStyleOf = (i: DraftInputs, f: Fitting | undefined) => ({
   ...trousersChoicesOf(i.saved),
   ...(i.form === 'menswear' ? { cut: 'menswear' as const } : {}),
   fitting: skirtFitting(i, f),

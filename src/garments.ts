@@ -170,6 +170,9 @@ export interface TrousersChoices {
   loops?: TrouserLoops;
   /** A welt pocket on each back (In testing, Nov 7 2026). Older saves have none. */
   backPockets?: BackPockets;
+  /** Set by a look only: 'soft' presses no crease, so the legs and any pleats fall soft from the band (the low, slouchy
+   *  SS27 Bermuda; Cat, Nov 12: a pressed crease is a tailored, high-waist detail). Older saves press a crease. */
+  press?: 'soft';
 }
 
 export const DEFAULT_TROUSERS_CHOICES: TrousersChoices = { garment: 'trousers', fit: 'regular', leg: 'straight', length: 'full', closure: 'fly', pleats: 'none', loops: 'none' };

@@ -73,7 +73,7 @@ import { PointEditContext } from './ui/PointEditor';
 import { Mode, finishFor, keepFinish, modeOf } from './mode';
 
 import { printableFor } from './printable';
-import { GARMENT_DRAFTING, dressOf, hoodieChoicesOf, jumpsuitChoicesOf, knitDressChoicesOf, lingerieChoicesOf, outerChoicesOf, skirtStyleOf, teeChoicesOf, trousersChoicesOf, type DraftInputs, type Drafts } from './garmentDrafts';
+import { GARMENT_DRAFTING, dressOf, hoodieChoicesOf, jumpsuitChoicesOf, knitDressChoicesOf, lingerieChoicesOf, outerChoicesOf, skirtStyleOf, teeChoicesOf, trousersChoicesOf, trousersStyleOf, type DraftInputs, type Drafts } from './garmentDrafts';
 import { isRangeGarment, rangeSlot, teeFitOf } from './garmentRange';
 import { DEFAULT_FINISH, INITIAL, choicesPatch, type Finish, type Saved } from './savedWork';
 import { PhotoCheck } from './ui/PhotoCheck';
@@ -331,7 +331,7 @@ export default function App() {
   }, [gated]);
   const setMode = (m: Mode) => setAccount({ ...account, mode: m });
   const storedFinish = { ...DEFAULT_FINISH, ...saved.finish };
-  const finish = finishFor(storedFinish, mode);
+  const finish = finishFor(storedFinish, mode, saved.house?.garment === garment ? saved.house.finish : undefined);
   const setFinish = (f: Finish) => setSaved({ ...saved, finish: keepFinish(storedFinish, f, mode) });
   const fabric = finish.fabric;
   // What every garment drafts from (see garmentDrafts.ts), and the open garment's entry in the catalogue.
@@ -439,10 +439,12 @@ export default function App() {
   const current = drafting.choices(inputs.saved);
   const title = drafting.title(inputs.saved);
 
+  // The trousers' full style (toile corrections and all), so a lining is drafted to the same legs.
+  const trousersStyle = useMemo(() => (garment === 'trousers' ? trousersStyleOf(inputs, fitting) : undefined), [garment, inputs, fitting]);
   const drafted = useMemo(
-    () => printableFor({ result, values, finish, fabric, garment, ownFitting, carriedNotes, saved, dress, skirtStyle, trousersChoices }),
+    () => printableFor({ result, values, finish, fabric, garment, ownFitting, carriedNotes, saved, dress, skirtStyle, trousersChoices, trousersStyle }),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only the saved and finish fields the printable reads, so it is not rebuilt on every unrelated change
-    [result, saved.choices, saved.bodice, dress, skirtStyle, values, finish.allowances, finish.skirtLined, finish.bodiceEdges, finish.fabricWidth, finish.nap, finish.route, finish.cloth, fabric, fitting, ownFitting, carriedNotes, garment],
+    [result, saved.choices, saved.bodice, dress, skirtStyle, values, finish.allowances, finish.skirtLined, finish.bodiceEdges, finish.fabricWidth, finish.nap, finish.route, finish.cloth, fabric, fitting, ownFitting, carriedNotes, garment, trousersStyle],
   );
   // An Archive cut keeps its credit while it's the same garment; its details can still be changed.
   const fromArchive = [archiveCut(saved.archive)].find((c) => c?.garment === garment);
@@ -954,7 +956,7 @@ export default function App() {
                 // The look comes in the cloth it's named for, so the drawing and the Fabric step open in it.
                 const cloth = lookFabric(look.fabric);
                 const withCloth = keepFinish(storedFinish, { ...finish, ...look.finish, fabric: cloth, cloth: clothFor(cloth, finish.cloth) }, mode);
-                switchGarment(g, { ...next, archive: archiveCut(look.id)?.id, finish: withCloth } as Partial<Saved>, 'style');
+                switchGarment(g, { ...next, archive: archiveCut(look.id)?.id, finish: withCloth, house: look.finish && { garment: g, finish: look.finish } } as Partial<Saved>, 'style');
                 window.scrollTo(0, 0);
               }}
             />

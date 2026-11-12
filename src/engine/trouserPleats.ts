@@ -180,28 +180,35 @@ export function pleatShares(front: Piece, lines: PleatLine[]): { waist: number; 
 
 /** Where the loops sit round the waist, as a share of the quarter waist from the centre front or the centre back:
  *  halfway across each front, at each side seam (named from both halves, so each flat view draws it) and at the
- *  centre back. */
-export const LOOP_PLACES: { front: number[]; back: number[] } = { front: [0.5, 1], back: [0, 1] };
+ *  centre back; with seven, halfway across each back too. */
+export function loopPlaces(count: number): { front: number[]; back: number[] } {
+  return { front: [0.5, 1], back: count > 5 ? [0, 0.5, 1] : [0, 1] };
+}
 /** Every loop's angle round the body (0 the centre front, pi the centre back), each named once. */
-export function loopAngles(): number[] {
+export function loopAngles(count: number): number[] {
   const out: number[] = [];
   const add = (a: number) => {
     if (!out.some((b) => Math.abs(Math.atan2(Math.sin(b - a), Math.cos(b - a))) < 1e-6)) out.push(a);
   };
-  for (const f of LOOP_PLACES.front) for (const s of [1, -1]) add((s * f * Math.PI) / 2);
-  for (const b of LOOP_PLACES.back) for (const s of [1, -1]) add(s * (Math.PI - (b * Math.PI) / 2));
+  const places = loopPlaces(count);
+  for (const f of places.front) for (const s of [1, -1]) add((s * f * Math.PI) / 2);
+  for (const b of places.back) for (const s of [1, -1]) add(s * (Math.PI - (b * Math.PI) / 2));
   return out;
 }
 /** How many belt loops: the centre back, each side seam, and halfway across each front. */
-export const BELT_LOOPS = loopAngles().length;
+export const BELT_LOOPS = 5;
+/** On a band this long or more, a loop halfway across each back as well: seven, so the gap from a side seam to the centre
+ *  back stays under about 15 cm (the SS27 Bermuda's low band, 84 cm, left 21 cm there with five, Nov 12). */
+export const SEVEN_LOOPS_FROM = 76;
+export const loopCountFor = (bandCm: number): number => (bandCm >= SEVEN_LOOPS_FROM ? 7 : BELT_LOOPS);
 /** A loop's finished width and the strip it is cut from, folded in three and topstitched. */
 const LOOP_WIDTH = 1.2;
 const LOOP_CUT_WIDTH = 3.6;
 
 /** One strip for every belt loop: each is the waistband's depth plus room to turn under and sew at both ends. */
-export function beltLoopsPiece(sa: number): Piece {
+export function beltLoopsPiece(sa: number, count = BELT_LOOPS): Piece {
   const each = WAISTBAND_CM + 2.5;
-  const L = BELT_LOOPS * each + 2;
+  const L = count * each + 2;
   const W = LOOP_CUT_WIDTH;
   const outline = new Path(p(0, 0)).line(p(W, 0), 'end').line(p(W, L), 'edge').line(p(0, L), 'end').line(p(0, 0), 'edge');
   outline.closed = true;
@@ -211,15 +218,15 @@ export function beltLoopsPiece(sa: number): Piece {
     outline,
     lines: [new Path(p(W / 3, 0)).line(p(W / 3, L)), new Path(p((2 * W) / 3, 0)).line(p((2 * W) / 3, L))],
     grain: [p(W / 2, 3), p(W / 2, L - 3)],
-    notches: Array.from({ length: BELT_LOOPS - 1 }, (_, k): [P, P] => [p(W, (k + 1) * each + 1), p(1, 0)]),
+    notches: Array.from({ length: count - 1 }, (_, k): [P, P] => [p(W, (k + 1) * each + 1), p(1, 0)]),
     labels: [
       { at: p(W * 0.5, L * 0.35), text: 'BELT LOOPS', size: 0.7, rotate: 90 },
-      { at: p(W * 0.5, L * 0.7), text: `Cut 1, makes ${BELT_LOOPS}`, size: 0.55, rotate: 90 },
+      { at: p(W * 0.5, L * 0.7), text: `Cut 1, makes ${count}`, size: 0.55, rotate: 90 },
     ],
     cut: 'Cut 1',
     seamAllowance: sa,
     allowances: { end: 0, edge: 0 },
-    meta: { loops: BELT_LOOPS, loopWidth: LOOP_WIDTH, eachCm: each },
+    meta: { loops: count, loopWidth: LOOP_WIDTH, eachCm: each },
   };
 }
 

@@ -65,6 +65,9 @@ export interface DressHem {
   shape: 'sheath' | 'shift';
   /** A shift's own flare at each side seam, in cm at the hem, in place of DRESS_HEM_TAPER's. */
   flare?: number;
+  /** The side seam runs straight from the hip to the hem: a bias slip's, which the bias-cut drawing (biasFair.ts)
+   *  settles as a straight seam, so the bent seam of a shift (hipToHem) pulled its front and back apart in 3D. */
+  straightSide?: boolean;
 }
 /** How far a dress cut with no waist seam narrows (sheath) or widens (shift) from the hip to the hem, a quarter. */
 const DRESS_HEM_TAPER: Record<DressHem['shape'], number> = { sheath: -1.5, shift: 2 };
@@ -810,6 +813,15 @@ function hipCurve(path: Path, from: P, to: P, tag: string): Path {
 }
 const hipCurveLength = (from: P, to: P) => hipCurve(new Path(from), from, to, '').length();
 
+/** A dress's side seam on from the hip to the hem. The hip curve arrives straight down, so a seam running straight out
+ *  to a flared hem turned a corner at the hip, a kick that shows on the body (SS27 Blush Shift, Nov 12: "to a 10"): it
+ *  leaves the hip straight down and bends into the hem's line instead, ending on that same line, so the hem still meets
+ *  it square and the hem is as wide as before. */
+function hipToHem(path: Path, hip: P, hem: P, tag: string): Path {
+  if (Math.abs(hem.x - hip.x) <= 0.3) return path.line(hem, tag);
+  return path.curve(p(hip.x, hip.y + (hem.y - hip.y) * 0.3), add(hip, mul(sub(hem, hip), 0.55)), hem, tag);
+}
+
 /** The hem's first control point leaving the foot of a sloping side seam square to it, toward the centre. */
 function squareHem(hip: P, hem: P): P {
   const d = unit(sub(hem, hip));
@@ -1147,7 +1159,8 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     // A dress with no waist seam carries the side seam on from the hip, straight to its hem.
     if (s.dressHem) {
       hemB = p(hipB.x + (s.dressHem.shape === 'shift' && s.dressHem.flare !== undefined ? s.dressHem.flare : DRESS_HEM_TAPER[s.dressHem.shape]), wb + Math.max(drop + 2, s.dressHem.belowWaist));
-      back.line(hemB, 'side');
+      if (s.dressHem.straightSide) back.line(hemB, 'side');
+      else hipToHem(back, hipB, hemB, 'side');
       // Square off the tapered (or flared) side seam, then level to the centre back.
       back.curve(squareHem(hipB, hemB), p(hemB.x * 0.35, hemB.y), p(0, hemB.y), 'hem');
     } else back.line(p(0, hemB.y), 'hem');
@@ -1350,7 +1363,8 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     hemF = hipF;
     if (s.dressHem) {
       hemF = p(hipF.x + (hemB.x - hipB.x), hipF.y + (hemB.y - hipB.y));
-      front.line(hemF, 'side');
+      if (s.dressHem.straightSide) front.line(hemF, 'side');
+      else hipToHem(front, hipF, hemF, 'side');
     }
     // The hem runs parallel to the waist, so the front keeps the length the bust needs.
     cfHem = wf + dy + (hemF.y - hipF.y);

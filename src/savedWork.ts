@@ -106,6 +106,9 @@ export interface Saved {
   finish?: Finish;
   /** The Archive cut this pattern was made from, for its credit line while the garment is unchanged. */
   archive?: string;
+  /** How the house finishes the look this pattern was made from (the Blush Shift and the Bermuda come lined), kept
+   *  while the garment is unchanged, so the simple view, which hides the finish choices, still makes it that way. */
+  house?: { garment: Garment; finish: Partial<Finish> };
 }
 
 /** A pattern's choices, saved under their garment's key. Skirt choices predate the others and carry no garment. */

@@ -49,6 +49,12 @@ describe('finishFor', () => {
     expect(f.nap).toBe(true);
   });
 
+  it('makes a house look as the house finishes it, even in the simple view', () => {
+    const f = finishFor(pro, 'simple', { skirtLined: true, bodiceEdges: 'lined' });
+    expect(f).toMatchObject({ allowances: 'home', route: 'quick', skirtLined: true, bodiceEdges: 'lined' });
+    expect(finishFor(pro, 'all', { skirtLined: true })).toEqual(pro);
+  });
+
   it('leaves the finish alone with all tools', () => {
     expect(finishFor(pro, 'all')).toEqual(pro);
   });

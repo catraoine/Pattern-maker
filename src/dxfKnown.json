@@ -440,6 +440,8 @@
  "trousers backPockets=welt": [],
  "trousers closure=fly": [],
  "trousers closure=side_zip": [],
+ "trousers finish lined": [],
+ "trousers finish lined pleats=double": [],
  "trousers fit=fitted": [],
  "trousers fit=regular": [],
  "trousers fit=relaxed": [],

@@ -11,7 +11,8 @@ import { cuffNote } from './engine/cuffs';
 import { SewingGuide, bodiceGuide, dressGuide, sewingGuide } from './engine/instructions';
 import { bodiceFlat, dressFlat, outerFlat, skirtFlat, teeFlat, trousersFlat } from './engine/flat';
 import { DressMeasurements } from './engine/dress';
-import { TrousersMeasurements, trousersWaistband } from './engine/trousers';
+import { TrousersMeasurements, TrousersStyle, draftTrousers, trousersWaistband } from './engine/trousers';
+import { liningStyle, trouserLiningPieces, withTrouserLining } from './engine/trouserLining';
 import { trousersGuide } from './engine/trousersGuide';
 import { TeeMeasurements } from './engine/tee';
 import { teeGuide } from './engine/teeGuide';
@@ -86,6 +87,8 @@ interface PrintInputs {
   dress: DressChoices;
   skirtStyle: Parameters<typeof draftSkirt>[1];
   trousersChoices: TrousersChoices;
+  /** The trousers' full style, toile corrections and all, so a lining is drafted to match. Else their choices. */
+  trousersStyle?: Partial<TrousersStyle>;
 }
 
 /** The printed pattern, its front pieces marked with the finished bust, waist and hip (F5, 2026-10-28). */
@@ -94,7 +97,7 @@ export function printableFor(inputs: PrintInputs): Printable | undefined {
   return made && { ...made, pieces: withFinishedMarks(made.pieces, made.spec) };
 }
 
-function drafted({ result, values, finish, fabric, garment, ownFitting, carriedNotes, saved, dress, skirtStyle, trousersChoices }: PrintInputs): Printable | undefined {
+function drafted({ result, values, finish, fabric, garment, ownFitting, carriedNotes, saved, dress, skirtStyle, trousersChoices, trousersStyle }: PrintInputs): Printable | undefined {
   const { skirt, bodice, sleeve, dress: dressDraft, trousers, tee, lingerie, outer } = result;
   // A special cloth (leather) can need its own seam allowances, whatever the style.
   const special = fabric?.special;
@@ -185,10 +188,14 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
     };
   }
   if (trousers) {
-    const pieces = allow([...trousers.pieces, trousersWaistband(trousers, 1.5)]);
+    const m = values as TrousersMeasurements;
+    // Lined (the finish's lining, as on a skirt; In testing): the same legs drafted again, plain and 2.5 cm shorter.
+    // Not on a pull-on elastic waist, which has no band to hold it.
+    const lining = finish.skirtLined && !trousers.elastic ? draftTrousers(m, liningStyle(trousersStyle ?? trousersChoices, trousers.lengthCm)) : undefined;
+    const pieces = allow([...trousers.pieces, trousersWaistband(trousers, 1.5), ...(lining ? trouserLiningPieces(lining) : [])]);
     const hem = pieces[0].allowances.hem;
     const lays = layPlans(pieces, finish.fabricWidth, nap, hide, false, border);
-    const m = values as TrousersMeasurements;
+    const liningM = lining ? lays.find((l) => l.fabric === 'lining')?.metres : undefined;
     return {
       pieces,
       notes: [
@@ -202,10 +209,16 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
             : trousers.closure === 'fly'
               ? `A ${trousers.zipCm} cm fly zip with its facing and shield, and the waistband`
               : `A ${trousers.zipCm} cm invisible zip in the left side seam, and the waistband`
-        }${pocketWords(trousers.pockets, trousers.pocketSides)}${trousers.pleats ? `, ${trousers.pleats.count > 1 ? 'two pleats' : 'a pleat'} on each front` : ''}${trousers.loops ? `, ${trousers.loops} belt loops` : ''}${trousers.backWelt ? ', back welt pockets' : ''}. The crease line is the grain line. Sewing steps are on the last pages.`,
+        }${pocketWords(trousers.pockets, trousers.pocketSides)}${trousers.pleats ? `, ${trousers.pleats.count > 1 ? 'two pleats' : 'a pleat'} on each front` : ''}${trousers.loops ? `, ${trousers.loops} belt loops` : ''}${trousers.backWelt ? ', back welt pockets' : ''}${lining ? ', and a lining' : ''}. The crease line is the grain line. Sewing steps are on the last pages.`,
         ...fittingNotes,
       ],
-      guide: withFabric(trousersGuide(trousers, lays.find((l) => l.fabric === 'self')?.metres ?? trousersFabricMetres(trousers), { seams, width: finish.fabricWidth, length: trousersChoices.length }), fabric, 'trousers'),
+      guide: withFabric(
+        ((g) => (lining ? withTrouserLining(g, trousers, { metres: liningM ?? trousersFabricMetres(lining), width: finish.fabricWidth, seam: fmtCm(seams.seam) }) : g))(
+          trousersGuide(trousers, lays.find((l) => l.fabric === 'self')?.metres ?? trousersFabricMetres(trousers), { seams, width: finish.fabricWidth, length: trousersChoices.length }),
+        ),
+        fabric,
+        'trousers',
+      ),
       spec: trousersSpec(m, trousers),
       lays,
       flat: trousersFlat(trousers, m),
