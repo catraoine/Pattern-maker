@@ -129,6 +129,18 @@
     padding: 0 8px;
   }
 }
+/* The narrowest phones (an iPhone SE, 320px): "All round" ran into "Pattern". */
+@media (max-width: 340px) {
+  .style-layout .style-pin > section:not(.live-big) > .row.between.wrap > .seg button {
+    padding: 0 3px;
+    font-size: 12px;
+    letter-spacing: 0;
+  }
+  .style-layout .style-pin > section:not(.live-big) > .lookboxes button {
+    font-size: 12px;
+    letter-spacing: 0;
+  }
+}
 
 /* Moving points is a tool, not a view: while it is open the box grows to hold the pieces, the tape and its buttons,
    so none of them slide under the step below (Releases' Move points check, Nov 7). Back to pieces, the box is steady again. */
@@ -141,29 +153,55 @@
 
 /* A phone: the cloth's Feel steps stand in a column at the left of the turning view, beside the garment, instead of
    a row under it, so a skirt or dress keeps its size in the box (Cat, Nov 11: "does it make sense to have such a small
-   form?"). The garment is narrower than the box, so the column sits in room it never used. A short phone's box has no
-   room for the column under the corner's Draw and Watch demo, so there the row stays under the view. */
-@media (max-width: 760px) and (min-height: 600px) {
+   form?"). The garment is narrower than the box, so the column sits in room it never used. */
+@media (max-width: 760px) {
   .style-layout .style-pin > section:not(.live-big) > .preview > .all-round > .all-round-quiet > .all-round-feel {
     position: absolute;
     left: 0;
-    bottom: calc(100% + 6px);
+    bottom: calc(100% + 2px);
     max-width: 30%;
     margin: 0;
     flex-direction: column;
     align-items: flex-start;
+    gap: 2px;
   }
   .style-layout .style-pin > section:not(.live-big) > .preview > .all-round > .all-round-quiet > .all-round-feel .all-round-feel-row {
     flex-direction: column;
     align-items: stretch;
     gap: 0;
   }
-  /* One stacked list: each step shares its edge with the next, so the column stays short of the corner's tools. */
+  /* One stacked list: each step shares its edge with the next, so the column stays clear of the corner's Watch demo. */
   .style-layout .style-pin > section:not(.live-big) > .preview > .all-round > .all-round-quiet > .all-round-feel .all-round-feel-step {
-    min-height: 24px;
+    min-height: 22px;
+    padding: 2px 8px;
     text-align: left;
   }
   .style-layout .style-pin > section:not(.live-big) > .preview > .all-round > .all-round-quiet > .all-round-feel .all-round-feel-step + .all-round-feel-step {
     margin-top: -1px;
+  }
+}
+/* The Feel button only shows on a short phone (below). */
+.all-round-feel-toggle {
+  display: none;
+}
+/* A short phone (an iPhone SE): the box has no room for the column under the corner's Draw and Watch demo, so the steps
+   wait behind a Feel button beside Fit map, and open over the left of the view. */
+@media (max-width: 760px) and (max-height: 599px) {
+  .style-layout .style-pin > section:not(.live-big) > .preview .all-round-feel-toggle {
+    display: inline-block;
+  }
+  .style-layout .style-pin > section:not(.live-big) > .preview .all-round-tools .all-round-closer {
+    padding: 6px 8px;
+    letter-spacing: 0.12em;
+  }
+  .style-layout .style-pin > section:not(.live-big) > .preview > .all-round > .all-round-quiet > .all-round-feel:not(.open) {
+    display: none;
+  }
+  .style-layout .style-pin > section:not(.live-big) > .preview > .all-round > .all-round-quiet > .all-round-feel.open {
+    z-index: 5;
+    width: max-content;
+    max-width: none;
+    padding: 6px;
+    background: var(--chalk, #dcd5c7);
   }
 }
