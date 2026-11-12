@@ -1,4 +1,4 @@
-// The house shirt cut's seams (SS27 Look 08, the Leopard Shirt Dress, Nov 11: "to a 10"). A good shirt has no raw or
+// The house shirt cut's seams (SS27 Look 07, the Leopard Shirt Dress, Nov 11: "to a 10"). A good shirt has no raw or
 // overlocked edge inside: every seam is flat-felled, so it is as neat inside as out and lies flat through washing. That
 // means the sleeves go in flat, before the side seams, and the side seam and the sleeve's underarm seam are then sewn
 // in one run from the hem to the cuff (set in the round, a felled armhole cannot be turned under the arm).

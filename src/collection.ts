@@ -142,18 +142,8 @@ export const COLLECTION: HouseLook[] = [
     choices: { ...DEFAULT_TROUSERS_CHOICES, fit: 'relaxed', leg: 'wide', length: 'knee', lengthCm: 68, legCm: { knee: 66, hem: 66 }, pockets: 'slant', pleats: 'double', loops: 'loops', backPockets: 'welt' },
   },
   {
-    id: 'ivory-palazzo',
-    number: 4,
-    name: 'Ivory Palazzo',
-    line: 'Wide and easy, falling from slanted pockets to the floor. Ivory, and nothing else.',
-    fabric: 'Ivory linen',
-    garment: 'trousers',
-    // The leg is drawn: a wide leg's own hem (two thirds of the hip, 59 cm here) read as a wide-leg trouser, not a palazzo.
-    choices: { ...DEFAULT_TROUSERS_CHOICES, fit: 'relaxed', leg: 'wide', length: 'full', legCm: { knee: 63, hem: 78 }, pockets: 'slant' },
-  },
-  {
     id: 'ice-peplum',
-    number: 5,
+    number: 4,
     name: 'Ice Peplum Top',
     line: 'Sheer ice blue, ruffled at the neck, with bishop sleeves and a big flared peplum from a lowered waist.',
     fabric: 'Ice sheer silk organza',
@@ -162,7 +152,7 @@ export const COLLECTION: HouseLook[] = [
   },
   {
     id: 'lilac-lace',
-    number: 6,
+    number: 5,
     name: 'Lilac Lace Blouse',
     line: 'Lilac lace plunging to the waist, with full bishop sleeves gathered at the wrist. Worn with gold micro shorts.',
     fabric: 'Lilac silk lace',
@@ -177,7 +167,7 @@ export const COLLECTION: HouseLook[] = [
     // of inspo", "seems like it should be shorter"): the picture's hem clears the floor by about 10 cm, and bias
     // cloth drops a few cm as it hangs.
     id: 'ivory-slip',
-    number: 7,
+    number: 6,
     name: 'Ivory Bias Slip',
     line: 'The house slip, cut in one on the bias from the shoulder to just above the ankle: a low, narrow scoop, slim straps, no waist seam and no zip, in a satin you can just see through.',
     fabric: 'Ivory sheer silk satin',
@@ -187,7 +177,7 @@ export const COLLECTION: HouseLook[] = [
   {
     // Cat's own Japanese leopard and python cotton, and the house shirt cut (2026-11-10).
     id: 'leopard-shirt-dress',
-    number: 8,
+    number: 7,
     name: 'Leopard Shirt Dress',
     line: 'A big shirt cut down to a mini: a long-point collar, a back yoke with a box pleat, wide sleeves to the elbow, and a shirttail hem that hangs longer at the back.',
     fabric: 'Ivory leopard python cotton',
@@ -215,7 +205,7 @@ export const COLLECTION: HouseLook[] = [
     // A low-rise barrel leg in the snakeskin brown of the leopard cloth, so it links to the Leopard Shirt Dress (Cat,
     // 2026-11-11). Look 09 once Look 02 became a set and the Red Pleat Dress left the line.
     id: 'chocolate-barrel',
-    number: 9,
+    number: 8,
     name: 'Chocolate Barrel Trouser',
     line: 'Slung low on the hip, two deep pleats opening into a barrel leg that curves out round the knee and falls to the floor, in a crisp chocolate sateen.',
     fabric: 'Chocolate crisp cotton sateen',

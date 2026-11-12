@@ -1,5 +1,5 @@
 // A top in sheer cloth (silk organza, chiffon) finished so the inside is as clean as the outside, since through a sheer
-// every seam, dart and zip tape shows (SS27 Look 05, the Ice Peplum Top, Nov 11: it was sewn with overlocked seams, a
+// every seam, dart and zip tape shows (SS27 Look 04, the Ice Peplum Top, Nov 11: it was sewn with overlocked seams, a
 // 50 cm invisible zip and a bought bias binding, all of which read as dark lines through ice organza). Seams are French,
 // the armholes and the peplum join are bound in the same cloth, and the neck is bound in it too. A look can also close
 // the back with a row of small buttons and rouleau loops in place of the zip (backLoops).

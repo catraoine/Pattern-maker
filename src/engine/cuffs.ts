@@ -25,7 +25,7 @@ export const CUFF = {
   tie: { depth: 2, ease: 3, tie: 35, slit: 8 },
   /** A ruffle: a straight strip gathered onto the sleeve's hem, deeper on a longer sleeve. In testing. */
   ruffle: { ratio: 1.8, depth: { short: 5, elbow: 6, three_quarter: 7, long: 8 } },
-  /** A turned-back cuff (In testing; SS27 Look 08, the Leopard Shirt Dress, Nov 11): a band 5 cm deep sewn inside the
+  /** A turned-back cuff (In testing; SS27 Look 07, the Leopard Shirt Dress, Nov 11): a band 5 cm deep sewn inside the
    *  sleeve's hem and turned up over the outside, on a short sleeve. */
   turnback: { depth: 5 },
   blouse: 2,

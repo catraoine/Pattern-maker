@@ -144,6 +144,7 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
       elastic: on('M13 8Q20 2 27 8L29 38Q20 41 11 38z', 'M14 38h12v3H14zM15.5 38.5v2M18 38.5v2M20.5 38.5v2M23 38.5v2'),
       tie: on('M13 8Q20 2 27 8L29 38Q20 41 11 38z', 'M14 38h12v2.5H14zM26 39L31 46M26 39L33 43'),
       ruffle: on('M13 8Q20 2 27 8L28 36H12z', 'M12 36H28L32 43Q29 46 26 44Q23 47 20 44Q17 47 14 44Q11 46 8 43zM14 37l-.5 4M18 37v4M22 37v4M26 37l.5 4'),
+      turnback: on('M13 8Q20 2 27 8L28.5 44H11.5z', 'M11.8 37H28.2M11.5 44H28.5M12 37.5l1 6M28 37.5l-1 6'),
     },
     princess: {
       none: on(TOP),

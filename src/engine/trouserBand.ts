@@ -1,4 +1,4 @@
-// A low-rise trouser's waistband cut curved (SS27 Look 09, the Chocolate Barrel Trouser, Nov 11: the fit-test trouser).
+// A low-rise trouser's waistband cut curved (SS27 Look 08, the Chocolate Barrel Trouser, Nov 11: the fit-test trouser).
 // Slung low, the band sits on the slope between waist and hip, which is smaller at its top edge than where it is sewn;
 // cut straight it stands off the body at the top. Cut as an arc, its lower edge the trousers' waist seam and its upper
 // edge the shorter round WAISTBAND_CM higher, it lies on the body. It is not folded: an outer band and a facing.
