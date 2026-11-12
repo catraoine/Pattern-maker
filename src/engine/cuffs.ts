@@ -153,11 +153,13 @@ export function cuffPieces(c: CuffDraft, sa: number): Piece[] {
     ];
   }
   if (c.kind === 'turnback') {
-    // Folded in half along its length: the sleeve's hem all the way round, twice its depth, the seams round it.
+    // Folded in half along its length: the sleeve's hem all the way round, twice its depth. Drawn on its stitching
+    // line with the allowance added round it, so the pattern file sews a 5 cm cuff to the hem, not the cut edge (CLO
+    // check, Nov 11: drawn with the allowance inside, the file's sew line read 3 cm longer and 1.5 cm deeper).
     return [
-      strip('Turned-back cuff', 'TURNED-BACK CUFF', r1(c.round + 2 * sa), 2 * c.depth + 2 * sa, 'Cut 2', 0, {
+      strip('Turned-back cuff', 'TURNED-BACK CUFF', r1(c.round), 2 * c.depth, 'Cut 2', sa, {
         fold: true,
-        notchAt: [r1(sa + c.round / 2)],
+        notchAt: [r1(c.round / 2)],
         meta: { finishedWidth: c.depth, lengthCm: r1(c.round) },
       }),
     ];
