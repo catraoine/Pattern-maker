@@ -66,6 +66,8 @@ interface Props {
   sendLink?: () => Promise<string>;
   profile: string;
   title: string;
+  /** The collection look's name while the pattern is still that look, for the print's title card. */
+  lookName?: string;
   fit: string;
   garment: Garment;
   finish: Finish;
@@ -137,7 +139,7 @@ const printedDate = () => new Date().toLocaleDateString('en-GB', { day: 'numeric
 
 
 
-export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPaper, onPaper, sendLink, profile, title, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, onFitNotes, tester, fitNote, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label }: Props) {
+export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPaper, onPaper, sendLink, profile, title, lookName, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, onFitNotes, tester, fitNote, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label }: Props) {
   const can = (t: ProTool) => shows(mode, t);
   /** Knits fit by their stretch: tested in a spare knit, not a calico toile. */
   const knit = isKnit(garment);
@@ -172,8 +174,8 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
   const code = useMemo(() => (made ? patternCode(made.pieces, values ?? {}, __APP_VERSION__) : undefined), [made, values]);
   const sheet = useMemo(
     () =>
-      made && toPrint ? layout(toPrint, `Maison Tracé: ${title}`, made.notes, { pattern: title, madeFor: profile, date, edition, credit, code }, { atelier: finish.atelier }) : undefined,
-    [made, toPrint, title, profile, date, finish.atelier, edition, credit, code],
+      made && toPrint ? layout(toPrint, `Maison Tracé: ${title}`, made.notes, { pattern: title, name: lookName, madeFor: profile, date, edition, credit, code }, { atelier: finish.atelier }) : undefined,
+    [made, toPrint, title, lookName, profile, date, finish.atelier, edition, credit, code],
   );
   // The seam check walks the garment's own pieces and its pockets; its lining and facings follow them.
   const checks = useMemo(() => {
