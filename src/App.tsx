@@ -59,7 +59,7 @@ import { coverGuide, coverMissing, coverPieces, padMap } from './engine/formCove
 import { labelCode, savedCopy } from './labels';
 import { fitSummary } from './fit';
 import { ImportedPattern, importedGuide } from './engine/importDxf';
-import { lookArmsMissing, lookFabric, lookPatch, lookValues } from './collection';
+import { lookArmsMissing, lookFabric, lookNameOf, lookPatch, lookValues } from './collection';
 import { archiveCut } from './archive';
 import { CollectionLink, ExampleTag, GarmentPick } from './ui/GarmentSwitch';
 import { LoadingScreen } from './ui/LoadingScreen';
@@ -1188,6 +1188,7 @@ export default function App() {
               garment={garment}
               profile={profile}
               title={title}
+              lookName={lookNameOf(garment, current, values)}
               fit={'fit' in current ? current.fit : 'close'}
               finish={finish}
               onFinish={setFinish}

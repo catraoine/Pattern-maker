@@ -291,6 +291,17 @@ export function lookValues(look: HouseLook, values: MeasurementValues): { values
   return isComplete(values, look.garment) ? { values, own: true } : { values: EXAMPLE_BODY, own: false };
 }
 
+/** Keys sorted all the way down, so two sets of choices compare by content, not by the order they were built in. */
+const canon = (v: unknown): unknown =>
+  Array.isArray(v) ? v.map(canon) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).filter(([, x]) => x !== undefined).sort(([a], [b]) => (a < b ? -1 : 1)).map(([k, x]) => [k, canon(x)])) : v;
+
+/** The collection look these choices still are, unchanged since it was made, for the print's title card
+ *  ("Leopard Shirt Dress" over the long description; Cat, Nov 12). Undefined once any option is changed. */
+export function lookNameOf(garment: Garment, current: PatternChoices, values: MeasurementValues): string | undefined {
+  const want = JSON.stringify(canon(current));
+  return COLLECTION.find((look) => look.garment === garment && JSON.stringify(canon(lookChoices(look, lookValues(look, values).values))) === want)?.name;
+}
+
 /** The look's technical flat, drafted to the given measurements; undefined if it can't be drafted for them. */
 export function lookFlat(look: HouseLook, m: MeasurementValues): Flat | undefined {
   return choicesFlat(lookChoices(look, m), m);

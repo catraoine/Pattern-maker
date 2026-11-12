@@ -41,6 +41,8 @@ export interface Sheet {
 /** Who and what the pattern is for, printed in each piece's information block. */
 interface SheetInfo {
   pattern: string;
+  /** A short name for the title card, e.g. the collection look's ("Leopard Shirt Dress"). */
+  name?: string;
   madeFor?: string;
   date?: string;
   /** A numbered drop's copy, e.g. "Drop 01 · No. 0127/600": in the title block and on every main piece. */
@@ -842,22 +844,34 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
   poly([p(tx, MARGIN + 4.4), p(tx + TITLE_W, MARGIN + 4.4)], 'fine');
   const who = info ? [info.madeFor && `MADE FOR ${info.madeFor}`, info.date, info.edition, info.code && `CODE ${info.code}`].filter(Boolean) : [];
   text(p(tx + 1.2, MARGIN + 1.5), ['MAISON TRACÉ', ...who].join('   ·   ').toUpperCase(), 0.5, 0, 'start', { face: 'label', tracking: 0.3, grey: 0.35 });
-  const name = title.replace(/^Maison Tracé:\s*/, '');
-  // The garment's name inside the card: a long one (a whole sentence of choices) ran out past the card's edge and under
-  // the pieces beside it, the Leopard Shirt Dress's A0 print, Nov 12. Smaller until it fits on one line, else on two.
-  const named = name.charAt(0).toUpperCase() + name.slice(1);
-  const room = TITLE_W - 2.4;
-  const one = [1.3, 1.15, 1, 0.9].find((sz) => textWidth(named, sz) <= room);
-  if (one) text(p(tx + 1.2, MARGIN + 3.3), named, one, 0, 'start', { face: 'bodyMedium' });
-  else {
-    const sz = [0.85, 0.75, 0.65, 0.55, 0.5].find((z) => wrapWords(named, z, 0, room).length <= 2) ?? 0.5;
-    wrapWords(named, sz, 0, room)
-      .slice(0, 2)
-      .forEach((line, i) => text(p(tx + 1.2, MARGIN + 2.7 + i * sz * 1.15), line, sz, 0, 'start', { face: 'bodyMedium' }));
-  }
+  for (const t of titleCard(title.replace(/^Maison Tracé:\s*/, ''), info?.name)) text(p(tx + 1.2, MARGIN + t.y), t.text, t.size, 0, 'start', t.grey ? { face: 'body', grey: t.grey } : { face: 'bodyMedium' });
   [...(info?.credit ? [info.credit] : []), ...notes].forEach((line, i) => text(p(tx + 1.2, MARGIN + 5.6 + i * 1.0), line, 0.6, 0, 'start', { face: 'body' }));
 
   return { prims, width: Math.max(packed.width, TITLE_BLOCK.w) + 2 * MARGIN, height: Math.max(packed.height, TITLE_BLOCK.h) + 2 * MARGIN };
+}
+
+const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+
+/**
+ * The title card's heading, as lines (y from the sheet's margin). A long built-up description ran out of the
+ * 46 cm card over the next piece (Cat's leopard shirt dress, Nov 12), so it never prints wider than the card:
+ * the description alone when it fits, else a short name (the look's, or the description up to its first
+ * "with") and the whole description wrapped small and grey beneath it.
+ */
+export function titleCard(description: string, name?: string): { text: string; size: number; y: number; grey?: number }[] {
+  const room = TITLE_W - 2.4;
+  if (!name && textWidth(cap(description), 1.3) <= room) return [{ text: cap(description), size: 1.3, y: 3.3 }];
+  const [head, ...tail] = description.split(' with ');
+  const short = cap(name ?? head);
+  // Under a look's name, the whole description; under its own first words, only the rest of it.
+  const full = name || !tail.length ? cap(description) : `With ${tail.join(' with ')}`;
+  const size = [1.3, 1.1, 0.9].find((s) => textWidth(short, s) <= room) ?? 0.9;
+  // One line as large as the notes when it fits, else two small lines, both above the rule at 4.4 cm; past that the
+  // second ends in "…" (the notes below say the rest).
+  const small = textWidth(full, 0.6) <= room ? 0.6 : 0.45;
+  const lines = wrapWords(full, small, 0, room);
+  const shown = lines.length > 2 ? [lines[0], `${lines[1].replace(/[ ,]+\S*$/, '')}…`] : lines;
+  return [{ text: short, size, y: 2.75 }, ...shown.map((text, i) => ({ text, size: small, y: 3.55 + i * 0.55, grey: 0.35 }))];
 }
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
