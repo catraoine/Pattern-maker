@@ -9,6 +9,10 @@ import { knob } from './knob';
 /** How far below the shoulder seam, in cm down the pattern, the strap is laid straight: in full at the seam, easing to
  *  nothing here. */
 const REACH = 10;
+/** The share of that reach, from its far end, the easing takes: nearer the seam than that the strap is laid straight
+ *  in full. Easing from the seam itself left a fifth of the swing 3 cm down, and the back strap's edge still stood
+ *  half a cm and more past the seam's end on the shoulder's top once the slip's armhole was cut lower (2026-11-12). */
+const EASE = 0.7;
 /** How far in from the seam's outer end, in cm across the pattern, cloth is still brought in (easing to nothing), and
  *  the most any point is moved. */
 const IN = 5;
@@ -46,7 +50,7 @@ export function fairStraps(out: Draped): void {
         // it in tore a boat neck's keyhole back 14 times its cut length.)
         const inFrom = (pts[outer].x - q.x) / IN;
         if (over <= 0 || inFrom >= 1) return;
-        const t = (1 - down / REACH) * (1 - Math.max(0, inFrom));
+        const t = Math.min(1, (1 - down / REACH) / (knob('__strapEase') ?? EASE)) * (1 - Math.max(0, inFrom));
         const move = Math.min(over, MOST) * t * t * (3 - 2 * t);
         pos[(p.base + i) * 3] -= move;
         pos[(p.base + i) * 3 + 1] -= move * slope;
