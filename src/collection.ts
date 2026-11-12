@@ -170,13 +170,17 @@ export const COLLECTION: HouseLook[] = [
     // The hem is cut 13 cm clear of the floor, 6 cm shorter than a maxi on every body (Cat, 2026-11-11: "match length
     // of inspo", "seems like it should be shorter"): the picture's hem clears the floor by about 10 cm, and bias
     // cloth drops a few cm as it hangs.
+    // The straps start 2 cm out from the neck, not 3.5 (Cat, 2026-11-11: "could the slip straps sit closer to the neck
+    // for a narrower neckline?", then "A"): closer still, the bottom of the scoop was cut with a square notch.
+    // The armhole is lowered 5 cm, to 19 cm deep at the example size (Cat: "that arm hole looks very small", then
+    // "A2"): moving the strap in had raised it 2 cm, and her picture's drops well down the side.
     id: 'ivory-slip',
     number: 7,
     name: 'Ivory Bias Slip',
     line: 'The house slip, cut in one on the bias from the shoulder to just above the ankle: a low, narrow scoop, slim straps, no waist seam and no zip, in a satin you can just see through.',
     fabric: 'Ivory sheer silk satin',
     garment: 'dress',
-    choices: dress('regular', { neckline: 'scoop', sleeve: 'none', darts: 'bust', bustEase: 4, neck: { frontDepth: 14.5, width: 3.5, backDepth: 18, fullness: 0.85, strap: 3 } }, { silhouette: 'straight', length: 'maxi', floorClear: 13, noSeam: 'bias', flareCm: 16, slit: 'none' }),
+    choices: dress('regular', { neckline: 'scoop', sleeve: 'none', darts: 'bust', bustEase: 4, neck: { frontDepth: 14.5, width: 2, backDepth: 18, fullness: 0.85, strap: 3 }, armholeLower: 5 }, { silhouette: 'straight', length: 'maxi', floorClear: 13, noSeam: 'bias', flareCm: 16, slit: 'none' }),
   },
   {
     // Cat's own Japanese leopard and python cotton, and the house shirt cut (2026-11-10).
