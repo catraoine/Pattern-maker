@@ -36,8 +36,12 @@ export interface TopReading {
   sleeveShape: 'fitted' | 'straight' | 'puff' | 'bishop' | 'cap' | 'flutter';
   length: 'cropped' | 'waist' | 'high_hip' | 'hip' | 'tunic';
   seams: 'darts' | 'princess' | 'none';
-  opening: 'back' | 'front_buttons';
-  collar: 'none' | 'peter_pan' | 'mandarin' | 'shirt' | 'cape';
+  opening: 'back' | 'front_buttons' | 'wrap';
+  collar: 'none' | 'peter_pan' | 'mandarin' | 'mock' | 'funnel' | 'shirt' | 'polo' | 'bow' | 'ruffle' | 'cape';
+  /** Read from Nov 12; older readings have none of these. How the sleeve joins the body, its cuff, and how a dress is cut. */
+  sleeveCut?: 'set_in' | 'drop' | 'raglan' | 'kimono';
+  cuff?: 'none' | 'shirt' | 'oversized' | 'elastic' | 'tie' | 'ruffle';
+  dressCut?: 'seam' | 'sheath' | 'shift' | 'bias';
   peplum: 'none' | 'flared' | 'gathered';
   boned: boolean;
   /** Knitted jersey (a T-shirt) rather than a woven fabric. */
@@ -74,12 +78,21 @@ export interface TrousersReading {
   pockets: 'none' | 'inseam' | 'slant';
 }
 
+type ButtonStyle = 'none' | 'flat' | 'domed' | 'shank' | 'covered' | 'snap' | 'toggle';
+
 export interface OuterReading {
   fit: Pick<'fitted' | 'regular' | 'relaxed'>;
   length: 'cropped' | 'hip' | 'long' | 'thigh' | 'knee' | 'midi';
   front: 'single' | 'double' | 'zip';
-  collar: 'notched' | 'stand' | 'collarless' | 'hood';
-  pockets: 'none' | 'patch' | 'welt';
+  collar: 'notched' | 'peak' | 'shawl' | 'stand' | 'funnel' | 'collarless' | 'hood';
+  /** Read from Nov 7; older readings have none of these. */
+  lapel?: 'classic' | 'wide' | 'plunge';
+  pockets: 'none' | 'patch' | 'welt' | 'flap';
+  chestPocket?: boolean;
+  buttonStyle?: ButtonStyle;
+  buttonholes?: 'none' | 'horizontal' | 'vertical';
+  /** Edges piped, bound or trimmed in another colour. */
+  edging?: 'none' | 'contrast';
   shaping: 'darts' | 'princess' | 'boxy';
   pads: 'none' | 'soft' | 'structured';
   flare: 'straight' | 'a_line';
@@ -119,6 +132,13 @@ export interface PhotoMeasures {
   /** A trouser leg's round at the knee and at its hem, each divided by the round at the hips. */
   kneeRoom?: number | null;
   legHemRoom?: number | null;
+  /** The pieces (Nov 7), in cm on an average adult: a seam across the front below the throat hollow, the buttons'
+   * width, the collar's outer edge to its point, the lapel at its widest, and the gap between their points. */
+  yokeAtCm?: number | null;
+  buttonSizeCm?: number | null;
+  collarPointCm?: number | null;
+  lapelWidthCm?: number | null;
+  notchCm?: number | null;
 }
 
 export type UnsureGroup = 'silhouette' | 'length' | 'neckline' | 'sleeve' | 'leg';

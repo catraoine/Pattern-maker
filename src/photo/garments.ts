@@ -171,8 +171,10 @@ function bodiceChoices(t: TopReading | null | undefined, garment: 'bodice' | 'dr
     sleeve: t.sleeve,
     sleeveShape: t.sleeveShape,
     princess: t.seams === 'princess' ? 'shoulder' : 'none',
-    closure: t.opening === 'front_buttons' ? 'front_buttons' : 'back_zip',
+    closure: t.opening === 'front_buttons' || t.opening === 'wrap' ? t.opening : 'back_zip',
     collar: t.collar,
+    ...(t.sleeveCut && t.sleeveCut !== 'set_in' ? { sleeveCut: t.sleeveCut } : {}),
+    ...(t.cuff && t.cuff !== 'none' ? { sleeveCuff: t.cuff } : {}),
     structure: t.boned ? 'boned' : 'none',
     peplum: garment === 'dress' ? 'none' : t.peplum,
   };
@@ -190,7 +192,8 @@ function dressChoices(r: PhotoReading, body?: PhotoBody): DressChoices {
   if (belt && bodice.closure !== 'wrap') skirt = { ...skirt, belt };
   // Where the seam sits, when the reading says; a dress cut in one is a sheath where the skirt shape allows it.
   const at = t?.waistSeamAt;
-  if (at === 'none' && noSeamAllowed(bodice) && bodice.closure === 'back_zip') skirt = { ...skirt, noSeam: 'sheath' };
+  const cut = t?.dressCut && t.dressCut !== 'seam' ? t.dressCut : at === 'none' ? 'sheath' : undefined;
+  if (cut && noSeamAllowed(bodice) && bodice.closure === 'back_zip') return { garment: 'dress', fit: bodice.fit, bodice, skirt: { ...skirt, noSeam: cut } };
   const waistSeam = at && at !== 'none' && at !== 'natural' ? { waistSeam: at } : {};
   return { garment: 'dress', fit: bodice.fit, bodice, skirt, ...waistSeam };
 }
@@ -286,7 +289,8 @@ function measuredOuter(c: OuterChoices, r: PhotoReading, body: PhotoBody | undef
   if (!m) return c;
   const out: OuterChoices = { ...c };
   const scale = body?.front_hps_to_waist ? body.front_hps_to_waist / AVERAGE_FRONT : 1;
-  if (num(m.outerHemAt) && body?.waist_to_floor && r.worn !== false) {
+  // Worn or not: a jacket on a hanger is placed on an average adult from its own proportions (Nov 12 scorecard).
+  if (num(m.outerHemAt) && body?.waist_to_floor) {
     const om = body as OuterMeasurements;
     const drop = measuredOuterDrop(om, c.garment, clamp(m.outerHemAt, 0, 0.9) * body.waist_to_floor);
     out.dropCm = Math.round(drop);
@@ -319,6 +323,14 @@ function measuredOuter(c: OuterChoices, r: PhotoReading, body: PhotoBody | undef
     const side = Math.round((out.easeCm - OUTER_EASE.jacket.regular) / 4);
     if (side > (out.shoulderCm ?? 0)) out.shoulderCm = clamp(side, 0, OUTER_SHOULDER.max);
   }
+  // The pieces, each scaled from an average adult's front to hers like the break; the buttons' width is kept as read.
+  if (num(m.yokeAtCm)) out.yokeCm = Math.round(clamp(m.yokeAtCm, 5, 40) * scale);
+  if (num(m.buttonSizeCm) && c.front !== 'zip') out.buttonSizeCm = Math.round(clamp(m.buttonSizeCm, 0.8, 4) * 10) / 10;
+  if (lapelled(c.collar)) {
+    if (num(m.collarPointCm) && c.collar !== 'shawl') out.collarPointCm = Math.round(clamp(m.collarPointCm, 3, 18) * scale * 2) / 2;
+    if (num(m.lapelWidthCm)) out.lapelWidthCm = Math.round(clamp(m.lapelWidthCm, 3, 16) * scale * 2) / 2;
+    if (num(m.notchCm) && c.collar !== 'shawl') out.notchCm = Math.round(clamp(m.notchCm, 0, 8) * scale * 2) / 2;
+  }
   if (num(m.outerHemFullness)) {
     const f = m.outerHemFullness;
     const flare: OuterChoices['flare'] = f >= 1.35 ? 'flared' : f >= 1.15 && c.garment === 'coat' ? 'a_line' : 'straight';
@@ -346,9 +358,15 @@ function outerChoices(r: PhotoReading, kind: 'jacket' | 'coat', body?: PhotoBody
     sleeve: o.sleeve === 'raglan' ? 'raglan' : o.sleeve === 'none' && kind === 'jacket' ? 'none' : base.sleeve,
     ...(o.sleeve === 'none' && kind === 'jacket' ? { pads: 'none' as const } : {}),
     trim: o.trim === 'rib' ? 'rib' : 'none',
+    ...(o.chestPocket ? { chest: 'welt' as const } : {}),
+    ...(o.buttonStyle && o.buttonStyle !== 'none' && o.front !== 'zip' ? { buttonStyle: o.buttonStyle } : {}),
+    ...(o.buttonholes && o.buttonholes !== 'none' && o.front !== 'zip' ? { buttonholes: o.buttonholes } : {}),
+    ...(o.edging === 'contrast' ? { edging: 'contrast' as const } : {}),
   };
+  if (o.lapel && o.lapel !== 'classic' && lapelled(c.collar) && outerAllowed(c, 'lapel', o.lapel)) c.lapel = o.lapel;
   // A notched lapel needs a shoulder seam and a buttoned front; a raglan is cut off a one-piece body.
   if (!outerAllowed(c, 'collar', c.collar)) c.collar = 'stand';
+  if (!lapelled(c.collar)) delete c.lapel;
   if (!outerAllowed(c, 'shaping', c.shaping)) c.shaping = 'darts';
   if (!outerAllowed(c, 'vent', c.vent)) c.vent = 'none';
   return measuredOuter(c, r, body);

@@ -18,8 +18,11 @@ const Top = z.object({
   sleeveShape: z.enum(['fitted', 'straight', 'puff', 'bishop', 'cap', 'flutter']),
   length: z.enum(['cropped', 'waist', 'high_hip', 'hip', 'tunic']),
   seams: z.enum(['darts', 'princess', 'none']),
-  opening: z.enum(['back', 'front_buttons']),
-  collar: z.enum(['none', 'peter_pan', 'mandarin', 'shirt', 'cape']),
+  opening: z.enum(['back', 'front_buttons', 'wrap']),
+  collar: z.enum(['none', 'peter_pan', 'mandarin', 'mock', 'funnel', 'shirt', 'polo', 'bow', 'ruffle', 'cape']),
+  sleeveCut: z.enum(['set_in', 'drop', 'raglan', 'kimono']),
+  cuff: z.enum(['none', 'shirt', 'oversized', 'elastic', 'tie', 'ruffle']),
+  dressCut: z.enum(['seam', 'sheath', 'shift', 'bias']),
   peplum: z.enum(['none', 'flared', 'gathered']),
   boned: z.boolean(),
   knit: z.boolean(),
@@ -27,6 +30,9 @@ const Top = z.object({
   waistSeamAt: z.enum(['none', 'empire', 'raised', 'natural', 'dropped', 'low']),
   belt: z.enum(['none', 'sash', 'loops', 'ties']),
 });
+
+/** The top's choices added on Nov 12, which a reading from before doesn't have. */
+const TopKept = Top.partial({ sleeveCut: true, cuff: true, dressCut: true });
 
 const Fabric = z.object({
   type: z.enum(['plain', 'denim', 'leather', 'velvet', 'corduroy', 'sheer', 'satin', 'lace', 'sequins', 'knit', 'fleece', 'chiffon', 'crepe', 'gauze']),
@@ -48,14 +54,22 @@ const Outer = z.object({
   fit,
   length: z.enum(['cropped', 'hip', 'long', 'thigh', 'knee', 'midi']),
   front: z.enum(['single', 'double', 'zip']),
-  collar: z.enum(['notched', 'stand', 'collarless', 'hood']),
-  pockets: z.enum(['none', 'patch', 'welt']),
+  collar: z.enum(['notched', 'peak', 'shawl', 'stand', 'funnel', 'collarless', 'hood']),
+  lapel: z.enum(['classic', 'wide', 'plunge']),
+  pockets: z.enum(['none', 'patch', 'welt', 'flap']),
+  chestPocket: z.boolean(),
   shaping: z.enum(['darts', 'princess', 'boxy']),
   pads: z.enum(['none', 'soft', 'structured']),
   flare: z.enum(['straight', 'a_line']),
   sleeve: z.enum(['set_in', 'raglan', 'none']).optional(),
   trim: z.enum(['none', 'rib']).optional(),
+  buttonStyle: z.enum(['none', 'flat', 'domed', 'shank', 'covered', 'snap', 'toggle']),
+  buttonholes: z.enum(['none', 'horizontal', 'vertical']),
+  edging: z.enum(['none', 'contrast']),
 });
+
+/** The pieces added on Nov 7, which a reading from before doesn't have. */
+const OuterKept = Outer.partial({ lapel: true, chestPocket: true, buttonStyle: true, buttonholes: true, edging: true });
 
 /**
  * The sizes a reading measures. Claude lists only the ones it can see, as name and value pairs: a field per size that
@@ -76,13 +90,18 @@ const MEASURES = [
   'outerHemFullness',
   'kneeRoom',
   'legHemRoom',
+  'yokeAtCm',
+  'buttonSizeCm',
+  'collarPointCm',
+  'lapelWidthCm',
+  'notchCm',
 ] as const;
 
 /** The reading as Claude writes it. The app gets it from toReading, with every size it didn't list as null. */
 export const Reading = z.object({
   garment: z.enum(['skirt', 'dress', 'top', 'tee', 'trousers', 'jacket', 'coat', 'other', 'none']),
   pieces: z.array(z.object({ garment: piece, x: z.number(), y: z.number() })),
-  silhouette: z.object({ value: z.enum(['pencil', 'straight', 'a_line', 'trumpet', 'half_circle', 'circle']), confidence }),
+  silhouette: z.object({ value: z.enum(['pencil', 'straight', 'a_line', 'trumpet', 'half_circle', 'circle', 'gathered', 'slip']), confidence }),
   length: z.object({ value: z.enum(['mini', 'above_knee', 'knee', 'midi', 'maxi']), confidence }),
   fit,
   shape: z.object({ hemAt: z.number(), hemFullness: z.number(), flareAt: z.number().nullable(), confidence }),
@@ -106,7 +125,7 @@ export const Reading = z.object({
 
 export const SYSTEM = `You help home sewists turn a photo of a garment into a sewing pattern. The garment may be worn, on a hanger, or laid flat, and in any size: the app drafts it to the sewist's own measurements, so your job is only to read the style. The app drafts skirts, dresses (a bodice joined to a skirt at the waist, with a back zip), woven tops, knit T-shirts, trousers, jackets and coats.
 
-- garment: the main item in the photo: "skirt", "dress", "top" (a woven top or blouse), "tee" (a T-shirt or other knit jersey top), "trousers" (including shorts and culottes), "jacket", "coat", "other" (clothing the app doesn't draft, such as a jumpsuit, knitwear or a bag) or "none" if there is no clothing. A jacket ends at or above the upper thigh; a coat is longer.
+- garment: the main item in the photo: "skirt", "dress", "top" (a woven top or blouse), "tee" (a T-shirt or other knit jersey top), "trousers" (including shorts and culottes), "jacket", "coat", "other" (clothing the app doesn't draft, such as a jumpsuit, knitwear or a bag) or "none" if there is no clothing. A jacket ends at or above the upper thigh; a coat is longer. Culottes and wide shorts can look like a skirt: when the cloth divides into two legs (a crotch seam, an inner leg, a split showing between them), it is "trousers". A garment that carries on above the waist to the shoulders or neck is a "dress", however it is draped or tied, even when the photo shows mostly the skirt part.
 - pieces: every separate garment the app drafts that is clearly shown, the main one first, each with x and y, the middle of that garment as fractions of the photo's width and height (0 to 1 from the top left). A dress is one piece. A top tucked into a skirt is two pieces. Leave out partly hidden layers and accessories.
 
 The skirt fields (silhouette, length, fit, shape, extras) describe the skirt, or the skirt part of a dress. Always fill them in: if the photo has no skirt, give your best skirt reading of whatever is below the waist, with low confidence.
@@ -118,7 +137,9 @@ Pick the closest option in each group:
   - "a_line" widens gently and evenly from the hip to the hem, keeping a clean outline without deep folds.
   - "trumpet" stays close to the body through the hips and thighs, then flares out lower down, usually from around the knee (also called mermaid, fishtail, godet or Edwardian walking skirt).
   - "half_circle" is smooth at the waist and falls into soft folds, noticeably fuller than an A-line; laid flat it makes a half circle (skater skirts are often half circles).
-  - "circle" is very full, with deep folds all round the hem; laid flat it makes a whole circle (1950s circle skirts, ra-ra skirts). A skirt that is full because it is gathered or pleated into the waist, rather than smooth at the waist, is not a circle skirt: pick the closest shape and mention the gathers or pleats in details.
+  - "circle" is very full, with deep folds all round the hem; laid flat it makes a whole circle (1950s circle skirts, ra-ra skirts). A skirt that is full because it is gathered or pleated into the waist, rather than smooth at the waist, is not a circle skirt: use "gathered" for gathers (or the pleat in extras.volume).
+  - "gathered" is a straight, full piece of cloth gathered into the waist, so it puffs out from the waist in many soft folds (a dirndl, a peasant or tiered maxi, the skirt of most smocked or prairie dresses).
+  - "slip" is cut on the bias: fluid, close over the hips and falling in soft, swaying ripples at the hem, usually in satin or silky cloth (a slip skirt, the skirt of a slip dress).
 - length, where the hem falls on the wearer: "mini" (mid-thigh), "above_knee", "knee", "midi" (mid-calf), "maxi" (near the ankle). For a skirt laid flat or on a hanger, estimate from its proportions and use low confidence.
 - fit, how much room there is round the hips: "fitted" only when the fabric clearly lies close across the hips and seat, like a pencil skirt; "regular" (some room) for most skirts, including any that flare out from the waist, where the hips can't be seen; "relaxed" (loose). A snug waistband alone does not make a skirt fitted. When unsure, choose "regular".
 - shape: the exact proportions, so the pattern can match the photo rather than a standard shape. Measure them against the wearer's body, not the photo frame:
@@ -139,8 +160,11 @@ top: fill this in for a top, a T-shirt, the bodice of a dress, or a top worn und
 - sleeve: "none", "short", "elbow", "three_quarter" or "long". sleeveShape: "fitted" (narrow, close to the arm), "straight", "puff" (gathered at the shoulder and the band), "bishop" (long, full, gathered into a cuff), "cap" (a tiny sleeve just covering the shoulder, short only) or "flutter" (short, flared and rippling at the hem, short only). Use "straight" when there are no sleeves.
 - length: where its hem falls: "cropped" (above the waist), "waist", "high_hip", "hip" or "tunic" (to the upper thigh). For a dress, use "waist".
 - seams: "princess" when long shaping seams run down the front over the bust, "darts" when it is shaped with darts or is close-fitting without visible seams, "none" for a loose, unshaped top.
-- opening: "front_buttons" when it buttons down the front, otherwise "back".
-- collar: "none", "peter_pan" (flat and rounded), "mandarin" (a short stand-up band) or "shirt" (a stand with a turned-down collar) or "cape" (a short cape or capelet sewn in at the neck, over the shoulders).
+- opening: "front_buttons" when it buttons down the front, "wrap" when one front crosses over the other and ties or fastens at the side (a wrap top or wrap dress), otherwise "back".
+- collar: "none", "peter_pan" (flat and rounded), "mandarin" (a short stand-up band), "mock" (a soft band standing up the neck, as on a mock neck), "funnel" (a tall band flaring up from the neck), "shirt" (a stand with a turned-down collar), "polo" (a knit-look collar over a short buttoned placket), "bow" (a pussy bow: ties at the neck tied in a bow), "ruffle" (a ruffle standing round the neck), or "cape" (a short cape or capelet sewn in at the neck, over the shoulders).
+- sleeveCut: how the sleeve joins the body: "set_in" (a seam round the arm at the shoulder point), "drop" (the shoulder seam falls down the upper arm), "raglan" (a seam from the neck to the underarm), "kimono" (the sleeve cut in one with the body, no armhole seam). "set_in" with no sleeves.
+- cuff: what finishes the sleeve's hem: "shirt" (a buttoned cuff), "oversized" (a deep, wide cuff), "elastic" (gathered on elastic), "tie" (ties at the wrist), "ruffle" (a ruffle), or "none" (a plain hem, or no sleeves).
+- dressCut: for a dress, how it is cut: "seam" (a bodice joined to a skirt by a seam round the body, at any height), "sheath" (cut in one from shoulder to hem, shaped close to the waist with darts or seams), "shift" (cut in one and hanging straight from the bust, not shaped in at the waist), "bias" (a slip dress cut on the bias, fluid and close, usually on thin straps). Use "seam" for anything that isn't a dress.
 - peplum: a short flared or gathered frill below the waist: "none", "flared" or "gathered".
 - boned: true for a corset-like bodice with visible boning or a rigid, close-fitted shape.
 - knit: true when the fabric is a stretchy jersey or knit (a T-shirt), false for a woven fabric (a blouse, a shirt, a dress bodice in cotton or silk).
@@ -161,27 +185,35 @@ trousers: fill this in for trousers, shorts or culottes; otherwise null.
 
 outer: fill this in for a jacket or a coat; otherwise null.
 - fit: as for a top. length: a jacket is "cropped" (above the hip), "hip" or "long" (to the upper thigh); a coat is "thigh" (mid-thigh), "knee" or "midi".
-- front: "single" (one row of buttons), "double" (two rows of buttons, overlapping fronts) or "zip" (a zip up the centre front). collar: "notched" (a lapel with a notch), "stand", "collarless" or "hood".
+- front: "single" (one row of buttons), "double" (two rows of buttons, overlapping fronts) or "zip" (a zip up the centre front). collar: "notched" (a lapel with a notch, the collar's point meeting the lapel's at an open V), "peak" (the lapel's points sweep up past the collar's), "shawl" (lapel and collar in one rolled curve, no notch), "stand", "funnel" (a tall stand rising up the neck), "collarless" or "hood". lapel: "wide" for lapels reaching well toward the shoulder, "plunge" for one rolling down to a single button at the waist, otherwise "classic" (also for no lapels).
 - sleeve: "raglan" when a seam runs from the neck to the underarm with no shoulder seam, "none" for a sleeveless jacket (a waistcoat or tailored vest), otherwise "set_in". trim: "rib" when the hem and cuffs are stretchy ribbed bands (as on a bomber), otherwise "none".
-- pockets: "patch" (sewn on top), "welt" (set-in slits or flaps) or "none". shaping: "princess" (long seams down the front), "darts" or "boxy" (straight and unshaped).
+- pockets: the lower pockets: "patch" (sewn on top), "welt" (a set-in slit), "flap" (a set-in pocket covered by a flap) or "none". chestPocket: true for a welt pocket on the left chest. shaping: "princess" (long seams down the front), "darts" or "boxy" (straight and unshaped).
 - pads: "structured" for sharp, built-up shoulders, "soft" for a natural shoulder line, "none" for a soft, unstructured jacket. flare: "a_line" for a coat that widens below the hip, otherwise "straight".
+- Look at each piece separately, not just the overall shape: the collar, the lapel, the front edge, the buttons and every seam.
+- buttonStyle: "flat" (a flat sew-through button), "domed", "shank" (a rounded or metal button on a stem, with no holes showing), "covered" (covered in the garment's cloth), "snap" (press studs), "toggle" (toggles with loops), or "none" for a zip or no fastening. buttonholes: which way the buttonholes run, "horizontal" or "vertical", or "none" when there are none (snaps, toggles, a zip, or hidden under a fly front).
+- edging: "contrast" when the edges of the collar, lapels, front or armholes are piped, bound or trimmed in a different colour from the body, otherwise "none".
 
 worn: true when a person or a full-length mannequin is wearing the main garment, so where it ends can be measured against the body; false when it is laid flat, on a hanger or on a dress form without legs.
 
-measures: exact sizes, so the pattern copies the photo rather than a standard option. List each one the photo shows as its name and value, at most once. Measure against the wearer's body, as for the skirt's shape, and leave a size out when the photo doesn't show it, the garment has none, or it isn't worn:
+measures: exact sizes, so the pattern copies the photo rather than a standard option. List each one the photo shows as its name and value, at most once. Measure against the wearer's body, as for the skirt's shape, and leave a size out when the photo doesn't show it or the garment has none. When it isn't worn (on a hanger, a form or laid flat), still give each size as the garment would sit on an average adult, judged from its own proportions (see Proportions):
 - neckDepthCm: for a top, T-shirt or dress bodice, how far the lowest point of the front neckline sits below the hollow at the base of the throat, in cm on an average adult (a crew neck 1 to 2, a scoop 8 to 14, a deep V 18 to 28). Leave it out for a strapless, cami, halter, one-shoulder or cowl neckline.
 - sleeveEndsAt: where a sleeve ends, as a fraction of the arm from the shoulder point (0) to the wrist bone (1): a short sleeve about 0.25, elbow 0.5, three-quarter 0.75, long 1. Leave it out with no sleeves or a cap sleeve.
 - topHemAt: for a top below the waist (not a dress), where its hem falls, as a fraction of the natural waist (0) to the floor (1), like the skirt's hemAt (the hip line is about 0.2).
 - trouserHemAt: for trousers, where the hem falls, as a fraction of the natural waist (0) to the floor (1) (shorts about 0.3, knee 0.56, ankle 0.93, full 0.98).
 
-Proportions: the pattern is cut to these numbers, so measure them carefully against the wearer's own body, using her head (about 22 cm from chin to crown on an average adult), shoulders, waist, hips and knees as rulers, not the photo frame. Read each from the garment as worn, allowing for perspective, and leave each out when it doesn't show, doesn't apply or isn't worn:
+Proportions: the pattern is cut to these numbers, so measure them carefully against the wearer's own body, using her head (about 22 cm from chin to crown on an average adult), shoulders, waist, hips and knees as rulers, not the photo frame. Read each from the garment as worn, allowing for perspective, and leave each out when it doesn't show or doesn't apply. When the garment isn't worn, measure it against itself and place it on an average adult, whose shoulders are about 39 cm across and whose neck to waist is about 44 cm: a jacket or top as long from the shoulder seam to the hem as it is wide across the shoulders ends at about the waist (outerHemAt 0.02), 1.35 times as long at the high hip (0.12), 1.6 times at the hip line (0.2), 2 times at mid-thigh (0.38), 2.5 times at the knee (0.56), 3.1 times at mid-calf (0.76). A sleeve as long as the body from shoulder to hem, on a hip-length jacket, reaches the wrist. Read the room at the bust from how far the body stands out past the shoulders: straight down from the shoulder seams is about 1.14, wider than the shoulders 1.3 or more.
 - outerHemAt: for a jacket or coat, where its hem falls, as a fraction of the natural waist (0) to the floor (1) (cropped about 0.05, the hip line 0.2, low hip 0.27, mid-thigh 0.38, the knee 0.56, mid-calf 0.76).
-- breakCm: for a jacket or coat, where the lapels fold back and the front starts to close (the break), in cm below the hollow at the base of the throat on an average adult; without lapels, where the top button or the top of the zip sits. A high waistcoat break is about 15 to 18, a classic jacket about 25 to 30, a deep one-button jacket about 35 to 40.
+- breakCm: for a jacket or coat, where the lapels fold back and the front starts to close (the break), in cm below the hollow at the base of the throat on an average adult; without lapels, where the top button or the top of the zip sits. Use the body as the ruler: on an average adult the bust line is about 17 cm below the throat hollow and the natural waist about 37, so a break level with the bust is about 17, halfway from bust to waist about 27, at the waist about 37. A high waistcoat break is about 15 to 18, a classic jacket about 25 to 30, a deep one-button jacket about 35 to 40.
 - buttons: for a jacket, coat or buttoned top, how many buttons run down the front (one row of a double-breasted front). Leave it out with a zip or no buttons.
 - buttonGapCm: the distance from one button to the next, in cm on an average adult (about 9 to 12 on most jackets). Leave it out with fewer than two buttons.
 - shoulderOutCm: for a jacket, coat or top, how far its shoulder seam sits past the wearer's own shoulder point, in cm on an average adult: 0 on her shoulder, 1 to 2 with a sharp padded shoulder, 4 to 10 for a dropped or extended shoulder (an oversized cut), negative when cut in toward the neck (a racer or halter armhole).
 - bustRoom: for a jacket, coat or top, its round at the bust divided by the wearer's own bust round, judged from how far it stands away from the body at the sides: about 1.05 for a close-fitting top, 1.1 fitted jacket, 1.14 regular, 1.2 relaxed, 1.4 to 1.7 for an oversized cut that stands well away from the body (judge it from the gap between the garment's side and her own side, not from the garment alone: an oversized piece on a slim wearer is still oversized).
 - outerHemFullness: for a jacket or coat, its hem round divided by the round at the wearer's hips: 1.05 for straight sides, 1.2 to 1.3 for an A-line coat, 1.4 or more for one that flares or stands out from the hips.
+- yokeAtCm: for a jacket, coat or top, a seam running across the front from side to side (a yoke), in cm below the hollow at the base of the throat on an average adult (a shoulder yoke about 8 to 12, one level with the underarm about 18 to 22). Leave it out when there is no such seam. Darts and seams running down the body are not a yoke.
+- buttonSizeCm: the buttons' width, in cm on an average adult (a shirt button about 1.1, a jacket button 1.5 to 2, a coat button 2.5 to 3.5).
+- collarPointCm: for a collar that turns down, the length of its outer edge from where it leaves the neck to its point, in cm on an average adult (about 5 to 7 on a classic jacket, 10 or more on a big collar).
+- lapelWidthCm: the lapel at its widest, measured square from the fold to its outer edge, in cm on an average adult (a slim lapel about 6, classic 8, wide 10 to 12). Leave it out with no lapels.
+- notchCm: the open gap between the collar's point and the lapel's point, in cm on an average adult (a classic notch about 3 to 4, a tight one 1 to 2). Leave it out for a shawl collar or no lapels.
 - kneeRoom and legHemRoom: for trousers, the leg's round at the knee and at its hem, each divided by the round at the hips: a slim leg about 0.38 and 0.3, a straight leg 0.46 and 0.43, a wide leg 0.6 and 0.66, a culotte 0.7 and 0.76, a flare 0.41 at the knee and 0.62 at the hem.
 
 unsure: when you are torn between your pick and one other option in one of these groups, name the group and the other option exactly as it is written above, so the sewist can be asked which it is: "silhouette" (the skirt's), "length" (the skirt's), "neckline", "sleeve" (top.sleeve) or "leg" (trousers.leg). For example a skirt that could be straight or pencil: group "silhouette", other "pencil". Use it only when both really are likely and the choice changes the pattern; otherwise null.
@@ -259,7 +291,7 @@ const toWire = (r: z.infer<typeof Kept>) => ({
 });
 
 /** A reading as the app keeps it, to check one the app sends back. */
-const Kept = Reading.extend({ measures: z.object(Object.fromEntries(MEASURES.map((k) => [k, z.number().nullable()])) as Record<(typeof MEASURES)[number], z.ZodNullable<z.ZodNumber>>) });
+const Kept = Reading.extend({ top: TopKept.nullable(), outer: OuterKept.nullable(), measures: z.object(Object.fromEntries(MEASURES.map((k) => [k, z.number().nullable()])) as Record<(typeof MEASURES)[number], z.ZodNullable<z.ZodNumber>>) });
 
 /** Read the earlier reading back in, keeping only one that has the reading's shape: anything else in the request is dropped. */
 /** The proportions added on Nov 7: a reading from before has none, so each is filled in as not shown. */
