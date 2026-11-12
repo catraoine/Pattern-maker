@@ -79,8 +79,8 @@ export interface HouseLook {
    * and are shown together, each made on its own. */
   set?: string;
   /** How the look is finished when it is made, over the maker's own setting: the Blush Shift comes lined to the hem
-   *  (Nov 11). The maker can still change it on the print screen. */
-  finish?: Pick<Finish, 'bodiceEdges'>;
+   *  (Nov 11), the Gold Python Bermuda lined (Nov 12). The maker can still change it on the print screen. */
+  finish?: Partial<Pick<Finish, 'bodiceEdges' | 'skirtLined'>>;
 }
 
 const skirt = (c: Partial<Choices>): Choices => ({ fit: 'regular', silhouette: 'a_line', length: 'knee', ...c });
@@ -140,6 +140,8 @@ export const COLLECTION: HouseLook[] = [
     fabric: 'Gold python silk',
     garment: 'trousers',
     choices: { ...DEFAULT_TROUSERS_CHOICES, fit: 'relaxed', leg: 'wide', length: 'knee', lengthCm: 68, legCm: { knee: 66, hem: 66 }, pockets: 'slant', pleats: 'double', loops: 'loops', backPockets: 'welt', rise: 'low', press: 'soft' },
+    // Lined (Cat, Nov 12): in silk the legs cling and the pocket bags show through, so a lining hangs between.
+    finish: { skirtLined: true },
   },
   {
     id: 'ice-peplum',
