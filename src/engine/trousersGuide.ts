@@ -102,12 +102,17 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
           },
         ]
       : []),
-    {
-      title: 'Press the creases',
-      text: `Fold each front and each back along its chalked crease line, wrong sides together, and press the crease in from the hem${d.shorts ? '' : ' up to the knee'}${
-        culotte ? '' : ` and on up to the crotch line on the back, ${d.dartsPerSide.front ? 'to the dart' : 'to the hip line'} on the front`
-      }. Use a press cloth and plenty of steam. A crease pressed now stays sharp.`,
-    },
+    d.softPress
+      ? {
+          title: 'Press the legs',
+          text: `Press each front and each back flat through a press cloth, without folding it along the crease line: no crease is pressed in, so the legs${pleats ? ' and the pleats' : ''} fall soft from the band.${pleats ? ' Press the pleat folds only where they are stitched down at the waist.' : ''}`,
+        }
+      : {
+          title: 'Press the creases',
+          text: `Fold each front and each back along its chalked crease line, wrong sides together, and press the crease in from the hem${d.shorts ? '' : ' up to the knee'}${
+            culotte ? '' : ` and on up to the crotch line on the back, ${d.dartsPerSide.front ? 'to the dart' : 'to the hip line'} on the front`
+          }. Use a press cloth and plenty of steam. A crease pressed now stays sharp.`,
+        },
     ...(slant
       ? [
           {
@@ -192,7 +197,7 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
       title: 'Finish',
       text: `${elastic ? ELASTIC_FINISH : fly ? 'Make a buttonhole in the waistband extension and sew a button to the underlap, or sew on a trouser hook and bar.' : 'Sew a hook and eye at the top of the zip.'}${
         d.pockets !== 'none' ? ' Bar-tack across each end of the pocket openings, by machine or by hand, so they take a hand without tearing.' : ''
-      } Press the creases again through a press cloth.`,
+      }${d.softPress ? ' Press lightly from the inside, with no crease.' : ' Press the creases again through a press cloth.'}`,
     },
   ];
   return {
