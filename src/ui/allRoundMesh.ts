@@ -117,6 +117,16 @@ function fitColour(v: number): [number, number, number] {
   return [a.r + (b.r - a.r) * t, a.g + (b.g - a.g) * t, a.b + (b.b - a.b) * t];
 }
 
+/** The form under the garment in All round: the same matte charcoal as the measuring films (their C2, #3a3734, a crepe
+ *  with no shine), not the shiny black satin it was (Cat, Nov 11: "match the matte colour of measure video"). */
+function formFinish(m: RoundMaterial): RoundMaterial {
+  m.color.set(0x3a3734);
+  m.emissive.set(0x000000);
+  m.roughness = 0.92;
+  m.metalness = 0;
+  return m;
+}
+
 export function material(mode: Mode, map?: THREE.Texture, scale = 1, opacity = 1, physical = false): RoundMaterial {
   const mat = new (physical ? THREE.MeshPhysicalMaterial : THREE.MeshStandardMaterial)({
     side: THREE.DoubleSide,
@@ -1020,7 +1030,7 @@ export function createRoundView(): RoundView | undefined {
       if (o.formX) q[0] = o.formX(q[0], yy, q[2]);
       return q;
     };
-    const satin = material('satin');
+    const satin = formFinish(material('satin'));
     /** Where the garment's hem is on average: the body or legs under it stand in its shadow. */
     const hemMean = (() => {
       let sum = 0;
@@ -1049,12 +1059,10 @@ export function createRoundView(): RoundView | undefined {
       return u <= 0.5 ? (u / 0.5) * SHOULDER_BAND : SHOULDER_BAND + ((u - 0.5) / 0.5) * (1 - SHOULDER_BAND);
     };
     add(sweep({ at: (a, t) => bodyAt(a, NECK_TOP + (BODY_BOTTOM - NECK_TOP) * t), out: radial, rowT: bodyRow }, -Math.PI, Math.PI, 96, 120), satin, 0, 'body');
-    const neck = material('satin');
-    neck.color.set(0x0e0c0a);
-    neck.roughness = 0.45;
+    const neck = formFinish(material('satin'));
     add(cap((a) => bodyAt(a, NECK_TOP), [0, -1, 0]), neck, 0, 'body');
     for (const leg of [-1, 1]) {
-      const legs = material('satin');
+      const legs = formFinish(material('satin'));
       if (!isTop && !trousers) {
         legs.uniforms.shadeY.value = hemMean;
         legs.uniforms.shadeDepth.value = 0.3;
