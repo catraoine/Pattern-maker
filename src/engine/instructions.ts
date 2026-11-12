@@ -466,7 +466,7 @@ function pullOnSteps(g: SewingGuide, d: BodiceDraft): SewingGuide {
 }
 
 /** A drawstring at the hem (BodiceDraft.hemTie): a narrow channel of silk binding sewn inside, just above the hem,
- * and a fine cord through it that comes out at the left side seam. */
+ * and a fine cord through it that comes out through two eyelets at the centre front. */
 function drawstringSteps(g: SewingGuide, d: BodiceDraft): SewingGuide {
   if (!d.hemTie) return g;
   const hem = d.finishedHem ?? 0;
@@ -474,7 +474,7 @@ function drawstringSteps(g: SewingGuide, d: BodiceDraft): SewingGuide {
   const cordM = d.hemTie.cordCm / 100;
   const channel: SewStep = {
     title: 'Sew the drawstring channel',
-    text: `On the inside, pin the silk binding along the DRAWSTRING CHANNEL line, its folded edges turned under, starting and ending at the left side seam (as you wear it) with each end turned under 1 cm so the ends just meet. Stitch close to both long edges, leaving the ends open: the channel is ${n1(DRAWSTRING.channel)} wide and sits ${n1(DRAWSTRING.above)} above the hem, so the hem edge hangs free below it. Thread the cord through with a bodkin or a small safety pin, bring both ends out at the side seam and knot each end. Draw it in and tie it to blouse the top, or leave it loose and the top hangs straight.`,
+    text: `First work the two eyelets marked EYELET on the front, ${n1(DRAWSTRING.eyelet)} either side of the centre front: back each with a small square of the fabric or of silk organza, then work a 4 mm hand eyelet or a tiny buttonhole through both. On the inside, pin the silk binding along the DRAWSTRING CHANNEL line, its folded edges turned under, covering the eyelets, starting and ending at a side seam with each end turned under 1 cm so the ends just meet. Stitch close to both long edges: the channel is ${n1(DRAWSTRING.channel)} wide and sits ${n1(DRAWSTRING.above)} above the hem, so the hem edge hangs free below it. Thread the cord in through one eyelet with a bodkin or a small safety pin, all the way round and out through the other, and knot each end. Draw it in and tie it in a bow at the centre front to blouse the top, or leave it loose and the top hangs straight.`,
   };
   const at = g.steps.findIndex((s) => s.title === 'Hem');
   const steps = at < 0 ? [...g.steps, channel] : [...g.steps.slice(0, at + 1), channel, ...g.steps.slice(at + 1)];

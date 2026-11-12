@@ -214,6 +214,9 @@ describe('a drawstring hem', () => {
     const d = draftBodice(EXAMPLE_BODY as never, blouse({ hemTie: 'drawstring' }));
     expect(d.hemTie!.cordCm).toBeGreaterThanOrEqual(d.finishedHem! + 55);
     for (const name of ['Bodice front', 'Bodice back']) expect(d.pieces.find((pc) => pc.name === name)!.balance!.map((b) => b.label)).toContain('DRAWSTRING CHANNEL');
+    // The cord comes out at the centre front: an eyelet marked on the front only.
+    expect(d.pieces[0].balance!.map((b) => b.label)).toContain('EYELET');
+    expect(back(d).balance!.map((b) => b.label)).not.toContain('EYELET');
     const g = bodiceGuide(d, { length: 'hip' }, 1.5, 2);
     const titles = g.steps.map((s) => s.title);
     expect(titles.indexOf('Sew the drawstring channel')).toBe(titles.indexOf('Hem') + 1);
@@ -225,15 +228,21 @@ describe('a drawstring hem', () => {
     expect(d.hemTie).toBeUndefined();
   });
 
-  it('is drawn on the flat: a second row of stitching and the cord ends at the left side seam', () => {
+  it('is drawn on the flat: a second row of stitching and the cord ends at the centre front, none on the back', () => {
     const look = COLLECTION.find((l) => l.id === 'lilac-lace')!;
     const f = lookFlat(look, EXAMPLE_BODY as never)!;
     const front = f.views.find((v) => /front/i.test(v.label))!;
     const body = front.shapes[0];
-    const right = Math.max(...body.map((q) => q.x));
+    const mid = (Math.max(...body.map((q) => q.x)) + Math.min(...body.map((q) => q.x))) / 2;
     const foot = Math.max(...body.map((q) => q.y));
-    const cords = front.shapes.filter((sh) => sh !== body && sh.every((q) => q.x > right - 3 && q.y > foot - 6) && sh.some((q) => q.y > foot + 3));
+    const cordsOf = (v: typeof front, at: number, low: number) => v.shapes.filter((sh) => sh !== v.shapes[0] && sh.every((q) => Math.abs(q.x - at) < 4 && q.y > low - 6) && sh.some((q) => q.y > low + 3));
+    const cords = cordsOf(front, mid, foot);
     expect(cords).toHaveLength(2);
+    // One each side of the centre.
+    expect(cords.filter((sh) => sh.every((q) => q.x < mid))).toHaveLength(1);
+    const backView = f.views.find((v) => /back/i.test(v.label))!;
+    const backFoot = Math.max(...backView.shapes[0].map((q) => q.y));
+    expect(backView.shapes.filter((sh) => sh !== backView.shapes[0] && sh.some((q) => q.y > backFoot + 3))).toHaveLength(0);
   });
 });
 

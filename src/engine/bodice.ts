@@ -352,7 +352,7 @@ export function bodiceEase(s: { fit: BodiceFit; bustEase?: number; neckline?: Ne
 
 /** A drawstring hem: the channel's lower edge this far above the hem, the channel this wide, and the cord this much
  * longer than the hem, to tie. */
-export const DRAWSTRING = { above: 2, channel: 1.2, tails: 60 };
+export const DRAWSTRING = { above: 2, channel: 1.2, tails: 60, eyelet: 1 };
 
 /** A dragged hem sits on the waist or at least this far below it, so fish-eye darts fit above it. */
 export const DROP_MIN = 6;
@@ -1425,7 +1425,8 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   const drawstring = s.hemTie === 'drawstring' && below && !s.dressHem && !hemShape && !s.peplum;
   if (drawstring) {
     const up = DRAWSTRING.above + DRAWSTRING.channel / 2;
-    frontPiece.balance = [...(frontPiece.balance ?? []), { pts: [p(0, cfHem - up), p(hemF.x, hemF.y - up)], label: 'DRAWSTRING CHANNEL' }];
+    // The cord comes out at the centre front (Cat, Nov 11: "Front"), through an eyelet each side of the centre.
+    frontPiece.balance = [...(frontPiece.balance ?? []), { pts: [p(0, cfHem - up), p(hemF.x, hemF.y - up)], label: 'DRAWSTRING CHANNEL' }, { pts: [p(DRAWSTRING.eyelet, cfHem - up - 0.5), p(DRAWSTRING.eyelet, cfHem - up + 0.5)], label: 'EYELET' }];
     backPiece.balance = [...(backPiece.balance ?? []), { pts: [p(0, backHem - up), p(hemB.x, hemB.y - up)], label: 'DRAWSTRING CHANNEL' }];
   }
 
