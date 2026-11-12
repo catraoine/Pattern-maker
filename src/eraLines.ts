@@ -3,7 +3,7 @@
 // app already drafts, so no pattern changes: picking one sets the choices, and any of them can be changed after. They
 // sit under the collection's In testing tag, and each is draped in CLO before the tag comes off (Cat: "make sure they
 // are all clo checked").
-import { HouseLook, bodiceChoices as bodice, dressChoices as dress, skirtLook } from './collection';
+import { COLLECTION, HouseLook, bodiceChoices as bodice, dressChoices as dress, skirtLook } from './collection';
 import { ERAS } from './engine/eras';
 import { DEFAULT_COAT_CHOICES, DEFAULT_JACKET_CHOICES, DEFAULT_TROUSERS_CHOICES, OuterChoices, TrousersChoices } from './garments';
 
@@ -73,7 +73,8 @@ const PIECES: Omit<EraPiece, 'number'>[] = [
   { era: '1990s', id: '90-top', name: 'Nineties cami', fabric: 'Black silk satin', garment: 'bodice', line: 'Fine straps and a softly dipped neckline, skimming to the high hip.',
     choices: bodice({ fit: 'relaxed', neckline: 'cami', darts: 'bust', sleeve: 'none', length: 'high_hip' }) },
   { era: '1990s', id: '90-dress', name: 'Nineties slip maxi', fabric: 'Ivory sand-washed satin', garment: 'dress', line: 'Cut in one on the bias from fine straps to the ankle, with a low scoop, no waist seam and no zip.',
-    choices: dress('regular', { neckline: 'scoop', sleeve: 'none', darts: 'bust', bustEase: 4, neck: { frontDepth: 14.5, width: 3.5, backDepth: 18, fullness: 0.85, strap: 3 } }, { silhouette: 'straight', length: 'maxi', noSeam: 'bias', flareCm: 16, slit: 'none' }) },
+    // The house Ivory Bias Slip's own cut, so a fix to the house slip (its straps, its armholes) reaches this one too.
+    choices: COLLECTION.find((l) => l.id === 'ivory-slip')!.choices },
   { era: '1990s', id: '90-trousers', name: 'Low-slung slouch trouser', fabric: 'Grey wool crepe', garment: 'trousers', line: 'Low on the hip and relaxed, falling straight to the floor.',
     choices: <TrousersChoices>{ ...DEFAULT_TROUSERS_CHOICES, fit: 'relaxed', leg: 'straight', length: 'full', rise: 'low' } },
 ];
