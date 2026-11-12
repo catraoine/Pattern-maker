@@ -32,7 +32,7 @@ import {
   sleeveOf,
   validDetails,
 } from './garments';
-import { EXAMPLE_BODY, Garment, MeasurementValues, isComplete } from './measurements';
+import { EXAMPLE_BODY, Garment, MeasurementId, MeasurementValues, isComplete } from './measurements';
 
 /** The house's own colours, named in a look's fabric words and not on the shop's list (SS27, 2026-11-05). */
 const HOUSE_COLOURS: [string, string][] = [['gold', '#C9962E'], ['ice', '#9CC3E6'], ['lavender', '#a796c4'], ['blue-grey', '#B9C3CF'], ['chocolate', '#3d2418']];
@@ -274,6 +274,16 @@ function sleeveFor(b: BodiceDraft, c: BodiceChoices, own: MeasurementValues): Sl
   const m = needsArms(own as never) ? { ...EXAMPLE_BODY, ...own } : own;
   if (length === 'none' || needsArms(m as never)) return undefined;
   return draftSleeve(b, m as never, { length, shape, ...(cm !== undefined ? { lengthCm: cm } : {}), ...(cuff ? { cuff } : {}), ...(fullness ? { fullness } : {}), ...(headGather ? { headGather } : {}), fit: c.fit, seamAllowance: b.pieces[0].seamAllowance, armholeAllowance: b.pieces[0].allowances.armhole ?? 1, hemAllowance: 2.5 });
+}
+
+/** The arm measurements a look's sleeves are drafted from, and still not given: a top or dress with sleeves made from the
+ *  collection before the arms are measured printed with no sleeve piece and said "Sleeveless" (bug hunt, Nov 12), so
+ *  making it asks for these first. */
+export function lookArmsMissing(look: Pick<HouseLook, 'choices'>, measured: MeasurementValues): MeasurementId[] {
+  const c = look.choices as unknown as { bodice?: BodiceChoices } & BodiceChoices;
+  const top = isDress(look.choices) ? c.bodice : isBodice(look.choices) ? c : undefined;
+  if (!top || sleeveOf(top).length === 'none') return [];
+  return (['arm_length', 'upper_arm', 'wrist'] as const).filter((id) => measured[id] === undefined);
 }
 
 /** The measurements a look is drawn to: the sewist's own when the garment has all it needs, or the sample set. */

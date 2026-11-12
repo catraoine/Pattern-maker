@@ -59,7 +59,7 @@ import { coverGuide, coverMissing, coverPieces, padMap } from './engine/formCove
 import { labelCode, savedCopy } from './labels';
 import { fitSummary } from './fit';
 import { ImportedPattern, importedGuide } from './engine/importDxf';
-import { lookFabric, lookPatch, lookValues } from './collection';
+import { lookArmsMissing, lookFabric, lookPatch, lookValues } from './collection';
 import { archiveCut } from './archive';
 import { CollectionLink, ExampleTag, GarmentPick } from './ui/GarmentSwitch';
 import { LoadingScreen } from './ui/LoadingScreen';
@@ -549,10 +549,10 @@ export default function App() {
   const chooseGarment = () => openSteps({ kind: 'choose' });
 
   /** Switch garment, going straight to the measurements the new one still needs, one page each. */
-  const switchGarment = (g: Garment, next: Partial<Saved> = {}, to: View = step, using: MeasurementValues = measured) => {
+  const switchGarment = (g: Garment, next: Partial<Saved> = {}, to: View = step, using: MeasurementValues = measured, also: MeasurementId[] = []) => {
     setSaved({ ...saved, ...next, garment: g });
     const stays = to === 'style' || to === 'export';
-    if (stays && !ready(using, saved.unit, g, form)) measureFor(g, using, form);
+    if (stays && (!ready(using, saved.unit, g, form) || also.length)) measureFor(g, using, form, also);
     else setStep(to);
   };
 
@@ -560,10 +560,10 @@ export default function App() {
    * Not ready for this garment: take the measurements it still needs, one page each. When none are missing,
    * one of them fails a check, so open the list with the reason rather than going round the guided pages again.
    */
-  const measureFor = (g: Garment, using: MeasurementValues, on: FormKind = form) => {
+  const measureFor = (g: Garment, using: MeasurementValues, on: FormKind = form, also: MeasurementId[] = []) => {
     const wrong = isComplete(using, g, on) && checkMeasurements(using, saved.unit, g, on).find((c) => c.level === 'error');
     if (wrong) sendToMeasure(`Check your ${g === 'tee' ? 'T-shirt' : g} measurements: ${wrong.message}`);
-    else openSteps({ kind: 'for', garment: g });
+    else openSteps({ kind: 'for', garment: g, ...(also.length ? { also } : {}) });
   };
 
   // Why Style or Print didn't open while measuring, shown over the guided pages for a moment.
@@ -956,7 +956,8 @@ export default function App() {
                 // The look comes in the cloth it's named for, so the drawing and the Fabric step open in it.
                 const cloth = lookFabric(look.fabric);
                 const withCloth = keepFinish(storedFinish, { ...finish, ...look.finish, fabric: cloth, cloth: clothFor(cloth, finish.cloth) }, mode);
-                switchGarment(g, { ...next, archive: archiveCut(look.id)?.id, finish: withCloth, house: look.finish && { garment: g, finish: look.finish } } as Partial<Saved>, 'style');
+                // A look with sleeves asks for the arms first, or its pattern would print without them (bug hunt, Nov 12).
+                switchGarment(g, { ...next, archive: archiveCut(look.id)?.id, finish: withCloth, house: look.finish && { garment: g, finish: look.finish } } as Partial<Saved>, 'style', measured, lookArmsMissing(look, measured));
                 window.scrollTo(0, 0);
               }}
             />
