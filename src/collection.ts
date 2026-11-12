@@ -136,10 +136,10 @@ export const COLLECTION: HouseLook[] = [
     id: 'gold-shorts',
     number: 3,
     name: 'Gold Python Bermuda',
-    line: 'Loose pleated Bermudas falling straight from the hip to just below the knee, belt loops at the waist, in gold python silk.',
+    line: 'Loose pleated Bermudas slung low on the hip, falling straight to just below the knee, with belt loops, in gold python silk.',
     fabric: 'Gold python silk',
     garment: 'trousers',
-    choices: { ...DEFAULT_TROUSERS_CHOICES, fit: 'relaxed', leg: 'wide', length: 'knee', lengthCm: 68, legCm: { knee: 66, hem: 66 }, pockets: 'slant', pleats: 'double', loops: 'loops', backPockets: 'welt' },
+    choices: { ...DEFAULT_TROUSERS_CHOICES, fit: 'relaxed', leg: 'wide', length: 'knee', lengthCm: 68, legCm: { knee: 66, hem: 66 }, pockets: 'slant', pleats: 'double', loops: 'loops', backPockets: 'welt', rise: 'low' },
   },
   {
     id: 'ice-peplum',
