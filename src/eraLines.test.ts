@@ -4,7 +4,7 @@ import { ARCHIVE } from './archive';
 import { COLLECTION } from './collection';
 import { ERAS } from './engine/eras';
 import { ERA_PIECES, eraLine } from './eraLines';
-import { validDetails } from './garments';
+import { isBodice, isDress, validDetails } from './garments';
 import { randomBody, rng } from './engine/randomBodies';
 import { EXAMPLE_VALUES } from './measurements';
 
@@ -33,8 +33,8 @@ describe('the era lines', () => {
   it('keeps every detail it asks for: none is a choice the garment would drop', () => {
     for (const p of ERA_PIECES) {
       const c = p.choices;
-      const b = c.garment === 'dress' ? c.bodice : c.garment === 'bodice' ? c : undefined;
-      if (b) expect(validDetails(b, c.garment === 'dress' ? 'dress' : 'bodice'), p.id).toMatchObject(b);
+      if (isDress(c)) expect(validDetails(c.bodice, 'dress'), p.id).toMatchObject(c.bodice);
+      if (isBodice(c)) expect(validDetails(c), p.id).toMatchObject(c);
     }
   });
 

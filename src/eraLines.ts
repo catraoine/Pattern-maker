@@ -7,7 +7,7 @@ import { HouseLook, bodiceChoices as bodice, dressChoices as dress, skirtLook } 
 import { ERAS } from './engine/eras';
 import { DEFAULT_COAT_CHOICES, DEFAULT_JACKET_CHOICES, DEFAULT_TROUSERS_CHOICES, OuterChoices, TrousersChoices } from './garments';
 
-export interface EraPiece extends HouseLook {
+interface EraPiece extends HouseLook {
   /** The era it belongs to, by its id in ERAS. */
   era: string;
 }
