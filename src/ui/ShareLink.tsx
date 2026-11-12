@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { myRef } from '../report/report';
 
 /**
- * Under "You're on the list": the person's own link to bring sewing friends (Cat's "apply", Nov 11 2026). Two friends
- * who join through it get them their Founding invite first when claims open on Dec 7 (src/server/referral.ts). Shows
+ * Under "You're on the list": the person's own link to bring sewing friends (Cat's "apply", Nov 11 2026). Three friends
+ * who join through it get them their first year of Premium free (src/server/referral.ts). Shows
  * nothing when this device never joined (back from the confirm email on another device), since there's no code here.
  */
 export function ShareLink() {
@@ -33,7 +33,7 @@ export function ShareLink() {
 
   return (
     <div className="stack share-link">
-      <p className="waitlist-line">Bring two sewing friends and you'll get your Founding invite before everyone else.</p>
+      <p className="waitlist-line">Bring three sewing friends and your first year of Premium is free (usually $49).</p>
       <div className="field plain">
         <label htmlFor="share-url" className="visually-hidden">
           Your link

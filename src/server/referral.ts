@@ -1,6 +1,6 @@
 // Referral links (Cat's "apply", Nov 11 2026): everyone who joins the waitlist gets their own link,
-// maisontrace.co/?ref=<code>. A friend who joins through it is counted for them, and anyone who brings two gets their
-// Founding invite first when claims open on Dec 7. The code is a short hash of the email, so it needs no extra store
+// maisontrace.co/?ref=<code>. A friend who joins through it is counted for them, and anyone who brings three gets their
+// first year of Premium free (Cat's pick, Nov 12; given when charging starts). The code is a short hash of the email, so it needs no extra store
 // and the same person always gets the same link; nothing extra goes to Kit.
 import { createHash } from 'node:crypto';
 

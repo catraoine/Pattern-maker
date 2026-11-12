@@ -21,7 +21,7 @@ test('a stranger gets the waitlist where Begin was, and joining counts against t
   await expect(main.getByRole('heading', { level: 1, name: /You're on the list/ })).toBeVisible();
   expect(sent).toMatchObject({ kind: 'news', email: 'ada@example.com', src: 'ig' });
   // Their own link to bring sewing friends (Cat's "apply", Nov 11 2026).
-  await expect(main.getByText(/Bring two sewing friends/)).toBeVisible();
+  await expect(main.getByText(/Bring three sewing friends and your first year of Premium is free/)).toBeVisible();
   await expect(main.getByLabel('Your link')).toHaveValue(/\/\?ref=k7q2m9ab$/);
   await expect(main.getByRole('button', { name: 'Share link' })).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem('maison-trace-source'))).toBe('ig');
