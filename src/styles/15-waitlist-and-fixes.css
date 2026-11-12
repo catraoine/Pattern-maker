@@ -340,9 +340,6 @@
 
 /* Referral link under "You're on the list" (Cat's "apply", Nov 11 2026): the line, the link on a writing line, then
    Share and Copy side by side. */
-.share-link {
-  margin-top: 6px;
-}
 .share-link input {
   width: 100%;
 }

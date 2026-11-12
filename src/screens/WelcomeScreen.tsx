@@ -236,9 +236,7 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
         {waitlist ? (
           joined ? (
             <div className="stack waitlist">
-              <p className="waitlist-line" role="status">
-                One email when your invitation is ready, and the odd note before. Nothing else.
-              </p>
+              {/* The "one email when your invitation is ready" line came out (Cat, Nov 11 2026): just the share link. */}
               <ShareLink />
             </div>
           ) : waitlist.checking ? (
