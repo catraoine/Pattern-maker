@@ -31,7 +31,7 @@ export const ERAS: Era[] = [
       {
         id: 'edwardian_walking',
         name: 'Edwardian walking skirt',
-        about: 'Fitted through the hips, then flares into a sweeping floor-length hem.',
+        about: 'Fitted through the hips, then flares into a sweeping ankle-length hem that clears the ground.',
         fabric: 'Wool suiting, linen or heavy cotton',
         silhouette: 'trumpet',
         length: 'maxi',
@@ -230,7 +230,7 @@ export const ERAS: Era[] = [
       },
       {
         id: '1980s_rara',
-        name: 'Ra-ra mini',
+        name: 'Ra-ra style mini',
         about: 'A full circle mini with plenty of bounce.',
         fabric: 'Cotton poplin or taffeta',
         silhouette: 'circle',
