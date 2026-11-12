@@ -108,6 +108,14 @@ export function printExtra(kind: PrintKind | undefined, repeat: number | undefin
   return 0;
 }
 
+/** A one-way print this big (its repeat in cm) is placed piece by piece, not just laid one way up. */
+export const BIG_PRINT = 10;
+
+/** The placing words for a big one-way print, such as the house leopard python (a 26 cm repeat; the Leopard Shirt
+ *  Dress to a 10, Nov 12): seen and placed single layer, matched across the front and centred at the back. */
+export const bigPrintCut = (repeat: number) =>
+  `It is a big print, repeating every ${Math.round(repeat)} cm, so place it rather than just cut it: buy one repeat more than the layout, and cut single layer, right side up, where you can see it, rather than on a fold: trace any piece cut on the fold out whole first, and turn each piece over for its pair. Keep a big dark motif off each bust point. Where the garment buttons down the front, lay the second front on the first so the print runs on across the centre front line. Centre the back, the back yoke and the collar on the same motif, so the print sits square across the back and the collar points match.`;
+
 /** The cutting step words for a print that changes how the pieces are laid. */
 export function printCut(kind: PrintKind | undefined): string | undefined {
   if (kind === 'checks') return 'Put every piece on the same check line, and line the checks up at the side seams, centre back and the waist, matching at the notches.';

@@ -53,3 +53,18 @@ describe('prints', () => {
     expect(PRINT_IDS).toEqual(['plain', 'ditsy', 'oneway', 'motif', 'border', 'checks']);
   });
 });
+
+describe('a big one-way print', () => {
+  const guide = { notions: ['woven fabric'], steps: [{ title: 'Cut out', text: '' }] };
+  it('is placed piece by piece, matched across the front and centred at the back (the house leopard python)', () => {
+    const steps = withFabric(guide, { print: 'oneway', motif: { repeat: 26 } }, 'bodice').steps;
+    const lay = steps.find((s) => s.title === 'Lay the one-way print')!;
+    expect(lay.text).toMatch(/repeating every 26 cm/);
+    expect(lay.text).toMatch(/centre front/);
+    expect(lay.text).toMatch(/collar/);
+  });
+  it('a small one is only laid one way up', () => {
+    const lay = withFabric(guide, { print: 'oneway' }, 'bodice').steps.find((s) => s.title === 'Lay the one-way print')!;
+    expect(lay.text).not.toMatch(/big print/);
+  });
+});

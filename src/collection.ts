@@ -61,7 +61,8 @@ export function lookFabric(words: string): MyFabric {
     ...(print ? { print } : {}),
     ...(crisp ? { drape: 'crisp' } : {}),
     ...(/sateen/.test(w) && !special ? { sheen: 'soft' as const } : {}),
-    ...(photo ? { photo } : {}),
+    // A house print's tile is one repeat of it, so the cutting step can say how to place it.
+    ...(photo ? { photo, motif: { repeat: photo.size } } : {}),
   };
 }
 

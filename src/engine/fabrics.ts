@@ -13,7 +13,7 @@ import type { Cloth } from './couture';
 import type { SewingGuide } from './instructions';
 import { VolumeStyle, volumeFabrics, volumeWarnings, volumeWords } from './skirtVolume';
 import { LingerieFabricStyle, TeeFabricStyle, lingerieFabrics, teeFabrics, teeWarnings } from './knits';
-import { PrintKind, printCut, printLines, printOf } from './prints';
+import { BIG_PRINT, PrintKind, bigPrintCut, printCut, printLines, printOf } from './prints';
 import { Checks, SPECIALS, Special, specialLines, specialWarnings } from './specialFabrics';
 import { KNITS, type Knit } from './knitFabrics';
 import { isLowerBody, isOuterwear } from '../measurements';
@@ -699,7 +699,8 @@ const CUT_TITLES: Partial<Record<PrintKind, string>> = { checks: 'Match the chec
 /** A cutting step for a special cloth or checks, after preparing it. */
 function cutStep(f: MyFabric | undefined): { title: string; text: string }[] {
   const kind = printOf(f);
-  const print = printCut(kind);
+  const repeat = kind === 'oneway' ? f?.motif?.repeat : undefined;
+  const print = [printCut(kind), repeat && repeat >= BIG_PRINT ? bigPrintCut(repeat) : undefined].filter(Boolean).join(' ') || undefined;
   if (!f?.special && !print) return [];
   const s = f?.special && SPECIALS[f.special];
   const text = [s?.cut, print, s?.sew].filter(Boolean).join(' ');
