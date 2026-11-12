@@ -68,8 +68,7 @@ export function LayPlanView({ lay, cloth = 'default', print }: { lay: Lay; cloth
       </text>
       {lay.placements.map((pl, i) => {
         const name = nameFit(pl.name.toUpperCase(), pl.pts, size * 0.8);
-        const x = pl.at.y + 2;
-        const y = pl.at.x;
+        const { x, y } = name;
         return (
           <g key={i}>
             <polygon points={pts(pl.pts)} className="lay-piece" />
@@ -101,20 +100,49 @@ const lineWidth = (text: string, size: number) => text.length * size * 0.74;
  * collars' names into each other and Pocket facing into the welt). Across the piece if it fits; else along a tall,
  * narrow piece; else on two lines; else a size smaller until it fits, never under half.
  */
-function nameFit(name: string, pts: { x: number; y: number }[], size: number): { lines: string[]; size: number; turn: boolean } {
+function nameFit(name: string, pts: { x: number; y: number }[], size: number): { lines: string[]; size: number; turn: boolean; x: number; y: number } {
   // On the drawing the piece's y runs across the page and its x down it.
-  const wide = Math.max(...pts.map((q) => q.y)) - Math.min(...pts.map((q) => q.y));
-  const tall = Math.max(...pts.map((q) => q.x)) - Math.min(...pts.map((q) => q.x));
-  const room = (w: number) => w * 0.88;
-  if (lineWidth(name, size) <= room(wide)) return { lines: [name], size, turn: false };
-  if (tall > wide && lineWidth(name, size) <= room(tall)) return { lines: [name], size, turn: true };
+  const d = pts.map((q) => ({ x: q.y + 2, y: q.x }));
+  const xs = d.map((q) => q.x);
+  const ys = d.map((q) => q.y);
+  const midX = (Math.min(...xs) + Math.max(...xs)) / 2;
+  const midY = (Math.min(...ys) + Math.max(...ys)) / 2;
+  // The longest stretch of cloth along a line through the piece's middle, across or down: the name sits in its middle
+  // and fits inside it (the corner-averaged point drifted to a curved end, and Pocket bag ran into the next piece).
+  const across = run(d, midY, false);
+  const down = run(d, midX, true);
+  // A clear margin each side, so a name never touches its piece's edge (the collars' names sat right on theirs).
+  const room = (w: number) => w * 0.8;
+  const flat = { x: (across.a + across.b) / 2, y: midY };
+  const upright = { x: midX, y: (down.a + down.b) / 2 };
+  const wide = across.b - across.a;
+  const tall = down.b - down.a;
+  if (lineWidth(name, size) <= room(wide)) return { lines: [name], size, turn: false, ...flat };
+  if (tall > wide && lineWidth(name, size) <= room(tall)) return { lines: [name], size, turn: true, ...upright };
   const words = name.split(' ');
   const cut = words.length > 1 ? Math.ceil(words.length / 2) : 0;
   const two = cut ? [words.slice(0, cut).join(' '), words.slice(cut).join(' ')] : [name];
   const turn = tall > wide;
   const span = turn ? tall : wide;
+  const at = turn ? upright : flat;
   const longest = Math.max(...two.map((l) => l.length));
-  if (two.length > 1 && longest * size * 0.74 <= room(span) && size * 2.3 <= (turn ? wide : tall)) return { lines: two, size, turn };
+  if (two.length > 1 && longest * size * 0.74 <= room(span) && size * 2.3 <= (turn ? wide : tall)) return { lines: two, size, turn, ...at };
   const fit = Math.max(size * 0.5, (room(span) / (longest * 0.74)) * 0.98);
-  return { lines: two, size: Math.min(size, fit), turn };
+  return { lines: two, size: Math.min(size, fit), turn, ...at };
+}
+
+/** Where a straight line at `at` (across the page, or down it when `vertical`) runs inside a piece: its longest stretch. */
+function run(d: { x: number; y: number }[], at: number, vertical: boolean): { a: number; b: number } {
+  const hits: number[] = [];
+  for (let i = 0; i < d.length; i++) {
+    const p = d[i];
+    const q = d[(i + 1) % d.length];
+    const [pu, pv, qu, qv] = vertical ? [p.x, p.y, q.x, q.y] : [p.y, p.x, q.y, q.x];
+    if (pu <= at === qu <= at) continue;
+    hits.push(pv + ((at - pu) / (qu - pu)) * (qv - pv));
+  }
+  hits.sort((a, b) => a - b);
+  let best = { a: 0, b: 0 };
+  for (let i = 0; i + 1 < hits.length; i += 2) if (hits[i + 1] - hits[i] > best.b - best.a) best = { a: hits[i], b: hits[i + 1] };
+  return best;
 }
