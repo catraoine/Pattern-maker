@@ -66,20 +66,55 @@ export function LayPlanView({ lay, cloth = 'default', print }: { lay: Lay; cloth
       <text x={L} y={H + size * 1.6} fontSize={size} textAnchor="end" className="lay-note">
         {`${lay.metres.toFixed(1)} M  ·  ${lay.width} CM WIDE`}
       </text>
-      {lay.placements.map((pl, i) => (
-        <g key={i}>
-          <polygon points={pts(pl.pts)} className="lay-piece" />
-          <polygon points={pts(pl.pts)} className="lay-paper-dots" fill={`url(#dots${uid})`} />
-          <text x={pl.at.y + 2} y={pl.at.x} fontSize={size * 0.8} textAnchor="middle" className="lay-name">
-            {pl.name.toUpperCase()}
-          </text>
-          {pl.single && (
-            <text x={pl.at.y + 2} y={pl.at.x + size} fontSize={size * 0.65} textAnchor="middle" className="lay-name lay-sub">
-              1 LAYER
+      {lay.placements.map((pl, i) => {
+        const name = nameFit(pl.name.toUpperCase(), pl.pts, size * 0.8);
+        const x = pl.at.y + 2;
+        const y = pl.at.x;
+        return (
+          <g key={i}>
+            <polygon points={pts(pl.pts)} className="lay-piece" />
+            <polygon points={pts(pl.pts)} className="lay-paper-dots" fill={`url(#dots${uid})`} />
+            <text x={x} y={y} fontSize={name.size} textAnchor="middle" className="lay-name" transform={name.turn ? `rotate(-90 ${x} ${y})` : undefined}>
+              {name.lines.length === 1 ? name.lines[0] : name.lines.map((l, j) => (
+                <tspan key={j} x={x} dy={j ? name.size * 1.15 : (-(name.lines.length - 1) * name.size * 1.15) / 2}>
+                  {l}
+                </tspan>
+              ))}
             </text>
-          )}
-        </g>
-      ))}
+            {pl.single && (
+              <text x={x} y={y + size} fontSize={size * 0.65} textAnchor="middle" className="lay-name lay-sub">
+                1 LAYER
+              </text>
+            )}
+          </g>
+        );
+      })}
     </svg>
   );
+}
+
+/** About how wide a line of the layout's small caps runs, in the drawing's cm (the mono face with its 0.12em tracking). */
+const lineWidth = (text: string, size: number) => text.length * size * 0.74;
+
+/**
+ * A piece's name sized to its piece (Cat, Nov 11 sweep: on narrow and small pieces it ran past their edges, the two
+ * collars' names into each other and Pocket facing into the welt). Across the piece if it fits; else along a tall,
+ * narrow piece; else on two lines; else a size smaller until it fits, never under half.
+ */
+function nameFit(name: string, pts: { x: number; y: number }[], size: number): { lines: string[]; size: number; turn: boolean } {
+  // On the drawing the piece's y runs across the page and its x down it.
+  const wide = Math.max(...pts.map((q) => q.y)) - Math.min(...pts.map((q) => q.y));
+  const tall = Math.max(...pts.map((q) => q.x)) - Math.min(...pts.map((q) => q.x));
+  const room = (w: number) => w * 0.88;
+  if (lineWidth(name, size) <= room(wide)) return { lines: [name], size, turn: false };
+  if (tall > wide && lineWidth(name, size) <= room(tall)) return { lines: [name], size, turn: true };
+  const words = name.split(' ');
+  const cut = words.length > 1 ? Math.ceil(words.length / 2) : 0;
+  const two = cut ? [words.slice(0, cut).join(' '), words.slice(cut).join(' ')] : [name];
+  const turn = tall > wide;
+  const span = turn ? tall : wide;
+  const longest = Math.max(...two.map((l) => l.length));
+  if (two.length > 1 && longest * size * 0.74 <= room(span) && size * 2.3 <= (turn ? wide : tall)) return { lines: two, size, turn };
+  const fit = Math.max(size * 0.5, (room(span) / (longest * 0.74)) * 0.98);
+  return { lines: two, size: Math.min(size, fit), turn };
 }

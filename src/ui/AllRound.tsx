@@ -277,7 +277,8 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
   const pulse = useRef(-1e9);
   const zoomRef = useRef<((on: boolean) => void) | undefined>(undefined);
   const sideRef = useRef<HTMLDivElement>(null);
-  const rows = useMemo(() => roundRows(round, striped), [round, striped]);
+  // "Drag to turn" shows until the garment is first turned (Cat, Nov 11: the window says no more than it must).
+  const [turned, setTurned] = useState(false);
 
   // When the garment changes, it has been trued as it was drafted: the seams glow, softly, once.
   const key = JSON.stringify(round.readings) + round.flare.toFixed(3) + round.seams.length + (round.sleeve?.lengthCm ?? 0);
@@ -513,12 +514,6 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
         g.arc(q[0], q[1], r, 0, TAU);
         g.stroke();
         g.globalAlpha = 1;
-      };
-      const text = (str: string, x: number, y: number, align: CanvasTextAlign = 'left') => {
-        g.font = '500 9px "Chakra Petch", ui-monospace, monospace';
-        g.fillStyle = MUTED;
-        g.textAlign = align;
-        g.fillText(str.toUpperCase(), x, y);
       };
       // For the all-round check, the backdrop and the hollow inside the garment are painted in colours of their own
       // (red and magenta) so a picture can tell them from the form's own black; nobody else ever sees them.
@@ -1156,7 +1151,8 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
         }
       }
 
-      if (!film && !drawing) text(drapedNow === 'pending' ? 'Sewing your pattern…' : 'Drag to turn', 8, fig - 4);
+      // "Drag to turn" is no longer painted here: the sewn garment, drawn over this canvas, hid it (Cat, Nov 11 sweep).
+      // It sits under the view, beside Look closer.
       // The line being drawn, a fine chalk line over the garment.
       if (st.stroke && st.stroke.length > 1) {
         g.save();
@@ -1262,6 +1258,7 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
     const at = (e: PointerEvent): [number, number] => [e.clientX - rect.left, e.clientY - rect.top];
     const meanX = () => [...fingers.values()].reduce((t, v) => t + v, 0) / (fingers.size || 1);
     const downEv = (e: PointerEvent) => {
+      setTurned(true);
       fingers.set(e.pointerId, e.clientX);
       rect = cv.getBoundingClientRect();
       spots.set(e.pointerId, at(e));
@@ -1447,6 +1444,7 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
         <div className="all-round-quiet">
           {!standIn && (
             <div className="all-round-tools">
+              {!film && (drapedNow === 'pending' || !turned) && <span className="all-round-turn">{drapedNow === 'pending' ? 'Sewing your pattern…' : 'Drag to turn'}</span>}
               {canFit && (
                 <button type="button" className="all-round-closer" aria-pressed={fitOn} onClick={() => setFitOn(!fitOn)}>
                   {fitOn ? 'Fabric' : 'Fit map'}
@@ -1471,12 +1469,8 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
           )}
           {/* With the fit map on, its key takes the checked line's place, so the window keeps the garment at full size
               (Cat, Nov 11: the bodice shrank under the key and its tags covered it). */}
-          {!(canFit && fitOn) && (
-            <p className="all-round-checked">
-              <span className="all-round-mark" aria-hidden="true" />
-              {checked(rows)}
-            </p>
-          )}
+          {/* No "Seams, hem and sleeves checked" line any more (Cat, Nov 11: "can't the user just assume that these things
+              are checked because it's a quality app?"). The checks still run; a failed one still brings the note below. */}
           {/* (A skirt's or a dress's skirt only: the cloth's own stiffness and fall show where it hangs free, clothCard.ts.) */}
           {!standIn && (drape?.kind === 'skirt' || drape?.kind === 'dress') && <FeelControl feel={feel} onFeel={setFeel} />}
           {/* The note that All round can't show a design stands out on a champagne band with a small "i" (Cat's D, Nov 11). */}
@@ -1489,9 +1483,7 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
               </svg>
               <span>{inTestingNote(sewnNow && sewnNow !== 'pending' ? sewnNow.d.quality?.problems : undefined, standIn, gaveUp)}</span>
             </p>
-          ) : (
-            <p className="all-round-note">A shape preview, not a cloth simulation.</p>
-          ))}
+          ) : null)}
         </div>
       )}
     </div>

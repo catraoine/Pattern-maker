@@ -55,7 +55,18 @@ input.inline:focus,
 .all-round-tools {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   gap: 6px;
+}
+/* "Drag to turn" (or "Sewing your pattern…") at the left of the same line: painted in the view, the sewn garment
+   covered it (Cat, Nov 11 sweep). */
+.all-round-turn {
+  margin-right: auto;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
 }
 
 .all-round-closer {

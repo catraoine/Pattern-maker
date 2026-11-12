@@ -643,3 +643,26 @@
 .shopfab.more .shopfab-text {
   white-space: normal;
 }
+
+/* "In testing" on a fabric card (Cat, Nov 11 sweep: under Lace it took the option chip's box and padding, spilled out
+   of it on a computer and pushed the next card out of line). A small tag on the card's own picture instead, so every
+   card stays the same size. */
+.swatch-row .swatch {
+  position: relative;
+}
+.swatch-row .swatch .testing-tag.chip {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  margin: 0;
+  min-height: 0;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: 0;
+  background: rgba(13, 12, 10, 0.78);
+  color: var(--ink);
+  font-size: 8px;
+  line-height: 1.2;
+  white-space: nowrap;
+  pointer-events: none;
+}
