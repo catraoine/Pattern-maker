@@ -31,7 +31,7 @@ export function FinishChoices({
   const current = edges.some((e) => e.id === finish.bodiceEdges) ? finish.bodiceEdges : (edges.find((e) => e.id === 'lined') ?? edges[0]).id;
   return (
     <>
-      {garment === 'trousers' || isOuterwear(garment) ? null : garment === 'skirt' ? (
+      {isOuterwear(garment) ? null : garment === 'skirt' || garment === 'trousers' ? (
         <fieldset className="group">
           <legend>Lining</legend>
           {[false, true].map((on) => (

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { EXAMPLE_BODY } from '../measurements';
 import { draftTrousers, trousersWaistband } from './trousers';
-import { BELT_LOOPS, PLEAT_OPEN, pleatShares } from './trouserPleats';
+import { BELT_LOOPS, PLEAT_OPEN, SEVEN_LOOPS_FROM, loopCountFor, pleatShares } from './trouserPleats';
 import { roundTrousers } from './allRound';
 import { taggedLength } from './geometry';
 import { checkPattern } from './qc';
@@ -58,6 +58,14 @@ describe('front pleats', () => {
 });
 
 describe('belt loops', () => {
+  it('a band of 76 cm or more gets seven loops, so the back has one halfway across each side', () => {
+    expect(loopCountFor(SEVEN_LOOPS_FROM - 0.1)).toBe(BELT_LOOPS);
+    expect(loopCountFor(SEVEN_LOOPS_FROM)).toBe(7);
+    const big = draftTrousers({ ...EXAMPLE_BODY, waist: 84, hip: 108 } as never, { ...base, loops: 'loops' });
+    expect(big.loops).toBe(7);
+    expect(big.pieces.find((pc) => pc.name === 'Belt loops')!.notches).toHaveLength(6);
+    expect(trousersGuide(big, 2).steps.find((s) => s.title === 'Make the belt loops')!.text).toContain('halfway across each back');
+  });
   it('adds one strip that makes five loops, and says so', () => {
     const d = draftTrousers(m, { ...base, loops: 'loops' });
     expect(d.loops).toBe(BELT_LOOPS);

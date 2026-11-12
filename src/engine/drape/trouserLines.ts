@@ -3,7 +3,7 @@
 // none of them is in its cut; each is drawn as a line through the settled cloth where the pattern puts it.
 import type { P } from '../geometry';
 import type { TrousersDraft } from '../trousers';
-import { LOOP_PLACES } from '../trouserPleats';
+import { loopPlaces } from '../trouserPleats';
 import type { Draped, Panel } from './garment';
 
 /** The points of the panel's mesh lying on a line drawn on its pattern, in order along it: of the points within
@@ -53,7 +53,7 @@ export function trouserDetails(out: Draped, d: TrousersDraft): void {
   // the centre back).
   if (d.loops) {
     const LOOP = 4;
-    for (const [p, places] of [[front, LOOP_PLACES.front], [back, LOOP_PLACES.back]] as const) {
+    for (const [p, places] of [[front, loopPlaces(d.loops).front], [back, loopPlaces(d.loops).back]] as const) {
       const { side, centre } = waistEnds(p);
       for (const f of places) {
         // (A share of the quarter waist from the centre: 1 is the side seam, drawn a little in from it so it shows.)

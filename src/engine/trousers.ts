@@ -11,7 +11,7 @@ import { DraftError, Elastic, Fit, PULL_ON_EASE, SkirtFitting, WaistStyle, Waist
 import { PocketStyle, inseamPocket, markSeam, notchesAlong, slantPocket } from './pockets';
 import { casingPiece } from './finishing';
 import { BACK_WELT, BackPockets, BackWeltPlace, backWelts } from './trouserBack';
-import { BELT_LOOPS, PleatedFront, TrouserLoops, TrouserPleats, beltLoopsPiece, pleatedFront } from './trouserPleats';
+import { PleatedFront, loopCountFor, TrouserLoops, TrouserPleats, beltLoopsPiece, pleatedFront } from './trouserPleats';
 
 export interface TrousersMeasurements {
   waist: number;
@@ -74,6 +74,8 @@ export interface TrousersStyle {
   joinTo?: { front: number; back: number };
   /** A welt pocket on each back (In testing, see trouserBack.ts). Older saves have none. */
   backPockets?: BackPockets;
+  /** No pressed crease: the legs and pleats fall soft (TrousersChoices.press, set by a look). */
+  press?: 'soft';
 }
 
 /**
@@ -217,6 +219,8 @@ export interface TrousersDraft {
   ruffle?: { depth: number; cutLength: number; cutWidth: number };
   /** Back welt pockets as placed on the back (In testing). */
   backWelt?: BackWeltPlace;
+  /** Pressed with no crease (TrousersStyle.press). */
+  softPress?: true;
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -662,10 +666,10 @@ export function draftTrousers(body: TrousersMeasurements, style: Partial<Trouser
   // Back welt pockets, on the back as finally cut.
   const welted = s.backPockets === 'welt' ? backWelts(pieces[1], s.seamAllowance) : undefined;
   if (welted) pieces = [pieces[0], welted.back, ...pieces.slice(2), ...welted.pieces];
-  if (loops) pieces.push(beltLoopsPiece(s.seamAllowance));
+  const finishedWaist = 2 * (taggedLength(front.piece.outline, 'waist') + taggedLength(back.piece.outline, 'waist'));
+  if (loops) pieces.push(beltLoopsPiece(s.seamAllowance, loopCountFor(finishedWaist)));
 
   const r = (v: number) => Math.round(v * 10) / 10;
-  const finishedWaist = 2 * (taggedLength(front.piece.outline, 'waist') + taggedLength(back.piece.outline, 'waist'));
   return {
     pieces,
     fit: s.fit,
@@ -698,8 +702,9 @@ export function draftTrousers(body: TrousersMeasurements, style: Partial<Trouser
     pockets: pocketed.style,
     ...(pocketed.sides ? { pocketSides: pocketed.sides } : {}),
     ...(pleated ? { pleats: pleated.pleats } : {}),
-    ...(loops ? { loops: BELT_LOOPS } : {}),
+    ...(loops ? { loops: loopCountFor(finishedWaist) } : {}),
     ...(welted ? { backWelt: welted.place } : {}),
+    ...(s.press === 'soft' ? { softPress: true as const } : {}),
     block,
   };
 }

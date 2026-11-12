@@ -557,7 +557,7 @@ export function roundTrousers(draft: TrousersDraft, m: TrouserM): RoundGarment {
     zip,
     bandCm: 3.5,
     // Belt loops on the band, where the strip's loops go (see trouserPleats.ts).
-    ...(draft.loops ? { loops: loopAngles() } : {}),
+    ...(draft.loops ? { loops: loopAngles(draft.loops) } : {}),
     ...(pleats.length ? { pleats } : {}),
     flare: 1,
     girth: { waist: draft.finishedWaist, hip: draft.finishedHip },

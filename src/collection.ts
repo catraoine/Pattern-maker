@@ -32,7 +32,7 @@ import {
   sleeveOf,
   validDetails,
 } from './garments';
-import { EXAMPLE_BODY, Garment, MeasurementValues, isComplete } from './measurements';
+import { EXAMPLE_BODY, Garment, MeasurementId, MeasurementValues, isComplete } from './measurements';
 
 /** The house's own colours, named in a look's fabric words and not on the shop's list (SS27, 2026-11-05). */
 const HOUSE_COLOURS: [string, string][] = [['gold', '#C9962E'], ['ice', '#9CC3E6'], ['lavender', '#a796c4'], ['blue-grey', '#B9C3CF'], ['chocolate', '#3d2418']];
@@ -61,7 +61,8 @@ export function lookFabric(words: string): MyFabric {
     ...(print ? { print } : {}),
     ...(crisp ? { drape: 'crisp' } : {}),
     ...(/sateen/.test(w) && !special ? { sheen: 'soft' as const } : {}),
-    ...(photo ? { photo } : {}),
+    // A house print's tile is one repeat of it, so the cutting step can say how to place it.
+    ...(photo ? { photo, motif: { repeat: photo.size } } : {}),
   };
 }
 
@@ -79,8 +80,8 @@ export interface HouseLook {
    * and are shown together, each made on its own. */
   set?: string;
   /** How the look is finished when it is made, over the maker's own setting: the Blush Shift comes lined to the hem
-   *  (Nov 11). The maker can still change it on the print screen. */
-  finish?: Pick<Finish, 'bodiceEdges'>;
+   *  (Nov 11), the Gold Python Bermuda lined (Nov 12). The maker can still change it on the print screen. */
+  finish?: Partial<Pick<Finish, 'bodiceEdges' | 'skirtLined'>>;
 }
 
 const skirt = (c: Partial<Choices>): Choices => ({ fit: 'regular', silhouette: 'a_line', length: 'knee', ...c });
@@ -139,7 +140,9 @@ export const COLLECTION: HouseLook[] = [
     line: 'Loose pleated Bermudas slung low on the hip, falling straight to just below the knee, with belt loops, in gold python silk.',
     fabric: 'Gold python silk',
     garment: 'trousers',
-    choices: { ...DEFAULT_TROUSERS_CHOICES, fit: 'relaxed', leg: 'wide', length: 'knee', lengthCm: 68, legCm: { knee: 66, hem: 66 }, pockets: 'slant', pleats: 'double', loops: 'loops', backPockets: 'welt', rise: 'low' },
+    choices: { ...DEFAULT_TROUSERS_CHOICES, fit: 'relaxed', leg: 'wide', length: 'knee', lengthCm: 68, legCm: { knee: 66, hem: 66 }, pockets: 'slant', pleats: 'double', loops: 'loops', backPockets: 'welt', rise: 'low', press: 'soft' },
+    // Lined (Cat, Nov 12): in silk the legs cling and the pocket bags show through, so a lining hangs between.
+    finish: { skirtLined: true },
   },
   {
     id: 'ice-peplum',
@@ -176,7 +179,7 @@ export const COLLECTION: HouseLook[] = [
     line: 'The house slip, cut in one on the bias from the shoulder to just above the ankle: a low, narrow scoop, slim straps, no waist seam and no zip, in a satin you can just see through.',
     fabric: 'Ivory sheer silk satin',
     garment: 'dress',
-    choices: dress('regular', { neckline: 'scoop', sleeve: 'none', darts: 'bust', bustEase: 4, neck: { frontDepth: 14.5, width: 2, backDepth: 18, fullness: 0.85, strap: 3 }, armholeLower: 5 }, { silhouette: 'straight', length: 'maxi', floorClear: 13, noSeam: 'bias', flareCm: 16, slit: 'none' }),
+    choices: dress('regular', { neckline: 'scoop', sleeve: 'none', darts: 'bust', bustEase: 4, neck: { frontDepth: 14.5, width: 2, backDepth: 18, fullness: 0.85, strap: 3 }, armholeLower: 8 }, { silhouette: 'straight', length: 'maxi', floorClear: 13, noSeam: 'bias', flareCm: 16, slit: 'none' }),
   },
   {
     // Cat's own Japanese leopard and python cotton, and the house shirt cut (2026-11-10).
@@ -271,6 +274,16 @@ function sleeveFor(b: BodiceDraft, c: BodiceChoices, own: MeasurementValues): Sl
   const m = needsArms(own as never) ? { ...EXAMPLE_BODY, ...own } : own;
   if (length === 'none' || needsArms(m as never)) return undefined;
   return draftSleeve(b, m as never, { length, shape, ...(cm !== undefined ? { lengthCm: cm } : {}), ...(cuff ? { cuff } : {}), ...(fullness ? { fullness } : {}), ...(headGather ? { headGather } : {}), fit: c.fit, seamAllowance: b.pieces[0].seamAllowance, armholeAllowance: b.pieces[0].allowances.armhole ?? 1, hemAllowance: 2.5 });
+}
+
+/** The arm measurements a look's sleeves are drafted from, and still not given: a top or dress with sleeves made from the
+ *  collection before the arms are measured printed with no sleeve piece and said "Sleeveless" (bug hunt, Nov 12), so
+ *  making it asks for these first. */
+export function lookArmsMissing(look: Pick<HouseLook, 'choices'>, measured: MeasurementValues): MeasurementId[] {
+  const c = look.choices as unknown as { bodice?: BodiceChoices } & BodiceChoices;
+  const top = isDress(look.choices) ? c.bodice : isBodice(look.choices) ? c : undefined;
+  if (!top || sleeveOf(top).length === 'none') return [];
+  return (['arm_length', 'upper_arm', 'wrist'] as const).filter((id) => measured[id] === undefined);
 }
 
 /** The measurements a look is drawn to: the sewist's own when the garment has all it needs, or the sample set. */

@@ -24,7 +24,7 @@ export interface PatternDesign {
 }
 
 /** Every option of every garment on its own: All round's list (skirt, top, dress, jacket, coat), the trousers' and the
- *  T-shirt's, and the finishes that add pieces (a lined skirt; faced and lined tops). */
+ *  T-shirt's, and the finishes that add pieces (a lined skirt or trousers; faced and lined tops). */
 export function patternDesigns(): PatternDesign[] {
   const out: PatternDesign[] = optionDesigns().map(({ key, design }) => ({ key, garment: design.garment, saved: design.saved }));
   for (const g of TROUSER_GROUPS)
@@ -38,6 +38,8 @@ export function patternDesigns(): PatternDesign[] {
   // The Garment range (2026-11-07): every option and the fifteen Looks.
   out.push(...rangeDesigns());
   out.push({ key: 'skirt finish lined', garment: 'skirt', saved: {}, finish: { skirtLined: true } });
+  out.push({ key: 'trousers finish lined', garment: 'trousers', saved: {}, finish: { skirtLined: true } });
+  out.push({ key: 'trousers finish lined pleats=double', garment: 'trousers', saved: { trousers: { ...DEFAULT_TROUSERS_CHOICES, pleats: 'double', loops: 'loops', backPockets: 'welt' } }, finish: { skirtLined: true } });
   for (const edges of ['facings', 'lined'] as const) {
     out.push({ key: `bodice finish ${edges}`, garment: 'bodice', saved: {}, finish: { bodiceEdges: edges } });
     out.push({ key: `bodice finish ${edges} sleeve=long`, garment: 'bodice', saved: { bodice: { ...INITIAL.bodice, sleeve: 'long' } }, finish: { bodiceEdges: edges } });
