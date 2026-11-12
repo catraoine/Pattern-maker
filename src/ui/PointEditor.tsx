@@ -7,10 +7,12 @@
 // Draw a line (Design: Pattern tools, Cat's pick P2, 2026-11-07): a line drawn across a piece, started away from its
 // points, asks what it should do: spread the piece open (flare), add fullness (gathers or pleats) or make a new piece
 // (engine/pieceEdit.ts). A spread or fullness opens by dragging the handle at its far end, or with the slider.
-import { PointerEvent, ReactNode, createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { PointerEvent, ReactNode, createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { TestingTag } from './TestingTag';
 import { DemoButton } from './DemoButton';
 import { InCorner } from './StyleLayout';
+import { useEnlarged } from './EnlargeSketch';
+import { UndoToast, useUndo, type Undo } from './useUndo';
 import { P, add, len, mul, sub } from '../engine/geometry';
 import type { Piece } from '../engine/piece';
 import { CutEdit, CutKind, DartEdit, PatternEdit, START_BY, applyPatternEdits, cutEnds, cutMark, dartMark, dartMoveTo, isCut, isDartMove, openHandle, pointsOn } from '../engine/pieceEdit';
@@ -57,6 +59,9 @@ function WatchDraft({ onPlay }: { onPlay: () => void }) {
 export function PatternPane({ children, onPlay }: { children: ReactNode; onPlay?: () => void }) {
   const ctx = useContext(PointEditContext);
   const [on, setOn] = useState(false);
+  // Every point moved, line cut or dart moved can be taken back, one at a time (Cat, Nov 12: "we need an undo button
+  // here"); Back to drafted too. Kept while the pattern shows, so closing and opening Move points keeps it.
+  const history = useUndo<PatternEdit[]>(ctx?.edits ?? [], (e) => ctx?.setEdits(e));
   const watch = onPlay && !on && <WatchDraft onPlay={onPlay} />;
   if (!ctx || !ctx.base.length)
     return (
@@ -91,7 +96,8 @@ export function PatternPane({ children, onPlay }: { children: ReactNode; onPlay?
           )}
         </>
       )}
-      {on ? <PointEditor {...ctx} /> : children}
+      {on ? <PointEditor {...ctx} setEdits={history.change} undo={history} /> : children}
+      <UndoToast undo={history} />
       {/* Its own Watch demo while the tools are open (Cat, 2026-11-07), with the how-to line beside it, small, under the
           pieces (Cat, Nov 8: tidy the open tool's top). */}
       {on && (
@@ -135,6 +141,25 @@ function arrange(pieces: Piece[], rowWidth?: number) {
   return { at, width, height: y + rowH };
 }
 
+/**
+ * The rows that show the pieces biggest in a box of this shape (width over height). Laid out only by width, a bigger
+ * body's two bodice pieces went one above the other, three screens tall, so enlarged they ran off the screen and the
+ * question a drawn line asks sat out of sight below (Cat, Nov 12). The usual rows stay unless another fits clearly better.
+ */
+function arrangeToFit(pieces: Piece[], usual: number, aspect?: number) {
+  const plain = arrange(pieces, usual);
+  if (!aspect || pieces.length < 2) return plain;
+  const scale = (l: { width: number; height: number }) => Math.min(aspect / l.width, 1 / l.height);
+  const widths = pieces.map((pc) => arrange([pc]).width).sort((a, b) => b - a);
+  let best = plain;
+  for (let k = 1; k <= pieces.length; k++) {
+    const row = widths.slice(0, k).reduce((t, w) => t + w + GAP, -GAP);
+    const l = arrange(pieces, row + 0.01);
+    if (scale(l) > scale(best) * 1.05) best = l;
+  }
+  return best;
+}
+
 const pathD = (pc: Piece, o: P) => {
   const pts = pc.outline.points(16);
   return pts.map((q, i) => `${i ? 'L' : 'M'}${(q.x + o.x).toFixed(2)} ${(q.y + o.y).toFixed(2)}`).join('') + 'Z';
@@ -153,7 +178,7 @@ function withMove(edits: PatternEdit[], piece: string, at: string, by: P): Patte
 /** How near the edge a line from a dart point must end to move the dart there, in cm. */
 const DART_EDGE = 2;
 
-function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
+function PointEditor({ base, edits: saved, setEdits: save, undo }: PointEditing & { undo: Undo }) {
   // While a finger is down the moves stay here, drawn once a frame, and are kept (saved, and passed to the rest of the
   // app) when it lifts: saving on every move redrew the whole app each time, so the point lagged behind the finger.
   const [live, setLive] = useState<PatternEdit[]>();
@@ -189,11 +214,31 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
   const cutsKept = JSON.stringify(saved.filter((e) => isCut(e) || isDartMove(e)));
   const kept = useMemo(() => applyPatternEdits(base, JSON.parse(cutsKept) as PatternEdit[]), [base, cutsKept]);
   // The rows are as wide as the drafted pieces' rows, with room for a spread piece to widen in its row.
-  const { at: place, width, height } = useMemo(() => arrange([...kept.filter((pc) => !pc.meta.newPiece), ...kept.filter((pc) => pc.meta.newPiece)], arrange(base).width * 1.6), [kept, base]);
+  const svg = useRef<SVGSVGElement>(null);
+  // The shape of the box the pieces show in: the whole enlarged window, or on the page the width and a little over half
+  // the screen's height. Read from the box, not the drawing, so a sheet opening under the pieces doesn't move them.
+  const big = useEnlarged();
+  const [aspect, setAspect] = useState<number>();
+  const [boxW, setBoxW] = useState(600);
+  useLayoutEffect(() => {
+    const box = svg.current?.closest<HTMLElement>('.preview') ?? svg.current?.parentElement;
+    if (!box) return;
+    const read = () => {
+      const h = big ? box.clientHeight - 120 : window.innerHeight * 0.6;
+      if (box.clientWidth > 0 && h > 0) setAspect(Math.round((box.clientWidth / h) * 10) / 10);
+      if (box.clientWidth > 0) setBoxW(Math.round(box.clientWidth / 10) * 10);
+    };
+    read();
+    const watch = new ResizeObserver(read);
+    watch.observe(box);
+    return () => watch.disconnect();
+  }, [big]);
+  const { at: place, width, height } = useMemo(() => arrangeToFit([...kept.filter((pc) => !pc.meta.newPiece), ...kept.filter((pc) => pc.meta.newPiece)], arrange(base).width * 1.6, aspect), [kept, base, aspect]);
   const m = 3;
   const vb = { x: -m, y: -m, w: width + 2 * m, h: height + 2 * m };
-  const r = vb.w / 110;
-  const svg = useRef<SVGSVGElement>(null);
+  // On the page the pieces fill the box's width. Enlarged they may fill its height instead, so the points keep their
+  // size on screen either way, and on a wide window they stay the size they are on the page rather than growing.
+  const r = big ? (Math.max(vb.w, vb.h * (aspect ?? 0)) / 110) * Math.min(1, 600 / boxW) : vb.w / 110;
   const [sel, setSel] = useState<{ piece: string; at: string }>();
   const [tape, setTape] = useState(false);
   const drag = useRef<{ start: P; edits: PatternEdit[]; before: PatternEdit[]; by: P; piece: string; at: string; timer?: number; moved: boolean; slop: number; path: P[]; shapes: Piece[] }>();
@@ -538,6 +583,14 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
     else setEdits(next);
   };
 
+  /** Every sheet and pick closed: after an undo the cut or dart they were on may be gone. */
+  const closeAll = () => {
+    setSel(undefined);
+    setTape(false);
+    setAsking(undefined);
+    setActive(undefined);
+    setDartMoved(undefined);
+  };
   const changed = edits.some((e) => !isPoint(e) || e.at.startsWith('+') || Math.hypot(e.by.x, e.by.y) > 0.01);
 
   /** The line's choice made: the cut is kept, and a spread or fullness stays open to set how far. */
@@ -587,7 +640,7 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
             {pc.lines.map((ln, i) => (
               <polyline key={i} points={ln.points(8).map((q) => `${q.x + place[pc.name].x},${q.y + place[pc.name].y}`).join(' ')} className="pe-line" vectorEffect="non-scaling-stroke" />
             ))}
-            <text x={place[pc.name].x + (pc.labels[0]?.at.x ?? 0)} y={place[pc.name].y + (pc.labels[0]?.at.y ?? 0)} fontSize={vb.w / 45} textAnchor="middle" className="pe-name">
+            <text x={place[pc.name].x + (pc.labels[0]?.at.x ?? 0)} y={place[pc.name].y + (pc.labels[0]?.at.y ?? 0)} fontSize={r * 2.45} textAnchor="middle" className="pe-name">
               {pc.name.toUpperCase()}
             </text>
           </g>
@@ -788,28 +841,32 @@ function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
         </div>
       )}
 
-      {/* Always laid out, shown once something has changed: appearing under a finger mid-stroke, it grew the page and
-          the pinned drawing eased under the finger, so a line being drawn jumped (round 3). */}
-      {(
+      {/* Undo and Redo, then Back to drafted: always laid out, Back to drafted shown once something has changed (appearing
+          under a finger mid-stroke, it grew the page and the pinned drawing eased under the finger, so a line being drawn
+          jumped, round 3). Undo takes back one move, cut or dart at a time, and Back to drafted itself. */}
+      <div className="row between pe-undo-row">
+        <div className="form-undo">
+          <button type="button" onClick={() => (closeAll(), undo.undo())} disabled={!undo.canUndo} aria-label="Undo the last change to the pieces">
+            ↶ Undo
+          </button>
+          <button type="button" onClick={() => (closeAll(), undo.redo())} disabled={!undo.canRedo} aria-label="Redo the change to the pieces you undid">
+            ↷ Redo
+          </button>
+        </div>
         <button
           type="button"
           className="ghost"
-          hidden={!changed}
-          style={changed ? undefined : { display: 'block', visibility: 'hidden' }}
+          style={changed ? undefined : { visibility: 'hidden' }}
           aria-hidden={!changed || undefined}
           tabIndex={changed ? undefined : -1}
           onClick={() => {
             setEdits([]);
-            setSel(undefined);
-            setTape(false);
-            setAsking(undefined);
-            setActive(undefined);
-            setDartMoved(undefined);
+            closeAll();
           }}
         >
           Back to drafted
         </button>
-      )}
+      </div>
     </div>
   );
 }
