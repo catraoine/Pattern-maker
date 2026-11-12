@@ -176,7 +176,7 @@ export const COLLECTION: HouseLook[] = [
     line: 'The house slip, cut in one on the bias from the shoulder to just above the ankle: a low, narrow scoop, slim straps, no waist seam and no zip, in a satin you can just see through.',
     fabric: 'Ivory sheer silk satin',
     garment: 'dress',
-    choices: dress('regular', { neckline: 'scoop', sleeve: 'none', darts: 'bust', bustEase: 4, neck: { frontDepth: 14.5, width: 2, backDepth: 18, fullness: 0.85, strap: 3 }, armholeLower: 5 }, { silhouette: 'straight', length: 'maxi', floorClear: 13, noSeam: 'bias', flareCm: 16, slit: 'none' }),
+    choices: dress('regular', { neckline: 'scoop', sleeve: 'none', darts: 'bust', bustEase: 4, neck: { frontDepth: 14.5, width: 2, backDepth: 18, fullness: 0.85, strap: 3 }, armholeLower: 8 }, { silhouette: 'straight', length: 'maxi', floorClear: 13, noSeam: 'bias', flareCm: 16, slit: 'none' }),
   },
   {
     // Cat's own Japanese leopard and python cotton, and the house shirt cut (2026-11-10).
