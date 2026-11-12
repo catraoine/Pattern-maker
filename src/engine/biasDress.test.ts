@@ -1,3 +1,4 @@
+import { COLLECTION } from '../collection';
 import { describe, expect, it } from 'vitest';
 import { draftDress } from './dress';
 import { dressGuide } from './instructions';
@@ -124,10 +125,15 @@ describe('bias slip dress', () => {
     expect(hem({})).toContain('measured up from the floor. Trim');
   });
   it("cuts a look's own armhole lower by the cm the look asks, with no complaint that it is too long", () => {
-    // (The Ivory Bias Slip, 2026-11-11: its straps moved in toward the neck and its armhole dropped 5 cm down the side.)
+    // (The Ivory Bias Slip, 2026-11-11: its straps moved in toward the neck and its armhole dropped 5 cm down the side;
+    // 2026-11-12, draped at Cat's size it still sat higher than her reference picture's, so 8 cm.)
     const at = (bodice: object) => draftDress(EXAMPLE_BODY as never, { fit: 'regular', neckline: 'scoop', sleeve: 'none', darts: 'bust', bustEase: 4, neck: { ...NECK, width: 2, strap: 3 }, ...bodice } as never, { silhouette: 'straight', length: 'maxi', noSeam: 'bias', flareCm: 16, slit: 'none' } as never);
-    const [plain, low] = [at({}), at({ armholeLower: 5 })];
+    const [plain, low, lower] = [at({}), at({ armholeLower: 5 }), at({ armholeLower: 8 })];
     expect(low.bodice.armholeDepth - plain.bodice.armholeDepth).toBeCloseTo(5, 0);
+    expect(lower.bodice.armholeDepth - plain.bodice.armholeDepth).toBeCloseTo(8, 0);
     expect(low.warnings).toEqual([]);
+    expect(lower.warnings).toEqual([]);
+    // (The slip as it is in the collection asks for the 8.)
+    expect((COLLECTION.find((l) => l.id === 'ivory-slip')!.choices as never as { bodice: { armholeLower: number } }).bodice.armholeLower).toBe(8);
   });
 });
