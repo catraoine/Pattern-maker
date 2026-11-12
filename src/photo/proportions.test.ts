@@ -1,7 +1,7 @@
 // Proportions read off a photo (In testing, Nov 7): a jacket, top or trousers drafted to the photo's numbers.
 import { describe, expect, it } from 'vitest';
 import { HouseLook, lookFlat } from '../collection';
-import { isBodice, isOuter, isTrousers } from '../garments';
+import { isBodice, isDress, isOuter, isTrousers } from '../garments';
 import { draftOuter, outerDrop, type OuterMeasurements } from '../engine/outerwear';
 import { draftTrousers } from '../engine/trousers';
 import { EXAMPLE_VALUES } from '../measurements';
@@ -234,5 +234,44 @@ describe('the pieces read off a photo (Nov 7)', () => {
     const c = choicesFor(peak, 'jacket', body);
     if (!isOuter(c)) throw new Error('not a jacket');
     expect([c.collar, c.lapel, c.chest, c.pockets]).toEqual(['peak', 'wide', 'welt', 'flap']);
+  });
+});
+
+describe('options the reader names since Nov 12', () => {
+  const dressTop = { fit: { value: 'regular', confidence: 'medium' }, neckline: 'v', sleeve: 'short', sleeveShape: 'straight', length: 'waist', seams: 'darts', opening: 'back', collar: 'none', peplum: 'none', boned: false, knit: false, waistSeam: false, waistSeamAt: 'none', belt: 'none' } as const;
+  const dress = (top: Partial<NonNullable<PhotoReading['top']>>, sil: PhotoReading['silhouette']['value'] = 'straight'): PhotoReading => ({
+    ...vest,
+    garment: 'dress',
+    outer: null,
+    silhouette: { value: sil, confidence: 'high' },
+    top: { ...dressTop, ...top },
+    measures: { ...none },
+  });
+
+  it('cuts a shift, a sheath or a bias dress as read, with no waist seam', () => {
+    for (const cut of ['shift', 'sheath', 'bias'] as const) {
+      const c = choicesFor(dress({ dressCut: cut }), 'dress', body);
+      if (!isDress(c)) throw new Error('not a dress');
+      expect(c.skirt.noSeam).toBe(cut);
+      expect(c.waistSeam).toBeUndefined();
+    }
+    const seam = choicesFor(dress({ dressCut: 'seam', waistSeamAt: 'dropped' }), 'dress', body);
+    if (!isDress(seam)) throw new Error('not a dress');
+    expect([seam.skirt.noSeam, seam.waistSeam]).toEqual([undefined, 'dropped']);
+  });
+
+  it('reads a wrap front, a gathered skirt, a sleeve cut and a cuff', () => {
+    const c = choicesFor(dress({ opening: 'wrap', dressCut: 'seam', waistSeamAt: 'natural', sleeve: 'long', sleeveCut: 'drop', cuff: 'shirt' }, 'gathered'), 'dress', body);
+    if (!isDress(c)) throw new Error('not a dress');
+    expect(c.bodice.closure).toBe('wrap');
+    expect(c.skirt.silhouette).toBe('gathered');
+    expect([c.bodice.sleeveCut, c.bodice.sleeveCuff]).toEqual(['drop', 'shirt']);
+  });
+
+  it('places a jacket on a hanger on her body from its own proportions', () => {
+    const hanger: PhotoReading = { ...vest, worn: false, measures: { ...none, outerHemAt: 0.02 } };
+    const c = choicesFor(hanger, 'jacket', body);
+    if (!isOuter(c)) throw new Error('not a jacket');
+    expect(c.length).toBe('cropped');
   });
 });

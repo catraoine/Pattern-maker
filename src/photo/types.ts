@@ -36,8 +36,12 @@ export interface TopReading {
   sleeveShape: 'fitted' | 'straight' | 'puff' | 'bishop' | 'cap' | 'flutter';
   length: 'cropped' | 'waist' | 'high_hip' | 'hip' | 'tunic';
   seams: 'darts' | 'princess' | 'none';
-  opening: 'back' | 'front_buttons';
-  collar: 'none' | 'peter_pan' | 'mandarin' | 'shirt' | 'cape';
+  opening: 'back' | 'front_buttons' | 'wrap';
+  collar: 'none' | 'peter_pan' | 'mandarin' | 'mock' | 'funnel' | 'shirt' | 'polo' | 'bow' | 'ruffle' | 'cape';
+  /** Read from Nov 12; older readings have none of these. How the sleeve joins the body, its cuff, and how a dress is cut. */
+  sleeveCut?: 'set_in' | 'drop' | 'raglan' | 'kimono';
+  cuff?: 'none' | 'shirt' | 'oversized' | 'elastic' | 'tie' | 'ruffle';
+  dressCut?: 'seam' | 'sheath' | 'shift' | 'bias';
   peplum: 'none' | 'flared' | 'gathered';
   boned: boolean;
   /** Knitted jersey (a T-shirt) rather than a woven fabric. */

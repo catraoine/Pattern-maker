@@ -171,8 +171,10 @@ function bodiceChoices(t: TopReading | null | undefined, garment: 'bodice' | 'dr
     sleeve: t.sleeve,
     sleeveShape: t.sleeveShape,
     princess: t.seams === 'princess' ? 'shoulder' : 'none',
-    closure: t.opening === 'front_buttons' ? 'front_buttons' : 'back_zip',
+    closure: t.opening === 'front_buttons' || t.opening === 'wrap' ? t.opening : 'back_zip',
     collar: t.collar,
+    ...(t.sleeveCut && t.sleeveCut !== 'set_in' ? { sleeveCut: t.sleeveCut } : {}),
+    ...(t.cuff && t.cuff !== 'none' ? { sleeveCuff: t.cuff } : {}),
     structure: t.boned ? 'boned' : 'none',
     peplum: garment === 'dress' ? 'none' : t.peplum,
   };
@@ -190,7 +192,8 @@ function dressChoices(r: PhotoReading, body?: PhotoBody): DressChoices {
   if (belt && bodice.closure !== 'wrap') skirt = { ...skirt, belt };
   // Where the seam sits, when the reading says; a dress cut in one is a sheath where the skirt shape allows it.
   const at = t?.waistSeamAt;
-  if (at === 'none' && noSeamAllowed(bodice) && bodice.closure === 'back_zip') skirt = { ...skirt, noSeam: 'sheath' };
+  const cut = t?.dressCut && t.dressCut !== 'seam' ? t.dressCut : at === 'none' ? 'sheath' : undefined;
+  if (cut && noSeamAllowed(bodice) && bodice.closure === 'back_zip') return { garment: 'dress', fit: bodice.fit, bodice, skirt: { ...skirt, noSeam: cut } };
   const waistSeam = at && at !== 'none' && at !== 'natural' ? { waistSeam: at } : {};
   return { garment: 'dress', fit: bodice.fit, bodice, skirt, ...waistSeam };
 }
@@ -286,7 +289,8 @@ function measuredOuter(c: OuterChoices, r: PhotoReading, body: PhotoBody | undef
   if (!m) return c;
   const out: OuterChoices = { ...c };
   const scale = body?.front_hps_to_waist ? body.front_hps_to_waist / AVERAGE_FRONT : 1;
-  if (num(m.outerHemAt) && body?.waist_to_floor && r.worn !== false) {
+  // Worn or not: a jacket on a hanger is placed on an average adult from its own proportions (Nov 12 scorecard).
+  if (num(m.outerHemAt) && body?.waist_to_floor) {
     const om = body as OuterMeasurements;
     const drop = measuredOuterDrop(om, c.garment, clamp(m.outerHemAt, 0, 0.9) * body.waist_to_floor);
     out.dropCm = Math.round(drop);
