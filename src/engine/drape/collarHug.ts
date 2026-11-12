@@ -171,6 +171,23 @@ export function openCollarEnds(d: Pick<Draped, 'panels' | 'pos' | 'posMirror'>):
       };
       // (Its gorge end is sewn to the lapel's gorge, which stays where it lies.)
       const gorge = (p.mesh.runs.gorge ?? []).flat();
+      // (Kept only while it leaves the collar's strained share under the quality check's: with structured pads, the
+      // collar end already drawn long over the pad was pulled further, Nov 11.)
+      const strained = () => {
+        let c = 0;
+        let e = 0;
+        for (const t of p.mesh.tris)
+          for (const [u, v] of [[t[0], t[1]], [t[1], t[2]], [t[2], t[0]]]) {
+            const cut = Math.hypot(p.mesh.pts[u].x - p.mesh.pts[v].x, p.mesh.pts[u].y - p.mesh.pts[v].y);
+            if (cut <= 0.05) continue;
+            e++;
+            const [A, B] = [u, v].map((j) => (p.base + j) * 3);
+            if (Math.hypot(pos[A] - pos[B], pos[A + 1] - pos[B + 1], pos[A + 2] - pos[B + 2]) / cut > STRAIN) c++;
+          }
+        return { c, e };
+      };
+      const before = strained().c;
+      const was = pos.slice(p.base * 3, (p.base + n) * 3);
       const held = new Set([...neck, ...gorge]);
       for (let k = 0; k < n; k++) {
         if (held.has(k)) continue;
@@ -193,5 +210,7 @@ export function openCollarEnds(d: Pick<Draped, 'panels' | 'pos' | 'posMirror'>):
         pos[q.I] = Math.sin(q.a) * r;
         pos[q.I + 2] = Math.cos(q.a) * r;
       }
+      const after = strained();
+      if (after.c > before && after.c > STRAIN_SHARE * after.e) pos.set(was, p.base * 3);
     }
 }
