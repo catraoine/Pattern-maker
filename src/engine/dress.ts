@@ -219,7 +219,7 @@ function noSeamDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyle>, sk
     hemAllowance: skirtStyle.hemAllowance ?? (cut === 'bias' ? SLIP_HEM : 4),
     ...(kind === 'shift' ? { darts: 'bust' as const } : {}),
     // A shift's flare: the skirt's own flare setting, else the standard easing out (see DRESS_HEM_TAPER).
-    dressHem: { belowWaist, shape: kind, ...(kind === 'shift' && skirtStyle.flareCm !== undefined ? { flare: Math.min(flareRange(m, belowWaist, 'a_line').max, Math.max(0, skirtStyle.flareCm)) } : {}) },
+    dressHem: { belowWaist, shape: kind, ...(cut === 'bias' ? { straightSide: true } : {}), ...(kind === 'shift' && skirtStyle.flareCm !== undefined ? { flare: Math.min(flareRange(m, belowWaist, 'a_line').max, Math.max(0, skirtStyle.flareCm)) } : {}) },
   });
   // The skirt as it would be under this bodice, with no waistband: its length and steps, never cut.
   // A shift's waist can be as wide as its hip, so the skirt is joined no wider than the hip.

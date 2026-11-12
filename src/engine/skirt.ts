@@ -187,6 +187,8 @@ function darts(supp: number, maxPerDart: number): number[] {
 }
 
 interface HalfArgs {
+  /** Run the side seam through the hip in one line into the flare or taper, in place of a corner there (a skirt on its own). */
+  bendBelowHip?: boolean;
   name: string;
   hipQ: number;
   waistQ: number;
@@ -317,7 +319,14 @@ function half(a: HalfArgs): Piece {
   }
   waistTo(from, sw);
   outline.line(sw, 'waist');
-  outline.curve(add(sw, mul(squareOff, a.hipDepth * 0.2)), p(a.hipQ, a.hipDepth * 0.55), sh, 'side');
+  // The hip curve arrives straight down, so a seam that then ran straight out to a flared hem turned a corner at the
+  // hip, a kick that shows on the body (SS27 pleated skirt, Nov 12: "to a 10"). On a skirt of its own the curve arrives
+  // along the line to the hem instead, so the seam runs on through the hip in one line; the hip point and the hem stay.
+  // Up to an A-line's usual 20 degrees: past that (a balloon's outer skirt) the front and back curves part too far to
+  // keep their hip notches level.
+  const toHem = unit(sub(hemSide, sh));
+  const arrive = a.bendBelowHip && !(hemArc && a.flareFrom !== undefined) && Math.abs(hemSide.x - a.hipQ) > 0.3 && Math.abs(toHem.x) <= Math.sin((20 * Math.PI) / 180) ? toHem : p(0, 1);
+  outline.curve(add(sw, mul(squareOff, a.hipDepth * 0.2)), sub(sh, mul(arrive, a.hipDepth * 0.45)), sh, 'side');
   if (hemArc && a.flareFrom !== undefined) {
     const { t } = hemArc;
     const k = hemSide.y - flareStart.y;
@@ -1132,7 +1141,9 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
   // A centre moved at the fitting is no longer simply the measurement, so its note says so.
   const measured = { front: m.front_waist_to_hip !== undefined && !fit.frontDrop, back: m.back_waist_to_hip !== undefined && !fit.backDrop };
   const block = (flare: number): SkirtDraft => {
-    const common = { hipQ, hipDepth, length, sideSupp, flare, flareFrom, sa: s.seamAllowance, hemSa: hemFor(flare), zipCm };
+    // A skirt on its own runs its side seam through the hip in one line. A dress's skirt keeps its own: the drawing joins
+    // it to the bodice above (seamFair.ts), which a change just below a dropped waist seam unsettles.
+    const common = { hipQ, hipDepth, length, sideSupp, flare, flareFrom, sa: s.seamAllowance, hemSa: hemFor(flare), zipCm, bendBelowHip: !join };
     const frontArgs = { ...common, name: 'Skirt front', waistQ: waistQ + split.front, dartMax: FRONT_DART_MAX, dartLen: 9 + dartAdj, isFront: true, dartAt: join?.dartAt?.front };
     const backArgs = { ...common, name: 'Skirt back', waistQ: waistQ + split.back, dartMax: BACK_DART_MAX, dartLen: 14 + dartAdj, isFront: false, dartAt: join?.dartAt?.back, onFold: elastic };
     const at = (d: { front: number; back: number }) => ({ meanDrop: (d.front + d.back) / 2 });
