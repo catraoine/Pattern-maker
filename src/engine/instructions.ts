@@ -8,6 +8,7 @@ import { BackNeck, withBackNeck } from './backNeck';
 import { isCircle } from './skirt';
 import type { Elastic, Length, Silhouette, SkirtDraft } from './skirt';
 import type { BodiceDraft, BodiceLength } from './bodice';
+import { DRAWSTRING } from './bodice';
 import type { SleeveDraft } from './sleeve';
 import { cuffCutWords, cuffNotions, cuffStep, placketStep } from './cuffs';
 import type { DressDraft } from './dress';
@@ -413,7 +414,8 @@ function withPlungeTape(g: SewingGuide, draft: BodiceDraft): SewingGuide {
   const toWaist = !!front.meta.narrowPlunge;
   // The tape is cut TAPE_TAKE shorter than the V's edge: draped in CLO (Nov 10 2026), the gold slip's untaped V stretched
   // 12% on the body and stood open; held to 97% of its length it lay flat on the bust.
-  const edge = taggedLength(front.outline, 'neck');
+  // (With shoulder panels the V's edge is shared between the front and its panel, or is all on the panel.)
+  const edge = draft.pieces.filter((pc) => !pc.kind && /^Bodice front( yoke)?$/.test(pc.name)).reduce((sum, pc) => sum + taggedLength(pc.outline, 'neck'), 0) || taggedLength(front.outline, 'neck');
   const tape = Math.round(edge * (1 - TAPE_TAKE) * 2) / 2;
   const ease = Math.round((edge - tape) * 10) / 10;
   const step = {
@@ -425,6 +427,71 @@ function withPlungeTape(g: SewingGuide, draft: BodiceDraft): SewingGuide {
   const at = shoulders >= 0 ? shoulders : g.steps.findIndex((st) => /^(Bind|Face|Line) the (neckline|bodice)/.test(st.title));
   const steps = at < 0 ? [...g.steps, step] : [...g.steps.slice(0, at), step, ...g.steps.slice(at)];
   return { ...g, notions: [...g.notions.slice(0, -1), `${toWaist ? '1.2' : '0.8'} m of narrow stay tape, for the plunge`, ...g.notions.slice(-1)], steps };
+}
+
+/** A top that pulls on over the head (BodiceDraft.pullOn): no zip to put in, no centre back seam, the back cut on the fold. */
+function pullOnSteps(g: SewingGuide, d: BodiceDraft): SewingGuide {
+  if (!d.pullOn) return g;
+  const steps: SewStep[] = [];
+  for (const s of g.steps) {
+    switch (s.title) {
+      case 'Put in the zip':
+      case 'Close the centre back':
+      case 'Finish the lining at the zip':
+        continue;
+      case 'Cut out':
+        steps.push({ ...s, text: s.text.replace('Place the bodice front on the fold, and the bodice back on both layers so you get a pair.', 'Place the bodice front and the bodice back on the fold: the top pulls on over your head, so the back has no seam and no zip.') });
+        continue;
+      case 'Neaten the edges':
+        steps.push({ ...s, text: s.text.replace('shoulder, side and centre back edges', 'shoulder and side edges') });
+        continue;
+      case 'Face the neckline':
+        steps.push({ ...s, text: s.text.replace(', with its centre back ends folded back over the zip tape', '') });
+        continue;
+      case 'Make the lining':
+        steps.push({ ...s, text: s.text.replace(/,? and its centre back seam below the ZIP ENDS notch,/, ',') });
+        continue;
+      case 'Line the neck and armholes':
+      case 'Line the neckline':
+        steps.push({ ...s, text: s.text.replace(/, from one centre back seam line to the other/, ', all the way round') });
+        continue;
+      case 'Finish':
+        steps.push({ ...s, text: s.text.replace(/Sew a hook and eye at the top of the zip, inside the neckline\. ?/, '') });
+        continue;
+      default:
+        steps.push(s);
+    }
+  }
+  return { notions: g.notions.filter((n) => !/invisible zip|Hook and eye/.test(n)), steps };
+}
+
+/** A drawstring at the hem (BodiceDraft.hemTie): a narrow channel of silk binding sewn inside, just above the hem,
+ * and a fine cord through it that comes out through two eyelets at the centre front. */
+function drawstringSteps(g: SewingGuide, d: BodiceDraft): SewingGuide {
+  if (!d.hemTie) return g;
+  const hem = d.finishedHem ?? 0;
+  const bindingM = Math.ceil((hem + 10) / 10) / 10;
+  const cordM = d.hemTie.cordCm / 100;
+  const channel: SewStep = {
+    title: 'Sew the drawstring channel',
+    text: `First work the two eyelets marked EYELET on the front, ${n1(DRAWSTRING.eyelet)} either side of the centre front: back each with a small square of the fabric or of silk organza, then work a 4 mm hand eyelet or a tiny buttonhole through both. On the inside, pin the silk binding along the DRAWSTRING CHANNEL line, its folded edges turned under, covering the eyelets, starting and ending at a side seam with each end turned under 1 cm so the ends just meet. Stitch close to both long edges: the channel is ${n1(DRAWSTRING.channel)} wide and sits ${n1(DRAWSTRING.above)} above the hem, so the hem edge hangs free below it. Thread the cord in through one eyelet with a bodkin or a small safety pin, all the way round and out through the other, and knot each end. Draw it in and tie it in a bow at the centre front to blouse the top, or leave it loose and the top hangs straight.`,
+  };
+  const at = g.steps.findIndex((s) => s.title === 'Hem');
+  const steps = at < 0 ? [...g.steps, channel] : [...g.steps.slice(0, at + 1), channel, ...g.steps.slice(at + 1)];
+  return { notions: [...g.notions.slice(0, -1), `${bindingM.toFixed(1)} m of 12 mm silk bias binding, for the drawstring channel`, `${cordM.toFixed(1)} m of fine silk cord, 2 to 3 mm, for the drawstring`, ...g.notions.slice(-1)], steps };
+}
+
+/** A trim over the shoulder panel seams and along the V (BodiceDraft.panelTrim): sewn on by hand once the neckline is
+ * finished, so its ends can be tucked under at the shoulder and mitred at the points. */
+function panelTrimSteps(g: SewingGuide, d: BodiceDraft): SewingGuide {
+  if (!d.panelTrim) return g;
+  const trim: SewStep = {
+    title: 'Sew on the trim',
+    text: 'Lay the trim along one edge of the V on the right side, from the shoulder seam down to the point, and pin. At the point fold it into a neat mitre and carry on up the other edge. Sew it on by hand with small stitches along both of its edges, catching the finished neckline only. Then lay a length over each panel seam, from the armhole edge to the other end of the seam, easing it round the curve where the seam turns. Tuck that end under the trim on the V, or mitre the two lengths together where the panels meet under the point of the V, and sew it on the same way. The end at the armhole is caught in the armhole seam or its binding.',
+  };
+  const at = g.steps.findIndex((s) => /^(Bind|Face|Line) the neck/.test(s.title));
+  const steps = at < 0 ? [...g.steps.slice(0, -1), trim, ...g.steps.slice(-1)] : [...g.steps.slice(0, at + 1), trim, ...g.steps.slice(at + 1)];
+  return { notions: [...g.notions.slice(0, -1), `${(d.panelTrim.cm / 100).toFixed(1)} m of narrow trim or beaded braid, about 6 mm wide, for the panel seams and the V`, ...g.notions.slice(-1)], steps };
 }
 
 function bodiceSteps(draft: BodiceDraft, _style: { length: BodiceLength }, fabricM: number, bindingM: number, finish: BodiceFinish = {}): SewingGuide {
@@ -601,7 +668,7 @@ function bodiceSteps(draft: BodiceDraft, _style: { length: BodiceLength }, fabri
   // and a low or keyhole back's (backNeck.ts).
   return withBackNeck(
     mirroredGuide(draft, drapeBodiceSteps(
-      wrapSteps(shirredSteps(topSteps(styleBodiceSteps(guide, draft, { seam, curve, edges, sleeve: !!sleeve }), draft, { seam, curve, fabricM, liningM: finish.liningM, coutilM: finish.coutilM, width: finish.width }), draft, { seam }), draft, { curve }),
+      panelTrimSteps(drawstringSteps(pullOnSteps(wrapSteps(shirredSteps(topSteps(styleBodiceSteps(guide, draft, { seam, curve, edges, sleeve: !!sleeve }), draft, { seam, curve, fabricM, liningM: finish.liningM, coutilM: finish.coutilM, width: finish.width }), draft, { seam }), draft, { curve }), draft), draft), draft),
       draft,
       { seam, curve, edges, sleeve: !!sleeve },
     )),
@@ -980,7 +1047,8 @@ const collarCut = (d: BodiceDraft) =>
 function sleeveSteps(sl: SleeveDraft, seam: string, curve: string, lined: boolean): SewStep[] {
   // A kimono sleeve is sewn up with the shoulders and side seams: only its hem is left.
   if (sl.cut === 'kimono') return [{ title: 'Hem the sleeves', text: 'Press up 1 cm round each sleeve hem, then 1.5 cm more, and stitch by hand or machine.' }];
-  const puff = sl.gathers?.crown !== undefined;
+  const gatheredHead = sl.gathers?.crown ?? sl.gathers?.head;
+  const puff = gatheredHead !== undefined;
   const band = !sl.cuff && sl.pieces.length > (sl.cut === 'raglan' ? 2 : 1);
   const cuff = sl.cuff;
   const ease = Math.round((sl.crownEase.front + sl.crownEase.back) * 10) / 10;
@@ -1026,7 +1094,7 @@ function sleeveSteps(sl: SleeveDraft, seam: string, curve: string, lined: boolea
     puff
       ? {
           title: 'Gather the sleeve heads',
-          text: `Sew two rows of long gathering stitches across each crown between the front and back notches, one just inside the seam line and one 0.5 cm further out. Leave long thread ends. The crown is ${sl.gathers!.crown} cm longer than the armhole: that is the puff.`,
+          text: `Sew two rows of long gathering stitches across each crown between the front and back notches, one just inside the seam line and one 0.5 cm further out. Leave long thread ends. The crown is ${gatheredHead} cm longer than the armhole: that is the ${sl.gathers?.head !== undefined ? 'soft fullness at the head' : 'puff'}.`,
         }
       : {
           title: 'Ease the sleeve heads',

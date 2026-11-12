@@ -69,7 +69,7 @@ export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
   // A skirt cut whole has no centre back seam: its zip is in the left side seam. A pull-on skirt has
   // no zip, and its back is cut on the fold.
   const sideZip = guide.steps.some((s) => s.title === 'Put in the side zip');
-  const seams = (dress ? 'side, shoulder, centre back and waist' : bodice ? 'side, shoulder and centre back' : sideZip || !(c.zipCm > 0) ? 'side' : 'side and centre back').replace('shoulder', topEdge ? 'princess' : 'shoulder');
+  const seams = (dress ? 'side, shoulder, centre back and waist' : bodice ? (c.zipCm > 0 ? 'side, shoulder and centre back' : 'side and shoulder') : sideZip || !(c.zipCm > 0) ? 'side' : 'side and centre back').replace('shoulder', topEdge ? 'princess' : 'shoulder');
   const out: SewStep[] = [];
   let zip: SewStep | undefined;
   // A one-shoulder bodice zips in the right side seam, so its zip goes in after the side seams.

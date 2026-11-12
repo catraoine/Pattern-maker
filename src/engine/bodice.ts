@@ -140,6 +140,17 @@ export interface BodiceStyle {
    *  side (the Ivory Bias Slip, Cat 2026-11-11). Set on a look only, not on the style page; a toile's own armhole
    *  correction adds to it. */
   armholeLower?: number;
+  /** Side seams that fall straight from the bust to the waist, with no waist shaping, on a soft body that is
+   * tucked or left to hang (the Lilac Lace Blouse; Cat, 2026-11-11: "Could we do all?"). Set by a look. */
+  sides?: 'straight';
+  /** No opening: the top goes on over the head, and the back is cut on the fold with no zip. Only where it can:
+   * a plunge neckline, and no part of the top below it narrower than the bust plus a little (else it keeps its
+   * zip). Set by a look. */
+  pullOn?: boolean;
+  /** A fine drawstring at the hem of a top below the waist (Cat, 2026-11-11: "I would like the fine drawstring"): a
+   * narrow channel sewn inside, just above the hem, with a cord that comes out at the left side seam, so the top
+   * can be drawn in to blouse or left to hang. Set by a look. */
+  hemTie?: 'drawstring';
   sleeve?: SleeveLength;
   sleeveShape?: SleeveShape;
   /** A dragged hem: cm below the waist (0 for the waist), in place of the named length. */
@@ -343,6 +354,10 @@ export function bodiceEase(s: { fit: BodiceFit; bustEase?: number; neckline?: Ne
   return { bust, waist: Math.max(1, base.waist + bust - base.bust) };
 }
 
+/** A drawstring hem: the channel's lower edge this far above the hem, the channel this wide, and the cord this much
+ * longer than the hem, to tie. */
+export const DRAWSTRING = { above: 2, channel: 1.2, tails: 60, eyelet: 1 };
+
 /** A dragged hem sits on the waist or at least this far below it, so fish-eye darts fit above it. */
 export const DROP_MIN = 6;
 
@@ -402,6 +417,14 @@ export interface BodiceDraft {
   /** The zip runs through the waist to the hem, shortened there if it is longer: the waist is too narrow to pull on
    *  over the bust with the back closed below a zip that stops at the waist. */
   zipThrough?: boolean;
+  /** No opening: it goes on over the head, the back cut on the fold (BodiceStyle.pullOn, where it can). */
+  pullOn?: true;
+  /** A drawstring in a channel just above the hem (BodiceStyle.hemTie): the cord's length. */
+  hemTie?: { cordCm: number };
+  /** A narrow trim over a plunge's shoulder panel seams and along its V (Yoke.trim): the length to buy. */
+  panelTrim?: { cm: number };
+  /** The front cut wider below a plunge's shoulder panels and gathered into their seams (Yoke.frontGather): cm each side. */
+  panelGather?: number;
   /** Front landmarks for drawing the bodice as worn: waist and hem, at the side and centre front. */
   front: { apex: P; waistSide: P; waistCentre: P; hemSide: P; hemCentre: P };
   /** The same for the back, plus the centre back neck and where the zip ends. */
@@ -681,13 +704,16 @@ function finish(d: BodiceDraft, s: BodiceStyle, m: BodiceMeasurements & { arm_le
     const ff = frontFacing(openBlock);
     pieces = [...pieces, ff, ...[backNeckFacing(foldBlock, ff)].filter((pc): pc is Piece => !!pc)];
   }
+  // A top that pulls on has no zip: the back on the fold. (Buttons or a wrap are the opening where there is one.)
+  const pullOn = !!d.pullOn && closure === 'back_zip';
+  if (pullOn) pieces = pieces.map((pc) => (/back/i.test(pc.name) ? backOnFold(pc) : pc));
   let wrap: BodiceDraft['wrap'];
   if (closure === 'wrap') {
     // Each front crosses over the other and ties: no zip, the back on the fold, no collar.
     const w = wrapFront(d.pieces[0], d.front.apex);
     pieces = pieces.map((pc) => (pc === d.pieces[0] ? w.piece : /back/i.test(pc.name) ? backOnFold(pc) : pc));
     wrap = { edge: w.edge, cross: w.cross, tieAt: w.tieAt, ties: wrapTies(d.finishedWaist, s.neckArmholeAllowance) };
-    return { ...d, pieces, block: [bf, bb], closure, collar: 'none', zipCm: 0, wrap, neck: Math.round((2 * taggedLength(bb.outline, 'neck') + 2 * taggedLength(w.piece.outline, 'neck')) * 10) / 10 };
+    return { ...d, pullOn: undefined, pieces, block: [bf, bb], closure, collar: 'none', zipCm: 0, wrap, neck: Math.round((2 * taggedLength(bb.outline, 'neck') + 2 * taggedLength(w.piece.outline, 'neck')) * 10) / 10 };
   }
   if (collar === 'polo') {
     // The open polo: a slit down the centre front, faced, so it falls open under the collar.
@@ -702,7 +728,7 @@ function finish(d: BodiceDraft, s: BodiceStyle, m: BodiceMeasurements & { arm_le
     pieces = [...pieces, ...collarPieces(collar, bf, bb, { back: taggedLength(bb.outline, 'neck'), front: taggedLength(bf.outline, 'neck'), ext, closure, sa: s.seamAllowance, capeCm: capeDepth(m), ...(s.shirtCut === 'house' ? { point: 'long' as const } : {}) })];
   }
   // Menswear buttons the other way: the left front laps over the right.
-  return { ...d, pieces, block, closure, collar, buttons, ...(buttons && s.fitting?.flatFront ? { lapsLeft: true } : {}) };
+  return { ...d, pullOn: pullOn || undefined, ...(pullOn ? { zipCm: 0 } : {}), pieces, block, closure, collar, buttons, ...(buttons && s.fitting?.flatFront ? { lapsLeft: true } : {}) };
 }
 
 function draftBlock(m: BodiceMeasurements, style: BodiceStyle): BodiceDraft {
@@ -855,7 +881,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   const be = bodiceEase(s).bust + (fit.bustEase ?? 0);
   // Boxy: the waist no narrower than the bust less a little, so the side falls nearly straight. Oversized: no
   // narrower than the bust at all.
-  const we = Math.max(bodiceEase(s).waist + (fit.waistEase ?? 0), s.fit === 'boxy' ? B + be - W - BOXY.waist : s.fit === 'oversized' ? B + be - W : -Infinity);
+  const we = Math.max(bodiceEase(s).waist + (fit.waistEase ?? 0), s.fit === 'boxy' ? B + be - W - BOXY.waist : s.fit === 'oversized' || s.sides === 'straight' ? B + be - W : -Infinity);
   const warnings: string[] = [];
   // Shoulder angles the toile corrected, and a shoulder point dropped `by` cm along a shoulder `length` long.
   const corrected = (a: number, by: number | undefined) => Math.min(MAX_SLOPE, Math.max(MIN_SLOPE, a + ((by ?? 0) * Math.PI) / 180));
@@ -960,7 +986,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   // A hem below the waist is never cut narrower than the bodice at the waist, so it doesn't pull in.
   if (below) hemFull = Math.max(hemFull, 2 * (backW + frontW - 2 * sideSupp - dartB - dartF));
   // A boxy or oversized hem is no narrower than the bust: it hangs straight down, or eases out over a fuller hip.
-  if (below && straightCut(s.fit)) hemFull = Math.max(hemFull, B + be);
+  if (below && (straightCut(s.fit) || s.sides === 'straight')) hemFull = Math.max(hemFull, B + be);
   // A top longer than the longest zip, on a body whose hip is under its bust, would still be a closed ring below the
   // zip: there the hem is let out until the bust passes it.
   if (below && !s.dressHem && wb + drop + (hemShape?.back[0] ?? 0) - bd - key > THROUGH_ZIPS[THROUGH_ZIPS.length - 1] + 0.5) hemFull = Math.max(hemFull, B + 2 * PULL_ON_CM);
@@ -1147,6 +1173,9 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   const zipThrough = tight && cbRun <= THROUGH_ZIPS[THROUGH_ZIPS.length - 1] + 0.5;
   const zipCm = zipThrough ? (THROUGH_ZIPS.find((z) => z >= cbRun - 0.5) ?? THROUGH_ZIPS[THROUGH_ZIPS.length - 1]) : tight ? THROUGH_ZIPS[THROUGH_ZIPS.length - 1] : zipFor(wb - bd - key + (s.dressHem ? DRESS_ZIP_BELOW : below ? 0 : -2));
   const zipEnd = p(0, bd + key + (zipThrough ? cbRun : zipCm));
+  // A top that goes on over the head with no opening: a plunge is a neck wide enough for the head, and nothing below
+  // it is a ring the bust and shoulders don't pass.
+  const pullOn = !!s.pullOn && !tight && !s.dressHem && !key && s.neckline === 'plunge' && !s.neck;
   const backCut = 'Cut 2 (1 pair)';
   const backDraft = {
     frame: [
@@ -1180,13 +1209,13 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     notches: [
       [add(abPt, p(0, -0.5)), p(1, 0)], // double notch = back
       [add(abPt, p(0, 0.5)), p(1, 0)],
-      ...(zipThrough ? [] : [[zipEnd, p(-1, 0)] as [P, P]]),
+      ...(zipThrough || pullOn ? [] : [[zipEnd, p(-1, 0)] as [P, P]]),
       ...(slitCm ? [[p(0, backHem - slitCm), p(-1, 0)] as [P, P]] : []),
     ],
     labels: [
       { at: p(backW * 0.42, scye - 7), text: 'BODICE BACK', size: 1.4 },
       { at: p(backW * 0.42, scye - 5), text: backCut, size: 0.9 },
-      ...(zipThrough ? [] : [{ at: add(zipEnd, p(3.2, 0.3)), text: 'ZIP ENDS', size: 0.7 }]),
+      ...(zipThrough || pullOn ? [] : [{ at: add(zipEnd, p(3.2, 0.3)), text: 'ZIP ENDS', size: 0.7 }]),
       ...(slitCm ? [{ at: p(3.2, backHem - slitCm + 0.3), text: 'SLIT ENDS', size: 0.7 }] : []),
     ],
     cut: backCut,
@@ -1396,6 +1425,15 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     backDraft.points.push({ n: 'H', at: p(0, backHem + hemAt.back), note: note('back') });
   }
 
+  // A drawstring hem: where the channel goes, marked on both pieces. (Not on a shaped hem: its curve would pucker.)
+  const drawstring = s.hemTie === 'drawstring' && below && !s.dressHem && !hemShape && !s.peplum;
+  if (drawstring) {
+    const up = DRAWSTRING.above + DRAWSTRING.channel / 2;
+    // The cord comes out at the centre front (Cat, Nov 11: "Front"), through an eyelet each side of the centre.
+    frontPiece.balance = [...(frontPiece.balance ?? []), { pts: [p(0, cfHem - up), p(hemF.x, hemF.y - up)], label: 'DRAWSTRING CHANNEL' }, { pts: [p(DRAWSTRING.eyelet, cfHem - up - 0.5), p(DRAWSTRING.eyelet, cfHem - up + 0.5)], label: 'EYELET' }];
+    backPiece.balance = [...(backPiece.balance ?? []), { pts: [p(0, backHem - up), p(hemB.x, hemB.y - up)], label: 'DRAWSTRING CHANNEL' }];
+  }
+
   // ---- checks -------------------------------------------------------------
   return {
     pieces: [frontPiece, backPiece],
@@ -1416,6 +1454,8 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     backLength: r(backHem + hemAt.back - bd, 1),
     zipCm,
     ...(zipThrough ? { zipThrough } : {}),
+    ...(pullOn ? { pullOn: true as const } : {}),
+    ...(drawstring ? { hemTie: { cordCm: Math.ceil((2 * (hemB.x + hemF.x) + DRAWSTRING.tails) / 5) * 5 } } : {}),
     front: { apex, waistSide: swF, waistCentre: p(0, wf), hemSide: add(hemF, p(0, hemAt.side)), hemCentre: p(0, cfHem + hemAt.front) },
     back: { waistSide: swB, waistCentre: p(0, wb), hemSide: add(hemB, p(0, hemAt.side)), hemCentre: p(0, backHem + hemAt.back), neckCentre: p(0, bd), zipEnd },
     neckBlock: { front: { neckY: cfNeck0.y, neckX: nwF }, back: { neckY: 0, neckX: nw } },

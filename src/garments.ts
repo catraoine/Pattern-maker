@@ -65,6 +65,11 @@ export interface BodiceChoices {
   shiftBack?: 'shaped';
   /** A house look's own armhole, this many cm lower than the body's measurements draft it (engine/bodice.ts). */
   armholeLower?: number;
+  sides?: 'straight';
+  pullOn?: boolean;
+  hemTie?: 'drawstring';
+  /** Set by a look only (no picker): a set-in bishop sleeve's head softly gathered into the armhole (HEAD_GATHER). */
+  sleeveHead?: 'gathered';
   /** Older saves have the block's side bust dart, no princess seams, a back zip and no collar. */
   bustDart?: DartPlace;
   princess?: PrincessLine;
@@ -573,7 +578,9 @@ export function seamBlocked(c: BodiceChoices, kind: SeamKind, garment: 'bodice' 
   if (c.closure === 'wrap') return `${words} would cross the wrap's front edge. Choose the back zip first.`;
   if (kind === 'yoke' && side === 'front') {
     const depth = c.neck ? c.neck.frontDepth : NECKLINE_DEPTH[c.neckline];
-    if (depth > 4) return 'A front yoke needs a high neckline: this one cuts through where the yoke goes.';
+    // (A look's plunge may take a shoulder panel each side, its seam slanted from the armhole to the edge of the V. It is
+    // set by the look only: the picker still offers no front yoke on a plunge, so it is not a new option to test.)
+    if (depth > 4 && !(c.neckline === 'plunge' && !c.neck && c.yoke?.frontSlant !== undefined)) return 'A front yoke needs a high neckline: this one cuts through where the yoke goes.';
   }
   if (kind === 'yoke' && side === 'back' && c.neck && c.neck.backDepth > 4) return 'A back yoke needs a high back neckline: this one cuts through where the yoke goes.';
   if (kind !== 'yoke' && garment === 'bodice' && c.length === 'cropped') return `${words} ${kind === 'panel' ? 'run' : 'runs'} to the waist, and a cropped top is cut off above it. Pick the waist length first.`;
@@ -651,8 +658,11 @@ export function validDetails(c: BodiceChoices, garment: 'bodice' | 'dress' = 'bo
   return out;
 }
 
+/** How much longer than the armhole a softly gathered sleeve head is cut, in cm. */
+const HEAD_GATHER = 5;
+
 /** The sleeve as chosen, made valid: a shape the length allows. */
-export function sleeveOf(c: BodiceChoices): { length: SleeveLength; shape: SleeveShape; cm?: number; cuff?: Exclude<Cuff, 'none'>; cut?: Exclude<SleeveCut, 'set_in'>; fullness?: 'full' } {
+export function sleeveOf(c: BodiceChoices): { length: SleeveLength; shape: SleeveShape; cm?: number; cuff?: Exclude<Cuff, 'none'>; cut?: Exclude<SleeveCut, 'set_in'>; fullness?: 'full'; headGather?: number } {
   const length = c.sleeve ?? 'none';
   // A kimono sleeve is cut on at its named length, with no shape, slider or cuff of its own.
   const cut = sleeveCutOf(c);
@@ -665,7 +675,7 @@ export function sleeveOf(c: BodiceChoices): { length: SleeveLength; shape: Sleev
   const cuff = c.sleeveCuff && c.sleeveCuff !== 'none' && cuffAllowed(c.sleeveCuff, length, shape) ? c.sleeveCuff : undefined;
   // Only a gathered sleeve (puff or bishop) has a fullness to choose; the others are cut as their shape says.
   const fullness = c.sleeveFullness === 'full' && (shape === 'puff' || shape === 'bishop') ? 'full' : undefined;
-  return { length, shape, ...(cm === undefined ? {} : { cm }), ...(cuff ? { cuff } : {}), ...(cut === 'set_in' ? {} : { cut }), ...(fullness ? { fullness } : {}) };
+  return { length, shape, ...(cm === undefined ? {} : { cm }), ...(cuff ? { cuff } : {}), ...(cut === 'set_in' ? {} : { cut }), ...(fullness ? { fullness } : {}), ...(c.sleeveHead === 'gathered' && shape === 'bishop' && cut === 'set_in' ? { headGather: HEAD_GATHER } : {}) };
 }
 
 /**

@@ -6,6 +6,7 @@ import type { BodiceDraft } from './bodice';
 import type { SewStep, SewingGuide } from './instructions';
 import type { DartPlace } from './manipulate';
 import { dartsOf } from './marks';
+import { taggedLength } from './geometry';
 import { cm } from './skirt';
 
 const PRESS: Record<DartPlace, string> = {
@@ -45,9 +46,10 @@ function seamSteps(draft: BodiceDraft, seam: string): { darts?: SewStep; join: S
     const front = named(/front yoke/).length > 0;
     const back = named(/back yoke/).length > 0;
     const which = front && back ? 'yokes' : front ? 'front yoke' : 'back yokes';
-    const backText = front
+    // (After shoulder panels the back yoke gets its own words: it is not gathered, clipped or joined at the centre.)
+    const backText = front && !named(/front yoke/).some((pc) => /pair/.test(pc.cut))
       ? 'Join each back yoke to its back the same way, matching the double notches.'
-      : `Pin each back yoke to the top edge of its back, right sides together, matching the centre back and the double notches. Sew ${seam} from the edge, and press the seam up toward the yoke.`;
+      : `Pin ${named(/back yoke/).some((pc) => /fold/.test(pc.cut)) ? 'the back yoke to the top edge of the back' : 'each back yoke to the top edge of its back'}, right sides together, matching the centre back and the double notches. Sew ${seam} from the edge, and press the seam up toward the yoke.`;
     // A shirt's back yoke: one yoke on the fold, and the back's box pleat folded before it is joined.
     const pleat = named(/^Bodice back$/).find((pc) => pc.meta.boxPleat)?.meta.boxPleat as number | undefined;
     if (pleat && !front)
@@ -57,7 +59,14 @@ function seamSteps(draft: BodiceDraft, seam: string): { darts?: SewStep; join: S
           text: `Open the back out flat, right side up. Crease it along each pleat line, ${cm(pleat / 2)} either side of the middle, and bring the two centre back notches together underneath so they meet at the middle: the box pleat lies ${cm(pleat)} across on the right side. Pin it and tack across the top edge. Pin the back yoke to the top edge of the back, right sides together, matching the centre back and the double notches. Sew ${seam} from the edge, and press the seam up toward the yoke. The pleat hangs free below the seam.`,
         },
       };
-    const text = [front ? `Pin the front yoke to the top edge of the bodice front, right sides together, matching the centre front and the notch. Sew ${seam} from the edge, and press the seam up toward the yoke.` : '', back ? backText : ''];
+    // A plunge's front yoke is a shoulder panel each side of the V, and the front below may be gathered into it.
+    const panels = named(/front yoke/).some((pc) => /pair/.test(pc.cut));
+    // (Panels carried on down the V as a strip are joined to each other under its point, and their seam turns a corner.)
+    const strip = named(/front yoke/).some((pc) => taggedLength(pc.outline, 'centre') > 0.5);
+    const frontText = panels
+      ? `${strip ? 'Sew the two front yokes (the shoulder panels) together along their short centre front edges, right sides together, and press the seam open. Staystitch the top edge of the bodice front just inside the seam line round each curve where the seam turns down the V, and clip into the curves up to the stitching. ' : ''}${draft.panelGather ? `Sew two rows of long gathering stitches along each top edge of the bodice front, from ${strip ? 'the top of the curve' : 'the edge of the V'} to the armhole, one just inside the seam line and one 0.5 cm nearer the edge. ` : ''}Pin each front yoke (the shoulder panels) to a top edge of the bodice front, right sides together, from ${strip ? 'the centre front' : 'the edge of the V'} to the armhole, matching the notch${strip ? ' and easing the front round the curve' : ''}.${draft.panelGather ? ' Draw up the gathering threads until the front fits the panel, spread the gathers evenly and pin closely.' : ''} Sew ${seam} from the edge${draft.panelGather ? ' with the gathers uppermost' : ''}, and press the seam up toward the panel.`
+      : `Pin the front yoke to the top edge of the bodice front, right sides together, matching the centre front and the notch. Sew ${seam} from the edge, and press the seam up toward the yoke.`;
+    const text = [front ? frontText : '', back ? backText : ''];
     return { join: { title: `Join the ${which}`, text: text.filter(Boolean).join(' ') } };
   }
   if (kind === 'empire') {

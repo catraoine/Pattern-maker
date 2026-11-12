@@ -54,6 +54,9 @@ export interface SleeveStyle {
    * shoulders, cut off the bodice, to go onto the sleeve. */
   cut?: SleeveCut;
   raglan?: { front: RaglanYoke; back: RaglanYoke };
+  /** A set-in bishop sleeve only (set by a look): its crown cut this many cm longer than the armhole and softly
+   * gathered in over the shoulder, a soft head and not a puff's standing one. */
+  headGather?: number;
 }
 
 /** Bicep and crown ease for jacket and coat sleeves, by fit. */
@@ -105,7 +108,9 @@ export interface SleeveDraft {
   /** Round the hem as finished: the hem, or the band on a gathered sleeve. */
   hemCm: number;
   /** Gathered sleeves: how much is gathered into the armhole (puff) and into the band. */
-  gathers?: { crown?: number; hem: number };
+  /** `crown`: a puff's crown, cut longer to stand up. `head`: a soft head (headGather), a little longer and gathered in
+   * flat, drawn and draped as the sleeve it is. */
+  gathers?: { crown?: number; head?: number; hem: number };
   elbowDart?: number;
   /** A fitted long sleeve's wrist vent: the sleeve seam left open from the hem up `lengthCm`, where
    * the vent notch is, and hemmed as a slit. */
@@ -214,7 +219,7 @@ export function draftSleeve(bodice: BodiceDraft, m: SleeveMeasurements, s: Sleev
 /** The pattern's note on the sleeve: its bicep and crown ease, or how a sleeve that isn't set in is cut. */
 export function sleeveNote(sl: SleeveDraft): string {
   if (sl.cut === 'kimono') return `Kimono sleeves, cut in one with the bodice: ${sl.lengthCm} cm from the shoulder point, ${sl.bicep} cm round under the arm, ${sl.hemCm} cm round the hem.`;
-  const crown = sl.gathers?.crown !== undefined ? `${sl.gathers.crown} cm gathered into the crown` : `crown ease ${sl.crownEase.front} cm front, ${sl.crownEase.back} cm back`;
+  const crown = (sl.gathers?.crown ?? sl.gathers?.head) !== undefined ? `${sl.gathers!.crown ?? sl.gathers!.head} cm gathered into the crown` : `crown ease ${sl.crownEase.front} cm front, ${sl.crownEase.back} cm back`;
   if (sl.cut === 'raglan') return `Raglan sleeves, each cut in two along the top of the arm with the shoulder on it: bicep ${sl.bicep} cm.`;
   if (sl.cut === 'drop') return `Dropped shoulder, ${DROP.out} cm past your shoulder point: bicep ${sl.bicep} cm, ${crown}.`;
   return `Sleeve: bicep ${sl.bicep} cm, ${crown}.`;
@@ -273,13 +278,16 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
   // A full puff is cut nearly twice the arm round, so it stands up when gathered in; a full bishop keeps the arm width
   // at the top and swells to its hem (hemAt).
   if (shape === 'puff') w *= full ? 1.9 : 1.3;
-  const target = front.length + back.length + (shape === 'puff' ? 0 : ease.crown);
+  // A softly gathered head (headGather): the crown that much longer, half found in width and the rest in height.
+  const headGather = shape === 'bishop' && !sleeveCut && s.headGather && s.headGather > 0 ? s.headGather : 0;
+  w += headGather / 2;
+  const target = front.length + back.length + (shape === 'puff' ? 0 : ease.crown) + headGather;
 
   // Find the crown height for the length, and the crown point for the split; widen or narrow the
   // sleeve when no sensible height fits.
   // A dropped shoulder's crown is low and flat, as its armhole is.
   const hMin = depth * (sleeveCut === 'drop' ? 0.15 : 0.35);
-  const hMax = depth * (sleeveCut === 'drop' ? 0.55 : 0.95);
+  const hMax = depth * (sleeveCut === 'drop' ? 0.55 : headGather ? 1.05 : 0.95);
   // Underseam directions at the underarm, worked out from a first pass and then from the real hem.
   let dirs: [P, P] = [unit(p(-0.08, 1)), unit(p(0.08, 1))];
   const bisect = (lo: number, hi: number, grows: (v: number) => boolean) => {
@@ -509,7 +517,7 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
       { at: p(0, Math.min(h + 6, L - 1.5)), text: cut, size: 0.9 },
       { at: place(add(notchF, p(-2.6, 1.6))), text: 'FRONT', size: 0.6 },
       { at: place(add(notchB, p(2.6, 1.6))), text: 'BACK', size: 0.6 },
-      ...(shape === 'puff' ? [{ at: p(cx, h * 0.45), text: 'GATHER BETWEEN NOTCHES', size: 0.55 }] : []),
+      ...(shape === 'puff' || headGather ? [{ at: p(cx, h * 0.45), text: 'GATHER BETWEEN NOTCHES', size: 0.55 }] : []),
       ...(cuff && cuff.kind !== 'elastic' && cuff.kind !== 'ruffle'
         ? [{ at: p(0, L - 3), text: `GATHER TO FIT THE ${cuff.kind === 'shirt' ? 'CUFF' : 'TIE CUFF'}`, size: 0.55 }]
         : gathered && !cuff
@@ -526,7 +534,7 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
       armhole: s.armholeAllowance,
       hem: cuff?.kind === 'elastic' ? cuff.depth + 0.5 : gathered || cuff ? s.seamAllowance : flutter ? 1 : cap_ ? Math.min(1.5, s.hemAllowance) : s.hemAllowance,
     },
-    meta: { capHeight: r1(h), ...(shape === 'puff' ? { gatheredCrown: true } : {}), ...(flutter ? { flutter: true } : {}), ...(cap_ ? { cap: true } : {}), ...(full ? { full: true } : {}) },
+    meta: { capHeight: r1(h), ...(shape === 'puff' || headGather ? { gatheredCrown: true } : {}), ...(flutter ? { flutter: true } : {}), ...(cap_ ? { cap: true } : {}), ...(full ? { full: true } : {}) },
   };
   const named = namedAt(h);
   const lengthInfo = { cm: r1(setFor(h)), min: r1(h + MIN_UNDERSEAM), max: r1(named.long), named: Object.fromEntries(SLEEVE_LENGTHS.map((l) => [l, r1(named[l])])) as Record<Named, number> };
@@ -579,7 +587,7 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
       lengthCm: r1(L),
       length: lengthInfo,
       hemCm: cuff.round,
-      gathers: { hem: r1(hemLen - cuff.round) },
+      gathers: { ...(headGather ? { head: r1(crownLen - front.length - back.length) } : {}), hem: r1(hemLen - cuff.round) },
       cuff,
       ...(ventTop ? { vent: { lengthCm: ventCm!, at: 'back seam' as const } } : {}),
       ...cutOf,
@@ -598,6 +606,7 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
     gathers: gathered
       ? {
           crown: shape === 'puff' ? r1(crownLen - front.length - back.length) : undefined,
+          ...(headGather ? { head: r1(crownLen - front.length - back.length) } : {}),
           hem: r1(hemLen - (band!.meta.lengthCm as number)),
         }
       : undefined,

@@ -185,6 +185,8 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
     ((id !== 'bustDart' && id !== 'princess') || can('dartMoves') || moved(id)) &&
     // A top below the shoulders always opens at the back and has no collar; a boned one is cut in panels.
     !(top && (id === 'closure' || id === 'collar' || id === 'back')) &&
+    // A top that pulls on has no opening to pick.
+    !(draft?.pullOn && id === 'closure') &&
     !(boned && id === 'princess') &&
     !(draped && (id === 'princess' || id === 'bustDart' || id === 'closure' || id === 'collar' || id === 'back' || id === 'structure'));
 
