@@ -266,7 +266,8 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
         <text
           key={active && kind === 'hem' && !choices.lengthCm ? choices.length : ''}
           className={active && kind === 'hem' && !choices.lengthCm ? 'caught' : undefined}
-          x={kind === 'hem' ? at.x - r - 1.5 * k : at.x + r + 2.6 * k}
+          // A clear gap from the disc (Cat, Nov 11 sweep: the disc sat on the last letter, "KNE").
+          x={kind === 'hem' ? at.x - r - 3.2 * k : at.x + r + 3.2 * k}
           y={at.y + 0.9 * k}
           fontSize={2.6 * k}
           textAnchor={kind === 'hem' ? 'end' : 'start'}

@@ -33,7 +33,16 @@ export function FabricCard({ metres, advice, look, fabric, knit, lined, children
       {mine && <p className="small">Your fabric: {mine}.</p>}
       {/* Folded, so the tab stays short on a phone, under the pinned sketch. */}
       <details className="small fold-link">
-        <summary>Good fabrics for {advice.style}</summary>
+        {/* A hyphenated word kept whole: "T-shirt" split as "T-" and "SHIRT" across two lines (Cat, Nov 11 sweep). */}
+        <summary>
+          Good fabrics for{' '}
+          {advice.style.split(' ').map((w, i) => (
+            <span key={i}>
+              {i ? ' ' : ''}
+              {w.includes('-') ? <span className="nowrap">{w}</span> : w}
+            </span>
+          ))}
+        </summary>
         <ul className="picks">
           {look && (
             <li>

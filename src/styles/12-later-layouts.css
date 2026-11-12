@@ -55,7 +55,20 @@ input.inline:focus,
 .all-round-tools {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   gap: 6px;
+}
+
+.all-round-hint {
+  /* "Drag to turn", at the left of the view's buttons in the small spaced caps it had on the canvas. */
+  margin-right: auto;
+  align-self: center;
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--muted);
 }
 
 .all-round-closer {

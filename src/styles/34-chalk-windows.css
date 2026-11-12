@@ -180,7 +180,9 @@ section[aria-label='Preview'] > .preview .shape .handle text {
   fill: var(--ink);
   paint-order: stroke;
   stroke: var(--chalk);
-  stroke-width: 0.7;
+  /* A wider halo, so the seam and dart lines under REGULAR and the legs under KNEE stop at the letters (Cat, Nov 11
+     sweep). */
+  stroke-width: 1.4;
   stroke-linejoin: round;
 }
 

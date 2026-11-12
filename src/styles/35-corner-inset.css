@@ -12,3 +12,54 @@
     padding-right: 0;
   }
 }
+/* The same on a computer (Cat, Nov 11 sweep: Enlarge, Draw and Move points sat 1 px from the drawing's left edge). */
+@media (min-width: 761px) {
+  .style-layout .preview-corner {
+    top: 10px;
+    left: 16px;
+  }
+}
+
+/* "Show all tools" runs in the line of words after it: the button's own 40 px height made its line far taller than the
+   next, so "more" dropped well below (Cat, Nov 11 sweep). The button sits in the line like a word; a wider invisible
+   edge keeps it easy to tap. */
+.mode-link button.later {
+  position: relative;
+  min-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  vertical-align: baseline;
+  line-height: inherit;
+}
+.mode-link button.later::after {
+  content: '';
+  position: absolute;
+  inset: -12px -4px;
+}
+
+/* The view switch reads as four equal words (Cat, Nov 11 sweep: Pattern looked bigger and sat lower than Front, Flat and
+   All round, being always a weight heavier, and on a phone the highlight hugged "All round" with no room round it). */
+.style-layout .style-pin > section:not(.live-big) > .lookboxes button:not(.on) .lookname {
+  font-weight: 400;
+}
+.style-layout .style-pin > section:not(.live-big) > .lookboxes .lookname {
+  line-height: 17px;
+}
+@media (max-width: 760px) {
+  .style-layout .style-pin > section:not(.live-big) .seg button {
+    padding: 0 9px;
+  }
+}
+
+/* The dashed "Drafted to an example body" strip on Print: on a phone its words take two lines, and with no room above
+   or below they touched the dashes (Cat, Nov 11 sweep). */
+.example-tag {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  line-height: 1.35;
+}
+
+/* A hyphenated word kept on one line ("T-shirt" in Good fabrics for a regular fit T-shirt). */
+.nowrap {
+  white-space: nowrap;
+}

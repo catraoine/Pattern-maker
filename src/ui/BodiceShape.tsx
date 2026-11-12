@@ -348,6 +348,8 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
     const r = 2.4 * k;
     const c = 1.1 * k;
     const o = r + 1.2 * k;
+    // About how wide the word is: Chakra Petch caps with 0.2em tracking run close to 0.85 of the type size each.
+    const roomRight = at.x + r + 3.2 * k + text.length * 2.6 * k * 0.85 < 2 * cx - k;
     const arrows =
       kind === 'hem'
         ? `M${at.x - c} ${at.y - o + c} L${at.x} ${at.y - o} L${at.x + c} ${at.y - o + c} M${at.x - c} ${at.y + o - c} L${at.x} ${at.y + o} L${at.x + c} ${at.y + o - c}`
@@ -357,11 +359,14 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
         <circle cx={at.x} cy={at.y} r={r} strokeWidth={0.22} />
         <circle cx={at.x} cy={at.y} r={0.45 * k} className="dot" />
         <path d={arrows} strokeWidth={0.22} fill="none" />
+        {/* Beside the disc with a clear gap, out on the ground where no seam or dart line runs through it (Cat, Nov 11
+            sweep: the disc sat on the W of WAIST and the bodice's lines crossed REGULAR). Too wide for the room to the
+            right, the ease word drops below the disc as before. */}
         <text
-          x={kind === 'hem' ? at.x + r + 1.5 * k : at.x + r}
-          y={kind === 'hem' ? at.y + 0.9 * k : at.y + r + 4.6 * k}
+          x={kind === 'hem' || roomRight ? at.x + r + 3.2 * k : at.x + r}
+          y={kind === 'hem' || roomRight ? at.y + 0.9 * k : at.y + r + 4.6 * k}
           fontSize={2.6 * k}
-          textAnchor={kind === 'hem' ? 'start' : 'end'}
+          textAnchor={kind === 'hem' || roomRight ? 'start' : 'end'}
         >
           {text.toUpperCase()}
         </text>

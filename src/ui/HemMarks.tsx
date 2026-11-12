@@ -80,8 +80,9 @@ export function HemMarks({ name, marks, value, onPick, svg, cx, k, hemAt, bare, 
         <path d={arrows} strokeWidth={0.22} fill="none" />
         {/* Bare, the drawing is framed close to the garment: the name goes to the left of the dot, on the hem, not under
             it across the legs (Cat, Nov 11: "move words"). */}
-        {/* Caught on a named length, its name pops (a new key starts the pop again for each one). */}
-        <text key={held?.on ?? ''} className={held?.on ? 'caught' : undefined} x={bare ? dot.x - r - 1.5 * k : dot.x + r + 1.5 * k} y={dot.y + 0.9 * k} fontSize={2.6 * k} textAnchor={bare ? 'end' : undefined}>
+        {/* Caught on a named length, its name pops (a new key starts the pop again for each one). A clear gap from the
+            disc so it never sits on a letter (Cat, Nov 11 sweep: "NEE", "FULL LENG"). */}
+        <text key={held?.on ?? ''} className={held?.on ? 'caught' : undefined} x={bare ? dot.x - r - 3.2 * k : dot.x + r + 3.2 * k} y={dot.y + 0.9 * k} fontSize={2.6 * k} textAnchor={bare ? 'end' : undefined}>
           {label.toUpperCase()}
         </text>
         <circle

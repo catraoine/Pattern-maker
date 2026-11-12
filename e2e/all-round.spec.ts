@@ -1,18 +1,21 @@
 import { GarmentName, chooseChip, expect, goTab, startWithExample, switchGarment, test } from './fixtures';
 
-// All round: the skirt turning on the form, its checks folded into one quiet line (Cat's Q2 Quiet in Calico).
-test('all round shows the skirt on the form, with its seams and hem checked in one quiet line', async ({ page }) => {
+// All round: the skirt turning on the form. Its checks run but say nothing when they pass (Cat, Nov 11: "can't the user
+// just assume that these things are checked because it's a quality app?"); only "Drag to turn" sits under it, until the
+// garment is first turned.
+test('all round shows the skirt on the form, quietly checked, with only Drag to turn under it', async ({ page }) => {
   await startWithExample(page);
   const main = page.getByRole('main');
   await main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round', exact: true }).click();
   await expect(main.getByRole('img', { name: /on your form, turning/ })).toBeVisible();
-  await expect(main.getByText('Seams and hem checked', { exact: true })).toBeVisible();
-  await expect(main.getByText('A shape preview, not a cloth simulation.')).toBeVisible();
+  await expect(main.getByText(/^(Drag to turn|Sewing your pattern…)$/)).toBeVisible();
+  await expect(main.getByText(/checked$/)).toHaveCount(0);
+  await expect(main.getByText('A shape preview, not a cloth simulation.')).toHaveCount(0);
   // No hem chart under the form: its CF / Left / CB / Right labels were drawn on the canvas, so the figure fills it.
 
   // A high-low hem is still checked, and nothing is flagged.
   await chooseChip(page, 'Hem', 'High-low');
-  await expect(main.getByText('Seams and hem checked', { exact: true })).toBeVisible();
+  await expect(main.getByRole('img', { name: /on your form, turning/ })).toBeVisible();
   await expect(main.getByText(/problem|fix/i)).toHaveCount(0);
 });
 
@@ -21,14 +24,12 @@ test('all round works for every garment', async ({ page }) => {
   test.setTimeout(120_000);
   await startWithExample(page);
   const main = page.getByRole('main');
-  const seams = /^Seams, hem and sleeves checked$|^Seams and hem checked$/;
   const reads: GarmentName[] = ['Bodice', 'Dress', 'Tee', 'Jacket', 'Coat', 'Trousers'];
   for (const g of reads) {
     await switchGarment(page, g);
     await main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round', exact: true }).click();
     await expect(main.getByRole('img', { name: /on your form, turning/ })).toBeVisible();
-    await expect(main.getByText(seams)).toBeVisible();
-    await expect(main.getByText('A shape preview, not a cloth simulation.')).toBeVisible();
+    await expect(main.getByText(/checked$/)).toHaveCount(0);
     await expect(main.getByText(/problem|fix/i)).toHaveCount(0);
   }
 });
