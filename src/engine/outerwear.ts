@@ -723,8 +723,10 @@ function openFront(pc: Piece, s: OuterStyle, ext: number, buttons: OuterDraft['b
     // A wide lapel (In testing) is 3 cm broader (half that on a double front, already broad); a plunging one a little broader to carry its longer roll.
     const high = highLapel(s);
     const lowLapel = high && s.front === 'single' && s.collar === 'notched';
+    // (The house vest's own: a wider collar, from Cat's Look 02 picture, Nov 12.)
+    const HL = s.houseCut ? { ...HIGH_LAPEL, ...HOUSE_LAPEL } : HIGH_LAPEL;
     // (A single high lapel is 8 cm across at its point, however big the vest, and opens the V wide, as in Cat's picture.)
-    const W = high && s.front === 'single' && s.collar === 'notched' ? HIGH_LAPEL.width :
+    const W = high && s.front === 'single' && s.collar === 'notched' ? HL.width :
       (s.front === 'double' ? (s.kind === 'coat' ? 8.5 : 7.5) : s.kind === 'coat' ? 8.5 : 7.5) +
       // (Not a high lapel's: it stays a third of the front across, as the picture's does, however big the vest.)
       (s.fit === 'oversized' && !high ? OVERSIZED_LAPEL.wider : 0) +
@@ -780,8 +782,8 @@ function openFront(pc: Piece, s: OuterStyle, ext: number, buttons: OuterDraft['b
     // The collar point, turned up from the lapel's top edge to leave a notch of about 50 degrees; a peak's
     // collar meets its lapel at a narrow notch, and a shawl's runs on from it with none.
     const dl = unit(sub(Lp, K));
-    const ang = ((peak ? 15 : shawl ? 88 : lowLapel ? HIGH_LAPEL.collarAngle : 50) * Math.PI) / 180;
-    const Cp = add(K, mul(add(mul(dl, Math.cos(ang)), mul(u, Math.sin(ang))), shawl ? 0.6 : peak ? 3.4 : lowLapel ? HIGH_LAPEL.collarLength : s.kind === 'coat' ? 4.6 : 4));
+    const ang = ((peak ? 15 : shawl ? 88 : lowLapel ? HL.collarAngle : 50) * Math.PI) / 180;
+    const Cp = add(K, mul(add(mul(dl, Math.cos(ang)), mul(u, Math.sin(ang))), shawl ? 0.6 : peak ? 3.4 : lowLapel ? HL.collarLength : s.kind === 'coat' ? 4.6 : 4));
     lapel = { breakPt: B, roll: [B, R], worn: [...lapelEdge, K, Q].map(reflect), notch: reflect(K), collarPoint: reflect(Cp), neckPoint: hps, gorge: Q, ...(shawl ? { shawl: true as const } : {}) };
     frontNeck = polyLen([...neckSeam, hps]);
     join = breakY + 4;
@@ -1045,6 +1047,16 @@ const plunges = (s: Pick<OuterStyle, 'lapel' | 'collar' | 'front'>) => s.lapel =
 // out to a point aiming down and out, 25 degrees below the lapel's line, and the 6 cm lapel tucks in under it, its point
 // level with the notch, as Cat drew it over her SS27 vest picture and asked "a touch bigger for more drama", 2026-11-07.)
 const HIGH_LAPEL = { breakBelowNeck: 17, gorge: 0.37, width: 6, notch: -2, collarAngle: -25, collarLength: 6.2, pointDrop: 0, buttons: 3, gap: 14, buttonSize: 3 };
+/** The house vest's collar (Look 02), wider than a high lapel's: its points sit about 13 cm out from the centre front on
+ *  the example body, where they sat 8.4, as measured against Cat's picture at the same shoulder width (Cat, Nov 12: "check
+ *  the top and bottom lapel ratio against the inspo"; the heights already matched, the width did not). Wider still, about
+ *  14 cm, the collar is drawn strained in All round. */
+const HOUSE_LAPEL = { width: 7, collarAngle: 0, collarLength: 10 };
+/** On the house vest the lapel breaks this far above the chest seam, cm, as in Cat's picture, so the seam, the lapel's
+ *  turn and the top buttonhole are not all at one spot (Nov 12). */
+const HOUSE_BREAK_ABOVE_SEAM = 2;
+/** And its welt pockets sit this much lower than a jacket's, cm, three quarters of the way down as in the picture. */
+const HOUSE_POCKETS_LOWER = 5;
 const highLapel = (s: Pick<OuterStyle, 'lapel' | 'collar'>) => s.lapel === 'high' && lapelled(s.collar);
 
 /** Buttons down the front: from the break point (or just below the neck) to above the hem, about 10 cm apart. */
@@ -1260,7 +1272,7 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
   const seamY = seamY0 === undefined ? undefined : s.houseCut ? clearOfUnderarm(block[0], underarmOf(block[0])) : clearOfUnderarm(block[0], seamY0);
   const houseBreak = s.houseCut && seamY !== undefined && lapelled(s.collar) && s.front === 'single';
   const breakY = houseBreak
-    ? seamY!
+    ? seamY! - HOUSE_BREAK_ABOVE_SEAM
     : measuredBreak !== undefined
     ? measuredBreak
     : plunges(s)
@@ -1394,7 +1406,7 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     const y = s.pocketAt
       ? Math.max(waistY - 4, Math.min(lowest, s.pocketAt.y))
       : welt
-        ? Math.min(waistY + (m.waist_to_hip ?? 20) * (s.kind === 'coat' ? 0.5 : 0.4), lowest)
+        ? Math.min(waistY + (m.waist_to_hip ?? 20) * (s.kind === 'coat' ? 0.5 : 0.4) + (s.houseCut ? HOUSE_POCKETS_LOWER : 0), lowest)
         : Math.min(waistY + (m.waist_to_hip ?? 20) * 0.35, foot - h - 4);
     const carrier = fronts.reduce((best, pc) => {
       const [lo, hi] = spanAt(pc, y + h / 2);

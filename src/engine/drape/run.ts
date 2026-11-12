@@ -25,6 +25,7 @@ import { fairDroppedSeam } from './seamFair';
 import { BUST_Y, fitRoom, type FitPin } from './fitMap';
 import { clearCollars } from './collarClear';
 import { hugCollars, JACKET_HUG, openCollarEnds } from './collarHug';
+import { weltPockets } from './outerPockets';
 import { fairBackCentre } from './fairFront';
 import { layLapelFoot } from './lapelFoot';
 import { fairStraps } from './strapFair';
@@ -162,6 +163,8 @@ export function runDrape(job: DrapeJob): DrapedLite {
   // with collar", Nov 11).
   if (job.kind === 'outer' && job.draft.lapel && !knob('__noCollarOpen')) openCollarEnds(d);
   if (job.kind === 'outer' && job.draft.lapel && !knob('__noCollarHug')) hugCollars(d, sp, job.draft.sleeveless ? undefined : JACKET_HUG);
+  // A welt pocket's opening, which is not in the front's cut, drawn where the pattern marks it (outerPockets.ts).
+  if (job.kind === 'outer') weltPockets(d, job.draft);
   // A shawl's top collar is cut in one with its facing, so the gorge seam under it doesn't show: drawn, it read as a
   // notch where the collar meets the lapel (Cat "Collar, start more with clo", Nov 11).
   if (job.kind === 'outer' && job.draft.lapel?.shawl) d.lines = d.lines.filter((l) => l.kind !== 'gorge');
