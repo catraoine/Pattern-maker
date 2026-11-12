@@ -422,6 +422,9 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
               </p>
             )}
             {g.id === 'waist' && zipOf(choices) && (
+              <>
+              {/* "Zip" said once above the two places, not on each button (Cat, Nov 11 2026). */}
+              <p className="eyebrow zip-label" aria-hidden="true">Zip</p>
               <div className="chips" role="group" aria-label="Zip">
                 {ZIP_PLACES.map(([id, label]) => (
                   <button
@@ -432,10 +435,11 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
                     disabled={id === 'side' && !sideZipAllowed(choices)}
                     onClick={() => change({ ...choices, zip: id === 'side' ? 'side' : undefined })}
                   >
-                    Zip: {label}
+                    {label}
                   </button>
                 ))}
               </div>
+              </>
             )}
             {g.id === 'waist' && zipOf(choices) === 'side' && (
               <p className="muted small">The zip goes in the left side seam, so the back is cut whole on the fold{choices.slit === 'back' ? ', or keeps its centre seam for the slit' : ''}.</p>

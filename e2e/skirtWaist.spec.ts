@@ -17,7 +17,7 @@ test('skirt waist: faced, high and a side zip', async ({ page }, info) => {
   await chooseChip(page, 'Waist', 'High waist');
   await expect(main.getByText(/high-waisted A-line skirt/i).first()).toBeAttached();
   const waist = await openGroup(page, 'Waist');
-  await waist.getByRole('button', { name: 'Zip: Left side' }).click();
+  await waist.getByRole('group', { name: 'Zip' }).getByRole('button', { name: 'Left side' }).click();
   await expect(main.getByText(/high-waisted A-line skirt with a side zip/i).first()).toBeAttached();
   await expect(waist.getByText(/back is cut whole on the fold/)).toBeVisible();
   await page.screenshot({ path: info.outputPath('skirt-high-side.png'), fullPage: true });

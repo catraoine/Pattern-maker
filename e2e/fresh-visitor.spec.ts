@@ -27,7 +27,7 @@ const STYLE_CHANGES: Record<GarmentName, [string, string][]> = {
   ],
   Jacket: [
     ['Front', 'Double-breasted'],
-    ['Collar', 'Stand collar'],
+    ['Collar', 'Stand'],
   ],
   Coat: [
     ['Length', 'Midi'],

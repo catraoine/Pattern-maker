@@ -51,7 +51,7 @@ import { armFor } from '../ui/DrawOnForm';
 import { orSeam, readSeamLine } from '../ui/formSeams';
 import { orNeckline, readUnevenNeckline, unevenNecklineLines } from '../ui/formBodice';
 import { REPLACES } from './BodiceStyleScreen';
-import { FormLine, bodiceLines, landmarks, readDrape, readDressSide, readFit, readNeckline, readSeam, readSkirtHem, readWaistSeam, seamWords, skirtLines, standingBand } from '../ui/formLines';
+import { FormLine, bodiceLines, landmarks, readDrape, readDressSide, readFit, readNeckline, readSeam, readSkirtHem, readWaistSeam, seamCm, seamWords, skirtLines, standingBand } from '../ui/formLines';
 import { BANDS, isBandCollar } from '../engine/collar';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 import { Explain } from '../ui/Explain';
@@ -670,8 +670,9 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                   }}
                 />
                 <p className="muted small" aria-live="polite">
-                  {seamWords(Math.round(draft.seamDrop), draft.seamRange)}
-                  {!canRaise && ' Princess seams or panels keep it at the waist or below.'}
+                  {/* On a named pick its own line already says where the seam sits, so this adds only the height in cm (none at the natural waist); once the slider has moved it, the full words (Cat, Nov 11 2026: no saying it twice). */}
+                  {ownSeam ? seamWords(Math.round(draft.seamDrop), draft.seamRange) : seamCm(Math.round(draft.seamDrop))}
+                  {!canRaise && `${ownSeam || Math.round(draft.seamDrop) !== 0 ? ' ' : ''}Princess seams or panels keep it at the waist or below.`}
                 </p>
               </div>
             )}

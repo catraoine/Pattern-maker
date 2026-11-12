@@ -13,7 +13,8 @@ const TILE = 16;
  * With a print chosen, the print is drawn instead, at its own scale (Cat's P4 Place the Motifs): big
  * motifs are lined up so one sits in the middle of the front, and a border runs along the selvedge.
  */
-export function LayPlanView({ lay, cloth = 'default', print }: { lay: Lay; cloth?: string; print?: { kind: PrintKind; repeat?: number; stripes?: boolean; gingham?: boolean } }) {
+/** `size` writes the length and width under the drawing: only needed when a page shows more than one layout, since one layout's size is already its heading (Cat, Nov 11 2026: say it once). */
+export function LayPlanView({ lay, cloth = 'default', print, size: showSize = true }: { lay: Lay; cloth?: string; print?: { kind: PrintKind; repeat?: number; stripes?: boolean; gingham?: boolean }; size?: boolean }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const L = lay.length + 4;
   const H = lay.across;
@@ -63,9 +64,11 @@ export function LayPlanView({ lay, cloth = 'default', print }: { lay: Lay; cloth
       <text x={0} y={H + size * 1.6} fontSize={size} className="lay-note">
         {lay.folded ? 'SELVEDGES' : 'SELVEDGE'}
       </text>
-      <text x={L} y={H + size * 1.6} fontSize={size} textAnchor="end" className="lay-note">
-        {`${lay.metres.toFixed(1)} M  ·  ${lay.width} CM WIDE`}
-      </text>
+      {showSize && (
+        <text x={L} y={H + size * 1.6} fontSize={size} textAnchor="end" className="lay-note">
+          {`${lay.metres.toFixed(1)} M  ·  ${lay.width} CM WIDE`}
+        </text>
+      )}
       {lay.placements.map((pl, i) => (
         <g key={i}>
           <polygon points={pts(pl.pts)} className="lay-piece" />
