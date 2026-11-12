@@ -331,7 +331,7 @@ export default function App() {
   }, [gated]);
   const setMode = (m: Mode) => setAccount({ ...account, mode: m });
   const storedFinish = { ...DEFAULT_FINISH, ...saved.finish };
-  const finish = finishFor(storedFinish, mode);
+  const finish = finishFor(storedFinish, mode, saved.house?.garment === garment ? saved.house.finish : undefined);
   const setFinish = (f: Finish) => setSaved({ ...saved, finish: keepFinish(storedFinish, f, mode) });
   const fabric = finish.fabric;
   // What every garment drafts from (see garmentDrafts.ts), and the open garment's entry in the catalogue.
@@ -956,7 +956,7 @@ export default function App() {
                 // The look comes in the cloth it's named for, so the drawing and the Fabric step open in it.
                 const cloth = lookFabric(look.fabric);
                 const withCloth = keepFinish(storedFinish, { ...finish, ...look.finish, fabric: cloth, cloth: clothFor(cloth, finish.cloth) }, mode);
-                switchGarment(g, { ...next, archive: archiveCut(look.id)?.id, finish: withCloth } as Partial<Saved>, 'style');
+                switchGarment(g, { ...next, archive: archiveCut(look.id)?.id, finish: withCloth, house: look.finish && { garment: g, finish: look.finish } } as Partial<Saved>, 'style');
                 window.scrollTo(0, 0);
               }}
             />
