@@ -1,4 +1,4 @@
-import { expect, expectStyle, openGroup, openLooks, startWithExample, test } from './fixtures';
+import { expect, expectStyle, fillStepPages, goPrint, measureMe, openFresh, openGroup, openLooks, pickToMake, startWithExample, test } from './fixtures';
 
 test('the Maison collection: open it from styling, draw every look, make one', async ({ page }) => {
   await startWithExample(page);
@@ -104,4 +104,32 @@ test('the Chocolate Barrel Trouser: made low on the hip with two pleats, in choc
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('pattern-maker:skirt') ?? '{}'));
   expect(saved.finish?.fabric).toMatchObject({ fibre: 'cotton', colour: '#3d2418', drape: 'crisp', sheen: 'soft' });
   expect(saved.trousers).toMatchObject({ leg: 'barrel', rise: 'low', pleats: 'double', loops: 'loops', length: 'full' });
+});
+
+test('a collection top with sleeves asks for the arms first, so its pattern has its sleeves', async ({ page }) => {
+  // Measured for a skirt only: no arms yet. Made before, the Leopard Shirt Dress printed with no sleeve piece and said
+  // "Sleeveless" (bug hunt, Nov 12).
+  await openFresh(page);
+  const main = page.getByRole('main');
+  await main.getByRole('button', { name: 'Begin' }).click();
+  await measureMe(page);
+  await fillStepPages(page);
+  await main.getByRole('button', { name: 'Choose what to make' }).click();
+  await pickToMake(page, 'Skirt');
+  await fillStepPages(page);
+  await expectStyle(page, 'Skirt');
+  await openLooks(page);
+  await main.getByRole('button', { name: 'Start from the Maison collection' }).click();
+  await main.getByRole('listitem').filter({ has: page.getByRole('heading', { name: 'Leopard Shirt Dress', exact: true }) }).getByRole('button', { name: 'Make this look' }).click();
+  // The pages it takes, then the style screen.
+  for (let n = 0; n < 4 && !(await main.getByRole('heading', { name: 'Style your bodice' }).isVisible()); n++) {
+    if (await main.getByRole('textbox').count()) await fillStepPages(page);
+    else await page.waitForTimeout(300);
+  }
+  await expectStyle(page, 'Bodice');
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('pattern-maker:account') ?? '{}'));
+  expect(JSON.stringify(saved)).toContain('"arm_length"');
+  await goPrint(page);
+  await expect(main.getByText(/^Sleeve\b.*: cut/).first()).toBeVisible();
+  await expect(main.getByText(/Sleeveless/)).toHaveCount(0);
 });

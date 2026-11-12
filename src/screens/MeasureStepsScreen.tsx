@@ -59,7 +59,7 @@ interface Props {
   onNews?: () => void;
 }
 
-export type StepsStart = { kind: 'resume' } | { kind: 'choose' } | { kind: 'form' } | { kind: 'for'; garment: Garment } | { kind: 'redo'; garment: Garment; ids: MeasurementId[] };
+export type StepsStart = { kind: 'resume' } | { kind: 'choose' } | { kind: 'form' } | { kind: 'for'; garment: Garment; also?: MeasurementId[] } | { kind: 'redo'; garment: Garment; ids: MeasurementId[] };
 
 type Page =
   | { kind: 'intro' }
@@ -118,7 +118,9 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     // measured: straight to the garments, or to the pages that garment still needs (Cat's A, 2026-10-24).
     if (!baseDone(values) && !(begun(values) && (start?.kind === 'choose' || aimed))) return { kind: 'intro' };
     if (start?.kind === 'choose') return { kind: 'choose' };
-    const ids = aimed ? neededFor(aimed, values, form).map((f) => f.id) : [];
+    // `also`: more the design needs beyond the garment's own list (a collection top's sleeves need the arms).
+    const also = start?.kind === 'for' ? (start.also ?? []).filter((id) => values[id] === undefined) : [];
+    const ids = aimed ? [...neededFor(aimed, values, form).map((f) => f.id), ...also].filter((id, i, a) => a.indexOf(id) === i) : [];
     return ids.length ? { kind: 'extra', garment: aimed!, ids, at: 0 } : { kind: 'check' };
     // A remembered first page is stale once the base measurements are in (back from the collection, Nov 11):
     // open as if afresh, on the list or the check.
