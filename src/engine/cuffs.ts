@@ -5,7 +5,7 @@
 import { P, Path, p } from './geometry';
 import type { Piece } from './piece';
 
-export type Cuff = 'none' | 'shirt' | 'oversized' | 'elastic' | 'tie' | 'ruffle';
+export type Cuff = 'none' | 'shirt' | 'oversized' | 'elastic' | 'tie' | 'ruffle' | 'turnback';
 export const CUFFS: [Cuff, string][] = [
   ['none', 'None'],
   ['shirt', 'Shirt cuff'],
@@ -13,6 +13,7 @@ export const CUFFS: [Cuff, string][] = [
   ['elastic', 'Elastic'],
   ['tie', 'Tie'],
   ['ruffle', 'Ruffle'],
+  ['turnback', 'Turned-back cuff'],
 ];
 
 /** A shirt cuff 6 cm deep, 3 cm round the wrist and 2.5 cm more to lap under the button, over a 10 cm
@@ -24,6 +25,9 @@ export const CUFF = {
   tie: { depth: 2, ease: 3, tie: 35, slit: 8 },
   /** A ruffle: a straight strip gathered onto the sleeve's hem, deeper on a longer sleeve. In testing. */
   ruffle: { ratio: 1.8, depth: { short: 5, elbow: 6, three_quarter: 7, long: 8 } },
+  /** A turned-back cuff (In testing; SS27 Look 07, the Leopard Shirt Dress, Nov 11): a band 5 cm deep sewn inside the
+   *  sleeve's hem and turned up over the outside, on a short sleeve. */
+  turnback: { depth: 5 },
   blouse: 2,
   /** An oversized shirt cuff (In testing): 14 cm deep and loose round the wrist, falling 3 cm over the hand,
    * with three buttons up a longer placket. */
@@ -38,6 +42,8 @@ export function cuffAllowed(cuff: Cuff, length: Length | 'none', shape: string):
   if (cuff === 'none') return true;
   // A ruffle goes on a plain straight sleeve of any length.
   if (cuff === 'ruffle') return shape === 'straight' && length !== 'none';
+  // A turned-back cuff sits on a straight sleeve that ends above the wrist.
+  if (cuff === 'turnback') return shape === 'straight' && (length === 'short' || length === 'elbow' || length === 'three_quarter');
   if (shape !== 'straight' && shape !== 'bishop') return false;
   if (cuff === 'shirt' || cuff === 'oversized') return length === 'long';
   if (cuff === 'tie') return length === 'long' || length === 'three_quarter';
@@ -45,7 +51,7 @@ export function cuffAllowed(cuff: Cuff, length: Length | 'none', shape: string):
 }
 
 /** Whether the cuff choice shows: when the sleeve can take some cuff. */
-export const cuffShown = (s: { length: Length | 'none'; shape: string }) => (['shirt', 'oversized', 'elastic', 'tie', 'ruffle'] as const).some((c) => cuffAllowed(c, s.length, s.shape));
+export const cuffShown = (s: { length: Length | 'none'; shape: string }) => (['shirt', 'oversized', 'elastic', 'tie', 'ruffle', 'turnback'] as const).some((c) => cuffAllowed(c, s.length, s.shape));
 
 /** The cuff as drafted: its kind, how deep it is finished, how far round, and what goes with it. */
 export interface CuffDraft {
@@ -77,6 +83,7 @@ export function cuffOf(cuff: Exclude<Cuff, 'none'>, length: Length, wrist: numbe
   const arm = armAt(length, wrist, upperArm);
   // The ruffle's round is set from the sleeve's hem once it is drafted.
   if (cuff === 'ruffle') return { kind: 'ruffle', depth: CUFF.ruffle.depth[length], round: 0, ratio: CUFF.ruffle.ratio };
+  if (cuff === 'turnback') return { kind: 'turnback', depth: CUFF.turnback.depth, round: 0 };
   if (cuff === 'shirt') return { kind: 'shirt', depth: CUFF.shirt.depth, round: r1(arm + CUFF.shirt.ease), placketCm: CUFF.shirt.placket };
   // An oversized cuff is a shirt cuff, deeper and looser, sewn the same way.
   if (cuff === 'oversized') {
@@ -145,6 +152,16 @@ export function cuffPieces(c: CuffDraft, sa: number): Piece[] {
       }),
     ];
   }
+  if (c.kind === 'turnback') {
+    // Folded in half along its length: the sleeve's hem all the way round, twice its depth, the seams round it.
+    return [
+      strip('Turned-back cuff', 'TURNED-BACK CUFF', r1(c.round + 2 * sa), 2 * c.depth + 2 * sa, 'Cut 2', 0, {
+        fold: true,
+        notchAt: [r1(sa + c.round / 2)],
+        meta: { finishedWidth: c.depth, lengthCm: r1(c.round) },
+      }),
+    ];
+  }
   if (c.kind === 'tie') {
     // The band round the wrist, running on into a tie at each end, cut on the grain.
     const L = c.round + 2 * c.tieCm!;
@@ -168,6 +185,7 @@ export function cuffCutWords(c: CuffDraft | undefined): string {
   if (c.kind === 'shirt') return ' Cut the two cuffs on the fold line, and again from fusible interfacing to the fold, and the two placket strips. Snip the cuff notches and mark BUTTONHOLE and BUTTON.';
   if (c.kind === 'tie') return ' Cut the two tie cuffs and snip their notches, where the ties start. Snip the slit notch on the back of each sleeve seam too.';
   if (c.kind === 'ruffle') return ' Cut the two sleeve ruffles and snip the notch at the middle of each.';
+  if (c.kind === 'turnback') return ' Cut the two turned-back cuffs and snip the notch at the middle of each.';
   return '';
 }
 
@@ -175,6 +193,7 @@ export function cuffCutWords(c: CuffDraft | undefined): string {
 export function cuffNote(c: CuffDraft | undefined): string {
   if (!c) return '';
   if (c.kind === 'shirt') return `${c.oversized ? 'Oversized shirt' : 'Shirt'} cuffs, ${c.depth} cm deep and ${c.round} cm round, buttoned over a ${c.placketCm} cm bound placket.`;
+  if (c.kind === 'turnback') return `Turned-back cuffs, ${c.depth} cm deep, round the ${c.round} cm sleeve hem.`;
   if (c.kind === 'ruffle') return `Sleeve ruffles, ${c.depth} cm deep, gathered ${c.ratio} to 1 onto the ${c.round} cm sleeve hem.`;
   if (c.kind === 'tie') return `Tie cuffs, ${c.depth} cm deep and ${c.round} cm round, with ${c.tieCm} cm ties, over an ${c.slitCm} cm slit.`;
   return `Elastic cuffs: ${c.elasticCm} cm of ${CUFF.elastic.width} cm elastic in each, in a ${c.depth} cm casing.`;
@@ -213,6 +232,12 @@ export function cuffStep(c: CuffDraft, sl: { gathers?: { hem: number } }, seam: 
     return {
       title: 'Attach the sleeve ruffles',
       text: `Sew the short ends of each ruffle together, right sides together, ${seam} from the edge, into a ring, and press the seam open. Press up 0.5 cm along the lower edge, then 0.5 cm more, and stitch close to the fold. Sew two rows of long gathering stitches along the top edge, inside the seam allowance. Pin the ruffle to the sleeve hem, right sides together, its seam at the underarm seam and its middle notch at the top of the sleeve, and draw the gathers up from ${r1(c.round * c.ratio!)} cm to the ${c.round} cm hem, spreading them evenly. Sew ${seam} from the edge, neaten the edges together and press the seam up into the sleeve. Topstitch 0.5 cm above it to hold it flat.`,
+    };
+  }
+  if (c.kind === 'turnback') {
+    return {
+      title: 'Attach the turned-back cuffs',
+      text: `Sew the short ends of each cuff together, right sides together, ${seam} from the edge, into a ring, and press the seam open. Fold it in half along the fold line, wrong sides together, raw edges level, and press. Slip it inside the sleeve, the cuff's seam at the underarm seam and its notch at the top of the sleeve, its raw edges level with the sleeve's hem, so the cuff lies against the sleeve's wrong side. Sew ${seam} from the edge all the way round, trim to 0.6 cm and neaten the edges together. Turn the cuff out through the hem and up over the outside of the sleeve, rolling the seam just inside the sleeve's folded edge, and press. Tack the cuff to the sleeve by hand at the underarm seam and at the top, under its fold, so it stays turned up.`,
     };
   }
   if (c.kind === 'tie') {

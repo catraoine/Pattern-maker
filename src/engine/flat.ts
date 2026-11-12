@@ -2,6 +2,7 @@
 // pattern room. Drawn to scale from the draft itself: each half piece with its darts sewn (waist
 // darts closed into the waist, the bust dart folded into the side seam), mirrored across the centre,
 // with its seams, darts, zip and visible stitching.
+import { LOOP_GAP, loopCount } from './sheerTop';
 import { P, add, len, mul, p, sub, unit } from './geometry';
 import type { Piece } from './piece';
 import type { SkirtDraft } from './skirt';
@@ -314,6 +315,25 @@ function zip(top: number, cm: number): FlatView['lines'] {
     { pts: [p(-0.35, top + 0.3), p(0.35, top + 0.3), p(0.35, top + 1.8), p(-0.35, top + 1.8), p(-0.35, top + 0.3)], kind: 'seam' },
     { pts: [p(-0.6, top + cm), p(0.6, top + cm)], kind: 'seam' },
   ];
+}
+
+/** Where a closed outline crosses the level y, as x values. */
+function crossingsAt(pts: P[], y: number): number[] {
+  const xs: number[] = [];
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i];
+    const b = pts[(i + 1) % pts.length];
+    if ((a.y - y) * (b.y - y) < 0) xs.push(a.x + ((y - a.y) * (b.x - a.x)) / (b.y - a.y));
+  }
+  return xs;
+}
+
+/** A row of small buttons down the centre back from `top`, over an opening `cm` long (see sheerTop.ts). */
+function backButtons(top: number, cm: number): FlatView['lines'] {
+  const r = 0.45;
+  return Array.from({ length: loopCount(cm) }, (_, i) => p(0, top + 1 + i * LOOP_GAP))
+    .filter((c) => c.y <= top + cm)
+    .map((c) => ({ pts: Array.from({ length: 13 }, (_, k) => add(c, p(r * Math.cos((k / 12) * 2 * Math.PI), r * Math.sin((k / 12) * 2 * Math.PI)))), kind: 'seam' as const }));
 }
 
 /** Front and back side by side, from the top left at 0, 0. */
@@ -887,7 +907,9 @@ function sleeveSide(h: Half, sl: SleeveDraft, yoke?: RaglanYoke): { shape: P[]; 
   const gathered = !!sl.gathers;
   // A cuff is drawn as the band it is, as deep as it is finished; elastic as its casing.
   const ruffle = sl.cuff?.kind === 'ruffle' ? sl.cuff.depth : 0;
-  const band = sl.cuff && !ruffle ? sl.cuff.depth : gathered ? BAND_CM : 0;
+  // A turned-back cuff lies over the sleeve's own length: only its top edge is drawn, across the sleeve.
+  const turnback = sl.cuff?.kind === 'turnback' ? sl.cuff.depth : 0;
+  const band = sl.cuff && !ruffle && !turnback ? sl.cuff.depth : gathered ? BAND_CM : 0;
   const L = sl.lengthCm - band;
   const Ho = add(S, add(sub(top, S), mul(a, L - len(sub(top, S)))));
   const lines: FlatView['lines'] = [];
@@ -908,7 +930,7 @@ function sleeveSide(h: Half, sl: SleeveDraft, yoke?: RaglanYoke): { shape: P[]; 
       }
       return { shape, band: [Ho, Hi, ...edge], lines };
     }
-    lines.push({ pts: [add(Ho, mul(a, -lift)), add(Hi, mul(a, -lift))], kind: 'stitch' });
+    lines.push(turnback ? { pts: [add(add(Ho, mul(a, -turnback)), mul(n, -0.3)), add(add(Hi, mul(a, -turnback)), mul(n, 0.3))], kind: 'seam' } : { pts: [add(Ho, mul(a, -lift)), add(Hi, mul(a, -lift))], kind: 'stitch' });
     // The wrist vent: a short slit up the underseam from the hem.
     if (sl.vent) lines.push({ pts: [add(Hi, mul(n, -0.4)), add(add(Hi, mul(n, -0.4)), mul(a, -sl.vent.lengthCm))], kind: 'seam' });
     // A two-piece sleeve's back seam, seen from the back: from above the back notch down to the wrist.
@@ -1365,12 +1387,16 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
         if (X > 1) lines.push({ pts: [p(-X + 0.3, y), p(X - 0.3, y)], kind: 'stitch' });
       }
     }
-    if (i === 1 && zipped && !d.shirred && !d.pullOn && d.closure !== 'front_buttons' && d.closure !== 'wrap') {
+    // A back with no zip (a bias slip that goes on over the head) is cut whole: no centre back seam to draw.
+    if (i === 1 && zipped && d.zipCm > 0 && !d.shirred && !d.pullOn && d.closure !== 'front_buttons' && d.closure !== 'wrap') {
       // A keyhole opens at the top, its button and loop at the neck, the seam and zip starting below it.
       const key = keyholeOf(d);
       const top = Math.min(...h.run.filter((q) => Math.abs(q.x) < 1e-6).map((q) => q.y)) + key;
       // A zip run through to the hem is shortened there (BodiceDraft.zipThrough), so it is drawn no longer than the back.
-      lines.push({ pts: [p(0, top), p(0, h.run[h.run.length - 1].y)], kind: 'seam' }, ...zip(top, Math.min(d.zipCm, h.run[h.run.length - 1].y - top)), ...keyButton(top - key, key));
+      const opening = Math.min(d.zipCm, h.run[h.run.length - 1].y - top);
+      // Buttons and loops (a sheer look's back, sheerTop.ts): a small button every LOOP_GAP down the opening.
+      const fastening = d.backLoops ? backButtons(top, opening) : zip(top, opening);
+      lines.push({ pts: [p(0, top), p(0, h.run[h.run.length - 1].y)], kind: 'seam' }, ...fastening, ...keyButton(top - key, key));
     }
     const shapes = [shape, ...(wrapped?.tie ?? []), ...cords];
     // Spaghetti straps, from the top edge up over the shoulder.
@@ -1778,6 +1804,13 @@ export function outerFlat(d: OuterDraft): Flat {
       const bottom = hw * 0.92;
       shapes.push([p(-top, y0), p(top, y0), p(bottom, y0 + d.rib.hem), p(-bottom, y0 + d.rib.hem)]);
       for (let x = -bottom + 1.2; x < bottom - 0.6; x += 1.2) lines.push({ pts: [p(x * (top / bottom), y0 + 0.3), p(x, y0 + d.rib.hem - 0.3)], kind: 'stitch' });
+    }
+    // The seam across the chest (the Look 02 vest), front and back: it was cut into the pieces but missing from the
+    // flat, so the vest read as one plain panel (Nov 11). Drawn straight across the garment at its height.
+    if (d.chestSeam) {
+      const y = h.move(p(0, isFront ? d.chestSeam.front : d.chestSeam.back)).y;
+      const xs = crossingsAt(whole(h.run), y);
+      if (xs.length >= 2) lines.push({ pts: [p(Math.min(...xs), y), p(Math.max(...xs), y)], kind: 'seam' });
     }
     for (const o of over) shapes.push(isFront ? mirror(o) : o, ...(isFront ? [o] : []));
     // Menswear buttons left over right: the same front seen in a mirror.

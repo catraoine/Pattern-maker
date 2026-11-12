@@ -178,6 +178,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       elastic: ['Elastic in a casing at the end, so the sleeve pulls on and gathers softly round the wrist.', 'easy'],
       tie: ['A narrow band that runs on into ties, knotted at the wrist over a short slit.'],
       ruffle: ['A straight strip gathered onto the hem of a plain sleeve, so it ends in a soft frill.'],
+      turnback: ['A 5 cm band sewn to the hem and folded back up over the sleeve. For short to three-quarter sleeves.', 'easy'],
     },
     princess: {
       none: ['No extra seams. The bust is shaped with darts instead.', 'easy'],
@@ -520,6 +521,7 @@ const SHORT: Record<string, string> = {
   'sleeveCuff.elastic': 'Elastic gathers it at the wrist.',
   'sleeveCuff.tie': 'A band that ties at the wrist.',
   'sleeveCuff.ruffle': 'Ends in a soft gathered frill.',
+  'sleeveCuff.turnback': 'A band folded back up at the hem.',
   'princess.shoulder': 'Seams from shoulder over bust; no darts.',
   'bustDart.french': 'A long dart angled up from low down.',
   'bustDart.shoulder': 'The dart comes from the shoulder.',

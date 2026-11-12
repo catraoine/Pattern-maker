@@ -1,4 +1,7 @@
 import { finishesNeck } from './engine/collar';
+import { withHouseShirtSeams } from './engine/houseShirtSeams';
+import { withLinedShiftHem } from './engine/linedShift';
+import { loopCount, withBackLoops, withSheerTop } from './engine/sheerTop';
 import { beltNote, beltPieces, dressBelt, skirtBelt, withBelt } from './engine/belt';
 import { SkirtDraft, SkirtMeasurements, draftSkirt } from './engine/skirt';
 import { BodiceMeasurements, blockOf } from './engine/bodice';
@@ -281,9 +284,14 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
     const pieces = allow([...top, ...(sleeve?.pieces ?? []), ...skirtPcs, ...facings, ...beltPieces(belt, seams.seam)]);
     const lays = layPlans([...pieces, ...allow(layoutExtras(d.skirt))], finish.fabricWidth, nap, hide, false, border);
     const metres = (f: 'self' | 'lining' | 'interlining') => lays.find((l) => l.fabric === f)?.metres ?? bodiceFabricMetres(d.bodice, sleeve) + fabricMetres(d.skirt);
+    // A dress with no waist seam is lined in one piece to the hem: a full lining, not just the bodice's.
+    const fullLining = edges === 'lined' && !!d.noSeam && d.noSeam !== 'bias';
     const edgeWords = sleeve
-      ? { binding: 'a bias-bound neckline', facings: 'a faced neckline', lined: 'a lined bodice' }[edges]
-      : { binding: 'bias-bound neck and armholes', facings: 'a faced neck and armholes', lined: 'a lined bodice' }[edges];
+      ? { binding: 'a bias-bound neckline', facings: 'a faced neckline', lined: fullLining ? 'a full lining' : 'a lined bodice' }[edges]
+      : { binding: 'bias-bound neck and armholes', facings: 'a faced neck and armholes', lined: fullLining ? 'a full lining' : 'a lined bodice' }[edges];
+    const dressHem = pieces.find((pc) => /^(Skirt|Flounce|Dress) front/.test(pc.name) && pc.allowances.hem !== undefined)?.allowances.hem ?? (d.skirt.volume?.tiers ? 2 : 4);
+    // A shift lined to the hem: a deep hem catch-stitched by hand, the lining hemmed on its own (linedShift.ts).
+    const linedShift = (g: SewingGuide) => (fullLining && d.noSeam === 'shift' && finish.route !== 'couture' && !couture ? withLinedShiftHem(g, dressHem) : g);
     return {
       pieces,
       notes: [
@@ -301,14 +309,14 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
         ...fittingNotes,
       ],
       guide: route(
-        withBelt(dressGuide(d, dress.skirt, metres('self'), bindingMetres(d.bodice, { neck: edges === 'binding' && !finishesNeck(d.bodice.collar), armholes: sleeve ? edges === 'lined' : edges === 'binding' }), {
+        linedShift(withBelt(dressGuide(d, dress.skirt, metres('self'), bindingMetres(d.bodice, { neck: edges === 'binding' && !finishesNeck(d.bodice.collar), armholes: sleeve ? edges === 'lined' : edges === 'binding' }), {
           seams,
           edges,
           width: finish.fabricWidth,
           liningM: metres('lining'),
           coutilM: d.bodice.top?.boned ? metres('interlining') : undefined,
           sleeve,
-        }), belt, { band: false, sideZip: !!d.zipSide }),
+        }), belt, { band: false, sideZip: !!d.zipSide })),
         { garment: 'dress', lined: edges === 'lined', zipCm: d.zipCm },
       ),
       spec: dressSpec(values as DressMeasurements, d, sleeve),
@@ -335,6 +343,14 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
     const sleeveWords = sleeve ? `${describeBodice(saved.bodice).replace(/^.* with /, 'With ')}` : 'Sleeveless';
     const lays = layPlans(pieces, finish.fabricWidth, nap, hide, false, border);
     const metres = (f: 'self' | 'lining' | 'interlining') => lays.find((l) => l.fabric === f)?.metres ?? bodiceFabricMetres(bodice);
+    // In a sheer, quick route and unlined, the seams are French and the edges bound in the sheer itself (sheerTop.ts);
+    // a look can close the back with buttons and loops in place of the zip.
+    const sheer = fabric?.special === 'sheer' && finish.route !== 'couture' && edges === 'binding' && !bodice.top;
+    const sheerTop = (g: SewingGuide) => {
+      const s0 = saved.bodice.shirtCut === 'house' && finish.route !== 'couture' && edges !== 'lined' ? withHouseShirtSeams(g, fmtCm(seams.seam)) : g;
+      const s1 = sheer ? withSheerTop(s0, bodice, fmtCm(seams.seam)) : s0;
+      return bodice.backLoops ? withBackLoops(s1, bodice, fmtCm(seams.seam)) : s1;
+    };
     return {
       pieces,
       notes: [
@@ -342,7 +358,7 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
         couture
           ? `Couture allowances: ${fmtCm(seams.seam)} at the seams, ${fmtCm(seams.curve)} at the neck and armholes. Thread-trace the solid stitching line.`
           : `Seam allowance ${fmtCm(seams.seam)} included, ${fmtCm(seams.curve)} at the neck and armholes${below ? ', 2.5 cm at the hem' : ''}. Dashed line = stitching line.`,
-        `${sleeveWords}, ${bodice.closure === 'front_buttons' ? `${bodice.buttons?.count ?? 5} buttons down the centre front` : bodice.wrap ? `wrap fronts that tie at the waist (ties ${bodice.wrap.ties.outer} cm and ${bodice.wrap.ties.inner} cm, cut ${bodice.wrap.ties.cutWidth} cm wide)` : bodice.pullOn ? 'no opening (it goes on over the head)' : `a ${bodice.zipCm} cm ${bodice.drape?.kind === 'one_shoulder' ? `zip in the ${zipSide(bodice)} side seam` : 'centre back zip'}`}${bodice.collar !== 'none' ? `, a ${COLLAR_WORDS[bodice.collar]}` : ''} and ${edgeWords}. Sewing steps are on the last pages.`,
+        `${sleeveWords}, ${bodice.closure === 'front_buttons' ? `${bodice.buttons?.count ?? 5} buttons down the centre front` : bodice.wrap ? `wrap fronts that tie at the waist (ties ${bodice.wrap.ties.outer} cm and ${bodice.wrap.ties.inner} cm, cut ${bodice.wrap.ties.cutWidth} cm wide)` : bodice.pullOn ? 'no opening (it goes on over the head)' : bodice.backLoops ? `${loopCount(bodice.zipCm)} small buttons and loops down the centre back` : `a ${bodice.zipCm} cm ${bodice.drape?.kind === 'one_shoulder' ? `zip in the ${zipSide(bodice)} side seam` : 'centre back zip'}`}${bodice.collar !== 'none' ? `, a ${COLLAR_WORDS[bodice.collar]}` : ''} and ${edgeWords}. Sewing steps are on the last pages.`,
         ...(drapeNote(bodice) ? [drapeNote(bodice)!] : []),
         ...(bodice.peplum ? [`A ${bodice.peplum.kind} peplum, ${bodice.peplum.depthCm} cm deep, ${bodice.peplum.hemCm} cm round the hem.`] : []),
         ...(sleeve ? [sleeveNote(sleeve)] : []),
@@ -351,14 +367,16 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
         ...fittingNotes,
       ],
       guide: route(
-        bodiceGuide(bodice, saved.bodice, metres('self'), bindingMetres(bodice, { neck: !neckDone && (!sleeve || edges === 'binding'), armholes: !sleeve || edges === 'lined' }), {
-          seams,
-          edges,
-          width: finish.fabricWidth,
-          liningM: metres('lining'),
-          coutilM: bodice.top?.boned ? metres('interlining') : undefined,
-          sleeve,
-        }),
+        sheerTop(
+          bodiceGuide(bodice, saved.bodice, metres('self'), bindingMetres(bodice, { neck: !neckDone && (!sleeve || edges === 'binding'), armholes: !sleeve || edges === 'lined' }), {
+            seams,
+            edges,
+            width: finish.fabricWidth,
+            liningM: metres('lining'),
+            coutilM: bodice.top?.boned ? metres('interlining') : undefined,
+            sleeve,
+          }),
+        ),
         { garment: 'bodice', lined: edges === 'lined', zipCm: bodice.zipCm },
       ),
       spec: [...bodiceSpec(values as BodiceMeasurements, bodice, saved.bodice.length, saved.bodice.dropCm), ...(sleeve ? sleeveSpec(values as SleeveMeasurements, sleeve) : [])],

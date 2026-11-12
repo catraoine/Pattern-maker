@@ -151,6 +151,8 @@ export interface BodiceStyle {
    * narrow channel sewn inside, just above the hem, with a cord that comes out at the left side seam, so the top
    * can be drawn in to blouse or left to hang. Set by a look. */
   hemTie?: 'drawstring';
+  /** The back closed with small buttons and rouleau loops in place of the zip (see sheerTop.ts). Set by a look. */
+  backLoops?: true;
   sleeve?: SleeveLength;
   sleeveShape?: SleeveShape;
   /** A dragged hem: cm below the waist (0 for the waist), in place of the named length. */
@@ -425,6 +427,8 @@ export interface BodiceDraft {
   panelTrim?: { cm: number };
   /** The front cut wider below a plunge's shoulder panels and gathered into their seams (Yoke.frontGather): cm each side. */
   panelGather?: number;
+  /** The back opening closes with buttons and rouleau loops, edge to edge, in place of the zip (see sheerTop.ts). */
+  backLoops?: boolean;
   /** Front landmarks for drawing the bodice as worn: waist and hem, at the side and centre front. */
   front: { apex: P; waistSide: P; waistCentre: P; hemSide: P; hemCentre: P };
   /** The same for the back, plus the centre back neck and where the zip ends. */
@@ -1456,6 +1460,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     ...(zipThrough ? { zipThrough } : {}),
     ...(pullOn ? { pullOn: true as const } : {}),
     ...(drawstring ? { hemTie: { cordCm: Math.ceil((2 * (hemB.x + hemF.x) + DRAWSTRING.tails) / 5) * 5 } } : {}),
+    ...(s.backLoops && zipCm > 0 ? { backLoops: true } : {}),
     front: { apex, waistSide: swF, waistCentre: p(0, wf), hemSide: add(hemF, p(0, hemAt.side)), hemCentre: p(0, cfHem + hemAt.front) },
     back: { waistSide: swB, waistCentre: p(0, wb), hemSide: add(hemB, p(0, hemAt.side)), hemCentre: p(0, backHem + hemAt.back), neckCentre: p(0, bd), zipEnd },
     neckBlock: { front: { neckY: cfNeck0.y, neckX: nwF }, back: { neckY: 0, neckX: nw } },

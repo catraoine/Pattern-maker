@@ -1,6 +1,7 @@
 // The Maison collection: the house's signature designs, each a set of style choices drafted to the
 // sewist's own measurements like any other pattern. Making a look opens its style screen with the
 // choices set, so every detail can still be changed.
+import type { Finish } from './savedWork';
 import type { MyFabric } from './engine/fabrics';
 import { COLOURS } from './engine/shopFabrics';
 import { dressBelt, skirtBelt } from './engine/belt';
@@ -77,6 +78,9 @@ export interface HouseLook {
   /** A look of two pieces sewn as a set (SS27 Look 02, the black vest and pleated skirt): both share the look's number
    * and are shown together, each made on its own. */
   set?: string;
+  /** How the look is finished when it is made, over the maker's own setting: the Blush Shift comes lined to the hem
+   *  (Nov 11). The maker can still change it on the print screen. */
+  finish?: Pick<Finish, 'bodiceEdges'>;
 }
 
 const skirt = (c: Partial<Choices>): Choices => ({ fit: 'regular', silhouette: 'a_line', length: 'knee', ...c });
@@ -101,6 +105,8 @@ export const COLLECTION: HouseLook[] = [
     fabric: 'Blush wool crepe',
     garment: 'dress',
     choices: dress('regular', { neckline: 'crew', sleeve: 'none', darts: 'bust', bustDart: 'french', bustEase: 5, shiftBack: 'shaped' }, { silhouette: 'straight', length: 'mini', noSeam: 'shift', flareCm: 4 }),
+    // Lined to the hem, the neck and armholes finished with the lining and a deep hand-stitched hem (linedShift.ts).
+    finish: { bodiceEdges: 'lined' },
   },
   {
     // Cat's SS27 Look 02 picture, measured and refined with her Nov 7-8: a long boxy vest in crisp black wool, its
@@ -133,30 +139,20 @@ export const COLLECTION: HouseLook[] = [
     line: 'Loose pleated Bermudas falling straight from the hip to just below the knee, belt loops at the waist, in gold python silk.',
     fabric: 'Gold python silk',
     garment: 'trousers',
-    choices: { ...DEFAULT_TROUSERS_CHOICES, fit: 'relaxed', leg: 'wide', length: 'knee', lengthCm: 68, legCm: { knee: 66, hem: 66 }, pockets: 'slant', pleats: 'double', loops: 'loops' },
-  },
-  {
-    id: 'ivory-palazzo',
-    number: 4,
-    name: 'Ivory Palazzo',
-    line: 'Wide and easy, falling from slanted pockets to the floor. Ivory, and nothing else.',
-    fabric: 'Ivory linen',
-    garment: 'trousers',
-    // The leg is drawn: a wide leg's own hem (two thirds of the hip, 59 cm here) read as a wide-leg trouser, not a palazzo.
-    choices: { ...DEFAULT_TROUSERS_CHOICES, fit: 'relaxed', leg: 'wide', length: 'full', legCm: { knee: 63, hem: 78 }, pockets: 'slant' },
+    choices: { ...DEFAULT_TROUSERS_CHOICES, fit: 'relaxed', leg: 'wide', length: 'knee', lengthCm: 68, legCm: { knee: 66, hem: 66 }, pockets: 'slant', pleats: 'double', loops: 'loops', backPockets: 'welt' },
   },
   {
     id: 'ice-peplum',
-    number: 5,
+    number: 4,
     name: 'Ice Peplum Top',
     line: 'Sheer ice blue, ruffled at the neck, with bishop sleeves and a big flared peplum from a lowered waist.',
     fabric: 'Ice sheer silk organza',
     garment: 'bodice',
-    choices: bodice({ fit: 'fitted', neckline: 'crew', collar: 'ruffle', sleeve: 'long', sleeveShape: 'bishop', length: 'waist', dropCm: 6, peplum: 'flared', peplumSize: 'big' }),
+    choices: bodice({ fit: 'fitted', neckline: 'crew', collar: 'ruffle', sleeve: 'long', sleeveShape: 'bishop', length: 'waist', dropCm: 6, peplum: 'flared', peplumSize: 'big', princess: 'shoulder', backLoops: true }),
   },
   {
     id: 'lilac-lace',
-    number: 6,
+    number: 5,
     name: 'Lilac Lace Blouse',
     line: 'Lilac lace plunging to the waist, with full bishop sleeves gathered at the wrist. Worn with gold micro shorts.',
     fabric: 'Lilac silk lace',
@@ -175,7 +171,7 @@ export const COLLECTION: HouseLook[] = [
     // The armhole is lowered 5 cm, to 19 cm deep at the example size (Cat: "that arm hole looks very small", then
     // "A2"): moving the strap in had raised it 2 cm, and her picture's drops well down the side.
     id: 'ivory-slip',
-    number: 7,
+    number: 6,
     name: 'Ivory Bias Slip',
     line: 'The house slip, cut in one on the bias from the shoulder to just above the ankle: a low, narrow scoop, slim straps, no waist seam and no zip, in a satin you can just see through.',
     fabric: 'Ivory sheer silk satin',
@@ -185,7 +181,7 @@ export const COLLECTION: HouseLook[] = [
   {
     // Cat's own Japanese leopard and python cotton, and the house shirt cut (2026-11-10).
     id: 'leopard-shirt-dress',
-    number: 8,
+    number: 7,
     name: 'Leopard Shirt Dress',
     line: 'A big shirt cut down to a mini: a long-point collar, a back yoke with a box pleat, wide sleeves to the elbow, and a shirttail hem that hangs longer at the back.',
     fabric: 'Ivory leopard python cotton',
@@ -197,6 +193,8 @@ export const COLLECTION: HouseLook[] = [
       closure: 'front_buttons',
       sleeve: 'elbow',
       sleeveShape: 'straight',
+      // A 5 cm cuff turned back over the sleeve's hem (Nov 11).
+      sleeveCuff: 'turnback',
       length: 'long',
       dropCm: 47,
       bustEase: 36,
@@ -211,12 +209,12 @@ export const COLLECTION: HouseLook[] = [
     // A low-rise barrel leg in the snakeskin brown of the leopard cloth, so it links to the Leopard Shirt Dress (Cat,
     // 2026-11-11). Look 09 once Look 02 became a set and the Red Pleat Dress left the line.
     id: 'chocolate-barrel',
-    number: 9,
+    number: 8,
     name: 'Chocolate Barrel Trouser',
     line: 'Slung low on the hip, two deep pleats opening into a barrel leg that curves out round the knee and falls to the floor, in a crisp chocolate sateen.',
     fabric: 'Chocolate crisp cotton sateen',
     garment: 'trousers',
-    choices: { ...DEFAULT_TROUSERS_CHOICES, fit: 'relaxed', leg: 'barrel', length: 'full', rise: 'low', pockets: 'slant', pleats: 'double', loops: 'loops' },
+    choices: { ...DEFAULT_TROUSERS_CHOICES, fit: 'relaxed', leg: 'barrel', length: 'full', rise: 'low', pockets: 'slant', pleats: 'double', loops: 'loops', backPockets: 'welt' },
   },
 ];
 

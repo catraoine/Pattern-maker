@@ -3,6 +3,7 @@
 // crease line runs down the middle of each, the front and back crotch curves are drafted so the whole
 // crotch seam is the person's own crotch length with ease, and the seams are trued so front and back
 // sew together end to end.
+import { curvedTrouserBand } from './trouserBand';
 import { P, Path, add, len, lerp, mul, p, sub, taggedLength, unit } from './geometry';
 import { finishDart } from './darts';
 import type { Piece } from './piece';
@@ -128,6 +129,19 @@ export const lengthCmRange = (m: Pick<TrousersMeasurements, 'crotch_depth' | 'wa
  * fuller than the waist, over the lower ribs. Every length from the waist grows or shrinks with it, and
  * the crotch length by twice as much, front and back.
  */
+/** How much smaller a low-rise band's top edge is cut than its lower edge, at most, in cm: past that a band this narrow
+ *  digs in when you sit, and a little loose at the top is the safe side until a toile says otherwise. */
+const BAND_CURVE_MAX = 4;
+
+/** A low rise's band top round: the body's slope from waist to hip taken as even (the quadratic risen() uses is steepest
+ *  just below the waist and made the curve twice as deep), over the band's height, and capped. */
+function bandTopOf(body: TrousersMeasurements, rise: number, ease: number, elastic: boolean): { bandTop: number } | undefined {
+  if (elastic || rise >= 0) return undefined;
+  const at = risen(body, rise).waist + ease;
+  const less = Math.min(BAND_CURVE_MAX, (WAISTBAND_CM * Math.max(0, body.full_hip - body.waist)) / body.waist_to_hip,-rise);
+  return less >= 0.5 ? { bandTop: Math.round((at - less) * 10) / 10 } : undefined;
+}
+
 function risen(m: TrousersMeasurements, rise: number): TrousersMeasurements {
   const r = riseFor(m, rise);
   if (!r) return m;
@@ -185,6 +199,9 @@ export interface TrousersDraft {
   crotchCapped: boolean;
   zipCm: number;
   waistband: Waistband & { underlap: number };
+  /** A low rise's band cut curved (see trouserBand.ts): the round of its top edge, WAISTBAND_CM above the waist seam, with
+   *  the same ease. Unset when the band is straight. */
+  bandTop?: number;
   dartsPerSide: { front: number; back: number };
   elastic?: Elastic;
   /** The pockets as drafted: a side zip leaves room for an in-seam pocket on the right only. */
@@ -554,7 +571,8 @@ export function draftTrousers(body: TrousersMeasurements, style: Partial<Trouser
   const closure = elastic || (s.joinTo && s.closure !== 'fly') ? 'none' : s.closure;
   const fly = closure === 'fly';
   // A side zip opens to just past the hip line, so the trousers pull on over the hips: 18 to 25 cm.
-  let zipCm = elastic ? 0 : fly ? Math.min(FLY_ZIP, cd - 6) : Math.min(25, Math.max(18, Math.ceil(hd + 2)));
+  // (Whole centimetres: the fly zip is bought by its length, and the notes said "a 17.125 cm fly zip" on a low rise, Nov 11.)
+  let zipCm = elastic ? 0 : fly ? Math.min(FLY_ZIP, Math.floor(cd - 6)) : Math.min(25, Math.max(18, Math.ceil(hd + 2)));
 
   // Centre waists: the front 1 cm in from the hip line, the back raised and in for the seat. A tummy or
   // a sway back measured (or found on a toile) raises or lowers them.
@@ -666,6 +684,9 @@ export function draftTrousers(body: TrousersMeasurements, style: Partial<Trouser
     crotch: { front: r(front.crotch), back: r(back.crotch), target: r(target) },
     crotchCapped: Math.abs(crotch - target) > 0.3,
     zipCm,
+    // A low rise sits on the slope of the hips, so a straight band stands off the body at its top edge (Fable cut review,
+    // Nov 11: the Chocolate Barrel's band about 3 cm loose there). Its top is cut to the body WAISTBAND_CM higher.
+    ...(bandTopOf(body, rise, finishedWaist - m.waist, elastic) ?? {}),
     waistband: {
       cutLength: r(finishedWaist + 2 * s.seamAllowance + (fly ? UNDERLAP : 0)),
       cutWidth: r(2 * WAISTBAND_CM + 2 * s.seamAllowance),
@@ -822,6 +843,7 @@ export function trousersWaistband(d: TrousersDraft, sa: number): Piece {
     d.closure === 'fly'
       ? [[0, ''], [front, 'SIDE SEAM'], [front + back, 'CENTRE BACK'], [front + 2 * back, 'SIDE SEAM'], [total, 'CENTRE FRONT']]
       : [[back, 'CENTRE BACK'], [2 * back, 'SIDE SEAM'], [2 * back + front, 'CENTRE FRONT']];
+  if (d.bandTop) return curvedTrouserBand(L, d.finishedWaist, d.bandTop, d.waistband.underlap, marks, sa);
   const notches: [P, P][] = marks.filter(([y]) => y > 0).flatMap(([y]): [P, P][] => [[p(W, y), p(1, 0)], [p(0, y), p(-1, 0)]]);
   const tag = (at: P, text: string) => ({ at, text, size: 0.55, rotate: 90 });
   return {

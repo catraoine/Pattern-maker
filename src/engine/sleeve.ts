@@ -342,7 +342,7 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
   };
   // A cuff ends the sleeve: the sleeve stops short of the hem by its depth, and blouses over it.
   // A ruffle is sewn on below a plain hem: the sleeve is shorter by its depth and does not blouse.
-  const lengthFor = (h: number) => (cuff?.kind === 'ruffle' ? setFor(h) - cuff.depth : cuff ? setFor(h) - (cuff.kind === 'elastic' ? 0 : cuff.depth) + CUFF.blouse + (cuff.oversized?.past ?? 0) : setFor(h) + (gathered ? 2.5 : 0));
+  const lengthFor = (h: number) => (cuff?.kind === 'turnback' ? setFor(h) : cuff?.kind === 'ruffle' ? setFor(h) - cuff.depth : cuff ? setFor(h) - (cuff.kind === 'elastic' ? 0 : cuff.depth) + CUFF.blouse + (cuff.oversized?.past ?? 0) : setFor(h) + (gathered ? 2.5 : 0));
   // Hem width, as cut: at a named length, or between the two named ones either side of the slider's.
   const hemWidth = (h: number) => {
     if (cuff) return cuffHem(hemAt(s.length as Named));
@@ -357,7 +357,7 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
   };
   // Into a cuff, the hem is a little fuller than the cuff, to gather or pleat into it; elastic needs a
   // hem the hand passes through.
-  const cuffHem = (plain: number) => (!cuff || cuff.kind === 'ruffle' ? plain : cuff.kind === 'elastic' ? Math.max(plain, hand + 4) : Math.max(plain, cuff.round + 6));
+  const cuffHem = (plain: number) => (!cuff || cuff.kind === 'ruffle' || cuff.kind === 'turnback' ? plain : cuff.kind === 'elastic' ? Math.max(plain, hand + 4) : Math.max(plain, cuff.round + 6));
   const hemAt = (length: Named) => {
     if (shape === 'puff' || cap_ || flutter) return w;
     // A full bishop on a full arm and a small wrist came to nearly seven times its cuff, too much to gather in evenly
@@ -518,7 +518,7 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
       { at: place(add(notchF, p(-2.6, 1.6))), text: 'FRONT', size: 0.6 },
       { at: place(add(notchB, p(2.6, 1.6))), text: 'BACK', size: 0.6 },
       ...(shape === 'puff' || headGather ? [{ at: p(cx, h * 0.45), text: 'GATHER BETWEEN NOTCHES', size: 0.55 }] : []),
-      ...(cuff && cuff.kind !== 'elastic' && cuff.kind !== 'ruffle'
+      ...(cuff && cuff.kind !== 'elastic' && cuff.kind !== 'ruffle' && cuff.kind !== 'turnback'
         ? [{ at: p(0, L - 3), text: `GATHER TO FIT THE ${cuff.kind === 'shirt' ? 'CUFF' : 'TIE CUFF'}`, size: 0.55 }]
         : gathered && !cuff
           ? [{ at: p(0, L - 3), text: 'GATHER TO FIT THE BAND', size: 0.55 }]
@@ -559,8 +559,8 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
   const cutOf = sleeveCut ? { cut: sleeveCut } : {};
   const crownLen = c.lenF + c.lenB;
   const hemLen = polyLen(cubicPts(Wf, hemC1, hemC2, Wb));
-  if (cuff?.kind === 'ruffle') {
-    // The ruffle is gathered onto the sleeve's plain hem, all the way round.
+  if (cuff?.kind === 'ruffle' || cuff?.kind === 'turnback') {
+    // The ruffle is gathered onto the sleeve's plain hem, all the way round; a turned-back cuff is sewn round it.
     const ruffle = { ...cuff, round: r1(hemLen) };
     return {
       pieces: [...own, ...cuffPieces(ruffle, s.seamAllowance)],
