@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { clearTapeRest, introLeft, takeIntroLeft, takeTapeRest } from '../ui/tapeHandoff';
 import { WEIGHT_HARD, WeightEntry, fromKg, weightUnitOf } from '../ui/WeightEntry';
 import { HowClip } from '../ui/HowClip';
-import { CARRY_MS, FormPicture, labelLevel, neckOnPicture, readCamera, TapeDemo, TAPE_PX } from '../ui/ContourForm';
+import { CARRY_MS, FormPicture, HEAD_TOP, labelLevel, neckOnPicture, readCamera, TapeDemo, TAPE_PX } from '../ui/ContourForm';
 import { canGoBack, goBack, usePageHistory } from '../nav';
 import { estimateOne } from '../estimate';
 import { Title } from '../ui/Title';
@@ -757,6 +757,9 @@ function CarriedTape({ from }: { from: { left: number; top: number } }) {
   );
 }
 
+/** Far enough down the form for any name's level (the floor, in form units). */
+const FORM_FOOT = 5;
+
 /** The measurements on this run as names beside the form, each at its own place on the body, the one being taken in
  *  gold, its number once taken (Cat's M3b Labels on the Form, 2026-10-21). They follow the camera as it moves and keep
  *  clear of each other, those out of view resting at the top or bottom edge. Computer only; the phone keeps its dots. */
@@ -781,7 +784,17 @@ function FormLabels({ ids, at, values, unit, form }: { ids: MeasurementId[]; at:
       const order = [...spots].sort((a, b) => a.top - b.top);
       order.forEach((p, i) => (p.top = Math.max(p.top, i ? order[i - 1].top + GAP : 12)));
       for (let i = order.length - 1; i >= 0; i--) order[i].top = Math.min(order[i].top, i < order.length - 1 ? order[i + 1].top - GAP : box.height - 12);
+      // A name pushed to the top or bottom edge (Height, when the camera is in close at the hips) rests beside the
+      // form as it is drawn at that edge, not at its own level out of view, or it sat on the form's lines (Cat, Nov 11
+      // sweep).
+      const edgeX = (top: number) => {
+        let x = Infinity;
+        for (let y = HEAD_TOP; y <= FORM_FOOT; y += 0.02) if (Math.abs(c.top - box.top + cam.Y(y) - top) < 12) x = Math.min(x, cam.x(y));
+        return x;
+      };
       for (const p of spots) {
+        const x = edgeX(p.top);
+        if (Number.isFinite(x)) p.right = Math.max(p.right, box.right - (c.left + x) + 18);
         p.li.style.top = `${p.top}px`;
         p.li.style.right = `${Math.min(p.right, box.width - 40)}px`;
       }

@@ -58,3 +58,8 @@
   padding-bottom: 8px;
   line-height: 1.35;
 }
+
+/* A hyphenated word kept on one line ("T-shirt" in Good fabrics for a regular fit T-shirt). */
+.nowrap {
+  white-space: nowrap;
+}
