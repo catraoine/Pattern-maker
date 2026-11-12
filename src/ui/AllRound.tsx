@@ -339,6 +339,16 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
     const fitNow = fitOn && !!sewnIn?.d.fit;
     if (v3) v3.build({ round, sh, cloth, film, striped: !!striped, draped: drapedNow, formX, fit: fitNow, tone });
     const { hemY, topY, wh, yAt, yOf, kY, N, krB, krW, krH, longest, highest, bandTop, arm, yS, yU, sl, ra, rh, neckOnly, radius, foldTilt, depthAt, shell, zAcross, clothDown, yE, yCap, axisX, capDepth, sleeveR, lg, yC, yH, legHemR, legR, legAxis, rAt, reach } = sh;
+    // The sewn cloth's own lowest point: a full sleeve or a soft hem hangs lower than the pattern's length says, and the
+    // Lilac Lace Blouse's hem and cuffs ran off the bottom of the view (Cat, Nov 12, "Fix").
+    // (Not while drawing lines on it: there the view keeps the frame the flat tool's lengths are read against.)
+    const sewnLow = (() => {
+      if (!sewnIn || drawing) return -Infinity;
+      const { d, toForm } = sewnIn;
+      let low = -Infinity;
+      for (const p of d.panels) if (!p.hidden) for (const t of p.tris) for (const i of t) low = Math.max(low, toForm(d.pos[(p.base + i) * 3], d.pos[(p.base + i) * 3 + 1], d.pos[(p.base + i) * 3 + 2])[1]);
+      return low;
+    })();
     /** The last frame's layout, for reading where a finger is. */
     let frame = { S: 1, cx: 0, top: 0, lw: 1, fig: 1 };
 
@@ -382,7 +392,7 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
 
     const draw = (now: number) => {
       const top0 = film ? Math.min(-2, yOf(highest) - 0.3) : Math.min(-0.45, yOf(highest) - 0.3);
-      const bottom = trousers ? FORM_FLOOR + 0.1 : Math.min(FORM_FLOOR + 0.1, Math.max(yOf(longest), sl ? yE : -9) + 0.45);
+      const bottom = trousers ? FORM_FLOOR + 0.1 : Math.min(FORM_FLOOR + 0.1, Math.max(yOf(longest), sl ? yE : -9, sewnLow) + 0.45);
       const fig = h;
       const S0 = Math.min((fig - 16) / (bottom - top0), (w / 2 - 14) / (reach * 1.04));
       // Closer look: the whole view scaled by the zoom about its focus, a point on the figure held at its anchor on the
