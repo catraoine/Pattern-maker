@@ -67,7 +67,7 @@ describe('bias slip dress', () => {
     expect(slip.bodice.front.apex.y - top(slip)).toBeCloseTo(2, 1);
   });
 
-  it('is sewn with no zip: stayed at the neck and armholes, hung, and its hem rolled', () => {
+  it('is sewn with no zip: stayed at the neck and armholes, hung, and finished with a fine baby hem', () => {
     const d = bias(randomBody(rng(7)));
     const g = dressGuide(d, { silhouette: 'straight', length: 'maxi' }, 3, 3, {});
     const titles = g.steps.map((st) => st.title);
@@ -78,6 +78,8 @@ describe('bias slip dress', () => {
     expect(all).not.toMatch(/zip|centre back|on the fold|hook and eye/i);
     expect(all).toMatch(/single layer/);
     expect(all).toMatch(/Hang the dress up for a day/);
+    // A fine baby hem lies flat on the bias where a deeper hem ripples (Nov 12, the Ivory Bias Slip to a 10).
+    expect(all).toMatch(/fine baby hem, about 3 mm deep/);
     expect(g.notions.join(' ')).not.toMatch(/zip|hook/i);
     expect(g.notions.join(' ')).toMatch(/stay tape/i);
     expect(d.pieces[0].allowances.hem).toBe(3);
