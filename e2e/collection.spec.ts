@@ -8,9 +8,10 @@ test('the Maison collection: open it from styling, draw every look, make one', a
   await expect(main.getByRole('heading', { level: 1, name: 'The collection' })).toBeVisible();
   // Every look is drawn flat, front and back.
   const looks = main.getByRole('listitem');
-  // Nine looks; Look 02 is a set of two pieces, the vest and the skirt, side by side (Nov 11); the Red Pleat Dress left the line.
-  await expect(looks).toHaveCount(9);
-  await expect(main.getByRole('img', { name: /Technical flat/ })).toHaveCount(10);
+  // Eight looks; Look 02 is a set of two pieces, the vest and the skirt, side by side (Nov 11); the Red Pleat Dress and
+  // the Ivory Palazzo left the line.
+  await expect(looks).toHaveCount(8);
+  await expect(main.getByRole('img', { name: /Technical flat/ })).toHaveCount(9);
   // The House shows one season at a time.
   await expect(main.getByText('SS27 · Spring Summer 2027')).toBeVisible();
 
