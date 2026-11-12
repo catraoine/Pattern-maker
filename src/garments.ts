@@ -63,6 +63,8 @@ export interface BodiceChoices {
   shirtCut?: ShirtCut;
   /** A shift's back with a small fish-eye dart each side (see SHIFT_BACK in bodice.ts), set by a look: older saves have none. */
   shiftBack?: 'shaped';
+  /** A house look's own armhole, this many cm lower than the body's measurements draft it (engine/bodice.ts). */
+  armholeLower?: number;
   /** Older saves have the block's side bust dart, no princess seams, a back zip and no collar. */
   bustDart?: DartPlace;
   princess?: PrincessLine;

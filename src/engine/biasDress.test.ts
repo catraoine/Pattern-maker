@@ -112,4 +112,11 @@ describe('bias slip dress', () => {
       expect(at(m, {}) - at(m, { floorClear: 13 })).toBeCloseTo(6, 0);
     }
   });
+  it("cuts a look's own armhole lower by the cm the look asks, with no complaint that it is too long", () => {
+    // (The Ivory Bias Slip, 2026-11-11: its straps moved in toward the neck and its armhole dropped 5 cm down the side.)
+    const at = (bodice: object) => draftDress(EXAMPLE_BODY as never, { fit: 'regular', neckline: 'scoop', sleeve: 'none', darts: 'bust', bustEase: 4, neck: { ...NECK, width: 2, strap: 3 }, ...bodice } as never, { silhouette: 'straight', length: 'maxi', noSeam: 'bias', flareCm: 16, slit: 'none' } as never);
+    const [plain, low] = [at({}), at({ armholeLower: 5 })];
+    expect(low.bodice.armholeDepth - plain.bodice.armholeDepth).toBeCloseTo(5, 0);
+    expect(low.warnings).toEqual([]);
+  });
 });

@@ -136,6 +136,10 @@ export interface BodiceStyle {
   /** A shift's back with one small fish-eye dart each side, so it follows the hollow of the back instead of hanging
    * from the shoulder blades like a tube (see SHIFT_BACK). Set by a look; shifts without it hang straight. */
   shiftBack?: 'shaped';
+  /** A house look's own armhole, cut this many cm lower than the measurements draft it: a slip's, dropping down the
+   *  side (the Ivory Bias Slip, Cat 2026-11-11). Set on a look only, not on the style page; a toile's own armhole
+   *  correction adds to it. */
+  armholeLower?: number;
   sleeve?: SleeveLength;
   sleeveShape?: SleeveShape;
   /** A dragged hem: cm below the waist (0 for the waist), in place of the named length. */
@@ -714,7 +718,7 @@ function draftBlock(m: BodiceMeasurements, style: BodiceStyle): BodiceDraft {
   const table = 21 + (hb - 82) * 0.1 + ease.bust / 10 - (clean ? SLEEVELESS.raise : 0);
   const fit = s.fitting ?? {};
   // The armhole is found for the measurements as drafted, then lowered or raised as the toile asked.
-  const lower = fit.armhole ?? 0;
+  const lower = (fit.armhole ?? 0) + (s.armholeLower ?? 0);
   const withSides = (scye: number): BodiceDraft => {
     const { inner, ...result } = draft(m, s, scye + lower);
     if (inner.pin) result.armholePin = r(inner.pin);
