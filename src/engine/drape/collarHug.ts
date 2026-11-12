@@ -25,7 +25,7 @@ const STRAIN = 1.8;
  *  round the sides from close to the gorge, further round from the front, further in, and kept only while the collar's
  *  strained share stays under the quality check's (STRAIN_SHARE). */
 interface HugHow { from: number; full: number; most: number; share?: number }
-export const VEST_HUG: HugHow = { from: FROM, full: FULL, most: MOST };
+const VEST_HUG: HugHow = { from: FROM, full: FULL, most: MOST };
 /** A little under the quality check's share of strained edges in a piece (1%), so leaning in never fails it. */
 const STRAIN_SHARE = 0.008;
 export const JACKET_HUG: HugHow = { from: 35, full: 65, most: 2.5, share: STRAIN_SHARE };
@@ -132,5 +132,85 @@ export function hugCollars(d: Pick<Draped, 'panels' | 'pos' | 'posMirror'>, sp: 
       }
       const after = strained();
       if (how.share ? after > before && after > how.share * edges : after > before) pos.set(was, p.base * 3);
+    }
+}
+
+/** How far a jacket's collar end is laid open at the gorge, from upright (degrees), and how far round from the centre
+ *  front that fades to nothing. */
+const OPEN = 55;
+const OPEN_FROM = 25;
+const OPEN_TO = 60;
+const GORGE_EASE = 4;
+
+/** Toward the gorge, a tailored collar opens out with the lapel it is sewn to and lies on the chest with it; it stands
+ *  only round the sides and back of the neck. Laid by the sim its end stood upright, 2 to 4 cm off the neck, so beside
+ *  the notch it rose higher than the lapel, where a CLO drape of the same pattern on Cat's figure lies open and level
+ *  with the base of the neck (Cat "Collar, start more with clo", Nov 11). Here each point of the collar near the gorge
+ *  is turned outward about the neck seam at its place round the neck, most at the gorge, none from OPEN_TO round. The
+ *  turn is rigid at each place, and eased round the neck, so the collar keeps its cut lengths. */
+export function openCollarEnds(d: Pick<Draped, 'panels' | 'pos' | 'posMirror'>): void {
+  for (const pos of [d.pos, ...(d.posMirror ? [d.posMirror] : [])])
+    for (const p of d.panels) {
+      if (p.hidden || p.role !== 'collar') continue;
+      const neck = (p.mesh.runs.neck ?? []).flat();
+      if (neck.length < 2) continue;
+      const n = p.mesh.pts.length;
+      const at = (k: number) => {
+        const I = (p.base + k) * 3;
+        const a = Math.atan2(pos[I], pos[I + 2]);
+        return { I, a, deg: (Math.abs(a) * 180) / Math.PI, c: pos[I + 1], r: Math.hypot(pos[I], pos[I + 2]) };
+      };
+      // The neck seam round the neck, in order of the angle: its level and its distance from the centre.
+      const seam = neck.map(at).sort((u, v) => u.deg - v.deg);
+      const pivot = (deg: number) => {
+        let i = seam.findIndex((q) => q.deg >= deg);
+        if (i <= 0) i = i < 0 ? seam.length - 1 : 1;
+        const [u, v] = [seam[i - 1], seam[i]];
+        const t = v.deg > u.deg ? Math.min(1, Math.max(0, (deg - u.deg) / (v.deg - u.deg))) : 0;
+        return { c: u.c + (v.c - u.c) * t, r: u.r + (v.r - u.r) * t };
+      };
+      // (Its gorge end is sewn to the lapel's gorge, which stays where it lies.)
+      const gorge = (p.mesh.runs.gorge ?? []).flat();
+      // (Kept only while it leaves the collar's strained share under the quality check's: with structured pads, the
+      // collar end already drawn long over the pad was pulled further, Nov 11.)
+      const strained = () => {
+        let c = 0;
+        let e = 0;
+        for (const t of p.mesh.tris)
+          for (const [u, v] of [[t[0], t[1]], [t[1], t[2]], [t[2], t[0]]]) {
+            const cut = Math.hypot(p.mesh.pts[u].x - p.mesh.pts[v].x, p.mesh.pts[u].y - p.mesh.pts[v].y);
+            if (cut <= 0.05) continue;
+            e++;
+            const [A, B] = [u, v].map((j) => (p.base + j) * 3);
+            if (Math.hypot(pos[A] - pos[B], pos[A + 1] - pos[B + 1], pos[A + 2] - pos[B + 2]) / cut > STRAIN) c++;
+          }
+        return { c, e };
+      };
+      const before = strained().c;
+      const was = pos.slice(p.base * 3, (p.base + n) * 3);
+      const held = new Set([...neck, ...gorge]);
+      for (let k = 0; k < n; k++) {
+        if (held.has(k)) continue;
+        const q = at(k);
+        const f = Math.min(1, Math.max(0, (OPEN_TO - q.deg) / (OPEN_TO - OPEN_FROM)));
+        if (!f) continue;
+        // (Eased in from nothing, so the turn changes smoothly round the neck.)
+        // (And eased in from its sewn gorge end over GORGE_EASE cm of the cloth, else the cloth between crumpled.)
+        const pt = p.mesh.pts[k];
+        const gd = Math.min(Infinity, ...gorge.map((j) => Math.hypot(p.mesh.pts[j].x - pt.x, p.mesh.pts[j].y - pt.y)));
+        const g = Math.min(1, gd / GORGE_EASE);
+        const th = ((OPEN * f * f * (3 - 2 * f) * g * g * (3 - 2 * g)) * Math.PI) / 180;
+        const s = pivot(q.deg);
+        const up = s.c - q.c;
+        const out = q.r - s.r;
+        const up2 = up * Math.cos(th) - out * Math.sin(th);
+        const out2 = out * Math.cos(th) + up * Math.sin(th);
+        const r = s.r + out2;
+        pos[q.I + 1] = s.c - up2;
+        pos[q.I] = Math.sin(q.a) * r;
+        pos[q.I + 2] = Math.cos(q.a) * r;
+      }
+      const after = strained();
+      if (after.c > before && after.c > STRAIN_SHARE * after.e) pos.set(was, p.base * 3);
     }
 }
