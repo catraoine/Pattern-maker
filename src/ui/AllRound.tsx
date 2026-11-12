@@ -1158,7 +1158,8 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
         }
       }
 
-      if (!film && !drawing) text(drapedNow === 'pending' ? 'Sewing your pattern…' : 'Drag to turn', 8, fig - 4);
+      // "Drag to turn" is a word in the page beside the view's buttons (below), clear of the legs; only the wait is said here.
+      if (!film && !drawing && drapedNow === 'pending') text('Sewing your pattern…', 8, fig - 4);
       // The line being drawn, a fine chalk line over the garment.
       if (st.stroke && st.stroke.length > 1) {
         g.save();
@@ -1449,6 +1450,11 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
         <div className="all-round-quiet">
           {!standIn && (
             <div className="all-round-tools">
+              {!film && drapedNow !== 'pending' && (
+                <span className="all-round-hint" aria-hidden="true">
+                  Drag to turn
+                </span>
+              )}
               {canFit && (
                 <button type="button" className="all-round-closer" aria-pressed={fitOn} onClick={() => setFitOn(!fitOn)}>
                   {fitOn ? 'Fabric' : 'Fit map'}
@@ -1509,7 +1515,8 @@ function FeelControl({ feel, onFeel, open }: { feel: Feel; onFeel: (f: Feel) => 
   return (
     <div className={`all-round-feel${open ? ' open' : ''}`} role="group" aria-label="How the cloth feels">
       <p className="all-round-feel-head">
-        Feel <TestingTag tool="fabric_feel" />
+        {/* (Opened from the Feel button on a short phone, the button already says it: see 30-steady-view.css.) */}
+        <span className="all-round-feel-word">Feel</span> <TestingTag tool="fabric_feel" />
       </p>
       <div className="all-round-feel-row">
         {btn('stiff', -1, 'Softer')}

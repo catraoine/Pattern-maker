@@ -129,16 +129,14 @@
     padding: 0 8px;
   }
 }
-/* The narrowest phones (an iPhone SE, 320px): "All round" ran into "Pattern". */
+/* The narrowest phones (an iPhone SE, 320px): "All round" ran into "Pattern". All four view words a size smaller. */
 @media (max-width: 340px) {
+  .style-layout .style-pin > section:not(.live-big) > :is(.row.between.wrap, .lookboxes) {
+    --caps-size: 12px;
+    --caps-track: 0px;
+  }
   .style-layout .style-pin > section:not(.live-big) > .row.between.wrap > .seg button {
     padding: 0 3px;
-    font-size: 12px;
-    letter-spacing: 0;
-  }
-  .style-layout .style-pin > section:not(.live-big) > .lookboxes button {
-    font-size: 12px;
-    letter-spacing: 0;
   }
 }
 
@@ -197,9 +195,16 @@
   .style-layout .style-pin > section:not(.live-big) > .preview > .all-round > .all-round-quiet > .all-round-feel:not(.open) {
     display: none;
   }
+  .style-layout .style-pin > section:not(.live-big) > .preview > .all-round > .all-round-quiet > .all-round-feel .all-round-feel-word,
+  .style-layout .style-pin > section:not(.live-big) > .preview .all-round-hint {
+    display: none;
+  }
   .style-layout .style-pin > section:not(.live-big) > .preview > .all-round > .all-round-quiet > .all-round-feel.open {
     z-index: 5;
+    left: -3px;
     width: max-content;
+    /* Wide enough to cover the corner's Watch demo while it is open. */
+    min-width: 132px;
     max-width: none;
     padding: 6px;
     background: var(--chalk, #dcd5c7);
