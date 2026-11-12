@@ -405,6 +405,8 @@ export const explainGroups = (set: ExplainSet) => EXPLAIN[set];
 const SHORT: Record<string, string> = {
   'fit.fitted': 'Close fit. Make a test one first.',
   'tee.fit.fitted': 'Cut smaller, so the knit skims you.',
+  'tee.fit.regular': 'About your own size: close but easy.',
+  'tee.fit.relaxed': 'Roomy, the shoulder a little dropped.',
   'length.mini': 'Mid-thigh, well above the knee.',
   'asymHem.none': 'The same length all round.',
   'gathers.soft': 'Gentle folds that sit close.',
