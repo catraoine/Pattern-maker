@@ -242,7 +242,12 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       medium: ['Your knit stretches a fair amount, like most tee jersey.', 'easy'],
       high: ['Your knit stretches a lot, so the tee is cut smaller to hug you.'],
     },
-    fit: FIT,
+    // The tee's own fit lines (moved here from the tee screen, which showed them under the general ones: Cat, Nov 11 2026, say it once).
+    fit: {
+      fitted: ['Cut smaller than you, so the knit stretches on and skims the body.', FIT.fitted[1]],
+      regular: ['About your own size: close but easy.', FIT.regular[1]],
+      relaxed: ['Room to move, with the shoulder a little dropped.', FIT.relaxed[1]],
+    },
     neckline: {
       crew: ['A round neck that sits close at the base of the neck.', 'easy'],
       scoop: ['A wider, lower round neck.'],
@@ -399,6 +404,9 @@ export const explainGroups = (set: ExplainSet) => EXPLAIN[set];
 // first where the same choice means something else. The computer keeps the full line.
 const SHORT: Record<string, string> = {
   'fit.fitted': 'Close fit. Make a test one first.',
+  'tee.fit.fitted': 'Cut smaller, so the knit skims you.',
+  'tee.fit.regular': 'About your own size: close but easy.',
+  'tee.fit.relaxed': 'Roomy, the shoulder a little dropped.',
   'length.mini': 'Mid-thigh, well above the knee.',
   'asymHem.none': 'The same length all round.',
   'gathers.soft': 'Gentle folds that sit close.',

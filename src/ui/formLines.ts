@@ -509,6 +509,12 @@ export function readWaistSeam(stroke: P[], waistY: number, range: { min: number;
   return { choices: cm, said: seamWords(cm, range) };
 }
 
+/** A waist seam's height in cm alone, for under a named pick whose own line says the rest; nothing at the natural waist. */
+export function seamCm(cm: number): string {
+  if (Math.abs(cm) < 1) return '';
+  return `${Math.abs(cm)} cm ${cm < 0 ? 'above' : 'below'} the waist.`;
+}
+
 /** A waist seam's height in words. */
 export function seamWords(cm: number, range: { min: number; max: number }): string {
   if (Math.abs(cm) < 1) return 'Seam at the natural waist.';

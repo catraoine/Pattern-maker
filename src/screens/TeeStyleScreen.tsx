@@ -58,12 +58,6 @@ interface Props {
   onMode?: (m: Mode) => void;
 }
 
-const FIT_NOTES: Record<TeeChoices['fit'], string> = {
-  fitted: 'Cut smaller than you, so the knit stretches on and skims the body.',
-  regular: 'About your own size: close but easy.',
-  relaxed: 'Room to move, with the shoulder a little dropped.',
-};
-
 /** The engine's warnings are written for the pattern cutter; this turns them into a nudge. */
 function friendly(w: string) {
   if (w.startsWith('bust widened')) return 'Your shoulders are broad next to your bust, so the tee is cut a little roomier at the bust for the armholes to fit.';
@@ -234,7 +228,6 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
                 <p>{STRETCH_TEST}</p>
               </details>
             )}
-            {g.id === 'fit' && <p className="muted small">{FIT_NOTES[choices.fit]}</p>}
             {g.id === 'shoulder' && pick === 'dropped' && <p className="muted small">Boxy whatever the fit: the body is cut with at least {Math.round(BOXY_EASE[choices.stretch] * 100)}% room at the bust and hangs straight.</p>}
           </Group>
           );

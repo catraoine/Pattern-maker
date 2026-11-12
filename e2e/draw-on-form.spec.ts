@@ -140,7 +140,9 @@ test('moves the dress waist seam: a chip, then drawn on the form', async ({ page
   const main = page.getByRole('main');
   const seam = await openGroup(page, 'Waist seam');
   await seam.getByRole('button', { name: 'Empire', exact: true }).click();
-  await expect(seam.getByText(/above the waist, just under the bust/)).toBeVisible();
+  // The pick's line says where (just under the bust); the line under the slider adds how far above the waist.
+  await expect(seam.getByText(/Just under the bust/).filter({ visible: true })).toHaveCount(1);
+  await expect(seam.getByText(/^\d+ cm above the waist\.$/)).toBeVisible();
   await (await drawTool(page)).click();
   await main.getByRole('button', { name: 'Waist seam', exact: true }).click();
   await draw(page, [{ x: -20, y: 52 }, { x: 0, y: 52 }, { x: 20, y: 52 }]);

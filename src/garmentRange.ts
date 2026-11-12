@@ -120,7 +120,7 @@ export const HOODIE_GROUPS: Groups<HoodieChoices> = [
   { id: 'stretch', label: 'Your knit’s stretch', options: [['low', 'Low 20–30%'], ['medium', 'Medium 30–50%'], ['high', 'High 50%+']] },
   { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed'], ['boxy', 'Boxy']] },
   { id: 'front', label: 'Front', options: [['pullover', 'Pullover'], ['zip', 'Zip-up'], ['half_zip', 'Half-zip']] },
-  { id: 'pocket', label: 'Pocket', options: [['kangaroo', 'Front pocket'], ['split', 'Two pockets'], ['none', 'None']] },
+  { id: 'pocket', label: 'Pocket', options: [['kangaroo', 'Front'], ['split', 'Two'], ['none', 'None']] },
   { id: 'hood', label: 'Hood', options: [['standard', 'Standard'], ['big', 'Big']] },
   { id: 'length', label: 'Length', options: [['cropped', 'Cropped'], ['hip', 'Hip'], ['long', 'Long']] },
   { id: 'hemBand', label: 'Hem', options: [['true', 'Rib band'], ['false', 'Turned hem']] },

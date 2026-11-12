@@ -38,7 +38,7 @@ export function GarmentDrop({ label, onChoose, onLooks }: { label?: string; onCh
       value={label}
       items={[
         ...(onLooks ? [{ id: 'looks', text: 'Start from a look ›' }] : []),
-        ...order.map((g) => ({ id: g, text: cap(GARMENT_NAME[g]), on: pick?.garment === g, note: inTesting(g) ? IN_TESTING : undefined })),
+        ...order.map((g) => ({ id: g, text: cap(GARMENT_NAME[g]), on: pick?.garment === g, group: inTesting(g) ? IN_TESTING : undefined })),
         { id: 'all', text: 'See them all ›' },
       ]}
       onPick={(id) => (id === 'looks' ? onLooks?.() : pick && id !== 'all' ? id !== pick.garment && pick.onSwitch(id as Garment) : onChoose())}

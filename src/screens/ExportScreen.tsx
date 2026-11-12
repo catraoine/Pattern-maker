@@ -310,7 +310,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
             )}
           </div>
           <div className="print-cover">
-            <Envelope house={false} name={title[0].toUpperCase() + title.slice(1)} flat={made.flat} mark={edition} foot={imported ? undefined : `Drafted to ${profile === 'Me' ? 'you' : profile}`} />
+            <Envelope house={false} name={title[0].toUpperCase() + title.slice(1)} flat={made.flat} mark={edition} foot={imported || example ? undefined : `Drafted to ${profile === 'Me' ? 'you' : profile}`} />
             <p className="eyebrow">Pieces</p>
             <ul className="pieces">
               {made.pieces.map((pc, i) => (
@@ -489,7 +489,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
             {/* On a phone the pages fold behind one line (Cat applied P3, 2026-10-24), so Print is a shorter scroll. */}
             {!wide && !tablet && (
               <button type="button" className="later go see-pages" aria-expanded={seePages} onClick={() => setSeePages(!seePages)}>
-                {seePages ? 'Hide the pages' : projector ? 'See the page' : `See the ${pages} ${pages === 1 ? 'page' : 'pages'}`} <span aria-hidden="true">{seePages ? '‹' : '›'}</span>
+                {seePages ? 'Hide the pages' : projector || pages === 1 ? 'See the page' : 'See the pages'} <span aria-hidden="true">{seePages ? '‹' : '›'}</span>
               </button>
             )}
             {showPages && (
@@ -514,7 +514,6 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
                 </span>
               </label>
             )}
-            <p className="muted small">Printed it? Your cutting layout and sewing steps are just below, and on the last pages of the PDF.</p>
             <ModeLink quiet mode={mode} onMode={onMode} what="a toile fitting, a dressmaker's pack and more" />
           </div>
         </section>
@@ -579,6 +578,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
               <div className="lay-box">
                 <LayPlanView
                   lay={lay}
+                  size={lays.length > 1}
                   cloth={lay.fabric === 'self' ? (flatId(finish.fabric) ?? 'default') : lay.fabric === 'lining' ? 'silk' : 'cotton'}
                   print={lay.fabric === 'self' && print ? { kind: print, repeat: printRepeat(finish.fabric), stripes: finish.fabric?.checks?.stripes, gingham: finish.fabric?.checks?.gingham } : undefined}
                 />

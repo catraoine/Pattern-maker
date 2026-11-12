@@ -316,6 +316,17 @@
   color: var(--muted);
   opacity: 0.8;
 }
+.drop-list .drop-group {
+  margin: 6px 16px 0;
+  padding: 14px 0 6px;
+  border-top: 1px solid var(--gild);
+  font-family: var(--mono);
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
+  text-transform: uppercase;
+  color: var(--muted);
+  opacity: 0.8;
+}
 .style-layout .screen-head .drop.garment-drop .drop-button {
   font-size: 13px;
 }
@@ -349,4 +360,13 @@
 }
 .share-link-buttons button {
   flex: 1;
+}
+
+/* The skirt's zip place: "Zip" once above its two buttons (Cat, Nov 11 2026). */
+.zip-label {
+  margin: 14px 0 8px;
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
+  text-transform: uppercase;
+  color: var(--muted);
 }

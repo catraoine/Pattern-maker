@@ -4,8 +4,9 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
  * A quiet drop-down (Cat applied, 2026-10-24): the current choice in tracked capitals with a champagne underline and
  * a chevron; tap for the list, the picked one marked with a short line. Used where a choice is only a word (the
  * garment on the Style title, the paper and the fabric width on Print), so a row of buttons becomes one line.
+ * Items that share a `group` get its name once, as a quiet heading above them.
  */
-export function DropMenu({ name, label, value, items, onPick, className }: { name: string; label?: string; value: ReactNode; items: { id: string; text: ReactNode; on?: boolean; note?: string }[]; onPick: (id: string) => void; className?: string }) {
+export function DropMenu({ name, label, value, items, onPick, className }: { name: string; label?: string; value: ReactNode; items: { id: string; text: ReactNode; on?: boolean; note?: string; group?: string }[]; onPick: (id: string) => void; className?: string }) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -30,12 +31,19 @@ export function DropMenu({ name, label, value, items, onPick, className }: { nam
       </button>
       {open && (
         <div className="drop-list" role="menu" aria-label={name}>
-          {items.map((it) => (
+          {items.map((it, i) => [
+            // A group heading said once above its run of items (Cat, Nov 11 2026: "In testing" was on 7 rows in a row).
+            it.group && it.group !== items[i - 1]?.group && (
+              <div key={`group-${it.group}`} className="drop-group" role="presentation">
+                {it.group}
+              </div>
+            ),
             <button
               key={it.id}
               type="button"
               role="menuitemradio"
               aria-checked={!!it.on}
+              aria-label={it.group && typeof it.text === 'string' ? `${it.text}, ${it.group.toLowerCase()}` : undefined}
               className={it.on ? 'on' : ''}
               onClick={() => {
                 setOpen(false);
@@ -44,8 +52,8 @@ export function DropMenu({ name, label, value, items, onPick, className }: { nam
             >
               {it.text}
               {it.note && <span className="drop-note">{it.note}</span>}
-            </button>
-          ))}
+            </button>,
+          ])}
         </div>
       )}
     </div>

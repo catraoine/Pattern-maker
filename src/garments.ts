@@ -183,9 +183,9 @@ export const TROUSER_GROUPS: { id: TrouserGroupId; label: string; options: [stri
   { id: 'waist', label: 'Waist', options: [['band', 'Waistband with zip'], ['elastic', 'Elastic, pull-on']] },
   { id: 'closure', label: 'Opening', options: [['fly', 'Fly zip'], ['side_zip', 'Side zip']] },
   { id: 'pockets', label: 'Pockets', options: [['none', 'None'], ['inseam', 'In-seam'], ['slant', 'Slant front']] },
-  { id: 'backPockets', label: 'Back pockets', options: [['none', 'None'], ['welt', 'Welt pockets']] },
+  { id: 'backPockets', label: 'Back pockets', options: [['none', 'None'], ['welt', 'Welt']] },
   { id: 'pleats', label: 'Front pleats', options: [['none', 'None'], ['single', 'One pleat'], ['double', 'Two pleats']] },
-  { id: 'loops', label: 'Belt loops', options: [['none', 'None'], ['loops', 'Belt loops']] },
+  { id: 'loops', label: 'Belt loops', options: [['none', 'None'], ['loops', 'Yes']] },
   { id: 'rise', label: 'Rise', options: [['low', 'Low'], ['mid', 'Mid, at the waist'], ['high', 'High']] },
 ];
 
@@ -400,13 +400,13 @@ export function outerGroups(kind: OuterKind): { id: OuterGroupId; label: string;
     {
       id: 'collar',
       label: 'Collar',
-      options: [['notched', 'Notched lapel'], ['peak', 'Peak lapel'], ['shawl', 'Shawl collar'], ['stand', 'Stand collar'], ['funnel', 'Funnel collar'], ['collarless', 'Collarless'], ['hood', 'Hood']],
+      options: [['notched', 'Notched lapel'], ['peak', 'Peak lapel'], ['shawl', 'Shawl'], ['stand', 'Stand'], ['funnel', 'Funnel'], ['collarless', 'Collarless'], ['hood', 'Hood']],
     },
     { id: 'lapel', label: 'Lapels', options: [['classic', 'Classic'], ['wide', 'Wide'], ['plunge', 'Plunging']] },
     { id: 'sleeve', label: 'Sleeves', options: [['tailored', 'Two-piece, tailored'], ['fitted', 'One-piece, elbow dart'], ['straight', 'Straight'], ['raglan', 'Raglan'], ['none', 'Sleeveless']] },
     { id: 'pads', label: 'Shoulder pads', options: [['soft', kind === 'coat' ? 'Soft, 8 mm' : 'Soft, 6 mm'], ['structured', kind === 'coat' ? 'Structured, 1.5 cm' : 'Structured, 1.2 cm'], ['none', 'None']] },
-    { id: 'pockets', label: 'Pockets', options: [['patch', 'Patch pockets'], ['welt', 'Welt pockets'], ['flap', 'Flap pockets'], ['none', 'None']] },
-    { id: 'chest', label: 'Chest pocket', options: [['none', 'None'], ['welt', 'Welt pocket']] },
+    { id: 'pockets', label: 'Pockets', options: [['patch', 'Patch'], ['welt', 'Welt'], ['flap', 'Flap'], ['none', 'None']] },
+    { id: 'chest', label: 'Chest pocket', options: [['none', 'None'], ['welt', 'Welt']] },
     { id: 'vent', label: 'Back vent', options: [['centre', 'Centre vent'], ['none', 'None']] },
     { id: 'trim', label: 'Hem and cuffs', options: [['none', 'Plain hems'], ['rib', 'Rib bands']] },
     // Flared (In testing): out from the waist like a basque, on a jacket or a coat.

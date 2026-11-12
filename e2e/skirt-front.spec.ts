@@ -18,7 +18,7 @@ test('skirt front: a yoke, then buttons down the front', async ({ page }, info) 
   await expect(main.getByText(/knee a-line skirt with a button front/i).first()).toBeAttached();
   await expect((await openGroup(page, 'Front')).getByText(/buttons from the waistband to 15 cm above the hem/i)).toBeVisible();
   // A button front is the opening, so no zip choice.
-  await expect(main.getByRole('button', { name: /Zip: Left side/ })).toHaveCount(0);
+  await expect(main.getByRole('group', { name: 'Zip' }).getByRole('button', { name: 'Left side' })).toHaveCount(0);
   await page.screenshot({ path: info.outputPath('buttons.png'), fullPage: true });
   // A pencil skirt keeps its darts and its zip.
   await chooseChip(page, 'Silhouette', 'Pencil');
