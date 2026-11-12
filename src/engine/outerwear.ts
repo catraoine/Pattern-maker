@@ -175,6 +175,8 @@ export interface Lapel {
   collarPoint: P;
   neckPoint: P;
   gorge: P;
+  /** A shawl: its top collar is cut in one with the facing, so no gorge seam shows on the outside. */
+  shawl?: true;
 }
 
 export interface OuterDraft {
@@ -780,7 +782,7 @@ function openFront(pc: Piece, s: OuterStyle, ext: number, buttons: OuterDraft['b
     const dl = unit(sub(Lp, K));
     const ang = ((peak ? 15 : shawl ? 88 : lowLapel ? HIGH_LAPEL.collarAngle : 50) * Math.PI) / 180;
     const Cp = add(K, mul(add(mul(dl, Math.cos(ang)), mul(u, Math.sin(ang))), shawl ? 0.6 : peak ? 3.4 : lowLapel ? HIGH_LAPEL.collarLength : s.kind === 'coat' ? 4.6 : 4));
-    lapel = { breakPt: B, roll: [B, R], worn: [...lapelEdge, K, Q].map(reflect), notch: reflect(K), collarPoint: reflect(Cp), neckPoint: hps, gorge: Q };
+    lapel = { breakPt: B, roll: [B, R], worn: [...lapelEdge, K, Q].map(reflect), notch: reflect(K), collarPoint: reflect(Cp), neckPoint: hps, gorge: Q, ...(shawl ? { shawl: true as const } : {}) };
     frontNeck = polyLen([...neckSeam, hps]);
     join = breakY + 4;
     // For the collar: where the gorge runs and where the collar point sits, on the flat front.

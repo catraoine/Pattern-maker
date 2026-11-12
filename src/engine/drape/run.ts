@@ -161,6 +161,9 @@ export function runDrape(job: DrapeJob): DrapedLite {
   // a jacket's or coat's further round towards the gorge, where it stood off the neck as a funnel (Cat "move forward
   // with collar", Nov 11).
   if (job.kind === 'outer' && job.draft.lapel && !knob('__noCollarHug')) hugCollars(d, sp, job.draft.sleeveless ? undefined : JACKET_HUG);
+  // A shawl's top collar is cut in one with its facing, so the gorge seam under it doesn't show: drawn, it read as a
+  // notch where the collar meets the lapel (Cat "Collar, start more with clo", Nov 11).
+  if (job.kind === 'outer' && job.draft.lapel?.shawl) d.lines = d.lines.filter((l) => l.kind !== 'gorge');
   const quality = drapeQuality(d, sp, { seams: d.seams, levelHem: !!sk && !sk.asym && !sk.hem, legs: job.kind === 'trousers' });
   // A sleeve piece the drape left out (a raglan's back half) is cloth missing from the drawing, which no measure of the
   // cloth that is there can see: the eye check's oversized raglan jacket passed with its shoulders open (2026-11-02).
