@@ -843,7 +843,18 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
   const who = info ? [info.madeFor && `MADE FOR ${info.madeFor}`, info.date, info.edition, info.code && `CODE ${info.code}`].filter(Boolean) : [];
   text(p(tx + 1.2, MARGIN + 1.5), ['MAISON TRACÉ', ...who].join('   ·   ').toUpperCase(), 0.5, 0, 'start', { face: 'label', tracking: 0.3, grey: 0.35 });
   const name = title.replace(/^Maison Tracé:\s*/, '');
-  text(p(tx + 1.2, MARGIN + 3.3), name.charAt(0).toUpperCase() + name.slice(1), 1.3, 0, 'start', { face: 'bodyMedium' });
+  // The garment's name inside the card: a long one (a whole sentence of choices) ran out past the card's edge and under
+  // the pieces beside it, the Leopard Shirt Dress's A0 print, Nov 12. Smaller until it fits on one line, else on two.
+  const named = name.charAt(0).toUpperCase() + name.slice(1);
+  const room = TITLE_W - 2.4;
+  const one = [1.3, 1.15, 1, 0.9].find((sz) => textWidth(named, sz) <= room);
+  if (one) text(p(tx + 1.2, MARGIN + 3.3), named, one, 0, 'start', { face: 'bodyMedium' });
+  else {
+    const sz = [0.85, 0.75, 0.65, 0.55, 0.5].find((z) => wrapWords(named, z, 0, room).length <= 2) ?? 0.5;
+    wrapWords(named, sz, 0, room)
+      .slice(0, 2)
+      .forEach((line, i) => text(p(tx + 1.2, MARGIN + 2.7 + i * sz * 1.15), line, sz, 0, 'start', { face: 'bodyMedium' }));
+  }
   [...(info?.credit ? [info.credit] : []), ...notes].forEach((line, i) => text(p(tx + 1.2, MARGIN + 5.6 + i * 1.0), line, 0.6, 0, 'start', { face: 'body' }));
 
   return { prims, width: Math.max(packed.width, TITLE_BLOCK.w) + 2 * MARGIN, height: Math.max(packed.height, TITLE_BLOCK.h) + 2 * MARGIN };
