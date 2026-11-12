@@ -1,0 +1,19 @@
+/* A message in a style picture window (a design that can't be drafted, or one put back to its standard choices) sits
+   along the foot of the window as its own line, clear of Enlarge, Draw and Watch demo in the top corner, and the
+   drawing keeps the rest of the window, whole, rather than shrinking to a sliver beside the words (code health
+   check, Nov 11). */
+.preview:has(> .msg.error) {
+  flex-direction: column;
+  align-items: stretch;
+}
+.preview:has(> .msg.error) > :not(.msg):not(.preview-corner) {
+  flex: 1 1 0;
+  min-height: 0;
+  max-width: 100%;
+}
+.preview > .msg.error {
+  order: 2;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  margin: 8px 0 0;
+}
