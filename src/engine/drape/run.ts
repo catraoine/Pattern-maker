@@ -24,7 +24,7 @@ import { knob } from './knob';
 import { fairDroppedSeam } from './seamFair';
 import { BUST_Y, fitRoom, type FitPin } from './fitMap';
 import { clearCollars } from './collarClear';
-import { hugCollars, JACKET_HUG } from './collarHug';
+import { hugCollars, JACKET_HUG, openCollarEnds } from './collarHug';
 import { fairBackCentre } from './fairFront';
 import { layLapelFoot } from './lapelFoot';
 import { fairStraps } from './strapFair';
@@ -160,6 +160,7 @@ export function runDrape(job: DrapeJob): DrapedLite {
   // A tailored collar leans in to hug the neck round the sides and back (collarHug.ts): a vest's from the Look 02 fixes,
   // a jacket's or coat's further round towards the gorge, where it stood off the neck as a funnel (Cat "move forward
   // with collar", Nov 11).
+  if (job.kind === 'outer' && job.draft.lapel && !job.draft.sleeveless && !knob('__noCollarOpen')) openCollarEnds(d);
   if (job.kind === 'outer' && job.draft.lapel && !knob('__noCollarHug')) hugCollars(d, sp, job.draft.sleeveless ? undefined : JACKET_HUG);
   // A shawl's top collar is cut in one with its facing, so the gorge seam under it doesn't show: drawn, it read as a
   // notch where the collar meets the lapel (Cat "Collar, start more with clo", Nov 11).
