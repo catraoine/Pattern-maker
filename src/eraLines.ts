@@ -16,8 +16,8 @@ const PIECES: Omit<EraPiece, 'number'>[] = [
   // Edwardian
   { era: 'edwardian', id: 'ed-blouse', name: 'Edwardian high-neck blouse', fabric: 'Ivory cotton lawn', garment: 'bodice', line: 'A standing collar, buttons down the front and long full sleeves gathered into a cuff.',
     choices: bodice({ fit: 'relaxed', neckline: 'crew', collar: 'funnel', closure: 'front_buttons', sleeve: 'long', sleeveShape: 'bishop', sleeveFullness: 'full', sleeveCuff: 'shirt', length: 'high_hip' }) },
-  { era: 'edwardian', id: 'ed-dress', name: 'Edwardian afternoon dress', fabric: 'Lilac cotton voile', garment: 'dress', line: 'High collar and long bishop sleeves over a skirt that sweeps out to the ankle.',
-    choices: dress('regular', { neckline: 'crew', collar: 'funnel', sleeve: 'long', sleeveShape: 'bishop' }, { silhouette: 'trumpet', length: 'maxi' }) },
+  { era: 'edwardian', id: 'ed-dress', name: 'Edwardian afternoon dress', fabric: 'Lilac cotton voile', garment: 'dress', line: 'A high collar and long, close sleeves over a skirt that flares out below the knee to the ankle.',
+    choices: dress('regular', { neckline: 'crew', collar: 'funnel', sleeve: 'long', sleeveShape: 'fitted' }, { silhouette: 'trumpet', length: 'maxi', flareCm: 26 }) },
   { era: 'edwardian', id: 'ed-jacket', name: 'Edwardian walking jacket', fabric: 'Navy wool suiting', garment: 'jacket', line: 'Fitted through the waist with princess seams, flaring over the hip.',
     choices: <OuterChoices>{ ...DEFAULT_JACKET_CHOICES, fit: 'fitted', shaping: 'princess', length: 'hip', flare: 'flared', pads: 'none', pockets: 'none' } },
   // 1920s
