@@ -7,7 +7,7 @@
 // fold into one quiet line under it (Cat's Q2 Quiet in Calico, 2026-10-31: the view read like engineering).
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { widensForm } from '../engine/drape/widen';
-import { squaredShoulder } from './formShoulder';
+import { roundedCorner, roundedShoulder } from './formShoulder';
 import type { MyFabric } from '../engine/fabrics';
 import { FabricPaint, fabricPaint } from './FabricFill';
 import { useFabricPhoto } from '../fabricPhoto';
@@ -207,13 +207,22 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
   const [draped, setDraped] = useState<{ key: string; view: DrapedView } | undefined>();
   // (Drawn at the wearer's shoulder width only under a sleeveless garment, as the drape worker's form is: see makeSpace.)
   const widenForm = !drape || widensForm(drape);
+  // (A top cut below the shoulders leaves the form's shoulder bare without the form being drawn out.)
+  const bareTop = useMemo(() => {
+    const d = drape?.draft as { top?: unknown; bodice?: { top?: unknown } } | undefined;
+    return !!(drape?.kind === 'dress' ? d?.bodice?.top : drape?.kind === 'bodice' ? d?.top : undefined);
+  }, [drape]);
   const spaceOf = useMemo(() => makeSpace(placeOnForm(round, m), m, { widen: widenForm }), [round, m, widenForm]);
   // The form stands at the wearer's shoulder width, as the body the cloth is sewn on does.
   const formX = useMemo(() => (x: number, y: number, z: number) => {
     const s = spaceOf.scale(y);
-    // (Its shoulder's very end squared off where it is drawn out: see formShoulder.ts.)
-    return (widenForm ? squaredShoulder(spaceOf.widen(x * s, spaceOf.cOf(y), z * s), x * s, spaceOf.tip.x) : spaceOf.widen(x * s, spaceOf.cOf(y), z * s)) / s;
-  }, [spaceOf, widenForm]);
+    // (Its shoulder's end turned over a curve where it is drawn out: see formShoulder.ts.)
+    const c = spaceOf.cOf(y);
+    const w = spaceOf.widen(x * s, c, z * s);
+    // (Far off the shoulder's top line nothing is drawn out: that is the form's own width, its arm stumps held in.)
+    if (widenForm) return roundedShoulder(w, spaceOf.widen(x * s, c, 99), spaceOf.tip.x, c - spaceOf.tip.c) / s;
+    return (bareTop ? roundedCorner(w, Math.abs(spaceOf.widen(99, spaceOf.tip.c + 5, 99)), c - spaceOf.tip.c) : w) / s;
+  }, [spaceOf, widenForm, bareTop]);
   const toFormOf = useMemo(() => {
     const sp = spaceOf;
     // The form's height table flattens above the neck point: a collar standing up the neck is carried on at the
