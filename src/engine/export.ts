@@ -146,6 +146,8 @@ const turn = (v: P, deg: number): P => {
 interface LayoutOptions {
   /** Draw the draft itself: the frame and the numbered construction points. */
   atelier?: boolean;
+  /** The paper it prints on: on A0 the pieces are packed onto the fewest big sheets (Cat, Nov 12). */
+  paper?: Paper;
 }
 
 // ---- Text extents, estimated for keeping labels clear of each other. The labels are drawn at 0.857
@@ -445,8 +447,7 @@ export function columnSpans(outline: P[]): ColumnSpans {
  * The A4 pages a packing takes, counting the tiles the title block and the pieces touch: each
  * piece by its outline's columns when given (`spans`, from its box's top left), else by its box.
  */
-export function packedPages(k: Packed, sizes: { w: number; h: number }[], spans?: ColumnSpans[]): number {
-  const [pw, ph] = PAPER_CM.a4;
+export function packedPages(k: Packed, sizes: { w: number; h: number }[], spans?: ColumnSpans[], [pw, ph]: [number, number] = PAPER_CM.a4): number {
   const stepX = pw - 2 * PAGE_MARGIN - OVERLAP;
   const stepY = ph - 2 * PAGE_MARGIN - OVERLAP;
   const w = k.width + 2 * MARGIN;
@@ -485,7 +486,7 @@ export function packedPages(k: Packed, sizes: { w: number; h: number }[], spans?
  * vertical on the sheet (a quarter turn would not, and the sheet is for cutting). Each returned
  * position is where the piece's bounding box goes.
  */
-export function pack(outlines: P[][], boxes: [number, number, number, number][]): Packed {
+export function pack(outlines: P[][], boxes: [number, number, number, number][], paper: Paper = 'a4'): Packed {
   if (!outlines.length) return { at: [], turned: [], width: 0, height: 0 };
   const sizes = boxes.map(([x0, y0, x1, y1]) => ({ w: x1 - x0, h: y1 - y0, x: x0, y: y0 }));
   const turned = outlines.map((o, i) => o.map((q) => turnedInBox(q, boxes[i])));
@@ -499,6 +500,9 @@ export function pack(outlines: P[][], boxes: [number, number, number, number][])
   const targets = new Set<number>();
   for (let k = 1; k * stepX + OVERLAP - 2 * MARGIN < all + stepX; k++) targets.add(Math.max(widest, k * stepX + OVERLAP - 2 * MARGIN - 0.01));
   for (let i = 0; i <= 12; i++) targets.add(widest + ((all - widest) * i) / 12);
+  // On A0, widths that fill whole big sheets too, standing or lying.
+  const big = paper === 'a0' ? [PAPER_CM.a0, [PAPER_CM.a0[1], PAPER_CM.a0[0]] as [number, number]] : [];
+  for (const [bw] of big) for (let k = 1; k * (bw - 2 * PAGE_MARGIN - OVERLAP) < all + bw; k++) targets.add(Math.max(widest, k * (bw - 2 * PAGE_MARGIN - OVERLAP) + OVERLAP - 2 * MARGIN - 0.01));
   const orders = {
     height: sizes.map((_, i) => i).sort((a, b) => sizes[b].h - sizes[a].h || sizes[b].w - sizes[a].w),
     area: sizes.map((_, i) => i).sort((a, b) => sizes[b].w * sizes[b].h - sizes[a].w * sizes[a].h),
@@ -506,6 +510,7 @@ export function pack(outlines: P[][], boxes: [number, number, number, number][])
   };
   let best: Packed | undefined;
   let bestPages = Infinity;
+  let bestSheets = Infinity;
   for (const target of targets)
     for (const order of Object.values(orders))
     for (const policy of ['low', 'left', 'snug'] as const) {
@@ -514,10 +519,15 @@ export function pack(outlines: P[][], boxes: [number, number, number, number][])
       const k: Packed = { at: nest.at.map((d, i) => p(d.x + sizes[i].x, d.y + sizes[i].y)), turned: nest.turned, width: nest.width, height: nest.height };
       // Fewest pages, a sheet longer than twice its width counting as a page more, since it tapes
       // together awkwardly; among equals the squarer sheet.
-      const n = packedPages(k, sizes, k.turned.map((tn, i) => (tn ? spans.turned[i] : spans.plain[i]))) + (oblong(k) > Math.log(2) ? 1 : 0);
-      if (n < bestPages || (n === bestPages && best && oblong(k) < oblong(best))) {
+      const sp = k.turned.map((tn, i) => (tn ? spans.turned[i] : spans.plain[i]));
+      // On A0 the fewest big sheets come first: a third sheet for a cuff's last few cm is paper and money wasted at
+      // the copy shop (Cat's leopard shirt dress, Nov 12). Then the fewest A4 pages, for printing it at home.
+      const sheets = big.length ? Math.min(...big.map((b) => packedPages(k, sizes, sp, b))) : 0;
+      const n = packedPages(k, sizes, sp) + (oblong(k) > Math.log(2) ? 1 : 0);
+      if (sheets < bestSheets || (sheets === bestSheets && (n < bestPages || (n === bestPages && best && oblong(k) < oblong(best))))) {
         best = k;
         bestPages = n;
+        bestSheets = sheets;
       }
     }
   return best!;
@@ -543,7 +553,7 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
   // Title block: the 10 cm test square at top left, title and notes beside it. The pieces are nested
   // by their cutting lines beside and below it, the way they are drawn.
   const boxes = pieces.map((pc) => bounds(pc));
-  const packed = pack(pieces.map((pc) => cutLine(pc)), boxes);
+  const packed = pack(pieces.map((pc) => cutLine(pc)), boxes, opts.paper);
   pieces.forEach((pc, piece) => {
     const [x0, y0] = boxes[piece];
     const at = add(packed.at[piece], p(MARGIN, MARGIN));
@@ -922,7 +932,8 @@ export const OVERLAP = 1; // cm shared by neighbouring pages for taping
 export function pageSize(sheet: Sheet, paper: Paper): [number, number] {
   const [w, h] = PAPER_CM[paper];
   if (paper !== 'a0') return [w, h];
-  const count = (pw: number, ph: number) => grid(sheet, pw, ph).rows * grid(sheet, pw, ph).cols;
+  // Standing or lying, whichever prints fewer sheets; then fewer in the grid.
+  const count = (pw: number, ph: number) => tilesAt(sheet, pw, ph).flat().filter(Boolean).length * 1000 + grid(sheet, pw, ph).rows * grid(sheet, pw, ph).cols;
   return count(h, w) < count(w, h) ? [h, w] : [w, h];
 }
 
@@ -987,10 +998,13 @@ function throughRect(a: P, b: P, x: number, y: number, w: number, h: number): bo
  * readiness check, 2026-11-02: a hem running a few millimetres into the next row cost up to five pages).
  */
 export function usedTiles(sheet: Sheet, paper: Paper): boolean[][] {
-  const [pw, ph] = pageSize(sheet, paper);
+  return tilesAt(sheet, ...pageSize(sheet, paper));
+}
+
+function tilesAt(sheet: Sheet, pw: number, ph: number): boolean[][] {
   const tw = pw - 2 * PAGE_MARGIN;
   const th = ph - 2 * PAGE_MARGIN;
-  const { rows, cols } = tileGrid(sheet, paper);
+  const { rows, cols } = grid(sheet, pw, ph);
   const used: boolean[][] = Array.from({ length: rows }, () => Array.from({ length: cols }, () => false));
   for (let r = 0; r < rows; r++)
     for (let c = 0; c < cols; c++) {

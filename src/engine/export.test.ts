@@ -229,3 +229,15 @@ describe('tiles that only repeat a printed neighbour', () => {
     expect(usedTiles(line(28.5), 'a4').map((r) => r.filter(Boolean).length)).toEqual([1, 1]);
   });
 });
+
+describe('fewest big sheets on A0', () => {
+  // Cat, Nov 12: a third A0 sheet held only a cuff's last 6.5 cm. Packed for A0, a pattern never takes more big sheets
+  // than packed for home pages.
+  it('never prints more A0 sheets than the home-page packing', () => {
+    for (const g of ['jacket', 'coat'] as const) {
+      const home = pageCount(layout(outer(g), 'T', [], INFO), 'a0');
+      const big = pageCount(layout(outer(g), 'T', [], INFO, { paper: 'a0' }), 'a0');
+      expect(big, g).toBeLessThanOrEqual(home);
+    }
+  });
+});

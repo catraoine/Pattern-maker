@@ -174,8 +174,8 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
   const code = useMemo(() => (made ? patternCode(made.pieces, values ?? {}, __APP_VERSION__) : undefined), [made, values]);
   const sheet = useMemo(
     () =>
-      made && toPrint ? layout(toPrint, `Maison Tracé: ${title}`, made.notes, { pattern: title, name: lookName, madeFor: profile, date, edition, credit, code }, { atelier: finish.atelier }) : undefined,
-    [made, toPrint, title, lookName, profile, date, finish.atelier, edition, credit, code],
+      made && toPrint ? layout(toPrint, `Maison Tracé: ${title}`, made.notes, { pattern: title, name: lookName, madeFor: profile, date, edition, credit, code }, { atelier: finish.atelier, paper: paper === 'a0' ? 'a0' : undefined }) : undefined,
+    [made, toPrint, title, lookName, profile, date, finish.atelier, edition, credit, code, paper],
   );
   // The seam check walks the garment's own pieces and its pockets; its lining and facings follow them.
   const checks = useMemo(() => {
