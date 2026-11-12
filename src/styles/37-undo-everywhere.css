@@ -1,0 +1,42 @@
+/* Undo in the enlarged window and in Move points (Cat, Nov 12: "we need an undo button here"). */
+
+/* Enlarged, the step's Undo and Redo are covered, so the window has its own, under the drawing, left, where Draw on
+   your form has them. Move points has its own pair for the pieces, so the window's is put away while it is open. */
+section.live-big > .big-undo {
+  flex: none;
+  justify-content: flex-start;
+}
+section.live-big:has(.point-editor) > .big-undo {
+  display: none;
+}
+
+/* Move points: Undo and Redo at the left under the pieces, Back to drafted across from them. */
+.pe-undo-row {
+  align-items: center;
+  gap: 8px;
+}
+.pe-undo-row > .ghost {
+  flex: none;
+}
+
+/* Enlarged, Move points fills the window: the pieces take what the tools under them leave, and are laid out to the
+   window's shape, so every piece shows whole and a line's question shows under them, never off the screen. */
+section.live-big .preview > .pattern-pane:has(> .point-editor) {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  /* Clear of Back to pieces and Watch demo in the top corner. */
+  padding-top: 64px;
+  box-sizing: border-box;
+}
+section.live-big .pattern-pane > .point-editor {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+section.live-big .pattern-pane > .point-editor > .point-svg {
+  flex: 1 1 0;
+  min-height: 160px;
+  height: auto;
+}

@@ -5,7 +5,7 @@ import type { Garment } from '../measurements';
 import { canGoBack, goBack, usePageHistory } from '../nav';
 import type { Flat } from '../engine/flat';
 import { DemoButton } from './DemoButton';
-import { EnlargeSketch } from './EnlargeSketch';
+import { EnlargeSketch, useEnlarged } from './EnlargeSketch';
 import { Envelope } from './Envelope';
 import { CollectionEntry, ExampleTag, GarmentDrop } from './GarmentSwitch';
 import { ModeLink } from './ModeLink';
@@ -202,19 +202,30 @@ export function Group({ label, tab, children, className, shaped }: { label: stri
 const Corner = createContext<HTMLElement | null>(null);
 
 /** Puts the garment's style back to how it started, measurements untouched: given by the app around the style screens. */
-export const StartOver = createContext<(() => void) | undefined>(undefined);
+/** Puts the garment's choices back to how they started, and hands back a way to undo that. */
+export const StartOver = createContext<(() => () => void) | undefined>(undefined);
 
 /** "Back to the original style", a quiet link on Review (journey review, Nov 10: testers had to go back to the start to
  *  reset). One tap asks first, since it takes away every pick. */
 function StartOverLink() {
   const startOver = useContext(StartOver);
   const [asking, setAsking] = useState(false);
-  const [done, setDone] = useState(false);
+  const [done, setDone] = useState<() => void>();
   if (!startOver) return null;
   if (done)
     return (
       <p className="small muted start-over" role="status">
-        Back to the original style.
+        Back to the original style.{' '}
+        <button
+          type="button"
+          className="link quiet"
+          onClick={() => {
+            done();
+            setDone(undefined);
+          }}
+        >
+          Undo
+        </button>
       </p>
     );
   return asking ? (
@@ -225,9 +236,9 @@ function StartOverLink() {
           type="button"
           className="later"
           onClick={() => {
-            startOver();
+            const undo = startOver();
             setAsking(false);
-            setDone(true);
+            setDone(() => undo);
           }}
         >
           Yes, start over
@@ -250,6 +261,25 @@ function StartOverLink() {
 export function InCorner({ children }: { children: ReactNode }) {
   const corner = useContext(Corner);
   return corner ? createPortal(children, corner) : <>{children}</>;
+}
+
+/** Undo and Redo inside the enlarged drawing, under it: enlarged, the step's own Undo is covered, so a hem dragged too
+ *  far there couldn't be taken back (Cat, Nov 12: "we need an undo button here"). Named words, as Draw on your form has. */
+function BigUndo({ undo, host }: { undo: Undo; host: HTMLElement | null }) {
+  const big = useEnlarged();
+  const card = host?.closest<HTMLElement>('section[aria-label="Preview"]');
+  if (!big || !card) return null;
+  return createPortal(
+    <div className="form-undo big-undo">
+      <button type="button" onClick={undo.undo} disabled={!undo.canUndo} aria-label="Undo the last change">
+        ↶ Undo
+      </button>
+      <button type="button" onClick={undo.redo} disabled={!undo.canRedo} aria-label="Redo the change you undid">
+        ↷ Redo
+      </button>
+    </div>,
+    card,
+  );
 }
 
 /** Undo and Redo as two named words across from the step's number, on a phone. */
@@ -808,6 +838,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
               host,
             )}
           <EnlargeSketch host={host} corner={corner} name={name} />
+          {undo && <BigUndo undo={undo} host={host} />}
         </div>
         <div
           className={!wide && split(active) ? 'style-panel one-q' : 'style-panel'}

@@ -120,6 +120,9 @@ const ready = (values: MeasurementValues, unit: Unit, garment: Garment, form?: F
 
 export default function App() {
   const [saved, setSaved] = usePersistent<Saved>('skirt', INITIAL);
+  /** The saved work as it is now, for an Undo tapped after other changes (Back to the original style's). */
+  const latestSaved = useRef(saved);
+  latestSaved.current = saved;
   const [storedAccount, setAccount] = usePersistent<Account>('account', NEW_ACCOUNT);
   // Points moved on the flat pattern, per garment (see engine/pointEdit.ts).
   const [pointEdits, setPointEdits] = usePersistent<Record<string, PatternEdit[]>>('point-edits', {});
@@ -491,15 +494,19 @@ export default function App() {
   const saveState = isSaved ? 'saved' : account.patterns.length >= savedLimit(account) ? 'full' : 'can';
 
   // "Back to the original style" on Review: this garment's choices as a first visit has them, measurements untouched.
+  // It hands back a way to put this garment's choices back as they were, for its Undo (Cat, Nov 12).
   const startOver = () => {
     const keys: Partial<Record<Garment, keyof Saved>> = { trousers: 'trousers', tee: 'tee', knit_dress: 'knitDress', hoodie: 'hoodie', jumpsuit: 'jumpsuit', lingerie: 'lingerie', jacket: 'jacket', coat: 'coat' };
     // A dress not yet styled on its own is drawn from the skirt and bodice picks: it keeps them when those start over,
     // and starts over itself from the first visit's skirt and bodice, not the sewist's.
     const ownDress = saved.dress ?? dressOf(saved);
+    const touched: (keyof Saved)[] = garment === 'skirt' ? ['choices', 'dress'] : garment === 'bodice' ? ['bodice', 'dress'] : garment === 'dress' ? ['dress'] : keys[garment] ? [keys[garment]!] : [];
+    const before = Object.fromEntries(touched.map((k) => [k, saved[k]])) as Partial<Saved>;
     if (garment === 'skirt') setSaved({ ...saved, choices: INITIAL.choices, dress: ownDress });
     else if (garment === 'bodice') setSaved({ ...saved, bodice: INITIAL.bodice, dress: ownDress });
     else if (garment === 'dress') setSaved({ ...saved, dress: dressOf(INITIAL) });
     else if (keys[garment]) setSaved({ ...saved, [keys[garment]!]: undefined });
+    return () => setSaved({ ...latestSaved.current, ...before });
   };
   // "How did it fit?" from the print screen: the pattern is kept (if it can be) and its fit notes open on Your account.
   const [fitFocus, setFitFocus] = useState<string>();

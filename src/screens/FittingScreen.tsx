@@ -30,6 +30,13 @@ interface Props {
 export function FittingScreen({ garment, fitting, own, carried = [], draftWith, hasBustDart, onSave }: Props) {
   const saved = fitting ?? NO_FITTING;
   const [f, setF] = useState<Fitting>(saved);
+  /** The corrections as they were before Clear every correction, to put back (Cat, Nov 12: an undo wherever an edit
+   *  can't be taken back). Any other change after clearing lets it go. */
+  const [cleared, setCleared] = useState<Fitting>();
+  const change = (next: Fitting) => {
+    setCleared(undefined);
+    setF(next);
+  };
   const issues = FIT_ISSUES.filter((i) => appliesTo(i, garment) && (hasBustDart || !i.needsBustDart));
   const areaOf = (i: FitIssue) => (garment === 'dress' ? `${i.garment === 'skirt' ? 'Skirt' : 'Bodice'}: ${i.area.toLowerCase()}` : i.area);
   const areas = [...new Set(issues.map(areaOf))];
@@ -58,7 +65,7 @@ export function FittingScreen({ garment, fitting, own, carried = [], draftWith, 
             {issues
               .filter((i) => areaOf(i) === area)
               .map((i) => (
-                <IssueRow key={i.id} issue={i} f={f} onChange={setF} from={fromOf(i.id)} />
+                <IssueRow key={i.id} issue={i} f={f} onChange={change} from={fromOf(i.id)} />
               ))}
           </fieldset>
         ))}
@@ -96,8 +103,27 @@ export function FittingScreen({ garment, fitting, own, carried = [], draftWith, 
         >
           {changed ? `Save as version ${version + 1}` : 'No changes yet'}
         </button>
+        {cleared && (
+          <button
+            type="button"
+            className="link"
+            onClick={() => {
+              setF(cleared);
+              setCleared(undefined);
+            }}
+          >
+            Undo clear
+          </button>
+        )}
         {Object.keys(f.issues).length > 0 && (
-          <button type="button" className="link" onClick={() => setF({ ...f, issues: {}, sides: {} })}>
+          <button
+            type="button"
+            className="link"
+            onClick={() => {
+              setCleared(f);
+              setF({ ...f, issues: {}, sides: {} });
+            }}
+          >
             Clear every correction
           </button>
         )}
