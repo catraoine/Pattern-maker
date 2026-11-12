@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { ShareLink } from '../ui/ShareLink';
 import { ContourForm, type FormStart } from '../ui/ContourForm';
 import type { FormKind } from '../measurements';
 import { TOUR_LABEL, TourPlayer } from '../ui/TourPlayer';
@@ -238,6 +239,7 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
               <p className="waitlist-line" role="status">
                 One email when your invitation is ready, and the odd note before. Nothing else.
               </p>
+              <ShareLink />
             </div>
           ) : waitlist.checking ? (
             <div className="stack waitlist">

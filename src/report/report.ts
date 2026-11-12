@@ -38,6 +38,55 @@ export function rememberSource(search: string, storage: Pick<Storage, 'getItem' 
   return fromLink;
 }
 
+const REF_KEY = 'maison-trace-ref';
+const MY_REF_KEY = 'maison-trace-my-ref';
+const cleanRef = (s: string | null | undefined) => {
+  const v = (s ?? '').trim().toLowerCase();
+  return /^[a-z0-9]{8}$/.test(v) ? v : undefined;
+};
+
+/**
+ * The friend's referral code from a shared link (?ref=, Cat's "apply" Nov 11 2026), kept on the device like the
+ * source so a sign-up later still counts for them. The first one wins. A visitor from a friend's link with no other
+ * source counts as "friend".
+ */
+export function rememberRef(search: string, storage: Pick<Storage, 'getItem' | 'setItem'> | undefined): string | undefined {
+  const fromLink = cleanRef(new URLSearchParams(search).get('ref'));
+  try {
+    const kept = cleanRef(storage?.getItem(REF_KEY));
+    if (kept) return kept;
+    if (fromLink) {
+      storage?.setItem(REF_KEY, fromLink);
+      if (!cleanSource(storage?.getItem(SOURCE_KEY))) storage?.setItem(SOURCE_KEY, 'friend');
+    }
+  } catch {
+    // Storage can be off (private windows).
+  }
+  return fromLink;
+}
+
+const readKey = (key: string) => {
+  try {
+    return cleanRef(typeof localStorage === 'undefined' ? undefined : localStorage.getItem(key));
+  } catch {
+    return undefined;
+  }
+};
+
+/** The friend whose link brought this visitor, if any. */
+export const signupRef = () => readKey(REF_KEY);
+/** This person's own referral code, kept after they join so "You're on the list" can show their link again. */
+export const myRef = () => readKey(MY_REF_KEY);
+export const keepMyRef = (code: unknown) => {
+  const v = typeof code === 'string' ? cleanRef(code) : undefined;
+  if (!v) return;
+  try {
+    localStorage.setItem(MY_REF_KEY, v);
+  } catch {
+    // Without storage the link still shows for this visit.
+  }
+};
+
 export const signupSource = (): string | undefined => {
   try {
     return cleanSource(typeof localStorage === 'undefined' ? undefined : localStorage.getItem(SOURCE_KEY));
@@ -188,6 +237,7 @@ export function startReports(version: string) {
       return undefined;
     }
   })();
+  rememberRef(window.location.search, store);
   const source = rememberSource(window.location.search, store);
   const countVisit = firstVisitToday(store);
   reporter = new Reporter({

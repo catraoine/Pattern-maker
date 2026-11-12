@@ -6,7 +6,7 @@ test('a stranger gets the waitlist where Begin was, and joining counts against t
   let sent: Record<string, unknown> | undefined;
   await page.route('**/.netlify/functions/signup', async (route) => {
     sent = route.request().postDataJSON();
-    await route.fulfill({ json: { ok: true } });
+    await route.fulfill({ json: { ok: true, ref: 'k7q2m9ab' } });
   });
   await page.goto('/?fresh&src=ig');
   await skipLoading(page);
@@ -20,6 +20,10 @@ test('a stranger gets the waitlist where Begin was, and joining counts against t
   await main.getByRole('button', { name: 'Join the waitlist' }).click();
   await expect(main.getByRole('heading', { level: 1, name: /You're on the list/ })).toBeVisible();
   expect(sent).toMatchObject({ kind: 'news', email: 'ada@example.com', src: 'ig' });
+  // Their own link to bring sewing friends (Cat's "apply", Nov 11 2026).
+  await expect(main.getByText(/Bring two sewing friends/)).toBeVisible();
+  await expect(main.getByLabel('Your link')).toHaveValue(/\/\?ref=k7q2m9ab$/);
+  await expect(main.getByRole('button', { name: 'Share link' })).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem('maison-trace-source'))).toBe('ig');
 
   // The Privacy Policy opens, and back comes home to the waitlist, not the app.
@@ -104,4 +108,21 @@ test('maisontrace.co/privacy and /terms open those pages for a stranger, and lea
   await skipLoading(page);
   await expect(main.getByRole('heading', { level: 1, name: /Terms/ })).toBeVisible();
   await expect(page.getByRole('banner').getByRole('button', { name: /account/i })).toHaveCount(0);
+});
+
+test('a friend from a shared link is counted for whoever shared it', async ({ page }) => {
+  let sent: Record<string, unknown> | undefined;
+  await page.route('**/.netlify/functions/signup', async (route) => {
+    sent = route.request().postDataJSON();
+    await route.fulfill({ json: { ok: true, ref: 'zz11yy22' } });
+  });
+  await page.goto('/?fresh&ref=k7q2m9ab');
+  await skipLoading(page);
+  const main = page.getByRole('main');
+  await main.getByLabel('Your email').fill('bea@example.com');
+  await main.getByRole('button', { name: 'Join the waitlist' }).click();
+  await expect(main.getByRole('heading', { level: 1, name: /You're on the list/ })).toBeVisible();
+  expect(sent).toMatchObject({ kind: 'news', email: 'bea@example.com', ref: 'k7q2m9ab', src: 'friend' });
+  // And they get their own link to pass on.
+  await expect(main.getByLabel('Your link')).toHaveValue(/\/\?ref=zz11yy22$/);
 });

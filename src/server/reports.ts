@@ -197,7 +197,8 @@ const SignupSchema = z.discriminatedUnion('kind', [
     .strict(),
   // A waitlist sign-up also says where the visitor first came from (?src=ig), so the newsletter list can show it.
   // It can also say which language they sew in.
-  z.object({ kind: z.literal('news'), email, src: z.string().regex(/^[a-z-]{2,20}$/).optional(), lang: z.enum(SEW_LANGS).optional(), website: honeypot }).strict(),
+  // And the friend's referral code when they came through someone's own link (?ref=, src/server/referral.ts).
+  z.object({ kind: z.literal('news'), email, src: z.string().regex(/^[a-z-]{2,20}$/).optional(), lang: z.enum(SEW_LANGS).optional(), ref: z.string().regex(/^[a-z0-9]{8}$/).optional(), website: honeypot }).strict(),
   // "Tell me when it opens" for a paid extra that isn't built yet (src/offers.ts).
   // Atelier Nights sign-ups also name the city, so the first night goes where the most people asked.
   z.object({
