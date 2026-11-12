@@ -67,8 +67,8 @@ const PIECES: Omit<EraPiece, 'number'>[] = [
     choices: bodice({ fit: 'oversized', neckline: 'boat', sleeve: 'long', sleeveShape: 'straight', sleeveCut: 'drop', length: 'hip', darts: 'none' }) },
   { era: '1980s', id: '80-dress', name: 'Puff-sleeve party dress', fabric: 'Emerald silk taffeta', garment: 'dress', line: 'Big puffed sleeves and a V neck over a pencil skirt to the knee.',
     choices: dress('fitted', { neckline: 'v', sleeve: 'short', sleeveShape: 'puff', sleeveFullness: 'full' }, { silhouette: 'pencil', length: 'above_knee' }) },
-  { era: '1980s', id: '80-jacket', name: 'Power blazer', fabric: 'Grey wool gabardine', garment: 'jacket', line: 'Big structured shoulders, a peak lapel and two rows of buttons, long and loose.',
-    choices: <OuterChoices>{ ...DEFAULT_JACKET_CHOICES, fit: 'oversized', length: 'long', pads: 'structured', collar: 'peak', front: 'double', pockets: 'flap', shoulderCm: 3 } },
+  { era: '1980s', id: '80-jacket', name: 'Power blazer', fabric: 'Grey wool gabardine', garment: 'jacket', line: 'Big padded shoulders, a peak lapel and two rows of buttons, long and easy.',
+    choices: <OuterChoices>{ ...DEFAULT_JACKET_CHOICES, fit: 'relaxed', shaping: 'boxy', length: 'long', pads: 'structured', collar: 'peak', front: 'double', pockets: 'flap', shoulderCm: 3 } },
   // 1990s
   { era: '1990s', id: '90-top', name: 'Nineties cami', fabric: 'Black silk satin', garment: 'bodice', line: 'Fine straps and a softly dipped neckline, skimming to the high hip.',
     choices: bodice({ fit: 'relaxed', neckline: 'cami', darts: 'bust', sleeve: 'none', length: 'high_hip' }) },
