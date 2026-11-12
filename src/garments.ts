@@ -363,14 +363,12 @@ export interface OuterChoices {
   /** The pieces read off a photo (In testing, Nov 7), in cm on the wearer: a seam across the front (a yoke) below
    * the centre front neck, the buttons' width, the collar's outer edge to its point, the lapel at its widest, the
    * gap between collar and lapel points; and the buttons' look, their buttonholes' direction and contrast edging.
-   * Older saves have none, and the pattern keeps its own for any left out. */
-  yokeCm?: number;
-  buttonSizeCm?: number;
+   * Older saves have none, and the pattern keeps its own for any left out. The seam, button size and buttonholes
+   * are declared above, with the vest's cut. */
   collarPointCm?: number;
   lapelWidthCm?: number;
   notchCm?: number;
   buttonStyle?: 'flat' | 'domed' | 'shank' | 'covered' | 'snap' | 'toggle';
-  buttonholes?: 'horizontal' | 'vertical';
   edging?: 'none' | 'contrast';
 }
 
