@@ -354,6 +354,8 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
       ? { binding: 'a bias-bound neckline', facings: 'a faced neckline', lined: 'a lined bodice' }[edges]
       : { binding: 'bias-bound edges', facings: 'faced neck and armholes', lined: 'a full lining' }[edges];
     const sleeveWords = sleeve ? `${describeBodice(saved.bodice).replace(/^.* with /, 'With ')}` : 'Sleeveless';
+    // With sleeves, and the neck finished by a button front's facings or a collar on a stand, nothing is left to bind.
+    const bound = !(sleeve && neckDone && edges === 'binding');
     const lays = layPlans(pieces, finish.fabricWidth, nap, hide, false, border);
     const metres = (f: 'self' | 'lining' | 'interlining') => lays.find((l) => l.fabric === f)?.metres ?? bodiceFabricMetres(bodice);
     // In a sheer, quick route and unlined, the seams are French and the edges bound in the sheer itself (sheerTop.ts);
@@ -371,7 +373,7 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
         couture
           ? `Couture allowances: ${fmtCm(seams.seam)} at the seams, ${fmtCm(seams.curve)} at the neck and armholes. Thread-trace the solid stitching line.`
           : `Seam allowance ${fmtCm(seams.seam)} included, ${fmtCm(seams.curve)} at the neck and armholes${below ? ', 2.5 cm at the hem' : ''}. Dashed line = stitching line.`,
-        `${sleeveWords}, ${bodice.closure === 'front_buttons' ? `${bodice.buttons?.count ?? 5} buttons down the centre front` : bodice.wrap ? `wrap fronts that tie at the waist (ties ${bodice.wrap.ties.outer} cm and ${bodice.wrap.ties.inner} cm, cut ${bodice.wrap.ties.cutWidth} cm wide)` : bodice.pullOn ? 'no opening (it goes on over the head)' : bodice.backLoops ? `${loopCount(bodice.zipCm)} small buttons and loops down the centre back` : `a ${bodice.zipCm} cm ${bodice.drape?.kind === 'one_shoulder' ? `zip in the ${zipSide(bodice)} side seam` : 'centre back zip'}`}${bodice.collar !== 'none' ? `, a ${COLLAR_WORDS[bodice.collar]}` : ''} and ${edgeWords}. Sewing steps are on the last pages.`,
+        `${sleeveWords}, ${bodice.closure === 'front_buttons' ? `${bodice.buttons?.count ?? 5} buttons down the centre front` : bodice.wrap ? `wrap fronts that tie at the waist (ties ${bodice.wrap.ties.outer} cm and ${bodice.wrap.ties.inner} cm, cut ${bodice.wrap.ties.cutWidth} cm wide)` : bodice.pullOn ? 'no opening (it goes on over the head)' : bodice.backLoops ? `${loopCount(bodice.zipCm)} small buttons and loops down the centre back` : `a ${bodice.zipCm} cm ${bodice.drape?.kind === 'one_shoulder' ? `zip in the ${zipSide(bodice)} side seam` : 'centre back zip'}`}${bodice.collar !== 'none' ? `, a ${COLLAR_WORDS[bodice.collar]}` : ''}${bound ? ` and ${edgeWords}` : ''}. Sewing steps are on the last pages.`,
         ...(drapeNote(bodice) ? [drapeNote(bodice)!] : []),
         ...(bodice.peplum ? [`A ${bodice.peplum.kind} peplum, ${bodice.peplum.depthCm} cm deep, ${bodice.peplum.hemCm} cm round the hem.`] : []),
         ...(sleeve ? [sleeveNote(sleeve)] : []),
