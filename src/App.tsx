@@ -317,11 +317,14 @@ export default function App() {
   const alterations = useMemo(() => alterationSheet(carried.fitting, garment), [carried, garment]);
   // Simple or all tools: the simple view prints with home allowances and the quick route, and keeps the rest for later.
   const mode = modeOf(account);
+  /** A new garment starts in plain calico, so a print picked for a shirt doesn't follow onto a skirt (Cat, Nov 12:
+   *  "Fabric should go back to calico for new garment"). A look that brings its own fabric sets it after this. */
+  const plainCloth = (g: Garment): Partial<Saved> => (g !== garment && saved.finish?.fabric ? { finish: { ...saved.finish, fabric: undefined } } : {});
   /** Measure later: try the app with the example measurements, under any already taken, and open Style. */
   const tryWithExample = (g?: Garment) => {
     const example = (Object.keys(EXAMPLE_BODY) as MeasurementId[]).filter((id) => measured[id] === undefined);
     setAccount(updatePerson({ ...account, onboarded: true, mode }, person.id, { values: { ...EXAMPLE_BODY, ...values }, example }));
-    if (g && g !== garment) setSaved({ ...saved, garment: g });
+    if (g && g !== garment) setSaved({ ...saved, ...plainCloth(g), garment: g });
     setStep('style');
   };
   // Review link (Cat, Nov 6: previews should open on the spot to review): ?go=style opens Style on the dress with the
@@ -557,7 +560,7 @@ export default function App() {
 
   /** Switch garment, going straight to the measurements the new one still needs, one page each. */
   const switchGarment = (g: Garment, next: Partial<Saved> = {}, to: View = step, using: MeasurementValues = measured, also: MeasurementId[] = []) => {
-    setSaved({ ...saved, ...next, garment: g });
+    setSaved({ ...saved, ...plainCloth(g), ...next, garment: g });
     const stays = to === 'style' || to === 'export';
     if (stays && (!ready(using, saved.unit, g, form) || also.length)) measureFor(g, using, form, also);
     else setStep(to);
@@ -974,7 +977,7 @@ export default function App() {
           <ExampleTag.Provider value={step === 'style' ? exampleTag : undefined}>
           <CollectionLink.Provider value={step === 'style' ? () => { setLookFrom('style'); setStep('collection'); window.scrollTo(0, 0); } : undefined}>
           {/* Switched in place from the title's drop-down: no new step in history, so ← still leaves the style screen. */}
-          <GarmentPick.Provider value={step === 'style' ? { garment, onSwitch: (g) => (ready(measured, saved.unit, g, form) ? setSaved({ ...saved, garment: g }) : switchGarment(g, {}, 'style')) } : undefined}>
+          <GarmentPick.Provider value={step === 'style' ? { garment, onSwitch: (g) => (ready(measured, saved.unit, g, form) ? setSaved({ ...saved, ...plainCloth(g), garment: g }) : switchGarment(g, {}, 'style')) } : undefined}>
           {step === 'style' && photoSource && photoFor === garment && (
             <PhotoCheck
               source={photoSource}

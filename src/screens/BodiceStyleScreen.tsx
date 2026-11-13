@@ -144,6 +144,9 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
   const boned = valid.structure === 'boned';
   const extra = fabricEase(fabric, 'bodice');
   const title = describeBodice(choices);
+  // The house shirt can be let down to the longest top's hem and past it to a mini (the Leopard Shirt Dress), so the
+  // title calls it what it is then, rather than "Your bodice" over a dress (Cat, Nov 12).
+  const dressLength = choices.shirtCut === 'house' && hemDrop(m, choices) >= dropRange(m, choices.length).max;
   const hip = hasHip(values);
   const arms = !needsArms(values);
   const chosen = sleeveOf(choices);
@@ -320,7 +323,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
       onPrint={onNext}
       flat={flat}
       undo={undoer}
-      label="your bodice"
+      label={dressLength ? 'your shirt dress' : 'your bodice'}
       garment="bodice"
       name={title}
       metres={draft ? bodiceFabricMetres(draft, sleeve) : undefined}
