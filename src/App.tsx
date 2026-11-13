@@ -59,7 +59,7 @@ import { coverGuide, coverMissing, coverPieces, padMap } from './engine/formCove
 import { labelCode, savedCopy } from './labels';
 import { fitSummary } from './fit';
 import { ImportedPattern, importedGuide } from './engine/importDxf';
-import { lookArmsMissing, lookFabric, lookNameOf, lookPatch, lookValues } from './collection';
+import { lookArmsMissing, lookFabric, lookHipMissing, lookNameOf, lookPatch, lookValues } from './collection';
 import { archiveCut } from './archive';
 import { CollectionLink, ExampleTag, GarmentPick } from './ui/GarmentSwitch';
 import { LoadingScreen } from './ui/LoadingScreen';
@@ -997,8 +997,9 @@ export default function App() {
                 // The look comes in the cloth it's named for, so the drawing and the Fabric step open in it.
                 const cloth = lookFabric(look.fabric);
                 const withCloth = keepFinish(storedFinish, { ...finish, ...look.finish, fabric: cloth, cloth: clothFor(cloth, finish.cloth) }, mode);
-                // A look with sleeves asks for the arms first, or its pattern would print without them (bug hunt, Nov 12).
-                switchGarment(g, { ...next, archive: archiveCut(look.id)?.id, finish: withCloth, house: look.finish && { garment: g, finish: look.finish } } as Partial<Saved>, 'style', measured, lookArmsMissing(look, measured));
+                // A look with sleeves asks for the arms first, or its pattern would print without them (bug hunt, Nov 12),
+                // and a top below the waist the hip first, or Style can't draft it (testers, Nov 12).
+                switchGarment(g, { ...next, archive: archiveCut(look.id)?.id, finish: withCloth, house: look.finish && { garment: g, finish: look.finish } } as Partial<Saved>, 'style', measured, [...lookHipMissing(look, measured), ...lookArmsMissing(look, measured)]);
                 window.scrollTo(0, 0);
               }}
             />

@@ -358,8 +358,9 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
       <Shell title="What would you like to make?" centred>
         <div className="make-grid" role="group" aria-labelledby="stitle">
           {onLooks && (
+            // Named for what it opens, as the testers' emails and the Style title's drop-down say (Nov 12).
             <button type="button" className="make-looks" onClick={onLooks}>
-              Start from a look ›
+              Maison Tracé collection ›
             </button>
           )}
           {[...GARMENTS, 'other' as const].map((g) => (

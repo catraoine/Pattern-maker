@@ -6,7 +6,7 @@ import type { MyFabric } from './engine/fabrics';
 import { COLOURS } from './engine/shopFabrics';
 import { dressBelt, skirtBelt } from './engine/belt';
 import type { Choices } from './savedWork';
-import { crotchGuess, draftBodice } from './engine/bodice';
+import { crotchGuess, draftBodice, hemDrop } from './engine/bodice';
 import { draftDress } from './engine/dress';
 import { Flat, bodiceFlat, dressFlat, outerFlat, skirtFlat, teeFlat, trousersFlat } from './engine/flat';
 import { draftOuter } from './engine/outerwear';
@@ -284,6 +284,17 @@ export function lookArmsMissing(look: Pick<HouseLook, 'choices'>, measured: Meas
   const top = isDress(look.choices) ? c.bodice : isBodice(look.choices) ? c : undefined;
   if (!top || sleeveOf(top).length === 'none') return [];
   return (['arm_length', 'upper_arm', 'wrist'] as const).filter((id) => measured[id] === undefined);
+}
+
+/** The hip measurements a top that goes below the waist is drafted from, and still not given: the Ice Peplum (its
+ *  peplum seam lowered 6 cm) made from the collection asked the bodice's measuring pages, which never ask the waist to
+ *  hip, and Style then stopped at "Add your full hip and waist to hip" with Review greyed out (testers, Nov 12). So
+ *  making it asks for these first, as the arms are. */
+export function lookHipMissing(look: Pick<HouseLook, 'choices'>, measured: MeasurementValues): MeasurementId[] {
+  if (!isBodice(look.choices)) return [];
+  const top = look.choices as unknown as BodiceChoices;
+  if (hemDrop({ waist_to_hip: 20 }, top) <= 0) return [];
+  return (['full_hip', 'waist_to_hip'] as const).filter((id) => measured[id] === undefined);
 }
 
 /** The measurements a look is drawn to: the sewist's own when the garment has all it needs, or the sample set. */
