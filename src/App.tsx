@@ -115,6 +115,9 @@ const CollectionScreen = screen(() => import('./screens/CollectionScreen').then(
 const ExportScreen = screen(() => import('./screens/ExportScreen').then((m) => m.ExportScreen));
 const MeasureStepsScreen = screen(() => import('./screens/MeasureStepsScreen').then((m) => m.MeasureStepsScreen));
 
+/** Where each garment past the skirt, bodice and dress keeps its choices in the saved work. */
+const SLOT: Partial<Record<Garment, keyof Saved>> = { trousers: 'trousers', tee: 'tee', knit_dress: 'knitDress', hoodie: 'hoodie', jumpsuit: 'jumpsuit', lingerie: 'lingerie', jacket: 'jacket', coat: 'coat' };
+
 const ready = (values: MeasurementValues, unit: Unit, garment: Garment, form?: FormKind) =>
   isComplete(values, garment, form) && !checkMeasurements(values, unit, garment, form).some((c) => c.level === 'error');
 
@@ -499,17 +502,32 @@ export default function App() {
   // "Back to the original style" on Review: this garment's choices as a first visit has them, measurements untouched.
   // It hands back a way to put this garment's choices back as they were, for its Undo (Cat, Nov 12).
   const startOver = () => {
-    const keys: Partial<Record<Garment, keyof Saved>> = { trousers: 'trousers', tee: 'tee', knit_dress: 'knitDress', hoodie: 'hoodie', jumpsuit: 'jumpsuit', lingerie: 'lingerie', jacket: 'jacket', coat: 'coat' };
+    const touched: (keyof Saved)[] = garment === 'skirt' ? ['choices', 'dress'] : garment === 'bodice' ? ['bodice', 'dress'] : garment === 'dress' ? ['dress'] : SLOT[garment] ? [SLOT[garment]!] : [];
+    const before = Object.fromEntries(touched.map((k) => [k, saved[k]])) as Partial<Saved>;
+    setSaved({ ...saved, ...firstVisit(garment) });
+    return () => setSaved({ ...latestSaved.current, ...before });
+  };
+  /** A garment's choices as a first visit has them, as a patch to the saved work. */
+  const firstVisit = (g: Garment): Partial<Saved> => {
     // A dress not yet styled on its own is drawn from the skirt and bodice picks: it keeps them when those start over,
     // and starts over itself from the first visit's skirt and bodice, not the sewist's.
     const ownDress = saved.dress ?? dressOf(saved);
-    const touched: (keyof Saved)[] = garment === 'skirt' ? ['choices', 'dress'] : garment === 'bodice' ? ['bodice', 'dress'] : garment === 'dress' ? ['dress'] : keys[garment] ? [keys[garment]!] : [];
-    const before = Object.fromEntries(touched.map((k) => [k, saved[k]])) as Partial<Saved>;
-    if (garment === 'skirt') setSaved({ ...saved, choices: INITIAL.choices, dress: ownDress });
-    else if (garment === 'bodice') setSaved({ ...saved, bodice: INITIAL.bodice, dress: ownDress });
-    else if (garment === 'dress') setSaved({ ...saved, dress: dressOf(INITIAL) });
-    else if (keys[garment]) setSaved({ ...saved, [keys[garment]!]: undefined });
-    return () => setSaved({ ...latestSaved.current, ...before });
+    if (g === 'skirt') return { choices: INITIAL.choices, dress: ownDress };
+    if (g === 'bodice') return { bodice: INITIAL.bodice, dress: ownDress };
+    if (g === 'dress') return { dress: dressOf(INITIAL) };
+    return SLOT[g] ? { [SLOT[g]!]: undefined } : {};
+  };
+  /** "Start something new" (Cat, Nov 12: pausing one skirt to start another lost the first): the garment's work so
+   *  far goes into Saved patterns, and only then does it start over. Saved patterns full, it carries on as it was. */
+  const [freshStart, setFreshStart] = useState(false);
+  const keepThenFresh = (g: Garment, acc: Account = account): { account: Account; patch: Partial<Saved> } => {
+    const drafting = GARMENT_DRAFTING[g];
+    const now = drafting.choices(saved);
+    // (A dress never styled on its own is only drawn from the skirt and bodice: nothing of its own to keep.)
+    const untouched = (g === 'dress' && !saved.dress) || JSON.stringify(drafting.choices({ ...saved, ...firstVisit(g) })) === JSON.stringify(now);
+    if (untouched) return { account: acc, patch: {} };
+    const kept = savePattern(acc, now, describePattern(now), person.id);
+    return isSavedFor(kept, now, person.id) ? { account: kept, patch: firstVisit(g) } : { account: acc, patch: {} };
   };
   // "How did it fit?" from the print screen: the pattern is kept (if it can be) and its fit notes open on Your account.
   const [fitFocus, setFitFocus] = useState<string>();
@@ -798,7 +816,11 @@ export default function App() {
               }}
               resume={
                 account.onboarded && canLeaveMeasure
-                  ? { garment: GARMENT_NAME[garment], onResume: () => setStep('style'), onSaved: () => setStep('account'), onNew: chooseGarment }
+                  ? { garment: GARMENT_NAME[garment], onResume: () => setStep('style'), onSaved: () => setStep('account'), onNew: () => {
+                        setAccount(keepThenFresh(garment).account);
+                        setFreshStart(true);
+                        chooseGarment();
+                      } }
                   : undefined
               }
             />
@@ -830,7 +852,10 @@ export default function App() {
               onWeight={(weight) => setAccount(updatePerson(account, person.id, { weight }))}
               onDone={(g) => {
                 countStep('measured', g);
-                switchGarment(g, {}, 'style');
+                const fresh = freshStart ? keepThenFresh(g) : undefined;
+                setFreshStart(false);
+                if (fresh && fresh.account !== account) setAccount(fresh.account);
+                switchGarment(g, fresh?.patch ?? {}, 'style');
               }}
               onIdea={(c) => styleChoices(c)}
               onPhoto={() => setStep('photo')}
@@ -963,6 +988,12 @@ export default function App() {
               backLabel={lookFrom === 'steps' ? 'Back' : undefined}
               onMake={(look) => {
                 const { garment: g, ...next } = lookPatch(look, lookValues(look, values).values);
+                // Started something new: the garment's own work so far is kept before the look takes its place.
+                if (freshStart) {
+                  const kept = keepThenFresh(g);
+                  setFreshStart(false);
+                  if (kept.account !== account) setAccount(kept.account);
+                }
                 // The look comes in the cloth it's named for, so the drawing and the Fabric step open in it.
                 const cloth = lookFabric(look.fabric);
                 const withCloth = keepFinish(storedFinish, { ...finish, ...look.finish, fabric: cloth, cloth: clothFor(cloth, finish.cloth) }, mode);
