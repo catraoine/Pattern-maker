@@ -14,6 +14,7 @@ import { SleeveDraft, SleeveMeasurements, draftSleeve } from './sleeve';
 import { DraftError } from './skirt';
 import { patchPocket, spanAt, weltPieces } from './pocketPieces';
 import { ChestPlace, ChestPocket, FLAP, chestWelt, flapPieces } from './jacketPockets';
+import { straightSidePair } from './straightSides';
 
 export type OuterKind = 'jacket' | 'coat';
 export type OuterFit = 'fitted' | 'regular' | 'relaxed' | 'oversized';
@@ -1253,9 +1254,17 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     // Turned enough that each seam ends about FLARED_HEM out at the hem.
     return rename(flareG ? flareFromWaist(long, flareY(pc), Math.min(0.25, (1.6 * flareG) / Math.max(10, flareL))) : long);
   };
-  const shell = base.pieces.map(prep);
+  let shell = base.pieces.map(prep);
   const [bf0, bb0] = blockOf(base);
-  const block: [Piece, Piece] = [prep(bf0), prep(bb0)];
+  let block: [Piece, Piece] = [prep(bf0), prep(bb0)];
+  // The SS27 vest's sides run in one straight line, underarm to hem (straightSides.ts).
+  const shellFront = shell.findIndex((pc) => /front$/i.test(pc.name));
+  const shellBack = shell.findIndex((pc) => /back$/i.test(pc.name));
+  if (s.houseCut && shell.length === 2 && shellFront >= 0 && shellBack >= 0) {
+    const [f, b] = straightSidePair(shell[shellFront], shell[shellBack]);
+    shell = shell.map((pc, i) => (i === shellFront ? f : i === shellBack ? b : pc));
+    block = straightSidePair(block[0], block[1]);
+  }
 
   // (A house cut's stand is the button's own width, the tailor's rule: 2 cm left 5 mm past a 3 cm button.)
   const ext = s.houseCut && s.front === 'single' && s.buttonSizeCm ? Math.max(OUTER_EXTENSION[s.kind][s.front], s.buttonSizeCm) : OUTER_EXTENSION[s.kind][s.front];

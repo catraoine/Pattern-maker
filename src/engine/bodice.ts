@@ -1119,6 +1119,12 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   // The front's side waist, moved forward with the seam.
   const waistXF = frontW - sideSupp - forward;
 
+  // Straight sides (a house cut, the SS27 vest): the hem's width is shared out as the waist's is, each side seam going
+  // straight down, rather than evenly front and back; split evenly, a big bust's wider front bowed in below the waist
+  // and the back kicked out to make it up (Cat chose to straighten the vest's sides, Nov 13).
+  const straightSides = fit.straightRoom !== undefined;
+  const straightOut = (hemFull / 2 - swB.x - waistXF) / 2;
+
   // ---- back, below the across back -----------------------------------------
   // A lower shoulder's back underarm moves straight up or down, keeping its width, to where the side
   // seams come out equal, so the armhole keeps its size as the front's does.
@@ -1151,7 +1157,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
       waistRun(back, waistB, 0, undefined, undefined, { from: d.near });
     } else waistRun(back, waistB, 0);
   } else {
-    hipB = p(hemFull / 4 - 0.5 + forward, wb + drop);
+    hipB = p(straightSides ? swB.x + straightOut : hemFull / 4 - 0.5 + forward, wb + drop);
     hemB = hipB;
     hipCurve(back, swB, hipB, 'side');
     if (dartB > 0.3) {
@@ -1344,7 +1350,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   } else {
     // Drop the front side seam below the waist by whatever makes it the back's length.
     const target = hipCurveLength(swB, hipB);
-    const hx = hemFull / 4 + 0.5 - forward;
+    const hx = straightSides ? waistXF + straightOut : hemFull / 4 + 0.5 - forward;
     let lo = 0;
     let hi = target;
     for (let i = 0; i < 40; i++) {
