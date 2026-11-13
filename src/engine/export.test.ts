@@ -87,8 +87,9 @@ describe('packing the sheet', () => {
       const pages = packedPages(packed, sizes, spans);
       expect(pages).toBeLessThan(packedPages(row, sizes));
       // Turning pieces end to end brought the jacket from 53 pages to 50 and the coat from 83 to 79. The coat's front grew
-      // with the 3.8 cm smallest bust dart (Nov 10 2026) and packs to 81.
-      expect(pages).toBeLessThanOrEqual(kind === 'jacket' ? 51 : 81);
+      // with the 3.8 cm smallest bust dart (Nov 10 2026) and packs to 81; with its collar cut on the fold at the centre
+      // back (Nov 13) the packer finds 82, which Cat accepted with the collar fix ("Ship vest").
+      expect(pages).toBeLessThanOrEqual(kind === 'jacket' ? 51 : 82);
       // The packer counts the pieces' outlines; the laid-out sheet also carries labels and notches, so it can run a page over.
       const sheet = layout(pieces, kind, [], INFO);
       expect(Math.abs(pageCount(sheet, 'a4') - pages)).toBeLessThanOrEqual(1);
