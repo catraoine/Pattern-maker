@@ -807,11 +807,13 @@ const THROUGH_ZIPS = [...ZIPS, 65, 70, 75];
 const zipFor = (opening: number) => [...ZIPS].reverse().find((z) => z <= opening) ?? ZIPS[0];
 
 /** Side seam below the waist: out from the waist and straight down at the hem, like a skirt's hip curve. */
-function hipCurve(path: Path, from: P, to: P, tag: string): Path {
+function hipCurve(path: Path, from: P, to: P, tag: string, leaving?: P): Path {
   const dy = to.y - from.y;
-  return path.curve(p(from.x + (to.x - from.x) * 0.5, from.y + dy * 0.3), p(to.x, to.y - dy * 0.4), to, tag);
+  // Coming in toward a narrower hip, it leaves the waist the way the seam above arrives, so it doesn't turn a corner.
+  const first = leaving && to.x < from.x ? add(from, mul(leaving, dy * 0.3 / Math.max(leaving.y, 0.3))) : p(from.x + (to.x - from.x) * 0.5, from.y + dy * 0.3);
+  return path.curve(first, p(to.x, to.y - dy * 0.4), to, tag);
 }
-const hipCurveLength = (from: P, to: P) => hipCurve(new Path(from), from, to, '').length();
+const hipCurveLength = (from: P, to: P, leaving?: P) => hipCurve(new Path(from), from, to, '', leaving).length();
 
 /** A dress's side seam on from the hip to the hem. The hip curve arrives straight down, so a seam running straight out
  *  to a flared hem turned a corner at the hip, a kick that shows on the body (SS27 Blush Shift, Nov 12: "to a 10"): it
@@ -1347,12 +1349,14 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     let hi = target;
     for (let i = 0; i < 40; i++) {
       const mid = (lo + hi) / 2;
-      if (hipCurveLength(swF, p(hx, swF.y + mid)) < target) lo = mid;
+      if (hipCurveLength(swF, p(hx, swF.y + mid), sideIn) < target) lo = mid;
       else hi = mid;
     }
     const dy = (lo + hi) / 2;
     hipF = p(hx, swF.y + dy);
-    hipCurve(front, swF, hipF, 'side');
+    // Below the waist a big bust dart's fish-eye takes the waist in, so the hem's side can sit inside the waist's: the
+    // seam ran on in toward it from a corner at the waist, which the Ice Peplum's tester printed as a step (Nov 12).
+    hipCurve(front, swF, hipF, 'side', sideIn);
     if (dartF > 0.3) {
       const depth = Math.max(2, Math.min(12, shallowest - 3));
       frontLines.push(

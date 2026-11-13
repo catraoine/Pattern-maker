@@ -294,13 +294,17 @@ export function moveBustDart(path: Path, apex: P, to: DartPlace, opts: { armhole
   }
   const closedAt = r.pts[iQ];
   const peakAt = i1 + 1;
+  // Where the side dart's two legs now meet on the side seam.
+  const joined = iQ <= iF ? N : F;
 
   if (opts.princess) {
     // No dart: the opening runs to the bust point and becomes the seam.
     pts.splice(peakAt, 1);
     tags.splice(peakAt, 1);
     tags[i1] = 'princess';
-    return { ring: { pts, tags }, q1, q2, i1, move, closedAt };
+    const seamAt = pts[i1];
+    fairSide(pts, tags, joined);
+    return { ring: { pts, tags }, q1, q2, i1: pts.indexOf(seamAt), move, closedAt };
   }
   const mid = lerp(q1, q2, 0.5);
   const tip = add(apex, mul(unit(sub(mid, apex)), short));
@@ -312,8 +316,86 @@ export function moveBustDart(path: Path, apex: P, to: DartPlace, opts: { armhole
   swap(near, d.near);
   swap(far, d.far);
   pts[peakAt] = d.peak;
+  const kept = { q1: pts[i1], q2: pts[peakAt + 1] };
+  const before2 = pts.length;
+  fairSide(pts, tags, joined);
+  // The fairing only changes points on the side seam above the new dart; find the dart's ends again by value.
+  const shift = pts.length - before2;
+  const at1 = pts.indexOf(kept.q1);
   const out = { pts, tags };
-  return { ring: out, dart: { near: d.near, tip: d.tip, far: d.far }, q1: pts[i1], q2: pts[peakAt + 1], i1, move, closedAt };
+  return { ring: out, dart: { near: d.near, tip: d.tip, far: d.far }, q1: kept.q1, q2: kept.q2, i1: at1 >= 0 ? at1 : i1 + shift, move, closedAt };
+}
+
+/**
+ * The side seam where a side bust dart was closed, made one fair curve across the join. Closing the dart swings the seam
+ * above it round the bust point, so it met the seam below at a corner, in then out again: on the Ice Peplum's side front
+ * it printed as a kink under the armhole (a fit tester, Nov 12). The curve runs from where the seam is widest over the
+ * bust to 4 cm below the join, along the seam's own line at both ends, and is as long as the seam it replaces.
+ */
+function fairSide(pts: P[], tags: string[], joined: P) {
+  const n = pts.length;
+  const j = pts.findIndex((q) => len(sub(q, joined)) < 1e-6);
+  if (j < 0 || tags[j] !== 'side' || tags[(j - 1 + n) % n] !== 'side') return;
+  // The side run's start: the underarm.
+  let a0 = j;
+  while (tags[(a0 - 1 + n) % n] === 'side' && a0 > 0) a0--;
+  if (a0 === 0 && tags[n - 1] === 'side') return;
+  // A point put in on the seam `cm` along it from index i (back up it when cm is negative), or i if it runs out first.
+  const putIn = (i: number, cm: number): number => {
+    const dir = cm < 0 ? -1 : 1;
+    let at = i;
+    let acc = 0;
+    for (;;) {
+      const nx = at + dir;
+      if (nx <= a0 || nx >= pts.length - 1 || tags[Math.min(at, nx)] !== 'side') return at;
+      const l = len(sub(pts[nx], pts[at]));
+      if (acc + l > Math.abs(cm)) {
+        const q = lerp(pts[at], pts[nx], (Math.abs(cm) - acc) / l);
+        const k = Math.max(at, nx);
+        pts.splice(k, 0, q);
+        tags.splice(k, 0, 'side');
+        return k;
+      }
+      acc += l;
+      at = nx;
+    }
+  };
+  // From where the seam is widest over the bust (the block swings it out to the bust's width there), to 4 cm on below
+  // the join. Above that the underarm curve stays as drafted.
+  const b = putIn(j, 4);
+  let a = a0;
+  for (let i = a0; i < j - 1; i++) if (pts[i].x > pts[a].x) a = i;
+  if (b - a < 3 || b + 1 >= pts.length || a < 1) return;
+  const A = pts[a];
+  const B = pts[b];
+  // At the underarm itself (the seam widest there), the way it leaves it, square to the armhole.
+  const dA = unit(sub(pts[a + 1], a === a0 ? pts[a] : pts[a - 1]));
+  const dB = unit(sub(pts[b + 1], B));
+  let was = 0;
+  for (let i = a; i < b; i++) was += len(sub(pts[i + 1], pts[i]));
+  // How far the curve holds each end's line is set so it is as long as the seam it replaces: the side seams still match.
+  const curveFor = (f: number): P[] => {
+    const c1 = add(A, mul(dA, len(sub(B, A)) * f));
+    const c2 = sub(B, mul(dB, len(sub(B, A)) * f));
+    const out: P[] = [];
+    for (let i = 1; i < 24; i++) {
+      const t = i / 24;
+      const m = 1 - t;
+      out.push(p(m * m * m * A.x + 3 * m * m * t * c1.x + 3 * m * t * t * c2.x + t * t * t * B.x, m * m * m * A.y + 3 * m * m * t * c1.y + 3 * m * t * t * c2.y + t * t * t * B.y));
+    }
+    return out;
+  };
+  const lengthOf = (c: P[]) => [A, ...c, B].reduce((t, q, i, all) => (i ? t + len(sub(q, all[i - 1])) : 0), 0);
+  let lo = 0.05;
+  let hi = 0.6;
+  for (let i = 0; i < 30; i++) {
+    const mid = (lo + hi) / 2;
+    if (lengthOf(curveFor(mid)) < was) lo = mid;
+    else hi = mid;
+  }
+  const curve = curveFor((lo + hi) / 2);
+  pts.splice(a + 1, b - a - 1, ...curve);
+  tags.splice(a + 1, b - a - 1, ...curve.map(() => 'side'));
 }
 
 /** Whether a point lies on the ring between indices lo and hi (inclusive), within 0.6 cm. */
