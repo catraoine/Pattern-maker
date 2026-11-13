@@ -27,7 +27,7 @@ import { hemOffsetAt } from '../engine/bodiceHem';
 import { unevenEdge } from '../engine/uneven';
 import type { Side } from './ShapeSketch';
 import { FormArm, formWidth } from './DrawOnForm';
-import { FormLayers, SQUEEZE, formFrame, wornCloth, wornFolds, wornMapper } from './FormSketch';
+import { FormLayers, SQUEEZE, clothReach, formFrame, wornCloth, wornFolds, wornMapper } from './FormSketch';
 import { landmarks } from './formLines';
 
 interface Worn {
@@ -358,7 +358,15 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
     // (Too wide for one line, on two beside the disc ("36 CM" over "EASE"), still on the ground: dropped below the disc,
     // an oversized shirt's ease word lay across its cloth, the Leopard Shirt Dress, Nov 12.)
     const cut = text.lastIndexOf(' ');
-    const two = kind !== 'hem' && !fits(text) && cut > 0 && fits(text.slice(0, cut)) && fits(text.slice(cut + 1)) ? [text.slice(0, cut), text.slice(cut + 1)] : undefined;
+    const halves = cut > 0 ? [text.slice(0, cut), text.slice(cut + 1)] : undefined;
+    // The hem's word starts past the garment at its height, out on the ground: on a peplum and its sleeves each word sat
+    // on its own chalk patch (the Ice Peplum, Nov 13). On one line if it fits there, else on two; with no room past the
+    // garment at all, it stays beside the disc.
+    const past = kind === 'hem' ? cx + SQUEEZE * Math.max(...[-1.8, 0, 1.8].map((d) => clothReach(at.y + d * k, body, cloth, arms, sleeve))) + 1.6 * k : 0;
+    const fitsPast = (t: string) => past + t.length * 2.6 * k * 0.85 < 2 * cx - k;
+    const out = kind === 'hem' && past > at.x + r + 3.2 * k && (fitsPast(text) || (!!halves && halves.every(fitsPast)));
+    const x = out ? past : at.x + r + 3.2 * k;
+    const two = out ? (fitsPast(text) ? undefined : halves) : kind !== 'hem' && !fits(text) && halves && halves.every(fits) ? halves : undefined;
     const roomRight = fits(text) || !!two;
     const arrows =
       kind === 'hem'
@@ -373,13 +381,13 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
             sweep: the disc sat on the W of WAIST and the bodice's lines crossed REGULAR). Too wide for the room to the
             right, the ease word drops below the disc as before. */}
         <text
-          x={kind === 'hem' || roomRight ? at.x + r + 3.2 * k : at.x + r}
+          x={kind === 'hem' || roomRight ? x : at.x + r}
           y={kind === 'hem' || roomRight ? at.y + 0.9 * k : at.y + r + 4.6 * k}
           fontSize={2.6 * k}
           textAnchor={kind === 'hem' || roomRight ? 'start' : 'end'}
         >
           {two ? two.map((line, i) => (
-                <tspan key={line} x={at.x + r + 3.2 * k} dy={i ? 3.1 * k : -1.4 * k}>
+                <tspan key={line} x={x} dy={i ? 3.1 * k : -1.4 * k}>
                   {line.toUpperCase()}
                 </tspan>
               ))

@@ -7,7 +7,7 @@ import type { Flat } from '../engine/flat';
 import { DemoButton } from './DemoButton';
 import { EnlargeSketch, useEnlarged } from './EnlargeSketch';
 import { Envelope } from './Envelope';
-import { ExampleTag, GarmentDrop } from './GarmentSwitch';
+import { ExampleTag, GarmentDrop, LookName } from './GarmentSwitch';
 import { ModeLink } from './ModeLink';
 import { PhotoEntry } from './PhotoEntry';
 import { Title } from './Title';
@@ -467,6 +467,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   const swipe = useRef<{ x: number; y: number; sideways: boolean }>();
   const wide = useWide();
   const exampleTag = useContext(ExampleTag);
+  const look = useContext(LookName);
   // The open question on each step. Every question starts folded (Cat, 2026-11-06: the first one stood open, so
   // See the choices didn't show the whole list); a tap on one opens it.
   // The question open on that step too (Cat's K, Nov 8: on a phone each question is its own screen).
@@ -759,7 +760,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
     return (
       <div className="style-review">
         <h1 className="review-title">
-          <span className="eyebrow">Review · {label}</span>
+          <span className="eyebrow">Review · {look ?? label}</span>
           {Name}
         </h1>
         {flat && <Envelope name={Name} flat={flat} foot="Drafted to you" />}
@@ -806,13 +807,13 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   );
 
   return (
-    <div className={compact ? 'style-layout compact' : 'style-layout'} data-long-name={label.length > LONG_NAME || undefined} ref={root}>
+    <div className={compact ? 'style-layout compact' : 'style-layout'} data-long-name={(look ?? label).length > LONG_NAME || undefined} ref={root}>
       {/* The garment's name is the page's one big heading (Cat's K3, 2026-10-28): the word Style is only read out
           (the top bar says it), the ways to start or find a piece are in the name's drop-down, and the example note is one
           soft line. */}
       <div className="screen-head">
-        <Title id="opts" big="Style" label={label} hideLabel />
-        <GarmentDrop label={label} onChoose={onChooseGarment} onPhoto={onPhoto} />
+        <Title id="opts" big="Style" label={look ?? label} hideLabel />
+        <GarmentDrop label={look ?? label} onChoose={onChooseGarment} onPhoto={onPhoto} />
       </div>
       {exampleTag}
       <div className="style-edit">

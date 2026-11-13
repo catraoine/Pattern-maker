@@ -803,6 +803,26 @@ export function FormSketch({ body, m, legs, bottom, arms, lines, outline = [], c
   );
 }
 
+/** The sleeves as worn on the form, both sides, hanging from the arms. */
+function wornSleeves(body: FormBody, arms?: FormArm, sleeve?: LayerProps['sleeve'], worn?: P[][], over = false): P[][] {
+  return arms && sleeve && worn ? [sleeveShape(arms, sleeve, shoulderPoint(worn, arms), worn, body, over)].flatMap((s) => [s, s.map((q) => ({ x: -q.x, y: q.y }))]) : [];
+}
+
+/** How far out from the centre line the garment reaches at a height, cloth, sleeves and the arm under them, so a
+ *  word set beside a handle can start out on the ground (the Ice Peplum's "6 cm below" sat on its peplum and sleeve,
+ *  each word on a chalk patch, Nov 13). In the form's own units, before the drawing squeezes them. */
+export function clothReach(y: number, body: FormBody, worn: P[][], arms?: FormArm, sleeve?: LayerProps['sleeve']): number {
+  let reach = 0;
+  for (const shape of [...worn, ...wornSleeves(body, arms, sleeve, worn)])
+    shape.forEach((a, i) => {
+      const b = shape[(i + 1) % shape.length];
+      if ((a.y - y) * (b.y - y) > 0 || a.y === b.y) return;
+      reach = Math.max(reach, a.x + ((y - a.y) * (b.x - a.x)) / (b.y - a.y));
+    });
+  if (arms && y >= arms.tip.y && y <= arms.wristY) reach = Math.max(reach, armAt(arms, y).outer);
+  return reach;
+}
+
 interface LayerProps extends Omit<Props, 'cloth' | 'underarmY' | 'label' | 'outline'> {
   /** The centre line's x, in the drawing. */
   cx: number;
@@ -831,7 +851,7 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
   const cloth = !!worn;
   // The cloth: sleeves first, then the body over their heads, then collars and lapels over that. Each piece is
   // its own path: pieces overlap (a lapel on its front, a sleeve on the body) and one path would punch holes there.
-  const sleeves = useMemo(() => (arms && sleeve && worn ? [sleeveShape(arms, sleeve, shoulderPoint(worn, arms), worn, body, sleevesOver)].flatMap((s) => [s, s.map((q) => ({ x: -q.x, y: q.y }))]) : []), [arms, sleeve, worn, body, sleevesOver]);
+  const sleeves = useMemo(() => wornSleeves(body, arms, sleeve, worn, sleevesOver), [arms, sleeve, worn, body, sleevesOver]);
   const marks = useMemo(() => (arms && sleeve && worn ? sleeveMarks(arms, sleeve, shoulderPoint(worn, arms)).flatMap((s) => [s, s.map((q) => ({ x: -q.x, y: q.y }))]) : []), [arms, sleeve, worn]);
   const onForm = worn ? (sleevesOver ? [...worn, ...sleeves] : [...sleeves, ...worn]) : [];
   const pieces = onForm.map((s) => `${at(s)} Z`);

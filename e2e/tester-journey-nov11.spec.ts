@@ -65,7 +65,7 @@ test('a collection top below the waist asks for the hip first, so Style drafts i
   await main(page).getByRole('button', { name: 'Choose what to make' }).click();
   await main(page).getByRole('button', { name: 'Maison Tracé collection ›' }).click();
   await main(page).getByRole('listitem').filter({ has: page.getByRole('heading', { name: 'Ice Peplum Top', exact: true }) }).getByRole('button', { name: 'Make this look' }).click();
-  const style = main(page).getByRole('heading', { name: 'Style your bodice' });
+  const style = main(page).getByRole('heading', { name: 'Style Ice Peplum Top' });
   const asked: string[] = [];
   for (let n = 0; n < 6 && !(await style.isVisible()); n++) {
     if (await main(page).getByRole('textbox').count()) {

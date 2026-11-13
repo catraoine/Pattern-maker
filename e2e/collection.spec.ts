@@ -1,4 +1,4 @@
-import { expect, expectStyle, fillStepPages, goPrint, measureMe, openCollection, openFresh, openGroup, pickToMake, startWithExample, switchGarment, test } from './fixtures';
+import { expect, expectLook, expectStyle, fillStepPages, goPrint, measureMe, openCollection, openFresh, openGroup, pickToMake, startWithExample, switchGarment, test } from './fixtures';
 
 test('the Maison collection: open it from styling, draw every look, make one', async ({ page }) => {
   await startWithExample(page);
@@ -16,7 +16,7 @@ test('the Maison collection: open it from styling, draw every look, make one', a
 
   // Making the Ivory Bias Slip opens the dress cut in one on the bias.
   await looks.filter({ has: page.getByRole('heading', { name: 'Ivory Bias Slip' }) }).getByRole('button', { name: 'Make this look' }).click();
-  await expectStyle(page, 'Dress');
+  await expectLook(page, 'Ivory Bias Slip');
   await expect((await openGroup(page, 'Cut')).getByRole('button', { name: 'Bias slip' })).toHaveAttribute('aria-pressed', 'true');
   // It comes in the cloth it's named for (ivory silk satin, faintly see-through), not the last fabric picked.
   const cloth = await page.evaluate(() => JSON.parse(localStorage.getItem('pattern-maker:skirt') ?? '{}').finish?.fabric);
@@ -32,7 +32,7 @@ test('Look 02, the Black Vest Set: both pieces in one look, each made on its own
   await expect(set.getByRole('img', { name: /Technical flat/ })).toHaveCount(2);
   // The skirt: wide box pleats, low on the hip, in crisp black wool.
   await set.getByRole('button', { name: 'Make the skirt' }).click();
-  await expectStyle(page, 'Skirt');
+  await expectLook(page, 'Black Pleated Skirt');
   const skirt = await page.evaluate(() => JSON.parse(localStorage.getItem('pattern-maker:skirt') ?? '{}'));
   expect(skirt.choices).toMatchObject({ pleats: 'box', pleatWidth: 'wide', rise: 'low' });
   expect(skirt.finish?.fabric).toMatchObject({ fibre: 'wool', colour: 'Black', drape: 'crisp' });
@@ -41,7 +41,7 @@ test('Look 02, the Black Vest Set: both pieces in one look, each made on its own
   await page.getByRole('button', { name: /^Carry on with your/ }).first().click();
   await openCollection(page);
   await main.getByRole('button', { name: 'Make the vest' }).click();
-  await expectStyle(page, 'Jacket');
+  await expectLook(page, 'Black Vest');
   const vest = await page.evaluate(() => JSON.parse(localStorage.getItem('pattern-maker:skirt') ?? '{}'));
   expect(vest.jacket).toMatchObject({ sleeve: 'none', lapel: 'high', yokeCm: 19, buttons: 3 });
 });
@@ -56,7 +56,7 @@ test('the Leopard Shirt Dress: made in the house print, with its long-point coll
   await look.getByRole('button', { name: 'Make this look' }).click();
   // Cut down to a mini, the title calls it a shirt dress, not a bodice (Cat, Nov 12: "How come I'm seeing this dress like
   // this under bodice").
-  await expect(main.getByRole('heading', { name: 'Style your shirt dress' })).toBeVisible();
+  await expect(main.getByRole('heading', { name: 'Style Leopard Shirt Dress' })).toBeVisible();
   // It comes in the house's own print, photographed from the real cloth, and keeps the house shirt cut.
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('pattern-maker:skirt') ?? '{}'));
   expect(saved.finish?.fabric).toMatchObject({ fibre: 'cotton', print: 'oneway', photo: { id: 'house-leopard-python' } });
@@ -101,7 +101,7 @@ test('the Chocolate Barrel Trouser: made low on the hip with two pleats, in choc
   await expect(look.getByRole('img', { name: /Technical flat/ })).toBeVisible();
   if (process.env.SHOTS) await look.screenshot({ path: `${process.env.SHOTS}/chocolate-barrel-look-${test.info().project.name}.png` });
   await look.getByRole('button', { name: 'Make this look' }).click();
-  await expectStyle(page, 'Trousers');
+  await expectLook(page, 'Chocolate Barrel Trouser');
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('pattern-maker:skirt') ?? '{}'));
   expect(saved.finish?.fabric).toMatchObject({ fibre: 'cotton', colour: '#3d2418', drape: 'crisp', sheen: 'soft' });
   expect(saved.trousers).toMatchObject({ leg: 'barrel', rise: 'low', pleats: 'double', loops: 'loops', length: 'full' });
@@ -122,7 +122,7 @@ test('a collection top with sleeves asks for the arms first, so its pattern has 
   await openCollection(page);
   await main.getByRole('listitem').filter({ has: page.getByRole('heading', { name: 'Leopard Shirt Dress', exact: true }) }).getByRole('button', { name: 'Make this look' }).click();
   // The pages it takes, then the style screen.
-  const style = main.getByRole('heading', { name: 'Style your shirt dress' });
+  const style = main.getByRole('heading', { name: 'Style Leopard Shirt Dress' });
   for (let n = 0; n < 4 && !(await style.isVisible()); n++) {
     if (await main.getByRole('textbox').count()) await fillStepPages(page);
     else await page.waitForTimeout(300);

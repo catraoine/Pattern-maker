@@ -169,6 +169,11 @@ export async function expectStyle(page: Page, g: GarmentName) {
   await expect(heading(page, `Style your ${lower(g)}`)).toBeVisible();
 }
 
+/** Wait for the style screen of a collection look, made and not yet changed: its title is the look's name. */
+export async function expectLook(page: Page, name: string) {
+  await expect(heading(page, `Style ${name}`)).toBeVisible();
+}
+
 /** The garment drop-down on the Style title: pick another, measuring for it first when it needs more. */
 export async function switchGarment(page: Page, g: GarmentName) {
   // The title's drop-down starts a new garment from the list with pictures (Cat's four lines, Nov 12).

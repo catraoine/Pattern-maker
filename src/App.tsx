@@ -61,7 +61,7 @@ import { fitSummary } from './fit';
 import { ImportedPattern, importedGuide } from './engine/importDxf';
 import { lookArmsMissing, lookFabric, lookHipMissing, lookNameOf, lookPatch, lookValues } from './collection';
 import { archiveCut } from './archive';
-import { CollectionLink, ExampleTag, GarmentPick } from './ui/GarmentSwitch';
+import { CollectionLink, ExampleTag, GarmentPick, LookName } from './ui/GarmentSwitch';
 import { LoadingScreen } from './ui/LoadingScreen';
 import type { FormStart } from './ui/ContourForm';
 import type { Piece } from './engine/piece';
@@ -447,6 +447,9 @@ export default function App() {
 
   const current = drafting.choices(inputs.saved);
   const title = drafting.title(inputs.saved);
+  // The collection look these choices still are, for Style's title and the print's title card.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- current is made fresh from inputs.saved on every render
+  const lookName = useMemo(() => lookNameOf(garment, current, values), [garment, inputs.saved, values]);
 
   // The trousers' full style (toile corrections and all), so a lining is drafted to the same legs.
   const trousersStyle = useMemo(() => (garment === 'trousers' ? trousersStyleOf(inputs, fitting) : undefined), [garment, inputs, fitting]);
@@ -1008,6 +1011,7 @@ export default function App() {
           {/* On Style it sits under the garment's name (Cat's K3, 2026-10-28), so StyleLayout draws it. */}
           {step === 'export' && exampleTag}
           <ExampleTag.Provider value={step === 'style' ? exampleTag : undefined}>
+          <LookName.Provider value={step === 'style' ? lookName : undefined}>
           <CollectionLink.Provider value={step === 'style' ? () => { setLookFrom('style'); setStep('collection'); window.scrollTo(0, 0); } : undefined}>
           {/* Switched in place from the title's drop-down: no new step in history, so ← still leaves the style screen. */}
           <GarmentPick.Provider value={step === 'style' ? { garment, onNew: startNew, onSaved: () => setStep('account') } : undefined}>
@@ -1208,6 +1212,7 @@ export default function App() {
           )}
           </GarmentPick.Provider>
           </CollectionLink.Provider>
+          </LookName.Provider>
           </ExampleTag.Provider>
           {step === 'export' && !hasGarment(account, garment) && <UnlockGarment garment={garment} onPlans={openPlans} onBack={() => setStep('style')} />}
           {step === 'export' && hasGarment(account, garment) && (
@@ -1231,7 +1236,7 @@ export default function App() {
               garment={garment}
               profile={profile}
               title={title}
-              lookName={lookNameOf(garment, current, values)}
+              lookName={lookName}
               fit={'fit' in current ? current.fit : 'close'}
               finish={finish}
               onFinish={setFinish}

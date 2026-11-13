@@ -12,6 +12,10 @@ export const GarmentPick = createContext<{ garment: Garment; onNew: () => void; 
 /** "Drafted to an example body · Measure me", given by the app on Style so the layout can set it under the name. */
 export const ExampleTag = createContext<ReactNode>(undefined);
 
+/** The collection look being styled, while it is still unchanged ("Ice Peplum Top"), given by the app on Style. Testers
+ *  know their piece by the look's name, so the title says it rather than "your bodice" or "your jacket" (Cat, Nov 13). */
+export const LookName = createContext<string | undefined>(undefined);
+
 /** You stay in what you picked to make; this quiet link opens the list to pick something else. */
 export function GarmentSwitch({ onChoose, label = 'Choose another garment' }: { onChoose: () => void; label?: string }) {
   return (
