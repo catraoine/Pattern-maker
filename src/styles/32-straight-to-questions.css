@@ -33,6 +33,11 @@
     position: relative;
     z-index: 5;
   }
+  /* A longer name ("Your shirt dress", "Your knit dress") would run into the note, so the note drops to its own line
+     under it, still at the right. */
+  .main:has(.style-layout) .style-layout[data-long-name] > .example-tag {
+    margin-top: 0;
+  }
   .style-layout > .example-tag span {
     font-size: min(11px, 2.8vw);
   }

@@ -445,6 +445,9 @@ function questionRank(q: Question): [number, number] {
   return [at, sub < 0 ? 0 : sub];
 }
 
+/** Past this many letters ("your trousers"), the garment's name and the example note don't share a phone's line. */
+const LONG_NAME = 13;
+
 export function StyleLayout({ children, label, name, ready, onChooseGarment, onPhoto, photo, looks, mode, onMode, onEditMeasurements, sections = NO_SECTIONS, undo, flat, onPrint, finished }: Props) {
   const [options, preview, summary] = Children.toArray(children);
   const [page, setPage] = usePageHistory<'edit' | 'review'>(() => 'edit', (s) => s === 'edit' || s === 'review');
@@ -813,7 +816,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   );
 
   return (
-    <div className={compact ? 'style-layout compact' : 'style-layout'} ref={root}>
+    <div className={compact ? 'style-layout compact' : 'style-layout'} data-long-name={label.length > LONG_NAME || undefined} ref={root}>
       {/* The garment's name is the page's one big heading (Cat's K3, 2026-10-28): the word Style is only read out
           (the top bar says it), Start from a look is in the name's drop-down, and the example note is one soft line. */}
       <div className="screen-head">
