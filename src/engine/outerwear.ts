@@ -854,7 +854,7 @@ function notchedCollar(front: Piece, backNeck: number, frontNeck: number, s: Out
   const top = p(0, -(stand + fall));
   const outer = Array.from({ length: 21 }, (_, i) => cubic(Cc, lerp(Cc, top, 0.35), p(L * 0.45, top.y), top, i / 20));
   const pts = [...neckPts, Kc, ...outer];
-  const tags = [...neckPts.slice(1).map(() => 'neck'), 'gorge', 'collar', ...outer.slice(1, -1).map(() => 'collar'), 'fold'];
+  const tags = [...neckPts.slice(1).map(() => 'neck'), 'gorge', 'collar', ...outer.slice(1).map(() => 'collar'), 'fold'];
   const cut = 'Cut 2 on fold';
   const mid = p(L * 0.45, -(stand + fall) / 2 + 0.4);
   // The roll line. A single-breasted high lapel's collar rolls low at the front, its stand coming down to about two

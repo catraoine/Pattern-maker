@@ -7,6 +7,7 @@ import { outerFlat } from './flat';
 import { outerGuide } from './outerGuide';
 import { EXAMPLE_VALUES } from '../measurements';
 import { DROP } from './sleeveCut';
+import { cutLine } from './piece';
 
 const r1 = (v: number) => Math.round(v * 10) / 10;
 
@@ -27,6 +28,26 @@ describe('jackets and coats', () => {
     expect(taggedLength(collar.outline, 'neck')).toBeCloseTo(taggedLength(back.outline, 'neck') + taggedLength(front.outline, 'neck'), 0);
     // The gorge sews collar to lapel: the same length on both.
     expect(taggedLength(collar.outline, 'gorge')).toBeCloseTo(taggedLength(front.outline, 'gorge'), 1);
+  });
+
+  it('cuts the notched collar on the fold at the centre back, its cutting line close round it', () => {
+    // A tag one short put the fold on the collar's last outer stretch: the centre back took a seam allowance, and on
+    // the SS27 vest the near-straight corner mitred out 3 m, printing a line over 37 copy-shop sheets (Nov 13).
+    for (const kind of ['jacket', 'coat'] as const)
+      for (const front of ['single', 'double'] as const)
+        for (const lapel of ['classic', 'wide', 'plunge', 'high'] as const) {
+          const d = draftOuter(m, { kind, front, lapel, collar: 'notched' });
+          const collar = d.pieces.find((pc) => pc.name === 'Collar')!;
+          const at = `${kind} ${front} ${lapel}`;
+          const { pts, tags } = collar.outline.taggedPoints();
+          const fold = pts.filter((_, i) => tags[i] === 'fold');
+          expect(fold.length, at).toBe(1);
+          expect(fold[0].x, at).toBeCloseTo(0, 6);
+          const cut = cutLine(collar);
+          const xs = pts.map((q) => q.x);
+          expect(Math.min(...cut.map((q) => q.x)), at).toBeGreaterThan(-0.01);
+          expect(Math.max(...cut.map((q) => q.x)), at).toBeLessThan(Math.max(...xs) + 3);
+        }
   });
 
   it('cuts the facing and the lining to meet along one line', () => {
