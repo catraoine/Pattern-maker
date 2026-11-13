@@ -32,6 +32,10 @@ const LOCKED: [string, SweepDesign][] = [
   ['shirt, collar and long sleeves (SS27 9C top)', { garment: 'bodice', saved: { bodice: { garment: 'bodice', fit: 'regular', neckline: 'crew', collar: 'shirt', closure: 'front_buttons', sleeve: 'long', sleeveShape: 'straight', sleeveCuff: 'shirt', length: 'hip', darts: 'bust_waist' } as Saved['bodice'] }, fibre: 'cotton' }],
   // (Its hem drew stretched, 3 cm inside the rows above it, once the deeper bust dart dropped the side front's hem:
   // hemWidth.ts, Nov 10.)
+  // (Midi and maxi tiers without a drop yoke fell back to their drawing until each tier was laid on its own quarter of
+  // the round and the seams between them held, Nov 13.)
+  ['three gathered tiers, midi', { garment: 'skirt', saved: { choices: { fit: 'regular', silhouette: 'straight', length: 'midi', asymHem: 'none', flounce: 'tiers' } as unknown as Saved['choices'] }, fibre: 'cotton' }],
+  ['three gathered tiers, maxi', { garment: 'skirt', saved: { choices: { fit: 'relaxed', silhouette: 'a_line', length: 'maxi', asymHem: 'none', flounce: 'tiers' } as unknown as Saved['choices'] }, fibre: 'viscose' }],
   ['double-breasted coat, knee length', { garment: 'coat', saved: { coat: { ...DEFAULT_COAT_CHOICES, front: 'double' } }, fibre: 'wool' }],
 ];
 

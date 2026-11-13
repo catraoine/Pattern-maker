@@ -11,6 +11,7 @@ import type { DressDraft } from '../dress';
 import type { SkirtDraft } from '../skirt';
 import type { TrousersDraft } from '../trousers';
 import { Mesh2D, Wedge, meshPiece } from './mesh2d';
+import { quarterArc } from './quarterArc';
 import { BODY_BOTTOM, BODY_TOP, bodyHalf, shapeAt } from '../body';
 import { dartsOf } from '../marks';
 import { yokesJoined } from '../seams';
@@ -1019,7 +1020,13 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
         return ids.length ? ids.reduce((a, b) => a + b, 0) / ids.length : 0;
       };
       let c0 = (edgeC(pf, 'tier') + edgeC(pb, 'tier')) / 2;
-      for (const band of extra.tiers) {
+      // How far out each seam stands (0 the yoke's lower edge, i below tier i): 2.5 cm at the yoke, more with the square
+      // root of the cloth gathered into the skirt so far.
+      const topRound = extra.tiers[0].gatheredTo || 1;
+      const tierOff = (i: number) => 2.5 + (knob('__tierFlare') ?? 3) * Math.sqrt(Math.max(0, (i ? extra.tiers![i - 1].round : topRound) / topRound - 1));
+      // One set of folds for every tier, so many to a quarter as fit the yoke's quarter at about 6 cm each.
+      const folds = Math.max(2, Math.round(quarterArc(sp, c0, false, 2.5) / (knob('__tierLam') ?? 6)));
+      for (const [ti, band] of extra.tiers.entries()) {
         const pair: Record<'f' | 'b', Panel> = {} as never;
         for (const side of ['f', 'b'] as const) {
           const isBack = side === 'b';
@@ -1033,12 +1040,29 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
           const k = TAU / lam;
           const A = Math.min(3, (2 * Math.sqrt(Math.max(0, g - 1))) / k);
           const top = c0;
-          const p = B.add(
-            pc,
-            isBack ? 'peplum-back' : 'peplum-front',
-            (q) => ringAt(sp, q.x / g, top + q.y, isBack, 2.5 + A * (1 + Math.sin((k * q.x) / g)) + (top + q.y) * 0.02),
-            thick,
-          );
+          // Each tier laid across exactly its own quarter of the round, front or back, as it is sewn: tier 1 onto the
+          // yoke's quarter, tier 2 onto tier 1's hem, and so on. Each seam stands a little further out than the one above,
+          // as the cloth gathered into it pushes it out, and the rest of each tier's width starts in soft folds, the same
+          // folds all the way down so they meet at every seam. (Laid on an arc as long as the tier above's whole width,
+          // tier 2 and 3 started past the side seam and round into the back; pulled back, they left gaps at the seams and
+          // folded fins in the bottom tier, and the skirt fell back to its drawing, 2026-11-13.)
+          const offTop = tierOff(ti);
+          const offHem = tierOff(ti + 1);
+          // (A single band, a drop yoke's lower skirt or a ruffle, keeps the start it has always had: it sits on the edge
+          // above's quarter already, and its checks all passed.)
+          const start = knob('__oldTiers') || extra.tiers!.length < 2
+            ? (q: P) => ringAt(sp, q.x / g, top + q.y, isBack, 2.5 + A * (1 + Math.sin((k * q.x) / g)) + (top + q.y) * 0.02)
+            : (q: P) => {
+                const t = Math.min(1, Math.max(0, q.y / h));
+                const c = top + q.y;
+                const off = offTop + (offHem - offTop) * t;
+                const Q = quarterArc(sp, c, isBack, off);
+                const u = Math.min(1, Math.max(0, q.x / w));
+                const spare = w / Math.max(1, Q);
+                const Af = Math.min(knob('__tierAcap') ?? 3, (2 * Math.sqrt(Math.max(0, spare - 1))) / k);
+                return ringAt(sp, u * Q, c, isBack, off + Af * (1 + Math.sin(TAU * folds * u)));
+              };
+          const p = B.add(pc, isBack ? 'peplum-back' : 'peplum-front', start, thick);
           const ab = isBack ? above.b : above.f;
           sew(seams, B.chain(ab.panels, ab.tag, out), B.chain([p], 'waist', out));
           (isBack ? back : front).push(p);
@@ -5115,7 +5139,14 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
       // (Not down a vent: the cloth beside the centre there is the vent's overlap and underlap, two layers that lap, not
       // one fold to run smooth; smoothing them together drew the underlap 2.4 times its cut, All round quality 2026-11-04.)
       const ventTop = p.mesh.runs.vent?.length && !knob('__foldVent') ? Math.min(...p.mesh.runs.vent.flat().map((i) => pts[i].y)) : Infinity;
-      const band = (i: number) => Math.abs(pts[i].x) < (knob('__foldBand') ?? 2.5) && !onC.has(p.base + i) && pts[i].y > yTop && pts[i].y < ventTop;
+      // (Nor a tier's hem with the next tier gathered onto it: drawn out to the cloth beside it, it stood 2 to 3 cm off the
+      // tier below's top at the centre front and back, 2026-11-13.)
+      const held = new Set<number>();
+      if (p.pc.meta.tier && !knob('__tierHemFree')) {
+        const sewn = new Set(seams.flatMap(({ i, j, k }) => [i, j, k]));
+        for (const i of (p.mesh.runs.hem ?? []).flat()) if (sewn.has(p.base + i)) held.add(i);
+      }
+      const band = (i: number) => Math.abs(pts[i].x) < (knob('__foldBand') ?? 2.5) && !onC.has(p.base + i) && pts[i].y > yTop && pts[i].y < ventTop && !held.has(i);
       for (let it = 0; it < (knob('__foldIt') ?? 6); it++)
         pts.forEach((_, i) => {
           if (!band(i)) return;
@@ -5131,7 +5162,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
       for (let it = 0; it < (knob('__foldIt') ?? 6); it++)
         pts.forEach((_, i) => {
           const g = p.base + i;
-          if (!onC.has(g) || pts[i].y <= yTop) return;
+          if (!onC.has(g) || pts[i].y <= yTop || held.has(i)) return;
           const off = nb[i].filter((j) => !onC.has(p.base + j));
           if (!off.length) return;
           const I = g * 3;
@@ -6085,6 +6116,8 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
       });
     }
   }
+  let sewnSet: Set<number> | undefined;
+  const sewnIds = () => (sewnSet ??= new Set(seams.flatMap(({ i, j, k }) => [i, j, k])));
   if (!knob('__noCentreSmooth'))
     for (const p of B.panels) {
       if (p.hidden || !/peplum/.test(p.role) || !((p.pc.meta.gathered as number | undefined) ?? 0)) continue;
@@ -6104,6 +6137,10 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
         return e < W ? (1 - e / W) * Math.min(1, Math.max(0, (q.y - top - (knob('__csTop') ?? 10)) / (knob('__csRamp') ?? 25))) : 0;
       });
       const waist = new Set((p.mesh.runs.waist ?? p.mesh.runs.top ?? []).flat());
+      // (A tier's hem with the next tier gathered onto it is held as its top is: eased round on its own, it stood off the
+      // tier below's top by 2 to 4 cm at the centre front and back, 2026-11-13.)
+      if (p.pc.meta.tier && !knob('__tierHemFree'))
+        for (const i of (p.mesh.runs.hem ?? []).flat()) if (sewnIds().has(p.base + i)) waist.add(i);
       // (The hem keeps its level: eased only round, not up.)
       const hemS = new Set((p.mesh.runs.hem ?? []).flat());
       const nb = pts.map(() => new Set<number>());
