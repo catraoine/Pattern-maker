@@ -709,7 +709,10 @@ function finish(d: BodiceDraft, s: BodiceStyle, m: BodiceMeasurements & { arm_le
     // The bodice as sewn is buttoned shut: the block itself, centre front to centre front.
     block = [bf, bb];
     const ff = frontFacing(openBlock);
-    pieces = [...pieces, ff, ...[backNeckFacing(foldBlock, ff)].filter((pc): pc is Piece => !!pc)];
+    // A collar on a stand finishes the back neck itself, as on any good shirt: no facing behind it (Cat's toile read,
+    // 2026-11-13). The front facings then end at the shoulder seams.
+    const stand = isBandCollar(collar) || collar === 'shirt';
+    pieces = [...pieces, ff, ...(stand ? [] : [backNeckFacing(foldBlock, ff)].filter((pc): pc is Piece => !!pc))];
   }
   // A top that pulls on has no zip: the back on the fold. (Buttons or a wrap are the opening where there is one.)
   const pullOn = !!d.pullOn && closure === 'back_zip';
