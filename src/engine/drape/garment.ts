@@ -12,7 +12,7 @@ import type { SkirtDraft } from '../skirt';
 import type { TrousersDraft } from '../trousers';
 import { Mesh2D, Wedge, meshPiece } from './mesh2d';
 import { quarterArc } from './quarterArc';
-import { layTierGathers } from './tierGathers';
+import { foldDepth, layTierGathers } from './tierGathers';
 import { BODY_BOTTOM, BODY_TOP, bodyHalf, shapeAt } from '../body';
 import { dartsOf } from '../marks';
 import { yokesJoined } from '../seams';
@@ -1025,8 +1025,8 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
       // root of the cloth gathered into the skirt so far.
       const topRound = extra.tiers[0].gatheredTo || 1;
       const tierOff = (i: number) => 2.5 + (knob('__tierFlare') ?? 3) * Math.sqrt(Math.max(0, (i ? extra.tiers![i - 1].round : topRound) / topRound - 1));
-      // One set of folds for every tier, so many to a quarter as fit the yoke's quarter at about 6 cm each.
-      const folds = Math.max(2, Math.round(quarterArc(sp, c0, false, 2.5) / (knob('__tierLam') ?? 6)));
+      // One set of folds for every tier, so many to a quarter as fit the yoke's quarter at about 5 cm each.
+      const folds = Math.max(2, Math.round(quarterArc(sp, c0, false, 2.5) / (knob('__tierLam') ?? 5)));
       for (const [ti, band] of extra.tiers.entries()) {
         const pair: Record<'f' | 'b', Panel> = {} as never;
         for (const side of ['f', 'b'] as const) {
@@ -1060,10 +1060,13 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
                 const Q = quarterArc(sp, c, isBack, off);
                 const u = Math.min(1, Math.max(0, q.x / w));
                 const spare = w / Math.max(1, Q);
-                const Af = Math.min(knob('__tierAcap') ?? 3, (2 * Math.sqrt(Math.max(0, spare - 1))) / k);
+                // (Deep enough that the tier's whole width starts in its folds, up to 3 cm: started shallower, the rest was
+                // squeezed flat and crumpled into sharp creases on the finer mesh tight gathers need, Cat Nov 12: "Tight gathers".)
+                const Af = knob('__tierSqrtFold') ? Math.min(3, (2 * Math.sqrt(Math.max(0, spare - 1))) / k) : foldDepth(spare, Q / folds, knob('__tierAcap') ?? 3);
                 return ringAt(sp, u * Q, c, isBack, off + Af * (1 + Math.sin(TAU * folds * u)));
               };
-          const p = B.add(pc, isBack ? 'peplum-back' : 'peplum-front', start, thick);
+          // (On a finer mesh than plain cloth, 1.2 cm, so tight gathers can form: at 1.6 cm they could only be wide waves.)
+          const p = B.add(pc, isBack ? 'peplum-back' : 'peplum-front', start, thick, [], extra.tiers!.length > 1 && !knob('__oldTiers') ? knob('__tierMesh') ?? 1.2 : 1.6);
           const ab = isBack ? above.b : above.f;
           sew(seams, B.chain(ab.panels, ab.tag, out), B.chain([p], 'waist', out));
           (isBack ? back : front).push(p);
@@ -6199,7 +6202,9 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
           }
           return m / w;
         };
-        for (let it = 0; it < (knob('__frIt') ?? 20); it++) {
+        // (Gathered tiers longer: on their finer mesh the sim leaves more small crumples, which the even gathers laid on
+        // afterwards replace, tierGathers.ts.)
+        for (let it = 0; it < (p.pc.meta.tier && (extra.tiers?.length ?? 0) > 1 ? knob('__tierFr') ?? 150 : knob('__frIt') ?? 20); it++) {
           const nx = Float64Array.from(res.subarray(p.base * 3, (p.base + pts.length) * 3));
           pts.forEach((q, i) => {
             const pr = pair[i];
