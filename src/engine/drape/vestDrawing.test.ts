@@ -61,6 +61,6 @@ describe('the Black Vest drawn in All round', () => {
     expect(pastCentre(was)).toBeGreaterThan(1);
     expect(pastCentre(now)).toBeLessThan(0.5);
     expect(pointOff(now)).toBeLessThan(pointOff(was) - 0.5);
-    expect(now.quality.ok).toBe(true);
+    expect(now.quality?.ok).toBe(true);
   });
 }, 300000);
