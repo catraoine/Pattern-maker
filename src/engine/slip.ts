@@ -89,9 +89,10 @@ const rotate = (q: P, about: P, a: number) => {
  * Close a half piece's waist dart into the hem. The dart line is drawn on down to the hip line and the
  * piece slashed from there to the hem; the side part pivots on the hip line until the dart closes.
  * The hip keeps its width, the hem opens, and the waist and hem are drawn again as smooth curves,
- * square to the centre and to the side seam.
+ * square to the centre and to the side seam. With `flareTo` given, the side seam below the hip is then swung on
+ * the side hip to end that far out from the hip, keeping its length, so front and back can flare alike.
  */
-export function closeToHem(pc: Piece, hipDepth: number): Piece {
+export function closeToHem(pc: Piece, hipDepth: number, flareTo?: number): Piece {
   const o = pc.outline;
   const d0 = o.tags.indexOf('dart');
   const isFront = /front/i.test(pc.name);
@@ -125,6 +126,14 @@ export function closeToHem(pc: Piece, hipDepth: number): Piece {
     for (let i = 0; i < firstSide; i++) left.push(o.segs[i].to);
   }
   const side = o.segs.slice(firstSide, lastSide + 1).map(turned);
+  const hipX = pc.draft!.points.find((q) => q.n === '3')!.at.x;
+  const hipLine = side[side.length - 1];
+  if (flareTo !== undefined && hipLine.kind === 'L' && side.length > 1) {
+    const from = side[side.length - 2].to;
+    const reach = len(sub(hipLine.to, from));
+    const dx = hipX + flareTo - from.x;
+    if (Math.abs(dx) < reach * 0.5) side[side.length - 1] = { kind: 'L', to: p(from.x + dx, from.y + Math.sqrt(reach * reach - dx * dx)) };
+  }
   const sw = right.length ? right[right.length - 1] : left[left.length - 1];
   const first = side[0];
   const downSide = unit(sub(first.kind === 'C' ? first.c1 : first.to, sw));
@@ -171,7 +180,7 @@ export function closeToHem(pc: Piece, hipDepth: number): Piece {
   outline.line(cw, centreTag);
   outline.closed = true;
 
-  const hipQ = pc.draft!.points.find((q) => q.n === '3')!.at.x;
+  const hipQ = hipX;
   const sh = rot(p(hipQ, hipDepth));
   // Notches on the side part turn with it.
   const notches = pc.notches.map(([q, d]): [P, P] => (q.x > pivot.x ? [rot(q), unit(sub(rot(add(q, d)), rot(q)))] : [q, d]));
@@ -208,7 +217,7 @@ export function closeToHem(pc: Piece, hipDepth: number): Piece {
     notches,
     balance: [{ pts: near ? [p(0, hipDepth), pivot, sh] : [p(0, hipDepth), sh], label: 'HIP LINE' }],
     draft,
-    meta: { ...pc.meta, dartsCm: [], closedDartCm: Math.round(closed * 100) / 100, bias: true, isFront },
+    meta: { ...pc.meta, dartsCm: [], closedDartCm: Math.round(closed * 100) / 100, bias: true, isFront, flareCm: flare },
   };
 }
 

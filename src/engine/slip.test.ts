@@ -11,6 +11,7 @@ import { waistPieces } from './finishing';
 import { cutAllowed, validCut } from './slip';
 import { taggedLength } from "./geometry";
 import type { AsymHem } from './asymHem';
+import type { Piece } from './piece';
 import { describe as describeSkirt } from '../skirtChoices';
 import { describePattern } from '../screens/describe';
 
@@ -55,6 +56,24 @@ describe('the bias-cut slip skirt', () => {
     const faces = waistPieces(d, 1.5);
     expect(faces.length).toBe(2);
     expect(faces.every((f) => /facing/i.test(f.name))).toBe(true);
+  });
+
+  it('flares the front and back hems alike, on its own and on a dress, the side seams still matching', () => {
+    // Each piece flared by the dart it closed, so the back hem of a skirt came out several cm wider than the front, and on
+    // a dress (its waist split from the bodice) the front wider than the back (CLO, Nov 12; Cat: "Fix the slip skirt").
+    const out = (pc: Piece) => Math.max(...pc.outline.taggedPoints().pts.map((q) => Math.abs(q.x)));
+    const sideLen = (pc: Piece) => taggedLength(pc.outline, 'side') / (pc.meta.whole ? 2 : 1);
+    for (let seed = 1; seed <= sweep(6); seed++) {
+      const body = randomBody(rng(seed * 7919));
+      for (const length of ['knee', 'midi', 'maxi'] as const) {
+        const tag = `${seed} ${length}`;
+        for (const pieces of [draftSkirt(body, { silhouette: 'slip', length }).pieces, draftDress(body, {}, { silhouette: 'slip', length }).skirt.pieces]) {
+          const [front, back] = pieces;
+          expect(Math.abs(out(front) - out(back)), tag).toBeLessThan(0.3);
+          expect(Math.abs(sideLen(front) - sideLen(back)), tag).toBeLessThan(0.3);
+        }
+      }
+    }
   });
 
   it('has less hip ease than a straight skirt', () => {

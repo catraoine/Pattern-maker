@@ -1160,8 +1160,13 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
       if (extraB > 0.05) back = half({ ...backArgs, ...at(drops), waistQ: backArgs.waistQ - extraB, takeUp: extraB, centreDrop: drops.back, measuredCentre: measured.back });
     }
     if (slip) {
-      front = closeToHem(front, hipDepth);
-      back = closeToHem(back, hipDepth);
+      // Each piece flares by the dart it closes, so where the front and back waists differ (a dress's come from its
+      // bodice) one hem swung out several cm more than the other and the skirt hung unevenly (CLO, Nov 12; Cat: "Fix
+      // the slip skirt"). Both side seams below the hip are swung to the mean of the two: the hem is as wide as before,
+      // shared evenly, and the hip and the side seam's length are untouched, so front and back still match.
+      const even = ((closeToHem(front, hipDepth).meta.flareCm as number) + (closeToHem(back, hipDepth).meta.flareCm as number)) / 2;
+      front = closeToHem(front, hipDepth, even);
+      back = closeToHem(back, hipDepth, even);
     }
     return {
       pieces: [front, back],
