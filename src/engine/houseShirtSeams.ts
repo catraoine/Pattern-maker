@@ -40,6 +40,10 @@ export function withHouseShirtSeams(g: SewingGuide, seam: string): SewingGuide {
           },
         );
         break;
+      case 'Finish':
+        // (A shirt, or a shirt carried down to a dress: not "the bodice".)
+        out.push({ ...st, text: st.text.replace('Give the bodice a final press', 'Give the shirt a final press') });
+        break;
       default:
         out.push(st);
     }

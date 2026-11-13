@@ -351,7 +351,11 @@ export function styleBodiceSteps(g: SewingGuide, draft: BodiceDraft, o: { seam: 
     steps[steps.findIndex((s) => s.title === 'Finish')] = { title: 'Finish', text: 'Give the bodice a final press, over a ham at the bust.' };
   }
 
+  // Bias binding is only bought when a step still binds an edge with it (a collar or a button front's facings finish
+  // the neck, and sleeves the armholes: the toile sewist's list asked for 0.2 m no step used, 2026-11-13).
+  const binds = steps.some((s) => /bias binding|^Bind /.test(`${s.title} ${s.text}`));
   const notions = g.notions.flatMap((n) => {
+    if (o.edges === 'binding' && /wide bias binding$/.test(n) && !binds) return [];
     if (buttons && /invisible zip/.test(n)) return [`${(draft.buttons?.count ?? 5) + (stand ? 1 : 0)} buttons, ${draft.buttons?.sizeCm ?? 1.5} cm`];
     if (buttons && n === 'Hook and eye') return [];
     return [n];
