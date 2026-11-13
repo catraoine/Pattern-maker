@@ -178,7 +178,9 @@ export function CollectionScreen({ values, onMake, onBack, backLabel = 'Back to 
   return (
     <div className="collection">
       <header className="collection-head">
-        <p className="eyebrow">Maison Tracé <TestingTag tool="collection" /></p>
+        <p className="eyebrow">
+          <TestingTag tool="collection" />
+        </p>
         <h1 id="ctitle">The collection</h1>
         {shelf === 'house' && <p className="season-name">{SEASON.code} · {SEASON.name}</p>}
         <p className="muted">

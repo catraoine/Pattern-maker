@@ -10,10 +10,11 @@
   }
 }
 
-/* "In testing" on the collection's title: the same small tag as elsewhere, not a tall empty box. */
+/* "In testing" on the collection's title: the same small tag as elsewhere, not a tall empty box. It stands alone over
+   the title now the brand word before it is gone (Cat, Nov 13: "just clutter"), so it lines up with the title. */
 .collection-head .testing-tag {
   display: inline-block;
-  margin: 0 0 0 10px;
+  margin: 0;
   padding: 2px 8px;
   min-height: 0;
   line-height: 1.4;
