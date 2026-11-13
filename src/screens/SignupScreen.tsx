@@ -50,7 +50,6 @@ export function SignupScreen({ kind, onOther, onPrivacy }: Props) {
 
   return (
     <article className="card legal signup" aria-labelledby="stitle">
-      <p className="eyebrow">Maison Tracé</p>
       <h1 id="stitle">{tester ? 'Be a fit tester' : 'Get news'}</h1>
       {state === 'sent' ? (
         <p className="msg">{tester ? "Thank you. We'll email you when there's a pattern to test." : "Thank you. We'll email you when there's news."}</p>
