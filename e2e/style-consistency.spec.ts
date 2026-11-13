@@ -1,4 +1,4 @@
-import { chooseChip, expect, expectStyle, fillStepPages, measureMe, openFresh, openReview, pickToMake, startWithExample, stepButton, switchGarment, test, showAllTools, openLooks } from './fixtures';
+import { chooseChip, expect, expectStyle, fillStepPages, measureMe, openFresh, openPhoto, openReview, pickToMake, showAllTools, startWithExample, stepButton, switchGarment, test } from './fixtures';
 
 // Every garment's style screen works the same way: Undo and Redo always in place, and the same save wording.
 test('undo, redo and save read the same on the trousers as on the skirt', async ({ page }) => {
@@ -38,24 +38,38 @@ test('a new sewist sees Start from a photo', async ({ page }) => {
   await pickToMake(page, 'Skirt');
   await fillStepPages(page);
   await expectStyle(page, 'Skirt');
-  await openLooks(page);
-  await expect(main.getByRole('button', { name: 'Start from a photo' })).toBeVisible();
+  // The name's drop-down goes straight to the photo (Cat, Nov 12).
+  await openPhoto(page);
+  await expect(main.getByRole('heading', { name: 'Snap something you love.' })).toBeVisible();
+  await page.goBack();
+  await expectStyle(page, 'Skirt');
   await expect(await showAllTools(page)).toBeVisible();
 });
 
-// "Start from a look" in the name's drop-down always shows the ways to start from a look, even when it is already the
-// step (Cat, 2026-11-08 live: on a phone the tap did nothing, the choices sat out of sight under the step's name).
-test('Start from a look shows its choices every time it is picked', async ({ page }) => {
+// The name's drop-down is the four ways to start or find a piece (Cat's pick, Nov 12), not the list of garments; each
+// goes where it says.
+test('the garment drop-down offers a new garment, the collection, a photo and saved patterns', async ({ page }) => {
   await startWithExample(page);
   const main = page.getByRole('main');
-  const photo = main.getByRole('button', { name: 'Start from a photo' });
-  for (let i = 0; i < 2; i++) {
+  const drop = main.getByRole('group', { name: 'Garment' });
+  const open = async () => {
     await page.evaluate(() => window.scrollTo(0, 0));
-    await main.getByRole('group', { name: 'Garment' }).locator('.drop-button').click();
-    await main.getByRole('menuitemradio', { name: /Start from a look/ }).click();
-    await expect(photo).toBeInViewport({ ratio: 1 });
-    await expect(main.getByRole('button', { name: /^See the choices/ })).toBeHidden();
-  }
+    await drop.locator('.drop-button').click();
+  };
+  await open();
+  await expect(drop.getByRole('menuitemradio')).toHaveText(['Start a new garment ›', 'Maison Tracé collection ›', 'Start from a photo ›', 'My saved patterns ›']);
+  await drop.getByRole('menuitemradio', { name: 'Maison Tracé collection ›' }).click();
+  await expect(main.getByRole('heading', { name: 'Leopard Shirt Dress' })).toBeVisible();
+  await page.goBack();
+  await expectStyle(page, 'Skirt');
+  await open();
+  await drop.getByRole('menuitemradio', { name: 'My saved patterns ›' }).click();
+  await expect(main.getByRole('heading', { name: 'Saved patterns' })).toBeVisible();
+  await page.goBack();
+  await expectStyle(page, 'Skirt');
+  await open();
+  await drop.getByRole('menuitemradio', { name: 'Start a new garment ›' }).click();
+  await expect(main.getByRole('heading', { name: 'What would you like to make?' })).toBeVisible();
 });
 
 // A measurement that fails a check is caught: a bust in the wrong unit on its own page, and two that

@@ -26,7 +26,7 @@ import { Explain } from '../ui/Explain';
 import { DrawOnForm } from '../ui/DrawOnForm';
 import { FormSketch } from '../ui/FormSketch';
 import { TeeFormMeasurements, readTeeFit, readTeeHem, readTeeNeckline, readTeeSleeve, teeForm, teeLines } from '../ui/formTops';
-import { FABRIC, Group, InCorner, LOOKS, StyleLayout, TabPanel } from '../ui/StyleLayout';
+import { FABRIC, Group, InCorner, SHAPE, StyleLayout, TabPanel } from '../ui/StyleLayout';
 import { FabricDetails } from '../ui/FabricDetails';
 import { PiecesList, SummaryActions, formViews } from '../ui/StyleSummary';
 
@@ -197,7 +197,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
       }
     >
       <section className="card numbered" aria-labelledby="opts">
-        <TabPanel tab={LOOKS}>
+        <TabPanel tab={SHAPE}>
           <p className="muted small">Drafted for knit fabric: no darts, the stretch shapes it to you.</p>
         </TabPanel>
         {TEE_GROUPS.filter((g) => g.id !== 'length' && (g.id !== 'shoulder' || choices.sleeve !== 'none')).map((g) => {

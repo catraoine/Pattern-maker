@@ -10,7 +10,7 @@ test('hidden without the preview link', async ({ page }) => {
   await page.goto('/?fresh');
   await skipLoading(page);
   await skipToExample(page);
-  await chooseDrop(page, 'Garment', 'See them all ›');
+  await chooseDrop(page, 'Garment', 'Start a new garment ›');
   await expect(makeList(page).getByRole('button', { name: /^T-shirt\b/ })).toBeVisible();
   await expect(makeList(page).getByRole('button', { name: /^Lingerie\b/ })).toHaveCount(0);
 });
@@ -19,7 +19,7 @@ test('measures the underbust, drafts a bralette and a swimsuit, and prints', asy
   await page.goto('/?fresh&lingerie=preview');
   await skipLoading(page);
   await skipToExample(page);
-  await chooseDrop(page, 'Garment', 'See them all ›');
+  await chooseDrop(page, 'Garment', 'Start a new garment ›');
   // A tap on the garment goes straight on.
   await makeList(page).getByRole('button', { name: /^Lingerie\b/ }).click();
   // The example already has an underbust; a body without one is asked for it first.

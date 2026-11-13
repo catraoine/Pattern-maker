@@ -7,7 +7,7 @@ import type { Flat } from '../engine/flat';
 import { DemoButton } from './DemoButton';
 import { EnlargeSketch, useEnlarged } from './EnlargeSketch';
 import { Envelope } from './Envelope';
-import { CollectionEntry, ExampleTag, GarmentDrop } from './GarmentSwitch';
+import { ExampleTag, GarmentDrop } from './GarmentSwitch';
 import { ModeLink } from './ModeLink';
 import { PhotoEntry } from './PhotoEntry';
 import { Title } from './Title';
@@ -30,8 +30,6 @@ let litOnce = false;
 /** The tab showing now. Groups and panels outside it are hidden, not removed, so the tab row can list them. */
 const ActiveTab = createContext<string | undefined>(undefined);
 
-/** Ways in that come before any choice: always the first tab. */
-export const LOOKS = 'Looks';
 /** The fabric to see the sketch in. */
 export const FABRIC = 'Fabric';
 /** The tools the simple view tucks away: always the last tab. */
@@ -48,13 +46,13 @@ let leftOn: { name: string; tab: string; q?: string } | undefined;
 
 // The choices sit on a few tabs (Cat, 2026-10-18), so the whole row fits on a phone and the tailor's words
 // (darts, structure) sit beside the plain ones they belong to. A group not listed keeps a tab of its own.
-const SHAPE = 'Shape';
+export const SHAPE = 'Shape';
 const NECK = 'Neck & sleeves';
 const LENGTH = 'Length & hem';
 const DETAILS = 'Details';
 // One order of steps for every garment (Cat, 2026-10-31): Shape, Neck & sleeves, Length & hem, Details, then any
 // step of a garment's own, Fabric, and the pro tools last. A garment skips the steps it has no questions for.
-const ORDER = [LOOKS, SHAPE, NECK, LENGTH, DETAILS];
+const ORDER = [SHAPE, NECK, LENGTH, DETAILS];
 const rank = (t: string) => (t === PRO ? 7 : t === FABRIC ? 6 : ORDER.includes(t) ? ORDER.indexOf(t) : 5);
 const SECTIONS: Record<string, string> = {
   Fit: SHAPE,
@@ -380,11 +378,11 @@ interface Props {
   width?: number;
   ready: boolean;
   onChooseGarment: () => void;
-  /** The Looks tab's way in from a photo; the skirt brings its own card in `looks`. */
+  /** Start from a photo, from the name's drop-down, and the photo this garment was matched to. */
   onPhoto?: () => void;
   photo?: string;
-  /** More for the Looks tab, such as the skirt's eras. */
-  looks?: ReactNode;
+  /** The skirt's own "Matched to your photo" card, which also undoes the matched shape; others show `photo`. */
+  matched?: ReactNode;
   mode: Mode;
   onMode?: (m: Mode) => void;
   /** Edit measurements, next to Edit style at the top of the Review page. */
@@ -448,7 +446,7 @@ function questionRank(q: Question): [number, number] {
 /** Past this many letters ("your trousers"), the garment's name and the example note don't share a phone's line. */
 const LONG_NAME = 13;
 
-export function StyleLayout({ children, label, name, ready, onChooseGarment, onPhoto, photo, looks, mode, onMode, onEditMeasurements, sections = NO_SECTIONS, undo, flat, onPrint, finished }: Props) {
+export function StyleLayout({ children, label, name, ready, onChooseGarment, onPhoto, photo, matched, mode, onMode, onEditMeasurements, sections = NO_SECTIONS, undo, flat, onPrint, finished }: Props) {
   const [options, preview, summary] = Children.toArray(children);
   const [page, setPage] = usePageHistory<'edit' | 'review'>(() => 'edit', (s) => s === 'edit' || s === 'review');
   // Read here and cleared once mounted: React may run this twice, and the second run must see it too.
@@ -494,8 +492,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
       setTabs(next);
       if (tabs.length && !tabs.includes(PRO) && next.includes(PRO)) setActive(PRO);
     }
-    // It opens on the first step; Looks is there for the link by the title.
-    if (!active || !next.includes(active)) setActive(next.find((t) => t !== LOOKS) ?? next[0]);
+    if (!active || !next.includes(active)) setActive(next[0]);
   });
 
   // The sketch pins under the app's header, whatever height the header is.
@@ -575,9 +572,9 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
     return () => el.removeEventListener('touchmove', hold);
   }, [page]);
 
-  // The numbered steps: every tab but Looks (a link by the title) and Pro (the pro tools, at the end).
-  const steps = tabs.filter((t) => t !== LOOKS && t !== PRO);
-  const strip_ = tabs.filter((t) => t !== LOOKS);
+  // The numbered steps: every tab but Pro (the pro tools, at the end).
+  const steps = tabs.filter((t) => t !== PRO);
+  const strip_ = tabs;
   const choose = (t: string) => {
     setActive(t);
     setJump(false);
@@ -662,13 +659,6 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
     };
     window.addEventListener('scrollend', again);
     setTimeout(again, 900);
-  };
-  // "Start from a look" in the name's drop-down (Cat, 2026-11-08 live: tapping it did nothing). On a phone the
-  // step's choices sit just out of sight under its name, so picking it when it was already the step changed nothing
-  // on screen. It now opens the step and pulls up its choices (a photo, the collection), as See the choices does.
-  const openLooks = () => {
-    choose(LOOKS);
-    if (!wide) requestAnimationFrame(() => requestAnimationFrame(() => showChoices()));
   };
   const step = (by: number) => {
     if (!wide && qAt >= 0) return goQ(qAt + by);
@@ -806,7 +796,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
       </div>
     );
   // The step after this one: the bar's Next goes there, and says only "Next" (Cat, 2026-11-06).
-  const next = active === LOOKS ? steps[0] : steps[at + 1];
+  const next = steps[at + 1];
   // Back a step names the step it goes to, to the left of the way on (Cat's B, 2026-11-02, after a plain arrow from
   // 2026-10-31 was taken for the header's back): "‹ Shape", on every step after the first.
   const backArrow = at > 0 && (
@@ -818,10 +808,11 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   return (
     <div className={compact ? 'style-layout compact' : 'style-layout'} data-long-name={label.length > LONG_NAME || undefined} ref={root}>
       {/* The garment's name is the page's one big heading (Cat's K3, 2026-10-28): the word Style is only read out
-          (the top bar says it), Start from a look is in the name's drop-down, and the example note is one soft line. */}
+          (the top bar says it), the ways to start or find a piece are in the name's drop-down, and the example note is one
+          soft line. */}
       <div className="screen-head">
         <Title id="opts" big="Style" label={label} hideLabel />
-        <GarmentDrop label={label} onChoose={onChooseGarment} onLooks={tabs.includes(LOOKS) ? openLooks : undefined} />
+        <GarmentDrop label={label} onChoose={onChooseGarment} onPhoto={onPhoto} />
       </div>
       {exampleTag}
       <div className="style-edit">
@@ -863,6 +854,9 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
         >
           {/* The open step as a chapter (Cat's H4 + N3, 2026-10-28): "Step 1 of 5", the step's name set large, and the
               steps as a thin line of bars to tap under it. The next step's name is only on the Next button. */}
+          {/* A garment matched to a photo says so above its first question, with a way to try another; the way in
+              is "Start from a photo" in the name's drop-down (Cat, Nov 12). */}
+          {active === steps[0] && (wide || qAt <= 0) && (matched ?? (photo && <PhotoEntry onPhoto={onPhoto} photo={photo} />))}
           <div className="chapter" ref={chapter}>
             {/* Watch demo sits across from the step on a computer (Cat's D3, 2026-10-29). On a phone the step bars are
                 gone and Watch demo is a link at the end of the step (Cat's P1, 2026-10-31): "Step 1 of 5" opens the
@@ -881,12 +875,12 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
               {!wide && undo && (undo.canUndo || undo.canRedo) && <StepUndo undo={undo} />}
             </div>
             {wide ? (
-              <h2 className="chapter-name">{active === LOOKS ? 'Start from a look' : active}</h2>
+              <h2 className="chapter-name">{active}</h2>
             ) : (
               // The question's own name is the heading (Cat's K): a tap lists every question, to jump to any one.
               <h2 className="chapter-name">
                 <button type="button" className="chapter-step q-head" aria-expanded={jump} aria-controls="style-steps" onClick={() => setJump((j) => !j)}>
-                  {active === LOOKS ? 'Start from a look' : (qs[qAt]?.label ?? active)}
+                  {qs[qAt]?.label ?? active}
                   <span className="chapter-step-mark" aria-hidden="true" />
                 </button>
               </h2>
@@ -971,11 +965,6 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           <Fold.Provider value={fold}>
           <ActiveTab.Provider value={active}>
             <Sections.Provider value={sections}>
-            <TabPanel tab={LOOKS}>
-              {/* The house looks first: the fit testers sew one of them (tester journey, Nov 11). */}
-              <CollectionEntry />
-              {looks ?? <PhotoEntry onPhoto={onPhoto} photo={photo} />}
-            </TabPanel>
             {options}
             {mode === 'all' ? (
               <TabPanel tab={PRO}>
@@ -991,21 +980,15 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           </ActiveTab.Provider>
           </Fold.Provider>
           {/* The way on: the next step, or Review after the last (on a computer the summary is already beside it). */}
-          {wide && (active === LOOKS || at >= 0) && (
+          {wide && at >= 0 && (
             <div className="step-next">
               {backArrow}
               {/* On a phone the one box is in the bar at the bottom (F1, 2026-10-24); the computer has no bar. */}
-              {active === LOOKS && steps[0] ? (
-                  <button type="button" className="step-go" onClick={() => goStep(steps[0])}>
-                    Start with {steps[0]} ›
-                  </button>
-                ) : (
-                  steps[at + 1] && (
-                    <button type="button" className="step-go" aria-label={`Next: ${steps[at + 1]}`} onClick={() => goStep(steps[at + 1])}>
-                      Next ›
-                    </button>
-                  )
-                )}
+              {steps[at + 1] && (
+                <button type="button" className="step-go" aria-label={`Next: ${steps[at + 1]}`} onClick={() => goStep(steps[at + 1])}>
+                  Next ›
+                </button>
+              )}
             </div>
           )}
           {/* On a phone the step ends with two quiet links (Cat's P1, 2026-10-31): Review, which left the bar so it

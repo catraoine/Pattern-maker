@@ -12,7 +12,7 @@ import type { MyFabric } from '../engine/fabrics';
 import { lingerieFabrics } from '../engine/knits';
 import { FabricCard, FabricSummary } from '../ui/FabricCard';
 import type { Mode } from '../mode';
-import { FABRIC, Group, LOOKS, StyleLayout, TabPanel } from '../ui/StyleLayout';
+import { FABRIC, Group, SHAPE, StyleLayout, TabPanel } from '../ui/StyleLayout';
 import { FabricDetails } from '../ui/FabricDetails';
 import { PiecesList, SummaryActions } from '../ui/StyleSummary';
 
@@ -101,7 +101,7 @@ export function LingerieStyleScreen({ onPhoto, photo, choices, onChoices: setCho
       onPrint={onNext}
     >
       <section className="card numbered" aria-labelledby="opts">
-        <TabPanel tab={LOOKS}>
+        <TabPanel tab={SHAPE}>
           <p className="muted small">Drafted for four-way stretch: cut smaller than you, so it holds close without darts or wires.</p>
         </TabPanel>
         {LINGERIE_GROUPS.filter((g) => lingerieGroupShown(choices, g.id)).map((g) => (
