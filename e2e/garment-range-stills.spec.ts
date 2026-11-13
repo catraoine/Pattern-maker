@@ -31,13 +31,13 @@ test('garment range stills', async ({ page, consoleErrors }) => {
   page.setDefaultTimeout(20_000);
   for (const [garment, looks] of RANGE) {
     console.log('garment', garment);
-    await chooseDrop(page, 'Garment', new RegExp(`^${garment}\\b`));
+    await chooseDrop(page, 'Garment', 'Start a new garment ›');
+    await main.getByRole('group', { name: 'What would you like to make?' }).getByRole('button', { name: new RegExp(`^${garment}\\b`) }).click();
     await page.waitForTimeout(800);
     if (await main.getByRole('textbox').count()) await fillStepPages(page);
     await main.getByRole('heading', { level: 1, name: new RegExp(`Style your ${garment.toLowerCase()}`) }).waitFor();
     for (const [i, look] of looks.entries()) {
       console.log('look', look);
-      await chooseDrop(page, 'Garment', /^Start from a look/);
       await main.getByRole('button', { name: look, exact: true }).first().click();
       await page.waitForTimeout(700);
       const preview = main.getByRole('region', { name: 'Preview' });

@@ -1,10 +1,9 @@
-import { expect, expectStyle, fillStepPages, goPrint, measureMe, openFresh, openGroup, openLooks, pickToMake, startWithExample, switchGarment, test } from './fixtures';
+import { expect, expectStyle, fillStepPages, goPrint, measureMe, openCollection, openFresh, openGroup, pickToMake, startWithExample, switchGarment, test } from './fixtures';
 
 test('the Maison collection: open it from styling, draw every look, make one', async ({ page }) => {
   await startWithExample(page);
   const main = page.getByRole('main');
-  await openLooks(page);
-  await main.getByRole('button', { name: 'Start from the Maison collection' }).click();
+  await openCollection(page);
   await expect(main.getByRole('heading', { level: 1, name: 'The collection' })).toBeVisible();
   // Every look is drawn flat, front and back.
   const looks = main.getByRole('listitem');
@@ -27,8 +26,7 @@ test('the Maison collection: open it from styling, draw every look, make one', a
 test('Look 02, the Black Vest Set: both pieces in one look, each made on its own', async ({ page }) => {
   await startWithExample(page);
   const main = page.getByRole('main');
-  await openLooks(page);
-  await main.getByRole('button', { name: 'Start from the Maison collection' }).click();
+  await openCollection(page);
   const set = main.getByRole('listitem').filter({ has: page.getByRole('heading', { name: 'The Black Vest Set' }) });
   await expect(set).toContainText('SS27 · Look 02');
   await expect(set.getByRole('img', { name: /Technical flat/ })).toHaveCount(2);
@@ -41,8 +39,7 @@ test('Look 02, the Black Vest Set: both pieces in one look, each made on its own
   // The vest: a sleeveless jacket with the high lapel and the chest seam.
   await page.goto('/');
   await page.getByRole('button', { name: /^Carry on with your/ }).first().click();
-  await openLooks(page);
-  await main.getByRole('button', { name: 'Start from the Maison collection' }).click();
+  await openCollection(page);
   await main.getByRole('button', { name: 'Make the vest' }).click();
   await expectStyle(page, 'Jacket');
   const vest = await page.evaluate(() => JSON.parse(localStorage.getItem('pattern-maker:skirt') ?? '{}'));
@@ -52,8 +49,7 @@ test('Look 02, the Black Vest Set: both pieces in one look, each made on its own
 test('the Leopard Shirt Dress: made in the house print, with its long-point collar and shirttail', async ({ page }) => {
   await startWithExample(page);
   const main = page.getByRole('main');
-  await openLooks(page);
-  await main.getByRole('button', { name: 'Start from the Maison collection' }).click();
+  await openCollection(page);
   const look = main.getByRole('listitem').filter({ has: page.getByRole('heading', { name: 'Leopard Shirt Dress' }) });
   await expect(look.getByRole('img', { name: /Technical flat/ })).toBeVisible();
   if (process.env.SHOTS) await look.screenshot({ path: `${process.env.SHOTS}/leopard-look-${test.info().project.name}.png` });
@@ -79,8 +75,7 @@ test('the Leopard Shirt Dress: made in the house print, with its long-point coll
 test('the collection: the next drop stays hidden until it has a piece, and the Archive shows its records', async ({ page }) => {
   await startWithExample(page);
   const main = page.getByRole('main');
-  await openLooks(page);
-  await main.getByRole('button', { name: 'Start from the Maison collection' }).click();
+  await openCollection(page);
   // Drop 01 has no piece yet, so it stays hidden: no strip and no sign-up (Cat, 2026-10-29).
   await expect(main.getByText('Date soon')).toHaveCount(0);
   await expect(main.getByRole('heading', { name: 'Get the drop alert' })).toHaveCount(0);
@@ -101,8 +96,7 @@ test('the collection: the next drop stays hidden until it has a piece, and the A
 test('the Chocolate Barrel Trouser: made low on the hip with two pleats, in chocolate sateen', async ({ page }) => {
   await startWithExample(page);
   const main = page.getByRole('main');
-  await openLooks(page);
-  await main.getByRole('button', { name: 'Start from the Maison collection' }).click();
+  await openCollection(page);
   const look = main.getByRole('listitem').filter({ has: page.getByRole('heading', { name: 'Chocolate Barrel Trouser' }) });
   await expect(look.getByRole('img', { name: /Technical flat/ })).toBeVisible();
   if (process.env.SHOTS) await look.screenshot({ path: `${process.env.SHOTS}/chocolate-barrel-look-${test.info().project.name}.png` });
@@ -125,8 +119,7 @@ test('a collection top with sleeves asks for the arms first, so its pattern has 
   await pickToMake(page, 'Skirt');
   await fillStepPages(page);
   await expectStyle(page, 'Skirt');
-  await openLooks(page);
-  await main.getByRole('button', { name: 'Start from the Maison collection' }).click();
+  await openCollection(page);
   await main.getByRole('listitem').filter({ has: page.getByRole('heading', { name: 'Leopard Shirt Dress', exact: true }) }).getByRole('button', { name: 'Make this look' }).click();
   // The pages it takes, then the style screen.
   const style = main.getByRole('heading', { name: 'Style your shirt dress' });

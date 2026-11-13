@@ -53,7 +53,7 @@ import { FormSketch } from '../ui/FormSketch';
 import { armFor, formWidth } from '../ui/DrawOnForm';
 import { landmarks } from '../ui/formLines';
 import { type TeeFormMeasurements, teeForm, teeLines } from '../ui/formTops';
-import { FABRIC, Group, LOOKS, StyleLayout, TabPanel } from '../ui/StyleLayout';
+import { FABRIC, Group, SHAPE, StyleLayout, TabPanel } from '../ui/StyleLayout';
 import { PiecesList, SummaryActions } from '../ui/StyleSummary';
 import { FinishedTable, finishedLines } from '../ui/FinishedTable';
 import type { BodiceMeasurements } from '../engine/bodice';
@@ -219,7 +219,7 @@ export function RangeStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       finished={draft && spec && <FinishedTable lines={finishedLines(spec, { knit: a.knit })} noun={a.noun} />}
     >
       <section className="card numbered" aria-labelledby="opts">
-        <TabPanel tab={LOOKS}>
+        <TabPanel tab={SHAPE}>
           <p className="muted small">In testing: a new pattern, drafted to you. Start from a look, then change anything.</p>
           <div className="chips">
             {a.looks.map((l) => (

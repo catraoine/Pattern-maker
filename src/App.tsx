@@ -520,6 +520,11 @@ export default function App() {
   /** "Start something new" (Cat, Nov 12: pausing one skirt to start another lost the first): the garment's work so
    *  far goes into Saved patterns, and only then does it start over. Saved patterns full, it carries on as it was. */
   const [freshStart, setFreshStart] = useState(false);
+  const startNew = () => {
+    setAccount(keepThenFresh(garment).account);
+    setFreshStart(true);
+    chooseGarment();
+  };
   const keepThenFresh = (g: Garment, acc: Account = account): { account: Account; patch: Partial<Saved> } => {
     const drafting = GARMENT_DRAFTING[g];
     const now = drafting.choices(saved);
@@ -816,11 +821,7 @@ export default function App() {
               }}
               resume={
                 account.onboarded && canLeaveMeasure
-                  ? { garment: GARMENT_NAME[garment], onResume: () => setStep('style'), onSaved: () => setStep('account'), onNew: () => {
-                        setAccount(keepThenFresh(garment).account);
-                        setFreshStart(true);
-                        chooseGarment();
-                      } }
+                  ? { garment: GARMENT_NAME[garment], onResume: () => setStep('style'), onSaved: () => setStep('account'), onNew: startNew }
                   : undefined
               }
             />
@@ -1009,7 +1010,7 @@ export default function App() {
           <ExampleTag.Provider value={step === 'style' ? exampleTag : undefined}>
           <CollectionLink.Provider value={step === 'style' ? () => { setLookFrom('style'); setStep('collection'); window.scrollTo(0, 0); } : undefined}>
           {/* Switched in place from the title's drop-down: no new step in history, so ← still leaves the style screen. */}
-          <GarmentPick.Provider value={step === 'style' ? { garment, onSwitch: (g) => (ready(measured, saved.unit, g, form) ? setSaved({ ...saved, ...plainCloth(g), garment: g }) : switchGarment(g, {}, 'style')) } : undefined}>
+          <GarmentPick.Provider value={step === 'style' ? { garment, onNew: startNew, onSaved: () => setStep('account') } : undefined}>
           {step === 'style' && photoSource && photoFor === garment && (
             <PhotoCheck
               source={photoSource}

@@ -23,7 +23,6 @@ import { NO_SLIT, SlitSlider } from '../ui/SlitSlider';
 import { BUTTONS_STOP_ABOVE_HEM, buttonsBlocked, yokeBlocked } from '../engine/skirtFront';
 import { FinishChoices } from '../ui/FinishChoices';
 import type { Finish } from '../savedWork';
-import { ERAS } from '../engine/eras';
 import { skirtFlat, wornShapes, wornLines } from '../engine/flat';
 import { TechFlatView } from '../ui/TechFlatView';
 import { shapeLine } from '../photo/shape';
@@ -100,9 +99,6 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
   const slipped = choices.silhouette === 'slip';
   const extra = fabricEase(fabric, 'skirt');
   const title = describe(choices);
-  const look = currentLook(choices);
-  const [eraId, setEraId] = useState<string | undefined>(() => ERAS.find((e) => e.looks.includes(look!))?.id);
-  const era = ERAS.find((e) => e.id === eraId);
   // Changing the shape or length by hand leaves the era look behind; changing the fit keeps it.
   // Picking a named length or silhouette replaces a dragged one; a drawn hem stays. A shape matched
   // from a photo stays until the shape or length is changed by hand.
@@ -124,62 +120,18 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
     });
   };
 
-  const looks = (
-    <>
-      {choices.shape ? (
-        <div className="photo-matched">
-          {photo && <img src={photo} alt="Your photo" />}
-          <div>
-            <p>Matched to your photo</p>
-            <p className="muted small">{shapeLine(choices.shape)}</p>
-          </div>
-          <button type="button" className="link" onClick={() => change({ ...choices, shape: undefined })}>
-            Undo
-          </button>
-        </div>
-      ) : (
-        <button type="button" className="secondary photo-entry" onClick={onPhoto}>
-          Start from a photo
-        </button>
-      )}
-        <fieldset className="group era">
-          <legend>Era</legend>
-          {!era && <p className="muted small">Pick an era to see its looks. A look sets the fit, shape and length, and you can change any of them after.</p>}
-          <div className="chips">
-            {ERAS.map((e) => (
-              <button
-                key={e.id}
-                type="button"
-                className={eraId === e.id ? 'chip on' : 'chip'}
-                aria-pressed={eraId === e.id}
-                onClick={() => setEraId(eraId === e.id ? undefined : e.id)}
-              >
-                {e.name}
-              </button>
-            ))}
-          </div>
-          {era && (
-            <div className="looks">
-              <p className="muted small">
-                {era.years}. {era.about}
-              </p>
-              {era.looks.map((l) => (
-                <button
-                  key={l.id}
-                  type="button"
-                  className={look?.id === l.id ? 'look on' : 'look'}
-                  aria-pressed={look?.id === l.id}
-                  onClick={() => change({ fit: l.fit, silhouette: l.silhouette, length: l.length, look: l.id })}
-                >
-                  <strong>{l.name}</strong>
-                  <span>{l.about}</span>
-                  <span className="muted">Try: {l.fabric}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </fieldset>
-    </>
+  // The shape matched from a photo, with Undo; it shows above the first question.
+  const matched = choices.shape && (
+    <div className="photo-matched">
+      {photo && <img src={photo} alt="Your photo" />}
+      <div>
+        <p>Matched to your photo</p>
+        <p className="muted small">{shapeLine(choices.shape)}</p>
+      </div>
+      <button type="button" className="link" onClick={() => change({ ...choices, shape: undefined })}>
+        Undo
+      </button>
+    </div>
   );
 
   if (onForm && draft) {
@@ -270,7 +222,8 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
       metres={draft ? fabricMetres(draft) : undefined}
       ready={!!draft}
       onChooseGarment={onChooseGarment}
-      looks={looks}
+      onPhoto={onPhoto}
+      matched={matched}
       mode={mode}
       onMode={onMode}
       finished={

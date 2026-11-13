@@ -171,7 +171,9 @@ export async function expectStyle(page: Page, g: GarmentName) {
 
 /** The garment drop-down on the Style title: pick another, measuring for it first when it needs more. */
 export async function switchGarment(page: Page, g: GarmentName) {
-  await chooseDrop(page, 'Garment', new RegExp(`^${pickName(g)}\\b`));
+  // The title's drop-down starts a new garment from the list with pictures (Cat's four lines, Nov 12).
+  await chooseDrop(page, 'Garment', 'Start a new garment ›');
+  await pickToMake(page, g);
   const style = heading(page, `Style your ${lower(g)}`);
   const measuring = main(page).getByRole('textbox');
   await expect(style.or(measuring).first()).toBeVisible();
@@ -261,12 +263,18 @@ export async function unfold(group: Locator) {
   if ((await head.count()) && (await head.isVisible()) && (await head.getAttribute('aria-expanded')) === 'false') await head.click();
 }
 
-/** "Start from a look", the first line in the garment's drop-down: the photo and the Maison collection. */
-export async function openLooks(page: Page) {
-  if (await main(page).getByRole('heading', { name: 'Start from a look', level: 2 }).isVisible()) return;
+/** From a style screen, the garment name's drop-down to one of its four lines (Cat's pick, Nov 12). */
+async function fromGarmentDrop(page: Page, item: string) {
+  await page.evaluate(() => window.scrollTo(0, 0));
   await main(page).getByRole('group', { name: 'Garment' }).locator('.drop-button').click();
-  await main(page).getByRole('menuitemradio', { name: /Start from a look/ }).click();
+  await main(page).getByRole('menuitemradio', { name: item }).click();
 }
+
+/** From a style screen, "Maison Tracé collection" in the garment's drop-down. */
+export const openCollection = (page: Page) => fromGarmentDrop(page, 'Maison Tracé collection ›');
+
+/** From a style screen, "Start from a photo" in the garment's drop-down: straight to the photo page. */
+export const openPhoto = (page: Page) => fromGarmentDrop(page, 'Start from a photo ›');
 
 /** On a phone the bar says "See the choices" until the step's questions have been in view (Cat's N3, 2026-11-06):
  *  tap it, so the bar turns into Next or Review. */

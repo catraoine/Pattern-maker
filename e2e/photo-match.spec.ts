@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync } from 'node:fs';
-import { expect, openLooks, startWithExample, test } from './fixtures';
+import { expect, openPhoto, startWithExample, test } from './fixtures';
 
 // Matching the real piece: a reading torn between two shapes asks which, what the app can't draft yet is
 // named, and the photo's neckline depth carries into the pattern. The server's reading is stubbed, so no
@@ -45,8 +45,7 @@ test('an unsure reading asks once, and names what the app cannot draft yet', asy
   await startWithExample(page);
   await page.route('**/.netlify/functions/analyze-photo', (route) => route.fulfill({ json: { ok: true, reading } }));
   const main = page.getByRole('main');
-  await openLooks(page);
-  await main.getByRole('button', { name: 'Start from a photo' }).click();
+  await openPhoto(page);
   await main.locator('input[type=file]').setInputFiles({ name: 'dress.jpg', mimeType: 'image/jpeg', buffer: PHOTO });
 
   // The one question comes first, on its own, before anything else.
@@ -78,8 +77,7 @@ test('a back photo adds a low back and a slit to the dress', async ({ page }, in
     route.fulfill({ json: (route.request().postDataJSON() as { view?: string }).view === 'back' ? { ok: true, back } : { ok: true, reading: front } }),
   );
   const main = page.getByRole('main');
-  await openLooks(page);
-  await main.getByRole('button', { name: 'Start from a photo' }).click();
+  await openPhoto(page);
   await main.locator('input[type=file]').first().setInputFiles({ name: 'dress.jpg', mimeType: 'image/jpeg', buffer: PHOTO });
   await expect(main.getByText('Add back photo')).toBeVisible();
   const dir = process.env.STILLS;
@@ -102,8 +100,7 @@ test('the self-check compares the drawing with the photo, corrects it once, and 
     return route.fulfill({ json: { ok: true, reading: { ...front, length: { value: 'midi', confidence: 'high' }, shape: { ...front.shape, hemAt: 0.74 } }, changes: ['hem 15 cm longer'] } });
   });
   const main = page.getByRole('main');
-  await openLooks(page);
-  await main.getByRole('button', { name: 'Start from a photo' }).click();
+  await openPhoto(page);
   await main.locator('input[type=file]').first().setInputFiles({ name: 'dress.jpg', mimeType: 'image/jpeg', buffer: PHOTO });
   await main.getByRole('button', { name: /Draft my dress/ }).click();
   await expect(main.getByText('Changed: hem 15 cm longer.')).toBeVisible();

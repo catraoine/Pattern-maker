@@ -1,10 +1,9 @@
-import { expect, expectStyle, openLooks, startWithExample, test } from './fixtures';
+import { expect, expectStyle, openCollection, startWithExample, test } from './fixtures';
 
 test('the Eras shelf: each era as a whole line, and a piece made from it', async ({ page }) => {
   await startWithExample(page);
   const main = page.getByRole('main');
-  await openLooks(page);
-  await main.getByRole('button', { name: 'Start from the Maison collection' }).click();
+  await openCollection(page);
   await main.getByRole('group', { name: 'Collection' }).getByRole('button', { name: 'Eras' }).click();
   // The 1950s line: its three skirt looks, then a blouse, a dress and a trouser, every one drawn flat.
   await main.getByRole('group', { name: 'Era' }).getByRole('button', { name: '1950s' }).click();
