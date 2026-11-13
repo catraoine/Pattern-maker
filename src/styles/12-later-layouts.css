@@ -706,12 +706,14 @@ input.inline:focus,
 }
 
 /* Intuitiveness fixes (Cat, 2026-10-18). */
-/* 1. Coming back: the quiet ways in under "Carry on with your …". */
+/* 1. Coming back: the quiet ways in under "Carry on with your …". No dot between them (Cat, Nov 12: "Take out the random
+   dot"): a wider gap keeps the two apart instead. */
 .resume-more {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   align-items: baseline;
-  gap: 10px;
+  gap: 4px 28px;
   margin: 2px 0 0;
   color: var(--muted);
 }

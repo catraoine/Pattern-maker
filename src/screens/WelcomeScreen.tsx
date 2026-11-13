@@ -257,7 +257,6 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
               <button type="button" className="link quiet" onClick={resume.onSaved}>
                 Saved patterns
               </button>
-              <span aria-hidden="true">·</span>
               <button type="button" className="link quiet" onClick={resume.onNew}>
                 Start something new
               </button>
