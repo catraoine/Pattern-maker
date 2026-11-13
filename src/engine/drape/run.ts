@@ -26,6 +26,8 @@ import { BUST_Y, fitRoom, type FitPin } from './fitMap';
 import { clearCollars } from './collarClear';
 import { hugCollars, JACKET_HUG, openCollarEnds } from './collarHug';
 import { weltPockets } from './outerPockets';
+import { layCollarPoints } from './collarPoint';
+import { meetAtBreak } from './lapelBreak';
 import { fairBackCentre } from './fairFront';
 import { layLapelFoot } from './lapelFoot';
 import { fairStraps } from './strapFair';
@@ -180,6 +182,10 @@ function sewDrape(job: DrapeJob, sleevedHoldZ?: number): DrapedLite {
   // with collar", Nov 11).
   if (job.kind === 'outer' && job.draft.lapel && !knob('__noCollarOpen')) openCollarEnds(d);
   if (job.kind === 'outer' && job.draft.lapel && !knob('__noCollarHug')) hugCollars(d, sp, job.draft.sleeveless ? undefined : JACKET_HUG);
+  // A vest's collar point back where the flat puts it, not out past its shoulder (collarPoint.ts).
+  if (job.kind === 'outer' && job.draft.lapel && job.draft.sleeveless && !knob('__noCollarPoint')) layCollarPoints(d, job.draft.lapel);
+  // And its lapel run on into the front edge at the break, not stepped beside the top button (lapelBreak.ts).
+  if (job.kind === 'outer' && job.draft.lapel && job.draft.sleeveless && !knob('__noLapelBreak')) meetAtBreak(d, job.draft.lapel.breakPt);
   // A welt pocket's opening, which is not in the front's cut, drawn where the pattern marks it (outerPockets.ts).
   if (job.kind === 'outer') weltPockets(d, job.draft);
   // A shawl's top collar is cut in one with its facing, so the gorge seam under it doesn't show: drawn, it read as a

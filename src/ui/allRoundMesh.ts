@@ -171,12 +171,12 @@ export function material(mode: Mode, map?: THREE.Texture, scale = 1, opacity = 1
   mat.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, mat.uniforms);
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nattribute float shade;\nvarying float vShade;\nvarying float vY;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvShade = shade;\nvY = position.y;');
+      .replace('#include <common>', '#include <common>\nattribute float shade;\nattribute float inner;\nvarying float vShade;\nvarying float vInner;\nvarying float vY;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvShade = shade;\nvInner = inner;\nvY = position.y;');
     shader.fragmentShader = shader.fragmentShader
       .replace(
         '#include <common>',
-        '#include <common>\nuniform float hideAbove;\nuniform float hideBelow;\nuniform float shadeY;\nuniform float shadeDepth;\nvarying float vShade;\nvarying float vY;',
+        '#include <common>\nuniform float hideAbove;\nuniform float hideBelow;\nuniform float shadeY;\nuniform float shadeDepth;\nvarying float vShade;\nvarying float vInner;\nvarying float vY;',
       )
       .replace(
         '#include <map_fragment>',
@@ -187,8 +187,11 @@ export function material(mode: Mode, map?: THREE.Texture, scale = 1, opacity = 1
   diffuseColor.rgb *= own;
   diffuseColor.rgb += (1.0 - diffuseColor.rgb) * 0.22 * clamp(-vShade, 0.0, 1.0);`,
       )
-      // The far side of the cloth, seen from inside through a neck or an armhole, lies in shadow.
-      .replace('#include <normal_fragment_begin>', '#include <normal_fragment_begin>\nif (!gl_FrontFacing) diffuseColor.rgb *= 0.45;');
+      // The far side of the cloth, seen from inside through a neck or an armhole, lies in shadow, and takes no shine: lit
+      // as the outside, the inside of a black vest's back showed through its armholes and above its collar as pale
+      // patches (Cat, Nov 12). The face a cloth's thickness in (thickened) faces in, so it is marked as the far side too.
+      .replace('#include <normal_fragment_begin>', '#include <normal_fragment_begin>\nbool farSide = !gl_FrontFacing || vInner > 0.5;\nif (farSide) diffuseColor.rgb *= 0.45;')
+      .replace('#include <opaque_fragment>', 'if (farSide) outgoingLight = min(outgoingLight, diffuseColor.rgb + totalEmissiveRadiance);\n#include <opaque_fragment>');
   };
   mat.customProgramCacheKey = () => `round-${mode}${physical ? '-physical' : ''}`;
   return mat;
@@ -498,6 +501,7 @@ function thickened(g: THREE.BufferGeometry, idx: number[], t0: number, sewn: (i:
   back.setAttribute('normal', new THREE.BufferAttribute(bn, 3));
   back.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
   back.setAttribute('shade', new THREE.BufferAttribute(shade, 1));
+  back.setAttribute('inner', new THREE.BufferAttribute(new Float32Array(n).fill(1), 1));
   if (col) back.setAttribute('color', new THREE.BufferAttribute(col, 3));
   back.setIndex(bi);
   if (withBack && !knobs().__noBack) out.push(back);
