@@ -12,6 +12,7 @@ import type { SkirtDraft } from '../skirt';
 import type { TrousersDraft } from '../trousers';
 import { Mesh2D, Wedge, meshPiece } from './mesh2d';
 import { quarterArc } from './quarterArc';
+import { layTierGathers } from './tierGathers';
 import { BODY_BOTTOM, BODY_TOP, bodyHalf, shapeAt } from '../body';
 import { dartsOf } from '../marks';
 import { yokesJoined } from '../seams';
@@ -6249,6 +6250,8 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
         });
       }
     }
+  // Gathered tiers: their fullness laid on as even folds now the smoothing is done (tierGathers.ts).
+  if ((extra.tiers?.length ?? 0) > 1 && !knob('__oldTiers') && !knob('__noTierGathers')) layTierGathers(B.panels, res, (a, c) => sp.bodyR(a, c));
   // (A balloon peplum's outer is gathered at the waist, so the side and centre smoothing above ease it like any gathered
   // peplum, and took its hem up to 6 cm off the underskirt's hem it is sewn to, 2026-11-06: set back on it.)
   for (const p of outerB) if (underB.length) seatOn(p, 'balloon', 8);
