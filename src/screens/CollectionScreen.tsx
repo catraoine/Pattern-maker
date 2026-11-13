@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ARCHIVE, ArchiveCut, accession, canMake } from '../archive';
+import { ARCHIVE, ARCHIVE_OPEN, ArchiveCut, accession, canMake } from '../archive';
 import { COLLECTION, HouseLook, SEASON, lookFlat, lookValues } from '../collection';
 import { NEXT_DROP, clock, dropLook, dropNo, dropState, editionLabel } from '../drops';
 import type { MeasurementValues } from '../measurements';
@@ -190,7 +190,7 @@ export function CollectionScreen({ values, onMake, onBack, backLabel = 'Back to 
         </p>
         {sample && <p className="muted small">Looks you haven&rsquo;t measured for yet are drawn to sample measurements.</p>}
         <div className="seg shelves" role="group" aria-label="Collection">
-          {(['house', 'eras', 'archive'] as const).map((s) => (
+          {(ARCHIVE_OPEN ? (['house', 'eras', 'archive'] as const) : (['house', 'eras'] as const)).map((s) => (
             <button key={s} type="button" aria-pressed={shelf === s} className={shelf === s ? 'on' : undefined} onClick={() => setShelf(s)}>
               {s === 'house' ? 'House' : s === 'eras' ? 'Eras' : 'Archive'}
             </button>

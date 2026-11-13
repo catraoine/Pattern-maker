@@ -201,6 +201,12 @@ export const ARCHIVE: ArchiveCut[] = [
 export const accession = (c: ArchiveCut) => `ARC · ${c.year} · ${String(c.number).padStart(3, '0')}`;
 
 /** A cut can be made once its source is licensed and credited. */
+/** The Archive tab stays hidden until there is a past season to show (Cat, Nov 13: "Archive should only show past
+ *  seasons and none exist yet"). These records are placeholders: the history cuts have no licensed source yet, and AW26
+ *  is a season the house never sold. Patterns already made from one keep their credit, so the records stay here. When
+ *  it opens with the next season's drop, it shows past seasons only, under season headings (SS27 and so on). */
+export const ARCHIVE_OPEN = false;
+
 export const canMake = (c: ArchiveCut) => Boolean(c.source && c.credit);
 
 export const archiveCut = (id: string | undefined) => ARCHIVE.find((c) => c.id === id);

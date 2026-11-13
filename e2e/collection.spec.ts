@@ -72,25 +72,18 @@ test('the Leopard Shirt Dress: made in the house print, with its long-point coll
   expect(after.finish?.fabric).toBeUndefined();
 });
 
-test('the collection: the next drop stays hidden until it has a piece, and the Archive shows its records', async ({ page }) => {
+test('the collection: the next drop stays hidden until it has a piece, and the Archive stays hidden until it opens', async ({ page }) => {
   await startWithExample(page);
   const main = page.getByRole('main');
   await openCollection(page);
   // Drop 01 has no piece yet, so it stays hidden: no strip and no sign-up (Cat, 2026-10-29).
   await expect(main.getByText('Date soon')).toHaveCount(0);
   await expect(main.getByRole('heading', { name: 'Get the drop alert' })).toHaveCount(0);
-  await main.getByRole('group', { name: 'Collection' }).getByRole('button', { name: 'Archive' }).click();
-  const records = main.getByRole('list', { name: 'The Archive' }).getByRole('listitem');
-  await expect(records).toHaveCount(14);
-  await expect(records.first()).toContainText('ARC · 1954 · 001');
-  await expect(records.first()).toContainText('To be announced');
-  // A history cut can't be made until its source is licensed; the sign-up counts who wants it. Last season's
-  // house looks are the house's own, so each of those can be made.
-  await expect(records.first().getByRole('button', { name: 'Make this cut' })).toHaveCount(0);
-  await expect(main.getByRole('button', { name: 'Make this cut' })).toHaveCount(10);
-  await expect(records.filter({ hasText: 'Tailleur' })).toContainText('Maison Tracé, AW26');
-  await expect(main.getByRole('heading', { name: 'Tell me when the Archive opens' })).toBeVisible();
-  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/archive-${test.info().project.name}.png`, fullPage: true });
+  // The Archive's records are placeholders, so its tab is hidden for now (Cat, Nov 13).
+  const shelves = main.getByRole('group', { name: 'Collection' });
+  await expect(shelves.getByRole('button', { name: 'Eras' })).toBeVisible();
+  await expect(shelves.getByRole('button', { name: 'Archive' })).toHaveCount(0);
+  await expect(main.getByText('ARC · 1954 · 001')).toHaveCount(0);
 });
 
 test('the Chocolate Barrel Trouser: made low on the hip with two pleats, in chocolate sateen', async ({ page }) => {
