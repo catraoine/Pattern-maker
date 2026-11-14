@@ -184,7 +184,10 @@ function describeError(err: unknown): { message: string; stack?: string } {
  */
 export function notOurs(message: string, stack?: string): boolean {
   if (/Failed to register a ServiceWorker|^ResizeObserver loop |^Script error\.?$/.test(message)) return true;
-  return /\b(?:iabjs|chrome-extension|moz-extension|safari-extension|safari-web-extension|webkit-masked-url):\/\//.test(stack ?? '');
+  // Only where the error was thrown (the stack's first frame): an app fault that merely passes through an extension's
+  // wrapper further down is still ours.
+  const thrownAt = (stack ?? '').split('\n').find((l) => /^\s*at\s|@/.test(l)) ?? '';
+  return /\b(?:iabjs|chrome-extension|moz-extension|safari-extension|safari-web-extension|webkit-masked-url):\/\//.test(thrownAt);
 }
 
 export class Reporter {

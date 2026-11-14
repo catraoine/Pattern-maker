@@ -78,6 +78,10 @@ describe('the report beacon', () => {
     expect(sent).toEqual([]);
     // The real fault that sat among them still goes.
     expect(r.crash(new TypeError("Cannot read properties of undefined (reading '0')"), 'error')).toBe(true);
+    // An app fault that only passes through an extension's wrapper is still the app's.
+    expect(notOurs('TypeError: x is undefined', 'TypeError: x is undefined\n    at paint (/assets/index-abc.js:1:10)\n    at wrapped (chrome-extension://abcdef/inject.js:1:5)')).toBe(false);
+    expect(notOurs('TypeError: x is undefined', 'paint@/assets/index-abc.js:1:10\nwrapped@safari-web-extension://abcdef/inject.js:1:5')).toBe(false);
+    expect(notOurs('Error: theirs', 'run@safari-web-extension://abcdef/inject.js:1:5\n@/assets/index-abc.js:1:10')).toBe(true);
     expect(notOurs('TypeError: Failed to fetch dynamically imported module: /assets/pdf-abc.js')).toBe(false);
   });
 
