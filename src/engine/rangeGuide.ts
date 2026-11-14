@@ -161,10 +161,27 @@ export function jumpsuitGuide(d: JumpsuitDraft, fabricM: number, finish: { width
   const s = n1(sw.seam);
   const buttons = d.closure === 'front_buttons';
   const collar = has(d.pieces, 'Collar');
+  const backFacing = d.pieces.some((pc) => /back neck facing/i.test(pc.name));
   const sleeve = !!d.sleeve;
   const shorts = d.pieces.some((pc) => /^Shorts /.test(pc.name));
   const legs = shorts ? 'shorts' : 'legs';
   const band = has(d.pieces, 'Sleeve band');
+  const FACE: SewStep[] = buttons
+    ? [
+        {
+          title: 'Face the front',
+          // A collar on a stand has no back neck facing (draftBodice): the front facings end at the shoulders.
+          text: backFacing
+            ? `Sew the front facings to the back neck facing at the shoulders. Pin the facing to the front edges, right sides together, and sew from the hem of the top up to the neck${collar ? ', catching the collar stand' : ' and round the neckline'}. Trim, turn the facing inside and press. Understitch where you can.`
+            : `Press each front facing's shoulder edge under ${s}. Pin the facings to the fronts, right sides together, along the front edges only, and sew from the hem of the top to the neck seam line. Trim, turn the facings inside and press. Baste them to the neckline${collar ? ', so the collar stand goes on through both,' : ''} and slip-stitch each facing's folded shoulder edge along the shoulder seam.`,
+        },
+      ]
+    : [
+        {
+          title: 'Finish the neck and armholes',
+          text: `Finish the neckline${sleeve ? '' : ' and armholes'} with bias binding: open one fold, pin it to the right side along the edge, sew in the fold, then turn it to the inside, press and topstitch 6 mm from the edge. ${has(d.pieces, 'Bodice front') && !sleeve ? 'For straps, sew a tube of bias, turn it and sew it in at the marks before you bind.' : ''}`.trim(),
+        },
+      ];
   const steps: SewStep[] = [
     {
       title: 'Print and check the size',
@@ -186,6 +203,8 @@ export function jumpsuitGuide(d: JumpsuitDraft, fabricM: number, finish: { width
       title: 'Sew the top',
       text: `Sew the shoulder seams and the side seams of the top, right sides together, ${s} from the edge. Neaten the edges with zigzag or an overlocker and press them open.`,
     },
+    // With no back neck facing the fronts are faced first, so the collar stand goes on through the facings.
+    ...(backFacing ? [] : FACE),
     ...(collar
       ? [
           {
@@ -194,19 +213,7 @@ export function jumpsuitGuide(d: JumpsuitDraft, fabricM: number, finish: { width
           },
         ]
       : []),
-    ...(buttons
-      ? [
-          {
-            title: 'Face the front',
-            text: `Sew the front facings to the back neck facing at the shoulders. Pin the facing to the front edges, right sides together, and sew from the hem of the top up to the neck${collar ? ', catching the collar stand' : ' and round the neckline'}. Trim, turn the facing inside and press. Understitch where you can.`,
-          },
-        ]
-      : [
-          {
-            title: 'Finish the neck and armholes',
-            text: `Finish the neckline${sleeve ? '' : ' and armholes'} with bias binding: open one fold, pin it to the right side along the edge, sew in the fold, then turn it to the inside, press and topstitch 6 mm from the edge. ${has(d.pieces, 'Bodice front') && !sleeve ? 'For straps, sew a tube of bias, turn it and sew it in at the marks before you bind.' : ''}`.trim(),
-          },
-        ]),
+    ...(backFacing ? FACE : []),
     ...(sleeve
       ? [
           {

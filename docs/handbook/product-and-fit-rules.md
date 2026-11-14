@@ -390,6 +390,15 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    (`yokesJoined`, for every yoked top: left as its own piece it hung loose by the knees) and its seam is drawn as
    a line; the pleat's own folds are not drawn in 3D.
    Covered by `engine/shirtCut.test.ts` and `e2e/collection.spec.ts`.
+58. **A professional pattern cutter's review sets three floors** (Nov 10, Fit: Toile report, from Rodica's paid
+   review of the bodice and skirt, Nov 9): (a) no side bust dart is under 3.8 cm (`MIN_BUST_DART` in
+   `engine/bodice.ts`): a small cup's dart is made up to it by pinning the difference out of the front armhole, the
+   way a cutter takes in a gaping armhole, so the armhole is that much shorter on purpose; (b) the neck estimate
+   follows Aldrich's and ASTM's size tables, about 34.5 cm round the base of the neck at an 86 cm bust, 0.25 cm more
+   per cm of bust (`estimate.ts`; it was 3 to 4 cm small and the opening came out tight); (c) in the DXF every notch
+   is a point of the cutting line (`dxfCut` in `engine/dxf.ts`), because Gerber and most cutting-room software keep
+   a notch only there (her import showed one notch on the bodice and none on the skirt), and points closer than
+   0.5 mm are merged. Covered by `engine/bodice.test.ts` and `engine/importDxf.test.ts`.
 
 ## Style steps
 
