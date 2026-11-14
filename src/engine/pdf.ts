@@ -162,6 +162,34 @@ function drawFlat(page: PDFPage, f: Flat, x0: number, y0: number, k: number, fon
   }
 }
 
+/** The cover's name: as large as fits the frame on up to two lines, from 54 pt down to 20. A long name that two lines
+ *  can't hold even at 20 pt (the Ice Peplum's and the Barrel Trouser's ran off the page; fit tester walk, Nov 14)
+ *  takes as many lines as it needs. */
+export function coverTitle(title: string, width: number, widthOf: (line: string, size: number) => number): { size: number; lines: string[] } {
+  const name = title.toUpperCase();
+  const words = name.split(' ');
+  let size = 54;
+  let lines = [name];
+  const fits = (ls: string[], sz: number) => ls.every((l) => widthOf(l, sz) <= width);
+  for (; size > 20; size -= 2) {
+    if (fits([name], size)) break;
+    const cut = words.findIndex((_, i) => i > 0 && fits([words.slice(0, i).join(' '), words.slice(i).join(' ')], size));
+    if (cut > 0) {
+      lines = [words.slice(0, cut).join(' '), words.slice(cut).join(' ')];
+      break;
+    }
+  }
+  if (!fits(lines, size)) {
+    lines = [];
+    for (const w of words) {
+      const last = lines.length ? `${lines[lines.length - 1]} ${w}` : w;
+      if (lines.length && fits([last], size)) lines[lines.length - 1] = last;
+      else lines.push(w);
+    }
+  }
+  return { size, lines };
+}
+
 /**
  * The envelope cover, page 1 (Cat's pick with D1, 2026-10-18): the house name, the flat large, and the
  * garment's name set big at the foot, framed like the front of a designer's pattern envelope.
@@ -183,20 +211,8 @@ function addCoverPage(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', ti
     drawText(page, mark, { x: right - w, y: top - 8, size: 8, font: fonts.label, tracking: 0.3, grey: 0.4 });
   }
 
-  // The name at the foot, as large as fits the frame, on up to two lines.
-  const name = title.toUpperCase();
-  const words = name.split(' ');
-  let size = 54;
-  let lines = [name];
-  const fits = (ls: string[], sz: number) => ls.every((l) => fonts.bodyMedium.widthOfTextAtSize(l, sz) <= width);
-  for (; size > 20; size -= 2) {
-    if (fits([name], size)) break;
-    const cut = words.findIndex((_, i) => i > 0 && fits([words.slice(0, i).join(' '), words.slice(i).join(' ')], size));
-    if (cut > 0) {
-      lines = [words.slice(0, cut).join(' '), words.slice(cut).join(' ')];
-      break;
-    }
-  }
+  // The name at the foot, as large as fits the frame.
+  const { size, lines } = coverTitle(title, width, (l, sz) => fonts.bodyMedium.widthOfTextAtSize(l, sz));
   const foot = m + pad + 8;
   const who = [s.madeFor && `DRAFTED TO ${s.madeFor === 'Me' ? 'YOU' : s.madeFor.toUpperCase()}`, s.lays?.[0] && !s.lays[0].hide ? `${s.lays[0].metres} M OF ${s.lays[0].width} CM FABRIC` : undefined]
     .filter(Boolean)
