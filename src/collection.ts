@@ -256,8 +256,11 @@ export function lookChoices(look: Pick<HouseLook, 'choices'>, m: MeasurementValu
 
 /** Which saved choices a look's garment lives under, its drawn centimetres fitted to the measurements when given. */
 export function lookPatch(look: HouseLook, m?: MeasurementValues): { garment: Garment } & Record<string, unknown> {
-  const { garment } = look;
-  const choices = m ? lookChoices(look, m) : look.choices;
+  return choicesPatch(look.garment, m ? lookChoices(look, m) : look.choices);
+}
+
+/** Where a garment's choices are kept in the saved work. */
+function choicesPatch(garment: Garment, choices: PatternChoices): { garment: Garment } & Record<string, unknown> {
   if (isDress(choices)) return { garment, dress: choices };
   if (isBodice(choices)) return { garment, bodice: choices };
   if (isTrousers(choices)) return { garment, trousers: choices };
@@ -299,6 +302,20 @@ export function lookHipMissing(look: Pick<HouseLook, 'choices'>, measured: Measu
 /** The measurements a look is drawn to: the sewist's own when the garment has all it needs, or the sample set. */
 export function lookValues(look: HouseLook, values: MeasurementValues): { values: MeasurementValues; own: boolean } {
   return isComplete(values, look.garment) ? { values, own: true } : { values: EXAMPLE_BODY, own: false };
+}
+
+/** A look made before its garment's measurements were all in is sized to the sample body (its mini's least length,
+ *  its trousers' lengths). Once they are in, and nothing has been changed since, it is sized again to the maker's own
+ *  body: a petite tester who picked the Blush Shift after the basics kept the sample's mini, and Style lost the look's
+ *  name (fit tester walk, Nov 14). Undefined when there is nothing to size again. */
+export function lookResized(garment: Garment, current: PatternChoices, values: MeasurementValues): ({ garment: Garment } & Record<string, unknown>) | undefined {
+  const now = JSON.stringify(canon(current));
+  for (const look of COLLECTION) {
+    if (look.garment !== garment || !lookValues(look, values).own || JSON.stringify(canon(lookChoices(look, EXAMPLE_BODY))) !== now) continue;
+    const mine = lookChoices(look, values);
+    return JSON.stringify(canon(mine)) === now ? undefined : choicesPatch(garment, mine);
+  }
+  return undefined;
 }
 
 /** Keys sorted all the way down, so two sets of choices compare by content, not by the order they were built in. */
