@@ -144,7 +144,7 @@ function bandTopOf(body: TrousersMeasurements, rise: number, ease: number, elast
   return less >= 0.5 ? { bandTop: Math.round((at - less) * 10) / 10 } : undefined;
 }
 
-function risen(m: TrousersMeasurements, rise: number): TrousersMeasurements {
+export function risen(m: TrousersMeasurements, rise: number): TrousersMeasurements {
   const r = riseFor(m, rise);
   if (!r) return m;
   const t = Math.max(0, -r) / m.waist_to_hip;

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { SpecRow } from '../engine/techpack';
 import { easeLevel } from '../engine/easeMap';
+import { isWaistRow } from '../engine/spec';
 
 // The finished measurements up front (F1 Table Up Front, Cat, 2026-10-28): size charts hide the ease, so
 // every garment shows what the pattern measures against you, the ease between, and a plain fit word.
@@ -29,7 +30,7 @@ export function finishedLines(rows: SpecRow[], opts: { knit?: boolean; elasticCm
     if (typeof r.finished !== 'number') continue;
     const girth = r.body !== undefined && (GIRTH.test(r.label) || /^Upper arm/.test(r.label));
     if (!girth && !LENGTH.test(r.label)) continue;
-    if (opts.elasticCm !== undefined && r.label === 'Waist' && r.body !== undefined) {
+    if (opts.elasticCm !== undefined && isWaistRow(r.label) && r.body !== undefined) {
       out.push({ label: 'Waist, on elastic', body: r.body, finished: opts.elasticCm, ease: Math.round((opts.elasticCm - r.body) * 10) / 10, fit: 'Snug' });
       continue;
     }

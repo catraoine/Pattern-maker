@@ -5,6 +5,7 @@ import { p } from './geometry';
 import type { P } from './geometry';
 import { MARK_TEXT, type FinishedMark, type Piece } from './piece';
 import type { SpecRow } from './techpack';
+import { isWaistRow } from './spec';
 import { crossings } from './easeMap';
 import { textWidth } from './export';
 
@@ -54,7 +55,7 @@ const signed = (v: number) => (v > 0 ? `+${fmt(v)}` : v < 0 ? `-${fmt(-v)}` : '0
 
 /** The pieces with their finished measurement marks: bust, waist and hip, each on the first front piece that reaches it. */
 export function withFinishedMarks(pieces: Piece[], spec: SpecRow[]): Piece[] {
-  const row = (label: string) => spec.find((r) => r.label === label && typeof r.finished === 'number' && r.body !== undefined && r.ease !== undefined);
+  const row = (label: string) => spec.find((r) => (label === 'Waist' ? isWaistRow(r.label) : r.label === label) && typeof r.finished === 'number' && r.body !== undefined && r.ease !== undefined);
   const fronts = shells(pieces);
   const marks = new Map<Piece, FinishedMark[]>();
   // The level is tried as given, then a little either side, until the words fit clear of the lines.

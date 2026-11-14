@@ -101,6 +101,12 @@ export function estimateOne(id: MeasurementId, v: MeasurementValues, form: FormK
   const example = EXAMPLE_VALUES[id];
   if (example === undefined) return undefined;
   const ratio = (mine: number | undefined, theirs: number | undefined) => (mine && theirs ? mine / theirs : undefined);
+  // The crotch grows with the hips as well as the height: scaled by the height alone, every hip got the sample's 70 cm
+  // crotch length, which the measuring check itself calls short past about a 125 cm hip (CLO tester sizes, 2026-11-13).
+  const hipBy = ratio(v.full_hip, EXAMPLE_VALUES.full_hip);
+  const tall = ratio(v.height, EXAMPLE_VALUES.height) ?? 1;
+  if (hipBy && id === 'crotch_depth') return round(id, example * tall * Math.sqrt(hipBy));
+  if (hipBy && id === 'crotch_length') return round(id, example * Math.sqrt(tall) * hipBy ** 0.85);
   const scale = LENGTH.test(id)
     ? ratio(v.height, EXAMPLE_VALUES.height) ?? ratio(v.waist_to_floor, EXAMPLE_VALUES.waist_to_floor)
     : LOWER.test(id)

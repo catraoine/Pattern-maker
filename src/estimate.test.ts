@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { estimateOne, withEstimates } from './estimate';
-import { ESTIMATED, EXAMPLE_VALUES, FIELDS, isComplete, type MeasurementValues } from './measurements';
+import { checkMeasurements, ESTIMATED, EXAMPLE_VALUES, FIELDS, isComplete, type MeasurementValues } from './measurements';
 import { extrasFor } from './measureFlow';
 import { draftBodice, type BodiceMeasurements } from './engine/bodice';
 import { draftDress, type DressMeasurements } from './engine/dress';
@@ -77,4 +77,18 @@ describe('"Not sure? Estimate it for me" on one measuring page', () => {
       expect(v).toBeLessThanOrEqual(hi);
     }
   });
+
+  it('grows the crotch with the hips, and the measuring check finds nothing to query from hip 84 to 140', () => {
+    const at = (hip: number): MeasurementValues => ({ height: 165, full_hip: hip, waist: hip - 20, full_bust: hip - 6 });
+    expect(estimateOne('crotch_length', at(138))!).toBeGreaterThan(estimateOne('crotch_length', at(102))! + 15);
+    expect(estimateOne('crotch_depth', at(138))!).toBeGreaterThan(estimateOne('crotch_depth', at(102))!);
+    expect(estimateOne('crotch_length', at(102))).toBeCloseTo(EXAMPLE_VALUES.crotch_length!, 0);
+    for (let hip = 84; hip <= 140; hip += 4) {
+      const b = at(hip);
+      const v = { ...b, crotch_depth: estimateOne('crotch_depth', b)!, crotch_length: estimateOne('crotch_length', b)! };
+      const queried = checkMeasurements(v, 'cm', 'trousers').filter((c) => /crotch/i.test(c.message));
+      expect(queried, `hip ${hip}`).toEqual([]);
+    }
+  });
 });
+

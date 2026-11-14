@@ -686,7 +686,7 @@ export const lowRiseAllowed = (s: Pick<SkirtStyle, 'waist'>) => s.waist !== 'hig
 
 /** The measurements as if the waist were `r` cm lower: its round found between the waist's and the hip's,
  * and every length from it shorter by as much, so the hem stays where it was on the body. */
-function lowered(m: SkirtMeasurements, r: number): SkirtMeasurements {
+export function lowered(m: SkirtMeasurements, r: number): SkirtMeasurements {
   const t = r / m.waist_to_hip;
   return {
     ...m,

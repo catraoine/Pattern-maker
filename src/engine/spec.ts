@@ -1,13 +1,13 @@
 // Measurement tables for the tech pack: each body measurement the draft used, the ease added and the
 // finished garment measurement.
 import { FACING_DEPTH, HIGH } from './skirtWaist';
-import type { Elastic, SkirtDraft, SkirtMeasurements } from './skirt';
+import { lowered, type Elastic, type SkirtDraft, type SkirtMeasurements } from './skirt';
 import type { OuterDraft, OuterMeasurements } from './outerwear';
 import type { BodiceDraft, BodiceLength, BodiceMeasurements } from './bodice';
 import type { SpecRow } from './techpack';
 import type { SleeveDraft, SleeveMeasurements } from './sleeve';
 import type { DressDraft, DressMeasurements } from './dress';
-import { TROUSER_EASE, type TrousersDraft, type TrousersMeasurements } from './trousers';
+import { TROUSER_EASE, risen, type TrousersDraft, type TrousersMeasurements } from './trousers';
 import { volumeSpec } from './skirtVolume';
 import { drapeSpec, zipSide } from './drape';
 import { SLIP_FACING } from './slip';
@@ -23,9 +23,16 @@ const r1 = (v: number) => Math.round(v * 10) / 10;
 const row = (label: string, body: number | undefined, finished: number): SpecRow =>
   body === undefined ? { label, finished: r1(finished) } : { label, body: r1(body), ease: r1(finished - body), finished: r1(finished) };
 
+/** A low rise's waist row: read against the body where the band sits, not the waist above it, or a tester sees
+ *  "+11.6 Roomy" on a band with 2 cm ease and takes it in (CLO tester sizes, Nov 13). */
+export const lowWaistLabel = (cm: number) => `Waist, ${r1(cm)} cm below yours`;
+/** The waist row, at the waist or a low rise's. */
+export const isWaistRow = (label: string) => label === 'Waist' || /^Waist, [\d.]+ cm below yours$/.test(label);
+
 export function skirtSpec(m: SkirtMeasurements, d: SkirtDraft): SpecRow[] {
+  const low = d.lowRise ? lowered(m, d.lowRise) : undefined;
   return [
-    row('Waist', m.waist, d.finishedWaist),
+    low ? row(lowWaistLabel(d.lowRise!), low.waist, d.finishedWaist) : row('Waist', m.waist, d.finishedWaist),
     row('Hip', m.full_hip, d.finishedHip),
     { label: 'Waist to hip', body: r1(m.waist_to_hip), finished: '' },
     // Posture, when measured: the centre waist is raised or lowered to match.
@@ -159,12 +166,14 @@ export function dressSpec(m: DressMeasurements, d: DressDraft, sleeve?: SleeveDr
 
 /** Trousers: waist and hip, the crotch as measured and as drafted, and the leg. */
 export function trousersSpec(m: TrousersMeasurements, d: TrousersDraft): SpecRow[] {
+  // A low rise: its waist and crotch read against the body where the band sits (the crotch shorter by the drop, front and back).
+  const low = d.riseCm !== undefined && d.riseCm < 0 ? risen(m, d.riseCm) : undefined;
   return [
-    row('Waist', m.waist, d.finishedWaist),
+    low ? row(lowWaistLabel(m.waist_to_hip - low.waist_to_hip), low.waist, d.finishedWaist) : row('Waist', m.waist, d.finishedWaist),
     row('Hip', m.full_hip, d.finishedHip),
     { label: 'Waist to hip', body: r1(m.waist_to_hip), finished: '' },
     row('Crotch depth', m.crotch_depth, m.crotch_depth + TROUSER_EASE[d.fit].depth),
-    row('Crotch length', m.crotch_length, d.crotch.front + d.crotch.back),
+    low ? row('Crotch length, from where they sit', low.crotch_length, d.crotch.front + d.crotch.back) : row('Crotch length', m.crotch_length, d.crotch.front + d.crotch.back),
     { label: 'Crotch curve, front / back', finished: `${d.crotch.front} / ${d.crotch.back}` },
     row('Outside leg, waist to hem', undefined, d.lengthCm),
     ...(d.shorts ? [] : [row('Knee, round', undefined, d.kneeCm)]),
