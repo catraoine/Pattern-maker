@@ -399,6 +399,12 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    is a point of the cutting line (`dxfCut` in `engine/dxf.ts`), because Gerber and most cutting-room software keep
    a notch only there (her import showed one notch on the bodice and none on the skirt), and points closer than
    0.5 mm are merged. Covered by `engine/bodice.test.ts` and `engine/importDxf.test.ts`.
+59. **An empire seam sits 5 cm over the underbust** (Nov 14, Cat: "Empire yes"): every dress with the empire waist seam is
+   cut so the seam, darts closed, is the underbust plus 5 cm. An empire line hangs from just under the bust and only
+   reads as one when it sits close there. The tester pattern review found the Sixties empire mini's seam 13 to 17 cm
+   over the underbust at hips 86, 105 and 136, and fitting the look closer took off only 3 cm, so the room came from
+   how the empire option cuts the bodice, not the look. Not built yet: it is a pattern change, so it starts Dec 7 when
+   the freeze ends (no launch piece uses the empire seam).
 
 ## Style steps
 
