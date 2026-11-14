@@ -142,10 +142,18 @@ section[aria-label='Preview'] > .preview .all-round-feel-step[aria-pressed='true
   margin: 0;
   padding: 0;
   list-style: none;
-  display: grid;
-  gap: 14px;
   font-size: 16px;
   line-height: 1.4;
+}
+/* A thin line between the steps, so each reads as its own point (Cat, Nov 14). */
+.style-intro-steps > li {
+  padding: 12px 0;
+}
+.style-intro-steps > li + li {
+  border-top: 1px solid var(--guide);
+}
+.style-intro-steps strong {
+  font-weight: 600;
 }
 /* On a phone, Start styling sits at the foot of the screen, where Next will be. */
 @media (max-width: 760px) {
