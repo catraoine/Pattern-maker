@@ -1,7 +1,7 @@
 import { finishesNeck } from './engine/collar';
 import { withHouseShirtSeams } from './engine/houseShirtSeams';
 import { withLinedShiftHem } from './engine/linedShift';
-import { loopCount, withBackLoops, withSheerTop } from './engine/sheerTop';
+import { loopsFor, withBackLoops, withSheerTop } from './engine/sheerTop';
 import { beltNote, beltPieces, dressBelt, skirtBelt, withBelt } from './engine/belt';
 import { SkirtDraft, SkirtMeasurements, draftSkirt } from './engine/skirt';
 import { BodiceMeasurements, blockOf } from './engine/bodice';
@@ -174,7 +174,8 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
           ? `Couture allowances: ${fmtCm(seams.seam)} at the seams, ${fmtCm(seams.curve)} at the neck and armholes, ${fmtCm(hem)} at the hem. Thread-trace the solid stitching line.`
           : `Seam allowance ${fmtCm(seams.seam)} included, 1 cm at the neck, armholes, collar and front edges, ${fmtCm(hem)} at the hem. Dashed line = stitching line.`,
         `Fully lined, with front facings${outer.lapel ? ' and a notched collar' : ''}. ${outer.buttons.at.length * outer.buttons.columns.length + (outer.buttons.show?.columns.length ?? 0)} buttons, ${outer.buttons.sizeCm} cm. Sewing steps are on the last pages.`,
-        `Sleeve: bicep ${outer.sleeve.bicep} cm, crown ease ${outer.sleeve.crownEase.front} cm front, ${outer.sleeve.crownEase.back} cm back.`,
+        // (A sleeveless vest has no sleeve to describe: the Black Vest's first page gave a bicep and crown ease.)
+        ...(!outer.sleeveless ? [`Sleeve: bicep ${outer.sleeve.bicep} cm, crown ease ${outer.sleeve.crownEase.front} cm front, ${outer.sleeve.crownEase.back} cm back.`] : []),
         ...fittingNotes,
       ],
       guide: withFabric(
@@ -245,7 +246,7 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
     return {
       pieces,
       notes: [
-        `Finished waist ${skirt.finishedWaist} cm${skirt.elastic ? `, gathered onto ${skirt.elastic.finishedCm} cm of elastic` : ''}, hip ${skirt.finishedHip} cm, length ${skirt.lengthCm} cm.`,
+        `Finished waist ${Math.round(skirt.finishedWaist * 10) / 10} cm${skirt.elastic ? `, gathered onto ${skirt.elastic.finishedCm} cm of elastic` : ''}, hip ${skirt.finishedHip} cm, length ${skirt.lengthCm} cm.`,
         couture
           ? `Couture allowances: ${fmtCm(seams.seam)} at the seams, ${fmtCm(seams.waist)} at the waist, ${fmtCm(hem)} at the hem. Thread-trace the solid stitching line.`
           : `Seam allowance ${fmtCm(seams.seam)} included, ${fmtCm(hem)} at the hem. Dashed line = stitching line.`,
@@ -350,6 +351,9 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
     const neckDone = bodice.closure === 'front_buttons' || finishesNeck(bodice.collar);
     const facings = edges === 'facings' ? (bodice.drape ? drapeFacings(bodice, !sleeve, !neckDone) : bodiceFacings(...blockOf(bodice), !sleeve, !neckDone)) : [];
     const pieces = allow([...main, ...(sleeve?.pieces ?? []), ...facings]);
+    // The hem allowance as the pieces are cut: the peplum's own narrow hem where there is one, else the top's below the
+    // waist. (The note said 2.5 cm whatever was cut: the Ice Peplum's only hem is its peplum's 1 cm.)
+    const hemCut = bodice.peplum ? pieces.find((pc) => /^Peplum/.test(pc.name))?.allowances.hem : below ? (pieces[0].allowances.hem ?? 2.5) : undefined;
     const edgeWords = sleeve
       ? { binding: 'a bias-bound neckline', facings: 'a faced neckline', lined: 'a lined bodice' }[edges]
       : { binding: 'bias-bound edges', facings: 'faced neck and armholes', lined: 'a full lining' }[edges];
@@ -372,8 +376,8 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
         `Finished bust ${bodice.finishedBust} cm, waist ${bodice.finishedWaist} cm${below ? `, hem ${bodice.finishedHem} cm` : ''}, back length ${bodice.backLength} cm.`,
         couture
           ? `Couture allowances: ${fmtCm(seams.seam)} at the seams, ${fmtCm(seams.curve)} at the neck and armholes. Thread-trace the solid stitching line.`
-          : `Seam allowance ${fmtCm(seams.seam)} included, ${fmtCm(seams.curve)} at the neck and armholes${below ? ', 2.5 cm at the hem' : ''}. Dashed line = stitching line.`,
-        `${sleeveWords}, ${bodice.closure === 'front_buttons' ? `${bodice.buttons?.count ?? 5} buttons down the centre front` : bodice.wrap ? `wrap fronts that tie at the waist (ties ${bodice.wrap.ties.outer} cm and ${bodice.wrap.ties.inner} cm, cut ${bodice.wrap.ties.cutWidth} cm wide)` : bodice.pullOn ? 'no opening (it goes on over the head)' : bodice.backLoops ? `${loopCount(bodice.zipCm)} small buttons and loops down the centre back` : `a ${bodice.zipCm} cm ${bodice.drape?.kind === 'one_shoulder' ? `zip in the ${zipSide(bodice)} side seam` : 'centre back zip'}`}${bodice.collar !== 'none' ? `, a ${COLLAR_WORDS[bodice.collar]}` : ''}${bound ? ` and ${edgeWords}` : ''}. Sewing steps are on the last pages.`,
+          : `Seam allowance ${fmtCm(seams.seam)} included, ${fmtCm(seams.curve)} at the neck and armholes${hemCut !== undefined ? `, ${fmtCm(hemCut)} at the hem` : ''}. Dashed line = stitching line.`,
+        `${sleeveWords}, ${bodice.closure === 'front_buttons' ? `${bodice.buttons?.count ?? 5} buttons down the centre front` : bodice.wrap ? `wrap fronts that tie at the waist (ties ${bodice.wrap.ties.outer} cm and ${bodice.wrap.ties.inner} cm, cut ${bodice.wrap.ties.cutWidth} cm wide)` : bodice.pullOn ? 'no opening (it goes on over the head)' : bodice.backLoops ? `${loopsFor(bodice)} small buttons and loops down the centre back` : `a ${bodice.zipCm} cm ${bodice.drape?.kind === 'one_shoulder' ? `zip in the ${zipSide(bodice)} side seam` : 'centre back zip'}`}${bodice.collar !== 'none' ? `, a ${COLLAR_WORDS[bodice.collar]}` : ''}${bound ? ` and ${edgeWords}` : ''}. Sewing steps are on the last pages.`,
         ...(drapeNote(bodice) ? [drapeNote(bodice)!] : []),
         ...(bodice.peplum ? [`A ${bodice.peplum.kind} peplum, ${bodice.peplum.depthCm} cm deep, ${bodice.peplum.hemCm} cm round the hem.`] : []),
         ...(sleeve ? [sleeveNote(sleeve)] : []),

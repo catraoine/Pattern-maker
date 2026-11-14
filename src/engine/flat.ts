@@ -2,7 +2,7 @@
 // pattern room. Drawn to scale from the draft itself: each half piece with its darts sewn (waist
 // darts closed into the waist, the bust dart folded into the side seam), mirrored across the centre,
 // with its seams, darts, zip and visible stitching.
-import { LOOP_GAP, loopCount } from './sheerTop';
+import { LOOP_GAP, loopsFor } from './sheerTop';
 import { P, add, len, mul, p, sub, unit } from './geometry';
 import type { Piece } from './piece';
 import type { SkirtDraft } from './skirt';
@@ -328,10 +328,10 @@ function crossingsAt(pts: P[], y: number): number[] {
   return xs;
 }
 
-/** A row of small buttons down the centre back from `top`, over an opening `cm` long (see sheerTop.ts). */
-function backButtons(top: number, cm: number): FlatView['lines'] {
+/** A row of `n` small buttons down the centre back from `top`, over an opening `cm` long (see sheerTop.ts). */
+function backButtons(top: number, cm: number, n: number): FlatView['lines'] {
   const r = 0.45;
-  return Array.from({ length: loopCount(cm) }, (_, i) => p(0, top + 1 + i * LOOP_GAP))
+  return Array.from({ length: n }, (_, i) => p(0, top + 1 + i * LOOP_GAP))
     .filter((c) => c.y <= top + cm)
     .map((c) => ({ pts: Array.from({ length: 13 }, (_, k) => add(c, p(r * Math.cos((k / 12) * 2 * Math.PI), r * Math.sin((k / 12) * 2 * Math.PI)))), kind: 'seam' as const }));
 }
@@ -1395,7 +1395,7 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
       // A zip run through to the hem is shortened there (BodiceDraft.zipThrough), so it is drawn no longer than the back.
       const opening = Math.min(d.zipCm, h.run[h.run.length - 1].y - top);
       // Buttons and loops (a sheer look's back, sheerTop.ts): a small button every LOOP_GAP down the opening.
-      const fastening = d.backLoops ? backButtons(top, opening) : zip(top, opening);
+      const fastening = d.backLoops ? backButtons(top, opening, loopsFor(d)) : zip(top, opening);
       lines.push({ pts: [p(0, top), p(0, h.run[h.run.length - 1].y)], kind: 'seam' }, ...fastening, ...keyButton(top - key, key));
     }
     const shapes = [shape, ...(wrapped?.tie ?? []), ...cords];

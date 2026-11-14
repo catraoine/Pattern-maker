@@ -11,6 +11,7 @@ import { TROUSER_EASE, type TrousersDraft, type TrousersMeasurements } from './t
 import { volumeSpec } from './skirtVolume';
 import { drapeSpec, zipSide } from './drape';
 import { SLIP_FACING } from './slip';
+import { loopsFor } from './sheerTop';
 import { STRETCH_WORDS } from './knits';
 import type { TeeDraft, TeeMeasurements } from './tee';
 import type { LingerieDraft, LingerieMeasurements } from './lingerie';
@@ -114,7 +115,7 @@ export function bodiceSpec(m: BodiceMeasurements, d: BodiceDraft, length: Bodice
     row('Shoulder seam (back)', m.shoulder_length, d.shoulder.back),
     { label: 'Shoulder angle, front / back', finished: `${d.shoulderSlope.front} / ${d.shoulderSlope.back} degrees` },
     ...drapeSpec(d),
-    ...(d.wrap ? tieRows(d.wrap.ties) : d.pullOn ? [{ label: 'Opening', finished: 'none: it pulls on' }] : [{ label: d.drape?.kind === 'one_shoulder' ? `Invisible zip, ${zipSide(d)} side` : 'Invisible zip, centre back', finished: `${d.zipCm}` }]),
+    ...(d.wrap ? tieRows(d.wrap.ties) : d.pullOn ? [{ label: 'Opening', finished: 'none: it pulls on' }] : d.backLoops ? [{ label: 'Buttons and loops, centre back', finished: `${loopsFor(d)}` }] : [{ label: d.drape?.kind === 'one_shoulder' ? `Invisible zip, ${zipSide(d)} side` : 'Invisible zip, centre back', finished: `${d.zipCm}` }]),
   );
   // (Whatever the opening: a drawstring's cord and a shoulder panel's trim are bought by these lengths.)
   if (d.hemTie) rows.push({ label: 'Drawstring cord, hem', finished: `${d.hemTie.cordCm}` });
@@ -149,7 +150,11 @@ export function dressSpec(m: DressMeasurements, d: DressDraft, sleeve?: SleeveDr
   return [
     // The bodice's own hem row is left out: on a dress it is the waist seam or, with no seam, the dress's hem, each given below.
     ...bodiceSpec(m, d.bodice, 'waist').filter((r) => !zip.test(r.label) && !/\(hem\)$/.test(r.label)),
-    ...skirtSpec(m, d.skirt).filter((r) => r.label !== 'Waist' && !zip.test(r.label) && !/Waistband/.test(r.label)),
+    // (The hip is the dress's own: a shift with no waist seam is cut from the top's block, and the skirt drafted beside it
+    // only for its length gave the table 2 cm more hip than the pieces and the first page's note; tester pattern review, Nov 13.)
+    ...skirtSpec(m, d.skirt)
+      .filter((r) => r.label !== 'Waist' && !zip.test(r.label) && !/Waistband/.test(r.label))
+      .map((r) => (r.label === 'Hip' ? row('Hip', m.full_hip, d.finishedHip) : r)),
     ...(d.seamCm ? [{ label: d.seamDrop > 0 ? `Waist seam, ${d.seamDrop} cm below the waist` : `Waist seam, ${-d.seamDrop} cm above the waist`, finished: d.seamCm }] : []),
     row('Length, nape to hem', undefined, d.lengthCm),
     ...(sleeve ? sleeveSpec(m, sleeve) : []),

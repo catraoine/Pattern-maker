@@ -78,6 +78,11 @@ function curvedBand(draft: SkirtDraft, sa: number): Piece {
   };
 }
 
+/** Added to the interfacing on the list when a curved band, `edgeCm` along its longer edge before the seam allowances at
+ *  its ends, is longer than most fusible interfacing is wide (90 cm, a little less between its selvedges): the band is
+ *  cut as one long curve, so the 0.3 m bought can't cover it in one piece (tester pattern review, Nov 13). */
+export const longBandInterfacing = (edgeCm: number): string => (edgeCm + 3 > 88 ? ' (if it is narrower than the band is long, cut the band\'s interfacing in two and butt the ends together at a side seam notch)' : '');
+
 /** Whether the skirt's band is cut curved (a low rise), as two pieces: band and facing, not folded. */
 export const curvedBandOf = (draft: SkirtDraft): boolean => !draft.elastic && !draft.wrap && !draft.buttons && !!draft.bandTop && draft.opening !== 'left_side';
 

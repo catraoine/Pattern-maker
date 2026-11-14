@@ -5,12 +5,26 @@
 // the back with a row of small buttons and rouleau loops in place of the zip (backLoops).
 import type { SewStep, SewingGuide } from './instructions';
 import type { BodiceDraft } from './bodice';
+import { KEYHOLE } from './backNeck';
 
 /** The space between the buttons down a looped back, in cm: close enough that the edges never gape between them. */
 export const LOOP_GAP = 2.5;
 
 /** How many buttons and loops close a back opening `cm` long, the first 1 cm below the neck. */
-export const loopCount = (cm: number): number => Math.max(3, Math.floor((cm - 1) / LOOP_GAP) + 1);
+const loopCount = (cm: number): number => Math.max(3, Math.floor((cm - 1) / LOOP_GAP) + 1);
+
+/** What of a top's draft says how long its back opening is. */
+type LoopedBack = Pick<BodiceDraft, 'zipCm' | 'back' | 'pieces'>;
+
+/** How many buttons and loops close this back. The last loop sits at least 1 cm above the foot of the opening: counted
+ *  from the zip's length alone, a back that opens right down to a peplum seam was given a loop to sew 1.5 cm past its
+ *  lower edge (the Ice Peplum at a 105 cm hip: 20 loops for a 47 cm back; tester pattern review, Nov 13). */
+export function loopsFor(d: LoopedBack): number {
+  // A keyhole takes the top of the back: the buttons start below it, so its length is not theirs to fill.
+  const keyhole = d.pieces.some((pc) => pc.meta.backNeck === 'keyhole') ? KEYHOLE.length : 0;
+  const opening = d.back.zipEnd.y - d.back.neckCentre.y - keyhole;
+  return loopCount(Math.min(d.zipCm, opening - 1));
+}
 
 /** How a French seam is sewn, as a sentence on its own. */
 const FRENCH = (seam: string, toward = 'the back') =>
@@ -78,8 +92,11 @@ export function withSheerTop(g: SewingGuide, d: Pick<BodiceDraft, 'peplum' | 'zi
 }
 
 /** A back closed with small covered buttons and rouleau loops in place of the zip, edge to edge down the opening. */
-export function withBackLoops(g: SewingGuide, d: Pick<BodiceDraft, 'zipCm'>, seam: string): SewingGuide {
-  const n = loopCount(d.zipCm);
+export function withBackLoops(g: SewingGuide, d: LoopedBack, seam: string): SewingGuide {
+  const n = loopsFor(d);
+  // The bodice's back edges fold on the centre back line (half the allowance, twice), so the peplum's open edges do too.
+  const half = `${Math.round((parseFloat(seam) / 2) * 100) / 100} cm`;
+  const peplumEdges = `Turn the open edges in twice by ${half} and stitch, so they finish on the centre back line as the bodice's edges do.`;
   const steps = g.steps.flatMap((st): SewStep[] => {
     if (st.title === 'Put in the zip')
       return [
@@ -89,11 +106,13 @@ export function withBackLoops(g: SewingGuide, d: Pick<BodiceDraft, 'zipCm'>, sea
         },
         {
           title: 'Close the back with buttons and loops',
-          text: `On the right back (as you wear it), mark ${n} points down the centre back line ${LOOP_GAP} cm apart, the first 1 cm below the neck edge. Fold each loop in half and baste its ends to the right side at a mark, raw edges in the ${seam} allowance and the loop pointing toward the side seam. Turn the allowance on both backs under twice, 0.75 cm then 0.75 cm, enclosing the loop ends, and slip-stitch it down so the loops stand out from the fold. On the left back, sew a 1 cm covered button opposite each loop, 0.3 cm in from the fold, so the two edges meet with no gap.`,
+          text: `On the right back (as you wear it), mark ${n} points down the centre back line ${LOOP_GAP} cm apart, the first 1 cm below the neck edge. Fold each loop in half and baste its ends to the right side at a mark, raw edges in the ${seam} allowance and the loop pointing toward the side seam. Turn the allowance on both backs under twice, ${half} then ${half}, enclosing the loop ends, and slip-stitch it down so the loops stand out from the fold. On the left back, sew a 1 cm covered button opposite each loop, 0.3 cm in from the fold, so the two edges meet with no gap.`,
         },
       ];
     if (st.title === 'Finish') return [{ ...st, text: st.text.replace(/Sew a hook and eye at the top of the zip, inside the [a-z ]+\. ?/, '') }];
-    return [st.text.includes('zip') ? { ...st, text: st.text.replace(/the zip seam lines/g, 'the centre back lines').replace(/at the zip\b/g, 'at the centre back').replace(/below the zip/g, 'below the buttons') } : st];
+    // (Each kind of peplum words its open edges its own way: flared and gathered, the big one on horsehair, the balloon.)
+    const text = st.title === 'Make the peplum' ? st.text.replace(/Turn the open edges in twice by 0\.5 cm and stitch\.|Hem the open edges the same way\.|Neaten those open edges: press each under 0\.5 cm twice and stitch close to the fold\./, peplumEdges) : st.text;
+    return [text.includes('zip') || text !== st.text ? { ...st, text: text.replace(/the zip seam lines/g, 'the centre back lines').replace(/at the zip\b/g, 'at the centre back').replace(/below the zip/g, 'below the buttons') } : st];
   });
   const notions = [...g.notions.filter((x) => !/invisible zip|hook and eye/i.test(x)), `${n} covered buttons, 1 cm across`, 'A loop turner'];
   return { ...g, notions, steps };

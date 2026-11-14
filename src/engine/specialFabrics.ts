@@ -103,7 +103,7 @@ export const SPECIALS: Record<Special, SpecialInfo> = {
     prewash: 'Hand wash a small sample first, as for its fibre, and dry it flat.',
     press: 'Low heat, dry, through a press cloth.',
     added: 'French seams on the 1.5 cm allowance, and a 1 cm hem rolled narrow.',
-    cut: 'Lay it between sheets of tissue paper and cut through the paper too. Single layer, with fine pins in the seam allowance only.',
+    cut: 'Lay it between sheets of tissue paper and cut through the paper too. Single layer, with fine pins in the seam allowance only. This takes the place of folding the fabric in the cutting step: where that step puts a piece on the fold, trace it out whole first and cut it once, and where it cuts a pair through both layers, cut it twice, turning the pattern over for the second.',
     need: 'A Microtex needle 60/8, fine thread, and a straight-stitch plate if you have one.',
     lining: 'A sheer needs a lining or an underlayer, unless you mean to wear it as a layer.',
   },
@@ -226,7 +226,11 @@ export function withSpecialAllowances(pc: Piece, special: Special | undefined): 
   if (s.seam !== undefined) {
     for (const tag of ['neck', 'armhole', 'waist', 'dart']) if (tag in allowances) allowances[tag] = s.seam;
   }
-  if (s.hem !== undefined && 'hem' in allowances) allowances.hem = s.hem;
+  // Only a real hem is narrowed. A lower edge that another piece is sewn to (a top's edge under its lowered peplum, a
+  // sleeve's under its band or cuff: `joinedHem`) carries the seam allowance and keeps it: narrowed to the sheer's 1 cm
+  // hem, the Ice Peplum's bodice was cut 0.5 cm short of the peplum it joins, and the step sews both 1.5 cm in (tester
+  // pattern review, Nov 13).
+  if (s.hem !== undefined && 'hem' in allowances && !pc.meta.joinedHem) allowances.hem = s.hem;
   return { ...pc, seamAllowance: s.seam ?? pc.seamAllowance, allowances };
 }
 
