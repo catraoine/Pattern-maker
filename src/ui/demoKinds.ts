@@ -46,12 +46,12 @@ const patterns = (kind: Kind, fuller: string, cut: string, at: number[], length:
 export const KIND_FILMS: Partial<Record<'style' | 'patterns', Record<Kind, Film>>> = {
   style: {
     dress: style('dress', 'relaxed', [0, 8.5, 14.8, 20.4, 25.4], '0:35'),
-    bodice: style('bodice', 'relaxed', [0, 8.7, 15.2, 32.9, 38.1], '0:48'),
+    bodice: style('bodice', 'relaxed', [0, 8.8, 15.2, 24.2, 29.2], '0:39'),
     trousers: style('trousers', 'regular', [0, 8.8, 15.0, 21.2, 26.2], '0:36'),
   },
   patterns: {
-    dress: patterns('dress', 'The hem gets fuller.', 'Or draw across a piece and cut it off as a new piece. Here, a front yoke.', [0, 11.2, 22.3, 30.5], '0:40'),
-    bodice: patterns('bodice', 'The peplum gets fuller.', 'Or draw across a piece and cut it off as a new piece. Here, a back yoke.', [0, 11.4, 22.9, 31.5], '0:41'),
-    trousers: patterns('trousers', 'The leg gets wider at the hem.', 'Or draw across the hip and cut it off as a new piece. Here, a yoke.', [0, 11.4, 23.4, 32.4], '0:42'),
+    dress: patterns('dress', 'The hem gets fuller.', 'Or draw across a piece and cut it off as a new piece. Here, a front yoke.', [0, 11.7, 24.3, 32.5], '0:42'),
+    bodice: patterns('bodice', 'The peplum gets fuller.', 'Or draw across a piece and cut it off as a new piece. Here, a back yoke.', [0, 11.9, 25.3, 34.0], '0:43'),
+    trousers: patterns('trousers', 'The leg gets wider at the hem.', 'Or draw across the hip and cut it off as a new piece. Here, a yoke.', [0, 11.9, 25.2, 34.1], '0:43'),
   },
 };

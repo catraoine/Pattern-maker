@@ -174,7 +174,7 @@ async function record(name, script, before) {
     await wait(pause);
   };
   /** Draws a line through points given as fractions of the box, with a finger dot following it. */
-  const draw = async (loc, pts, pause = 1600) => {
+  const draw = async (loc, pts, pause = 1600, steps = 14) => {
     await loc.evaluate((el) => el.scrollIntoView({ block: 'center' }));
     await p.evaluate(() => window.scrollTo(0, 0));
     await wait(300);
@@ -182,10 +182,10 @@ async function record(name, script, before) {
     const at = ([x, y]) => [bx.x + x * bx.width, bx.y + y * bx.height];
     const path = [];
     for (let i = 0; i + 1 < pts.length; i++)
-      for (let s = 0; s < 14; s++) {
+      for (let s = 0; s < steps; s++) {
         const [x0, y0] = pts[i];
         const [x1, y1] = pts[i + 1];
-        path.push(at([x0 + ((x1 - x0) * s) / 14, y0 + ((y1 - y0) * s) / 14]));
+        path.push(at([x0 + ((x1 - x0) * s) / steps, y0 + ((y1 - y0) * s) / steps]));
       }
     path.push(at(pts[pts.length - 1]));
     const pen = (x, y, o) => p.evaluate(([x, y, o]) => Object.assign(document.getElementById('pen').style, { left: x + 'px', top: y + 'px', opacity: o }), [x, y, o]);
@@ -246,7 +246,8 @@ async function record(name, script, before) {
     await p.evaluate(() => document.body.classList.add('focus'));
     await f.locator(list[0]).first().evaluate((el) => el.scrollIntoView({ block: 'center' }));
     await wait(400);
-    await fit(list, opts);
+    // Framed on part of the subject when asked (one pattern piece, big), the rest still drawn round it.
+    await fit(opts.frame ?? list, opts);
   };
   /** Fades the app out, does what's given (pressing hidden controls, a new focus), and fades it back in. */
   const veil = async (fn) => {
@@ -280,14 +281,14 @@ async function record(name, script, before) {
    *  each clip's script still reads as before. */
   const label = async () => {};
   /** Drags from one element's middle to another's (or to a point given as [dx, dy] from it), with the finger dot. */
-  const drag = async (from, to, pause = 1400) => {
+  const drag = async (from, to, pause = 1400, steps) => {
     const a = await from.boundingBox();
     const b2 = Array.isArray(to) ? null : await to.boundingBox();
     const x0 = a.x + a.width / 2, y0 = a.y + a.height / 2;
     const x1 = b2 ? b2.x + b2.width / 2 : x0 + to[0], y1 = b2 ? b2.y + b2.height / 2 : y0 + to[1];
     const box = { x: Math.min(x0, x1) - 1, y: Math.min(y0, y1) - 1, width: Math.abs(x1 - x0) + 2, height: Math.abs(y1 - y0) + 2 };
     const fr = (x, y) => [(x - box.x) / box.width, (y - box.y) / box.height];
-    await draw({ boundingBox: async () => box, evaluate: async () => {} }, [fr(x0, y0), fr((x0 + x1) / 2, (y0 + y1) / 2), fr(x1, y1)], pause);
+    await draw({ boundingBox: async () => box, evaluate: async () => {} }, [fr(x0, y0), fr((x0 + x1) / 2, (y0 + y1) / 2), fr(x1, y1)], pause, steps);
   };
 
   await script({ main, wait, card, cap, tap, draw, point, tapAt, show, ctx, f, p, fit, focus, veil, uncard, R, press, label, drag, M });
@@ -839,8 +840,14 @@ const KINDS = {
     cut: [[0.02, 0.2], [0.5, 0.2], [0.98, 0.2]], cutSays: 'Or draw across a piece and cut it off as a new piece. Here, a front yoke.',
   },
   bodice: {
-    look: 'Ice Peplum Top', fit: 'Relaxed', length: 'Bodice length below the waist', drop: 40, front: 'Peplum front', back: 'Bodice centre back',
+    // Starts from Regular, so picking Relaxed widens it only a little and the drawing keeps its frame (from the
+    // look's Fitted the drawing jumped bigger). The hem goes up: dragged down past the hip, the peplum top became a
+    // plain hip-length top on screen. Fewer steps on the drag: the peplum redraws slowly at each one, so the full
+    // drag took near twenty seconds.
+    look: 'Ice Peplum Top', fit: 'Relaxed', from: 'Regular', length: 'Bodice length below the waist', drop: -15, steps: 4, front: 'Peplum front', back: 'Bodice centre back',
     spread: [[0.5, 0.1], [0.5, 0.5], [0.5, 0.92]], fuller: 'The peplum gets fuller.',
+    // Framed smaller: the peplum front opens wide and high once spread.
+    zoom: { w: 190, h: 290, top: 300 },
     cut: [[0.04, 0.3], [0.5, 0.31], [0.96, 0.32]], cutSays: 'Or draw across a piece and cut it off as a new piece. Here, a back yoke.',
   },
   trousers: {
@@ -851,13 +858,20 @@ const KINDS = {
 };
 for (const [kind, k] of Object.entries(KINDS)) {
   // Opened from the collection before the clip starts, as a tester's own look is.
-  PREP[`style-${kind}`] = PREP[`patterns-${kind}`] = async ({ f, main, wait }) => {
+  const open = async ({ f, main, wait }) => {
     await main.getByRole('group', { name: 'Garment' }).locator('.drop-button').click();
     await main.getByRole('menuitemradio', { name: /collection/ }).click();
     await wait(1500);
     await main.getByRole('listitem').filter({ has: f.getByRole('heading', { name: k.look, exact: true }) }).getByRole('button', { name: 'Make this look' }).click();
     await main.getByRole('heading', { level: 1, name: new RegExp(k.look, 'i') }).waitFor({ timeout: 20000 });
     await wait(2500);
+  };
+  PREP[`patterns-${kind}`] = open;
+  PREP[`style-${kind}`] = async (h) => {
+    await open(h);
+    if (!k.from) return;
+    await h.main.getByRole('button', { name: new RegExp(`^${k.from}`) }).first().dispatchEvent('click');
+    await h.wait(2500);
   };
   DEMOS[`style-${kind}`] = async (h) => {
     const { wait, card, cap, focus, veil, uncard, R, press, drag, f } = h;
@@ -874,7 +888,7 @@ for (const [kind, k] of Object.entries(KINDS)) {
     await cap('Length', 'Drag the hem up or down to set the length.');
     await f.locator('body').evaluate((b, L) => (b.ownerDocument.getElementById('demo-focus').textContent += ` ${L}:not(#_),${L}:not(#_) *{visibility:visible!important}`), handle);
     await wait(900);
-    await drag(f.locator(`svg.preview-svg circle.hit[aria-label="${k.length}"]`), [0, k.drop], 2200);
+    await drag(f.locator(`svg.preview-svg circle.hit[aria-label="${k.length}"]`), [0, k.drop], 2200, k.steps);
     await cap('Undo', 'Changed your mind? Tap Undo.');
     await wait(900);
     await press(R('button', 'Undo the last change'), 0);
@@ -893,31 +907,47 @@ for (const [kind, k] of Object.entries(KINDS)) {
     const { wait, card, cap, focus, veil, uncard, R, press, drag, draw, f } = h;
     const PIECES = { h: 440, top: 230, w: 330, ground: WINDOW };
     const piece = (n) => f.locator(`path.pe-piece[data-piece="${n}"]`);
+    // All the pieces first, then only the one being changed, big (Cat, Nov 14: with every piece on screen the top and
+    // the dress got busy). Narrower than the frame, so the piece still fits once it is spread open. The pieces cut
+    // from it show with it at the end. The marks of lines drawn earlier (on other pieces too) are hidden; the one in
+    // use stays.
+    const only = (...names) => {
+      const not = names.map((n) => `:not([data-piece="${n}"])`).join('');
+      return {
+        h: k.zoom?.h ?? 360, top: k.zoom?.top ?? 270, w: k.zoom?.w ?? 200, ground: WINDOW,
+        frame: names.map((n) => `path.pe-piece[data-piece="${n}"]`).join(','),
+        hide: [`g:has(> path.pe-piece${not})`, `circle.pe-point${not}`, `path.pe-ghost${not}`, 'rect.pe-cut:not(.on)'].join(','),
+      };
+    };
+    const names = () => f.locator('path.pe-piece').evaluateAll((es) => es.map((e) => e.dataset.piece));
     await card('', 'Draw a line on your pattern', 1200, true);
     await press(R('group', 'Preview view').getByRole('button', { name: /^Pattern/, includeHidden: true }), 900);
     if (!(await f.locator('svg.point-svg').count())) await press(R('button', 'Move points'), 1200);
     await focus('svg.point-svg', PIECES);
     await uncard();
     await cap('Pattern', 'These are your pattern pieces. Draw a line across one to change it.');
-    await wait(1400);
+    await wait(2200);
+    await veil(() => focus('svg.point-svg', only(k.front)));
     await draw(piece(k.front), k.spread, 900);
     await cap('Spread', 'Choose what the line does. Here, spread it open.');
     await press(R('button', /Spread it open/), 1600);
-    await focus('svg.point-svg', PIECES);
     await cap('Spread', `Drag the round handle to open it more. ${k.fuller}`);
     await wait(1200);
-    await drag(f.locator('circle.pe-open'), [50, 0], 1800);
+    await drag(f.locator('circle.pe-open'), [40, 0], 1800);
     await press(f.locator('.pe-done').first(), 600);
+    await veil(() => focus('svg.point-svg', only(k.back)));
     await cap('New piece', k.cutSays);
     await wait(1200);
+    const had = await names();
     await draw(piece(k.back), k.cut, 800);
     await press(R('button', 'Make a new piece'), 1800);
     await veil(async () => {
       await press(f.locator('.pe-done').first(), 400);
-      await focus('svg.point-svg', PIECES);
+      // The piece and the new one cut from it.
+      await focus('svg.point-svg', only(k.back, ...(await names()).filter((n) => !had.includes(n))));
     });
     await cap('Edited', 'Notches are added so the pieces match. To start again, tap Back to drafted.');
-    await wait(1800);
+    await wait(2200);
     await cap('', '');
     await card('', 'Cut it your way.', 2200, true);
   };

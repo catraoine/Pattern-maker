@@ -646,7 +646,7 @@ function PointEditor({ base, edits: saved, setEdits: save, undo }: PointEditing 
             </text>
           </g>
         ))}
-        {changed && base.map((pc) => place[pc.name] && <path key={pc.name} d={pathD(pc, place[pc.name])} className="pe-ghost" vectorEffect="non-scaling-stroke" />)}
+        {changed && base.map((pc) => place[pc.name] && <path key={pc.name} d={pathD(pc, place[pc.name])} className="pe-ghost" data-piece={pc.name} vectorEffect="non-scaling-stroke" />)}
         {stroke && stroke.length > 1 && <polyline points={stroke.map((q) => `${q.x},${q.y}`).join(' ')} className="pe-stroke" vectorEffect="non-scaling-stroke" />}
         {asking && <polyline points={asking.line.map((q) => `${q.x + place[asking.piece].x},${q.y + place[asking.piece].y}`).join(' ')} className="pe-stroke" vectorEffect="non-scaling-stroke" />}
         {activeMark && <polyline points={activeMark.line.map((q) => `${q.x},${q.y}`).join(' ')} className="pe-cutline" vectorEffect="non-scaling-stroke" />}
