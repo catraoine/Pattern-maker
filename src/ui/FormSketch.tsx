@@ -784,7 +784,9 @@ export function FormSketch({ body, m, legs, bottom, arms, lines, outline = [], c
   // dragged to every one.
   const ladder = useLengthStep() && !big && !!hem;
   const reach = ladder ? Math.max(...hem!.marks.map((q) => q.y)) + 6 : 0;
-  const cropped = worn?.length ? Math.min(frame.bottom, Math.max(lowest + BELOW_HEM, reach)) : frame.bottom;
+  // Never above the cloth's own hem: a jumpsuit's legs hang a little lower than the frame its caller asked for, and ran
+  // about 1.4 cm past the bottom of the drawing (Front drawing check, Nov 14).
+  const cropped = worn?.length ? Math.min(Math.max(frame.bottom, lowest + 1), Math.max(lowest + BELOW_HEM, reach)) : frame.bottom;
   // On a phone the drawing is cropped like a lookbook photo, from mid-head to just past the hem, so the garment
   // stands tall beside the tag of picks (Cat's L4, 2026-10-29).
   const narrow = useNarrow();
