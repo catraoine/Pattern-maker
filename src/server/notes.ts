@@ -1,7 +1,9 @@
 // Server side only: checks a "Send us a note" from the Help page before it's stored beside the crash reports, in the
 // "reports" Netlify Blobs store. A note is what the sewist wrote, the screen they came from, the app version, the
-// browser family and, if they added one, a small screenshot they picked themselves. No IP address or id is kept.
+// browser family and, if they added one, a small screenshot they picked themselves. If they'd like a reply, the email
+// they typed for it, and whether they're a fit tester (never the tester code). No IP address is kept.
 import { z } from 'zod';
+import { REPLY_EMAIL, REPLY_EMAIL_MAX } from '../help/replyEmail';
 
 /** The words they write. Long enough for a real problem, short enough that a paste of a whole page is turned away. */
 export const NOTE_MAX = 2_000;
@@ -21,6 +23,13 @@ const NoteSchema = z
     version: z.string().max(40),
     browser: z.string().max(40),
     shot: z.string().max(SHOT_MAX).regex(SHOT).optional(),
+    /** Only when they typed one so we can write back (Help box for testers, Nov 14). */
+    email: z.string().trim().max(REPLY_EMAIL_MAX).regex(REPLY_EMAIL).optional(),
+    /**
+     * True when this device holds a tester code, so a tester's note is answered first. The code itself is never sent.
+     * Not checked here: anyone could set it, but it only changes the order Cat reads notes in, and every reply is hers.
+     */
+    tester: z.literal(true).optional(),
   })
   .strict();
 

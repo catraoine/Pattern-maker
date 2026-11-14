@@ -43,6 +43,31 @@ test('help: answers, then a note with a screenshot reaches the server', async ({
   await expect(main(page).getByRole('heading', { name: 'Saved patterns' })).toBeVisible();
 });
 
+test('help: an email for a reply goes with the note, and the thank-you says we will reply', async ({ page }) => {
+  let sent: Record<string, string> | undefined;
+  await page.route('**/.netlify/functions/note', async (route) => {
+    sent = JSON.parse(route.request().postData() ?? '{}');
+    await route.fulfill({ json: { ok: true } });
+  });
+  await startWithExample(page);
+  await openAccount(page);
+  await main(page).getByRole('button', { name: 'Help & feedback' }).click();
+  await main(page).getByRole('button', { name: 'Send us a note' }).click();
+  await main(page).getByLabel('What happened, or what would make it better?').fill('Where do I find my pattern code?');
+  // A mistyped address is caught with its own words before anything is sent, and the note is kept.
+  const reply = main(page).getByLabel('Your email, if you’d like a reply');
+  await reply.fill('sewist@example');
+  await main(page).getByRole('button', { name: 'Send', exact: true }).click();
+  await expect(main(page).getByText(/That email doesn’t look right/)).toBeVisible();
+  expect(sent).toBeUndefined();
+  await reply.fill('sewist@example.com');
+  await main(page).getByRole('button', { name: 'Send', exact: true }).click();
+  await expect(main(page).getByText('Your note is in. We’ll reply by email.')).toBeVisible();
+  expect(sent?.email).toBe('sewist@example.com');
+  // Not on a tester link here, so no tester mark is sent.
+  expect(Object.keys(sent ?? {}).sort()).toEqual(['browser', 'email', 'note', 'version', 'view']);
+});
+
 test('help: a note that does not go through keeps what was written', async ({ page, consoleErrors }) => {
   consoleErrors.allow(/status of 502/);
   await page.route('**/.netlify/functions/note', (route) => route.fulfill({ status: 502, json: { ok: false } }));
