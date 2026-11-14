@@ -932,7 +932,7 @@ export default function App() {
           {step === 'brands' && <BrandsScreen onPrivacy={() => openLegal('privacy')} />}
           {step === 'nights' && <NightsScreen onPrivacy={() => openLegal('privacy')} />}
           {step === 'made' && <MadeScreen onPrivacy={() => openLegal('privacy')} />}
-          {step === 'help' && <HelpScreen from={noteFrom} onDone={back} />}
+          {step === 'help' && <HelpScreen from={noteFrom} tester={!!account.testerCode} onDone={back} />}
           {step === 'photo' && plansShown() && <PhotoAllowance account={account} onPlans={openPlans} />}
           {step === 'photo' && canPhotoDraft(account) && (
             <PhotoScreen

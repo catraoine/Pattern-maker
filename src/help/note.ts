@@ -1,6 +1,7 @@
 // "Send us a note" from Help & feedback (Cat's H3, Nov 6, 2026): what the sewist wrote, plus the details they'd
 // otherwise be asked for (the screen they came from, the app version, the browser), and a screenshot if they add one.
-// Never measurements, names or patterns.
+// Never measurements, names or patterns. An email only if they type one for a reply, and for a tester only the fact
+// that they are one, never their tester code.
 import { browserFamily } from '../report/report';
 
 const ENDPOINT = '/.netlify/functions/note';
@@ -38,14 +39,25 @@ export async function shrinkShot(file: Blob, side = SHOT_SIDE): Promise<string |
   }
 }
 
+interface NoteExtras {
+  shot?: string;
+  /** Where they'd like a reply, if anywhere. Checked with REPLY_EMAIL before this is called. */
+  email?: string;
+  /** They're a fit tester. Only the fact, never the code. */
+  tester?: boolean;
+}
+
 /** Sends the note. `view` is the screen they came from. */
-export async function sendNote(note: string, view: string, shot?: string): Promise<NoteResult> {
+export async function sendNote(note: string, view: string, { shot, email, tester }: NoteExtras = {}): Promise<NoteResult> {
+  const reply = email?.trim();
   const body = JSON.stringify({
     note: note.trim(),
     view: view.slice(0, 30),
     version: __APP_VERSION__.slice(0, 40),
     browser: browserFamily(navigator.userAgent, navigator.maxTouchPoints).slice(0, 40),
     ...(shot ? { shot } : {}),
+    ...(reply ? { email: reply } : {}),
+    ...(tester ? { tester: true } : {}),
   });
   try {
     const res = await fetch(ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });

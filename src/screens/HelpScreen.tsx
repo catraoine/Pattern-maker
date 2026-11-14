@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
 import { sendNote, shrinkShot } from '../help/note';
+import { REPLY_EMAIL, REPLY_EMAIL_MAX } from '../help/replyEmail';
 import { OWNER } from '../legal';
 
 interface Props {
   /** The screen they came from, sent with the note so they don't have to say where they were. */
   from: string;
+  /** This device holds a tester code: the note says so (never the code), so testers are answered first. */
+  tester: boolean;
   onDone: () => void;
 }
 
@@ -21,12 +24,12 @@ const ANSWERS: [string, string][] = [
  * Help & feedback (Cat's H3, Nov 6, 2026): opened from the small links at the foot of Your account. The answers first,
  * then a note to us for anything else. Kept plain, not a praise grab (Cat, Nov 5).
  */
-export function HelpScreen({ from, onDone }: Props) {
+export function HelpScreen({ from, tester, onDone }: Props) {
   const [writing, setWriting] = useState(false);
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [writing]);
-  if (writing) return <NotePage from={from} onClose={() => setWriting(false)} onDone={onDone} />;
+  if (writing) return <NotePage from={from} tester={tester} onClose={() => setWriting(false)} onDone={onDone} />;
   return (
     <article className="card legal help" aria-labelledby="helptitle">
       <h1 id="helptitle">Help &amp; feedback</h1>
@@ -48,17 +51,19 @@ export function HelpScreen({ from, onDone }: Props) {
   );
 }
 
-function NotePage({ from, onClose, onDone }: { from: string; onClose: () => void; onDone: () => void }) {
+function NotePage({ from, tester, onClose, onDone }: { from: string; tester: boolean; onClose: () => void; onDone: () => void }) {
   const [note, setNote] = useState('');
+  const [email, setEmail] = useState('');
   const [shot, setShot] = useState<string>();
-  const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'limit' | 'busy' | 'failed' | 'badshot'>('idle');
+  const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'limit' | 'busy' | 'failed' | 'badshot' | 'bademail'>('idle');
 
   if (state === 'sent')
     return (
       <article className="card legal help" aria-labelledby="notetitle">
         <p className="eyebrow">Feedback</p>
         <h1 id="notetitle">Thank you</h1>
-        <p>Your note is in.</p>
+        {/* The copy review kept this to one short line; a reply promise only when an email was given. */}
+        <p>{email.trim() ? 'Your note is in. We’ll reply by email.' : 'Your note is in.'}</p>
         <button type="button" className="secondary" onClick={onDone}>
           Done
         </button>
@@ -77,16 +82,24 @@ function NotePage({ from, onClose, onDone }: { from: string; onClose: () => void
       <p className="muted">Something confusing or broken? Every note is read. We add which screen you came from and what phone or computer you use, so you don’t have to.</p>
       <form
         className="stack"
+        // Our own words for a mistyped email, the same on every browser, instead of each browser's bubble.
+        noValidate
         onSubmit={async (e) => {
           e.preventDefault();
           if (!note.trim() || state === 'sending') return;
+          // Caught here, with its own words, so the note is never lost to a typo in the address.
+          if (email.trim() && !REPLY_EMAIL.test(email.trim())) return setState('bademail');
           setState('sending');
-          setState(await sendNote(note, from, shot));
+          setState(await sendNote(note, from, { shot, email, tester }));
         }}
       >
         <div className="field plain">
           <label htmlFor="helpnote">What happened, or what would make it better?</label>
           <textarea id="helpnote" rows={6} maxLength={2000} value={note} onChange={(e) => setNote(e.target.value)} />
+        </div>
+        <div className="field plain">
+          <label htmlFor="helpemail">Your email, if you’d like a reply</label>
+          <input id="helpemail" type="email" autoComplete="email" inputMode="email" maxLength={REPLY_EMAIL_MAX} value={email} onChange={(e) => setEmail(e.target.value)} />
         </div>
         {shot ? (
           <div className="row help-shot">
@@ -114,7 +127,7 @@ function NotePage({ from, onClose, onDone }: { from: string; onClose: () => void
           </label>
         )}
         <p className="help-added">
-          Added for you: the screen you came from, your browser and the app version.
+          {tester ? 'Added for you: that you’re a fit tester, the screen you came from, your browser and the app version.' : 'Added for you: the screen you came from, your browser and the app version.'}
         </p>
         <button type="submit" className="primary" disabled={!note.trim() || state === 'sending'}>
           {state === 'sending' ? 'Sending…' : 'Send'}
@@ -132,6 +145,11 @@ function NotePage({ from, onClose, onDone }: { from: string; onClose: () => void
         {state === 'busy' && (
           <p className="msg small" role="status">
             We’ve had a lot of notes today. Please try again tomorrow, or email {OWNER.email}.
+          </p>
+        )}
+        {state === 'bademail' && (
+          <p className="msg small" role="status">
+            That email doesn’t look right. Check it, or leave it empty to send the note without a reply.
           </p>
         )}
         {state === 'badshot' && (

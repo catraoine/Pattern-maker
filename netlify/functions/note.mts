@@ -1,6 +1,7 @@
 // POST: a note sent from Help & feedback (Cat's H3, Nov 6, 2026). Kept in the "reports" Netlify Blobs store beside
 // the crash reports: the note under note/<date>/, its screenshot (if any) on its own under note-shot/<date>/. Read
-// them in the report read-out (see report.mts). Nothing that identifies the sender is kept.
+// them in the report read-out (see report.mts). Nothing that identifies the sender is kept, except the email they
+// typed if they asked for a reply (used only to answer that note) and a mark that they're a fit tester.
 import { createHash, randomUUID } from 'node:crypto';
 import { getStore } from '@netlify/blobs';
 import { blobCounts } from '../../src/server/blobCounts';
