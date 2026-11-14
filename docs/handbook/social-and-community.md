@@ -41,7 +41,7 @@ projector test.
 ## Community (decided Oct 28)
 
 Instagram only until launch: broadcast channel "Maison Tracé: Atelier notes" plus a private group
-chat. Circle only after ~250 active members; no Discord or WhatsApp. Founding Atelier = first 100.
+chat. Circle only after ~250 active members; no Discord or WhatsApp. Founding Atelier = first 250 members (Nov 13).
 Pre-launch only: First Wear Friday, group replies, Fit Clinic every other week, monthly challenge
 from December (Thrift to dress). **Keep it to ~2 hours a week, never more than 3.** Co-hosts: the
 Sewing Lead first; a second picked mid-November from helpful testers.
