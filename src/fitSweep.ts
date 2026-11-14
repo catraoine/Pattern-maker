@@ -120,7 +120,10 @@ export function fitProblems(d: Omit<PatternDesign, 'key'>, values: MeasurementVa
       out.push(`${x.label}: printed finished ${x.finished} is not the body ${x.body} plus the ease ${x.ease}`);
 
   // 2. The fit's ease at the bust and the hip, at least.
-  const want = promised(d);
+  // A look that sets its own bust ease is held to that, not its fit's: the Blush Shift is Regular with 5 cm (Cat's
+  // choice, Nov 5), and was flagged at every size against Regular's 7 (open findings row 29, Nov 13).
+  const own = (bodiceChoices as { bustEase?: number } | undefined)?.bustEase;
+  const want = { ...promised(d), ...(own !== undefined && promised(d).bust !== undefined ? { bust: own } : {}) };
   const bust = row('Bust');
   const hip = row('Hip');
   if (want.bust !== undefined && bust?.ease !== undefined && bust.ease < want.bust - 1 && !boned) out.push(`Bust: ${r1(bust.ease)} cm of ease, the fit promises ${want.bust}`);

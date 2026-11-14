@@ -2,6 +2,9 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { FIT_GARMENTS, fitKind, fitProblems, randomFitDesign, randomValues } from './fitSweep';
 import { rng } from './engine/randomBodies';
+import { COLLECTION, lookPatch } from './collection';
+import { EXAMPLE_BODY, type MeasurementValues } from './measurements';
+import { withEstimates } from './estimate';
 
 // The fit sweep on random bodies (Quality: Automated checks, check 2, Cat 2026-11-04): FIT_BODIES random bodies (30 in
 // the unit tests, 300 in the pull request's own job and nightly), each with a random design of every garment, held to
@@ -53,4 +56,17 @@ describe('fit sweep on random bodies', () => {
     else if (!process.env.FIT_REPORT_ONLY) expect(fresh.map((k) => found.get(k)!.example), 'new kinds of fit fault (fix them; see fitSweep.ts)').toEqual([]);
     expect(drafted).toBeGreaterThan(BODIES * FIT_GARMENTS.length * 0.8);
   }, 60 * 60_000);
+});
+
+describe('a look that sets its own bust ease', () => {
+  // The Blush Shift is Regular with 5 cm at the bust, Cat's choice: the check holds it to that, not to Regular's 7
+  // (it was flagged at every size, open findings row 29, Nov 13).
+  it('is held to its own ease at the bust', () => {
+    const look = COLLECTION.find((l) => l.id === 'blush-shift' || l.name === 'Blush Shift')!;
+    for (const hip of [90, 112, 132]) {
+      const values = withEstimates({ ...EXAMPLE_BODY, full_hip: hip } as MeasurementValues);
+      const { garment, ...saved } = lookPatch(look, values);
+      expect(fitProblems({ garment, saved } as never, values).filter((p) => p.startsWith('Bust:'))).toEqual([]);
+    }
+  });
 });
