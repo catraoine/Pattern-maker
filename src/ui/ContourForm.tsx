@@ -1214,7 +1214,9 @@ function paintNeckTape(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y
     const pts = smooth(side.map(([x, y]): Pt => [cx + x * (R(y) / R_WOMENSWEAR(y)) * S, Y(y)]));
     const run = partial(pts, p);
     tape(g, run, tw);
-    if (p >= 1) {
+    // With no room for the picture (a phone on its side, a keyboard up) every point lands on one spot and the tape
+    // has no last stretch to put the metal end on. Reading it anyway threw (crash reports, Nov 8 to 13).
+    if (p >= 1 && run.length >= 2) {
       // The flat metal end, as on the strip across the top (Cat's E2).
       const [a, b] = [run[run.length - 2], run[run.length - 1]];
       const d = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
