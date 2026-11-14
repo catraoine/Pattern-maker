@@ -63,7 +63,7 @@ function NotePage({ from, tester, onClose, onDone }: { from: string; tester: boo
       <article className="card legal help" aria-labelledby="notetitle">
         <p className="eyebrow">Feedback</p>
         <h1 id="notetitle">Thank you</h1>
-        <p>{email.trim() ? 'Your note is in. We’ll reply by email.' : 'Your note is in. Every note is read.'}</p>
+        <p>{email.trim() ? 'Your note is in. We’ll reply by email.' : 'Your note is in.'}</p>
         <button type="button" className="secondary" onClick={onDone}>
           Done
         </button>
