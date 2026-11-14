@@ -18,8 +18,9 @@ const PIECES: Omit<EraPiece, 'number'>[] = [
     choices: bodice({ fit: 'relaxed', neckline: 'crew', collar: 'funnel', closure: 'front_buttons', sleeve: 'long', sleeveShape: 'bishop', sleeveFullness: 'full', sleeveCuff: 'shirt', length: 'high_hip' }) },
   { era: 'edwardian', id: 'ed-dress', name: 'Edwardian afternoon dress', fabric: 'Lilac cotton voile', garment: 'dress', line: 'A high collar and long, close sleeves over a skirt that flares out below the knee to the ankle.',
     choices: dress('regular', { neckline: 'crew', collar: 'funnel', sleeve: 'long', sleeveShape: 'fitted' }, { silhouette: 'trumpet', length: 'maxi', flareCm: 26 }) },
+  // No back vent: the hem already flares out over the hip, so a vent has nothing to open for.
   { era: 'edwardian', id: 'ed-jacket', name: 'Edwardian walking jacket', fabric: 'Navy wool suiting', garment: 'jacket', line: 'Fitted through the waist with princess seams, flaring over the hip.',
-    choices: <OuterChoices>{ ...DEFAULT_JACKET_CHOICES, fit: 'fitted', shaping: 'princess', length: 'hip', flare: 'flared', pads: 'none', pockets: 'none' } },
+    choices: <OuterChoices>{ ...DEFAULT_JACKET_CHOICES, fit: 'fitted', shaping: 'princess', length: 'hip', flare: 'flared', pads: 'none', pockets: 'none', vent: 'none' } },
   // 1920s
   { era: '1920s', id: '20-top', name: 'Twenties tunic', fabric: 'Butter silk crepe de chine', garment: 'bodice', line: 'Loose and sleeveless with a V neck, falling straight to the hip.',
     choices: bodice({ fit: 'relaxed', neckline: 'v', darts: 'none', sleeve: 'none', length: 'hip' }) },
@@ -70,8 +71,9 @@ const PIECES: Omit<EraPiece, 'number'>[] = [
   { era: '1980s', id: '80-jacket', name: 'Power blazer', fabric: 'Grey wool gabardine', garment: 'jacket', line: 'Big padded shoulders, a peak lapel and two rows of buttons, long and easy.',
     choices: <OuterChoices>{ ...DEFAULT_JACKET_CHOICES, fit: 'relaxed', shaping: 'boxy', length: 'long', pads: 'structured', collar: 'peak', front: 'double', pockets: 'flap', shoulderCm: 3 } },
   // 1990s
+  // Fitted, so the straight top edge lies on the chest: relaxed cut it about 15 cm over the high bust and it stood away.
   { era: '1990s', id: '90-top', name: 'Nineties cami', fabric: 'Black silk satin', garment: 'bodice', line: 'Fine straps and a softly dipped neckline, skimming to the high hip.',
-    choices: bodice({ fit: 'relaxed', neckline: 'cami', darts: 'bust', sleeve: 'none', length: 'high_hip' }) },
+    choices: bodice({ fit: 'fitted', neckline: 'cami', darts: 'bust', sleeve: 'none', length: 'high_hip' }) },
   { era: '1990s', id: '90-dress', name: 'Nineties slip maxi', fabric: 'Ivory sand-washed satin', garment: 'dress', line: 'Cut in one on the bias from fine straps to the ankle, with a low scoop, no waist seam and no zip.',
     // The house Ivory Bias Slip's own cut, so a fix to the house slip (its straps, its armholes) reaches this one too.
     choices: COLLECTION.find((l) => l.id === 'ivory-slip')!.choices },
