@@ -23,7 +23,7 @@ const PIECES: Omit<EraPiece, 'number'>[] = [
   // 1920s
   { era: '1920s', id: '20-top', name: 'Twenties tunic', fabric: 'Butter silk crepe de chine', garment: 'bodice', line: 'Loose and sleeveless with a V neck, falling straight to the hip.',
     choices: bodice({ fit: 'relaxed', neckline: 'v', darts: 'none', sleeve: 'none', length: 'hip' }) },
-  { era: '1920s', id: '20-dress', name: 'Drop-waist dress', fabric: 'Blush silk georgette', garment: 'dress', line: 'A straight, easy bodice to a low waist seam, then a knee-length skirt.',
+  { era: '1920s', id: '20-dress', name: 'Drop-waist dress', fabric: 'Blush silk crepe de chine', garment: 'dress', line: 'A straight, easy bodice to a low waist seam, then a knee-length skirt.',
     choices: { ...dress('relaxed', { neckline: 'boat', sleeve: 'none', darts: 'none' }, { silhouette: 'straight', length: 'knee' }), waistSeam: 'low' } },
   { era: '1920s', id: '20-coat', name: 'Twenties shawl coat', fabric: 'Camel wool velour', garment: 'coat', line: 'A relaxed knee-length coat with a deep shawl collar.',
     choices: <OuterChoices>{ ...DEFAULT_COAT_CHOICES, fit: 'relaxed', length: 'knee', collar: 'shawl', lapel: 'plunge', shaping: 'boxy', flare: 'straight', pads: 'none', pockets: 'none' } },

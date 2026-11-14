@@ -248,11 +248,11 @@ export const ERAS: Era[] = [
       {
         id: '1990s_slip',
         name: 'Slip skirt',
-        about: 'Skims the hips and flutters out a little at mid-calf.',
+        about: 'Skims the hips and falls in a soft, easy flare to mid-calf.',
         fabric: 'Satin, crepe de chine or viscose',
-        silhouette: 'trumpet',
+        silhouette: 'a_line',
         length: 'midi',
-        fit: 'regular',
+        fit: 'relaxed',
       },
       {
         id: '1990s_mini',
