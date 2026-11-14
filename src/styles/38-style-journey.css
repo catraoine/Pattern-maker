@@ -125,7 +125,7 @@ section[aria-label='Preview'] > .preview .all-round-feel-step[aria-pressed='true
   }
 }
 
-/* How styling works, on its own screen the first time: the four steps in a column, numbered in the label face. */
+/* How styling works, on its own screen the first time: the four steps in a column, unnumbered. */
 .style-intro {
   max-width: 640px;
   margin: 0 auto;
@@ -146,17 +146,6 @@ section[aria-label='Preview'] > .preview .all-round-feel-step[aria-pressed='true
   gap: 14px;
   font-size: 16px;
   line-height: 1.4;
-}
-.style-intro-steps > li {
-  display: grid;
-  grid-template-columns: 22px 1fr;
-  gap: 8px;
-}
-.style-intro-n {
-  font-family: var(--mono);
-  font-weight: 500;
-  letter-spacing: 0.1em;
-  color: var(--gild);
 }
 /* On a phone, Start styling sits at the foot of the screen, where Next will be. */
 @media (max-width: 760px) {
