@@ -175,6 +175,18 @@ function describeError(err: unknown): { message: string; stack?: string } {
   return { message: Object.prototype.toString.call(err) };
 }
 
+/**
+ * Things a browser reports that are not a fault in the app, so they don't go in as crashes and bury the real ones
+ * (79 of the 100 reports on file on Nov 13 were the first kind, from our own test runs on preview builds):
+ * the offline copy not being saved (the app works without it), the browser's own notice that a resize needs another
+ * frame, an error in someone else's script that the browser won't describe, and scripts an extension or an in-app
+ * browser adds to the page.
+ */
+export function notOurs(message: string, stack?: string): boolean {
+  if (/Failed to register a ServiceWorker|^ResizeObserver loop |^Script error\.?$/.test(message)) return true;
+  return /\b(?:iabjs|chrome-extension|moz-extension|safari-extension|safari-web-extension|webkit-masked-url):\/\//.test(stack ?? '');
+}
+
 export class Reporter {
   /** The screen on show, for crash reports. */
   view = 'start';
@@ -195,9 +207,11 @@ export class Reporter {
     this.counts[key] = 1;
   }
 
-  /** Queues a crash report. The same error is reported once, and at most five a visit. False if it was dropped. */
+  /** Queues a crash report. The same error is reported once, and at most five a visit; what isn't the app's fault
+   *  (notOurs) not at all. False if it was dropped. */
   crash(err: unknown, where: Where): boolean {
     const { message, stack } = describeError(err);
+    if (notOurs(message, stack)) return false;
     const sig = `${message}\n${stack?.split('\n').slice(0, 2).join('\n') ?? ''}`;
     if (this.seen.has(sig) || this.seen.size >= MAX_CRASHES_PER_VISIT) return false;
     this.seen.add(sig);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_CRASHES_PER_VISIT, Reporter, browserFamily, cleanSource, rememberRef, rememberSource, firstVisitToday } from './report';
+import { MAX_CRASHES_PER_VISIT, Reporter, browserFamily, cleanSource, rememberRef, rememberSource, firstVisitToday, notOurs } from './report';
 import { checkBeacon } from '../server/reports';
 
 const make = (counting = true) => {
@@ -59,6 +59,26 @@ describe('the report beacon', () => {
     r.flush();
     expect(last().crashes.map((c: { message: string }) => c.message.length <= 500)).toEqual([true, true, true]);
     expect(last().crashes[1].message).toBe('[object Object]');
+  });
+
+  it("leaves out what isn't the app's fault, so real crashes aren't buried", () => {
+    // Not counting, so the only thing that could be sent is a crash.
+    const { r, sent } = make(false);
+    const injected = new Error('Error invoking postMessage: Java object is gone');
+    injected.stack = 'Error: Error invoking postMessage: Java object is gone\n    at sendDataToNative (iabjs://navigation_performance_logger_android:1:11722)';
+    const noise: unknown[] = [
+      new TypeError("Failed to register a ServiceWorker for scope ('/') with script ('/sw.js'): A bad HTTP response code (401) was received when fetching the script."),
+      'ResizeObserver loop completed with undelivered notifications.',
+      'ResizeObserver loop limit exceeded',
+      'Script error.',
+      injected,
+    ];
+    for (const n of noise) expect(r.crash(n, 'error')).toBe(false);
+    expect(r.flush()).toBe(false);
+    expect(sent).toEqual([]);
+    // The real fault that sat among them still goes.
+    expect(r.crash(new TypeError("Cannot read properties of undefined (reading '0')"), 'error')).toBe(true);
+    expect(notOurs('TypeError: Failed to fetch dynamically imported module: /assets/pdf-abc.js')).toBe(false);
   });
 
   it('counts nothing when the browser asks not to be tracked, but still reports crashes', () => {
