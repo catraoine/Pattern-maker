@@ -6,7 +6,7 @@ test('Review shows the finished measurements and ease, open above Print', async 
   test.setTimeout(120_000);
   await startWithExample(page);
   for (const [garment, noun, rows] of [
-    ['Dress', 'Dress', ['Bust', 'Waist', 'Hip', 'Length, nape to hem']],
+    ['Dress', 'Dress', ['Bust', 'Waist', 'Hip', 'Length, back of neck to hem']],
     ['Skirt', 'Skirt', ['Waist', 'Hip', 'Length, waist to hem']],
   ] as const) {
     await switchGarment(page, garment);
