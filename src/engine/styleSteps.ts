@@ -113,6 +113,7 @@ export function styleBodiceSteps(g: SewingGuide, draft: BodiceDraft, o: { seam: 
   let steps = [...g.steps];
   const buttons = draft.closure === 'front_buttons';
   const collar = draft.collar;
+  const standCollar = isBandCollar(collar) || collar === 'shirt';
   const seamKind = draft.styleSeams?.[0]?.kind;
   const princess = !seamKind && draft.pieces.some((pc) => /centre front/i.test(pc.name));
   const moved = draft.pieces[0].meta.bustDart as DartPlace | undefined;
@@ -121,7 +122,8 @@ export function styleBodiceSteps(g: SewingGuide, draft: BodiceDraft, o: { seam: 
   const cut = steps[at('Cut out')];
   if (cut) {
     const extra: string[] = [];
-    if (buttons) extra.push('Cut the front facings as a pair and the back neck facing on the fold, from the fabric and again from fusible interfacing.');
+    // (A collar on a stand has no back neck facing: see draftBodice.)
+    if (buttons) extra.push(standCollar ? 'Cut the front facings as a pair, from the fabric and again from fusible interfacing.' : 'Cut the front facings as a pair and the back neck facing on the fold, from the fabric and again from fusible interfacing.');
     if (collar === 'peter_pan') extra.push(buttons ? 'Cut the collar twice on the fold, once for the top collar and once for the under collar, and once from interfacing.' : 'Cut four collar pieces (two pairs), two for the top collar and two for the under collar, and interface the top pair.');
     if (isBandCollar(collar)) extra.push('Cut the collar twice on the fold, once for the outer band and once for the inner band, and interface the outer one.');
     if (collar === 'shirt') extra.push('Cut the collar and the collar stand twice each on the fold, and interface one of each.');
@@ -176,7 +178,9 @@ export function styleBodiceSteps(g: SewingGuide, draft: BodiceDraft, o: { seam: 
     const fi = steps.findIndex((s) => s.title === 'Interface the facings');
     const facingStep: SewStep = {
       title: 'Interface the facings',
-      text: `Fuse the interfacing to the wrong side of the front facings and the back neck facing${o.edges === 'facings' && !o.sleeve ? ', and of the armhole facings' : ''}. Join the front facings to the back neck facing at the shoulders${o.edges === 'facings' && !o.sleeve ? ', and the armhole facings at the shoulders and the sides' : ''}, ${o.seam} from the edge. Press the seams open and overlock or zigzag the outer edges marked NEATEN THIS EDGE.`,
+      text: standCollar
+        ? `Fuse the interfacing to the wrong side of the front facings${o.edges === 'facings' && !o.sleeve ? ' and of the armhole facings' : ''}. Press each front facing's shoulder edge under ${o.seam}.${o.edges === 'facings' && !o.sleeve ? ` Join the armhole facings at the shoulders and the sides, ${o.seam} from the edge, and press the seams open.` : ''} Overlock or zigzag the outer edges marked NEATEN THIS EDGE.`
+        : `Fuse the interfacing to the wrong side of the front facings and the back neck facing${o.edges === 'facings' && !o.sleeve ? ', and of the armhole facings' : ''}. Join the front facings to the back neck facing at the shoulders${o.edges === 'facings' && !o.sleeve ? ', and the armhole facings at the shoulders and the sides' : ''}, ${o.seam} from the edge. Press the seams open and overlock or zigzag the outer edges marked NEATEN THIS EDGE.`,
     };
     if (fi >= 0) steps[fi] = facingStep;
     else steps.splice(steps.findIndex((s) => s.title === 'Cut out') + 1, 0, facingStep);
@@ -289,7 +293,7 @@ export function styleBodiceSteps(g: SewingGuide, draft: BodiceDraft, o: { seam: 
       ? `Pin the facings to the fronts, right sides together, along the front edges only. Sew ${o.seam === '1.5 cm' ? '1 cm' : o.curve} from the edge from the hem to the neck seam line, trim, turn the facings to the inside and press. ${
           lined
             ? `Smooth the lining into the bodice, wrong sides together, matching the shoulder and side seams, and baste the facings and the lining to the neckline, ${o.curve} from the edge: the ${standName} goes on through all the layers and covers the lining's neck edge.`
-            : `Baste the facings to the neckline, ${o.curve} from the edge, so the collar goes on through both.`
+            : `Baste the facings to the neckline, ${o.curve} from the edge, so the collar goes on through both, and slip-stitch each facing's folded shoulder edge along the shoulder seam.`
         }`
       : `Pin the facings to the bodice, right sides together, down the front edges and round the neckline${collar === 'peter_pan' ? ' over the collar' : collar === 'ruffle' ? ' over the ruffle' : collar === 'cape' ? ' over the cape' : ''}, matching the shoulder seams. Sew 1 cm from the front edges and ${o.curve} round the neck. Trim, clip the neck curve, and understitch the neck as far as you can reach. Turn the facings to the inside, press, and tack them to the shoulder seams.`,
   };

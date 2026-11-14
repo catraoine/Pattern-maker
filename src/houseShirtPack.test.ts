@@ -28,6 +28,25 @@ describe("the house shirt's printed pack", () => {
     expect(made.notes.join(' ')).toMatch(/bias-bound neckline/);
   });
 
+  it('has no back neck facing behind the collar stand, and says so nowhere', () => {
+    const made = pack();
+    const names = made.pieces.map((pc) => pc.name);
+    expect(names).toContain('Front facing');
+    expect(names).toContain('Collar stand');
+    expect(names).not.toContain('Back neck facing');
+    const text = made.guide.steps.map((s) => s.text).join(' ');
+    expect(text).not.toMatch(/back neck facing/i);
+    expect(text).toContain("slip-stitch each facing's folded shoulder edge along the shoulder seam");
+    // A band collar is a stand too; a button front with no collar, or a flat one, keeps its back neck facing.
+    const piecesOf = (bodice: object) => printedPattern({ garment: 'bodice', saved: { bodice: { ...INITIAL.bodice, sleeve: 'short', closure: 'front_buttons', ...bodice } } }).made;
+    expect(piecesOf({ collar: 'mandarin' }).pieces.map((pc) => pc.name)).not.toContain('Back neck facing');
+    for (const collar of ['none', 'peter_pan']) {
+      const m = piecesOf({ collar });
+      expect(m.pieces.map((pc) => pc.name)).toContain('Back neck facing');
+      expect(m.guide.steps.map((s) => s.text).join(' ')).toMatch(/back neck facing/);
+    }
+  });
+
   it('presses a shirt at the end, not a bodice', () => {
     const steps = pack().guide.steps;
     expect(steps[steps.length - 1].text).toContain('Give the shirt a final press');
