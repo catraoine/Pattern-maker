@@ -46,8 +46,9 @@ section[aria-label='Preview'] > .preview .techflat .flat-shape {
 
 /* Print takes the same chalk where there is a garment to look at (Cat's apply, Nov 11): the pattern envelope on the
    summary, like a real paper envelope, and the sewing step drawings. Your body stays on black (Measure); the garment
-   sits on chalk. */
+   sits on chalk. A saved pattern's card on Your account too (Cat, Nov 14: "I want it to be light"). */
 .print-top .envelope,
+.saved li > .envelope,
 svg.stepdg {
   --ink: #1d1a17;
   --gild: #2a2622;
@@ -58,15 +59,18 @@ svg.stepdg {
   color: var(--ink);
   background: #dcd5c7;
 }
-.print-top .envelope {
+.print-top .envelope,
+.saved li > .envelope {
   border-color: #dcd5c7;
 }
 .print-top .envelope h2,
 .print-top .envelope h3,
-.print-top .envelope figcaption * {
+.print-top .envelope figcaption *,
+.saved li > .envelope figcaption * {
   color: var(--ink);
 }
-.print-top .envelope .techflat .flat-shape {
+.print-top .envelope .techflat .flat-shape,
+.saved li > .envelope .techflat .flat-shape {
   fill: var(--garment, #f6f2ea);
 }
 svg.stepdg {
