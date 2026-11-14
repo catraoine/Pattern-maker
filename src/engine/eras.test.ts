@@ -68,6 +68,13 @@ describe('trumpet skirt', () => {
     const d = draftSkirt(m, { silhouette: 'trumpet', length: 'maxi' });
     const [front, back] = d.pieces.filter((pc) => /^Skirt side/.test(pc.name));
     expect(Math.abs(taggedLength(front.outline, 'side') - taggedLength(back.outline, 'side'))).toBeLessThan(0.05);
+    // The cut panels themselves: across the hem, the centre and side front together reach as far as the whole quarter.
+    const span = (name: string) => {
+      const xs = d.pieces.find((pc) => pc.name === name)!.outline.points().map((q) => q.x);
+      return Math.max(...xs) - Math.min(...xs);
+    };
+    expect(span('Skirt front') + span('Skirt side front')).toBeGreaterThan(96 / 4 + 1 + 10);
+    // And the quarter drawn whole for the sketch.
     const xs = d.block![0].outline.points().map((q) => q.x);
     expect(Math.max(...xs)).toBeGreaterThan(96 / 4 + 1 + 10);
   });

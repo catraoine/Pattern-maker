@@ -25,6 +25,7 @@ export function trumpetPanelled(s: {
   ruched?: unknown;
   waist?: string;
   zip?: string;
+  fitting?: { highHip?: unknown };
 }): boolean {
   return (
     s.silhouette === 'trumpet' &&
@@ -41,7 +42,9 @@ export function trumpetPanelled(s: {
     // neither is drafted for panels yet, so those keep the two-piece trumpet.)
     (s.waist ?? 'band') !== 'faced' &&
     s.waist !== 'high' &&
-    s.zip !== 'side'
+    s.zip !== 'side' &&
+    // (A higher hip on one side gives each quarter a whole-quarter trim line, which the panels would both inherit.)
+    !s.fitting?.highHip
   );
 }
 
@@ -214,5 +217,21 @@ export function wholeQuarter(pc: Piece): Piece {
     return out;
   });
   const { trumpetQuarter: _q, goreSeam: _g, goreFlareCm: _f, ...meta } = pc.meta;
-  return { ...pc, outline, lines, meta: { ...meta, panelSeam: q.seam } };
+  return { ...pc, outline, lines, meta: { ...meta, trumpetSeam: q.seam } };
+}
+
+/**
+ * A six-panel trumpet hung as its two quarters, each drawn out below the flare point by its panel seam's flare, as a
+ * godet's slash is: the panels' seams are not sewn on the form, so the quarter it was drafted as stands in for each
+ * centre and side panel pair. `open` is the godet opener from drape/garment.ts, passed in so the two files don't
+ * import each other.
+ */
+export function goresJoined(pieces: Piece[], open: (pc: Piece, g: { hemWidth: number; inSeams: boolean }) => Piece): Piece[] {
+  if (!pieces.some((pc) => pc.meta.trumpetQuarter)) return pieces;
+  return pieces
+    .filter((pc) => !(pc.meta.goreSeam && !pc.meta.trumpetQuarter))
+    .map((pc) => {
+      const q = pc.meta.trumpetQuarter as { outline: Path; lines: Path[]; slash: [P, P]; spread: number } | undefined;
+      return q ? open({ ...pc, outline: q.outline, lines: q.lines, meta: { ...pc.meta, slashes: [q.slash] } }, { hemWidth: q.spread, inSeams: false }) : pc;
+    });
 }

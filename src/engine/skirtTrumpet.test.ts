@@ -74,6 +74,26 @@ describe('six-panel trumpet', () => {
     expect(g.steps.find((s) => s.title === 'Cut out')!.text).toMatch(/skirt side front and the skirt side back twice each/);
   });
 
+  it('tells the hem round as drafted, even on a short trumpet whose panel flare is capped', () => {
+    for (const length of ['knee', 'midi', 'maxi'] as const) {
+      const d = draftSkirt(m, { silhouette: 'trumpet', length });
+      const drawn = 2 * d.pieces.reduce((t, pc) => t + taggedLength(pc.outline, 'hem'), 0);
+      expect(Math.abs(d.hemCm - drawn)).toBeLessThan(0.03 * drawn);
+    }
+  });
+
+  it('keeps the two-piece trumpet when one hip is higher, so no panel carries a whole-quarter trim line', () => {
+    const d = draftSkirt(m, { silhouette: 'trumpet', length: 'midi', fitting: { highHip: { side: 'left', cm: 1.5 } } });
+    expect(names(d)).toEqual(['Skirt front', 'Skirt back']);
+  });
+
+  it('lines the panels too: cuts and sews the lining side panels', () => {
+    const style = { silhouette: 'trumpet', length: 'midi' } as const;
+    const g = sewingGuide(draftSkirt(m, style), style, 2.4, { liningM: 2.4 });
+    expect(g.steps.find((st) => st.title === 'Cut the lining')!.text).toMatch(/side front/);
+    expect(g.steps.find((st) => st.title === 'Make the lining')!.text).toMatch(/panel seams/);
+  });
+
   it('draws the trumpet dress in All round without problems', () => {
     const o = optionDesigns().find((x) => x.key === 'dress skirt.silhouette=trumpet')!;
     expect(sewDesign(o.design).quality?.problems ?? []).toEqual([]);

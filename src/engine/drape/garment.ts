@@ -2,6 +2,7 @@
 // seams, darts, collar and sleeves joined by the outline's own tags, then settled on the body (sim.ts). What comes back
 // is the cloth as the pattern cuts it, so whatever the pattern has (a peplum, a collar, a lapel turned back) is there.
 import { P, Path, p as pt, sub } from '../geometry';
+import { goresJoined } from '../skirtTrumpet';
 import type { TierBand } from '../skirtVolume';
 import { Piece } from '../piece';
 import type { BodiceDraft } from '../bodice';
@@ -505,21 +506,8 @@ function joinPanels(pieces: Piece[]): Piece[] {
 }
 
 /** The skirt pieces to hang: pleated ones closed as worn. */
-/** A six-panel trumpet hung as its two quarters, each drawn out below the flare point by its panel seam's flare, as a
- *  godet's slash is: the panels' seams are not sewn on the form, so the quarter it was drafted as stands in for each
- *  centre and side panel pair (skirtTrumpet.ts). */
-function goresJoined(pieces: Piece[]): Piece[] {
-  if (!pieces.some((pc) => pc.meta.trumpetQuarter)) return pieces;
-  return pieces
-    .filter((pc) => !(pc.meta.goreSeam && !pc.meta.trumpetQuarter))
-    .map((pc) => {
-      const q = pc.meta.trumpetQuarter as { outline: Path; lines: Path[]; slash: [P, P]; spread: number } | undefined;
-      return q ? godetsOpened({ ...pc, outline: q.outline, lines: q.lines, meta: { ...pc.meta, slashes: [q.slash] } }, { hemWidth: q.spread, inSeams: false }) : pc;
-    });
-}
-
 function hungSkirt(given: Piece[], vol?: { kind?: string; folds?: PleatFold[][]; godets?: { hemWidth: number; inSeams: boolean }; inverted?: { depth: number; backFrom?: number } }, size?: { hip?: number; hem?: number }): Piece[] {
-  const pieces = goresJoined(given);
+  const pieces = goresJoined(given, godetsOpened);
   if (vol?.kind === 'godets' && vol.godets && !knob('__looseGodets')) return pieces.filter((pc) => !pc.meta.godet).map((pc) => godetsOpened(pc, vol.godets!));
   if (vol?.kind === 'inverted' && vol.inverted && !knob('__openPleats')) return pieces.map((pc) => (pc.meta.pleats === 'inverted' && pc.outline.taggedPoints(4).pts.some((q) => q.x < -1e-6) ? invertedClosed(pc, vol.inverted!) : pc));
   if (!vol?.folds?.length || (vol.kind !== 'knife' && vol.kind !== 'box') || knob('__openPleats')) return pieces;

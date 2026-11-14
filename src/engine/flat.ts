@@ -603,7 +603,7 @@ function skirtViews(d: SkirtDraft, opts: { band: boolean; zipCm?: number; seamFr
       // A balloon hem is drawn over its underskirt, which gives the waist and the hip.
       const pleated = !!(d.volume?.pleats || d.volume?.inverted || d.volume?.balloon) && !!d.block;
       // A trumpet cut in panels is drawn whole, its panel seam in place of the dart it replaced (skirtTrumpet.ts).
-      const panelSeam = d.block?.[i]?.meta.panelSeam as P[] | undefined;
+      const panelSeam = d.block?.[i]?.meta.trumpetSeam as P[] | undefined;
       const h = sewn((pleated || panelSeam ? d.block! : (d.low ?? d.closed ?? d.ruche?.plain ?? d.pieces))[i]);
       waist = along(h, ['waist', 'dart'])[0] ?? [h.run[0]];
       const seamTip = panelSeam && h.move(panelSeam[1]);
