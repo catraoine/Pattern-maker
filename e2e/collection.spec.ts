@@ -1,4 +1,4 @@
-import { expect, expectLook, expectStyle, fillStepPages, goPrint, measureMe, openCollection, openFresh, openGroup, pickToMake, startWithExample, switchGarment, test } from './fixtures';
+import { changeLook, expect, expectLook, expectStyle, fillStepPages, goPrint, measureMe, openCollection, openFresh, openGroup, pickToMake, startWithExample, switchGarment, test } from './fixtures';
 
 test('the Maison collection: open it from styling, draw every look, make one', async ({ page }) => {
   await startWithExample(page);
@@ -54,6 +54,7 @@ test('the Leopard Shirt Dress: made in the house print, with its long-point coll
   await expect(look.getByRole('img', { name: /Technical flat/ })).toBeVisible();
   if (process.env.SHOTS) await look.screenshot({ path: `${process.env.SHOTS}/leopard-look-${test.info().project.name}.png` });
   await look.getByRole('button', { name: 'Make this look' }).click();
+  await changeLook(page);
   // Cut down to a mini, the title calls it a shirt dress, not a bodice (Cat, Nov 12: "How come I'm seeing this dress like
   // this under bodice").
   await expect(main.getByRole('heading', { name: 'Style Leopard Shirt Dress' })).toBeVisible();
@@ -114,13 +115,14 @@ test('a collection top with sleeves asks for the arms first, so its pattern has 
   await expectStyle(page, 'Skirt');
   await openCollection(page);
   await main.getByRole('listitem').filter({ has: page.getByRole('heading', { name: 'Leopard Shirt Dress', exact: true }) }).getByRole('button', { name: 'Make this look' }).click();
-  // The pages it takes, then the style screen.
-  const style = main.getByRole('heading', { name: 'Style Leopard Shirt Dress' });
-  for (let n = 0; n < 4 && !(await style.isVisible()); n++) {
+  // The pages it takes, then the look itself, ready to print.
+  const made = main.getByRole('button', { name: 'Change a detail' });
+  for (let n = 0; n < 4 && !(await made.isVisible()); n++) {
     if (await main.getByRole('textbox').count()) await fillStepPages(page);
     else await page.waitForTimeout(300);
   }
-  await expect(style).toBeVisible();
+  await expect(made).toBeVisible();
+  await expect(main.getByRole('heading', { level: 1, name: /Leopard Shirt Dress/ })).toBeVisible();
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('pattern-maker:account') ?? '{}'));
   expect(JSON.stringify(saved)).toContain('"arm_length"');
   await goPrint(page);

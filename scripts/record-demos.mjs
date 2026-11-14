@@ -36,7 +36,8 @@ async function record(name, script, before) {
   const b = await chromium.launch({ executablePath: process.env.CHROMIUM ?? '/opt/pw-browsers/chromium' });
   const ctx = await b.newContext({ viewport: { width: 432, height: 768 }, deviceScaleFactor: 2.5, isMobile: true, hasTouch: true });
   // The waitlist front page only lets testers in; the recording browser is one.
-  await ctx.addInitScript(() => { try { localStorage.setItem('maison-trace-access', 'tester'); } catch {} });
+  // A tester, who has seen How styling works, so Style opens on its questions.
+  await ctx.addInitScript(() => { try { localStorage.setItem('maison-trace-access', 'tester'); localStorage.setItem('maison-trace-style-intro', '1'); } catch {} });
   const p = await ctx.newPage();
   const wait = (ms) => p.waitForTimeout(ms);
   const frames = [];
@@ -363,10 +364,7 @@ const DEMOS = {
     await wait(900);
     await pick('Knife pleats');
     await pick('Tie sash', 2000);
-    await cap('Undo', 'Changed your mind? Tap Undo.');
-    await wait(900);
-    await press(R('button', 'Undo the last change'), 0);
-    await wait(1900);
+    // No Undo part: the style screen's questions have no Undo now, only the draw and drag tools (Cat, Nov 14).
     await cap('Pattern', 'Tap Pattern to see the pieces you will cut.');
     await veil(async () => {
       await press(R('button', /^Pattern/), 900);
@@ -863,6 +861,8 @@ for (const [kind, k] of Object.entries(KINDS)) {
     await main.getByRole('menuitemradio', { name: /collection/ }).click();
     await wait(1500);
     await main.getByRole('listitem').filter({ has: f.getByRole('heading', { name: k.look, exact: true }) }).getByRole('button', { name: 'Make this look' }).click();
+    // A look opens on itself, ready to print (Nov 14); Change a detail goes on to the style screen the clips show.
+    await main.getByRole('button', { name: 'Change a detail' }).click();
     await main.getByRole('heading', { level: 1, name: new RegExp(k.look, 'i') }).waitFor({ timeout: 20000 });
     await wait(2500);
   };
@@ -889,10 +889,7 @@ for (const [kind, k] of Object.entries(KINDS)) {
     await f.locator('body').evaluate((b, L) => (b.ownerDocument.getElementById('demo-focus').textContent += ` ${L}:not(#_),${L}:not(#_) *{visibility:visible!important}`), handle);
     await wait(900);
     await drag(f.locator(`svg.preview-svg circle.hit[aria-label="${k.length}"]`), [0, k.drop], 2200, k.steps);
-    await cap('Undo', 'Changed your mind? Tap Undo.');
-    await wait(900);
-    await press(R('button', 'Undo the last change'), 0);
-    await wait(1900);
+    // No Undo part: the style screen's questions have no Undo now, only the draw and drag tools (Cat, Nov 14).
     await cap('Pattern', 'Tap Pattern to see the pieces you will cut.');
     await veil(async () => {
       await press(R('button', /^Pattern/), 900);

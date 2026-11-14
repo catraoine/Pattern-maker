@@ -1,0 +1,185 @@
+/* The style journey made clear (Cat, Nov 14, after a walk as a new tester and a cold read of the phone screens). */
+
+@media (max-width: 760px) {
+  /* The choices show without scrolling: the question's name sits close under the drawing and the pictures close
+     under it, so the first row shows whole above the bar and the next row peeks in. */
+  .style-panel > .chapter {
+    padding-top: 0;
+  }
+  .chapter-name > .q-head {
+    min-height: 40px;
+  }
+  .style-panel > section.card.numbered {
+    padding-top: 2px;
+  }
+
+  /* Demo in the window's top right corner, across from Enlarge and Draw, in the tools' size and its own deeper gold
+     (Cat, Nov 14). The corner reaches across the window for it, letting taps through between the words. */
+  .style-layout .preview-corner {
+    right: 14px;
+    max-width: none;
+    pointer-events: none;
+  }
+  .style-layout .preview-corner > * {
+    pointer-events: auto;
+  }
+  .style-layout .preview-corner > .demo-play {
+    order: 9;
+    flex-basis: auto;
+    margin-left: auto;
+    min-height: 32px;
+    align-items: center;
+  }
+  .style-layout .preview-corner > .demo-play .demo-play-words {
+    font-size: 13.5px;
+    letter-spacing: 0.1em;
+  }
+
+  /* A look's Review (and the style intro): Print, or Start styling, in the gold bar at the foot of the screen, as Next is on every question, until the page
+     scrolls down to where it sits. */
+  :is(.style-review, .style-intro) > .review-print-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 6;
+    margin: 0 -16px;
+    padding: 8px 16px calc(8px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--guide);
+    background: var(--paper);
+  }
+  /* The same champagne button as Next on the questions. */
+  :is(.style-review, .style-intro) > .review-print-bar > .review-print {
+    width: 100%;
+    min-height: 58px;
+    background: var(--gild);
+    border-color: var(--gild);
+    color: var(--paper);
+    font-size: 16px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+  }
+}
+
+/* Under the look's drawing, Change a detail sits close, as the way to the questions. */
+.style-review > .review-change {
+  margin-top: -8px;
+}
+
+/* Greyed sleeves say why above the pictures, not under them. */
+.sleeve-why {
+  margin: 0 0 10px;
+}
+
+/* How far along: a thin line across the top of the bar, filled up to the open question. */
+.style-bar > .q-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -1px;
+  height: 3px;
+  background: linear-gradient(to right, var(--gild) var(--done), transparent var(--done));
+  pointer-events: none;
+}
+
+/* Feel: the pressed step lit, with one mark a tap, and Reset beside the row (no "Adjusted" line). */
+section[aria-label='Preview'] > .preview .all-round-feel-step[aria-pressed='true'] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--chalk);
+}
+.all-round-feel-step .feel-marks {
+  margin-left: 4px;
+  letter-spacing: 0.1em;
+}
+
+/* All round settling: a thin line that fills along the foot of the window while the pieces are sewn, in place of words. */
+.all-round-settling {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: color-mix(in srgb, var(--gild) 25%, transparent);
+  pointer-events: none;
+}
+.all-round-settling::after {
+  content: '';
+  display: block;
+  height: 100%;
+  width: 90%;
+  background: var(--gild);
+  transform-origin: left;
+  animation: settle 8s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+@keyframes settle {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .all-round-settling::after {
+    animation: none;
+    transform: scaleX(0.5);
+  }
+}
+
+/* How styling works, on its own screen the first time: the four steps in a column, numbered in the label face. */
+.style-intro {
+  max-width: 640px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.style-intro-lead {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.4;
+}
+.style-intro-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 14px;
+  font-size: 16px;
+  line-height: 1.4;
+}
+.style-intro-steps > li {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 8px;
+}
+.style-intro-n {
+  font-family: var(--mono);
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: var(--gild);
+}
+/* On a phone, Start styling sits at the foot of the screen, where Next will be. */
+@media (max-width: 760px) {
+  .style-intro {
+    min-height: calc(100dvh - 104px);
+  }
+  .style-intro > .review-print-bar {
+    margin-top: auto;
+  }
+}
+/* The style intro's title takes the Review title's look. */
+.style-intro .review-title {
+  font-size: 30px;
+  line-height: 0.98;
+  text-transform: uppercase;
+  font-family: var(--display);
+  font-stretch: var(--display-width);
+  font-weight: 600;
+}
+.style-intro .review-title .eyebrow {
+  display: block;
+  font-weight: 400;
+  letter-spacing: var(--track);
+  margin-bottom: 10px;
+  font-stretch: 100%;
+}

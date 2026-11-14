@@ -26,9 +26,11 @@
     max-height: 100%;
   }
 }
+/* A smaller phone: a little shorter still, so the first row of choices shows whole, names and all, above the bar
+   (Cat, Nov 14: at 36% the bar cut the pictures in half and hid their names). */
 @media (max-width: 760px) and (max-height: 700px) {
   .style-layout .style-pin > section:not(.live-big) > .preview {
-    --view-h: 36dvh;
+    --view-h: 31dvh;
   }
   .style-layout.compact .style-pin > section:not(.live-big) > .preview {
     --view-h: 26dvh;

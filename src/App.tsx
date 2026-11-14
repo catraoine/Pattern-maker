@@ -42,7 +42,7 @@ import { WelcomeScreen } from './screens/WelcomeScreen';
 import { CODE_MESSAGE, checkCode, hasAccess, rememberAccess, testerFromLink, withoutTester } from './access';
 import { keepOffline } from './swUpdate';
 import { preloadScreens, screen } from './screens/load';
-import { FABRIC, StartOver, openTabNext } from './ui/StyleLayout';
+import { FABRIC, StartOver, openLookNext, openTabNext } from './ui/StyleLayout';
 import { KeptCount } from './ui/SaveControl';
 import { GARMENT_NAME } from './measureFlow';
 import type { StepsStart } from './screens/MeasureStepsScreen';
@@ -222,6 +222,11 @@ export default function App() {
   });
   const [startView] = useState<View>(incoming?.kind === 'ask' ? 'link' : incoming?.kind === 'reply' ? 'arrive' : isMoveLink(window.location.hash) ? 'move' : legalPath(window.location.pathname) ?? 'welcome');
   const [step, setStep] = useViewHistory<View>(startView, (to) => (NEEDS_MEASUREMENTS.includes(to) && !canLeaveMeasure ? 'measure' : to), ladder);
+  // A look just made opens on itself on Style, after any measurements it asks for first; gone anywhere else, it doesn't
+  // carry over to the next garment's Style.
+  useEffect(() => {
+    if (step !== 'style' && step !== 'steps' && step !== 'collection') openLookNext(false);
+  }, [step]);
   // Signing in on a device another account used asks a question in Your account: open it there, wherever the sign-in
   // came back to (Google's page returns to the start).
   useEffect(() => {
@@ -1042,6 +1047,8 @@ export default function App() {
                 const withCloth = keepFinish(storedFinish, { ...finish, ...look.finish, fabric: cloth, cloth: clothFor(cloth, finish.cloth) }, mode);
                 // A look with sleeves asks for the arms first, or its pattern would print without them (bug hunt, Nov 12),
                 // and a top below the waist the hip first, or Style can't draft it (testers, Nov 12).
+                // It opens on itself, ready to print; Change a detail goes on to the questions.
+                openLookNext();
                 switchGarment(g, { ...next, archive: archiveCut(look.id)?.id, finish: withCloth, house: look.finish && { garment: g, finish: look.finish } } as Partial<Saved>, 'style', measured, [...lookHipMissing(look, measured), ...lookArmsMissing(look, measured)]);
                 window.scrollTo(0, 0);
               }}

@@ -22,12 +22,11 @@ const STYLE_SAYS = (fit: string) => [
   'Your garment, drafted to your body. Change any part of it.',
   `Pick how close it fits. Here, ${fit}. The pattern redraws to fit you.`,
   'Drag the hem up or down to set the length.',
-  'Changed your mind? Tap Undo.',
   'Tap Pattern to see the pieces you will cut.',
 ];
 const style = (kind: Kind, fit: string, at: number[], length: string): Film => ({
   base: `/demos/style-${kind}`,
-  parts: ['Shape', 'Fit', 'Length', 'Undo', 'Pattern'].map((name, i) => ({ name, from: at[i], says: STYLE_SAYS(fit)[i] })),
+  parts: ['Shape', 'Fit', 'Length', 'Pattern'].map((name, i) => ({ name, from: at[i], says: STYLE_SAYS(fit)[i] })),
   length,
 });
 
@@ -45,9 +44,9 @@ const patterns = (kind: Kind, fuller: string, cut: string, at: number[], length:
 /** Where each part starts, from the recording log (update with the clips). */
 export const KIND_FILMS: Partial<Record<'style' | 'patterns', Record<Kind, Film>>> = {
   style: {
-    dress: style('dress', 'relaxed', [0, 8.5, 14.8, 20.4, 25.4], '0:35'),
-    bodice: style('bodice', 'relaxed', [0, 8.8, 15.2, 24.2, 29.2], '0:39'),
-    trousers: style('trousers', 'regular', [0, 8.8, 15.0, 21.2, 26.2], '0:36'),
+    dress: style('dress', 'relaxed', [0, 8.4, 14.7, 20.1], '0:30'),
+    bodice: style('bodice', 'relaxed', [0, 8.4, 14.7, 23.0], '0:33'),
+    trousers: style('trousers', 'regular', [0, 8.4, 14.7, 20.6], '0:30'),
   },
   patterns: {
     dress: patterns('dress', 'The hem gets fuller.', 'Or draw across a piece and cut it off as a new piece. Here, a front yoke.', [0, 11.7, 24.3, 32.5], '0:42'),

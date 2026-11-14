@@ -1,4 +1,4 @@
-import { Children, createContext, ReactNode, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Children, createContext, CSSProperties, ReactNode, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Mode } from '../mode';
 import type { Garment } from '../measurements';
@@ -11,7 +11,7 @@ import { ExampleTag, GarmentDrop, LookName } from './GarmentSwitch';
 import { ModeLink } from './ModeLink';
 import { PhotoEntry } from './PhotoEntry';
 import { Title } from './Title';
-import { UndoTools, type Undo } from './useUndo';
+import type { Undo } from './useUndo';
 import type { MyFabric } from '../engine/fabrics';
 
 /** Whether the style window has lit up yet in this visit. */
@@ -39,6 +39,57 @@ export const PRO = 'Pro';
 let nextTab: string | undefined;
 export const openTabNext = (tab: string) => {
   nextTab = tab;
+};
+/** Whether this browser has been shown how styling works, before Style's first question. */
+const INTRO_KEY = 'maison-trace-style-intro';
+const introSeen = () => {
+  try {
+    return localStorage.getItem(INTRO_KEY) === '1';
+  } catch {
+    return true;
+  }
+};
+
+/** How styling works, on a screen of its own the first time Style's questions open, then never again (Cat's A, Nov 14:
+ *  "it should be very clear"). One line a step, in the order they happen. */
+function StyleIntro({ name, onStart }: { name: string; onStart: () => void }) {
+  const steps = [
+    'Each screen covers one styling element, such as the fit, the neckline or the sleeves.',
+    `Choose from the option cards below the styling window to set your style. The window shows your ${name} as you choose.`,
+    'Happy with what is there? Tap Next to keep it and move on.',
+    'To change an earlier choice, tap the back arrow, or tap the element’s name to see them all.',
+  ];
+  return (
+    <div className="style-intro">
+      <h1 className="review-title">
+        <span className="eyebrow">Style · your {name}</span>
+        How styling works
+      </h1>
+      <p className="style-intro-lead">The next screens take you through styling your {name}, one choice at a time.</p>
+      <ol className="style-intro-steps">
+        {steps.map((t, i) => (
+          <li key={i}>
+            <span className="style-intro-n" aria-hidden="true">
+              {i + 1}
+            </span>
+            {t}
+          </li>
+        ))}
+      </ol>
+      <div className="review-print-bar">
+        <button type="button" className="primary review-print" onClick={onStart}>
+          Start styling <span aria-hidden="true">›</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** A collection look just made opens on itself, ready to print, rather than on the first of many questions (Cat, Nov 14:
+ *  testers took the questions for steps they had to answer, and feared changing the look they were asked to sew). */
+let lookNext = false;
+export const openLookNext = (open = true) => {
+  lookNext = open;
 };
 /** The step last open on a garment's style screen, so coming back to it (from Review, Print or anywhere) opens there. */
 let leftOn: { name: string; tab: string; q?: string } | undefined;
@@ -280,22 +331,6 @@ function BigUndo({ undo, host }: { undo: Undo; host: HTMLElement | null }) {
   );
 }
 
-/** Undo and Redo as two named words across from the step's number, on a phone. */
-function StepUndo({ undo }: { undo: Undo }) {
-  return (
-    <div className="step-undo">
-      <button type="button" onClick={undo.undo} disabled={!undo.canUndo} aria-label="Undo the last change" title="Undo">
-        <span aria-hidden="true">↶</span>
-        <small>Undo</small>
-      </button>
-      <button type="button" onClick={undo.redo} disabled={!undo.canRedo} aria-label="Redo the change you undid" title="Redo">
-        <span aria-hidden="true">↷</span>
-        <small>Redo</small>
-      </button>
-    </div>
-  );
-}
-
 /**
  * The picked choice's name in a question: a picked chip, or any pressed button when there are none.
  * A length set on a slider between the named ones presses no chip, so it reads as the slider's cm.
@@ -385,11 +420,12 @@ interface Props {
   matched?: ReactNode;
   mode: Mode;
   onMode?: (m: Mode) => void;
-  /** Edit measurements, next to Edit style at the top of the Review page. */
+  /** Edit measurements, on the Review page. */
   onEditMeasurements?: () => void;
   /** Which tab a choice goes on, where this garment groups them its own way. */
   sections?: Record<string, string>;
-  /** Undo and Redo, in the bar at the bottom beside Review. */
+  /** Undo and Redo, only in the enlarged drawing, where the hem is dragged: on the questions a pick is taken back by
+   *  picking again (Cat, Nov 14: "I think we overdid it with undo redo, I think that's more for draw and drag tools"). */
   undo?: Undo;
   /** The garment's technical flat: the Review page shows it as the pattern's envelope (R1, 2026-10-24). */
   flat?: Flat;
@@ -454,6 +490,17 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   useEffect(() => {
     nextTab = undefined;
   }, []);
+  // A look just made goes on to its Review as a page of its own, before anything is painted: the questions stay behind it,
+  // so Change a detail (or Back) returns to them, and the screen's own entry keeps the questions for a garment switched in place.
+  useLayoutEffect(() => {
+    if (!lookNext) return;
+    lookNext = false;
+    // The questions' own entry is marked first, so going back to it opens them.
+    if (window.history.state) window.history.replaceState({ ...window.history.state, sub: 'edit' }, '');
+    setPage('review');
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only on opening
+  }, []);
+  const [intro, setIntro] = useState(() => !introSeen());
   const [tabs, setTabs] = useState<string[]>([]);
   const root = useRef<HTMLDivElement>(null);
   // The first time Style opens in a visit, its picture window lights up from black to chalk (Cat, Nov 11), easing the
@@ -759,29 +806,36 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   if (page === 'review')
     return (
       <div className="style-review">
+        {/* A collection look is named for itself, so a tester sees the piece they were asked to sew (Cat, Nov 14). */}
         <h1 className="review-title">
-          <span className="eyebrow">Review · {look ?? label}</span>
-          {Name}
+          <span className="eyebrow">{look ? 'Your look' : `Review · ${label}`}</span>
+          {look ?? Name}
         </h1>
         {flat && <Envelope house={false} name={Name} flat={flat} foot="Drafted to you" />}
-        {finished}
-        {onPrint && (
-          <button type="button" className="primary review-print" disabled={!ready} onClick={onPrint}>
-            Print my pattern
+        {/* Changing it sits right under the drawing, where the eye is. */}
+        <p className="review-edits review-change">
+          <button type="button" className="later" onClick={() => (canGoBack() ? goBack() : setPage('edit'))}>
+            Change a detail
           </button>
+        </p>
+        {finished}
+        {/* In the gold bar at the foot of the screen on a phone, like Next on every question, so Print is never below
+            the fold (cold read, Nov 14: "no obvious print button"). */}
+        {onPrint && (
+          <div className="review-print-bar">
+            <button type="button" className="primary review-print" disabled={!ready} onClick={onPrint}>
+              Print my pattern <span aria-hidden="true">›</span>
+            </button>
+          </div>
         )}
         {folded}
-        {/* Both ways to change it, together under the fold. */}
-        <p className="review-edits">
-          <button type="button" className="later" onClick={() => (canGoBack() ? goBack() : setPage('edit'))}>
-            Edit style
-          </button>
-          {onEditMeasurements && (
+        {onEditMeasurements && (
+          <p className="review-edits">
             <button type="button" className="later" onClick={onEditMeasurements}>
               Edit measurements
             </button>
-          )}
-        </p>
+          </p>
+        )}
         <StartOverLink />
         {/* The pro tools (seam allowances, lining, ease) are offered here, at the end, not under the fabric (Cat,
             2026-10-31). Turning them on goes back to the steps, where they open on a tab of their own. */}
@@ -795,6 +849,21 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           />
         )}
       </div>
+    );
+  if (intro)
+    return (
+      <StyleIntro
+        name={label.replace(/^your /i, '')}
+        onStart={() => {
+          try {
+            localStorage.setItem(INTRO_KEY, '1');
+          } catch {
+            // Private browsing: it shows again next visit, which does no harm.
+          }
+          setIntro(false);
+          window.scrollTo(0, 0);
+        }}
+      />
     );
   // The step after this one: the bar's Next goes there, and says only "Next" (Cat, 2026-11-06).
   const next = steps[at + 1];
@@ -871,9 +940,6 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
                 )
               ) : null}
               {wide && <DemoButton demo="style" />}
-              {/* On a phone, Undo and Redo are named, across from "Step 2 of 4", once there is something to undo:
-                  well away from the step's back arrow in the bar (Cat, 2026-10-31). */}
-              {!wide && undo && (undo.canUndo || undo.canRedo) && <StepUndo undo={undo} />}
             </div>
             {wide ? (
               <h2 className="chapter-name">{active}</h2>
@@ -1000,10 +1066,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
         </div>
         {wide ? (
           <div className="style-side">
-            <div className="row between">
-              <p className="eyebrow">{name}</p>
-              {undo && <UndoTools undo={undo} />}
-            </div>
+            <p className="eyebrow">{name}</p>
             {finished}
             {onPrint && (
               <button type="button" className="primary review-print" disabled={!ready} onClick={onPrint}>
@@ -1022,13 +1085,16 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           </div>
         ) : (
           // One box in the bar (Cat's N3, 2026-10-28, and P1, 2026-10-31): Next in champagne, or Review after the
-          // last; Review before then is a link at the end of the step. Back a step is the arrow to its left; undo
-          // and redo moved up to the drawing's corner so the two arrows are never mixed up (2026-10-31).
+          // last; Review before then is a link at the end of the step. Back a step is the arrow to its left. No undo
+          // or redo here: a pick is taken back by picking again (Cat, Nov 14).
           <div className="style-bar">
             {/* The garment's name is read out as it changes, not shown: the drawing shows it (Cat's N3). */}
             <p className="visually-hidden" role="status">
               {Name}
             </p>
+            {/* How far along: a thin line across the top of the bar that fills question by question, with no numbers
+                (Cat, Nov 14; the counters came off on Nov 8). The drawing and the bar's own words say the rest. */}
+            {qAt >= 0 && qs.length > 1 && <span className="q-progress" aria-hidden="true" style={{ '--done': `${((qAt + 1) / qs.length) * 100}%` } as CSSProperties} />}
             {qAt > 0 ? (
               // Back a question is a bare arrowhead (Cat, 2026-11-08), so the bar's only words are Next's.
               <button type="button" className="step-back-arrow" aria-label={`Back to ${qs[qAt - 1].label}`} title={qs[qAt - 1].label} onClick={() => goQ(qAt - 1)}>

@@ -236,7 +236,7 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
     };
   }, [spaceOf]);
   // A design whose sewing crashed, or is still sewing after SEW_LIMIT_MS, is treated as one that failed its score: the
-  // Front drawing stands in rather than "Sewing your pattern…" for ever (All round quality, Cat 2026-11-03).
+  // Front drawing stands in rather than the settling line for ever (All round quality, Cat 2026-11-03).
   const [unsewn, setUnsewn] = useState<string | undefined>();
   useEffect(() => {
     if (!job) return;
@@ -1465,9 +1465,12 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
         <div className="all-round-quiet">
           {!standIn && (
             <div className="all-round-tools">
-              {!film && (drapedNow === 'pending' || !turned) && (
+              {/* While the pieces are sewn and the cloth settles, a thin line fills along the window's foot, with no words
+                  (Cat, Nov 14: "why 'sewing your pattern'"); then Drag to turn, until the garment is first turned. */}
+              {!film && drapedNow === 'pending' && <span className="all-round-settling" aria-hidden="true" />}
+              {!film && drapedNow !== 'pending' && !turned && (
                 <span className="all-round-hint" aria-hidden="true">
-                  {drapedNow === 'pending' ? 'Sewing your pattern…' : 'Drag to turn'}
+                  Drag to turn
                 </span>
               )}
               {canFit && (
@@ -1528,11 +1531,17 @@ const feelWord = (v: number | undefined, up: string, down: string) => (!v ? unde
 function FeelControl({ feel, onFeel, open }: { feel: Feel; onFeel: (f: Feel) => void; open: boolean }) {
   const step = (k: keyof Feel, d: number) => onFeel({ ...feel, [k]: Math.max(-FEEL_STEPS, Math.min(FEEL_STEPS, (feel[k] ?? 0) + d)) });
   const words = [feelWord(feel.stiff, 'stiffer', 'softer'), feelWord(feel.weight, 'heavier', 'lighter')].filter(Boolean);
-  const btn = (k: keyof Feel, d: number, label: string) => (
-    <button type="button" className="all-round-feel-step" onClick={() => step(k, d)} disabled={(feel[k] ?? 0) === d * FEEL_STEPS}>
-      {label}
-    </button>
-  );
+  // The button pressed shows it, lit, with one mark a tap, so no words are needed to say what changed (Cat, Nov 14:
+  // "why do you need 'adjusted a little stiffer' copy?"). The words are still read out.
+  const btn = (k: keyof Feel, d: number, label: string) => {
+    const taps = Math.sign(feel[k] ?? 0) === d ? Math.abs(feel[k] ?? 0) : 0;
+    return (
+      <button type="button" className="all-round-feel-step" aria-pressed={taps > 0} onClick={() => step(k, d)} disabled={(feel[k] ?? 0) === d * FEEL_STEPS}>
+        {label}
+        {taps > 0 && <span className="feel-marks" aria-hidden="true">{'•'.repeat(taps)}</span>}
+      </button>
+    );
+  };
   return (
     <div className={`all-round-feel${open ? ' open' : ''}`} role="group" aria-label="How the cloth feels">
       <p className="all-round-feel-head">
@@ -1545,14 +1554,13 @@ function FeelControl({ feel, onFeel, open }: { feel: Feel; onFeel: (f: Feel) => 
         {btn('weight', -1, 'Lighter')}
         {btn('weight', 1, 'Heavier')}
       </div>
-      {/* (Its words only once adjusted: see the row's styles.) */}
+      <p className="visually-hidden" aria-live="polite">
+        {words.length > 0 ? `Adjusted: ${words.join(', ')}.` : ''}
+      </p>
       {words.length > 0 && (
-        <p className="all-round-feel-now" aria-live="polite">
-          {`Adjusted: ${words.join(', ')}. `}
-          <button type="button" className="all-round-feel-reset" onClick={() => onFeel({})}>
-            Back to your fabric
-          </button>
-        </p>
+        <button type="button" className="all-round-feel-reset" aria-label="Reset, back to your fabric as it is" onClick={() => onFeel({})}>
+          Reset
+        </button>
       )}
     </div>
   );

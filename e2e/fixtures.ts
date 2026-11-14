@@ -26,6 +26,8 @@ export const test = base.extend<{ consoleErrors: { allow: (re: RegExp) => void }
       if (!waitlist) await page.addInitScript(() => localStorage.setItem('maison-trace-access', 'tester'));
       // A pick on Style holds its question open, rather than moving on to the next, so a test can pick and check.
       await page.addInitScript(() => localStorage.setItem('maison-trace-steady', '1'));
+      // How styling works has been seen, so Style opens on its questions; e2e/style-intro.spec.ts checks the screen itself.
+      await page.addInitScript(() => localStorage.setItem('maison-trace-style-intro', '1'));
       await use();
     },
     { auto: true },
@@ -171,7 +173,13 @@ export async function expectStyle(page: Page, g: GarmentName) {
 
 /** Wait for the style screen of a collection look, made and not yet changed: its title is the look's name. */
 export async function expectLook(page: Page, name: string) {
+  await changeLook(page);
   await expect(heading(page, `Style ${name}`)).toBeVisible();
+}
+
+/** A look just made opens on itself, ready to print (Cat, Nov 14); Change a detail goes on to its questions. */
+export async function changeLook(page: Page) {
+  await main(page).getByRole('button', { name: 'Change a detail' }).click();
 }
 
 /** The garment drop-down on the Style title: pick another, measuring for it first when it needs more. */
