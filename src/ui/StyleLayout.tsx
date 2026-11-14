@@ -51,13 +51,13 @@ const introSeen = () => {
 };
 
 /** How styling works, on a screen of its own the first time Style's questions open, then never again (Cat's A, Nov 14:
- *  "it should be very clear"). One line a step, in the order they happen. */
+ *  "it should be very clear"). One line a step, in the order they happen, with no numbers (Cat). */
 function StyleIntro({ name, onStart }: { name: string; onStart: () => void }) {
   const steps = [
-    'Each screen covers one styling element, such as the fit, the neckline or the sleeves.',
-    `Choose from the option cards below the styling window to set your style. The window shows your ${name} as you choose.`,
+    'Each screen covers one style detail, such as the fit, the neckline or the sleeves.',
+    'Choose from the option cards below the styling window to set your style.',
     'Happy with what is there? Tap Next to keep it and move on.',
-    'To change an earlier choice, tap the back arrow, or tap the element’s name to see them all.',
+    'To change an earlier choice, tap the back arrow, or tap the style detail’s name to see the full list.',
   ];
   return (
     <div className="style-intro">
@@ -66,16 +66,11 @@ function StyleIntro({ name, onStart }: { name: string; onStart: () => void }) {
         How styling works
       </h1>
       <p className="style-intro-lead">The next screens take you through styling your {name}, one choice at a time.</p>
-      <ol className="style-intro-steps">
+      <ul className="style-intro-steps">
         {steps.map((t, i) => (
-          <li key={i}>
-            <span className="style-intro-n" aria-hidden="true">
-              {i + 1}
-            </span>
-            {t}
-          </li>
+          <li key={i}>{t}</li>
         ))}
-      </ol>
+      </ul>
       <div className="review-print-bar">
         <button type="button" className="primary review-print" onClick={onStart}>
           Start styling <span aria-hidden="true">›</span>
