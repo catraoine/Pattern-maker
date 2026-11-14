@@ -20,7 +20,8 @@ describe('era looks', () => {
       for (const look of LOOKS) {
         try {
           const d = draftSkirt(body, look);
-          const waist = 2 * (taggedLength(d.pieces[0].outline, 'waist') + taggedLength(d.pieces[1].outline, 'waist'));
+          // (A trumpet is cut in panels: its waist runs across all of them.)
+          const waist = 2 * d.pieces.filter((pc) => /^Skirt/.test(pc.name)).reduce((t, pc) => t + taggedLength(pc.outline, 'waist'), 0);
           if (Math.abs(waist - (body.waist + FIT_EASE[look.fit].waist)) > 1) failures.push(`seed ${seed} ${look.id}: waist ${waist}`);
           if (!sewingGuide(d, look, 2).steps.length) failures.push(`seed ${seed} ${look.id}: no steps`);
         } catch (e) {
@@ -63,9 +64,11 @@ describe('circle skirts', () => {
 
 describe('trumpet skirt', () => {
   it('flares below the knee and matches at the side seams', () => {
-    const [front, back] = draftSkirt(m, { silhouette: 'trumpet', length: 'maxi' }).pieces;
+    // Cut in six panels: the side seams are on the side panels, and the whole quarter (the block) flares.
+    const d = draftSkirt(m, { silhouette: 'trumpet', length: 'maxi' });
+    const [front, back] = d.pieces.filter((pc) => /^Skirt side/.test(pc.name));
     expect(Math.abs(taggedLength(front.outline, 'side') - taggedLength(back.outline, 'side'))).toBeLessThan(0.05);
-    const xs = front.outline.points().map((q) => q.x);
+    const xs = d.block![0].outline.points().map((q) => q.x);
     expect(Math.max(...xs)).toBeGreaterThan(96 / 4 + 1 + 10);
   });
 

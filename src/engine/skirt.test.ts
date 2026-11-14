@@ -93,7 +93,8 @@ describe('skirt block', () => {
     const aLine = hemOf('a_line');
     expect(aLine.sa).toEqual([2, 2]);
     expect(aLine.text).toMatch(/^Press up 1 cm, then 1 cm more/);
-    expect(hemOf('trumpet').sa).toEqual([2, 2]);
+    // (The trumpet is cut in six panels: centre and side, front and back.)
+    expect(hemOf('trumpet').sa).toEqual([2, 2, 2, 2]);
     // A straight skirt dragged out into a flare gets the narrow hem too.
     expect(hemOf('straight', 6).sa).toEqual([2, 2]);
   });

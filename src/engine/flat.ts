@@ -602,10 +602,17 @@ function skirtViews(d: SkirtDraft, opts: { band: boolean; zipCm?: number; seamFr
       // Pleats are drawn on the skirt as it hangs; knife and box pleats take the darts' place.
       // A balloon hem is drawn over its underskirt, which gives the waist and the hip.
       const pleated = !!(d.volume?.pleats || d.volume?.inverted || d.volume?.balloon) && !!d.block;
-      const h = sewn((pleated ? d.block! : (d.low ?? d.closed ?? d.ruche?.plain ?? d.pieces))[i]);
+      // A trumpet cut in panels is drawn whole, its panel seam in place of the dart it replaced (skirtTrumpet.ts).
+      const panelSeam = d.block?.[i]?.meta.panelSeam as P[] | undefined;
+      const h = sewn((pleated || panelSeam ? d.block! : (d.low ?? d.closed ?? d.ruche?.plain ?? d.pieces))[i]);
       waist = along(h, ['waist', 'dart'])[0] ?? [h.run[0]];
+      const seamTip = panelSeam && h.move(panelSeam[1]);
       // A yoke takes the darts: its seam is drawn instead.
-      lines = d.volume?.pleats || d.yoke ? [] : h.darts.flatMap((dt) => both(dt).map((pts) => ({ pts, kind: 'dart' as const })));
+      lines =
+        d.volume?.pleats || d.yoke
+          ? []
+          : h.darts.filter((dt) => !seamTip || !dt.some((q) => len(sub(q, seamTip)) < 1)).flatMap((dt) => both(dt).map((pts) => ({ pts, kind: 'dart' as const })));
+      if (panelSeam) lines.push(...both(panelSeam.map(h.move)).map((pts) => ({ pts, kind: 'seam' as const })));
       if (d.yoke) lines.push(...both(d.yoke[back ? 'back' : 'front'].map(h.move)).map((pts) => ({ pts, kind: 'seam' as const })));
       // A button front: the lapped edge down the centre front, and the buttons on it.
       if (d.buttons && !back) {

@@ -84,12 +84,15 @@ describe('skirt block across random bodies', () => {
         continue;
       }
       const [front, back] = draft.pieces;
+      // A trumpet is cut in panels: its side seams are on the side panels, and its waist runs across all of them.
+      const sided = (pc: Piece) => draft.pieces.find((x) => x.name === pc.meta.goreSeam && x.outline.tags.includes('side')) ?? pc;
+      const [sideF, sideB] = [sided(front), sided(back)];
 
       for (const pc of draft.pieces) pieceProblems(pc).forEach((pr) => failures.push(`${tag} ${pc.name}: ${pr}`));
-      if (Math.abs(taggedLength(front.outline, 'side') - taggedLength(back.outline, 'side')) > 0.05)
+      if (Math.abs(taggedLength(sideF.outline, 'side') - taggedLength(sideB.outline, 'side')) > 0.05)
         failures.push(`${tag}: side seams differ`);
       // Waist seam with darts closed, times 4 quarters, should be the finished waist.
-      const waist = 2 * (taggedLength(front.outline, 'waist') + taggedLength(back.outline, 'waist'));
+      const waist = 2 * draft.pieces.filter((pc) => /^Skirt/.test(pc.name)).reduce((t, pc) => t + taggedLength(pc.outline, 'waist'), 0);
       const target = body.waist + FIT_EASE[fit].waist;
       if (Math.abs(waist - target) > 1) failures.push(`${tag}: waist ${waist.toFixed(1)} vs ${target.toFixed(1)}`);
       for (const [pc, max] of [[front, 2.5], [back, 3.5]] as const) {
@@ -110,7 +113,7 @@ describe('skirt block across random bodies', () => {
           const b = sub(pts[i + 2], pts[i + 1]);
           return Math.abs((a.x * b.x + a.y * b.y) / (len(a) * len(b)));
         };
-        if (sideEnd(front) > 0.05 && style.silhouette !== 'straight') failures.push(`${tag}: hem not square to side seam`);
+        if (sideEnd(sideF) > 0.05 && style.silhouette !== 'straight') failures.push(`${tag}: hem not square to side seam`);
       }
     }
     report(failures);
@@ -229,7 +232,7 @@ describe('skirts matched to a photo shape across random bodies', () => {
         continue;
       }
       for (const pc of d.pieces) pieceProblems(pc).forEach((pr) => failures.push(`${tag} ${pc.name}: ${pr}`));
-      const waist = 2 * (taggedLength(d.pieces[0].outline, 'waist') + taggedLength(d.pieces[1].outline, 'waist'));
+      const waist = 2 * d.pieces.filter((pc) => /^Skirt/.test(pc.name)).reduce((t, pc) => t + taggedLength(pc.outline, 'waist'), 0);
       if (Math.abs(waist - d.finishedWaist) > 1) failures.push(`${tag}: waist ${waist.toFixed(1)} vs ${d.finishedWaist}`);
       const length = Math.min(Math.max(hemAt * body.waist_to_floor, body.waist_to_hip + 8), body.waist_to_floor - 2);
       if (Math.abs(d.lengthCm - length) > 0.1) failures.push(`${tag}: length ${d.lengthCm} vs ${length.toFixed(1)}`);

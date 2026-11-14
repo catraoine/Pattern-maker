@@ -81,6 +81,14 @@ export function hasSlit(style: { silhouette: string; length: string } & Partial<
   return walkingSlit(style);
 }
 
+/** A trumpet cut in six panels (skirtTrumpet.ts): its side panels are cut as pairs and sewn to the centre panels first. */
+const panelledSkirt = (pieces: Piece[]) => pieces.some((pc) => /^Skirt side/.test(pc.name));
+const PANEL_CUT = ' Cut the skirt side front and the skirt side back twice each, on both layers, so you get a pair of each.';
+const panelSeamStep = (seam: string): SewStep => ({
+  title: 'Sew the panel seams',
+  text: `Pin each side panel to its centre panel, right sides together, matching the waist, the hip notches (one at the front, two at the back) and the notch where the flare starts. Sew ${seam} from the edge from the waist to the hem, easing the two curves together below the flare notch without stretching them. Press the seams open over a ham, and zigzag or overlock the edges.`,
+});
+
 /** For a body that differs side to side: trim that side's pieces to their own line once cut. */
 function oneSide(pc: Piece, also: string): string {
   if (!pc.alternate) return '';
@@ -116,6 +124,7 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
   const curved = curvedBandOf(draft);
   const backSeam = !draft.pieces[1].fold;
   const pockets = !!draft.pocket;
+  const panelled = panelledSkirt(draft.pieces);
   // The lining is the same skirt without its pleats, godets or flounce, 2.5 cm shorter: it has darts
   // where the plain skirt does (none on a circle), and the same centre seams.
   const liningDarts = !circle && (dartCount > 0 || !!draft.yoke || !!draft.volume?.pleats || !!draft.volume?.inverted);
@@ -130,7 +139,7 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
       title: 'Cut out',
       text: (wide
         ? `These pieces are too wide to cut from folded fabric, so open it out to a single layer. Cut each piece twice, turning the pattern over for the second one so you get a pair. Keep each grain arrow parallel to the selvedge. Cut along the solid outer line and snip the small notches.${dartCount ? ' Chalk-mark the dart lines.' : ''}${circle ? ' To save fabric, turn every other piece upside down so the curves nest together.' : ''}`
-        : `Fold the fabric in half with the selvedges together. ${frontSeam ? (backSeam ? 'Place the skirt front and the skirt back on both layers so you get a pair of each.' : 'Place the skirt back on the fold, and the skirt front on both layers so you get a pair.') : backSeam ? 'Place the skirt front on the fold, and the skirt back on both layers so you get a pair.' : 'Place the skirt front and the skirt back on the fold.'} Keep each grain arrow parallel to the selvedge. Cut along the solid outer line, snip the small notches${dartCount ? ', and chalk-mark the dart lines' : ''}.`) +
+        : `Fold the fabric in half with the selvedges together. ${frontSeam ? (backSeam ? 'Place the skirt front and the skirt back on both layers so you get a pair of each.' : 'Place the skirt back on the fold, and the skirt front on both layers so you get a pair.') : backSeam ? 'Place the skirt front on the fold, and the skirt back on both layers so you get a pair.' : 'Place the skirt front and the skirt back on the fold.'} Keep each grain arrow parallel to the selvedge. Cut along the solid outer line, snip the small notches${dartCount ? ', and chalk-mark the dart lines' : ''}.${panelled ? PANEL_CUT : ''}`) +
         (pockets ? ` ${POCKET_CUT}` : '') +
         frontPocketCut(draft) +
         oneSide(draft.pieces[0], lined ? 'and the lining' : ''),
@@ -174,6 +183,7 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
           },
         ]
       : []),
+    ...(panelled ? [panelSeamStep(seam)] : []),
     ...(frontSeam
       ? [
           {
@@ -248,7 +258,7 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
         : isShaped(draft.hem)
           ? `The hem ${draft.asym ? 'curves from short at the front to long at the back' : 'is shaped'}, so keep it narrow. Press up 0.5 cm, then 1 cm more, easing the curve with steam, and stitch by hand or machine.`
         : style.silhouette === 'trumpet'
-          ? 'The hem is curved and full, so keep it narrow. Press up 0.5 cm, then 1.5 cm more, easing in the fullness with steam, and stitch by hand or machine.'
+          ? `The hem is curved and full, so keep it narrow.${panelled ? ' Trim the panel seam allowances inside the hem to half their width so the hem lies flat.' : ''} Press up 0.5 cm, then 1.5 cm more, easing in the fullness with steam, and stitch by hand or machine.`
           : style.silhouette === 'a_line'
             ? `Press up 1 cm, then ${hemDepth - 1} cm more. The hem is curved, so ease in the extra fullness with steam as you press. Stitch by hand or machine.`
             : `Press up 1 cm, then ${hemDepth - 1} cm more, and stitch by hand or machine.`) + slitHem(slit),
@@ -828,7 +838,7 @@ function dressSteps(draft: DressDraft, style: { silhouette: Silhouette; length: 
         draft.skirt.bias
           ? ' The skirt is cut on the bias, from a single layer opened out flat on a big table: the front once, whole, and the back twice, turning the pattern over for the second. Lay each with its grain arrow parallel to the selvedge, so it sits at 45 degrees across the cloth. As soon as the skirt pieces are cut, stay-stitch their waist edges 1 cm in, so the bias waist cannot stretch before it is joined to the bodice.'
           : wide ? ' The skirt pieces are too wide for folded fabric: cut them from a single layer, turning the pattern over for the second of each so you get pairs.' : ''
-      } Keep each grain arrow parallel to the selvedge. Cut along the solid outer line, snip the small notches${dartLines ? ', and chalk-mark the dart lines and the bust point' : ''}.${pockets ? ` ${POCKET_CUT}` : ''}${frontPocketCut(draft.skirt)}${collarCut(draft.bodice)}${
+      }${panelledSkirt(draft.skirt.pieces) ? PANEL_CUT : ''} Keep each grain arrow parallel to the selvedge. Cut along the solid outer line, snip the small notches${dartLines ? ', and chalk-mark the dart lines and the bust point' : ''}.${pockets ? ` ${POCKET_CUT}` : ''}${frontPocketCut(draft.skirt)}${collarCut(draft.bodice)}${
         lined
           ? ' Cut the bodice pieces again from the lining.'
           : edges === 'facings'
@@ -850,6 +860,7 @@ function dressSteps(draft: DressDraft, style: { silhouette: Silhouette; length: 
     },
     ...find(top, /^(Sew the (?!elbow )(.*darts?|princess seams|panel seams)|Join the (.*yokes?|midriff band))$/),
     ...find(skirt, /^Sew the .*darts?$/).map((s) => ({ ...s, title: 'Sew the skirt darts' })),
+    ...find(skirt, /^Sew the panel seams$/).map((s) => ({ ...s, title: 'Sew the skirt panel seams' })),
     ...find(skirt, /^Sew the centre front$/).map((s) => ({ ...s, title: 'Sew the skirt centre front' })),
     ...find(skirt, /^Sew on the pocket bags$/),
     ...find(skirt, /^Make the (slant|patch) pockets$/),
@@ -858,7 +869,7 @@ function dressSteps(draft: DressDraft, style: { silhouette: Silhouette; length: 
       text: `${
         dropped
           ? 'The waist seam is dropped to the high hip: the bodice runs on past your waist and the skirt starts lower. Pin the bodice front to the skirt front along this seam, right sides together, matching the centre front and the side edges.'
-          : 'Pin the bodice front to the skirt front at the waist, right sides together, matching the centre front, the side edges and the darts, so each bodice dart runs on into the skirt dart below it in one line.'
+          : `Pin the bodice front to the skirt front at the waist, right sides together, matching the centre front, the side edges and the darts, so each bodice dart runs on into the skirt dart${panelledSkirt(draft.skirt.pieces) ? ' or panel seam' : ''} below it in one line.`
       } Pin each back half the same way. Sew ${waist} from the edge, press the seams up toward the bodice, and zigzag or overlock the two edges together.`,
     },
     {
