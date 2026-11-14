@@ -4,9 +4,12 @@
 import { useEffect, useState } from 'react';
 import { getPhoto, putPhoto } from './photoStore';
 import { evenLight, seamless } from './engine/fabricTile';
+import { stripeLean } from './fabricStraight';
 
 /** The tile's side in pixels: sharp on a phone at the drawing's scale, small enough to keep (about 60 KB). */
 const N = 512;
+/** The small grey copy the lean is read from. */
+const LEAN_N = 128;
 
 /** Each tile's address in this page, once loaded, so every drawing of it shares one and draws at once. */
 const urls = new Map<string, string>();
@@ -57,11 +60,25 @@ export function useFabricPhoto(id: string | undefined): string | undefined {
  * shadowed), its broad light lifted out, its edges blended so it repeats with no line. */
 async function fabricTile(file: Blob): Promise<Blob> {
   const bmp = await createImageBitmap(file);
-  const side = Math.min(bmp.width, bmp.height) * 0.9;
+  const short = Math.min(bmp.width, bmp.height);
+  // A photo taken at a slant has its stripes leaning: read how far from a small grey copy of the middle, and draw the
+  // tile turned back by it, so stripes down the cloth run straight down the garment (Cat's leopard cotton, Nov 14).
+  const q = document.createElement('canvas');
+  q.width = q.height = LEAN_N;
+  const qg = q.getContext('2d', { willReadFrequently: true })!;
+  qg.drawImage(bmp, (bmp.width - short * 0.9) / 2, (bmp.height - short * 0.9) / 2, short * 0.9, short * 0.9, 0, 0, LEAN_N, LEAN_N);
+  const qd = qg.getImageData(0, 0, LEAN_N, LEAN_N).data;
+  const lean = stripeLean(Array.from({ length: LEAN_N * LEAN_N }, (_, i) => (qd[i * 4] + qd[i * 4 + 1] + qd[i * 4 + 2]) / 3), LEAN_N);
+  // (Turned, the square taken is smaller, so its corners stay inside the photo.)
+  const side = (short * 0.9) / (Math.abs(Math.cos(lean)) + Math.abs(Math.sin(lean)));
   const c = document.createElement('canvas');
   c.width = c.height = N;
   const g = c.getContext('2d', { willReadFrequently: true })!;
-  g.drawImage(bmp, (bmp.width - side) / 2, (bmp.height - side) / 2, side, side, 0, 0, N, N);
+  g.translate(N / 2, N / 2);
+  g.rotate(-lean);
+  g.scale(N / side, N / side);
+  g.drawImage(bmp, -bmp.width / 2, -bmp.height / 2);
+  g.setTransform(1, 0, 0, 1, 0, 0);
   // The light alone: the photo shrunk to a few pixels and drawn back up smooth.
   const s = document.createElement('canvas');
   s.width = s.height = 6;
