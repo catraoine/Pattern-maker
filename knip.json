@@ -13,5 +13,10 @@
   ],
   "ignoreBinaries": [
     "python3"
+  ],
+  "ignore": [
+    "src/ui/measure3d.ts",
+    "src/ui/measure3dPage.ts",
+    "src/ui/measure3dPaths.ts"
   ]
 }

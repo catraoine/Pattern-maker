@@ -127,6 +127,7 @@ function formFinish(m: RoundMaterial): RoundMaterial {
   return m;
 }
 
+/** @public Also used by the measuring-clip tool page (measure3d.html), which the dead-code check doesn't follow. */
 export function material(mode: Mode, map?: THREE.Texture, scale = 1, opacity = 1, physical = false): RoundMaterial {
   const mat = new (physical ? THREE.MeshPhysicalMaterial : THREE.MeshStandardMaterial)({
     side: THREE.DoubleSide,
@@ -208,7 +209,7 @@ interface Sweep {
   shade?: (a: number, t: number) => number;
 }
 
-/** The surface as a mesh: its points, their normals (from the surface's own slope) and the cloth's cm under them. */
+/** The surface as a mesh: its points, their normals (from the surface's own slope) and the cloth's cm under them. @public Also used by the measuring-clip tool page (measure3d.html), which the dead-code check doesn't follow. */
 export function sweep(s: Sweep, a0: number, a1: number, NA: number, NT: number): THREE.BufferGeometry {
   const rowT = s.rowT ?? ((j, n) => j / n);
   const pos = new Float32Array((NA + 1) * (NT + 1) * 3);
@@ -274,7 +275,7 @@ export function sweep(s: Sweep, a0: number, a1: number, NA: number, NT: number):
   return g;
 }
 
-/** A flat face closing a surface (the top of the form's neck): the ring at `at(a)`, facing `normal`. */
+/** A flat face closing a surface (the top of the form's neck): the ring at `at(a)`, facing `normal`. @public Also used by the measuring-clip tool page (measure3d.html), which the dead-code check doesn't follow. */
 export function cap(at: (a: number) => V3, normal: V3, n = 72): THREE.BufferGeometry {
   const pos: number[] = [];
   const nor: number[] = [];
