@@ -30,6 +30,16 @@ export function loopsFor(d: LoopedBack): number {
 const FRENCH = (seam: string, toward = 'the back') =>
   `With the pieces wrong sides together, sew 0.6 cm outside the stitching line, in the ${seam} allowance. Trim to 0.3 cm and press, then fold right sides together along the seam, press again and sew on the stitching line, enclosing the raw edges. Press it toward ${toward}`;
 
+/** A shoulder, side or sleeve seam step, sewn as a French seam: the pinning and fitting words stay; the sewing and
+ *  pressing are the French seam's. */
+export function asFrenchSeam(st: SewStep, seam: string): SewStep {
+  const kept = st.text
+    .replace(/,? right sides together/g, '')
+    .replace(/ Sew (the underarm seam )?[\d.]+ cm from the edge[^.]*\./g, '')
+    .replace(/ and press (it|the seams?) open[^.]*\./, '.');
+  return { ...st, text: `${kept} ${st.title === 'Sew the sleeve seams' ? 'Sew each underarm seam as a French seam' : 'Sew them as French seams'}. ${FRENCH(seam)}.` };
+}
+
 /** A narrow binding cut from the sheer itself, for the edges a French seam cannot go round. */
 const SELF_BIND =
   'Cut 2.5 cm bias strips from the same sheer. Trim the seam to 0.6 cm, lay a strip over it right sides together, sew 0.5 cm from the edge, wrap the strip round the raw edges and slip-stitch its fold down by hand over the stitching';
@@ -51,15 +61,9 @@ export function withSheerTop(g: SewingGuide, d: Pick<BodiceDraft, 'peplum' | 'zi
         break;
       case 'Sew the shoulders':
       case 'Sew the side seams':
-      case 'Sew the sleeve seams': {
-        // The pinning and fitting words stay; the sewing and pressing are the French seam's.
-        const kept = st.text
-          .replace(/,? right sides together/g, '')
-          .replace(/ Sew (the underarm seam )?[\d.]+ cm from the edge[^.]*\./g, '')
-          .replace(/ and press (it|the seams?) open[^.]*\./, '.');
-        steps.push({ ...st, text: `${kept} ${st.title === 'Sew the sleeve seams' ? 'Sew each underarm seam as a French seam' : 'Sew them as French seams'}. ${FRENCH(seam)}.` });
+      case 'Sew the sleeve seams':
+        steps.push(asFrenchSeam(st, seam));
         break;
-      }
       case 'Sew the bust and waist darts':
         steps.push({ ...st, text: `${st.text} Then trim each dart to 0.3 cm from its stitching and overcast the edges together by hand, so only a fine line shows through.` });
         break;

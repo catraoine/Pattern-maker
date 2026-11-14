@@ -43,14 +43,24 @@ const HOUSE_PRINTS: [string, { id: string; size: number }][] = [['leopard python
 
 /** The fabric a look is named for, read from its words, so its thumbnail draws in that cloth. */
 export function lookFabric(words: string): MyFabric {
-  const w = words.toLowerCase();
-  const special = (['denim', 'leather', 'velvet', 'corduroy', 'satin', 'lace', 'sequin'] as const).find((k) => w.includes(k));
-  const sheer = /georgette|chiffon|organza|voile|sheer/.test(w);
-  const fibre = (['silk', 'wool', 'cotton', 'linen', 'viscose', 'polyester'] as const).find((k) => w.includes(k));
+  // Where the words offer a choice ("Cotton poplin or light wool"), the first cloth named is the one it is made in: read
+  // whole, a poplin skirt took the wool's care steps and a satin one was cut as velvet (era pattern review, Nov 14).
+  // (A first cloth the tables do not know, a plain "crepe", passes the turn to the next one named. The colour and the
+  // print are read from all the words.)
+  const all = words.toLowerCase();
+  const read = (w: string) => ({
+    special: (['denim', 'leather', 'velvet', 'corduroy', 'satin', 'lace', 'sequin'] as const).find((k) => w.includes(k)),
+    sheer: /georgette|chiffon|organza|voile|sheer/.test(w),
+    fibre: (['silk', 'wool', 'cotton', 'linen', 'viscose', 'polyester'] as const).find((k) => w.includes(k)),
+    w,
+  });
+  const cloths = all.split(/,| or /).map(read);
+  const { special, sheer, fibre, w: cloth } = cloths.find((c) => c.special || c.sheer || c.fibre) ?? cloths[0];
+  const w = all;
   const colour = COLOURS.map((c) => c.name).find((c) => w.includes(c.toLowerCase())) ?? HOUSE_COLOURS.find(([n]) => w.includes(n))?.[1];
   // A python (or any animal skin) is a one-way print: its scales run one way down the cloth.
   const print = /python|snake|leopard|zebra/.test(w) ? 'oneway' : undefined;
-  const crisp = /crisp|sateen|gabardine|poplin|taffeta/.test(w);
+  const crisp = /crisp|sateen|gabardine|poplin|taffeta/.test(cloth);
   const photo = HOUSE_PRINTS.find(([k]) => w.includes(k))?.[1];
   return {
     ...(fibre ? { fibre } : {}),
@@ -60,7 +70,7 @@ export function lookFabric(words: string): MyFabric {
     ...(colour ? { colour } : {}),
     ...(print ? { print } : {}),
     ...(crisp ? { drape: 'crisp' } : {}),
-    ...(/sateen/.test(w) && !special ? { sheen: 'soft' as const } : {}),
+    ...(/sateen/.test(cloth) && !special ? { sheen: 'soft' as const } : {}),
     // A house print's tile is one repeat of it, so the cutting step can say how to place it.
     ...(photo ? { photo, motif: { repeat: photo.size } } : {}),
   };

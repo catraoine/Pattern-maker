@@ -848,7 +848,7 @@ function dressSteps(draft: DressDraft, style: { silhouette: Silhouette; length: 
       diagram: 'overlock',
       text: `Zigzag or overlock the shoulder and side edges of the bodice, the side edges of the skirt${frontSlit ? ' and its centre front edges' : ''}, and the centre back edges of both${finish.sleeve ? ", and the sleeves' underarm seam edges" : ''}, so they will not fray inside.`,
     },
-    ...find(top, /^(Sew the (.*darts?|princess seams|panel seams)|Join the (.*yokes?|midriff band))$/),
+    ...find(top, /^(Sew the (?!elbow )(.*darts?|princess seams|panel seams)|Join the (.*yokes?|midriff band))$/),
     ...find(skirt, /^Sew the .*darts?$/).map((s) => ({ ...s, title: 'Sew the skirt darts' })),
     ...find(skirt, /^Sew the centre front$/).map((s) => ({ ...s, title: 'Sew the skirt centre front' })),
     ...find(skirt, /^Sew on the pocket bags$/),

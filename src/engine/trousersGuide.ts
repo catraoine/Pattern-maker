@@ -28,6 +28,8 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
   const seam = n1(sw.seam);
   const waist = n1(sw.waist);
   const fly = d.closure === 'fly';
+  // (Only a fly's band runs on past the opening, as its underlap. A side zip's ends stop level with it and a hook and eye
+  // closes them, so its steps name no extension: they sent the sewist looking for one; era pattern review, Nov 14.)
   // A low rise's band is cut curved, a band and its facing: not folded (trouserBand.ts).
   const curved = !!d.bandTop;
   const sideZip = d.closure === 'side_zip';
@@ -172,11 +174,11 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
             title: 'Attach the waistband',
             text: fly
               ? `Pin the ${curved ? "outer band's longer, lower edge" : 'interfaced edge of the waistband'} to the trousers waist, right sides together, matching the notches to the side seams and the centre back seam. The end with the extension goes on the right front, over the fly shield; the other end is level with the left front's fly edge, plus ${seam}. Sew ${waist} from the edge and press the seam up into the band.`
-              : `Pin the ${curved ? "outer band's longer, lower edge" : 'interfaced edge of the waistband'} to the trousers waist, right sides together, matching the notches to the centre front, the centre back and the right side seam. The ends meet the zip at the left side, the extension end on the back. Sew ${waist} from the edge and press the seam up into the band.`,
+              : `Pin the ${curved ? "outer band's longer, lower edge" : 'interfaced edge of the waistband'} to the trousers waist, right sides together, matching the notches to the centre front, the centre back and the right side seam. The ends meet at the zip in the left side seam, each a seam allowance past its edge of the opening. Sew ${waist} from the edge and press the seam up into the band.`,
           },
           {
             title: 'Finish the waistband',
-            text: `${curved ? `Pin the facing to the outer band along their shorter, top edges, right sides together, and sew ${seam} from the edge, then across each end ${seam} in and along the extension. Trim, clip the curve and the corners, and turn it right side out. Understitch the facing so it rolls to the inside, and press over a ham to keep the curve. Press under ${seam} on the facing's lower edge, then hand-stitch it over the seam inside.` : `Fold the band along its fold line, right sides together, and sew across each end ${seam} in, and along the extension. Trim the corners and turn it right side out. Press under ${seam} on the loose edge, then hand-stitch it over the seam inside, or stitch in the ditch from the outside.`}${loops ? ' Turn each belt loop up over the band, turn its top end under and stitch it across the top of the band by machine, through the loop and the band.' : ''}`,
+            text: `${curved ? `Pin the facing to the outer band along their shorter, top edges, right sides together, and sew ${seam} from the edge, then across each end ${seam} in${fly ? ' and along the extension' : ''}. Trim, clip the curve and the corners, and turn it right side out. Understitch the facing so it rolls to the inside, and press over a ham to keep the curve. Press under ${seam} on the facing's lower edge, then hand-stitch it over the seam inside.` : `Fold the band along its fold line, right sides together, and sew across each end ${seam} in${fly ? ', and along the extension' : ''}. Trim the corners and turn it right side out. Press under ${seam} on the loose edge, then hand-stitch it over the seam inside, or stitch in the ditch from the outside.`}${loops ? ' Turn each belt loop up over the band, turn its top end under and stitch it across the top of the band by machine, through the loop and the band.' : ''}`,
           },
         ]),
     d.ruffle

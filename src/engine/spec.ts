@@ -3,15 +3,16 @@
 import { FACING_DEPTH, HIGH } from './skirtWaist';
 import { lowered, type Elastic, type SkirtDraft, type SkirtMeasurements } from './skirt';
 import type { OuterDraft, OuterMeasurements } from './outerwear';
-import type { BodiceDraft, BodiceLength, BodiceMeasurements } from './bodice';
+import { girthBelowWaist, type BodiceDraft, type BodiceLength, type BodiceMeasurements } from './bodice';
 import type { SpecRow } from './techpack';
 import type { SleeveDraft, SleeveMeasurements } from './sleeve';
-import type { DressDraft, DressMeasurements } from './dress';
+import { fromSeam, type DressDraft, type DressMeasurements } from './dress';
 import { TROUSER_EASE, risen, type TrousersDraft, type TrousersMeasurements } from './trousers';
 import { volumeSpec } from './skirtVolume';
 import { drapeSpec, zipSide } from './drape';
 import { SLIP_FACING } from './slip';
 import { loopsFor } from './sheerTop';
+import { isBandCollar } from './collar';
 import { STRETCH_WORDS } from './knits';
 import type { TeeDraft, TeeMeasurements } from './tee';
 import type { LingerieDraft, LingerieMeasurements } from './lingerie';
@@ -24,11 +25,14 @@ const r1 = (v: number) => Math.round(v * 10) / 10;
 const row = (label: string, body: number | undefined, finished: number): SpecRow =>
   body === undefined ? { label, finished: r1(finished) } : { label, body: r1(body), ease: r1(finished - body), finished: r1(finished) };
 
+/** A shoulder this narrow is a strap. */
+const STRAP_CM = 4;
+
 /** A low rise's waist row: read against the body where the band sits, not the waist above it, or a tester sees
  *  "+11.6 Roomy" on a band with 2 cm ease and takes it in (CLO tester sizes, Nov 13). */
-const lowWaistLabel = (cm: number) => `Waist, ${r1(cm)} cm below yours`;
+const lowWaistLabel = (cm: number) => `Waist, ${r1(Math.abs(cm))} cm ${cm < 0 ? 'above' : 'below'} yours`;
 /** The waist row, at the waist or a low rise's. */
-export const isWaistRow = (label: string) => label === 'Waist' || /^Waist, [\d.]+ cm below yours$/.test(label);
+export const isWaistRow = (label: string) => label === 'Waist' || /^Waist, [\d.]+ cm (below|above) yours$/.test(label);
 
 export function skirtSpec(m: SkirtMeasurements, d: SkirtDraft): SpecRow[] {
   const low = d.lowRise ? lowered(m, d.lowRise) : undefined;
@@ -97,7 +101,9 @@ export function bodiceSpec(m: BodiceMeasurements, d: BodiceDraft, length: Bodice
   if (d.finishedHem !== undefined && dropCm !== undefined) {
     rows.push(row(`Hem, ${d.drop} cm below the waist`, undefined, d.finishedHem));
   } else if (d.finishedHem !== undefined) {
-    const body = length === 'hip' ? m.full_hip : (m.high_hip ?? m.full_hip);
+    // A hem at the high hip reads against the body there, not the full hip below it: against the hip, a hem with 4 cm
+    // of ease showed as 4 cm too small (era pattern review, Nov 14).
+    const body = length === 'hip' || m.full_hip === undefined || m.waist_to_hip === undefined ? m.full_hip : girthBelowWaist({ waist: m.waist, full_hip: m.full_hip, waist_to_hip: m.waist_to_hip, high_hip: m.high_hip }, d.drop);
     rows.push(row(length === 'hip' ? 'Hip (hem)' : 'High hip (hem)', body, d.finishedHem));
   }
   const t = d.top;
@@ -115,14 +121,17 @@ export function bodiceSpec(m: BodiceMeasurements, d: BodiceDraft, length: Bodice
     );
     return rows;
   }
+  const strap = d.shoulder.back <= STRAP_CM;
   rows.push(
     { label: 'Nape to waist', body: r1(m.nape_to_waist), finished: '' },
     row('Centre back length', undefined, d.backLength),
-    row('Armhole', m.armscye, d.armhole),
-    row('Shoulder seam (back)', m.shoulder_length, d.shoulder.back),
+    // A strap or a wide neck is narrower than the shoulder on purpose, and a strap's armhole runs round under the arm:
+    // set against the body they read as 10 cm too small or 18 cm too big, so they are given as lengths only.
+    row('Armhole', strap ? undefined : m.armscye, d.armhole),
+    row('Shoulder seam (back)', d.shoulder.back < m.shoulder_length - 1 ? undefined : m.shoulder_length, d.shoulder.back),
     { label: 'Shoulder angle, front / back', finished: `${d.shoulderSlope.front} / ${d.shoulderSlope.back} degrees` },
     ...drapeSpec(d),
-    ...(d.wrap ? tieRows(d.wrap.ties) : d.pullOn ? [{ label: 'Opening', finished: 'none: it pulls on' }] : d.backLoops ? [{ label: 'Buttons and loops, centre back', finished: `${loopsFor(d)}` }] : [{ label: d.drape?.kind === 'one_shoulder' ? `Invisible zip, ${zipSide(d)} side` : 'Invisible zip, centre back', finished: `${d.zipCm}` }]),
+    ...(d.wrap ? tieRows(d.wrap.ties) : d.pullOn ? [{ label: 'Opening', finished: 'none: it pulls on' }] : d.backLoops ? [{ label: 'Buttons and loops, centre back', finished: `${loopsFor(d)}` }] : d.closure === 'front_buttons' ? [{ label: `Buttons, centre front${isBandCollar(d.collar) || d.collar === 'shirt' ? ' (and 1 on the collar stand)' : ''}`, finished: `${d.buttons?.count ?? 5}` }] : [{ label: d.drape?.kind === 'one_shoulder' ? `Invisible zip, ${zipSide(d)} side` : 'Invisible zip, centre back', finished: `${d.zipCm}` }]),
   );
   // (Whatever the opening: a drawstring's cord and a shoulder panel's trim are bought by these lengths.)
   if (d.hemTie) rows.push({ label: 'Drawstring cord, hem', finished: `${d.hemTie.cordCm}` });
@@ -156,28 +165,34 @@ export function dressSpec(m: DressMeasurements, d: DressDraft, sleeve?: SleeveDr
   const zip = /zip/i;
   return [
     // The bodice's own hem row is left out: on a dress it is the waist seam or, with no seam, the dress's hem, each given below.
-    ...bodiceSpec(m, d.bodice, 'waist').filter((r) => !zip.test(r.label) && !/\(hem\)$/.test(r.label)),
+    // (A raised seam's bodice ends under the bust: its "waist" is that seam, given below against the body there, not the waist.)
+    // (A shirt dress's buttons run on down the skirt: the row counts them all, as the first page does.)
+    ...bodiceSpec(m, d.bodice, 'waist')
+      .filter((r) => !zip.test(r.label) && !/\(hem\)$/.test(r.label) && !(r.label === 'Waist' && d.seamDrop < 0))
+      .map((r) => (d.skirtButtons && /^Buttons, centre front/.test(r.label) ? { ...r, finished: `${(d.bodice.buttons?.count ?? 0) + d.skirtButtons.count}` } : r)),
     // (The hip is the dress's own: a shift with no waist seam is cut from the top's block, and the skirt drafted beside it
     // only for its length gave the table 2 cm more hip than the pieces and the first page's note; tester pattern review, Nov 13.)
     ...skirtSpec(m, d.skirt)
       .filter((r) => r.label !== 'Waist' && !zip.test(r.label) && !/Waistband/.test(r.label))
       .map((r) => (r.label === 'Hip' ? row('Hip', m.full_hip, d.finishedHip) : r)),
-    ...(d.seamCm ? [{ label: d.seamDrop > 0 ? `Waist seam, ${d.seamDrop} cm below the waist` : `Waist seam, ${-d.seamDrop} cm above the waist`, finished: d.seamCm }] : []),
+    ...(d.seamCm ? [row(d.seamDrop > 0 ? `Waist seam, ${d.seamDrop} cm below the waist` : `Waist seam, ${-d.seamDrop} cm above the waist`, fromSeam(m, d.seamDrop).waist, d.seamCm)] : []),
     row('Length, nape to hem', undefined, d.lengthCm),
     ...(sleeve ? sleeveSpec(m, sleeve) : []),
-    ...(d.bodice.wrap ? [] : [{ label: d.zipSide ? `Invisible zip, ${zipSide(d.bodice)} side` : 'Invisible zip, centre back', finished: `${d.zipCm}` }]),
+    ...(d.bodice.wrap || d.skirtButtons ? [] : d.zipCm === 0 ? [{ label: 'Opening', finished: 'none: it pulls on' }] : [{ label: d.zipSide ? `Invisible zip, ${zipSide(d.bodice)} side` : 'Invisible zip, centre back', finished: `${d.zipCm}` }]),
   ];
 }
 
 /** Trousers: waist and hip, the crotch as measured and as drafted, and the leg. */
 export function trousersSpec(m: TrousersMeasurements, d: TrousersDraft): SpecRow[] {
-  // A low rise: its waist and crotch read against the body where the band sits (the crotch shorter by the drop, front and back).
-  const low = d.riseCm !== undefined && d.riseCm < 0 ? risen(m, d.riseCm) : undefined;
+  // A low or a high rise: its waist and crotch read against the body where the band sits (the crotch shorter or longer by
+  // the rise, front and back). A high rise read from the natural waist showed 8 cm more crotch ease than it has, and a
+  // crotch depth 4 cm short of the pieces (era pattern review, Nov 14).
+  const low = d.riseCm ? risen(m, d.riseCm) : undefined;
   return [
     low ? row(lowWaistLabel(m.waist_to_hip - low.waist_to_hip), low.waist, d.finishedWaist) : row('Waist', m.waist, d.finishedWaist),
     row('Hip', m.full_hip, d.finishedHip),
     { label: 'Waist to hip', body: r1(m.waist_to_hip), finished: '' },
-    row('Crotch depth', m.crotch_depth, m.crotch_depth + TROUSER_EASE[d.fit].depth),
+    low ? row('Crotch depth, from where they sit', low.crotch_depth, low.crotch_depth + TROUSER_EASE[d.fit].depth) : row('Crotch depth', m.crotch_depth, m.crotch_depth + TROUSER_EASE[d.fit].depth),
     low ? row('Crotch length, from where they sit', low.crotch_length, d.crotch.front + d.crotch.back) : row('Crotch length', m.crotch_length, d.crotch.front + d.crotch.back),
     { label: 'Crotch curve, front / back', finished: `${d.crotch.front} / ${d.crotch.back}` },
     row('Outside leg, waist to hem', undefined, d.lengthCm),
