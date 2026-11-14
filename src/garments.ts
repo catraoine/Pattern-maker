@@ -136,7 +136,8 @@ export const DRESS_FIT_GROUP = {
 /** The dress's waist seam, from just under the bust down to low on the hip. */
 export const WAIST_SEAM_GROUP = {
   id: 'waistSeam',
-  label: 'Waist seam',
+  // "Waist height", not "Waist seam": the Cut question before it has a choice called Waist seam (copy review, Nov 14).
+  label: 'Waist height',
   options: [
     ['empire', 'Empire'],
     ['raised', 'High'],

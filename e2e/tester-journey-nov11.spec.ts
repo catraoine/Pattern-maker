@@ -22,7 +22,7 @@ test('What would you like to make? opens the collection first', async ({ page })
   await measureMe(page);
   await fillStepPages(page);
   await main(page).getByRole('button', { name: 'Choose what to make' }).click();
-  await main(page).getByRole('button', { name: 'Maison Tracé collection ›' }).click();
+  await main(page).getByRole('button', { name: 'The collection ›' }).click();
   await expect(main(page).getByRole('heading', { name: 'The collection' })).toBeVisible();
   // Back returns to the list it came from.
   await main(page).getByRole('button', { name: 'Back', exact: true }).click();
@@ -63,7 +63,7 @@ test('a collection top below the waist asks for the hip first, so Style drafts i
   await measureMe(page);
   await fillStepPages(page);
   await main(page).getByRole('button', { name: 'Choose what to make' }).click();
-  await main(page).getByRole('button', { name: 'Maison Tracé collection ›' }).click();
+  await main(page).getByRole('button', { name: 'The collection ›' }).click();
   await main(page).getByRole('listitem').filter({ has: page.getByRole('heading', { name: 'Ice Peplum Top', exact: true }) }).getByRole('button', { name: 'Make this look' }).click();
   // The pages it takes, then the look itself, ready to print; Change a detail goes on to Style.
   const made = main(page).getByRole('button', { name: 'Change a detail' });

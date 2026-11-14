@@ -249,7 +249,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
         </button>
         {onSkip && (
           <button type="button" className="later" onClick={() => onSkip()}>
-            Measure later
+            Try it with an example body
           </button>
         )}
       </Shell>
@@ -280,14 +280,8 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     const wrong = weight !== undefined && (weight < WEIGHT_HARD[0] || weight > WEIGHT_HARD[1]);
     const done = () => (page.back && canGoBack() ? goBack() : setPage({ kind: 'check' }));
     return (
-      <Shell eyebrow="Optional" title={helper ? 'Their weight' : 'Your weight'} hero={<TapeDemo id="waist" mode="still" kind={form} />} short>
-        <p className="muted step-tip">Helps us catch a slipped tape. Never drafted from, shown or sent.</p>
-        <details className="how-more">
-          <summary className="later go how-link">How it's used</summary>
-          <p className="muted step-tip">
-            We check {helper ? 'their' : 'your'} measurements against {helper ? 'their' : 'your'} height and weight before anything is drafted, so a wrong unit or a slipped tape is caught early. It's never drafted from, shown on a pattern or sent anywhere.
-          </p>
-        </details>
+      <Shell eyebrow="Optional" title={helper ? 'Their weight' : 'Your weight'}>
+        <p className="muted step-tip">Helps us catch potential mismeasurements.</p>
         <form
           className="measure-entry"
           onSubmit={(e) => {
@@ -316,7 +310,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
 
   if (page.kind === 'check')
     return (
-      <Shell eyebrow={returning ? 'Welcome back' : helper ? 'Their base measurements' : 'Your base measurements'} title="Do these look right?">
+      <Shell eyebrow={returning ? 'Welcome back' : undefined} title="Do these look right?">
         <p className="muted step-tip">
           {returning ? `${helper ? 'Their' : 'Your'} measurements are saved on this device. Check they still look right, then carry on. ` : ''}Tap a number to change it.
         </p>
@@ -360,7 +354,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
           {onLooks && (
             // Named for what it opens, as the testers' emails and the Style title's drop-down say (Nov 12).
             <button type="button" className="make-looks" onClick={onLooks}>
-              Maison Tracé collection ›
+              The collection ›
             </button>
           )}
           {[...GARMENTS, 'other' as const].map((g) => (
@@ -693,7 +687,7 @@ export function Shell({
           {children}
           {skip ? (
             <button type="button" className="later" onClick={skip}>
-              Measure later
+              Try it with an example body
             </button>
           ) : (
             later && (
@@ -991,8 +985,8 @@ export function MeasurePage({
           How to do it <span aria-hidden="true">›</span>
         </button>
         {onFriend && (
-          <button type="button" className="later how-link friend-link" aria-pressed={!!friend} aria-label={friend ? 'Measuring on my own' : 'A friend is holding the tape'} onClick={() => onFriend(!friend)}>
-            {friend ? 'On my own' : 'With a friend'}
+          <button type="button" className="later how-link friend-link" aria-pressed={!!friend} aria-label={friend ? 'I am measuring myself' : 'A friend is measuring me'} onClick={() => onFriend(!friend)}>
+            {friend ? 'I measure myself' : 'A friend measures'}
           </button>
         )}
       </p>

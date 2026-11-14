@@ -44,6 +44,9 @@ export function finishedLines(rows: SpecRow[], opts: { knit?: boolean; elasticCm
   return [...shown.filter((l) => l.body !== undefined), ...shown.filter((l) => l.body === undefined)];
 }
 
+/** The table's plainer names for two rows; the printed spec sheet keeps the pattern cutter's words. */
+const PLAIN: Record<string, string> = { 'Hem circumference': 'Hem, all the way round', 'Length, nape to hem': 'Length, back of neck to hem' };
+
 const fmt = (v: number) => `${Math.round(v * 10) / 10}`;
 const signed = (v: number) => (v > 0 ? `+${fmt(v)}` : v < 0 ? `−${fmt(-v)}` : '0');
 
@@ -69,7 +72,7 @@ export function FinishedTable({ lines, noun, children }: { lines: FinishedLine[]
         <tbody>
           {lines.map((l) => (
             <tr key={l.label}>
-              <th scope="row">{l.label}</th>
+              <th scope="row">{PLAIN[l.label] ?? l.label}</th>
               <td>{l.body !== undefined ? fmt(l.body) : ''}</td>
               <td className="fin">{fmt(l.finished)}</td>
               <td className="ease">

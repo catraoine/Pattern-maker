@@ -45,7 +45,7 @@ test('a printed pattern is kept in Saved patterns', async ({ page }) => {
   await main(page).getByRole('button', { name: 'Print the example anyway' }).click();
   await waiting;
   // The example body isn't kept: only a pattern drafted to someone.
-  await expect(main(page)).not.toContainText('Kept in Your account');
+  await expect(main(page)).not.toContainText('Saved in Your account');
 
   // Measured: printing keeps it.
   test.setTimeout(150_000);
@@ -62,7 +62,7 @@ test('a printed pattern is kept in Saved patterns', async ({ page }) => {
   const again = page.waitForEvent('download');
   await download.click();
   await again;
-  await expect(main(page).getByRole('status').filter({ hasText: 'Kept in Your account' })).toBeVisible();
+  await expect(main(page).getByRole('status').filter({ hasText: 'Saved in Your account' })).toBeVisible();
   await openAccount(page);
   await expect(main(page).getByRole('region', { name: 'Saved patterns' })).toContainText('1 of 3');
 });
@@ -103,7 +103,7 @@ test('Email me the PDF sends the PDF the app made, and says where it went', asyn
 test('the print screen says blank pages are left out', async ({ page }) => {
   await startWithExample(page);
   await goPrint(page);
-  await expect(main(page)).toContainText('Pages with nothing on them are left out');
+  await expect(main(page)).toContainText('Blank pages are left out');
 });
 
 test.describe('on an upright iPad', () => {

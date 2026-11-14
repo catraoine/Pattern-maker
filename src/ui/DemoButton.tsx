@@ -52,13 +52,13 @@ const DEMOS = {
     length: '0:32',
   },
   fabric: {
-    title: 'How fabric and the lay plan work',
+    title: 'How fabric and the cutting layout work',
     base: '/demos/fabric',
     parts: [
       { name: 'Fabric', from: 0, says: 'Pick the fabric you will sew with. The drawing shows it.' },
       { name: 'Print', from: 10.7, says: 'Checks or stripes? Pick one, and the pieces are placed so they match.' },
-      { name: 'Lay plan', from: 17.0, says: 'On Print, the lay plan shows where each piece goes on your fabric.' },
-      { name: 'Width', from: 23.6, says: 'Set your fabric’s width. The plan moves the pieces to fit.' },
+      { name: 'Cutting layout', from: 17.0, says: 'On Print, the cutting layout shows where each piece goes on your fabric.' },
+      { name: 'Width', from: 23.6, says: 'Set your fabric’s width. The layout moves the pieces to fit.' },
     ],
     length: '0:35',
   },

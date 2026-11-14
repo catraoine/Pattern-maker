@@ -170,7 +170,7 @@ export const OFFERS: Record<OfferId, Offer> = {
     id: 'labels',
     eyebrow: 'Woven labels · posted',
     title: 'Have your labels woven',
-    text: 'Twelve woven labels in black and champagne, with your name and this pattern\'s code, posted to you.',
+    text: 'Twelve woven labels in the house colours, with your name and this pattern\'s code, posted to you.',
     prices: [['Pack of 12', '$18']],
     button: 'Tell me when it opens',
     thanks: "Thank you. We'll email you when woven labels open.",

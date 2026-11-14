@@ -150,7 +150,7 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
       <div className="folds">
         <Fold id="stitle" title="Saved patterns" summary={limit === Infinity ? `${saved} saved` : `${saved} of ${limit}`} open>
           {saved === 0 ? (
-            <p className="muted">Nothing saved yet. A pattern you print is kept here, or tap "Keep in my patterns" on Review. Once you've sewn it, note how it fitted here.</p>
+            <p className="muted">Nothing saved yet. Patterns you print are saved here.</p>
           ) : (
             <ul className="saved">
               {account.patterns.map((p) => (
@@ -324,8 +324,8 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
           <TesterCode code={account.testerCode} unit={unit} onCode={onTesterCode} />
         </Fold>
 
-        <Fold id="intesttitle" title="Still in testing" summary={`${left.length} to pass`}>
-          <p className="muted small">Usable now, labelled In testing until each passes its test at the fit gate. A label comes off by hand once its test is passed, never by itself.</p>
+        <Fold id="intesttitle" title="Still in testing" summary={`${left.length} new features`}>
+          <p className="muted small">These work now. Each keeps its In testing label until sewists have tested it.</p>
           <ul className="muted small testing-list">
             {left.map((t) => (
               <li key={t.name}>

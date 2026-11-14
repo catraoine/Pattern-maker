@@ -114,7 +114,7 @@ const noSeamLines = (draft: DressDraft, side: 'front' | 'back') => {
 // Named Length & hem as on every other garment (Cat, 2026-10-31); the Cut (waist seam, sheath or shift) is on Shape,
 // with the waist seam's height under it, so the seam is asked about once.
 const LEN = 'Length & hem';
-const DRESS_SECTIONS: Record<string, string> = { Cut: 'Shape', Silhouette: LEN, Length: LEN, Hem: LEN, Slit: LEN, Fullness: LEN, Pockets: LEN, Belt: LEN };
+const DRESS_SECTIONS: Record<string, string> = { Cut: 'Shape', 'Skirt shape': LEN, Length: LEN, Hem: LEN, Slit: LEN, 'Pleats and frills': LEN, Pockets: LEN, Belt: LEN };
 
 
 /** A sheath's sides: plain, or ruched below the hip. */
@@ -208,8 +208,8 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
     ...(noSeam
       ? []
       : [
-          // Named as on the skirt, so the Length & hem step doesn't ask a question called Skirt (Cat, 2026-10-30).
-          { id: 'silhouette', label: 'Silhouette', options: GROUPS[1].options },
+          // "Skirt shape" says which part of the dress it sets (copy review, Nov 14; it was Silhouette, as on the skirt).
+          { id: 'silhouette', label: 'Skirt shape', options: GROUPS[1].options },
           ...(choices.skirt.silhouette === 'gathered' ? [GATHERS_GROUP as { id: string; label: string; options: [string, string][] }] : []),
         ]),
     ...(noSeam || wrapped
@@ -218,7 +218,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           // The dress's zip runs down the centre back, so its skirt can't be cut whole for a diagonal hem.
           { id: 'asymHem', label: 'Hem', options: GROUPS[3].options.filter(([id]) => id !== 'diagonal') as [string, string][] },
           { id: 'slit', label: 'Slit', options: SLIT_PLACES },
-          { id: 'volume', label: 'Fullness', options: DETAIL_OPTIONS },
+          { id: 'volume', label: 'Pleats and frills', options: DETAIL_OPTIONS },
           { id: 'pockets', label: 'Pockets', options: DETAIL_GROUPS[1].options },
         ]),
     // A wrap ties already, so it takes no sash.
@@ -770,9 +770,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
             ? 'The skirt is cut on the bias, for a slip dress: it has no darts, its waist seam is drafted to the bodice, and the cloth moulds to the hip.'
             : choices.skirt.silhouette === 'gathered'
               ? `The skirt is cut as straight panels and gathered to the bodice’s ${draft?.seamDrop ? 'seam' : 'waist seam'}, so it needs no darts.`
-              : draft?.seamDrop
-                ? 'The skirt is drafted to the bodice: the seams are the same length.'
-                : 'The skirt is drafted to the bodice: the waist seams are the same length, and the darts meet at the seam in one line.'}{' '}
+              : ''}{' '}
           {draft?.seamDrop ? 'The waist seam is dropped to the high hip: the bodice skims past your waist and the skirt falls from lower down. ' : ''}
           {wrapped
             ? 'It crosses over at the front and ties at the waist, with no zip: each front is a pair, bodice and skirt, and the back is cut whole.'

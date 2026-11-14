@@ -74,10 +74,10 @@ export function LabelCard({ name, code, pattern, onKeep }: Props) {
         </>
       ) : (
         <>
-          <p className="muted small">Keep this pattern in your patterns to give it its code, then print labels at home.</p>
+          <p className="muted small">Save this pattern to give it its code, then print labels at home.</p>
           {onKeep && (
             <button type="button" className="secondary" onClick={onKeep}>
-              Keep in my patterns
+              Save this pattern
             </button>
           )}
         </>

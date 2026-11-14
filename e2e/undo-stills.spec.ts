@@ -62,7 +62,7 @@ test('undo stills: the other spots', async ({ page, consoleErrors }) => {
   await goPrint(page);
   const all = await showAllTools(page);
   if (await all.count()) await all.click();
-  await main.getByRole('button', { name: 'I’ve tried on a toile' }).click();
+  await main.getByRole('button', { name: 'I’ve tried on my test version' }).click();
   await main.getByText('Pulls across the hips').click();
   await main.getByRole('button', { name: 'Clear every correction' }).click();
   await main.getByRole('button', { name: 'Undo clear' }).scrollIntoViewIfNeeded();

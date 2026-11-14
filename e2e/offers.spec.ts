@@ -24,7 +24,7 @@ test('offers: sign up for printing by post and a founding place', async ({ page 
   // Back climbs to Style; on a phone, Keep is on its Review page.
   await page.goBack();
   await openReview(page);
-  await main.getByRole('button', { name: 'Keep in my patterns' }).click();
+  await main.getByRole('button', { name: 'Save this pattern' }).click();
   await main.getByRole('button', { name: 'your patterns' }).click();
   const founding = await openFold(page, 'Membership');
   await expect(founding).toContainText('Be one of the first 250');

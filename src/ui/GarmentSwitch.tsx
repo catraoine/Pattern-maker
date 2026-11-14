@@ -38,9 +38,9 @@ export function GarmentDrop({ label, onChoose, onPhoto }: { label?: string; onCh
       value={label}
       items={[
         { id: 'new', text: 'Start a new garment ›' },
-        ...(openCollection ? [{ id: 'collection', text: 'Maison Tracé collection ›' }] : []),
+        ...(openCollection ? [{ id: 'collection', text: 'The collection ›' }] : []),
         ...(onPhoto ? [{ id: 'photo', text: 'Start from a photo ›' }] : []),
-        ...(pick ? [{ id: 'saved', text: 'My saved patterns ›' }] : []),
+        ...(pick ? [{ id: 'saved', text: 'Saved patterns ›' }] : []),
       ]}
       onPick={(id) => (id === 'collection' ? openCollection?.() : id === 'photo' ? onPhoto?.() : id === 'saved' ? pick?.onSaved() : pick ? pick.onNew() : onChoose())}
     />

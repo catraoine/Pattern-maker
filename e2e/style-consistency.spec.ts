@@ -16,8 +16,8 @@ test('the questions have no undo or redo, and save reads the same on the trouser
 
   await expect(main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Pattern/ })).toBeVisible();
   await openReview(page);
-  await main.getByRole('button', { name: 'Keep in my patterns' }).click();
-  await expect(main.getByRole('status').filter({ hasText: 'Kept in your patterns' })).toBeVisible();
+  await main.getByRole('button', { name: 'Save this pattern' }).click();
+  await expect(main.getByRole('status').filter({ hasText: 'Saved in Saved patterns' })).toBeVisible();
 });
 
 // A first-timer is in the simple view, and can still start a skirt from a photo.
@@ -50,13 +50,13 @@ test('the garment drop-down offers a new garment, the collection, a photo and sa
     await drop.locator('.drop-button').click();
   };
   await open();
-  await expect(drop.getByRole('menuitemradio')).toHaveText(['Start a new garment ›', 'Maison Tracé collection ›', 'Start from a photo ›', 'My saved patterns ›']);
-  await drop.getByRole('menuitemradio', { name: 'Maison Tracé collection ›' }).click();
+  await expect(drop.getByRole('menuitemradio')).toHaveText(['Start a new garment ›', 'The collection ›', 'Start from a photo ›', 'Saved patterns ›']);
+  await drop.getByRole('menuitemradio', { name: 'The collection ›' }).click();
   await expect(main.getByRole('heading', { name: 'Leopard Shirt Dress' })).toBeVisible();
   await page.goBack();
   await expectStyle(page, 'Skirt');
   await open();
-  await drop.getByRole('menuitemradio', { name: 'My saved patterns ›' }).click();
+  await drop.getByRole('menuitemradio', { name: 'Saved patterns ›' }).click();
   await expect(main.getByRole('heading', { name: 'Saved patterns' })).toBeVisible();
   await page.goBack();
   await expectStyle(page, 'Skirt');

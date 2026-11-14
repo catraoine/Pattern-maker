@@ -400,7 +400,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
               {shareNote && <p className="msg small">{shareNote}</p>}
               {kept && (
                 <p className="small muted" role="status">
-                  Kept in Your account, under Saved patterns.
+                  Saved in Your account, under Saved patterns.
                 </p>
               )}
             </div>
@@ -423,13 +423,28 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
                 <SendToDevice link={sendLink} className="link" />
               </div>
             )}
-            <p>
-              {projector
-                ? 'One page at true size, for a projector app such as Pattern Projector. Line your projector up with the 10 cm test square.'
-                : paper === 'a0'
-                  ? 'Ask the copy shop to print at 100% (actual size). Measure the 10 cm test square before you cut.'
-                  : `Print at 100% (actual size). Measure the 10 cm test square on page A1 before you cut.${pages < grid.rows * grid.cols ? ' Pages with nothing on them are left out: leave a gap where one is missing when you tape.' : ''}`}
-            </p>
+            {projector || paper === 'a0' ? (
+              <p>
+                {projector
+                  ? 'One page at true size, for a projector app such as Pattern Projector. Line your projector up with the 10 cm test square.'
+                  : 'Ask the copy shop to print at 100% (actual size). Measure the 10 cm test square before you cut.'}
+              </p>
+            ) : (
+              // Each step opens in bold, like How styling works (copy review, Nov 14), so the one that matters is found at a glance.
+              <div className="stack print-steps">
+                <p>
+                  <b>Print at 100%</b> (actual size), never “fit to page”.
+                </p>
+                <p>
+                  <b>Check the size.</b> The test square on page A1 must measure 10 cm before you cut.
+                </p>
+                {pages < grid.rows * grid.cols && (
+                  <p>
+                    <b>Blank pages are left out.</b> Leave a gap where a page number is missing when you tape.
+                  </p>
+                )}
+              </div>
+            )}
             {projector && made && (
               <div className="stack projector-offer">
                 <h3>
@@ -474,7 +489,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
             {/* The file is longer than the tiles: a copy shop prints and charges for every page (the tester walk, 2026-10-27). */}
             {!projector && paper !== 'a0' && ready && pdf && pdf.total > pages && (
               <p className="small muted">
-                The file has {pdf.total} pages: a cover, the {pages} pattern pages (A1 is page 2), then the cutting layout and sewing steps. At a copy shop, ask for pages 2 to {pages + 1}.
+                <b>At a copy shop,</b> ask for pages 2 to {pages + 1} of the PDF. The rest are the cover, the cutting layout and the sewing steps.
               </p>
             )}
             {!projector && paper !== 'a0' && (
@@ -502,11 +517,12 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
                 <DemoButton demo="print" />
               </div>
             )}
-            {!imported && <p className="muted small">
-              {passed === checks.length
-                ? 'Checked: every seam meets its partner and every curve runs smoothly from piece to piece.'
-                : `${checks.length - passed} of ${checks.length} seam checks found something to look at. The details are on the last page of the PDF.`}
-            </p>}
+            {/* Said only when a check found something: a line that everything passed was reassurance (copy review, Nov 14). */}
+            {!imported && passed < checks.length && (
+              <p className="muted small">
+                {checks.length - passed} of {checks.length} seam checks found something to look at. The details are on the last page of the PDF.
+              </p>
+            )}
           </div>
           <div className="print-more">
             {can('byHand') && !imported && (
@@ -517,7 +533,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
                 </span>
               </label>
             )}
-            <ModeLink quiet mode={mode} onMode={onMode} what="a toile fitting, a dressmaker's pack and more" />
+            <ModeLink quiet mode={mode} onMode={onMode} what="a test fitting, a dressmaker's pack and more" />
           </div>
         </section>
       </div>
@@ -600,8 +616,8 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
           home can't, so a first-time sewist is offered it before cutting good fabric. */}
       {!imported && (
         <section className="card" aria-labelledby="toiletitle">
-          <p className="eyebrow">Before your fabric{fittingNotes.length && fitting ? ` · version ${fitting.round + 1}` : ''}</p>
-          <h2 id="toiletitle">{knit ? 'Try it in a spare knit first' : fittingNotes.length ? 'Corrected after your toile' : 'Fit it in a toile first'}</h2>
+          <p className="eyebrow">Before you cut your fabric{fittingNotes.length && fitting ? ` · version ${fitting.round + 1}` : ''}</p>
+          <h2 id="toiletitle">{knit ? 'Try it in a spare knit first' : fittingNotes.length ? 'Corrected after your toile' : 'Sew a test version first'}</h2>
           {knit ? (
             <p className="muted">
               {garment === 'lingerie'
@@ -616,14 +632,14 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
             </ul>
           ) : (
             <p className="muted">
-              Make it up in calico first and try it on. Tell us what you see, such as {isLowerBody(garment) ? 'pulling across the hips or folds below the back waist' : 'pulling at the bust or a gaping neckline'}, and the
-              pattern is corrected the way a pattern cutter would, with a second line for one side if your shoulders or hips differ.
+              Sew it in cheap fabric first (a toile, or muslin) and try it on. Tick what you see, such as {isLowerBody(garment) ? 'pulling across the hips or folds below the back waist' : 'pulling at the bust or a gaping neckline'}, and your
+              pattern is redrawn to fix it.
             </p>
           )}
           <div className="row wrap">
             {!knit && (
               <button type="button" className="secondary" onClick={onFitting}>
-                {fittingNotes.length ? 'Fit another toile' : 'I’ve tried on a toile'}
+                {fittingNotes.length ? 'Fit another toile' : 'I’ve tried on my test version'}
               </button>
             )}
             {onTrueScale && made && can('toile') && (
@@ -774,7 +790,7 @@ function FabricStage({ fabric }: { fabric: MyFabric }) {
       <img src={fabricPhoto(id)} alt={label ? `${label} close up` : ''} />
       <figcaption>
         <span className="fabname">{label ?? 'No fabric chosen'}</span>
-        <span className="muted small">{label ? (handle ? handle[0].toUpperCase() + handle.slice(1) : 'Set the weight and drape on the Fabric tab.') : 'Choose one on the Fabric tab.'}</span>
+        <span className="muted small">{label ? (handle ? handle[0].toUpperCase() + handle.slice(1) : 'Set the weight and drape under Fabric in Style.') : 'Choose one under Fabric in Style.'}</span>
       </figcaption>
     </figure>
   );
@@ -851,7 +867,7 @@ function YourFabric({ fabric, style, metres, onChange }: { fabric: MyFabric; sty
         </p>
       ))}
       <p className="muted small">
-        {name ? 'Chosen on the Fabric tab. It sets the cutting layout below and goes on the PDF.' : 'Choose it on the Fabric tab to see the style in it. It goes on the PDF.'}
+        {name ? 'Chosen under Fabric in Style. It sets the cutting layout below and goes on the PDF.' : 'Choose it under Fabric in Style to see the style in it. It goes on the PDF.'}
       </p>
       {onChange && (
         <button type="button" className="later go" onClick={onChange}>

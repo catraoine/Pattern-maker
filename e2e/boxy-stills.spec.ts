@@ -45,7 +45,7 @@ test('boxy stills', async ({ page, consoleErrors }, info) => {
         el.dispatchEvent(new Event('input', { bubbles: true }));
       });
     await tab('Length & hem');
-    await pick('Straight', 'Silhouette');
+    await pick('Straight', 'Skirt shape');
     await chooseLength(page, 'Mini');
     await page.waitForTimeout(400);
     await tab('Fabric');

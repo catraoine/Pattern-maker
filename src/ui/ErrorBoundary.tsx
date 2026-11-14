@@ -61,7 +61,7 @@ function CrashScreen() {
               Reload
             </button>
           </div>
-          <p className="small">Still here after a reload? A design choice saved by an older version of the app can stop it opening. Put your designs back to their standard choices: your measurements and the patterns you kept stay as they are.</p>
+          <p className="small">Still stuck after reloading? Reset your style choices. Your measurements and saved patterns stay.</p>
           <div className="stack">
             <button type="button" className="secondary" onClick={resetDesigns}>
               Reset my designs

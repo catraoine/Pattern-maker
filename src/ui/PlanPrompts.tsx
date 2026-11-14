@@ -92,7 +92,7 @@ export function YourPlan({ account, onPlans }: { account: Account; onPlans: () =
         {plan === 'free' && (
           <div>
             <dt>Garments unlocked</dt>
-            <dd>{packs.length ? packs.map((g) => GARMENT_NAMES[g]).join(', ') : 'Skirt and bodice'}</dd>
+            <dd>{packs.length ? packs.map((g) => GARMENT_NAMES[g]).join(', ') : 'Skirt and top'}</dd>
           </div>
         )}
         <div>

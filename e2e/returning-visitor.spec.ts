@@ -21,8 +21,8 @@ test('returning visitor: a reload keeps the measurements and the saved pattern',
 
   await chooseChip(page, 'Length', 'Midi');
   await openReview(page);
-  await main.getByRole('button', { name: 'Keep in my patterns' }).click();
-  await expect(main.getByRole('status').filter({ hasText: 'Kept in' })).toBeVisible();
+  await main.getByRole('button', { name: 'Save this pattern' }).click();
+  await expect(main.getByRole('status').filter({ hasText: 'Saved in' })).toBeVisible();
 
   // Coming back later (a new visit, not a reload: a reload keeps your place since the journey review, Nov 10).
   await page.goto('/');
@@ -41,7 +41,7 @@ test('returning visitor: a reload keeps the measurements and the saved pattern',
   // The style chosen and the pattern saved are still there.
   await expect(lengthDot(page)).toHaveAttribute('aria-valuetext', 'Midi');
   await openReview(page);
-  await expect(main.getByRole('status').filter({ hasText: 'Kept in' })).toBeVisible();
+  await expect(main.getByRole('status').filter({ hasText: 'Saved in' })).toBeVisible();
 
   await openAccount(page);
   const saved = main.getByRole('region', { name: 'Saved patterns' });

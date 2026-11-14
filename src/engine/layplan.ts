@@ -420,7 +420,7 @@ export function layWords(lay: Lay): string {
       : lay.border === 'too-long'
         ? ` Border print: a piece is longer than the fabric is wide, so it can't be turned to put its hem on the border. It is laid on the straight grain; let the border fall where it lands, or choose a shorter length or a wider fabric.`
         : '';
-  return `${way}${single}${grain}${bias}${up}${edge} The pieces use ${Math.round(lay.efficiency * 100)}% of the fabric.`;
+  return `${way}${single}${grain}${bias}${up}${edge}`;
 }
 
 

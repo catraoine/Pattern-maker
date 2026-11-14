@@ -44,7 +44,7 @@ test('draws princess seams and a neckline on the form', async ({ page }) => {
   await expect(main.getByRole('status')).toHaveText(/Neckline \d+ cm below your neck/);
 
   await main.getByRole('button', { name: 'Done', exact: true }).click();
-  await expect(main.getByRole('heading', { name: 'Style your bodice' })).toBeVisible();
+  await expect(main.getByRole('heading', { name: 'Style your top' })).toBeVisible();
   await openReview(page);
   await expect(main.getByText(/Bodice side front/).first()).toBeVisible();
 });
@@ -68,16 +68,16 @@ test('back asks first, then leaves the bodice as it was', async ({ page }) => {
   // Asked again, and this time left without them: back on the style screen, the bodice as it was.
   await back.click();
   await ask.getByRole('button', { name: 'Leave without them' }).click();
-  await expect(main.getByRole('heading', { name: 'Style your bodice' })).toBeVisible();
+  await expect(main.getByRole('heading', { name: 'Style your top' })).toBeVisible();
   await expect(main.getByText(/Bodice side front/)).toHaveCount(0);
   // With nothing drawn, ← just goes back to the style screen, and the next ← carries on from there.
   await (await drawTool(page)).click();
   await back.click();
-  await expect(main.getByRole('heading', { name: 'Style your bodice' })).toBeVisible();
+  await expect(main.getByRole('heading', { name: 'Style your top' })).toBeVisible();
   // The style steps have no header ← (Cat's B, 2026-11-02): the phone's own back carries on from there.
   await expect(back).toBeHidden();
   await page.goBack();
-  await expect(main.getByRole('heading', { name: 'Style your bodice' })).toHaveCount(0);
+  await expect(main.getByRole('heading', { name: 'Style your top' })).toHaveCount(0);
 });
 
 test('Done keeps the lines, and the back button then leaves the style screen', async ({ page }) => {
@@ -88,17 +88,17 @@ test('Done keeps the lines, and the back button then leaves the style screen', a
   await main.getByRole('button', { name: 'Seam', exact: true }).click();
   await draw(page, [{ x: 12, y: 0.3 }, { x: 9, y: 24 }, { x: 9, y: 41.5 }]);
   await main.getByRole('button', { name: 'Done', exact: true }).click();
-  await expect(main.getByRole('heading', { name: 'Style your bodice' })).toBeVisible();
+  await expect(main.getByRole('heading', { name: 'Style your top' })).toBeVisible();
   const opened = await openReview(page);
   await expect(main.getByText(/Bodice side front/).first()).toBeVisible();
   // The drawing left nothing behind in the history: ← goes from Review to the style screen, then straight on.
   // On a computer the summary is beside the choices, so there's no Review page to step back from.
   if (opened) {
     await page.locator('.steady-back').click();
-    await expect(main.getByRole('heading', { name: 'Style your bodice' })).toBeVisible();
+    await expect(main.getByRole('heading', { name: 'Style your top' })).toBeVisible();
   }
   await page.goBack();
-  await expect(main.getByRole('heading', { name: 'Style your bodice' })).toHaveCount(0);
+  await expect(main.getByRole('heading', { name: 'Style your top' })).toHaveCount(0);
 });
 
 test('draws on the back, and undoes one line at a time', async ({ page }) => {
@@ -138,7 +138,7 @@ test('moves the dress waist seam: a chip, then drawn on the form', async ({ page
   await startWithExample(page);
   await switchGarment(page, 'Dress');
   const main = page.getByRole('main');
-  const seam = await openGroup(page, 'Waist seam');
+  const seam = await openGroup(page, 'Waist height');
   await seam.getByRole('button', { name: 'Empire', exact: true }).click();
   // The pick's line says where (just under the bust); the line under the slider adds how far above the waist.
   await expect(seam.getByText(/Just under the bust/).filter({ visible: true })).toHaveCount(1);
@@ -212,7 +212,7 @@ test('draws a yoke, an uneven neckline and a shaped hem on the bodice', async ({
   await draw(page, [{ x: -22, y: 56 }, { x: 0, y: 62 }, { x: 22, y: 56 }]);
   await expect(main.getByRole('status')).toHaveText(/hem|hip/i);
   await main.getByRole('button', { name: 'Done', exact: true }).click();
-  await expect(main.getByRole('heading', { name: 'Style your bodice' })).toBeVisible();
+  await expect(main.getByRole('heading', { name: 'Style your top' })).toBeVisible();
 });
 
 test('the skirt is drawn on as calico cloth, and a pleat line shows on it', async ({ page }) => {

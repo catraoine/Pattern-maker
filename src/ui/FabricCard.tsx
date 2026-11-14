@@ -27,22 +27,13 @@ export function FabricCard({ metres, advice, look, fabric, knit, lined, children
     <div className="fabric">
       <FabricMetres.Provider value={metres}>{children}</FabricMetres.Provider>
       <p className="fabric-amount">
-        <span className="big">{metres.toFixed(1)} m</span>{' '}
-        <span className="muted small">{knit ? 'of 150 cm wide knit fabric, rough estimate' : 'of 140 cm wide woven fabric, rough estimate'}</span>
+        <span className="muted small">About</span> <span className="big">{metres.toFixed(1)} m</span>{' '}
+        <span className="muted small">{knit ? 'of knit fabric, 150 cm wide' : 'of woven fabric, 140 cm wide'}</span>
       </p>
       {mine && <p className="small">Your fabric: {mine}.</p>}
       {/* Folded, so the tab stays short on a phone, under the pinned sketch. */}
       <details className="small fold-link">
-        {/* A hyphenated word kept whole: "T-shirt" split as "T-" and "SHIRT" across two lines (Cat, Nov 11 sweep). */}
-        <summary>
-          Good fabrics for{' '}
-          {advice.style.split(' ').map((w, i) => (
-            <span key={i}>
-              {i ? ' ' : ''}
-              {w.includes('-') ? <span className="nowrap">{w}</span> : w}
-            </span>
-          ))}
-        </summary>
+        <summary>Fabrics that suit this style</summary>
         <ul className="picks">
           {look && (
             <li>
@@ -78,7 +69,7 @@ export function FabricSummary({ metres, fabric }: { metres: number; fabric?: MyF
   const mine = describeFabric(fabric);
   return (
     <p className="small fabric-summary">
-      <b>Fabric</b> {metres.toFixed(1)} m{mine ? ` of ${mine}` : ''}. Change it on the Fabric tab.
+      <b>Fabric</b> {metres.toFixed(1)} m{mine ? ` of ${mine}` : ''}. Change it under Fabric in Style.
     </p>
   );
 }

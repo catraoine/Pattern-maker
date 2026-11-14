@@ -40,8 +40,8 @@ test('signature labels: code, label sheet and open from a label', async ({ page 
   await goPrint(page);
   await openExtras(page);
   const card = main.getByRole('region', { name: 'Sign what you made' });
-  await expect(card).toContainText('Keep this pattern in your patterns to give it its code');
-  await card.getByRole('button', { name: 'Keep in my patterns' }).click();
+  await expect(card).toContainText('Save this pattern to give it its code');
+  await card.getByRole('button', { name: 'Save this pattern' }).click();
   await expect(card).toContainText(/MT-[2-9A-Z]{4}/);
   const code = (await card.textContent())!.match(/MT-[2-9A-Z]{4}/)![0];
   const sheet = card.getByRole('button', { name: 'Print labels at home' });

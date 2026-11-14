@@ -54,7 +54,7 @@ test('make something else goes to the garments and asks only what is missing', a
   await expect(main.getByRole('heading', { level: 1, name: 'What would you like to make?' })).toBeVisible();
   await expect(main.getByText("let's take some measurements")).toHaveCount(0);
   // The garment being made is already lit; a tap on another goes straight to what it still needs.
-  await expect(main.getByRole('button', { name: /^Bodice/ })).toHaveAttribute('aria-current', 'true');
+  await expect(main.getByRole('button', { name: /^Top/ })).toHaveAttribute('aria-current', 'true');
   await main.getByRole('button', { name: /^Skirt/ }).click();
   const asked = await fillUntilStyle(page, 'skirt');
   // Only what the skirt still needs: the hips and the waist to hip are already in.
@@ -78,12 +78,12 @@ test('a garment missing an opening measurement asks it on its own pages, then st
   await page.getByRole('button', { name: /Your account/ }).click();
   await page.getByRole('navigation', { name: 'Steps' }).getByRole('button', { name: 'Measure' }).click();
   await main.getByRole('button', { name: 'Make something else' }).click();
-  await main.getByRole('button', { name: /^Bodice/ }).click();
+  await main.getByRole('button', { name: /^Top/ }).click();
   // The bust comes first, as the bodice's own page, then the bodice's extras; never the hips or height again.
   const asked = await fillUntilStyle(page, 'bodice');
   expect(asked[0]).toBe('Full bust');
   expect(asked).not.toContain('Full hip');
   expect(asked).not.toContain('Height');
-  await expect(main.getByRole('heading', { level: 1, name: 'Style your bodice' })).toBeVisible();
+  await expect(main.getByRole('heading', { level: 1, name: 'Style your top' })).toBeVisible();
   await expect(main.getByText("let's take some measurements")).toHaveCount(0);
 });

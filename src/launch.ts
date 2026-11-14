@@ -16,7 +16,7 @@ export function testingNote(name: (g: Garment) => string, garments: readonly Gar
   const names = garments.filter(inTesting).map(name);
   if (!names.length) return undefined;
   const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
-  return `${list[0].toUpperCase()}${list.slice(1)} ${names.length === 1 ? 'is' : 'are'} still in testing.`;
+  return `New, and not fit-tested yet: ${list}.`;
 }
 
 /** Every tool that carries the "In testing" tag, and what takes the tag off. One list, so nothing built stays tagged by
@@ -78,7 +78,7 @@ export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; p
   draw_lines: { name: 'Draw your lines', where: 'Style, Draw on your form', proof: 'fit testers draw a hem, a neckline and a side and the pattern follows' },
   draw_round: { name: 'Draw on it all round', where: 'Draw your lines, the all round switch', proof: 'three testers draw a hem and a side on the turning garment and get the same pattern as drawn flat' },
   body_double: { name: 'Body Double', where: 'Account and the form page', proof: 'one padded form checked against its person' },
-  prints: { name: 'Prints beyond checks', where: "What's the print?, About your fabric", proof: 'three testers cut a one-way or border print from the lay plan' },
+  prints: { name: 'Prints beyond checks', where: "What's the print?, About your fabric", proof: 'three testers cut a one-way or border print from the cutting layout' },
   any_colour: { name: 'Any colour', where: 'the colour dots on the Fabric tab', proof: 'shop colourways match the picked colour on five fabrics' },
   // Cat broke the freeze for it (2026-11-07, every gap in the design flexibility rating).
   fabric_feel: { name: 'Fabric feel', where: 'Feel, under All round', proof: 'five testers set the Feel to their own cloth and say All round hangs as it does' },
@@ -152,7 +152,7 @@ export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; p
 };
 
 /** What takes a garment's tag off: moving it to LAUNCH_GARMENTS once sewists score it at the fit gate. */
-export const GARMENT_PROOF = 'sewists score it 4 of 5 or better at the fit gate';
+export const GARMENT_PROOF = 'sewists score it 4 of 5 or better';
 
 /** Everything still tagged, for the Account page and the ship list: garments first, then tools. */
 export function stillInTesting(name: (g: Garment) => string, garments: readonly Garment[]): { name: string; proof: string }[] {

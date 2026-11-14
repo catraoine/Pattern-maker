@@ -43,7 +43,7 @@ test('from Feb 9 a founding member signs in past the waitlist and sees their num
   await expect(main.getByRole('button', { name: 'Join the waitlist' })).toHaveCount(0);
   await expect(main.getByRole('button', { name: 'Begin' })).toBeVisible();
   await main.getByRole('button', { name: 'Begin' }).click();
-  await main.getByRole('button', { name: 'Measure later' }).click();
+  await main.getByRole('button', { name: 'Try it with an example body' }).click();
   await openAccount(page);
   const fold = await openFold(page, 'Membership');
   await expect(fold.locator('summary').first()).toContainText('Founding member No. 60');

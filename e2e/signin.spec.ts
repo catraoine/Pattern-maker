@@ -18,7 +18,7 @@ async function accountAt(page: Page, url: string) {
   if (await carryOn.isVisible()) await carryOn.click();
   else {
     await begin.click();
-    await main.getByRole('button', { name: 'Measure later' }).click();
+    await main.getByRole('button', { name: 'Try it with an example body' }).click();
   }
   await openAccount(page);
 }
@@ -27,7 +27,7 @@ test('guest work survives signing in, comes to a second device, and the account 
   await startWithExample(page);
   const main = page.getByRole('main');
   await openReview(page);
-  await main.getByRole('button', { name: /^(Save pattern|Keep in my patterns)$/ }).click();
+  await main.getByRole('button', { name: /^(Save pattern|Save this pattern)$/ }).click();
 
   // Without the preview link there's no sign-in.
   await openAccount(page);
@@ -112,7 +112,7 @@ test('Continue with Google signs in and brings what was made on this device, as 
   await startWithExample(page);
   const main = page.getByRole('main');
   await openReview(page);
-  await main.getByRole('button', { name: /^(Save pattern|Keep in my patterns)$/ }).click();
+  await main.getByRole('button', { name: /^(Save pattern|Save this pattern)$/ }).click();
   await page.evaluate((k) => localStorage.setItem(k, '{}'), FAKE);
   await accountAt(page, '/?signin=preview');
   const data = await openFold(page, 'Your data');
@@ -140,7 +140,7 @@ async function signIn(page: Page, email: string) {
 async function usedByAnother(page: Page) {
   await startWithExample(page);
   await openReview(page);
-  await page.getByRole('main').getByRole('button', { name: /^(Save pattern|Keep in my patterns)$/ }).click();
+  await page.getByRole('main').getByRole('button', { name: /^(Save pattern|Save this pattern)$/ }).click();
   await page.evaluate((k) => localStorage.setItem(k, '{}'), FAKE);
   await accountAt(page, '/?signin=preview');
   const data = await signIn(page, 'first@example.com');

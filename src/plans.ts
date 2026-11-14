@@ -78,7 +78,7 @@ export const photoDraftsReset = (now = new Date()): Date => new Date(Date.UTC(no
 
 export const GARMENT_NAMES: Record<Garment, string> = {
   skirt: 'skirt',
-  bodice: 'bodice',
+  bodice: 'top',
   dress: 'dress',
   trousers: 'trousers',
   tee: 'T-shirt',

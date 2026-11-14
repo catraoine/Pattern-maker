@@ -19,7 +19,7 @@ const STYLE_CHANGES: Record<GarmentName, [string, string][]> = {
   ],
   Dress: [
     ['Neckline', 'Scoop'],
-    ['Silhouette', 'Full circle'],
+    ['Skirt shape', 'Full circle'],
   ],
   Tee: [
     ['Neckline', 'V-neck'],

@@ -112,7 +112,7 @@ const SECTIONS: Record<string, string> = {
   Shaping: SHAPE,
   'Princess seams': SHAPE,
   Structure: SHAPE,
-  'Waist seam': SHAPE,
+  'Waist height': SHAPE,
   Leg: SHAPE,
   // The knit's stretch is about the fabric, so it opens the Fabric step, not Shape (Cat, 2026-10-31).
   'Your knit’s stretch': FABRIC,

@@ -323,7 +323,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
       onPrint={onNext}
       flat={flat}
       undo={undoer}
-      label={dressLength ? 'your shirt dress' : 'your bodice'}
+      label={dressLength ? 'your shirt dress' : 'your top'}
       garment="bodice"
       name={title}
       metres={draft ? bodiceFabricMetres(draft, sleeve) : undefined}
@@ -340,7 +340,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
               ...bodiceSpec(values as BodiceMeasurements, draft, choices.length, choices.dropCm),
               ...(sleeve ? sleeveSpec(values as SleeveMeasurements, sleeve) : []),
             ])}
-            noun="Bodice"
+            noun="Top"
           >
             {(ease.waist + extra.waist < 0 || extra.bust > 0) && (
               <p className="muted small">
@@ -428,10 +428,10 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
                   )}
               </p>
             )}
-            {g.id === 'sleeve' && !choices.neck && choices.neckline === 'one_shoulder' && <p className="muted small">A one-shoulder bodice is sleeveless.</p>}
+            {g.id === 'sleeve' && !choices.neck && choices.neckline === 'one_shoulder' && <p className="muted small">A one-shoulder top is sleeveless.</p>}
             {g.id === 'peplum' && (choices.length !== 'waist' && choices.length !== 'cropped' || (choices.dropCm !== undefined && choices.dropCm >= 3)) && <p className="muted small">A peplum sits on a waist-length or cropped bodice.</p>}
             {g.id === 'structure' && !top && <p className="muted small">Boning and a shirred back need a strapless, sweetheart or cami top.</p>}
-            {g.id === 'structure' && isStrapless(choices.neckline) && <p className="muted small">A strapless bodice needs something to hold it up: boning, or a shirred back.</p>}
+            {g.id === 'structure' && isStrapless(choices.neckline) && <p className="muted small">A strapless top needs something to hold it up: boning, or a shirred back.</p>}
             {g.id === 'structure' && valid.structure === 'shirred' && (
               <p className="muted small">The back is cut {SHIRR.ratio} times as wide as it sits and shirred with rows of elastic thread, so the top pulls on with no zip. The front stays smooth, lined to itself.</p>
             )}
@@ -446,13 +446,13 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
             )}
             {g.id === 'collar' && !choices.neck && choices.neckline === 'crew' && detail.closure !== 'front_buttons' && <p className="muted small">A shirt collar needs the front buttons.</p>}
             {g.id === 'darts' && choices.fit !== 'relaxed' && (
-              <p className="muted small">{choices.fit === 'fitted' ? 'A fitted bodice needs bust and waist darts.' : choices.fit === 'oversized' ? 'An oversized top has no darts: its width covers the bust.' : 'Choose a relaxed fit to go without darts.'}</p>
+              <p className="muted small">{choices.fit === 'fitted' ? 'A fitted top needs bust and waist darts.' : choices.fit === 'oversized' ? 'An oversized top has no darts: its width covers the bust.' : 'Choose a relaxed fit to go without darts.'}</p>
             )}
           </Group>
         ))}
         {can('insideFinish') && (
           <TabPanel tab={PRO}>
-            <p className="eyebrow">Inside the bodice</p>
+            <p className="eyebrow">Inside the top</p>
             <FinishChoices
               garment="bodice"
               finish={finish}

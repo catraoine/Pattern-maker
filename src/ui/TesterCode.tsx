@@ -33,7 +33,7 @@ export function TesterCode({ code, unit, onCode }: { code?: string; unit: Unit; 
   if (code)
     return (
       <div className="stack">
-        <p className="small">Tester code on. You can read {TESTER_CAPS.visitor} photos a day while testing. Thank you for testing.</p>
+        <p className="small">You're in as a fit tester. Thank you. You can start from a photo {TESTER_CAPS.visitor} times a day.</p>
         <TesterReport lead="Sewn your toile?" />
         <BodyScan code={code} unit={unit} />
         <button type="button" className="link" onClick={() => onCode(undefined)}>
@@ -43,7 +43,7 @@ export function TesterCode({ code, unit, onCode }: { code?: string; unit: Unit; 
     );
   return (
     <form className="stack" onSubmit={check}>
-      <p className="muted small">Fit tester? Type the code from your tester email for more photo readings a day.</p>
+      <p className="muted small">Came in without your tester link? Type the code from your tester email.</p>
       <div className="field plain">
         <label htmlFor="tester-code">Tester code</label>
         <input id="tester-code" autoComplete="off" autoCapitalize="none" spellCheck={false} value={typed} onChange={(e) => setTyped(e.target.value)} />

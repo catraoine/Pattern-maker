@@ -89,7 +89,7 @@ export const MEASUREMENTS: Record<string, string> = {
 /** Garments by a short name. */
 export type GarmentName = 'Skirt' | 'Trousers' | 'Bodice' | 'Dress' | 'Tee' | 'Jacket' | 'Coat';
 /** What the rest of the app calls each one: "Style your T-shirt", "T-shirt" on the list of what to make. */
-const NOUN: Record<GarmentName, string> = { Skirt: 'skirt', Trousers: 'trousers', Bodice: 'bodice', Dress: 'dress', Tee: 'T-shirt', Jacket: 'jacket', Coat: 'coat' };
+const NOUN: Record<GarmentName, string> = { Skirt: 'skirt', Trousers: 'trousers', Bodice: 'top', Dress: 'dress', Tee: 'T-shirt', Jacket: 'jacket', Coat: 'coat' };
 export const lower = (g: GarmentName) => NOUN[g];
 /** The garment's name on "What would you like to make?". */
 export const pickName = (g: GarmentName) => NOUN[g][0].toUpperCase() + NOUN[g].slice(1);
@@ -120,7 +120,7 @@ export async function openFresh(page: Page) {
 /** Begin, then the quiet Skip link under the first measuring page's buttons. */
 export async function skipToExample(page: Page) {
   await main(page).getByRole('button', { name: 'Begin' }).click();
-  await main(page).getByRole('button', { name: 'Measure later' }).click();
+  await main(page).getByRole('button', { name: 'Try it with an example body' }).click();
 }
 
 /** "Me" on the first measuring page, with the form to draft on beside it (Cat's F1 Form Joins In): womenswear unless given. */
@@ -283,8 +283,8 @@ async function fromGarmentDrop(page: Page, item: string) {
   await main(page).getByRole('menuitemradio', { name: item }).click();
 }
 
-/** From a style screen, "Maison Tracé collection" in the garment's drop-down. */
-export const openCollection = (page: Page) => fromGarmentDrop(page, 'Maison Tracé collection ›');
+/** From a style screen, "The collection" in the garment's drop-down. */
+export const openCollection = (page: Page) => fromGarmentDrop(page, 'The collection ›');
 
 /** From a style screen, "Start from a photo" in the garment's drop-down: straight to the photo page. */
 export const openPhoto = (page: Page) => fromGarmentDrop(page, 'Start from a photo ›');
@@ -350,7 +350,7 @@ export async function openReview(page: Page): Promise<boolean> {
   return true;
 }
 
-/** The summary's pieces, fabric and Keep in my patterns fold under one line on Review and in the computer's
+/** The summary's pieces, fabric and Save this pattern fold under one line on Review and in the computer's
  *  side panel (look and feel review R1, 2026-10-24): open that fold so the tests can read them. */
 async function openNumbers(page: Page) {
   const fold = main(page).locator('details.review-fold').first();
