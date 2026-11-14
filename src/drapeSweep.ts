@@ -13,6 +13,7 @@ import type { Quality } from './engine/drape/quality';
 import type { Fibre, MyFabric } from './engine/fabrics';
 import { clothCard } from './engine/drape/clothCard';
 import type { RoundMeasurements } from './ui/allRoundShape';
+import { Cuff, cuffAllowed } from './engine/cuffs';
 
 export type SweepGarment = 'skirt' | 'bodice' | 'dress' | 'jacket' | 'coat' | 'trousers' | 'tee';
 
@@ -141,7 +142,10 @@ export function optionDesigns(): OptionDesign[] {
       // dress; bug hunt, Nov 12.)
       if (garment === 'dress' && (g.id === 'length' || g.id === 'fit')) continue;
       for (const [o] of g.options) {
-        const base: Record<string, unknown> = { ...DEFAULT_BODICE, ...(SLEEVE_GROUPS.includes(g.id) ? { sleeve: 'long' } : {}), ...(PEPLUM_GROUPS.includes(g.id) ? { peplum: 'flared' } : {}), ...GROUP_BASE[g.id] };
+        // A sleeve option sits on a long sleeve, but a cuff that only goes on a shorter one (the turned-back cuff) goes on an
+        // elbow sleeve: on a long sleeve the draft drops it, and its key used to sew a plain sleeve (bug hunt, Nov 14).
+        const sleeve = g.id === 'sleeveCuff' && !cuffAllowed(o as Cuff, 'long', 'straight') ? 'elbow' : 'long';
+        const base: Record<string, unknown> = { ...DEFAULT_BODICE, ...(SLEEVE_GROUPS.includes(g.id) ? { sleeve } : {}), ...(PEPLUM_GROUPS.includes(g.id) ? { peplum: 'flared' } : {}), ...GROUP_BASE[g.id] };
         const c = validDetails({ ...base, [g.id]: o } as unknown as BodiceChoices, garment);
         if ((c as unknown as Record<string, unknown>)[g.id] !== o) continue;
         const key = `${garment} ${g.id}=${o}`;
