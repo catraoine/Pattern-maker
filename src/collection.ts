@@ -33,9 +33,8 @@ import {
   validDetails,
 } from './garments';
 import { EXAMPLE_BODY, Garment, MeasurementId, MeasurementValues, isComplete } from './measurements';
+import { HOUSE_COLOURS } from './engine/houseColours';
 
-/** The house's own colours, named in a look's fabric words and not on the shop's list (SS27, 2026-11-05). */
-const HOUSE_COLOURS: [string, string][] = [['gold', '#C9962E'], ['ice', '#9CC3E6'], ['lavender', '#a796c4'], ['blue-grey', '#B9C3CF'], ['chocolate', '#3d2418']];
 
 /** The house's own prints, photographed from the real cloth: the words that name one in a look's fabric, its tile in
  * public/prints/house (see fabricPhoto.ts) and how wide one tile shows on the garment, in cm. */
