@@ -2,6 +2,7 @@
 // guest's visit never downloads its code. Kept behind one small interface so the screens and the click-through
 // tests don't depend on it: in development a stand-in on this device takes its place (see fakeCloud).
 import type { Backup } from '../account';
+import type { FoundingPlace } from '../founding';
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from './flag';
 
 export interface CloudUser {
@@ -31,6 +32,8 @@ interface CloudApi {
   save(u: CloudUser, backup: Backup<unknown>, seen: string | null): Promise<string | null>;
   /** Removes the account and everything kept in it. */
   deleteAccount(): Promise<void>;
+  /** The signed-in person's Founding Atelier place, or null when they aren't on the list. Throws when it can't be checked. */
+  founding(): Promise<FoundingPlace | null>;
 }
 
 export interface Kept {
@@ -121,13 +124,23 @@ async function supabaseCloud(): Promise<CloudApi> {
       if (!res.ok) throw new Error(`Delete failed (${res.status})`);
       await sb.auth.signOut();
     },
+    async founding() {
+      const { data } = await sb.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) return null;
+      // The token goes in a header, never in the address.
+      const res = await fetch('/.netlify/functions/founding', { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error(`Founding check failed (${res.status})`);
+      return ((await res.json()) as { place?: FoundingPlace | null }).place ?? null;
+    },
   };
 }
 
 // --- Development stand-in -------------------------------------------------------------------------------------------
 // Turned on with localStorage 'pattern-maker:cloud-fake' (the click-through tests set it). The "server" is another
 // localStorage key, shared by every page of this browser, and the emailed code is always 123456. "Continue with Google"
-// signs straight in as google-sewist@example.com, since there's no Google page to go to.
+// signs straight in as google-sewist@example.com, since there's no Google page to go to. Founding places come from
+// localStorage 'pattern-maker:founding-fake', a map of email to place.
 
 const FAKE = 'pattern-maker:cloud-fake';
 const hasFake = () => {
@@ -205,6 +218,12 @@ function fakeCloud(): CloudApi {
       delete s.session;
       write(s);
       tell();
+    },
+    async founding() {
+      const who = current();
+      if (!who) return null;
+      const places = JSON.parse(localStorage.getItem('pattern-maker:founding-fake') || '{}') as Record<string, FoundingPlace>;
+      return places[who.email] ?? null;
     },
   };
 }

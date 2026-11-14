@@ -1,5 +1,5 @@
 // POST a "Be a fit tester" or "Get news" sign-up. Kept in the "signups" Netlify Blobs store, one entry per email
-// (signing up again replaces it): tester/<id>, news/<id> and interest/<offer>/<id>
+// (signing up again replaces it, keeping firstAt): tester/<id>, news/<id> and interest/<offer>/<id>
 // (interest/nights/<city>/<id> for Atelier Nights, so someone can count themselves in for more than one city). Read them through the report function's read-out.
 import { createHash } from 'node:crypto';
 import { getStore } from '@netlify/blobs';
@@ -30,10 +30,13 @@ export default async (req: Request, context: { ip?: string }) => {
     if ((await takeAllowance(blobCounts('signup-limits'), hash(context.ip ?? 'unknown', 24), new Date(), CAPS)) !== 'ok') {
       return Response.json({ ok: false, error: 'limit_reached' }, { status: 429 });
     }
-    await getStore({ name: 'signups', consistency: 'strong' }).setJSON(`${signup.kind === 'interest' ? `interest/${signup.offer}${signup.city ? `/${signup.city}` : ''}` : signup.kind}/${hash(signup.email, 16)}`, {
-      ...signup,
-      receivedAt: new Date().toISOString(),
-    });
+    const store = getStore({ name: 'signups', consistency: 'strong' });
+    const key = `${signup.kind === 'interest' ? `interest/${signup.offer}${signup.city ? `/${signup.city}` : ''}` : signup.kind}/${hash(signup.email, 16)}`;
+    const receivedAt = new Date().toISOString();
+    // Signing up again replaces the entry but keeps when they first joined, which sets their Founding Atelier number.
+    const before = (await store.get(key, { type: 'json' })) as { firstAt?: unknown; receivedAt?: unknown } | null;
+    const firstAt = typeof before?.firstAt === 'string' ? before.firstAt : typeof before?.receivedAt === 'string' ? before.receivedAt : receivedAt;
+    await store.setJSON(key, { ...signup, receivedAt, firstAt });
   } catch (e) {
     console.error('sign-up not stored', e);
     return Response.json({ ok: false, error: 'failed' }, { status: 502 });

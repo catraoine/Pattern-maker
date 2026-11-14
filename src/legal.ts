@@ -94,7 +94,8 @@ export const PRIVACY: LegalDoc = {
             ['Your name, email, what you’d like to sew and a rough size range, if you sign up as a fit tester', 'Our server (Netlify)', 'Only if you sign up'],
             ['Your email, and the link you arrived by (such as an Instagram link), if you join the waitlist or sign up for news; on the waitlist, also the language you sew in (kept on our server only)', 'Our server (Netlify) and our newsletter service (Kit)', 'Only if you sign up'],
             ['Your email, what you asked to hear about, and the pattern on screen or the city you picked, if you ask to hear when something opens (such as printing by post, a founding place, Atelier Nights tickets or early access for brands)', 'Our server (Netlify)', 'Only if you sign up'],
-            ['A scrambled code made from your IP address', 'Our photo, fit-note and sign-up counters, for one day', 'Yes'],
+            ['Your Founding Atelier number and whether you were a fit tester, filed under a scrambled code made from your email (not the email itself), if you are one of the first 250 members', 'Our server (Netlify)', 'Only if you join the waitlist or test for us'],
+            ['A scrambled code made from your IP address', 'Our photo, fit-note and sign-up and founding-check counters, for one day', 'Yes'],
           ],
         },
         ACCOUNTS

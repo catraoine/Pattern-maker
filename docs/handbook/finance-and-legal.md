@@ -49,7 +49,12 @@ receipts), Dec 28, Jan 11 (book the accountant), Feb 15, Mar 1, 2027 (incorporat
 ## Pricing (applied Oct 21)
 
 Premium $49/year; Maker $25/month; garment packs $6; the dress is free through launch and becomes
-the first $6 pack on Apr 15, 2027. Drops $28. Founding deposit $10 in January.
+the first $6 pack on Apr 15, 2027. Drops $28. Founding Atelier (Nov 13): 250 numbered places at $35 a year, locked while they stay; the $99
+lifetime pass and the $10 January deposit are dropped. The founding list lives on the server (Netlify Blobs store
+"founding", by email hash only): fit testers numbered first, then the waitlist in the order they joined, numbered by
+an hourly job. From Feb 9 a founding member gets past the waitlist by signing in with that email; Your account shows
+their number and what they were promised. The $35 price and the testers' free year (Feb 11 2027 to Feb 11 2028) are
+charged from the list once Paddle is switched on.
 Sewist drop designers get 30% plus a free Premium year; no upfront prize.
 
 ## Plan cases (Oct 29)

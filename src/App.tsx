@@ -47,6 +47,8 @@ import { KeptCount } from './ui/SaveControl';
 import { GARMENT_NAME } from './measureFlow';
 import type { StepsStart } from './screens/MeasureStepsScreen';
 import { useCloud } from './cloud/useCloud';
+import { useFounding } from './cloud/useFounding';
+import { EARLY_ACCESS_FROM, earlyAccessOpen } from './founding';
 import { signinShown } from './cloud/flag';
 import { LegalScreen } from './screens/LegalScreen';
 import { PhotoAllowance, UnlockGarment } from './ui/PlanPrompts';
@@ -189,6 +191,15 @@ export default function App() {
   };
   // Sign-in (Cat's plan, 2026-10-23): held behind ?signin=preview until the December fix week.
   const cloud = useCloud(makeBackup(saved, account, pointEdits), applyBackup, signinShown, () => makeBackup(INITIAL, NEW_ACCOUNT));
+  const [founding, retryFounding] = useFounding(cloud.user);
+  // Early access opens at midnight on Feb 9: a page left open across it lets a signed-in member in without a reload.
+  const [earlyOpen, setEarlyOpen] = useState(earlyAccessOpen);
+  useEffect(() => {
+    const wait = EARLY_ACCESS_FROM.getTime() - Date.now();
+    if (earlyOpen || wait > 2 * 86_400_000) return;
+    const t = setTimeout(() => setEarlyOpen(true), Math.max(0, wait));
+    return () => clearTimeout(t);
+  }, [earlyOpen]);
   /** The link that carries everything on this device to another one. */
   const sendLink = () => moveLink(window.location.origin, makeBackup(saved, account, pointEdits));
   // maisontrace.co/privacy and /terms open those pages straight away: Google's sign-in setup needs a web address for
@@ -244,6 +255,13 @@ export default function App() {
     setAccess(true);
     if (!storedAccount.testerCode) setAccount({ ...storedAccount, testerCode: code });
   };
+  // Founding members come past the waitlist from Feb 9, two days before launch, by signing in with the email on the
+  // founding list (Nov 12 promise; src/founding.ts).
+  useEffect(() => {
+    if (!gated || founding.state !== 'member' || !earlyOpen) return;
+    rememberAccess();
+    setAccess(true);
+  }, [gated, founding, earlyOpen]);
   useEffect(() => {
     if (gated && step !== 'welcome' && step !== 'privacy' && step !== 'terms' && step !== 'made') setStep('welcome');
   // eslint-disable-next-line react-hooks/exhaustive-deps -- setStep is rebuilt each render; the effect only follows gated and step
@@ -811,7 +829,7 @@ export default function App() {
               formStart={formStart}
               form={form}
               onLegal={openLegal}
-              waitlist={gated ? { onCode: letIn, checking: linkCheck.checking, linkMessage: linkCheck.message, onRetry: linkCode.current && linkCheck.message === CODE_MESSAGE.failed ? () => void checkLink(linkCode.current!) : undefined } : undefined}
+              waitlist={gated ? { onCode: letIn, founding: cloud.usable && earlyOpen ? { cloud, founding, retry: retryFounding } : undefined, checking: linkCheck.checking, linkMessage: linkCheck.message, onRetry: linkCode.current && linkCheck.message === CODE_MESSAGE.failed ? () => void checkLink(linkCode.current!) : undefined } : undefined}
               onFinish={() => {
                 setAccount({ ...account, onboarded: true, mode });
                 setStep('steps');
@@ -918,6 +936,7 @@ export default function App() {
             <AccountScreen
               onPlans={plansShown() ? openPlans : undefined}
               cloud={cloud.usable ? cloud : undefined}
+              founding={founding.state === 'member' ? founding.place : undefined}
               mode={mode}
               onMode={setMode}
               account={account}
