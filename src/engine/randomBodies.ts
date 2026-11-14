@@ -75,3 +75,12 @@ export function randomCrotch(b: Body, r: () => number): { crotch_depth: number; 
  *  the tests workflow runs on every pull request in its own job. Keeps `npm test` to a couple of minutes. */
 const FULL_SWEEP = typeof process !== 'undefined' && process.env.SWEEP === 'full';
 export const sweep = (n: number) => (FULL_SWEEP ? n : Math.max(3, Math.ceil(n / 5)));
+
+/**
+ * A sweep's bodies in batches of `size`, one test each, as [first seed, last seed, words for the test's name]: a full
+ * sweep (SWEEP=full) of every body in one test ran past the 120 s test limit on GitHub's machines, though every body
+ * passed (code health check, Nov 13). The same bodies are checked, and the same limit holds for each batch. A sweep
+ * small enough for one batch keeps its test's name as it was.
+ */
+export const batches = (n: number, size: number): [number, number, string][] =>
+  n <= size ? [[1, n, '']] : Array.from({ length: Math.ceil(n / size) }, (_, i): [number, number, string] => [i * size + 1, Math.min(n, (i + 1) * size), ` (bodies ${i * size + 1} to ${Math.min(n, (i + 1) * size)})`]);

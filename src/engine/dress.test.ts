@@ -3,7 +3,7 @@ import { taggedLength } from './geometry';
 import { DRESS_ZIPS, ZIP_BELOW_WAIST, draftDress, waistDartAt } from './dress';
 import { roundDress } from './allRound';
 import { checkPattern } from './qc';
-import { randomArms, randomBody, rng, sweep } from './randomBodies';
+import { batches, randomArms, randomBody, rng, sweep } from './randomBodies';
 import { DraftError } from './skirt';
 import { draftSleeve } from './sleeve';
 import { dressGuide } from './instructions';
@@ -37,9 +37,9 @@ describe('the dress', () => {
     expect(labels.some((l) => /Waistband/.test(l))).toBe(false);
   });
 
-  it('passes the seam check for 150 random bodies in every skirt shape and fit', () => {
+  for (const [from, to, which] of batches(sweep(150), 20)) it(`passes the seam check for 150 random bodies in every skirt shape and fit${which}`, () => {
     const failures: string[] = [];
-    for (let seed = 1; seed <= sweep(150); seed++) {
+    for (let seed = from; seed <= to; seed++) {
       const body = randomBody(rng(seed));
       for (const fit of ['fitted', 'regular', 'relaxed'] as const)
         for (const silhouette of ['straight', 'pencil', 'a_line', 'trumpet', 'half_circle', 'circle'] as const) {
@@ -152,9 +152,9 @@ describe('the dress', () => {
       expect(draftDress(b, { fit: 'regular', neckline: 'cowl' }, { silhouette: 'a_line', length: 'knee' }, 'empire').seamDrop).toBe(0);
     });
 
-    it('passes the seam check for 60 random bodies at empire, raised and low seams', () => {
+    for (const [from, to, which] of batches(sweep(60), 20)) it(`passes the seam check for 60 random bodies at empire, raised and low seams${which}`, () => {
       const failures: string[] = [];
-      for (let seed = 1; seed <= sweep(60); seed++) {
+      for (let seed = from; seed <= to; seed++) {
         const body = randomBody(rng(seed));
         for (const at of ['empire', 'raised', 'low'] as const)
           for (const fit of ['fitted', 'regular', 'relaxed'] as const)
@@ -202,9 +202,9 @@ describe('the dress', () => {
       expect(g.steps.find((s) => s.title === 'Join the bodice to the skirt')!.text).toMatch(/high hip/);
     });
 
-    it('passes the seam check for 150 random bodies in every skirt shape and fit', () => {
+    for (const [from, to, which] of batches(sweep(150), 20)) it(`passes the seam check for 150 random bodies in every skirt shape and fit${which}`, () => {
       const failures: string[] = [];
-      for (let seed = 1; seed <= sweep(150); seed++) {
+      for (let seed = from; seed <= to; seed++) {
         const body = randomBody(rng(seed));
         for (const fit of ['fitted', 'regular', 'relaxed'] as const)
           for (const silhouette of ['straight', 'pencil', 'a_line', 'trumpet', 'half_circle', 'circle', 'slip'] as const) {
