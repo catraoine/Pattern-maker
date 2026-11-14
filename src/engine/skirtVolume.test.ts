@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { taggedLength } from './geometry';
 import { checkPattern } from './qc';
-import { randomArms, randomBody, rng, sweep } from './randomBodies';
+import { batches, randomArms, randomBody, rng, sweep } from './randomBodies';
 import { DraftError, Fit, Length, Silhouette, draftSkirt } from './skirt';
 import { draftDress } from './dress';
 import { dressGuide, hasSlit, sewingGuide } from './instructions';
@@ -296,10 +296,10 @@ describe('skirt volume', () => {
     expect(problems).toEqual([]);
   });
 
-  it('passes every check for 120 random bodies, every detail, block shape, length and fit', () => {
+  for (const [from, to, which] of batches(sweep(120), 20)) it(`passes every check for 120 random bodies, every detail, block shape, length and fit${which}`, () => {
     const failures: string[] = [];
     let drafted = 0;
-    for (let seed = 1; seed <= sweep(120); seed++) {
+    for (let seed = from; seed <= to; seed++) {
       const body = randomBody(rng(seed + 9100));
       for (const fit of FITS)
         for (const silhouette of BLOCKS)
@@ -322,7 +322,7 @@ describe('skirt volume', () => {
           }
     }
     expect(failures.slice(0, 10)).toEqual([]);
-    expect(drafted).toBeGreaterThan(sweep(120) * 40);
+    expect(drafted).toBeGreaterThan((to - from + 1) * 40);
   });
 
   it('passes every check on the dress for 50 random bodies with every detail, under every kind of bodice', () => {
