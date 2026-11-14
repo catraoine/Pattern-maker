@@ -12,6 +12,7 @@ import { optionDesigns } from './drapeSweep';
 import { rangeDesigns } from './rangeDesigns';
 import { printableFor } from './printable';
 import { checkPattern } from './engine/qc';
+import { isWaistRow } from './engine/spec';
 import { P, len, sub } from './engine/geometry';
 import { Piece, cutLine } from './engine/piece';
 
@@ -76,7 +77,7 @@ export function printedPattern(d: Omit<PatternDesign, 'key'>, values: Measuremen
 /** The printed pattern's pieces and its finished waist, as the print screen builds them. */
 function patternOf(d: PatternDesign, values: MeasurementValues = EXAMPLE_BODY): { pieces: Piece[]; finishedWaist?: number } {
   const { made } = printedPattern(d, values);
-  const waist = (made.spec.find((r) => /^Waist seam, /.test(r.label)) ?? made.spec.find((r) => r.label === 'Waist'))?.finished;
+  const waist = (made.spec.find((r) => /^Waist seam, /.test(r.label)) ?? made.spec.find((r) => isWaistRow(r.label)))?.finished;
   return { pieces: made.pieces, finishedWaist: typeof waist === 'number' ? waist : undefined };
 }
 

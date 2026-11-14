@@ -38,6 +38,7 @@ import { TestingTag } from '../ui/TestingTag';
 import { DemoButton } from '../ui/DemoButton';
 import { reloadPending } from './load';
 import { isKnit, isLowerBody } from '../measurements';
+import { isWaistRow } from '../engine/spec';
 
 /** What to print: the drafted pieces of either garment, with its notes and sewing steps. */
 export interface Printable {
@@ -181,7 +182,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
   const checks = useMemo(() => {
     if (!made) return [];
     // A dress with its waist seam moved off the waist: the seam is checked against its own girth, not the waist's.
-    const waist = (made.spec.find((r) => /^Waist seam, /.test(r.label)) ?? made.spec.find((r) => r.label === 'Waist'))?.finished;
+    const waist = (made.spec.find((r) => /^Waist seam, /.test(r.label)) ?? made.spec.find((r) => isWaistRow(r.label)))?.finished;
     return checkPattern(
       made.pieces.filter((pc) => !pc.kind || pc.kind === 'collar' || pc.kind === 'pocket'),
       { finishedWaist: typeof waist === 'number' ? waist : undefined },

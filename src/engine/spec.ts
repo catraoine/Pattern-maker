@@ -25,7 +25,7 @@ const row = (label: string, body: number | undefined, finished: number): SpecRow
 
 /** A low rise's waist row: read against the body where the band sits, not the waist above it, or a tester sees
  *  "+11.6 Roomy" on a band with 2 cm ease and takes it in (CLO tester sizes, Nov 13). */
-export const lowWaistLabel = (cm: number) => `Waist, ${r1(cm)} cm below yours`;
+const lowWaistLabel = (cm: number) => `Waist, ${r1(cm)} cm below yours`;
 /** The waist row, at the waist or a low rise's. */
 export const isWaistRow = (label: string) => label === 'Waist' || /^Waist, [\d.]+ cm below yours$/.test(label);
 
