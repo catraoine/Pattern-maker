@@ -1378,6 +1378,7 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     shape: s.sleeve === 'raglan' || s.sleeve === 'none' ? ('straight' as const) : s.sleeve,
     fit: s.fit,
     outer: s.kind,
+    unpadded: pad === 0,
     seamAllowance: sa,
     armholeAllowance: 1,
     hemAllowance: rib ? 1 : 4,

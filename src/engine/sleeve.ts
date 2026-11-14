@@ -48,6 +48,8 @@ export interface SleeveStyle {
   /** A jacket or coat sleeve, worn over other clothes: more room at the bicep and the hem, a little
    * longer, and the crown ease a tailor works into a wool armhole. */
   outer?: 'jacket' | 'coat';
+  /** A jacket or coat with no shoulder pad: its crown takes no more ease than an unpadded sleeve head can hold. */
+  unpadded?: boolean;
   /** A cuff at the hem: a shirt cuff, elastic, or a tie band (see cuffs.ts). */
   cuff?: Cuff;
   /** Set from the bodice (see sleeveCut.ts): a dropped shoulder's flatter crown, or a raglan's
@@ -64,6 +66,10 @@ const OUTER_SLEEVE_EASE: Record<'jacket' | 'coat', Record<BodiceFit, { bicep: nu
   jacket: { fitted: { bicep: 8, crown: 3.5 }, regular: { bicep: 10, crown: 3 }, relaxed: { bicep: 13, crown: 2.5 }, boxy: { bicep: 13, crown: 2.5 }, oversized: { bicep: 13, crown: 2.5 } },
   coat: { fitted: { bicep: 10, crown: 3.5 }, regular: { bicep: 13, crown: 3 }, relaxed: { bicep: 16, crown: 2.5 }, boxy: { bicep: 16, crown: 2.5 }, oversized: { bicep: 16, crown: 2.5 } },
 };
+
+/** The most crown ease a jacket or coat sleeve takes with no shoulder pad. The 3 to 3.5 cm in the table above is what a
+ * pad holds out; without one the extra crumples over the top of the arm (CLO, jacket and coat blocks, Nov 12). */
+const UNPADDED_CROWN = 2;
 
 /** Ease round the upper arm, and the crown ease eased into the armhole, by fit. */
 export const SLEEVE_EASE: Record<BodiceFit, { bicep: number; crown: number }> = {
@@ -253,7 +259,8 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
   const front = armholeOf(bf);
   const back = armholeOf(bb);
   const depth = (front.depth + back.depth) / 2;
-  const ease0 = s.ease ?? (s.outer ? OUTER_SLEEVE_EASE[s.outer][s.fit] : SLEEVE_EASE[s.fit]);
+  const outerEase = s.outer ? OUTER_SLEEVE_EASE[s.outer][s.fit] : undefined;
+  const ease0 = s.ease ?? (outerEase ? (s.unpadded ? { ...outerEase, crown: Math.min(outerEase.crown, UNPADDED_CROWN) } : outerEase) : SLEEVE_EASE[s.fit]);
   // A dropped shoulder or raglan sleeve sews in with next to no ease; a dropped shoulder's sleeve starts
   // past the shoulder point, so it is that much shorter.
   const sleeveCut = s.cut === 'drop' || (s.cut === 'raglan' && s.raglan) ? s.cut : undefined;
