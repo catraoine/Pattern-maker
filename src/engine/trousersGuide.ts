@@ -5,6 +5,7 @@ import { ELASTIC_FINISH, POCKET_CUT, casingSteps, elasticNotions, pocketBagsStep
 import type { SewingGuide, SewStep } from './instructions';
 import type { TrouserLength, TrousersDraft } from './trousers';
 import { PLEAT_STITCH_CM } from './trouserPleats';
+import { longBandInterfacing } from './finishing';
 
 const n1 = (v: number) => `${v} cm`;
 
@@ -145,7 +146,7 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
       ? [
           {
             title: 'Put in the fly zip',
-            text: `Sew the fly facing to the left front's centre front edge, right sides together, from the waist to the ZIP ENDS notch, and press it to the inside. Fold the fly shield in half lengthwise, wrong sides together. Lay the ${d.zipCm} cm trouser zip face up under the right front's centre edge, with the shield behind it, and stitch the right front close to the teeth through all layers. Close the zip, lap the left front over it to the centre front line, and from the outside stitch the curved fly line through the front and the facing only, keeping the shield clear. Bar-tack across the foot of the fly.`,
+            text: `Sew the fly facing to the left front's centre front edge, right sides together, 1 cm from the edge, from the waist to the ZIP ENDS notch, and press it to the inside. On the right front, press the centre front edge under 0.5 cm, so its fold sits 0.5 cm past the centre front line. Fold the fly shield in half lengthwise, wrong sides together. Lay the ${d.zipCm} cm trouser zip face up under the right front's fold, the fold close to the teeth, with the shield behind the zip, and stitch close to the fold through the front, the zip tape and the shield. Close the zip and lap the left front over it until the two centre front lines meet, so the left edge hides the teeth, and pin. From the inside, stitch the zip's free tape to the fly facing only. Then from the outside stitch the curved fly line through the left front and its facing, keeping the shield clear. Bar-tack across the foot of the fly, through the shield.`,
           },
         ]
       : sideZip
@@ -195,7 +196,7 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
     },
     {
       title: 'Finish',
-      text: `${elastic ? ELASTIC_FINISH : fly ? 'Make a buttonhole in the waistband extension and sew a button to the underlap, or sew on a trouser hook and bar.' : 'Sew a hook and eye at the top of the zip.'}${
+      text: `${elastic ? ELASTIC_FINISH : fly ? 'Make a buttonhole in the end of the waistband on the left front, the end that laps over, and sew a button to the extension marked UNDERLAP on the right front, or sew on a trouser hook and bar.' : 'Sew a hook and eye at the top of the zip.'}${
         d.pockets !== 'none' ? ' Bar-tack across each end of the pocket openings, by machine or by hand, so they take a hand without tearing.' : ''
       }${d.softPress ? ' Press lightly from the inside, with no crease.' : ' Press the creases again through a press cloth.'}`,
     },
@@ -205,7 +206,7 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
       `${fabricM.toFixed(1)} m of woven fabric, ${finish.width ?? 140} cm wide`,
       ...(elastic
         ? elasticNotions(elastic)
-        : [fly ? `${d.zipCm} cm trouser zip (metal or nylon, closed end)` : `${d.zipCm} cm invisible zip`, fly ? 'One 1.5 cm button, or a trouser hook and bar' : 'Hook and eye', '0.4 m lightweight fusible interfacing']),
+        : [fly ? `${d.zipCm} cm trouser zip (metal or nylon, closed end)` : `${d.zipCm} cm invisible zip`, fly ? 'One 1.5 cm button, or a trouser hook and bar' : 'Hook and eye', `0.4 m lightweight fusible interfacing${curved ? longBandInterfacing(d.finishedWaist + d.waistband.underlap) : ''}`]),
       'Matching thread',
     ],
     steps,

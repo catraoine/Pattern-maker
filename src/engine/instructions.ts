@@ -1,6 +1,6 @@
 // Plain-language sewing steps for the drafted skirt and bodice, shown in the app and added to the end of the PDF.
 // Keep to plain ASCII punctuation: the PDF uses a standard font without curly quotes.
-import { curvedBandOf } from './finishing';
+import { longBandInterfacing, curvedBandOf } from './finishing';
 import { buttonFrontSteps, yokeSteps } from './skirtFront';
 import { taggedLength } from './geometry';
 import { shirredSteps } from './shirred';
@@ -268,7 +268,7 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
     notions: [
       `${fabricM.toFixed(1)} m of woven fabric, ${finish.width ?? 140} cm wide`,
       ...(lined ? [`${finish.liningM!.toFixed(1)} m of lining, ${finish.width ?? 140} cm wide`] : []),
-      ...(elastic ? elasticNotions(elastic) : [`${draft.zipCm} cm invisible zip`, 'Hook and eye', '0.3 m lightweight fusible interfacing']),
+      ...(elastic ? elasticNotions(elastic) : [`${draft.zipCm} cm invisible zip`, 'Hook and eye', `0.3 m lightweight fusible interfacing${curved ? longBandInterfacing(draft.finishedWaist) : ''}`]),
       ...(draft.ruche ? [rucheNotion(draft.ruche)] : []),
       'Matching thread',
     ],
@@ -643,7 +643,7 @@ function bodiceSteps(draft: BodiceDraft, _style: { length: BodiceLength }, fabri
             },
             {
               title: 'Line the neck and armholes',
-              text: `Pin the lining to the bodice, right sides together. Sew the neckline ${curve} from the edge, from one centre back seam line to the other, then sew each armhole from shoulder to shoulder. Trim to 0.5 cm, clip the curves, understitch as far as you can reach, and turn right side out by pulling the back through the shoulders. Sew the outer shoulders right sides together, easing in the extra 1 cm of the back, press them open, then turn the lining shoulders under and slip-stitch them closed over the seam. Press so the lining rolls just inside.`,
+              text: `Pin the lining to the bodice, right sides together. Sew the neckline ${curve} from the edge, from one centre back seam line to the other, then sew each armhole, front and back. The shoulders are still open, so stop every line of stitching 3 cm short of the shoulder edges. Trim to 0.5 cm, clip the curves, understitch as far as you can reach, and turn right side out. Sew the outer shoulders right sides together, keeping the lining out of the way and easing in the extra 1 cm of the back, and press them open. Then turn under the lining shoulders and the last 3 cm of the neck and armhole edges on each side of them, and slip-stitch them closed over the seam. Press so the lining rolls just inside.`,
             },
             {
               title: 'Finish the lining at the zip',

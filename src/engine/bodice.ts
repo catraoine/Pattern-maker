@@ -1127,6 +1127,11 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   // and the back kicked out to make it up (Cat chose to straighten the vest's sides, Nov 13).
   const straightSides = fit.straightRoom !== undefined;
   const straightOut = (hemFull / 2 - swB.x - waistXF) / 2;
+  // A peplum seam a little below the waist: the front and back side seams leave the waist alike, each by half of what the
+  // hem needs. Split by quarters, as a longer top's hem is, the few centimetres down to the seam put all the hem's growth
+  // on the back and none on the front, so the front side seam hooked in toward the hem (3.2 cm at a 136 cm hip on the Ice
+  // Peplum) while the back's ran out, and the seam swung forward (tester pattern review, Nov 13).
+  const evenSides = below && !!s.peplum && s.peplum !== 'none' && !s.dressHem;
 
   // ---- back, below the across back -----------------------------------------
   // A lower shoulder's back underarm moves straight up or down, keeping its width, to where the side
@@ -1160,7 +1165,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
       waistRun(back, waistB, 0, undefined, undefined, { from: d.near });
     } else waistRun(back, waistB, 0);
   } else {
-    hipB = p(straightSides ? swB.x + straightOut : hemFull / 4 - 0.5 + forward, wb + drop);
+    hipB = p(straightSides || evenSides ? swB.x + straightOut : hemFull / 4 - 0.5 + forward, wb + drop);
     hemB = hipB;
     hipCurve(back, swB, hipB, 'side');
     if (dartB > 0.3) {
@@ -1353,7 +1358,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   } else {
     // Drop the front side seam below the waist by whatever makes it the back's length.
     const target = hipCurveLength(swB, hipB);
-    const hx = straightSides ? waistXF + straightOut : hemFull / 4 + 0.5 - forward;
+    const hx = straightSides || evenSides ? waistXF + straightOut : hemFull / 4 + 0.5 - forward;
     let lo = 0;
     let hi = target;
     for (let i = 0; i < 40; i++) {

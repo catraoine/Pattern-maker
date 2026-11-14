@@ -534,7 +534,7 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
       armhole: s.armholeAllowance,
       hem: cuff?.kind === 'elastic' ? cuff.depth + 0.5 : gathered || cuff ? s.seamAllowance : flutter ? 1 : cap_ ? Math.min(1.5, s.hemAllowance) : s.hemAllowance,
     },
-    meta: { capHeight: r1(h), ...(shape === 'puff' || headGather ? { gatheredCrown: true } : {}), ...(flutter ? { flutter: true } : {}), ...(cap_ ? { cap: true } : {}), ...(full ? { full: true } : {}) },
+    meta: { capHeight: r1(h), ...(shape === 'puff' || headGather ? { gatheredCrown: true } : {}), ...(flutter ? { flutter: true } : {}), ...(cap_ ? { cap: true } : {}), ...(full ? { full: true } : {}), ...((gathered || cuff) && cuff?.kind !== 'elastic' ? { joinedHem: true } : {}) },
   };
   const named = namedAt(h);
   const lengthInfo = { cm: r1(setFor(h)), min: r1(h + MIN_UNDERSEAM), max: r1(named.long), named: Object.fromEntries(SLEEVE_LENGTHS.map((l) => [l, r1(named[l])])) as Record<Named, number> };

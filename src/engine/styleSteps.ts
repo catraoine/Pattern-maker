@@ -364,6 +364,7 @@ export function styleBodiceSteps(g: SewingGuide, draft: BodiceDraft, o: { seam: 
     if (buttons && n === 'Hook and eye') return [];
     return [n];
   });
-  const interfacing = (buttons || (collar !== 'none' && collar !== 'bow' && collar !== 'cape')) && !notions.some((n) => /interfacing/.test(n));
+  // (A neck ruffle is a soft folded strip like a bow, never interfaced: the Ice Peplum's list asked for 0.5 m no step used.)
+  const interfacing = (buttons || (collar !== 'none' && collar !== 'bow' && collar !== 'cape' && collar !== 'ruffle')) && !notions.some((n) => /interfacing/.test(n));
   return { notions: interfacing ? [...notions.slice(0, -1), '0.5 m lightweight fusible interfacing', notions[notions.length - 1]] : notions, steps };
 }
