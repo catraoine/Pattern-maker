@@ -204,9 +204,10 @@ export function TourPlayer({ onClose, from }: { onClose: () => void; from?: HTML
       {/* Under the film, so the film dissolves in over it at full strength, never through a dimmer mix of the two. */}
       {laying.current && <canvas ref={standIn} className="tour-standin" aria-hidden="true" />}
       <div className="tour-top">
-        {/* Just the house name (Cat, 2026-10-22). No Measure / Choose / Style / Print bar under the film (Cat,
-            2026-11-02: it cluttered the demo). */}
-        <span className="tour-tag">Maison Tracé</span>
+        {/* What the film is, as the Watch demo films say (Cat, Nov 13: no house name everywhere; the welcome above
+            already carries it). No Measure / Choose / Style / Print bar under the film (Cat, 2026-11-02: it cluttered
+            the demo). */}
+        <span className="tour-tag">How it works</span>
         <span className="tour-acts">
           <button ref={close} type="button" className="tour-skip" onClick={onClose}>
             Skip tour ✕

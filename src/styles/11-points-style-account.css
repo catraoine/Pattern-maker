@@ -676,14 +676,6 @@
   color: var(--muted);
 }
 
-.link-by {
-  text-align: center;
-  font-family: var(--mono);
-  letter-spacing: var(--caps-track);
-  text-transform: uppercase;
-  font-size: var(--caps-size);
-}
-
 .ask-measure .chips {
   margin: 4px 0;
 }

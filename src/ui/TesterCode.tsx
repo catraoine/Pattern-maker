@@ -40,7 +40,7 @@ export function TesterCode({ code, onCode }: { code?: string; onCode: (code: str
     );
   return (
     <form className="stack" onSubmit={check}>
-      <p className="muted small">Testing Maison Tracé? Type the code from your tester email for more photo readings a day.</p>
+      <p className="muted small">Fit tester? Type the code from your tester email for more photo readings a day.</p>
       <div className="field plain">
         <label htmlFor="tester-code">Tester code</label>
         <input id="tester-code" autoComplete="off" autoCapitalize="none" spellCheck={false} value={typed} onChange={(e) => setTyped(e.target.value)} />

@@ -450,7 +450,7 @@ function PatternRow({
 
   return (
     <li ref={row}>
-      <Envelope size="small" name={pattern.name} flat={flat} />
+      <Envelope house={false} size="small" name={pattern.name} flat={flat} />
       <div className="grow">
         {editing ? (
           <input

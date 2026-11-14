@@ -117,7 +117,7 @@ function Record({ cut, values, onMake }: { cut: ArchiveCut; values: MeasurementV
   const flat = useMemo(() => lookFlat(cut, lookValues(cut, values).values), [cut, values]);
   return (
     <li className="archive-record">
-      <Envelope name={cut.name} flat={flat} foot={String(cut.year)} />
+      <Envelope house={false} name={cut.name} flat={flat} foot={String(cut.year)} />
       <div className="record-body">
         <p className="accession">{accession(cut)}</p>
         <h2>{cut.name}</h2>

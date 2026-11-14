@@ -71,7 +71,6 @@ export function MeasureLinkScreen({ ask, unit, onUnit, onKeep }: Props) {
           <button type="button" className="primary" onClick={() => setPage(first < 0 ? { kind: 'done' } : { kind: 'measure', at: first })}>
             {done && first >= 0 ? 'Carry on' : first < 0 ? 'See my numbers' : 'Start'}
           </button>
-          <p className="link-by small muted">With Maison Tracé</p>
         </section>
       </div>
     );

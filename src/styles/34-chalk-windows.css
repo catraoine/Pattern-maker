@@ -203,3 +203,23 @@ section[aria-label='Preview'] > .preview .shape .handle text {
   flex: none;
   margin-top: 2px;
 }
+
+/* Print's page preview and the toile correction drawing on chalk too (Cat, Nov 13: the demos' thin lines on black
+   were hard to see). They are the pattern, so they sit on chalk with dark ink, like Style's Pattern window. */
+.print-sheet .preview.tiles,
+.preview-svg.fitprev {
+  --ink: #1d1a17;
+  --gild: #2a2622;
+  --gild-glow: #1d1a17;
+  --muted: #5e5547;
+  --line-strong: #2a2622;
+  --guide: #b9b2a4;
+  --white: #dcd5c7;
+  --paper: #dcd5c7;
+  color: var(--ink);
+  background: #dcd5c7;
+}
+.print-sheet .preview.tiles .demo-play-words,
+.print-sheet .preview.tiles .demo-play-mark {
+  color: var(--muted);
+}
