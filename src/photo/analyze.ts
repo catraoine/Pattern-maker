@@ -374,7 +374,9 @@ export async function askFor<T extends z.ZodType>(
     const ok = call && call.type === 'tool_use' ? schema.safeParse(unstring(call.input)) : null;
     if (ok?.success) return ok.data;
     const issues = ok && !ok.success ? ok.error.issues.slice(0, 8) : null;
-    console.error(`${ask.label}: no answer that fits`, issues ?? 'no tool call');
+    // The values that didn't fit are logged too (they describe the garment, nothing about who sent it), so the cause shows.
+    const got = issues?.map((i) => `${i.path.join('.')} = ${JSON.stringify(i.path.reduce<unknown>((o, k) => (o && typeof o === 'object' ? (o as Record<PropertyKey, unknown>)[k] : undefined), call && call.type === 'tool_use' ? call.input : undefined))?.slice(0, 120)}`);
+    console.error(`${ask.label}: no answer that fits`, issues ?? 'no tool call', got ?? '');
     if (attempt === 1) break;
     // The second try sees its first answer and what didn't fit, so it fixes those fields instead of starting over.
     const wrong = issues?.map((i) => `${i.path.join('.') || 'answer'}: ${i.message}`).join('\n');
