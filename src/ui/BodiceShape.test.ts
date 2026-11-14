@@ -14,6 +14,14 @@ describe('shaping the bodice by hand', () => {
     expect(dragDrop(m, DEFAULT_BODICE, 80).dropCm).toBe(24);
   });
 
+  // Demo film sweep, Nov 14: dragged 13 to 16 cm down, the Ice Peplum lost its peplum and read as a plain top.
+  it('stops a peplum top where its peplum can still hang, and keeps the peplum', () => {
+    const peplum = { ...DEFAULT_BODICE, fit: 'fitted' as const, length: 'waist' as const, dropCm: 6, peplum: 'flared' as const };
+    for (const cm of [14, 16, 19, 40]) expect(dragDrop(m, peplum, cm)).toMatchObject({ dropCm: 12, peplum: 'flared' });
+    expect(dragDrop(m, peplum, 7).dropCm).toBe(7);
+    expect(dragDrop(m, peplum, 1).length).toBe('waist');
+  });
+
   it('snaps a dragged fit to the nearest fit, and brings darts back for a closer one', () => {
     expect(dragEase(DEFAULT_BODICE, 4.4)).toEqual({ ...DEFAULT_BODICE, fit: 'fitted' });
     const roomy = dragEase({ ...DEFAULT_BODICE, darts: 'bust' }, 3);

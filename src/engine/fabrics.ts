@@ -4,6 +4,7 @@
 // one knit garment: its advice is in knits.ts, hooked in below.
 // Keep to plain ASCII punctuation: these words go into the PDF and the tech pack.
 import { rucheAllowed } from './ruche';
+import { colourWords } from './houseColours';
 import { skirtFitOf, type Fit, type Length, type Silhouette, type SkirtFitting } from './skirt';
 import type { AsymHem } from './asymHem';
 import type { BodiceDarts, BodiceFit, BodiceFitting, BodiceLength, Neckline } from './bodice';
@@ -658,8 +659,9 @@ export function fabricLines(f: MyFabric | undefined, garment: FabricGarment): st
   if (!f || (!describeFabric(f) && !printOf(f))) return [];
   const name = f.name?.trim();
   const lines: string[] = [];
-  if (name) lines.push(`Fabric: ${name}${f.colour?.trim() ? `, ${f.colour.trim()}` : ''}`);
-  else if (f.colour?.trim()) lines.push(`Colour: ${f.colour.trim()}`);
+  const colour = colourWords(f.colour);
+  if (name) lines.push(`Fabric: ${name}${colour ? `, ${colour}` : ''}`);
+  else if (colour) lines.push(`Colour: ${colour}`);
   if (f.special) lines.push(`Cloth: ${SPECIALS[f.special].label.toLowerCase()}`);
   if (f.knit) lines.push(`Knit: ${KNITS[f.knit].words}`);
   if (f.fibre) lines.push(`Fibre: ${FIBRES[f.fibre].label.toLowerCase()}`);

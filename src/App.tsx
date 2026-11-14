@@ -61,7 +61,7 @@ import { coverGuide, coverMissing, coverPieces, padMap } from './engine/formCove
 import { labelCode, savedCopy } from './labels';
 import { fitSummary } from './fit';
 import { ImportedPattern, importedGuide } from './engine/importDxf';
-import { lookArmsMissing, lookFabric, lookHipMissing, lookNameOf, lookPatch, lookValues } from './collection';
+import { lookArmsMissing, lookFabric, lookHipMissing, lookNameOf, lookPatch, lookResized, lookValues } from './collection';
 import { archiveCut } from './archive';
 import { CollectionLink, ExampleTag, GarmentPick, LookName } from './ui/GarmentSwitch';
 import { LoadingScreen } from './ui/LoadingScreen';
@@ -469,6 +469,16 @@ export default function App() {
   // The collection look these choices still are, for Style's title and the print's title card.
   // eslint-disable-next-line react-hooks/exhaustive-deps -- current is made fresh from inputs.saved on every render
   const lookName = useMemo(() => lookNameOf(garment, current, values), [garment, inputs.saved, values]);
+  // A look made before the garment's measurements were all in was sized to the sample body: once they are, it is sized
+  // to the maker's own (see lookResized).
+  useEffect(() => {
+    if (step !== 'style' && step !== 'export') return;
+    const resized = lookResized(garment, current, values);
+    if (!resized) return;
+    const { garment: _g, ...next } = resized;
+    setSaved({ ...saved, ...next });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- current is made fresh from inputs.saved on every render
+  }, [step, garment, inputs.saved, values]);
 
   // The trousers' full style (toile corrections and all), so a lining is drafted to the same legs.
   const trousersStyle = useMemo(() => (garment === 'trousers' ? trousersStyleOf(inputs, fitting) : undefined), [garment, inputs, fitting]);

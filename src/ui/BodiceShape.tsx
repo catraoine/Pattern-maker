@@ -22,7 +22,7 @@ import {
   dropRange,
 } from '../engine/bodice';
 import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, dartsFor } from '../garments';
-import { COWL_DEPTH } from '../engine/drape';
+import { COWL_DEPTH, PEPLUM_SEAM_MAX, peplumLengthOk } from '../engine/drape';
 import { hemOffsetAt } from '../engine/bodiceHem';
 import { unevenEdge } from '../engine/uneven';
 import type { Side } from './ShapeSketch';
@@ -166,8 +166,18 @@ const lengthName = (id: BodiceChoices['length']) => BODICE_GROUPS.find((g) => g.
 const withDarts = (c: BodiceChoices): BodiceChoices => (DARTS_FOR_FIT[c.fit].includes(c.darts) ? c : { ...c, darts: dartsFor(c) });
 
 /** A dragged hem: on the waist, or snapping to the high hip or hip within 1.5 cm, otherwise kept to
- * the half centimetre. */
+ * the half centimetre. A top with a peplum stops where its peplum can still hang (PEPLUM_SEAM_MAX below the waist):
+ * dragged past it, the peplum fell off the drawing and the pattern, and the Ice Peplum read as a plain hip-length
+ * top (demo film sweep, Nov 14). */
 export function dragDrop(m: BodiceMeasurements, c: BodiceChoices, cm: number): BodiceChoices {
+  const out = dropAt(m, c, cm);
+  if ((c.peplum ?? 'none') === 'none' || peplumLengthOk(out) || !peplumLengthOk(c)) return out;
+  const { dropCm: _d, ...rest } = c;
+  const WH = m.waist_to_hip ?? 0;
+  return { ...rest, length: PEPLUM_SEAM_MAX < WH * 0.75 ? 'high_hip' : 'hip', dropCm: PEPLUM_SEAM_MAX };
+}
+
+function dropAt(m: BodiceMeasurements, c: BodiceChoices, cm: number): BodiceChoices {
   const { dropCm: _d, ...rest } = c;
   if (cm < DROP_MIN / 2) return { ...rest, length: 'waist' };
   const range = dropRange(m, c.length, c.shirtCut);

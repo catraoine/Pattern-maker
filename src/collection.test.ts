@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { COLLECTION, lookChoices, lookFabric, lookFlat, lookPatch, lookValues } from './collection';
+import type { PatternChoices } from './garments';
+import { COLLECTION, lookChoices, lookFabric, lookFlat, lookNameOf, lookPatch, lookResized, lookValues } from './collection';
 import { randomBody, rng } from './engine/randomBodies';
 import { EXAMPLE_BODY, EXAMPLE_VALUES, isComplete } from './measurements';
 
@@ -66,5 +67,23 @@ describe('the Maison collection', () => {
     const drawn = bermuda.choices as { lengthCm: number; legCm: { knee: number; hem: number } };
     expect(tall.lengthCm).toBeCloseTo(drawn.lengthCm * 1.1, 0);
     expect(tall.legCm.hem).toBeCloseTo(drawn.legCm.hem * 1.2, 0);
+  });
+
+  // Fit tester walk, Nov 14: a petite tester measured the basics, picked the Blush Shift, then took the rest. The look
+  // was made on the sample body, so her mini wasn't let down and Style lost the look's name.
+  it('a look made before the measurements were all in is sized again once they are', () => {
+    const shift = COLLECTION.find((l) => l.name === 'Blush Shift')!;
+    const basics = { waist: 64, full_bust: 82, full_hip: 88, waist_to_floor: 94, height: 152 };
+    expect(lookValues(shift, basics).own).toBe(false);
+    const made = lookPatch(shift, lookValues(shift, basics).values) as unknown as { dress: PatternChoices };
+    const all = { ...basics, high_bust: 78, shoulder_width: 35, nape_to_waist: 37, waist_to_hip: 20.5, waist_to_knee: 52 };
+    expect(lookValues(shift, all).own).toBe(true);
+    expect(lookNameOf('dress', made.dress, all)).toBeUndefined();
+    const again = lookResized('dress', made.dress, all) as unknown as { dress: PatternChoices & { skirt: { lengthCm?: number } } };
+    expect(again.dress.skirt.lengthCm).toBeDefined();
+    expect(lookNameOf('dress', again.dress, all)).toBe('Blush Shift');
+    // Sized once, or changed by the maker, it is left alone.
+    expect(lookResized('dress', again.dress, all)).toBeUndefined();
+    expect(lookResized('dress', { ...made.dress, fit: 'relaxed' } as PatternChoices, all)).toBeUndefined();
   });
 });
