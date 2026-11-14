@@ -53,11 +53,12 @@ const introSeen = () => {
 /** How styling works, on a screen of its own the first time Style's questions open, then never again (Cat's A, Nov 14:
  *  "it should be very clear"). One line a step, in the order they happen, with no numbers (Cat). */
 function StyleIntro({ name, onStart }: { name: string; onStart: () => void }) {
-  const steps = [
-    'Each screen covers one style detail, such as the fit, the neckline or the sleeves.',
-    'Choose from the option cards below the styling window to set your style.',
-    'Happy with what is there? Tap Next to keep it and move on.',
-    'To change an earlier choice, tap the back arrow, or tap the style detail’s name to see the full list.',
+  // Each step opens with its words in bold, so the four read at a glance (Cat, Nov 14).
+  const steps: [string, string][] = [
+    ['Each screen', ' below the styling window covers one detail, such as the fit, the neckline or the sleeves.'],
+    ['Tap an option card', ' to select your style.'],
+    ['Happy', ' with what is there? Tap NEXT to keep it and move on.'],
+    ['To change', ' a previous selection, tap the back arrow, or select it from the style detail drop-down menu.'],
   ];
   return (
     <div className="style-intro">
@@ -67,8 +68,11 @@ function StyleIntro({ name, onStart }: { name: string; onStart: () => void }) {
       </h1>
       <p className="style-intro-lead">The next screens take you through styling your {name}, one choice at a time.</p>
       <ul className="style-intro-steps">
-        {steps.map((t, i) => (
-          <li key={i}>{t}</li>
+        {steps.map(([lead, rest]) => (
+          <li key={lead}>
+            <strong>{lead}</strong>
+            {rest}
+          </li>
         ))}
       </ul>
       <div className="review-print-bar">
