@@ -198,12 +198,14 @@ export function frontProblems(key: string, d: FrontDrawing): string[] {
   if (jag >= LIMITS.jagCount) out.push(`jagged: an edge with ${jag} teeth`);
   const grid = raster(shapes, vb);
   // Two openings that are meant, not gaps: the space between a sleeve hanging by the side and the body (tall and
-  // narrow), and an open front reaching up to the neckline at the centre (a jacket's lapels, a cardigan).
+  // narrow), and an open front reaching up to the neckline at the centre (a jacket's lapels, a cardigan). The
+  // double-breasted collar's neck V starts about 3.3 cm below the top, so the opening may start up to 4 cm down
+  // (Cat OK'd this on Nov 14).
   const top = Math.min(...pts.map((q) => q.y));
   const gap = holes(grid).filter((g) => {
     if (g.cm2 < LIMITS.gapCm2 || g.h > 4 * g.w) return false;
     const [gx, gy] = [g.x * CELL + x0 - (x0 + w / 2), g.y * CELL + y0];
-    return !(gy < top + 3 && Math.abs(gx + g.w / 2) < 1);
+    return !(gy < top + 4 && Math.abs(gx + g.w / 2) < 1);
   });
   if (gap.length) out.push(`gap: the form shows through a hole of ${r1(gap[0].cm2)} cm² in the cloth, ${r1(gap[0].y * CELL + y0)} cm down`);
   const side = lopsidedShare(grid);
