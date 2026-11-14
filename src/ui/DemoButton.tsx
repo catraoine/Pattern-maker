@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { FilmBar, useFilm } from './FilmControls';
 import { FilmWords, type FilmPart } from './TourPlayer';
+import { DemoGarment, KIND_FILMS, kindOf } from './demoKinds';
 
 // Watch demo (Cat's pick L1 Whisper, 2026-10-20): small deep champagne caps with the play mark after the words,
 // in the bottom-right corner of a tool's box. A light runs across it once when it arrives, so it is noticed without
@@ -129,7 +130,10 @@ type DemoName = keyof typeof DEMOS;
 
 export function DemoButton({ demo }: { demo: DemoName }) {
   const [open, setOpen] = useState(false);
-  const d: Demo = DEMOS[demo];
+  // The clip made on the garment open, where there is one (the testers' own garments); the skirt's otherwise.
+  const kind = kindOf(useContext(DemoGarment));
+  const own = kind && demo in KIND_FILMS ? KIND_FILMS[demo as keyof typeof KIND_FILMS]?.[kind] : undefined;
+  const d: Demo = own ? { ...DEMOS[demo], ...own } : DEMOS[demo];
   return (
     <>
       <button type="button" className="demo-play" onClick={() => setOpen(true)} aria-label={`Watch demo: ${d.title}, ${d.length}`}>

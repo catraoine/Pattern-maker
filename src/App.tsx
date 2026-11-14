@@ -68,6 +68,7 @@ import type { Piece } from './engine/piece';
 import { garmentEase } from './engine/easeMap';
 import { PatternEdit, applyPatternEdits } from './engine/pieceEdit';
 import { PointEditContext } from './ui/PointEditor';
+import { DemoGarment } from './ui/demoKinds';
 
 // The logo (Cat's pick F1 Loading Block): the loading screen's bodice block, drawn inside the header's square.
 import { Mode, finishFor, keepFinish, modeOf } from './mode';
@@ -684,6 +685,7 @@ export default function App() {
           onHandoff={(drawn) => setFormStart(drawn ? 'drawn' : 'fresh')}
         />
       )}
+      <DemoGarment.Provider value={garment}>
       <PointEditContext.Provider value={pointEditing}>
       <StartOver.Provider value={startOver}>
       <div className="app" {...{ inert: opening ? '' : undefined }}>
@@ -1371,6 +1373,7 @@ export default function App() {
       </div>
       </StartOver.Provider>
       </PointEditContext.Provider>
+      </DemoGarment.Provider>
     </>
   );
 }
