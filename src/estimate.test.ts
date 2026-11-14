@@ -43,7 +43,10 @@ describe('estimated upper-body measurements', () => {
       const b = { ...randomBody(r) } as MeasurementValues;
       Object.assign(b, randomArms(b as never, r));
       const v = drop(b);
-      for (const g of ['bodice', 'dress', 'jacket', 'coat'] as const) expect(isComplete(v, g)).toBe(true);
+      for (const g of ['dress', 'jacket', 'coat'] as const) expect(isComplete(v, g)).toBe(true);
+      // A top asks for its front length and bust depth in the standard steps (Cat, Nov 13).
+      expect(isComplete(v, 'bodice')).toBe(false);
+      expect(isComplete({ ...v, front_hps_to_waist: b.front_hps_to_waist, bust_depth: b.bust_depth }, 'bodice')).toBe(true);
       const m = withEstimates(v);
       expect(() => draftBodice(m as BodiceMeasurements, {})).not.toThrow();
       expect(() => draftDress(m as DressMeasurements, {}, {})).not.toThrow();

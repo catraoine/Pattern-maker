@@ -383,7 +383,13 @@ const JUMPSUIT_FIELDS: MeasurementField[] = [
   ...DRESS_FIELDS.filter((f) => f.fit),
 ];
 
-export const FIELDS: Record<Garment, MeasurementField[]> = { skirt: SKIRT_FIELDS, bodice: BODICE_FIELDS, dress: DRESS_FIELDS, trousers: TROUSERS_FIELDS, tee: TEE_FIELDS, knit_dress: KNIT_DRESS_FIELDS, hoodie: TEE_FIELDS, jumpsuit: JUMPSUIT_FIELDS, jacket: JACKET_FIELDS, coat: COAT_FIELDS, lingerie: LINGERIE_FIELDS };
+/** A top's front length and bust depth place its bust shaping and its waist seam (the Ice Peplum's princess seams
+ *  and peplum seam), so a top asks for them in its standard steps rather than estimating them (Cat, Nov 13: testers
+ *  were drafted from guesses for both). Dresses and jackets keep estimating them until they're taken. */
+const TOP_NEEDS: MeasurementId[] = ['front_hps_to_waist', 'bust_depth'];
+const TOP_FIELDS: MeasurementField[] = BODICE_FIELDS.map((f) => (TOP_NEEDS.includes(f.id) ? { ...f, optional: undefined } : f));
+
+export const FIELDS: Record<Garment, MeasurementField[]> = { skirt: SKIRT_FIELDS, bodice: TOP_FIELDS, dress: DRESS_FIELDS, trousers: TROUSERS_FIELDS, tee: TEE_FIELDS, knit_dress: KNIT_DRESS_FIELDS, hoodie: TEE_FIELDS, jumpsuit: JUMPSUIT_FIELDS, jacket: JACKET_FIELDS, coat: COAT_FIELDS, lingerie: LINGERIE_FIELDS };
 
 export type Unit = 'cm' | 'in';
 export type MeasurementValues = Partial<Record<MeasurementId, number>>; // always stored in cm
@@ -394,7 +400,8 @@ export type FormKind = 'womenswear' | 'menswear';
 export const MENSWEAR_SKIPS: MeasurementId[] = ['high_bust', 'bust_depth', 'apex_separation'];
 /** A garment's measurements on this form. */
 export const fieldsFor = (garment: Garment, form: FormKind = 'womenswear') =>
-  form === 'menswear' ? FIELDS[garment].filter((f) => !MENSWEAR_SKIPS.includes(f.id)) : FIELDS[garment];
+  // (The menswear form has no bust shaping to place, so its top keeps estimating the front length.)
+  form === 'menswear' ? (garment === 'bodice' ? BODICE_FIELDS : FIELDS[garment]).filter((f) => !MENSWEAR_SKIPS.includes(f.id)) : FIELDS[garment];
 /** Copy about the bust, said of the chest for the menswear form. */
 export const worded = (s: string, form: FormKind = 'womenswear') =>
   form === 'menswear' ? s.replace(/\b([Ff])ull bust\b/g, (_, f: string) => (f === 'F' ? 'Chest' : 'chest')).replace(/\bbust\b/g, 'chest').replace(/\bBust\b/g, 'Chest') : s;
@@ -479,7 +486,8 @@ interface BodyInfo {
 export function checkMeasurements(v: MeasurementValues, unit: Unit, garment: Garment = 'skirt', form: FormKind = 'womenswear', body: BodyInfo = {}): Check[] {
   if (form === 'menswear') return checkMeasurements(v, unit, garment, 'womenswear', { ...body, form }).filter((c) => !MENSWEAR_SKIPS.includes(c.id)).map((c) => ({ ...c, message: worded(c.message, form) }));
   const out: Check[] = [];
-  for (const f of FIELDS[garment]) {
+  // (Run here for the menswear form too: its top keeps estimating the front length, see fieldsFor.)
+  for (const f of body.form === 'menswear' && garment === 'bodice' ? BODICE_FIELDS : FIELDS[garment]) {
     const x = v[f.id];
     if (x === undefined || Number.isNaN(x)) {
       if (!f.optional) out.push({ id: f.id, level: 'error', message: `${f.label} is needed.` });
