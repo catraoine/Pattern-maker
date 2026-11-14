@@ -318,7 +318,7 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
         </Fold>
 
         <Fold id="testtitle" title="Fit testing" summary={account.testerCode ? 'Tester code on' : 'For testers'}>
-          <TesterCode code={account.testerCode} onCode={onTesterCode} />
+          <TesterCode code={account.testerCode} unit={unit} onCode={onTesterCode} />
         </Fold>
 
         <Fold id="intesttitle" title="Still in testing" summary={`${left.length} to pass`}>

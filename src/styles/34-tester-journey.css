@@ -35,12 +35,14 @@
   color: var(--gild);
 }
 
-/* A fit tester's way to the report form. */
-.tester-report {
+/* A fit tester's way to the report form, and to the body scan. */
+.tester-report,
+.body-scan {
   margin: 12px 0;
 }
 /* Its link reads like the app's other quiet links (Send to my computer), not a browser-blue one. */
-.tester-report a.link {
+.tester-report a.link,
+.body-scan a.link {
   display: inline-flex;
   align-items: center;
   min-height: 44px;

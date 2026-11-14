@@ -1,4 +1,6 @@
 import { TesterReport } from './TesterReport';
+import { BodyScan } from './BodyScan';
+import type { Unit } from '../measurements';
 import { useState } from 'react';
 import { TESTER_CAPS } from '../photo/limit';
 import { CODE_MESSAGE, checkCode } from '../access';
@@ -10,7 +12,7 @@ export const testerHeaders = (code: string | undefined): Record<string, string> 
  * Your account > Fit testing: type the code from the tester email. It's checked once, then kept on this device
  * and sent with each photo, so testers get more readings a day than everyone else.
  */
-export function TesterCode({ code, onCode }: { code?: string; onCode: (code: string | undefined) => void }) {
+export function TesterCode({ code, unit, onCode }: { code?: string; unit: Unit; onCode: (code: string | undefined) => void }) {
   const [typed, setTyped] = useState('');
   const [msg, setMsg] = useState('');
   const [checking, setChecking] = useState(false);
@@ -33,6 +35,7 @@ export function TesterCode({ code, onCode }: { code?: string; onCode: (code: str
       <div className="stack">
         <p className="small">Tester code on. You can read {TESTER_CAPS.visitor} photos a day while testing. Thank you for testing.</p>
         <TesterReport lead="Sewn your toile?" />
+        <BodyScan code={code} unit={unit} />
         <button type="button" className="link" onClick={() => onCode(undefined)}>
           Remove the code
         </button>
