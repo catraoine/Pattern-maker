@@ -26,6 +26,7 @@ const SAFARI_GATE = [
   'body-scan.spec.ts',
   'fabric-photo.spec.ts',
   'shop-catalogue.spec.ts',
+  'zz-safari-debug.spec.ts',
 ];
 
 export default defineConfig({
