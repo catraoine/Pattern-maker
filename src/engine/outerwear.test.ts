@@ -86,6 +86,16 @@ describe('jackets and coats', () => {
     expect(pads.sleeve.capHeight).toBeGreaterThan(none.sleeve.capHeight + 0.8);
   });
 
+  it('gives an unpadded jacket or coat sleeve no more than 2 cm of crown ease, and a padded one the full amount', () => {
+    const crown = (d: ReturnType<typeof draftOuter>) => d.sleeve.crownEase.front + d.sleeve.crownEase.back;
+    for (const kind of ['jacket', 'coat'] as const) {
+      for (const fit of ['fitted', 'regular', 'relaxed'] as const) {
+        expect(crown(draftOuter(m, { kind, fit, pads: 'none' }))).toBeLessThanOrEqual(2.05);
+        expect(crown(draftOuter(m, { kind, fit, pads: 'soft' }))).toBeGreaterThan(2.4);
+      }
+    }
+  });
+
   it('cuts a vented back as a pair, with its lining to match, and no vent on a cropped jacket', () => {
     const d = draftOuter(m, { kind: 'coat', vent: 'centre' });
     const back = d.pieces.find((pc) => pc.name === 'Coat centre back')!;
