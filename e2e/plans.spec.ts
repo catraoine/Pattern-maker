@@ -14,7 +14,7 @@ test('plans: hidden by default, shown in preview without locking anything', asyn
   await page.getByRole('button', { name: /account/i }).first().click();
   await openFold(page, 'Membership');
   const plan = main.getByRole('region', { name: 'Free' });
-  await expect(plan).toContainText('Skirt and bodice');
+  await expect(plan).toContainText('Skirt and top');
   await plan.getByRole('button', { name: 'See plans' }).click();
 
   await expect(main.getByRole('heading', { name: 'Every garment' })).toBeVisible();

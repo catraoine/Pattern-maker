@@ -771,3 +771,14 @@ button.later.edit-measure {
   white-space: nowrap;
   color: var(--gild);
 }
+
+/* On the smallest phones (iPhone SE 1st, 320x454) the copy review's longer link words ("A friend measures", "Try it
+   with an example body") wrap, which pushed Next a scroll away. Tighter rows there keep the page on one screen. */
+@media (max-width: 340px) and (max-height: 620px) {
+  .measure-step .how-row button.later {
+    min-height: 24px;
+  }
+  .measure-step .step-words > button.later {
+    letter-spacing: 0.04em;
+  }
+}
