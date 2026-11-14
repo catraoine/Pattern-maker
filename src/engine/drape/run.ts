@@ -32,6 +32,7 @@ import { fairBackCentre } from './fairFront';
 import { layLapelFoot } from './lapelFoot';
 import { fairStraps } from './strapFair';
 import { fairCowl } from './cowlFair';
+import { fairTorsoHem } from './hemFair';
 
 export type DrapeJob = { m: RoundMeasurements; armhole: RoundGarment['armhole']; fibre?: Fibre; crisp?: boolean; /** How the cloth behaves (clothCard.ts); without it, the card of the fibre and crisp fields. */ card?: ClothCard; /** A side tie knotted at the left side seam at the waist (belt.ts). */ sideTie?: SideTieSpec } & (
   | { kind: 'skirt'; draft: SkirtDraft }
@@ -191,6 +192,8 @@ function sewDrape(job: DrapeJob, sleevedHoldZ?: number): DrapedLite {
   // A shawl's top collar is cut in one with its facing, so the gorge seam under it doesn't show: drawn, it read as a
   // notch where the collar meets the lapel (Cat "Collar, start more with clo", Nov 11).
   if (job.kind === 'outer' && job.draft.lapel?.shawl) d.lines = d.lines.filter((l) => l.kind !== 'gorge');
+  // A top's hem edge, smoothed along its length where it crossed the mesh on a slant (hemFair.ts).
+  if ((job.kind === 'bodice' || job.kind === 'dress') && !knob('__noHemFair')) fairTorsoHem(d);
   const quality = drapeQuality(d, sp, { seams: d.seams, levelHem: !!sk && !sk.asym && !sk.hem, legs: job.kind === 'trousers' });
   // A sleeve piece the drape left out (a raglan's back half) is cloth missing from the drawing, which no measure of the
   // cloth that is there can see: the eye check's oversized raglan jacket passed with its shoulders open (2026-11-02).
