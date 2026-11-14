@@ -6,8 +6,10 @@ import { cloud, type CloudUser } from './api';
 
 export type Founding = { state: 'none' } | { state: 'checking' } | { state: 'failed' } | { state: 'member'; place: FoundingPlace } | { state: 'not-listed' };
 
-export function useFounding(user: CloudUser | null | undefined): Founding {
+/** The place, and a way to ask again after a check that failed. */
+export function useFounding(user: CloudUser | null | undefined): [Founding, () => void] {
   const [founding, setFounding] = useState<Founding>({ state: 'none' });
+  const [tries, setTries] = useState(0);
   useEffect(() => {
     if (!user) return setFounding({ state: 'none' });
     let live = true;
@@ -19,6 +21,6 @@ export function useFounding(user: CloudUser | null | undefined): Founding {
     return () => {
       live = false;
     };
-  }, [user?.email]); // eslint-disable-line react-hooks/exhaustive-deps -- asked again only when a different person signs in
-  return founding;
+  }, [user?.email, tries]); // eslint-disable-line react-hooks/exhaustive-deps -- asked again only when a different person signs in, or on Try again
+  return [founding, () => setTries((n) => n + 1)];
 }

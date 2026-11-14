@@ -25,6 +25,8 @@ export interface FoundingMember {
 
 export interface FoundingList {
   members: FoundingMember[];
+  /** Set once every approved tester is on the list, so they get the first numbers; until then nobody else is numbered. */
+  open?: boolean;
 }
 
 /** The email's short hash, as signup.mts files it: lower-cased and trimmed first, as the sign-up check does. */
@@ -50,7 +52,7 @@ export function addJoiners(list: FoundingList, joiners: Joiner[], places = FOUND
     have.add(j.id);
     added.push({ id: j.id, n: next++, kind: 'founding', joinedAt: j.receivedAt });
   }
-  return added.length ? { members: [...list.members, ...added] } : list;
+  return added.length ? { ...list, members: [...list.members, ...added] } : list;
 }
 
 /** Whether every place is taken, so the hourly job can stop reading the sign-ups. */
@@ -71,5 +73,5 @@ export function readList(raw: unknown): FoundingList | null {
     const x = m as Partial<FoundingMember> | null;
     return !!x && typeof x.id === 'string' && /^[0-9a-f]{16}$/.test(x.id) && Number.isInteger(x.n) && (x.kind === 'tester' || x.kind === 'founding') && typeof x.joinedAt === 'string';
   });
-  return ok ? { members: members as FoundingMember[] } : null;
+  return ok ? { members: members as FoundingMember[], open: (raw as { open?: unknown }).open === true } : null;
 }

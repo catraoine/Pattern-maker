@@ -18,6 +18,6 @@ export const earlyAccessOpen = (now = new Date()) => now.getTime() >= EARLY_ACCE
 export function foundingLines(p: FoundingPlace): string[] {
   const price = `Premium at ${FOUNDING_PRICE} instead of $49, locked in for as long as you stay`;
   return p.kind === 'tester'
-    ? ['The app opens to you on Feb 9, two days before launch.', `A free first year of Premium from launch, until ${TESTER_FREE_UNTIL}. After that, ${price.charAt(0).toLowerCase()}${price.slice(1)}.`, 'A vote on what we make next.']
+    ? ['The app opens to you on Feb 9, two days before launch.', `A free first year of Premium from launch, until ${TESTER_FREE_UNTIL}. After that, ${price}.`, 'A vote on what we make next.']
     : ['Early access from Feb 9, before the public launch on Feb 11.', `${price}.`, 'First to be invited to the next fit round, and a say in what we draft next.'];
 }

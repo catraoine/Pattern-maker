@@ -10,13 +10,15 @@ import { CloudAccount } from './CloudAccount';
 export interface FoundingSignIn {
   cloud: Cloud;
   founding: Founding;
+  /** Asks again after a check that failed. */
+  retry: () => void;
 }
 
 /** What the founding sign-in says once someone has signed in (a member is simply let in). */
 const FOUNDING_MESSAGE: Partial<Record<Founding['state'], string>> = {
   checking: 'Checking your founding place…',
   'not-listed': "That email isn't on the founding list. Sign out and sign in with the email you joined the waitlist with.",
-  failed: "Your place couldn't be checked just now. Try again in a moment.",
+  failed: "Your place couldn't be checked just now.",
 };
 
 type Sent = 'idle' | 'sending' | 'failed' | 'busy';
@@ -74,16 +76,30 @@ export function WaitlistForm({ onJoined, onCode, linkMessage, onRetry, founding 
         {FOUNDING_MESSAGE[founding.founding.state] && (
           <p className="msg small" role="status">
             {FOUNDING_MESSAGE[founding.founding.state]}
+            {founding.founding.state === 'failed' && (
+              <>
+                {' '}
+                <button type="button" className="inline-link" onClick={founding.retry}>
+                  Try again
+                </button>
+              </>
+            )}
           </p>
         )}
         <CloudAccount cloud={founding.cloud} />
-        {!founding.cloud.user && (
-          <p className="waitlist-tester">
-            <button type="button" className="inline-link" onClick={() => setSigningIn(false)}>
-              Back to the waitlist
-            </button>
-          </p>
-        )}
+        {/* Signed in with an email that isn't on the list: back to the waitlist and the tester code means signing out. */}
+        <p className="waitlist-tester">
+          <button
+            type="button"
+            className="inline-link"
+            onClick={async () => {
+              if (founding.cloud.user) await founding.cloud.signOut();
+              setSigningIn(false);
+            }}
+          >
+            {founding.cloud.user ? 'Sign out and go back to the waitlist' : 'Back to the waitlist'}
+          </button>
+        </p>
       </div>
     );
 

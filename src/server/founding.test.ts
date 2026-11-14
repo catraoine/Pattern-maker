@@ -32,6 +32,18 @@ describe('founding list', () => {
     expect(isFull(list, 4)).toBe(true);
   });
 
+  it('opens for numbering only once marked open', () => {
+    expect(readList({ members: [tester('one@example.com', 1)] })?.open).toBe(false);
+    expect(readList({ members: [tester('one@example.com', 1)], open: true })?.open).toBe(true);
+    expect(addJoiners({ ...base, open: true }, [join('a@example.com', '1')]).open).toBe(true);
+  });
+
+  it('numbers someone on the waitlist and the founding card once, by their earlier sign-up', () => {
+    const list = addJoiners(base, [join('a@example.com', '2026-11-20'), join('b@example.com', '2026-11-15'), join('a@example.com', '2026-11-10')]);
+    expect(placeFor(list, 'a@example.com')).toEqual({ n: 3, kind: 'founding' });
+    expect(list.members).toHaveLength(4);
+  });
+
   it('reads a damaged list as nobody', () => {
     expect(readList(null)).toBeNull();
     expect(readList({ members: [{ id: 'x', n: 1, kind: 'tester', joinedAt: '' }] })).toBeNull();
