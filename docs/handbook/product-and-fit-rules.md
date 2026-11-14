@@ -390,6 +390,12 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    (`yokesJoined`, for every yoked top: left as its own piece it hung loose by the knees) and its seam is drawn as
    a line; the pleat's own folds are not drawn in 3D.
    Covered by `engine/shirtCut.test.ts` and `e2e/collection.spec.ts`.
+58. **An empire seam sits 5 cm over the underbust** (Nov 14, Cat: "Empire yes"): every dress with the empire waist seam is
+   cut so the seam, darts closed, is the underbust plus 5 cm. An empire line hangs from just under the bust and only
+   reads as one when it sits close there. The tester pattern review found the Sixties empire mini's seam 13 to 17 cm
+   over the underbust at hips 86, 105 and 136, and fitting the look closer took off only 3 cm, so the room came from
+   how the empire option cuts the bodice, not the look. Not built yet: it is a pattern change, so it starts Dec 7 when
+   the freeze ends (no launch piece uses the empire seam).
 
 ## Style steps
 
