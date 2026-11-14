@@ -1,7 +1,7 @@
 // Proportions read off a photo (In testing, Nov 7): a jacket, top or trousers drafted to the photo's numbers.
 import { describe, expect, it } from 'vitest';
 import { HouseLook, lookFlat } from '../collection';
-import { isBodice, isDress, isOuter, isTrousers } from '../garments';
+import { DEFAULT_JACKET_CHOICES, isBodice, isDress, isOuter, isTrousers } from '../garments';
 import { draftOuter, outerDrop, type OuterMeasurements } from '../engine/outerwear';
 import { draftTrousers } from '../engine/trousers';
 import { EXAMPLE_VALUES } from '../measurements';
@@ -273,5 +273,23 @@ describe('options the reader names since Nov 12', () => {
     const c = choicesFor(hanger, 'jacket', body);
     if (!isOuter(c)) throw new Error('not a jacket');
     expect(c.length).toBe('cropped');
+  });
+});
+
+describe('the photo page names the pieces the pattern draws', () => {
+  it('says where the chest seam sits and how big the buttons are', async () => {
+    const { proportionWords } = await import('./garments');
+    const words = proportionWords({ ...DEFAULT_JACKET_CHOICES, yokeCm: 19, buttonSizeCm: 1.5, buttonholes: 'horizontal' }, (cm) => `${cm} cm`);
+    expect(words).toContain('Seam across the chest 19 cm below the neck');
+    expect(words).toContain('Buttons 1.5 cm across, horizontal buttonholes');
+  });
+});
+
+describe('room read off a hanger', () => {
+  it('takes clearly more room to be the oversized cut when the jacket is not worn', () => {
+    const at = (worn: boolean, bustRoom: number) => choicesFor({ ...vest, worn, measures: { ...none, bustRoom } }, 'jacket', body);
+    expect((at(false, 1.35) as { fit: string }).fit).not.toBe('oversized');
+    expect((at(true, 1.35) as { fit: string }).fit).toBe('oversized');
+    expect((at(false, 1.5) as { fit: string }).fit).toBe('oversized');
   });
 });

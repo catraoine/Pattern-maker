@@ -20,9 +20,11 @@ const Top = z.object({
   seams: z.enum(['darts', 'princess', 'none']),
   opening: z.enum(['back', 'front_buttons', 'wrap']),
   collar: z.enum(['none', 'peter_pan', 'mandarin', 'mock', 'funnel', 'shirt', 'polo', 'bow', 'ruffle', 'cape']),
-  sleeveCut: z.enum(['set_in', 'drop', 'raglan', 'kimono']),
-  cuff: z.enum(['none', 'shirt', 'oversized', 'elastic', 'tie', 'ruffle']),
-  dressCut: z.enum(['seam', 'sheath', 'shift', 'bias']),
+  // The newer details fall back to the plain choice when an answer leaves them out or names something else, so one
+  // stray field never costs the whole reading (2 of 25 photos failed that way on Nov 14).
+  sleeveCut: z.enum(['set_in', 'drop', 'raglan', 'kimono']).catch('set_in'),
+  cuff: z.enum(['none', 'shirt', 'oversized', 'elastic', 'tie', 'ruffle']).catch('none'),
+  dressCut: z.enum(['seam', 'sheath', 'shift', 'bias']).catch('seam'),
   peplum: z.enum(['none', 'flared', 'gathered']),
   boned: z.boolean(),
   knit: z.boolean(),
@@ -55,17 +57,17 @@ const Outer = z.object({
   length: z.enum(['cropped', 'hip', 'long', 'thigh', 'knee', 'midi']),
   front: z.enum(['single', 'double', 'zip']),
   collar: z.enum(['notched', 'peak', 'shawl', 'stand', 'funnel', 'collarless', 'hood']),
-  lapel: z.enum(['classic', 'wide', 'plunge']),
+  lapel: z.enum(['classic', 'wide', 'plunge']).catch('classic'),
   pockets: z.enum(['none', 'patch', 'welt', 'flap']),
-  chestPocket: z.boolean(),
+  chestPocket: z.boolean().catch(false),
   shaping: z.enum(['darts', 'princess', 'boxy']),
   pads: z.enum(['none', 'soft', 'structured']),
   flare: z.enum(['straight', 'a_line']),
   sleeve: z.enum(['set_in', 'raglan', 'none']).optional(),
   trim: z.enum(['none', 'rib']).optional(),
-  buttonStyle: z.enum(['none', 'flat', 'domed', 'shank', 'covered', 'snap', 'toggle']),
-  buttonholes: z.enum(['none', 'horizontal', 'vertical']),
-  edging: z.enum(['none', 'contrast']),
+  buttonStyle: z.enum(['none', 'flat', 'domed', 'shank', 'covered', 'snap', 'toggle']).catch('none'),
+  buttonholes: z.enum(['none', 'horizontal', 'vertical']).catch('none'),
+  edging: z.enum(['none', 'contrast']).catch('none'),
 });
 
 /** The pieces added on Nov 7, which a reading from before doesn't have. */
@@ -117,10 +119,11 @@ export const Reading = z.object({
   outer: Outer.nullable(),
   fabric: Fabric.nullable(),
   worn: z.boolean(),
-  measures: z.array(z.object({ name: z.enum(MEASURES), value: z.number() })),
-  unsure: z.object({ group: z.enum(['silhouette', 'length', 'neckline', 'sleeve', 'leg']), other: z.string() }).nullable(),
-  missing: z.array(z.string()),
-  details: z.string(),
+  // A size the reading doesn't know, or one without a number, is dropped by toReading rather than failing the reading.
+  measures: z.array(z.object({ name: z.string().describe(`One of: ${MEASURES.join(', ')}`), value: z.number().nullable() })).catch([]),
+  unsure: z.object({ group: z.enum(['silhouette', 'length', 'neckline', 'sleeve', 'leg']), other: z.string() }).nullable().catch(null),
+  missing: z.array(z.string()).catch([]),
+  details: z.string().catch(''),
 });
 
 export const SYSTEM = `You help home sewists turn a photo of a garment into a sewing pattern. The garment may be worn, on a hanger, or laid flat, and in any size: the app drafts it to the sewist's own measurements, so your job is only to read the style. The app drafts skirts, dresses (a bodice joined to a skirt at the waist, with a back zip), woven tops, knit T-shirts, trousers, jackets and coats.
@@ -187,7 +190,7 @@ outer: fill this in for a jacket or a coat; otherwise null.
 - fit: as for a top. length: a jacket is "cropped" (above the hip), "hip" or "long" (to the upper thigh); a coat is "thigh" (mid-thigh), "knee" or "midi".
 - front: "single" (one row of buttons), "double" (two rows of buttons, overlapping fronts) or "zip" (a zip up the centre front). collar: "notched" (a lapel with a notch, the collar's point meeting the lapel's at an open V), "peak" (the lapel's points sweep up past the collar's), "shawl" (lapel and collar in one rolled curve, no notch), "stand", "funnel" (a tall stand rising up the neck), "collarless" or "hood". lapel: "wide" for lapels reaching well toward the shoulder, "plunge" for one rolling down to a single button at the waist, otherwise "classic" (also for no lapels).
 - sleeve: "raglan" when a seam runs from the neck to the underarm with no shoulder seam, "none" for a sleeveless jacket (a waistcoat or tailored vest), otherwise "set_in". trim: "rib" when the hem and cuffs are stretchy ribbed bands (as on a bomber), otherwise "none".
-- pockets: the lower pockets: "patch" (sewn on top), "welt" (a set-in slit), "flap" (a set-in pocket covered by a flap) or "none". chestPocket: true for a welt pocket on the left chest. shaping: "princess" (long seams down the front), "darts" or "boxy" (straight and unshaped).
+- pockets: the lower pockets: "patch" (sewn on top, with or without a flap over it: a bag sewn onto the outside), "welt" (a set-in slit, or a zip set into a slit), "flap" (a set-in pocket whose opening is covered by a flap, with no pocket bag showing on the outside) or "none". chestPocket: true for a welt pocket on the left chest. shaping: "princess" (long seams down the front), "darts" or "boxy" (straight and unshaped).
 - pads: "structured" for sharp, built-up shoulders, "soft" for a natural shoulder line, "none" for a soft, unstructured jacket. flare: "a_line" for a coat that widens below the hip, otherwise "straight".
 - Look at each piece separately, not just the overall shape: the collar, the lapel, the front edge, the buttons and every seam.
 - buttonStyle: "flat" (a flat sew-through button), "domed", "shank" (a rounded or metal button on a stem, with no holes showing), "covered" (covered in the garment's cloth), "snap" (press studs), "toggle" (toggles with loops), or "none" for a zip or no fastening. buttonholes: which way the buttonholes run, "horizontal" or "vertical", or "none" when there are none (snaps, toggles, a zip, or hidden under a fly front).
@@ -273,14 +276,17 @@ The reading's rules:
 
 `;
 
-type Measure = { name: (typeof MEASURES)[number]; value: number };
+type Measure = { name: string; value: number | null };
 type WireReading = Omit<PhotoReading, 'measures'> & { measures?: Measure[] };
 
 /** Claude's list of sizes as the reading the app keeps: every size named, null for each it didn't list. */
 export function toReading(r: WireReading): PhotoReading {
   if (!Array.isArray(r.measures)) return r as PhotoReading;
   const measures = Object.fromEntries(MEASURES.map((k) => [k, null])) as Record<(typeof MEASURES)[number], number | null>;
-  for (const m of r.measures) if (measures[m.name] === null && Number.isFinite(m.value)) measures[m.name] = m.value;
+  for (const m of r.measures) {
+    const name = m.name as (typeof MEASURES)[number];
+    if (measures[name] === null && typeof m.value === 'number' && Number.isFinite(m.value)) measures[name] = m.value;
+  }
   return { ...r, measures } as PhotoReading;
 }
 
