@@ -763,7 +763,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           <span className="eyebrow">Review · {look ?? label}</span>
           {Name}
         </h1>
-        {flat && <Envelope name={Name} flat={flat} foot="Drafted to you" />}
+        {flat && <Envelope house={false} name={Name} flat={flat} foot="Drafted to you" />}
         {finished}
         {onPrint && (
           <button type="button" className="primary review-print" disabled={!ready} onClick={onPrint}>

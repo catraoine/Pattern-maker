@@ -14,7 +14,8 @@ interface Props {
   /** Under the name: who it's drafted to. */
   foot?: string;
   size?: 'small' | 'large';
-  /** The house name at the top. Print's summary card goes without it (Cat, Nov 7). */
+  /** The house name at the top. Print's summary card goes without it (Cat, Nov 7), and so do Review, the collection
+   *  and saved patterns (Cat, Nov 13: "We don't need Maison Tracé everywhere"). */
   house?: boolean;
 }
 
