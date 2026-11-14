@@ -125,6 +125,12 @@ describe('the reading format sent to the API', () => {
     expect(parse).toHaveBeenCalledTimes(2);
   });
 
+  it('takes a top fit written as the bare word', async () => {
+    const top = { fit: 'fitted', neckline: 'v', sleeve: 'none', sleeveShape: 'straight', length: 'waist', seams: 'darts', opening: 'back', collar: 'none', peplum: 'none', boned: false, knit: false, waistSeam: false, waistSeamAt: 'none', belt: 'none' };
+    const out = await analyzePhoto(photo, fakeClient({ stop_reason: 'end_turn', parsed_output: { ...reading, top } }).client);
+    expect(out.ok && out.reading.top?.fit).toEqual({ value: 'fitted', confidence: 'medium' });
+  });
+
   it('sends the second try its first answer and the fields that did not fit', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const { client, parse } = fakeClient({ stop_reason: 'end_turn', parsed_output: { ...reading, garment: 'cape' } });

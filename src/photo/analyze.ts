@@ -8,7 +8,10 @@ import { BackReading, BackResponse, CheckResponse, IMAGE_TYPES, MAX_IMAGE_BYTES,
 
 const confidence = z.enum(['low', 'medium', 'high']);
 
-const fit = z.object({ value: z.enum(['fitted', 'regular', 'relaxed']), confidence });
+const fitValue = z.enum(['fitted', 'regular', 'relaxed']);
+// Inside a top, Claude sometimes writes the fit as the bare word ("fitted") rather than { value, confidence }; that
+// failed every reading of the gingham dress and the wide jeans on Nov 14, so the bare word is taken as medium confidence.
+const fit = z.union([z.object({ value: fitValue, confidence }), fitValue.transform((value) => ({ value, confidence: 'medium' as const }))]);
 export const piece = z.enum(['skirt', 'dress', 'top', 'tee', 'trousers', 'jacket', 'coat']);
 
 const Top = z.object({
