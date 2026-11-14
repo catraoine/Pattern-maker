@@ -6,7 +6,7 @@ test('body scan: only testers see it, and it opens the scanner from a pass our s
   await page.route('**/.netlify/functions/tester', (route) => route.fulfill({ json: { ok: true, tester: true } }));
   let sent: string | undefined;
   await page.route('**/.netlify/functions/body-scan', (route) => {
-    sent = route.request().headers()['x-tester-code'];
+    sent = (route.request().postDataJSON() as { code?: string }).code;
     return route.fulfill({ json: { ok: true, url: 'https://platform.bodygram.com/en/org_example/scan?token=example&system=metric' } });
   });
   await startWithExample(page);
@@ -38,4 +38,18 @@ test('body scan: says plainly when today\'s scans are used up', async ({ page, c
   await fold.getByRole('button', { name: 'Use code' }).click();
   await fold.getByRole('button', { name: 'Start a body scan' }).click();
   await expect(fold).toContainText("That's all the scans for today");
+});
+
+test('body scan: a code the server no longer knows says so, not just "couldn\'t start"', async ({ page, consoleErrors }) => {
+  // The stubbed answer is a 403, which the browser logs.
+  consoleErrors.allow(/403/);
+  await page.route('**/.netlify/functions/tester', (route) => route.fulfill({ json: { ok: true, tester: true } }));
+  await page.route('**/.netlify/functions/body-scan', (route) => route.fulfill({ status: 403, json: { ok: false, error: 'not_tester' } }));
+  await startWithExample(page);
+  await page.getByRole('banner').getByRole('button', { name: /account/i }).click();
+  const fold = await openFold(page, 'Fit testing');
+  await fold.getByLabel('Tester code').fill('example-code');
+  await fold.getByRole('button', { name: 'Use code' }).click();
+  await fold.getByRole('button', { name: 'Start a body scan' }).click();
+  await expect(fold).toContainText("isn't recognised any more");
 });

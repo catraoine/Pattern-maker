@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { OWNER } from '../legal';
 import type { Unit } from '../measurements';
-import { testerHeaders } from './TesterCode';
 
-type ScanError = 'limit_reached' | 'busy' | 'failed';
+type ScanError = 'not_tester' | 'not_configured' | 'limit_reached' | 'busy' | 'failed';
 
+// Each reason gets its own words, so a tester (or Cat) can tell a stale code from a scan that isn't switched on.
 const SCAN_MESSAGE: Record<ScanError, string> = {
+  not_tester: "Your tester code isn't recognised any more. Tap Remove the code, then open your tester link again.",
+  not_configured: `The body scan isn't switched on yet. Email ${OWNER.email} and we'll sort it out.`,
   limit_reached: "That's all the scans for today. Try again tomorrow.",
   busy: `The body scan is full for now. Email ${OWNER.email} and we'll sort it out.`,
   failed: "The scan couldn't start just now. Check you're online and try again.",
@@ -25,10 +27,10 @@ export function BodyScan({ code, unit }: { code: string; unit: Unit }) {
     setBusy(true);
     setMsg('');
     try {
-      const res = await fetch('/.netlify/functions/body-scan', { method: 'POST', headers: { 'Content-Type': 'application/json', ...testerHeaders(code) }, body: JSON.stringify({ unit }) });
+      const res = await fetch('/.netlify/functions/body-scan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ unit, code }) });
       const data = (await res.json().catch(() => ({}))) as { ok?: boolean; url?: string; error?: string };
       if (data.ok && data.url) setUrl(data.url);
-      else setMsg(SCAN_MESSAGE[data.error === 'limit_reached' || data.error === 'busy' ? data.error : 'failed']);
+      else setMsg(SCAN_MESSAGE[data.error && data.error in SCAN_MESSAGE ? (data.error as ScanError) : 'failed']);
     } catch {
       setMsg(SCAN_MESSAGE.failed);
     }

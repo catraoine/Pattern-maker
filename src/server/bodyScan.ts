@@ -50,5 +50,6 @@ export async function newScanToken(apiKey: string, fetcher: Fetch = fetch): Prom
     return null;
   }
   const data = (await res.json().catch(() => ({}))) as { token?: unknown };
+  if (typeof data.token !== 'string') console.error('bodygram answered without a pass', res.status, Object.keys(data).join(','));
   return typeof data.token === 'string' && data.token.length > 0 && data.token.length < 4000 ? data.token : null;
 }
