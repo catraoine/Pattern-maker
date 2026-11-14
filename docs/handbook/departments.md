@@ -24,7 +24,7 @@ older one-off threads it used to list are closed and their work sits with the de
 | Community (Community Lead) | Community: Customer and community plan | Community plan, customer research, Monday community nudge |
 | Finance & Legal (CFO & Counsel) | Finance & Legal: Tax, legal and trademark | Tax, legal review, trademark, cost tally, sole prop registration |
 | Finance & Legal (CFO & Counsel) | Finance & Legal: Affiliates and fabric shops | Affiliate programmes, fabric shop catalogue (weekly refresh) |
-| Operations (Chief of Staff) | Chief of Staff: Company status | The Company status page (7:37 am) and the daily "Still waiting on you" reminder (6 pm) |
+| Operations (Chief of Staff) | Chief of Staff: Company status | The Company status page (7:37 am) and the daily "Still waiting on you" reminder (weekdays 6 pm, weekends 10 am) |
 | Operations (Chief of Staff) | Chief of Staff: Weekly department connect | Sunday and Monday department connect for the Monday review |
 
 ## Company status and questions for Cat
@@ -36,7 +36,7 @@ older one-off threads it used to list are closed and their work sits with the de
 - **Asking Cat:** departments ask Cat directly, as things come up. Each thread that asks Cat a choice
   also adds one row to the waiting list (`morning-batch/queue.md` in project files) and moves it to
   Answered when she answers.
-- **Still waiting on you:** every evening just before 6 pm Chief of Staff posts one reminder with every
+- **Still waiting on you:** weekdays just before 6 pm and weekends just before 10 am, Chief of Staff posts one reminder with every
   question still unanswered from the day before or earlier, plus open decision cards and stuck
   threads, answerable with letters ("1A 2B") or "recs". It never asks anything new. On Mondays the
   same list also goes into part 1 of the 8 am review.
