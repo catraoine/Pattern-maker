@@ -1,4 +1,4 @@
-import { expect, expectStyle, openCollection, startWithExample, test } from './fixtures';
+import { changeLook, expect, expectStyle, openCollection, startWithExample, test } from './fixtures';
 
 test('the Eras shelf: each era as a whole line, and a piece made from it', async ({ page }) => {
   await startWithExample(page);
@@ -18,6 +18,7 @@ test('the Eras shelf: each era as a whole line, and a piece made from it', async
     }
   await main.getByRole('group', { name: 'Era' }).getByRole('button', { name: '1950s' }).click();
   await line.getByRole('listitem').filter({ has: page.getByRole('heading', { name: 'Wiggle dress' }) }).getByRole('button', { name: 'Make this look' }).click();
+  await changeLook(page);
   await expectStyle(page, 'Dress');
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('pattern-maker:skirt') ?? '{}'));
   expect(saved.dress).toMatchObject({ fit: 'fitted', bodice: { neckline: 'square' }, skirt: { silhouette: 'pencil', length: 'knee' } });

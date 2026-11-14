@@ -5,7 +5,7 @@ import { FilmWords, type FilmPart } from './TourPlayer';
 import { DemoGarment, KIND_FILMS, kindOf } from './demoKinds';
 
 // Watch demo (Cat's pick L1 Whisper, 2026-10-20): small deep champagne caps with the play mark after the words,
-// in the bottom-right corner of a tool's box. A light runs across it once when it arrives, so it is noticed without
+// in the bottom-right corner of a tool's box. Just "Demo" since Cat, Nov 14 ("take out watch"). A light runs across it once when it arrives, so it is noticed without
 // shouting. It opens that tool's clip full screen, like the tour. Clips are recorded from the app by
 // scripts/record-demos.mjs (npm run record:demos); re-record them with the tour once the app is final.
 
@@ -25,12 +25,11 @@ const DEMOS = {
     parts: [
       { name: 'Shape', from: 0, says: 'Pick a shape. Your pattern redraws to fit you.' },
       { name: 'Length', from: 9.9, says: 'Drag the hem up or down to set the length.' },
-      { name: 'Hem', from: 22.0, says: 'Pick a hem shape. Here, high-low.' },
-      { name: 'Details', from: 27.0, says: 'Add details. Here, pleats and a tie sash.' },
-      { name: 'Undo', from: 32.7, says: 'Changed your mind? Tap Undo.' },
-      { name: 'Pattern', from: 37.6, says: 'Tap Pattern to see the pieces you will cut.' },
+      { name: 'Hem', from: 22.5, says: 'Pick a hem shape. Here, high-low.' },
+      { name: 'Details', from: 27.5, says: 'Add details. Here, pleats and a tie sash.' },
+      { name: 'Pattern', from: 32.8, says: 'Tap Pattern to see the pieces you will cut.' },
     ],
-    length: '0:47',
+    length: '0:43',
   },
   draw: {
     title: 'How drawing on your form works',
@@ -136,9 +135,9 @@ export function DemoButton({ demo }: { demo: DemoName }) {
   const d: Demo = own ? { ...DEMOS[demo], ...own } : DEMOS[demo];
   return (
     <>
-      <button type="button" className="demo-play" onClick={() => setOpen(true)} aria-label={`Watch demo: ${d.title}, ${d.length}`}>
+      <button type="button" className="demo-play" onClick={() => setOpen(true)} aria-label={`Demo: ${d.title}, ${d.length}`}>
         <span className="demo-play-words">
-          Watch demo<span className="demo-play-mark">{'▶︎'}</span>
+          Demo<span className="demo-play-mark">{'▶︎'}</span>
         </span>
       </button>
       {/* On the body, so the steady header and the bottom bar cannot sit over it. */}

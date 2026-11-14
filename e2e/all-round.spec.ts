@@ -8,7 +8,8 @@ test('all round shows the skirt on the form, quietly checked, with only Drag to 
   const main = page.getByRole('main');
   await main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round', exact: true }).click();
   await expect(main.getByRole('img', { name: /on your form, turning/ })).toBeVisible();
-  await expect(main.getByText(/^(Drag to turn|Sewing your pattern…)$/)).toBeVisible();
+  // While it settles, a thin line with no words; then Drag to turn.
+  await expect(main.locator('.all-round-settling').or(main.getByText('Drag to turn', { exact: true }))).toBeVisible();
   await expect(main.getByText(/checked$/)).toHaveCount(0);
   await expect(main.getByText('A shape preview, not a cloth simulation.')).toHaveCount(0);
   // No hem chart under the form: its CF / Left / CB / Right labels were drawn on the canvas, so the figure fills it.

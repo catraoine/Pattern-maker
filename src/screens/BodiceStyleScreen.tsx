@@ -355,6 +355,15 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
       <section className="card numbered" aria-labelledby="opts">
         {BODICE_GROUPS.filter((g) => shown(g.id)).map((g) => (
           <Group key={g.id} label={g.label} tab={PRO_GROUPS.includes(g.id) ? PRO : undefined} shaped={handShaped(choices, g.id) ? g.options.find(([id]) => id === valueOf(g.id))?.[1] : undefined}>
+            {/* Above the pictures, not under them: greyed sleeves read as locked until the reason is seen (cold read, Nov 14). */}
+            {g.id === 'sleeve' && !arms && (
+              <p className="muted small sleeve-why">
+                Sleeves need your arm measurements.{' '}
+                <button type="button" className="link inline-link" onClick={onEditMeasurements}>
+                  Add them
+                </button>
+              </p>
+            )}
             <div className={chipsClass('bodice', g.id)}>
               {g.options.map(([id, label]) => (
                 <button
@@ -394,14 +403,6 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
             {g.id === 'length' && !hip && (
               <p className="muted small">
                 For hip lengths, add your full hip and waist to hip.{' '}
-                <button type="button" className="link inline-link" onClick={onEditMeasurements}>
-                  Add them
-                </button>
-              </p>
-            )}
-            {g.id === 'sleeve' && !arms && (
-              <p className="muted small">
-                For sleeves, add your arm length, upper arm and wrist.{' '}
                 <button type="button" className="link inline-link" onClick={onEditMeasurements}>
                   Add them
                 </button>

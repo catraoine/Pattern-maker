@@ -580,6 +580,15 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       <section className="card numbered" aria-labelledby="opts">
         {groups.map((g) => (
           <Group key={g.id} label={g.label} tab={PRO_GROUPS.includes(g.id) ? PRO : undefined}>
+            {/* Above the pictures, not under them: greyed sleeves read as locked until the reason is seen (cold read, Nov 14). */}
+            {g.id === 'sleeve' && !arms && (
+              <p className="muted small sleeve-why">
+                Sleeves need your arm measurements.{' '}
+                <button type="button" className="link inline-link" onClick={onEditMeasurements}>
+                  Add them
+                </button>
+              </p>
+            )}
             <div className={chipsClass((['noSeam', 'silhouette', 'length', 'asymHem', 'slit', 'gathers'].includes(g.id) ? 'skirt' : 'bodice'), g.id)}>
               {g.options.map(([id, label]) => (
                 <button
@@ -603,14 +612,6 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
               ))}
             </div>
             <Explain set={['noSeam', 'silhouette', 'length', 'asymHem', 'slit', 'gathers', 'volume', 'pockets', 'belt'].includes(g.id) ? 'skirt' : 'bodice'} group={g.id} options={g.options} pick={value(g.id)} />
-            {g.id === 'sleeve' && !arms && (
-              <p className="muted small">
-                For sleeves, add your arm length, upper arm and wrist.{' '}
-                <button type="button" className="link inline-link" onClick={onEditMeasurements}>
-                  Add them
-                </button>
-              </p>
-            )}
             {g.id === 'sleeveCut' && SLEEVE_CUTS.map(([c]) => sleeveCutBlocked({ ...choices.bodice, closure }, c)).find(Boolean) && (
               <p className="muted small">{SLEEVE_CUTS.map(([c]) => sleeveCutBlocked({ ...choices.bodice, closure }, c)).find(Boolean)}</p>
             )}

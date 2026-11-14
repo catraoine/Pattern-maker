@@ -1,25 +1,18 @@
 import { chooseChip, expect, expectStyle, fillStepPages, measureMe, openFresh, openPhoto, openReview, pickToMake, showAllTools, startWithExample, stepButton, switchGarment, test } from './fixtures';
 
-// Every garment's style screen works the same way: Undo and Redo always in place, and the same save wording.
-test('undo, redo and save read the same on the trousers as on the skirt', async ({ page }) => {
+// Every garment's style screen works the same way: no Undo or Redo on the questions, as a pick is changed by picking
+// again (Cat, Nov 14: undo and redo are for the draw and drag tools), and the same save wording.
+test('the questions have no undo or redo, and save reads the same on the trousers as on the skirt', async ({ page }) => {
   await startWithExample(page);
   const main = page.getByRole('main');
   await switchGarment(page, 'Trousers');
 
   const wide = main.getByRole('group', { name: 'Leg', exact: true }).getByRole('button', { name: 'Wide', exact: true });
-  const undo = main.getByRole('button', { name: 'Undo the last change' });
-  const redo = main.getByRole('button', { name: 'Redo the change you undid' });
-  // Nothing to undo yet: greyed out on a computer, not shown on a phone (they appear by the step once there is).
-  await expect(main.locator('button:enabled[aria-label="Undo the last change"]')).toHaveCount(0);
-  await expect(main.locator('button:enabled[aria-label="Redo the change you undid"]')).toHaveCount(0);
   await chooseChip(page, 'Leg', 'Wide');
-  await undo.click();
-  await expect(main.getByRole('status').filter({ hasText: 'Undone' })).toBeVisible();
-  await expect(wide).toHaveAttribute('aria-pressed', 'false');
-  await redo.click();
-  await expect(main.getByRole('status').filter({ hasText: 'Redone' })).toBeVisible();
   await expect(wide).toHaveAttribute('aria-pressed', 'true');
-  await expect(redo).toBeDisabled();
+  // Not by the question, nor beside it on a computer: only the enlarged window keeps its own pair, for the hem dragged there.
+  await expect(main.locator('button[aria-label="Undo the last change"]:visible')).toHaveCount(0);
+  await expect(main.locator('button[aria-label="Redo the change you undid"]:visible')).toHaveCount(0);
 
   await expect(main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Pattern/ })).toBeVisible();
   await openReview(page);
@@ -123,17 +116,20 @@ test('a first dress asks five more measurements, not thirteen', async ({ page })
   await expect(main.getByRole('button', { name: /more for a closer fit$/ })).toBeVisible();
 });
 
-// The skirt uses the same Undo and Redo, and a new change clears what could be redone.
-test('a new change on the skirt clears redo', async ({ page }) => {
+// The enlarged window's Undo and Redo: a new change clears what could be redone.
+test('a new change on the skirt clears redo in the enlarged window', async ({ page }) => {
   await startWithExample(page);
   const main = page.getByRole('main');
-  const undo = main.getByRole('button', { name: 'Undo the last change' });
-  const redo = main.getByRole('button', { name: 'Redo the change you undid' });
-  await expect(main.locator('button:enabled[aria-label="Undo the last change"]')).toHaveCount(0);
+  const enlarge = () => main.getByRole('button', { name: /^Enlarge the drawing/ }).click();
+  const undo = page.locator('.big-undo').getByRole('button', { name: 'Undo the last change' });
+  const redo = page.locator('.big-undo').getByRole('button', { name: 'Redo the change you undid' });
   await chooseChip(page, 'Fit', 'Relaxed');
+  await enlarge();
   await undo.click();
   await expect(redo).toBeEnabled();
+  await page.keyboard.press('Escape');
   await chooseChip(page, 'Fit', 'Relaxed');
+  await enlarge();
   await expect(redo).toBeDisabled();
   await expect(undo).toBeEnabled();
 });

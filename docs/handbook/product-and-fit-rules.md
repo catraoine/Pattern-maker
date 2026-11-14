@@ -423,8 +423,8 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
   card (cloth over a cream name strip); a shop fabric adds its shop and listed price. Phone: the picks sit under
   it, as many of three as fit. Not on Flat or the pattern. Code: `src/ui/PaletteCard.tsx`.
 - **Back a step** (Oct 31, A): a plain ← box left of Next/Review on every step after the first, never a named
-  link. On a phone Undo/Redo are named words across from "Step 2 of 4", away from the back arrow; Clear sits
-  under Done while drawing.
+  link. Clear sits under Done while drawing. Undo and Redo are only for the draw and drag tools (Draw on your form,
+  Move points) and the enlarged window, never on the style questions (Cat, Nov 14).
 
 - **Photos are measured for proportion** (Nov 7, Cat: "This needs to be how users photos are handled instantly",
   "Measured for proportion and design detail, aiming for max refinement"; In testing): a photo reading measures

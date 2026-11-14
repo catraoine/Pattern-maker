@@ -240,15 +240,7 @@ input.inline:focus,
   cursor: default;
 }
 
-.all-round-feel-now {
-  margin: 0;
-  flex-basis: 100%;
-  font-size: 0.7rem;
-  color: var(--muted);
-}
-
 .all-round-feel-reset {
-  margin-left: 6px;
   min-height: 24px;
   padding: 2px 8px;
 }

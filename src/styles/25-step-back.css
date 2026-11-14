@@ -26,41 +26,6 @@
   height: auto;
   min-height: 40px;
 }
-/* Undo and Redo on a phone: named, across from "Step 2 of 4", shown once there is something to undo, so they can't
-   be taken for the step's back arrow in the bar. */
-.chapter-top > .step-undo {
-  display: flex;
-  gap: 4px;
-  margin-left: auto;
-}
-.step-undo button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 36px;
-  padding: 0 8px;
-  border: 0;
-  background: none;
-  color: var(--ink);
-  font: 500 var(--caps-size)/1 var(--mono);
-  letter-spacing: var(--caps-track);
-  text-transform: uppercase;
-  cursor: pointer;
-}
-.step-undo button span {
-  font-size: 16px;
-  color: var(--gild);
-}
-.step-undo button:last-child {
-  padding-right: 0;
-}
-.step-undo button:disabled {
-  color: #4a4336;
-  cursor: default;
-}
-.step-undo button:disabled span {
-  color: inherit;
-}
 /* While drawing, Clear sits under Done: it takes away the drawn line and puts back the plain one. */
 .preview-corner > .draw-clear {
   order: 0;
