@@ -37,7 +37,6 @@ import { wholeSkirt } from './wholeSkirt';
 import { fullHemLevel } from './hemWidth';
 import { droppedFlareCut, selfGap } from './skirtApart';
 import { madeUpSkirt } from '../skirtPockets';
-import { foldCorner } from './collarFold';
 
 type V3 = [number, number, number];
 const TAU = Math.PI * 2;
@@ -1134,8 +1133,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
       return { ids, s: ss };
     };
     let standTop: { panel: Panel; key: (q: P) => number } | undefined;
-    for (const drafted of extra.collars) {
-      const c = { ...drafted, pc: foldCorner(drafted.pc) };
+    for (const c of extra.collars) {
       const pc = c.pc;
       const roll = c.roll;
       const lift = c.onStand ? 3 : 0;
@@ -6785,4 +6783,3 @@ export function drapeOuter(sp: Space, d: OuterDraft, o: DrapeOptions = {}): Drap
     }
   return out;
 }
-
