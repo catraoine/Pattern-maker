@@ -140,7 +140,7 @@ function offSegment(q: P, a: P, b: P): number {
 }
 /** A closed line with points closer than MIN_STEP merged: of each close pair the gentler point goes, so long as the line
  *  without it stays within DRIFT of where it was (corners stay exactly where they were drafted). */
-export function cleanRing(pts: P[], straight = true): P[] {
+function cleanRing(pts: P[], straight = true): P[] {
   const ring = [...open(pts)];
   let changed = true;
   while (changed && ring.length > 3) {

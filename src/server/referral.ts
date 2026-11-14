@@ -13,7 +13,7 @@ export function refCode(email: string): string {
   return BigInt(`0x${hex.slice(0, 16)}`).toString(36).padStart(8, '0').slice(-8);
 }
 
-export interface Referrer {
+interface Referrer {
   email: string;
   code: string;
   /** Friends on the waitlist who joined through their link. */
