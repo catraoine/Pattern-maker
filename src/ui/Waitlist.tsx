@@ -2,6 +2,22 @@ import { useState } from 'react';
 import { countStep, flushReports, keepMyRef, signupRef, signupSource } from '../report/report';
 import { CODE_MESSAGE, checkCode } from '../access';
 import { SEW_LANGS, SEW_LANG_NAME, type SewLang } from '../langs';
+import type { Cloud } from '../cloud/useCloud';
+import type { Founding } from '../cloud/useFounding';
+import { CloudAccount } from './CloudAccount';
+
+/** Founding members' way in, from Feb 9: sign in with the email on the founding list. */
+export interface FoundingSignIn {
+  cloud: Cloud;
+  founding: Founding;
+}
+
+/** What the founding sign-in says once someone has signed in (a member is simply let in). */
+const FOUNDING_MESSAGE: Partial<Record<Founding['state'], string>> = {
+  checking: 'Checking your founding place…',
+  'not-listed': "That email isn't on the founding list. Sign out and sign in with the email you joined the waitlist with.",
+  failed: "Your place couldn't be checked just now. Try again in a moment.",
+};
 
 type Sent = 'idle' | 'sending' | 'failed' | 'busy';
 
@@ -11,7 +27,7 @@ type Sent = 'idle' | 'sending' | 'failed' | 'busy';
  * and counts (with no email) against where the visitor first came from, so bio links like ?src=ig keep counting.
  * It also asks which language they sew in (Cat's L5 Ask First, 2026-10-24), as a tag on the email line (L1, 2026-10-25).
  */
-export function WaitlistForm({ onJoined, onCode, linkMessage, onRetry }: { onJoined: () => void; onCode: (code: string) => void; linkMessage?: string; /** Checks the tester link's code again, offered when the check couldn't reach the server. */ onRetry?: () => void }) {
+export function WaitlistForm({ onJoined, onCode, linkMessage, onRetry, founding }: { onJoined: () => void; onCode: (code: string) => void; linkMessage?: string; /** Checks the tester link's code again, offered when the check couldn't reach the server. */ onRetry?: () => void; founding?: FoundingSignIn }) {
   const [email, setEmail] = useState('');
   // Left empty by people; bots fill in every box.
   const [website, setWebsite] = useState('');
@@ -21,6 +37,7 @@ export function WaitlistForm({ onJoined, onCode, linkMessage, onRetry }: { onJoi
   const [code, setCode] = useState('');
   const [codeMsg, setCodeMsg] = useState(linkMessage ?? '');
   const [checking, setChecking] = useState(false);
+  const [signingIn, setSigningIn] = useState(false);
 
   const join = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,6 +65,27 @@ export function WaitlistForm({ onJoined, onCode, linkMessage, onRetry }: { onJoi
     if (result === 'tester') onCode(code.trim());
     else setCodeMsg(CODE_MESSAGE[result]);
   };
+
+  // A founding member signing in sees only the sign-in, so there's one email box on the page, not two.
+  if (founding && (signingIn || founding.cloud.user))
+    return (
+      <div className="stack waitlist waitlist-founding">
+        <p className="waitlist-line">Founding members come in from Feb 9. Sign in with the email you joined the waitlist with.</p>
+        {FOUNDING_MESSAGE[founding.founding.state] && (
+          <p className="msg small" role="status">
+            {FOUNDING_MESSAGE[founding.founding.state]}
+          </p>
+        )}
+        <CloudAccount cloud={founding.cloud} />
+        {!founding.cloud.user && (
+          <p className="waitlist-tester">
+            <button type="button" className="inline-link" onClick={() => setSigningIn(false)}>
+              Back to the waitlist
+            </button>
+          </p>
+        )}
+      </div>
+    );
 
   return (
     <div className="stack waitlist">
@@ -121,6 +159,14 @@ export function WaitlistForm({ onJoined, onCode, linkMessage, onRetry }: { onJoi
           Testing for us?{' '}
           <button type="button" className="inline-link" onClick={() => setCoding(true)}>
             Use your code
+          </button>
+        </p>
+      )}
+      {founding && (
+        <p className="waitlist-tester">
+          Founding member?{' '}
+          <button type="button" className="inline-link" onClick={() => setSigningIn(true)}>
+            Sign in to come in early
           </button>
         </p>
       )}

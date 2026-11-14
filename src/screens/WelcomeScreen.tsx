@@ -5,7 +5,7 @@ import type { FormKind } from '../measurements';
 import { TOUR_LABEL, TourPlayer } from '../ui/TourPlayer';
 import { Title } from '../ui/Title';
 import { tapeRested } from '../ui/tapeHandoff';
-import { WaitlistForm } from '../ui/Waitlist';
+import { WaitlistForm, type FoundingSignIn } from '../ui/Waitlist';
 
 interface Props {
   onFinish: () => void;
@@ -18,7 +18,7 @@ interface Props {
   /** Someone coming back with their measurements taken: the garment they were on, and the ways back in. */
   resume?: { garment: string; onResume: () => void; onSaved: () => void; onNew: () => void };
   /** Until launch, someone without a tester link gets the waitlist where Begin was (Cat's W1, 2026-10-21). */
-  waitlist?: { onCode: (code: string) => void; checking?: boolean; linkMessage?: string; onRetry?: () => void };
+  waitlist?: { onCode: (code: string) => void; /** From Feb 9, a way in for founding members (src/founding.ts). */ founding?: FoundingSignIn; checking?: boolean; linkMessage?: string; onRetry?: () => void };
   /** In the home-screen app with nothing here yet: bring work across from Safari with a pasted "Send to another
    *  device" link, since the home-screen app keeps its own storage (journey review, Nov 10). False when the link
    *  isn't one. */
@@ -246,7 +246,7 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
               </p>
             </div>
           ) : (
-            <WaitlistForm onJoined={() => setJoined(true)} onCode={waitlist.onCode} linkMessage={waitlist.linkMessage} onRetry={waitlist.onRetry} />
+            <WaitlistForm onJoined={() => setJoined(true)} onCode={waitlist.onCode} linkMessage={waitlist.linkMessage} onRetry={waitlist.onRetry} founding={waitlist.founding} />
           )
         ) : resume ? (
           <div className="stack">

@@ -3,6 +3,7 @@ import { fmtMeasure } from '../units';
 import { TesterCode } from '../ui/TesterCode';
 import { CloudAccount } from '../ui/CloudAccount';
 import type { Cloud } from '../cloud/useCloud';
+import { foundingLines, type FoundingPlace } from '../founding';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { countStep } from '../report/report';
 import { deletePhoto } from '../photoStore';
@@ -65,6 +66,8 @@ interface Props {
   onPlans?: () => void;
   /** Sign-in, once it's shown (see cloud/flag.ts). */
   cloud?: Cloud;
+  /** The signed-in person's Founding Atelier place, if they have one. */
+  founding?: FoundingPlace;
 }
 
 const show = (id: string, cm: number | undefined, unit: Unit) => (cm === undefined ? '–' : fmtMeasure(id, cm, unit));
@@ -89,7 +92,7 @@ function Fold({ id, title, summary, open, children }: { id: string; title: strin
   );
 }
 
-export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurements, onSwitchPerson, onAddPerson, onRemovePerson, onClientBook, onCheckFile, onBodyDouble, onOpen, onRename, onRemove, onFit, openFit, onReset, onLegal, onBackup, sendLink, onTesterCode, onRestore, mode = 'all', onMode, onPlans, cloud }: Props) {
+export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurements, onSwitchPerson, onAddPerson, onRemovePerson, onClientBook, onCheckFile, onBodyDouble, onOpen, onRename, onRemove, onFit, openFit, onReset, onLegal, onBackup, sendLink, onTesterCode, onRestore, mode = 'all', onMode, onPlans, cloud, founding }: Props) {
   const limit = savedLimit(account);
   const [confirmReset, setConfirmReset] = useState(false);
   const [restoreMsg, setRestoreMsg] = useState('');
@@ -332,9 +335,22 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
           </ul>
         </Fold>
 
-        <Fold id="memtitle" title="Membership" summary={onPlans ? undefined : 'Founding places'}>
+        <Fold id="memtitle" title="Membership" summary={founding ? `Founding member No. ${founding.n}` : onPlans ? undefined : 'Founding places'}>
           {onPlans && <YourPlan account={account} onPlans={onPlans} />}
-          <InterestCard offer="founding" inset />
+          {founding ? (
+            <div className="stack" data-testid="founding-member">
+              <p>
+                <b>Founding Atelier · No. {founding.n}</b>
+              </p>
+              <ul className="muted small testing-list">
+                {foundingLines(founding).map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <InterestCard offer="founding" inset />
+          )}
         </Fold>
 
         {onBodyDouble && (
