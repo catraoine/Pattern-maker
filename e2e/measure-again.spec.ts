@@ -80,7 +80,7 @@ test('a garment missing an opening measurement asks it on its own pages, then st
   await main.getByRole('button', { name: 'Make something else' }).click();
   await main.getByRole('button', { name: /^Top/ }).click();
   // The bust comes first, as the bodice's own page, then the bodice's extras; never the hips or height again.
-  const asked = await fillUntilStyle(page, 'bodice');
+  const asked = await fillUntilStyle(page, 'top');
   expect(asked[0]).toBe('Full bust');
   expect(asked).not.toContain('Full hip');
   expect(asked).not.toContain('Height');

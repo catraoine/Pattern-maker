@@ -25,7 +25,7 @@ test('offers: sign up for printing by post and a founding place', async ({ page 
   await page.goBack();
   await openReview(page);
   await main.getByRole('button', { name: 'Save this pattern' }).click();
-  await main.getByRole('button', { name: 'your patterns' }).click();
+  await main.getByRole('button', { name: 'Saved patterns' }).click();
   const founding = await openFold(page, 'Membership');
   await expect(founding).toContainText('Be one of the first 250');
   await founding.screenshot({ path: info.outputPath('founding.png') });
