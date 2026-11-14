@@ -15,7 +15,10 @@ export default async (req: Request, context: { ip?: string }) => {
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
   if (!isTesterCode(req.headers.get('x-tester-code'), Netlify.env.get('TESTER_CODES'))) return Response.json({ ok: false, error: 'not_tester' }, { status: 403 });
   const key = Netlify.env.get('BODYGRAM_API_KEY');
-  if (!key) return Response.json({ ok: false, error: 'not_configured' }, { status: 503 });
+  if (!key) {
+    console.error('body scan: BODYGRAM_API_KEY is not set for this deploy');
+    return Response.json({ ok: false, error: 'not_configured' }, { status: 503 });
+  }
   let unit: unknown;
   try {
     unit = ((await req.json()) as { unit?: unknown }).unit;

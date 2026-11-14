@@ -44,7 +44,11 @@ export async function newScanToken(apiKey: string, fetcher: Fetch = fetch): Prom
     body: JSON.stringify({ scope: ['api.platform.bodygram.com/scans:create', 'api.platform.bodygram.com/scans:read'] }),
     signal: AbortSignal.timeout(15000),
   });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    // Bodygram's answer (never the key) goes in the function log, so a turned-down key or a full plan can be told apart.
+    console.error('bodygram said no', res.status, (await res.text().catch(() => '')).slice(0, 200));
+    return null;
+  }
   const data = (await res.json().catch(() => ({}))) as { token?: unknown };
   return typeof data.token === 'string' && data.token.length > 0 && data.token.length < 4000 ? data.token : null;
 }
