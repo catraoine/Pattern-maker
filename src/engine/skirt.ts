@@ -6,6 +6,7 @@ import { finishDart } from './darts';
 import { Piece, withAlternate } from './piece';
 import { HemShape, isShaped, matchSides, shapeHem } from './hem';
 import { Flounce, GodetCount, Pleats, VolumeDraft, addVolume, volumeOf } from './skirtVolume';
+import { SIDE_SHARE, splitTrumpet, trumpetPanelled, wholeQuarter } from './skirtTrumpet';
 import { AsymHem, AsymPlan, quarterAsym } from './asymHem';
 import { SLIP_HEM, SLIP_HIP_EASE_LESS, closeToHem, cutsWhole, cutWhole, slipSideSupp, slipSlit, slipSlitAllowed, validCut } from './slip';
 import { inseamPocket, markSeam, notchesAlong } from './pockets';
@@ -727,7 +728,35 @@ export function draftSkirt(m: SkirtMeasurements, style: Partial<SkirtStyle> = {}
   const plain = volumeOf(s) !== 'none' ? { ...s, hem: undefined } : s;
   const draft = withHighHip(withYoke(addVolume(m, s, drafted(m, plain), (st) => drafted(m, st)), s, m), s.fitting?.highHip);
   const pocketed = draft.volume ? draft : s.pockets === 'inseam' ? withPockets(draft) : s.pockets === 'patch' || s.pockets === 'slant' ? withFrontPockets(draft, s) : draft;
-  return withWaist(withRuche(withSlit(pocketed, s, m), s, m), s);
+  return withPanels(withWaist(withRuche(withSlit(pocketed, s, m), s, m), s));
+}
+
+/** A plain trumpet's quarters split into centre and side panels, the flare shared into the panel seams (skirtTrumpet.ts). */
+function withPanels(draft: SkirtDraft): SkirtDraft {
+  if (!draft.pieces.some((pc) => pc.meta.trumpetPanels)) return draft;
+  const pieces: Piece[] = [];
+  const sides: Piece[] = [];
+  for (const pc of draft.pieces) {
+    const t = pc.meta.trumpetPanels as { panelFlare: number; flareFrom: number; hipDepth: number } | undefined;
+    if (!t) {
+      pieces.push(pc);
+      continue;
+    }
+    const { trumpetPanels: _t, ...meta } = pc.meta;
+    const [c, ...side] = splitTrumpet({ ...pc, meta }, { flare: t.panelFlare, flareFrom: t.flareFrom, hipDepth: t.hipDepth, isFront: !/back/i.test(pc.name) });
+    pieces.push(c);
+    sides.push(...side);
+  }
+  // Each panel seam takes the place of one dart a quarter, so the darts left to sew are counted again.
+  const count = (re: RegExp) => [...pieces, ...sides].filter((pc) => re.test(pc.name)).reduce((n, pc) => n + ((pc.meta.dartsCm as number[] | undefined)?.length ?? 0), 0);
+  // The sketch, the flat drawing, the figure and the ease map read the front and back as whole quarters, flare and all.
+  // (Always rebuilt from the panels: a block left by an earlier step would be the old quarters, without the panel seam.)
+  const block = pieces.filter((pc) => pc.meta.trumpetQuarter).map(wholeQuarter);
+  // The hem round as drafted: each centre panel stands for two quarters, and each quarter gains its seam's flare twice.
+  const planned = draft.pieces.reduce((t, pc) => t + 4 * ((pc.meta.trumpetPanels as { panelFlare: number } | undefined)?.panelFlare ?? 0), 0);
+  const drafted = pieces.reduce((t, pc) => t + 4 * ((pc.meta.goreFlareCm as number | undefined) ?? 0), 0);
+  const hemCm = draft.hemCm - Math.round(planned) + Math.round(drafted);
+  return { ...draft, pieces: [...pieces, ...sides], block, hemCm, dartsPerSide: { front: count(/front/i), back: count(/back/i) } };
 }
 
 /**
@@ -1140,10 +1169,15 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
   const dartAdj = fit.dartLength ?? 0;
   // A centre moved at the fitting is no longer simply the measurement, so its note says so.
   const measured = { front: m.front_waist_to_hip !== undefined && !fit.frontDrop, back: m.back_waist_to_hip !== undefined && !fit.backDrop };
-  const block = (flare: number): SkirtDraft => {
+  const block = (flare: number, panels = true): SkirtDraft => {
     // A skirt on its own runs its side seam through the hip in one line. A dress's skirt keeps its own: the drawing joins
     // it to the bodice above (seamFair.ts), which a change just below a dropped waist seam unsettles.
-    const common = { hipQ, hipDepth, length, sideSupp, flare, flareFrom, sa: s.seamAllowance, hemSa: hemFor(flare), zipCm, bendBelowHip: !join };
+    // A plain trumpet is cut in six panels: the side seam keeps a third of the flare and the panel seams share the rest.
+    const panelled = panels && !slip && flareFrom !== undefined && volumeOf(s) === 'none' && trumpetPanelled(s);
+    // (Capped as splitTrumpet caps it, at half the run from the flare point to the hem, so the hem round told to the
+    // photo match below is the one that gets drafted.)
+    const panelFlare = panelled ? Math.min((flare * (1 - SIDE_SHARE)) / 2, 0.5 * Math.max(4, length - flareFrom!)) : 0;
+    const common = { hipQ, hipDepth, length, sideSupp, flare: panelled ? flare * SIDE_SHARE : flare, flareFrom, sa: s.seamAllowance, hemSa: hemFor(flare), zipCm, bendBelowHip: !join };
     const frontArgs = { ...common, name: 'Skirt front', waistQ: waistQ + split.front, dartMax: FRONT_DART_MAX, dartLen: 9 + dartAdj, isFront: true, dartAt: join?.dartAt?.front };
     const backArgs = { ...common, name: 'Skirt back', waistQ: waistQ + split.back, dartMax: BACK_DART_MAX, dartLen: 14 + dartAdj, isFront: false, dartAt: join?.dartAt?.back, onFold: elastic };
     const at = (d: { front: number; back: number }) => ({ meanDrop: (d.front + d.back) / 2 });
@@ -1169,12 +1203,20 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
       front = closeToHem(front, hipDepth, even);
       back = closeToHem(back, hipDepth, even);
     }
+    // A waist as large as the hip leaves no dart to turn into the panel seam: that skirt stays in two pieces.
+    if (panelled && (!front.lines.length || !back.lines.length)) return block(flare, false);
+    if (panelled) {
+      const panels = { panelFlare, flareFrom, hipDepth };
+      front = { ...front, meta: { ...front.meta, trumpetPanels: panels } };
+      back = { ...back, meta: { ...back.meta, trumpetPanels: panels } };
+    }
     return {
       pieces: [front, back],
       lengthCm: Math.round(length * 10) / 10,
       finishedWaist,
       finishedHip,
-      hemCm: hemCm(front, back),
+      // (The panel seams' flare goes in last, once the waist is finished: each of the four quarters gains it twice.)
+      hemCm: hemCm(front, back) + Math.round(8 * panelFlare),
       flareCm: Math.round(flare * 10) / 10,
       zipCm,
       waistband: waistband(finishedWaist, waistQ + split.back, s.seamAllowance),
