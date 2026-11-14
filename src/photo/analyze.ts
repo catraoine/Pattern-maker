@@ -322,7 +322,8 @@ const ANSWER = 'record_answer';
  * Not a strict tool or a structured output: those compile the schema into a grammar first, and the reading's grammar
  * is too large for the API ("The compiled grammar is too large", Nov 7), so every front reading was refused. The model
  * can't be made to call the tool (Opus 5.5 refuses forced tool choice), so an answer with no call, or one that doesn't
- * fit the schema, is asked for once more. Null when neither fits; "refused" when Claude declines the photo.
+ * fit the schema, is asked for once more, with what was wrong sent back so the second try can mend it (asking again
+ * blind failed the same photos every time, Nov 14). Null when neither fits; "refused" when Claude declines the photo.
  */
 export async function askFor<T extends z.ZodType>(
   client: Anthropic,
@@ -330,6 +331,7 @@ export async function askFor<T extends z.ZodType>(
   ask: { label: string; max_tokens: number; system: string; content: UserContent },
 ): Promise<z.infer<T> | null | 'refused'> {
   const { $schema: _, ...input_schema } = z.toJSONSchema(schema, { io: 'input' }) as Record<string, unknown>;
+  const messages: Anthropic.Beta.BetaMessageParam[] = [{ role: 'user', content: ask.content }];
   for (let attempt = 0; attempt < 2; attempt++) {
     const response = await client.beta.messages.create({
       model: 'claude-opus-5-5',
@@ -341,7 +343,7 @@ export async function askFor<T extends z.ZodType>(
       system: `${ask.system}\n\nGive your answer by calling the ${ANSWER} tool once, with every field filled in.`,
       tools: [{ name: ANSWER, description: 'Records your answer.', input_schema: input_schema as Anthropic.Beta.BetaTool.InputSchema }],
       tool_choice: { type: 'auto', disable_parallel_tool_use: true },
-      messages: [{ role: 'user', content: ask.content }],
+      messages: [...messages],
     });
     // Logged so the real cost per reading shows in Netlify's function logs.
     console.log(`${ask.label} tokens`, { in: response.usage?.input_tokens, out: response.usage?.output_tokens });
@@ -349,7 +351,19 @@ export async function askFor<T extends z.ZodType>(
     const call = response.content.find((b) => b.type === 'tool_use' && b.name === ANSWER);
     const ok = call && call.type === 'tool_use' ? schema.safeParse(call.input) : null;
     if (ok?.success) return ok.data;
-    console.error(`${ask.label}: no answer that fits`, ok ? ok.error.issues.slice(0, 3) : 'no tool call');
+    const issues = ok && !ok.success ? ok.error.issues.slice(0, 8) : null;
+    console.error(`${ask.label}: no answer that fits`, issues ?? 'no tool call');
+    if (attempt === 1) break;
+    // The second try sees its first answer and what didn't fit, so it fixes those fields instead of starting over.
+    const wrong = issues?.map((i) => `${i.path.join('.') || 'answer'}: ${i.message}`).join('\n');
+    messages.push({ role: 'assistant', content: response.content as Anthropic.Beta.BetaContentBlockParam[] });
+    messages.push({
+      role: 'user',
+      content:
+        call && call.type === 'tool_use'
+          ? [{ type: 'tool_result', tool_use_id: call.id, is_error: true, content: `These fields don't fit; call ${ANSWER} again with them fixed:\n${wrong}` }]
+          : [{ type: 'text', text: `Please give your answer now by calling the ${ANSWER} tool.` }],
+    });
   }
   return null;
 }

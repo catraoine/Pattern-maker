@@ -125,6 +125,26 @@ describe('the reading format sent to the API', () => {
     expect(parse).toHaveBeenCalledTimes(2);
   });
 
+  it('sends the second try its first answer and the fields that did not fit', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { client, parse } = fakeClient({ stop_reason: 'end_turn', parsed_output: { ...reading, garment: 'cape' } });
+    await analyzePhoto(photo, client);
+    const second = parse.mock.calls[1][0] as { messages: { role: string; content: { type: string; is_error?: boolean; content?: string }[] }[] };
+    expect(second.messages.map((m) => m.role)).toEqual(['user', 'assistant', 'user']);
+    const reply = second.messages[2].content[0];
+    expect(reply.type).toBe('tool_result');
+    expect(reply.is_error).toBe(true);
+    expect(reply.content).toContain('garment');
+  });
+
+  it('asks for the tool call when the first answer was only words', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { client, parse } = fakeClient({ stop_reason: 'end_turn', parsed_output: null });
+    expect(await analyzePhoto(photo, client)).toEqual({ ok: false, error: 'failed' });
+    const second = parse.mock.calls[1][0] as { messages: { content: { type: string; text?: string }[] }[] };
+    expect(second.messages[2].content[0].text).toContain('record_answer');
+  });
+
   it('turns the listed sizes into the reading the app keeps, null for each not listed', async () => {
     const listed = { ...reading, measures: [{ name: 'bustRoom', value: 1.32 }, { name: 'shoulderOutCm', value: -2 }, { name: 'bustRoom', value: 9 }] };
     const out = await analyzePhoto(photo, fakeClient({ stop_reason: 'end_turn', parsed_output: listed }).client);
