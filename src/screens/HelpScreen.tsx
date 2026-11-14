@@ -16,7 +16,7 @@ const ANSWERS: [string, string][] = [
   ['My printed pattern is the wrong size', 'Measure the 10 cm test square on page A1. If it isn’t 10 cm, print again at 100% or “Actual size”, never “Fit to page”.'],
   ['Letter or A4?', 'Pick the paper on Print: Letter in North America, A4 almost everywhere else. A large pattern prints best as one A0 sheet at a copy shop.'],
   ['Getting my pattern to a computer', 'In Your account, open Your data and tap Send to another device. Open the link on the computer and everything is there.'],
-  ['A measurement looks wrong', 'Tap Measure, change it, and every pattern updates to match.'],
+  ['A measurement looks wrong', 'Tap Measure, change it, and every pattern redrafts to the new number.'],
   ['Where is my work kept?', 'On this phone or computer. Download a backup from Your data to keep a copy.'],
 ];
 
@@ -43,6 +43,7 @@ export function HelpScreen({ from, tester, onDone }: Props) {
       </div>
       <div className="help-note">
         <p className="small">Didn’t find it here?</p>
+        <p className="muted small">Every note is read.</p>
         <button type="button" className="secondary sm" onClick={() => setWriting(true)}>
           Send us a note
         </button>
@@ -62,7 +63,6 @@ function NotePage({ from, tester, onClose, onDone }: { from: string; tester: boo
       <article className="card legal help" aria-labelledby="notetitle">
         <p className="eyebrow">Feedback</p>
         <h1 id="notetitle">Thank you</h1>
-        {/* The copy review kept this to one short line; a reply promise only when an email was given. */}
         <p>{email.trim() ? 'Your note is in. We’ll reply by email.' : 'Your note is in.'}</p>
         <button type="button" className="secondary" onClick={onDone}>
           Done
