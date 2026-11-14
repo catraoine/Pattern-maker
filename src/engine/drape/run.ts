@@ -204,7 +204,8 @@ function sewDrape(job: DrapeJob, sleevedHoldZ?: number): DrapedLite {
   // round quality, 2026-11-03: the long sleeve's check passing showed these drawn without their ruffle or tie).
   const drawn = new Set(d.panels.filter((p) => !p.hidden).map((p) => p.pc.name));
   const sleeveSet = job.kind === 'bodice' || job.kind === 'dress' ? (job.sleeve?.pieces ?? []) : [];
-  for (const pc of sleeveSet.filter((pc) => /ruffle|tie cuff/i.test(pc.name) && !drawn.has(pc.name))) {
+  // (And a turned-back cuff, which All round left out until Nov 14.)
+  for (const pc of sleeveSet.filter((pc) => /ruffle|tie cuff|turned-back cuff/i.test(pc.name) && !drawn.has(pc.name))) {
     quality.problems.push({ check: 'missing', part: pc.name, worst: 1 });
     quality.ok = false;
   }
