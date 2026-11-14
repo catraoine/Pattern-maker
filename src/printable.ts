@@ -1,6 +1,7 @@
 import { finishesNeck } from './engine/collar';
 import { withHouseShirtSeams } from './engine/houseShirtSeams';
 import { withLinedShiftHem } from './engine/linedShift';
+import { sheerDressSuits, withSheerDress } from './engine/sheerDress';
 import { loopsFor, withBackLoops, withSheerTop } from './engine/sheerTop';
 import { beltNote, beltPieces, dressBelt, skirtBelt, withBelt } from './engine/belt';
 import { SkirtDraft, SkirtMeasurements, draftSkirt } from './engine/skirt';
@@ -29,7 +30,7 @@ import { drapeFacings, drapeLined, drapeNote, zipSide } from './engine/drape';
 import { bodiceSpec, dressSpec, outerSpec, skirtSpec, sleeveSpec, teeSpec, trousersSpec, lingerieSpec } from './engine/spec';
 import { SleeveMeasurements, sleeveNote } from './engine/sleeve';
 import { Fitting, describeFitting } from './engine/fitting';
-import { layPlans } from './engine/layplan';
+import { FABRIC_WIDTHS, type FabricWidth, layPlans } from './engine/layplan';
 import { MyFabric, clothFor, withFabric } from './engine/fabrics';
 import { SPECIALS, needsNap, withCheckMarks, withSpecialAllowances } from './engine/specialFabrics';
 import { printNap, printOf } from './engine/prints';
@@ -166,6 +167,7 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
     const metres = (f: 'self' | 'lining') => lays.find((l) => l.fabric === f)?.metres;
     const hem = outer.pieces[0].allowances['opening-hem'] ?? 4;
     const kind = outer.kind;
+    const outerButtons = outer.buttons.at.length * outer.buttons.columns.length + (outer.buttons.show?.columns.length ?? 0);
     return {
       pieces,
       notes: [
@@ -173,7 +175,7 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
         couture
           ? `Couture allowances: ${fmtCm(seams.seam)} at the seams, ${fmtCm(seams.curve)} at the neck and armholes, ${fmtCm(hem)} at the hem. Thread-trace the solid stitching line.`
           : `Seam allowance ${fmtCm(seams.seam)} included, 1 cm at the neck, armholes, collar and front edges, ${fmtCm(hem)} at the hem. Dashed line = stitching line.`,
-        `Fully lined, with front facings${outer.lapel ? ' and a notched collar' : ''}. ${outer.buttons.at.length * outer.buttons.columns.length + (outer.buttons.show?.columns.length ?? 0)} buttons, ${outer.buttons.sizeCm} cm. Sewing steps are on the last pages.`,
+        `Fully lined, with front facings${outer.lapel ? ` and a ${outer.lapel.shawl ? 'shawl' : 'notched'} collar` : ''}. ${outerButtons} button${outerButtons === 1 ? '' : 's'}, ${outer.buttons.sizeCm} cm. Sewing steps are on the last pages.`,
         // (A sleeveless vest has no sleeve to describe: the Black Vest's first page gave a bicep and crown ease.)
         ...(!outer.sleeveless ? [`Sleeve: bicep ${outer.sleeve.bicep} cm, crown ease ${outer.sleeve.crownEase.front} cm front, ${outer.sleeve.crownEase.back} cm back.`] : []),
         ...fittingNotes,
@@ -296,41 +298,68 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
     const facings = edges === 'facings' ? (d.bodice.drape ? drapeFacings(d.bodice, !sleeve) : bodiceFacings(bf, bb, !sleeve, !neckDone)) : [];
     const belt = dressBelt(dress.skirt.belt, d);
     const pieces = allow([...top, ...(sleeve?.pieces ?? []), ...skirtPcs, ...facings, ...beltPieces(belt, seams.seam)]);
-    const lays = layPlans([...pieces, ...allow(layoutExtras(d.skirt))], finish.fabricWidth, nap, hide, false, border);
+    const layAt = (w: FabricWidth) => layPlans([...pieces, ...allow(layoutExtras(d.skirt))], w, nap, hide, false, border);
+    let lays = layAt(finish.fabricWidth);
+    // Cut whole on the bias, a long dress lies corner to corner and can be wider than the cloth set here: with no layout that
+    // fits, the pack silently gave none and still asked for the narrow cloth (the Nineties slip maxi at hips 105 and 136;
+    // era pattern review, Nov 14). So the layout, the metres and a note on the first page are for the next width it does
+    // fit, or the note says that none does.
+    const tooWide = d.noSeam === 'bias' && !lays.some((l) => l.fabric === 'self');
+    const wider = tooWide ? FABRIC_WIDTHS.filter((w) => w > finish.fabricWidth).map((w) => ({ w, lays: layAt(w) })).find((x) => x.lays.some((l) => l.fabric === 'self')) : undefined;
+    if (wider) lays = wider.lays;
+    const clothWidth = wider?.w ?? finish.fabricWidth;
     const metres = (f: 'self' | 'lining' | 'interlining') => lays.find((l) => l.fabric === f)?.metres ?? bodiceFabricMetres(d.bodice, sleeve) + fabricMetres(d.skirt);
     // A dress with no waist seam is lined in one piece to the hem: a full lining, not just the bodice's.
     const fullLining = edges === 'lined' && !!d.noSeam && d.noSeam !== 'bias';
     const edgeWords = sleeve
       ? { binding: 'a bias-bound neckline', facings: 'a faced neckline', lined: fullLining ? 'a full lining' : 'a lined bodice' }[edges]
       : { binding: 'bias-bound neck and armholes', facings: 'a faced neck and armholes', lined: fullLining ? 'a full lining' : 'a lined bodice' }[edges];
+    // With sleeves, and the neck finished by a collar on a stand or a button front's facings, nothing is left to bind (the
+    // Edwardian afternoon dress's first page promised a bias-bound neckline under its funnel neck).
+    const nothingBound = !!sleeve && neckDone && edges === 'binding' && d.bodice.collar !== 'none';
     const dressHem = pieces.find((pc) => /^(Skirt|Flounce|Dress) front/.test(pc.name) && pc.allowances.hem !== undefined)?.allowances.hem ?? (d.skirt.volume?.tiers ? 2 : 4);
     // A shift lined to the hem: a deep hem catch-stitched by hand, the lining hemmed on its own (linedShift.ts).
     const linedShift = (g: SewingGuide) => (fullLining && d.noSeam === 'shift' && finish.route !== 'couture' && !couture ? withLinedShiftHem(g, dressHem) : g);
+    // In a sheer, quick route and unlined: French seams where they can go, and hems turned by the 1 cm they are cut with.
+    const sheerDress = (g: SewingGuide) =>
+      fabric?.special === 'sheer' && finish.route !== 'couture' && !couture && edges !== 'lined' && sheerDressSuits(d, sleeve)
+        ? withSheerDress(g, fmtCm(seams.seam), { plainSides: !!d.skirt.pocket || d.skirt.slit?.at === 'side', narrowHem: dressHem === 1 })
+        : g;
     return {
       pieces,
       notes: [
-        `Finished bust ${d.finishedBust} cm, waist ${d.finishedWaist} cm, hip ${d.finishedHip} cm, nape to hem ${d.lengthCm} cm.`,
+        // A moved waist seam: a dropped one's body runs on past the waist, so the waist is the pieces' own there (the block's
+        // was 0.7 cm more than the pieces and the table); a raised one has no waist to speak of, the skirt hanging free from
+        // under the bust, so the seam is given instead (the block's waist, 19 cm less than the dress there, read as fitted).
+        `Finished bust ${d.finishedBust} cm, ${d.seamDrop < 0 && d.seamCm ? `under the bust (at the seam) ${d.seamCm}` : `waist ${d.seamDrop > 0 ? d.bodice.finishedWaist : d.finishedWaist}`} cm, hip ${d.finishedHip} cm, nape to hem ${d.lengthCm} cm.`,
         couture
           ? `Couture allowances: ${fmtCm(seams.seam)} at the seams, ${fmtCm(seams.waist)} at the waist, ${fmtCm(seams.curve)} at the neck and armholes. Thread-trace the solid stitching line.`
           : `Seam allowance ${fmtCm(seams.seam)} included, ${fmtCm(seams.curve)} at the neck and armholes, ${fmtCm(pieces.find((pc) => /^(Skirt|Flounce|Dress) front/.test(pc.name) && pc.allowances.hem !== undefined)?.allowances.hem ?? (d.skirt.volume?.tiers ? 2 : 4))} at the hem. Dashed line = stitching line.`,
-        `${d.noSeam === 'bias' ? 'Cut in one on the bias, with no waist seam: front and back each one whole piece from the shoulder to the hem, cut single layer.' : d.noSeam ? `Cut with no waist seam, as a ${d.noSeam}: front and back each one piece from the shoulder to the hem${d.noSeam === 'sheath' ? ', shaped at the waist by darts pointed at both ends' : ''}.` : 'The skirt is drafted to the bodice: waist seams the same length and darts in one line.'} ${d.skirtButtons ? `${(d.bodice.buttons?.count ?? 0) + d.skirtButtons.count} buttons down the centre front, from the neck through the waist,` : d.noSeam === 'bias' ? 'No zip: it goes on over your head,' : d.bodice.wrap ? `Wrap fronts that cross over and tie at the waist, with no zip (ties ${d.bodice.wrap.ties.outer} cm and ${d.bodice.wrap.ties.inner} cm, cut ${d.bodice.wrap.ties.cutWidth} cm wide),` : `A ${d.zipCm} cm ${d.zipSide ? `zip in the ${zipSide(d.bodice)} side seam` : 'centre back zip'}`}${d.bodice.collar !== 'none' ? `, a ${COLLAR_WORDS[d.bodice.collar]}` : ''} and ${edgeWords}${pocketWords(d.skirt.pocket ? 'inseam' : 'none')}. Sewing steps are on the last pages.`,
+        `${d.noSeam === 'bias' ? 'Cut in one on the bias, with no waist seam: front and back each one whole piece from the shoulder to the hem, cut single layer.' : d.noSeam ? `Cut with no waist seam, as a ${d.noSeam}: front and back each one piece from the shoulder to the hem${d.noSeam === 'sheath' ? ', shaped at the waist by darts pointed at both ends' : ''}.` : 'The skirt is drafted to the bodice: waist seams the same length and darts in one line.'} ${d.skirtButtons ? `${(d.bodice.buttons?.count ?? 0) + d.skirtButtons.count} buttons down the centre front, from the neck through the waist,` : d.noSeam === 'bias' ? 'No zip: it goes on over your head,' : d.bodice.wrap ? `Wrap fronts that cross over and tie at the waist, with no zip (ties ${d.bodice.wrap.ties.outer} cm and ${d.bodice.wrap.ties.inner} cm, cut ${d.bodice.wrap.ties.cutWidth} cm wide),` : `A ${d.zipCm} cm ${d.zipSide ? `zip in the ${zipSide(d.bodice)} side seam` : 'centre back zip'}`}${d.bodice.collar !== 'none' ? `${nothingBound ? ' and' : ','} a ${COLLAR_WORDS[d.bodice.collar]}` : ''}${nothingBound ? '' : ` and ${edgeWords}`}${pocketWords(d.skirt.pocket ? 'inseam' : 'none')}. Sewing steps are on the last pages.`,
         ...(drapeNote(d.bodice) ? [drapeNote(d.bodice)!] : []),
         ...(sleeve ? [sleeveNote(sleeve)] : []),
         ...(sleeve?.cuff ? [cuffNote(sleeve.cuff)] : []),
         ...topNotes(d.bodice),
         ...(d.skirt.slit && !d.noSeam ? [slitNote(d.skirt.slit)] : []),
         ...(belt ? [beltNote(belt)] : []),
+        ...(tooWide
+          ? [
+              wider
+                ? `Cut whole on the bias, the front and back are too wide for ${finish.fabricWidth} cm cloth: the cutting layout and the fabric amount here are for cloth ${wider.w} cm wide. If yours is narrower, choose a shorter length or less flare at the hem.`
+                : `Cut whole on the bias, the front and back are too wide for ${Math.max(...FABRIC_WIDTHS)} cm cloth, the widest most cloth is sold, so no cutting layout is given and the fabric amount is a guess. Choose a shorter length or less flare at the hem, or buy extra-wide cloth and lay the pieces out on it first.`,
+            ]
+          : []),
         ...fittingNotes,
       ],
       guide: route(
-        linedShift(withBelt(dressGuide(d, dress.skirt, metres('self'), bindingMetres(d.bodice, { neck: edges === 'binding' && !finishesNeck(d.bodice.collar), armholes: sleeve ? edges === 'lined' : edges === 'binding' }), {
+        sheerDress(linedShift(withBelt(dressGuide(d, dress.skirt, metres('self'), bindingMetres(d.bodice, { neck: edges === 'binding' && !finishesNeck(d.bodice.collar), armholes: sleeve ? edges === 'lined' : edges === 'binding' }), {
           seams,
           edges,
-          width: finish.fabricWidth,
+          width: clothWidth,
           liningM: metres('lining'),
           coutilM: d.bodice.top?.boned ? metres('interlining') : undefined,
           sleeve,
-        }), belt, { band: false, sideZip: !!d.zipSide })),
+        }), belt, { band: false, sideZip: !!d.zipSide }))),
         { garment: 'dress', lined: edges === 'lined', zipCm: d.zipCm },
       ),
       spec: dressSpec(values as DressMeasurements, d, sleeve),

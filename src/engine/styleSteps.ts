@@ -357,14 +357,16 @@ export function styleBodiceSteps(g: SewingGuide, draft: BodiceDraft, o: { seam: 
 
   // Bias binding is only bought when a step still binds an edge with it (a collar or a button front's facings finish
   // the neck, and sleeves the armholes: the toile sewist's list asked for 0.2 m no step used, 2026-11-13).
-  const binds = steps.some((s) => /bias binding|^Bind /.test(`${s.title} ${s.text}`));
+  // (A shirt cuff's plackets are bound with their own cut strips, not bought binding.)
+  const binds = steps.some((s) => s.title !== 'Bind the plackets' && /bias binding|^Bind /.test(`${s.title} ${s.text}`));
   const notions = g.notions.flatMap((n) => {
     if (o.edges === 'binding' && /wide bias binding$/.test(n) && !binds) return [];
     if (buttons && /invisible zip/.test(n)) return [`${(draft.buttons?.count ?? 5) + (stand ? 1 : 0)} buttons, ${draft.buttons?.sizeCm ?? 1.5} cm`];
     if (buttons && n === 'Hook and eye') return [];
     return [n];
   });
+  // (The cuffs' own 0.2 m does not cover the front facings and the collar: a blouse with both listed only the cuffs'.)
   // (A neck ruffle is a soft folded strip like a bow, never interfaced: the Ice Peplum's list asked for 0.5 m no step used.)
-  const interfacing = (buttons || (collar !== 'none' && collar !== 'bow' && collar !== 'cape' && collar !== 'ruffle')) && !notions.some((n) => /interfacing/.test(n));
+  const interfacing = (buttons || (collar !== 'none' && collar !== 'bow' && collar !== 'cape' && collar !== 'ruffle')) && !notions.some((n) => /interfacing/.test(n) && !/for the cuffs$/.test(n));
   return { notions: interfacing ? [...notions.slice(0, -1), '0.5 m lightweight fusible interfacing', notions[notions.length - 1]] : notions, steps };
 }

@@ -501,7 +501,10 @@ function peterPanCollar(front: Piece, back: Piece, c: CollarIn): Piece[] {
   });
   const buttons = c.closure === 'front_buttons';
   const pts = [...neck, ...outer.slice(0, -1).reverse()];
-  const tags = [...neck.slice(1).map(() => 'neck'), ...outer.slice(1, -1).map(() => 'collar'), buttons ? 'fold' : 'centre'];
+  // One tag for each edge: the neck, the outer edge from the front end round to the centre back, then the centre back
+  // itself. (One 'collar' short, the centre back edge had no tag and took the full seam allowance: a collar cut on the
+  // fold was cut 1.5 cm past its fold line. Era pattern review, Nov 14.)
+  const tags = [...neck.slice(1).map(() => 'neck'), ...outer.slice(1).map(() => 'collar'), buttons ? 'fold' : 'centre'];
   const outline = pathOf({ pts, tags: tags.slice(0, pts.length) });
   const cbDir = unit(sub(outer[0], neck[0]));
   const cut = buttons ? 'Cut 2 on fold' : 'Cut 4 (2 pairs)';

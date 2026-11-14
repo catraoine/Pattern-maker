@@ -63,7 +63,7 @@ export function outerGuide(
     ...(bare ? ['3 m of 1 cm fusible stay tape, for the armholes and the roll line'] : []),
     ...(zip
       ? [`An open-ended (separating) zip, about ${Math.round(d.lengthCm - (rib ? rib.hem : 0))} cm long: buy the nearest length and set its bottom stop at the ${rib ? 'hem band seam' : 'hem'}`]
-      : [`${count} buttons, ${n1(d.buttons.sizeCm)} across${d.buttons.columns.length > 1 ? `, plus one small button for the inside` : ''}`]),
+      : [`${count} button${count === 1 ? '' : 's'}, ${n1(d.buttons.sizeCm)} across${d.buttons.columns.length > 1 ? `, plus one small button for the inside` : ''}`]),
     ...(rib ? [`0.3 m of rib knit (tubular or 2x2 rib) for the hem band${bare ? '' : ' and cuffs'}`] : []),
     ...(d.pads ? [`A pair of set-in shoulder pads, ${d.pads < 1 ? `${Math.round(d.pads * 10)} mm` : n1(d.pads)} thick: the shoulders are drafted for them`] : []),
     ...(bagCount ? ['A strip of lining or pocketing for the pocket bags'] : []),
@@ -187,7 +187,7 @@ export function outerGuide(
           },
           {
             title: 'Join the collar and lapels',
-            text: `Pin the facings and upper collar to the ${word} right sides together, matching the gorge seams exactly. Sew round the outer edge of the collar, pivot at the notches without stitching across the seam, and carry on down the lapels to the break point and the front edge to the hem. Trim, clip the notch corners, and turn. Roll the lapels and collar along the roll line and press so the seam rolls just to the underside.${bare ? ' Before you sew, trim 3 mm off the under collar\'s outer edge and off each front\'s lapel edge from the gorge to the break, so the top collar and the facings are a little bigger and the seam rolls out of sight.' : ''}`,
+            text: `Pin the facings and upper collar to the ${word} right sides together, matching the gorge seams exactly. ${d.lapel?.shawl ? 'Sew round the outer edge of the collar and on in one smooth curve across each gorge seam (a shawl has no notch), down the lapels to the break point and the front edge to the hem. Trim, clip the curve, and turn.' : 'Sew round the outer edge of the collar, pivot at the notches without stitching across the seam, and carry on down the lapels to the break point and the front edge to the hem. Trim, clip the notch corners, and turn.'} Roll the lapels and collar along the roll line and press so the seam rolls just to the underside.${bare ? ' Before you sew, trim 3 mm off the under collar\'s outer edge and off each front\'s lapel edge from the gorge to the break, so the top collar and the facings are a little bigger and the seam rolls out of sight.' : ''}`,
           },
         ]
       : [
@@ -245,7 +245,7 @@ export function outerGuide(
       : [
           {
             title: 'Buttonholes and buttons',
-            text: `Mark ${holes} buttonholes on the ${over} front (as you wear it) where the pattern shows them, ${n1(d.buttons.sizeCm + 0.3)} long. Sew them by machine or by hand with buttonhole twist, and cut them open. Sew the buttons to the ${under} front to match${d.buttons.columns.length > 1 ? `, and the second column on the ${over} front as the pattern shows${d.buttons.show ? `, and the pair for show above them, one on each front where the pattern marks it` : ''}; sew the small button inside the ${under} front to hold the underlap` : ''}, on a thread shank as long as the cloth is thick.`,
+            text: `Mark ${holes} buttonhole${holes === 1 ? '' : 's'} on the ${over} front (as you wear it) where the pattern shows ${holes === 1 ? 'it' : 'them'}, ${n1(d.buttons.sizeCm + 0.3)} long. Sew ${holes === 1 ? 'it' : 'them'} by machine or by hand with buttonhole twist, and cut ${holes === 1 ? 'it' : 'them'} open. Sew the button${holes === 1 ? '' : 's'} to the ${under} front to match${d.buttons.columns.length > 1 ? `, and the second column on the ${over} front as the pattern shows${d.buttons.show ? `, and the pair for show above them, one on each front where the pattern marks it` : ''}; sew the small button inside the ${under} front to hold the underlap` : ''}, on a thread shank as long as the cloth is thick.`,
           },
         ]),
     {
