@@ -37,3 +37,20 @@ test('fit tester code: checked once, kept, and sent with each photo reading', as
   await main.locator('input[type=file]').setInputFiles({ name: 'look.png', mimeType: 'image/png', buffer: PNG });
   await expect.poll(() => sent).toBe('Atelier26');
 });
+
+test('a tester link on a phone let in before replaces an old saved code, once the new one checks out', async ({ page }) => {
+  // Cat's phone, Nov 14: an old code stayed saved after the codes changed, so the body scan turned it away.
+  await page.addInitScript(() => {
+    if (!localStorage.getItem('pattern-maker:account')) localStorage.setItem('pattern-maker:account', JSON.stringify({ name: '', testerCode: 'old-code' }));
+  });
+  await page.route('**/.netlify/functions/tester', async (route) => {
+    const { code } = route.request().postDataJSON() as { code: string };
+    await route.fulfill({ json: { ok: true, tester: code === 'new-code' } });
+  });
+  await page.goto('/?tester=new-code');
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('pattern-maker:account') ?? '{}').testerCode)).toBe('new-code');
+  // A link with a code that doesn't check out leaves the saved one alone.
+  await page.goto('/?tester=nope');
+  await page.waitForTimeout(500);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('pattern-maker:account') ?? '{}').testerCode)).toBe('new-code');
+});

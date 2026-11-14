@@ -130,6 +130,9 @@ export default function App() {
   const latestSaved = useRef(saved);
   latestSaved.current = saved;
   const [storedAccount, setAccount] = usePersistent<Account>('account', NEW_ACCOUNT);
+  // The account as it is now, for a change that lands after a wait (a tester link checked on a device already in).
+  const latestAccount = useRef(storedAccount);
+  latestAccount.current = storedAccount;
   // Points moved on the flat pattern, per garment (see engine/pointEdit.ts).
   const [pointEdits, setPointEdits] = usePersistent<Record<string, PatternEdit[]>>('point-edits', {});
   const account = withPeople(storedAccount, saved.values);
@@ -276,7 +279,12 @@ export default function App() {
   useEffect(() => {
     const code = testerFromLink(window.location.search);
     if (!code) return;
-    if (access) return;
+    if (access) {
+      // A device let in earlier can hold an old code that no longer works (Cat's phone, Nov 14: the body scan turned
+      // it away while Fit testing still said "Tester code on"). A newer link's code replaces it, once it's checked.
+      if (code !== storedAccount.testerCode) void checkCode(code).then((r) => r === 'tester' && setAccount({ ...latestAccount.current, testerCode: code }));
+      return;
+    }
     linkCode.current = code;
     void checkLink(code);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once on opening: the tester link is read and then taken out of the address
