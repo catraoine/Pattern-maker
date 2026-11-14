@@ -33,15 +33,18 @@ describe('vest sides as one straight line', () => {
 
   it('lets the shorter side down so front and back sew together end to end', () => {
     expect(Math.abs(sideLength(f) - sideLength(b))).toBeLessThan(0.01);
-    // The longer piece keeps its hem corner where it was.
-    expect(b.outline.segs[b.outline.tags.indexOf('side')].to).toEqual(p(32, 75.5));
   });
 
-  it('keeps the hem square at the corner instead of hooking below it', () => {
-    const i = f.outline.tags.indexOf('side');
-    const corner = f.outline.segs[i].to;
-    const squared = f.outline.segs[i + 1].to;
-    expect(Math.abs(squared.y - corner.y)).toBeLessThan(0.01);
+  it('draws each hem level from the side to the centre, with no jog at the corner', () => {
+    for (const pc of [f, b]) {
+      const o = pc.outline;
+      const i = o.tags.indexOf('side');
+      const ys = o.segs.filter((_, j) => j >= i && (j === i || o.tags[j] === 'hem')).map((s) => s.to.y);
+      expect(Math.max(...ys) - Math.min(...ys)).toBeLessThan(1e-9);
+    }
+    // At the lower of the two hems, or a little below it for the piece let down to match.
+    expect(f.outline.segs[f.outline.tags.indexOf('side')].to.y).toBeGreaterThanOrEqual(75.5 - 1e-9);
+    expect(b.outline.segs[b.outline.tags.indexOf('side')].to.y).toBeGreaterThanOrEqual(75.5 - 1e-9);
   });
 
   it('keeps the side notch on the new line', () => {

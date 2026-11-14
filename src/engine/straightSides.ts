@@ -1,53 +1,60 @@
-import { P, Path, add, len, p, sub } from './geometry';
+import { P, Path, add, p, sub } from './geometry';
 import type { Piece } from './piece';
 
 /**
- * The SS27 vest's side seams as single straight lines, underarm to hem (Cat, Nov 13: "One line"). The drafted side bows
- * out under the arm for the bust and bends at the waist; here each side seam is redrawn as one straight line between
- * its own ends. Straight, the front's seam comes out shorter than the back's (its bust swing is gone), so the shorter
- * piece's hem corner is let down until the two match: the front hem, which rose to the side, then lies nearer level.
+ * The SS27 vest's side seams as single straight lines, underarm to hem (Cat, Nov 13: "One line"), and its hem level
+ * from the side to the centre. The drafted side bows out under the arm for the bust and bends at the waist; here each
+ * side seam is redrawn as one straight line between its own ends. The front's hem rose toward the side and stopped
+ * short of the back's, and letting its corner down alone left a small jog there (CLO, Nov 13: "front hem slopes up
+ * toward the side"), so both hems are drawn level at the lower of the two. Level, the front's straight side is the
+ * longer (it slants more), so the back's hem is let down by the difference, still level, and the two sew end to end.
  */
 export function straightSidePair(front: Piece, back: Piece): [Piece, Piece] {
-  const run = (pc: Piece) => {
-    const o = pc.outline;
-    const first = o.tags.indexOf('side');
-    let last = first;
-    while (last + 1 < o.tags.length && o.tags[last + 1] === 'side') last++;
-    const startOf = (i: number) => (i === 0 ? o.start : o.segs[i - 1].to);
-    return { first, last, from: startOf(first), to: o.segs[last].to };
-  };
-  const rf = run(front);
-  const rb = run(back);
+  const rf = sideRun(front);
+  const rb = sideRun(back);
   if (rf.first < 0 || rb.first < 0) return [front, back];
-  const lf = len(sub(rf.to, rf.from));
-  const lb = len(sub(rb.to, rb.from));
-  // Let the shorter piece's corner down, straight below, to the longer's length.
-  const down = (r: typeof rf, want: number) => {
-    const dx = r.to.x - r.from.x;
-    return Math.sqrt(Math.max(0, want * want - dx * dx)) - (r.to.y - r.from.y);
-  };
-  const dyF = lf < lb ? down(rf, lb) : 0;
-  const dyB = lb < lf ? down(rb, lf) : 0;
-  return [redraw(front, rf, dyF), redraw(back, rb, dyB)];
+  const low = Math.max(...hemPoints(front, rf).map((q) => q.y), ...hemPoints(back, rb).map((q) => q.y));
+  const length = (r: Run, y: number) => Math.hypot(r.to.x - r.from.x, y - r.from.y);
+  // The hem height that gives a side this length, straight below its corner.
+  const at = (r: Run, want: number) => r.from.y + Math.sqrt(Math.max(0, want * want - (r.to.x - r.from.x) ** 2));
+  const lf = length(rf, low);
+  const lb = length(rb, low);
+  return [redraw(front, rf, lf < lb ? at(rf, lb) : low), redraw(back, rb, lb < lf ? at(rb, lf) : low)];
 }
 
-function redraw(pc: Piece, r: { first: number; last: number; from: P; to: P }, dy: number): Piece {
+interface Run {
+  first: number;
+  last: number;
+  from: P;
+  to: P;
+}
+
+function sideRun(pc: Piece): Run {
   const o = pc.outline;
-  const to = add(r.to, p(0, dy));
+  const first = o.tags.indexOf('side');
+  let last = first;
+  while (last + 1 < o.tags.length && o.tags[last + 1] === 'side') last++;
+  return { first, last, from: first <= 0 ? o.start : o.segs[first - 1].to, to: first < 0 ? o.start : o.segs[last].to };
+}
+
+/** The hem's segments: the ones after the side seam, while they are still hem. */
+const isHem = (pc: Piece, r: Run, i: number) => i > r.last && /hem/.test(pc.outline.tags[i]) && pc.outline.tags.slice(r.last + 1, i).every((t) => /hem/.test(t));
+
+function hemPoints(pc: Piece, r: Run): P[] {
+  return pc.outline.segs.flatMap((s, i) => (isHem(pc, r, i) ? (s.kind === 'L' ? [s.to] : [s.c1, s.c2, s.to]) : []));
+}
+
+function redraw(pc: Piece, r: Run, y: number): Piece {
+  const o = pc.outline;
+  const to = p(r.to.x, y);
   const out = new Path(o.start);
-  // The hem squares off for up to 4 cm from the corner. Letting only the corner down would leave a hook there,
-  // so the hem near the corner goes down with it in full and the drop eases out further along.
-  const ease = (q: P) => {
-    const d = len(sub(q, r.to));
-    const t = Math.min(1, Math.max(0, (d - 4) / 5));
-    return add(q, p(0, dy * (1 - t * t * (3 - 2 * t))));
-  };
+  const level = (q: P) => p(q.x, y);
   o.segs.forEach((s, i) => {
     if (i === r.first) out.line(to, 'side');
     else if (i > r.first && i <= r.last) return;
-    else if (i > r.last && dy !== 0) {
-      if (s.kind === 'L') out.line(ease(s.to), o.tags[i]);
-      else out.curve(ease(s.c1), ease(s.c2), ease(s.to), o.tags[i]);
+    else if (isHem(pc, r, i)) {
+      if (s.kind === 'L') out.line(level(s.to), o.tags[i]);
+      else out.curve(level(s.c1), level(s.c2), level(s.to), o.tags[i]);
     } else if (s.kind === 'L') out.line(s.to, o.tags[i]);
     else out.curve(s.c1, s.c2, s.to, o.tags[i]);
   });
