@@ -107,6 +107,17 @@ describe('the reading format sent to the API', () => {
     expect(req.system).toContain(req.tools[0].name);
   });
 
+  it('keeps a reading whose newer details or sizes are missing or unknown', async () => {
+    const top = { fit: { value: 'regular', confidence: 'medium' }, neckline: 'v', sleeve: 'none', sleeveShape: 'straight', length: 'waist', seams: 'darts', opening: 'back', collar: 'none', peplum: 'none', boned: false, knit: false, waistSeam: false, waistSeamAt: 'none', belt: 'none' };
+    const odd = { ...reading, garment: 'dress', top, measures: [{ name: 'hemWidthCm', value: 40 }, { name: 'topHemAt', value: null }, { name: 'neckDepthCm', value: 12 }], missing: undefined };
+    const out = await analyzePhoto(photo, fakeClient({ stop_reason: 'end_turn', parsed_output: odd }).client);
+    expect(out.ok).toBe(true);
+    if (!out.ok) return;
+    expect(out.reading.top).toMatchObject({ sleeveCut: 'set_in', cuff: 'none', dressCut: 'seam' });
+    expect(out.reading.measures).toMatchObject({ neckDepthCm: 12, topHemAt: null });
+    expect(out.reading.missing).toEqual([]);
+  });
+
   it('asks once more when the answer is missing or the wrong shape, then gives up', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const { client, parse } = fakeClient({ stop_reason: 'end_turn', parsed_output: { garment: 'skirt' } });

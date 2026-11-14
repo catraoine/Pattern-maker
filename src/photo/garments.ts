@@ -58,6 +58,8 @@ const AVERAGE_FRONT = 44;
 
 /** From this many times her bust round, a jacket or coat in a photo is the oversized cut. */
 const OVERSIZED_FROM = 1.28;
+/** The same off the body, on a hanger or laid flat. */
+const HANGER_OVERSIZED_FROM = 1.45;
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 const num = (v: number | null | undefined): v is number => typeof v === 'number' && Number.isFinite(v);
@@ -301,7 +303,10 @@ function measuredOuter(c: OuterChoices, r: PhotoReading, body: PhotoBody | undef
   if (num(m.bustRoom) && body?.full_bust) {
     // Ratios to her own body, not fixed ease (Cat, Nov 7: "the insp vest is oversized"): from about 1.28 times her
     // bust it is the oversized cut, with or without sleeves, taking all the room the photo shows.
-    if (m.bustRoom >= OVERSIZED_FROM && out.fit !== 'oversized') return measuredOuter(oversizeOuter({ ...out, fit: 'oversized' }), r, body);
+    // On a hanger the room is judged from the garment alone, which reads roomier than on a body: the Nov 14 rerun
+    // called two relaxed jackets on hangers oversized. Off the body it takes clearly more to be the oversized cut.
+    const oversizedFrom = r.worn === false ? HANGER_OVERSIZED_FROM : OVERSIZED_FROM;
+    if (m.bustRoom >= oversizedFrom && out.fit !== 'oversized') return measuredOuter(oversizeOuter({ ...out, fit: 'oversized' }), r, body);
     const ease = (clamp(m.bustRoom, 1.04, 1.75) - 1) * body.full_bust;
     // Only the oversized cut takes more room than a blouse block allows.
     out.easeCm = Math.round(out.fit === 'oversized' ? Math.min(OUTER_EASE_MAX, ease) : Math.min(BUST_EASE_RANGE.max, ease));
@@ -463,6 +468,9 @@ export function proportionWords(c: PatternChoices, size: (cm: number) => string)
     if (c.buttons !== undefined) words.push(`${c.buttons} button${c.buttons === 1 ? '' : 's'}${c.buttonGapCm !== undefined && c.buttons > 1 ? `, ${size(c.buttonGapCm)} apart` : ''}`);
     if (c.shoulderCm) words.push(c.shoulderCm > 0 ? `Shoulders ${size(c.shoulderCm)} past yours` : `Shoulders cut in ${size(-c.shoulderCm)}`);
     if (c.easeCm !== undefined) words.push(`${size(c.easeCm)} of room at the bust`);
+    // The pieces the pattern draws from the photo (Nov 12); the collar and lapel sizes wait until it draws them too.
+    if (c.yokeCm !== undefined) words.push(`Seam across the chest ${size(c.yokeCm)} below the neck`);
+    if (c.buttonSizeCm !== undefined) words.push(`Buttons ${size(c.buttonSizeCm)} across${c.buttonholes ? `, ${c.buttonholes} buttonholes` : ''}`);
   } else if (isTrousers(c)) {
     if (c.legCm) words.push(`Leg ${size(c.legCm.knee)} round the knee`);
   } else if (isBodice(c) && c.bustEase !== undefined) {
