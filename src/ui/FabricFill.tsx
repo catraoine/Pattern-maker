@@ -203,9 +203,11 @@ export function GarmentFabric({ fabric, children }: { fabric: MyFabric | undefin
   // Loads a fabric photo from this device's store; the drawing redraws in it once it's there.
   useFabricPhoto(fabric?.photo?.id);
   const paint = fabricPaint(fabric, import.meta.env.BASE_URL);
+  const ready = useTileLoaded(paint?.drawn ? undefined : paint?.href);
   if (!paint) return <>{children}</>;
-  const body = `fab${uid}`;
-  const band = `fabband${uid}`;
+  // (Named afresh once the tile has loaded, so the drawings that use it paint again: see useTileLoaded.)
+  const body = `fab${uid}${ready ? 'l' : ''}`;
+  const band = `fabband${uid}${ready ? 'l' : ''}`;
   const tint = `fabtint${uid}`;
   const { href, table, size, tone, ground, half, look } = paint;
   const drawn = !!paint.drawn;
@@ -235,7 +237,7 @@ export function GarmentFabric({ fabric, children }: { fabric: MyFabric | undefin
   );
   return (
     <div className="garment-fabric" style={{ '--garment': `url(#${body})`, '--garment-band': `url(#${band})` } as CSSProperties}>
-      <svg className="fabric-defs" aria-hidden="true" focusable="false">
+      <svg key={ready ? 'l' : 'p'} className="fabric-defs" aria-hidden="true" focusable="false">
         <defs>
           {table && (
             <filter id={tint} className="fabric-tint" colorInterpolationFilters="sRGB">
@@ -254,6 +256,32 @@ export function GarmentFabric({ fabric, children }: { fabric: MyFabric | undefin
       <FabricLookContext.Provider value={look}>{children}</FabricLookContext.Provider>
     </div>
   );
+}
+
+/** Tiles already loaded in this page. */
+const loadedTiles = new Set<string>();
+
+/** Whether a fabric tile has loaded. Safari paints a pattern before its tile image arrives and never paints it again,
+ *  so a drawing that stays still (the collection's flats, a saved pattern's card) showed with no cloth at all, black
+ *  on the page, while the Style drawing, drawn again at every change, came right (Cat's iPhone, Nov 14: "How come not
+ *  showing in colour"). Once the tile is in, the pattern is named afresh and every drawing that uses it is painted
+ *  again. */
+function useTileLoaded(href: string | undefined): boolean {
+  const [, bump] = useState(0);
+  useEffect(() => {
+    if (!href || loadedTiles.has(href)) return;
+    let live = true;
+    const img = new Image();
+    img.onload = img.onerror = () => {
+      loadedTiles.add(href);
+      if (live) bump((n) => n + 1);
+    };
+    img.src = href;
+    return () => {
+      live = false;
+    };
+  }, [href]);
+  return !!href && loadedTiles.has(href);
 }
 
 /** Loads a fabric type's whole shop catalogue (shopCatalogue.ts) and redraws when it arrives. */
