@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { describe, expect, it, vi } from 'vitest';
-import { analyzePhoto, toReading } from './analyze';
+import { analyzePhoto, toReading, unstring } from './analyze';
 
 const reading = {
   garment: 'skirt',
@@ -125,10 +125,16 @@ describe('the reading format sent to the API', () => {
     expect(parse).toHaveBeenCalledTimes(2);
   });
 
-  it('takes a top fit written as the bare word', async () => {
-    const top = { fit: 'fitted', neckline: 'v', sleeve: 'none', sleeveShape: 'straight', length: 'waist', seams: 'darts', opening: 'back', collar: 'none', peplum: 'none', boned: false, knit: false, waistSeam: false, waistSeamAt: 'none', belt: 'none' };
-    const out = await analyzePhoto(photo, fakeClient({ stop_reason: 'end_turn', parsed_output: { ...reading, top } }).client);
-    expect(out.ok && out.reading.top?.fit).toEqual({ value: 'fitted', confidence: 'medium' });
+  it('reads a part of the answer written as JSON inside a string', async () => {
+    const top = { fit: JSON.stringify({ value: 'fitted', confidence: 'high' }), neckline: 'v', sleeve: 'none', sleeveShape: 'straight', length: 'waist', seams: 'darts', opening: 'back', collar: 'none', peplum: 'none', boned: false, knit: false, waistSeam: false, waistSeamAt: 'none', belt: 'none' };
+    const fit = JSON.stringify({ value: 'regular', confidence: 'medium' });
+    const out = await analyzePhoto(photo, fakeClient({ stop_reason: 'end_turn', parsed_output: { ...reading, fit, top } }).client);
+    expect(out.ok && out.reading.top?.fit).toEqual({ value: 'fitted', confidence: 'high' });
+    expect(out.ok && out.reading.fit).toEqual({ value: 'regular', confidence: 'medium' });
+  });
+
+  it('leaves ordinary words alone', () => {
+    expect(unstring({ details: 'A {loose} fit', n: 2, list: ['[x'] })).toEqual({ details: 'A {loose} fit', n: 2, list: ['[x'] });
   });
 
   it('sends the second try its first answer and the fields that did not fit', async () => {

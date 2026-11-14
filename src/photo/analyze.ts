@@ -8,10 +8,7 @@ import { BackReading, BackResponse, CheckResponse, IMAGE_TYPES, MAX_IMAGE_BYTES,
 
 const confidence = z.enum(['low', 'medium', 'high']);
 
-const fitValue = z.enum(['fitted', 'regular', 'relaxed']);
-// Inside a top, Claude sometimes writes the fit as the bare word ("fitted") rather than { value, confidence }; that
-// failed every reading of the gingham dress and the wide jeans on Nov 14, so the bare word is taken as medium confidence.
-const fit = z.union([z.object({ value: fitValue, confidence }), fitValue.transform((value) => ({ value, confidence: 'medium' as const }))]);
+const fit = z.object({ value: z.enum(['fitted', 'regular', 'relaxed']), confidence });
 export const piece = z.enum(['skirt', 'dress', 'top', 'tee', 'trousers', 'jacket', 'coat']);
 
 const Top = z.object({
@@ -317,6 +314,28 @@ const earlier = (r: unknown) => {
 
 type UserContent = Anthropic.Beta.BetaContentBlockParam[];
 
+/**
+ * Claude sometimes writes a nested part of its answer, such as a fit, as JSON inside a string ("{\"value\": ...}")
+ * instead of as the object itself. That failed about half the photos on Nov 14, so such strings are read as the JSON
+ * they hold before the answer is checked.
+ */
+export function unstring(v: unknown): unknown {
+  if (typeof v === 'string') {
+    const t = v.trim();
+    if ((t.startsWith('{') && t.endsWith('}')) || (t.startsWith('[') && t.endsWith(']'))) {
+      try {
+        return unstring(JSON.parse(t));
+      } catch {
+        return v;
+      }
+    }
+    return v;
+  }
+  if (Array.isArray(v)) return v.map(unstring);
+  if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, unstring(x)]));
+  return v;
+}
+
 /** The answer tool Claude fills in; its name is in the instruction that asks for it. */
 const ANSWER = 'record_answer';
 
@@ -352,7 +371,7 @@ export async function askFor<T extends z.ZodType>(
     console.log(`${ask.label} tokens`, { in: response.usage?.input_tokens, out: response.usage?.output_tokens });
     if (response.stop_reason === 'refusal') return 'refused';
     const call = response.content.find((b) => b.type === 'tool_use' && b.name === ANSWER);
-    const ok = call && call.type === 'tool_use' ? schema.safeParse(call.input) : null;
+    const ok = call && call.type === 'tool_use' ? schema.safeParse(unstring(call.input)) : null;
     if (ok?.success) return ok.data;
     const issues = ok && !ok.success ? ok.error.issues.slice(0, 8) : null;
     console.error(`${ask.label}: no answer that fits`, issues ?? 'no tool call');
