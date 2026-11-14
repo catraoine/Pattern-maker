@@ -136,7 +136,10 @@ export function optionDesigns(): OptionDesign[] {
   for (const [k, ch] of skirtExtras()) out.push({ key: `skirt ${k}`, design: { garment: 'skirt', saved: { choices: { ...INITIAL.choices, ...ch } as Saved['choices'] }, fibre } });
   for (const garment of ['bodice', 'dress'] as const)
     for (const g of BODICE_GROUPS as readonly { id: string; options: readonly (readonly [string, string])[] }[]) {
-      if (garment === 'dress' && g.id === 'length') continue;
+      // (A dress takes its length from the skirt and its fit from its own fit group below: set on its bodice, either is
+      // ignored, and a bodice "fit=fitted" key used to take the dress fit's key, so no sweep tried a fitted or relaxed
+      // dress; bug hunt, Nov 12.)
+      if (garment === 'dress' && (g.id === 'length' || g.id === 'fit')) continue;
       for (const [o] of g.options) {
         const base: Record<string, unknown> = { ...DEFAULT_BODICE, ...(SLEEVE_GROUPS.includes(g.id) ? { sleeve: 'long' } : {}), ...(PEPLUM_GROUPS.includes(g.id) ? { peplum: 'flared' } : {}), ...GROUP_BASE[g.id] };
         const c = validDetails({ ...base, [g.id]: o } as unknown as BodiceChoices, garment);
@@ -151,8 +154,9 @@ export function optionDesigns(): OptionDesign[] {
     ['waistSeam', WAIST_SEAM_GROUP.options],
   ] as const)
     for (const [o] of opts as readonly (readonly [string, string])[]) out.push({ key: `dress ${g}=${o}`, design: { garment: 'dress', saved: { dress: plainDress({ [g]: o }) }, fibre } });
+  // (Not the skirt's fit: a dress sets it from its own.)
   for (const g of GROUPS as readonly { id: string; options: readonly (readonly [string, string])[] }[])
-    for (const [o] of g.options) out.push({ key: `dress skirt.${g.id}=${o}`, design: { garment: 'dress', saved: { dress: plainDress({ skirt: { ...INITIAL.choices, [g.id]: o } as Saved['choices'] }) }, fibre } });
+    for (const [o] of g.id === 'fit' ? [] : g.options) out.push({ key: `dress skirt.${g.id}=${o}`, design: { garment: 'dress', saved: { dress: plainDress({ skirt: { ...INITIAL.choices, [g.id]: o } as Saved['choices'] }) }, fibre } });
   // The pockets a dress's skirt takes besides the in-seam ones (In testing, Nov 7 2026).
   for (const o of ['patch', 'slant'] as const) out.push({ key: `dress skirt.pockets=${o}`, design: { garment: 'dress', saved: { dress: plainDress({ skirt: { ...INITIAL.choices, pockets: o } }) }, fibre } });
   for (const kind of ['jacket', 'coat'] as const) {
