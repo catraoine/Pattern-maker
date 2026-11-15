@@ -350,7 +350,7 @@ const ANSWER = 'record_answer';
 export async function askFor<T extends z.ZodType>(
   client: Anthropic,
   schema: T,
-  ask: { label: string; max_tokens: number; system: string; content: UserContent },
+  ask: { label: string; max_tokens: number; system: string; content: UserContent; effort?: 'low' | 'medium' },
 ): Promise<z.infer<T> | null | 'refused'> {
   const { $schema: _, ...input_schema } = z.toJSONSchema(schema, { io: 'input' }) as Record<string, unknown>;
   const messages: Anthropic.Beta.BetaMessageParam[] = [{ role: 'user', content: ask.content }];
@@ -358,8 +358,8 @@ export async function askFor<T extends z.ZodType>(
     const response = await client.beta.messages.create({
       model: 'claude-opus-5-5',
       max_tokens: ask.max_tokens,
-      // Reading a photo is a quick classification, so low effort keeps it fast and cheap.
-      output_config: { effort: 'low' },
+      // Most asks are a quick classification, so low effort keeps them fast and cheap; the front photo reading asks for more.
+      output_config: { effort: ask.effort ?? 'low' },
       betas: ['server-side-fallback-2026-07-01'],
       fallbacks: 'default',
       system: `${ask.system}\n\nGive your answer by calling the ${ANSWER} tool once, with every field filled in.`,
@@ -494,6 +494,8 @@ export async function analyzePhoto(input: AnalyzeInput, client: Anthropic | null
   try {
     const reading = await askFor(client, Reading, {
       label: 'photo reading',
+      // Judging fit and small details at low effort swung from run to run on the scorecard (Nov 14), so the main reading thinks a little longer.
+      effort: 'medium',
       // A reading is a few hundred words at most; the ceiling bounds what one request can ever cost (about 16 cents, or 32 when askFor has to ask a second time).
       max_tokens: 8000,
       system: SYSTEM,
