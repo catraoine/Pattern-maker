@@ -54,7 +54,8 @@ export default defineConfig({
         // The account service's code (sign-in, about 230 kB) needs the internet anyway, so it isn't kept either.
         // Fabric and print photos (about 1.5 MB) are saved the first time the Fabric tab shows them, not on the first visit.
         // The 3D drawing's library (All round, about 140 kB) downloads the first time All round opens, then stays.
-        globIgnores: ['**/assets/pdf-*.js', '**/assets/PDFButton-*.js', '**/assets/account-service-*.js', '**/assets/round-3d-*.js', 'fabrics/**', 'prints/**'],
+        // The house prints' tiles (src/prints) are left out the same way.
+        globIgnores: ['**/assets/pdf-*.js', '**/assets/PDFButton-*.js', '**/assets/account-service-*.js', '**/assets/round-3d-*.js', '**/assets/*.jpg', 'fabrics/**', 'prints/**'],
         // A film or download opened by its own address (e.g. /tour/walkthrough.mp4 to save it) goes to the file, not
         // the app: the saved app otherwise answers every address typed into the browser.
         navigateFallbackDenylist: [/^\/tour\//, /^\/demos\//, /\.(mp4|webm|pdf|dxf|svg|png|jpg)$/],
@@ -64,10 +65,20 @@ export default defineConfig({
             handler: 'CacheFirst',
             options: { cacheName: 'printing-code', expiration: { maxEntries: 8 } },
           },
+          // A photo at a fixed address is shown from the phone's copy at once and fetched again behind it, so a
+          // photo changed in a release reaches the phone on its next visit: kept for good (CacheFirst), the house
+          // leopard tile stayed slanted on Cat's phone two days after it was straightened (Nov 14).
           {
             urlPattern: ({ url, sameOrigin }) => sameOrigin && /^\/(fabrics|prints)\/.+\.jpg$/.test(url.pathname),
-            handler: 'CacheFirst',
+            handler: 'StaleWhileRevalidate',
             options: { cacheName: 'fabric-photos', expiration: { maxEntries: 120 } },
+          },
+          // A house print's tile, its address fingerprinted (src/prints): a changed tile has a new address, so the copy
+          // kept can stay for good.
+          {
+            urlPattern: ({ url, sameOrigin }) => sameOrigin && /^\/assets\/.+\.jpg$/.test(url.pathname),
+            handler: 'CacheFirst',
+            options: { cacheName: 'house-prints', expiration: { maxEntries: 8 } },
           },
         ],
       },

@@ -27,6 +27,8 @@ export interface ClothQuad {
 export interface ClothTiles {
   body: HTMLCanvasElement;
   bodySize: number;
+  /** How far the body tile is drawn turned, in degrees clockwise (FabricPaint.turn). */
+  turn?: number;
   border?: HTMLCanvasElement;
   borderSize?: number;
   sheer: boolean;
@@ -113,7 +115,12 @@ function tint(c: HTMLCanvasElement, table: [string, string, string]) {
   const d = im.data;
   for (let i = 0; i < d.length; i += 4) {
     const l = (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) / 255;
-    for (let k = 0; k < 3; k++) d[i + k] = Math.round((t[k][0] + (t[k][1] - t[k][0]) * l) * 255);
+    // Read off the table as an SVG feFuncR/G/B table is: evenly spaced steps, straight between them.
+    for (let k = 0; k < 3; k++) {
+      const n = t[k].length - 1;
+      const j = Math.min(n - 1, Math.floor(l * n));
+      d[i + k] = Math.round((t[k][j] + (t[k][j + 1] - t[k][j]) * (l * n - j)) * 255);
+    }
   }
   g.putImageData(im, 0, 0);
 }
@@ -206,7 +213,7 @@ export async function clothTiles(p: FabricPaint): Promise<ClothTiles> {
   const avg = kind ? cleanCloth(body, kind) : undefined;
   // Lace is thinned to its net once the swatch is clean, so the motifs keep the cleaned colour.
   if (s === 'lace') laceTile(body);
-  const out: ClothTiles = { kind, avg, body, bodySize: p.size, sheer: !!p.look?.sheer, ...(p.look?.faint ? { faint: true } : {}), ...(s === 'lace' ? { lace: true } : {}), sheen: s === 'satin' || s === 'leather' ? 'gloss' : s === 'velvet' ? 'pile' : undefined, lift: p.lift, plain: p.plain };
+  const out: ClothTiles = { kind, avg, body, bodySize: p.size, sheer: !!p.look?.sheer, ...(p.look?.faint ? { faint: true } : {}), ...(s === 'lace' ? { lace: true } : {}), sheen: s === 'satin' || s === 'leather' ? 'gloss' : s === 'velvet' ? 'pile' : undefined, lift: p.lift, plain: p.plain, ...(p.turn ? { turn: p.turn } : {}) };
   const B = p.look?.border;
   if (B) {
     const b = canvas();
@@ -341,7 +348,7 @@ export function paintCloth(g: CanvasRenderingContext2D, layers: ClothLayers, til
     ]) {
       const m = affine([qd.uv[i], qd.uv[j], qd.uv[l]], [qd.q[i], qd.q[j], qd.q[l]]);
       if (!m) continue;
-      pat.setTransform(m.scale(k));
+      pat.setTransform(qd.border || !tiles.turn ? m.scale(k) : m.rotate(tiles.turn).scale(k));
       cg.fillStyle = pat;
       path(cg, grown([qd.q[i], qd.q[j], qd.q[l]], 0.6));
       cg.fill();

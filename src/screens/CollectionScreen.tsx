@@ -7,6 +7,7 @@ import { describePattern } from './describe';
 import { Envelope } from '../ui/Envelope';
 import { InterestCard } from '../ui/InterestCard';
 import { TechFlatView } from '../ui/TechFlatView';
+import { HouseFlat, widestView } from '../ui/HouseFlat';
 import { GarmentFabric } from '../ui/FabricFill';
 import { lookFabric } from '../collection';
 import { TestingTag } from '../ui/TestingTag';
@@ -173,6 +174,8 @@ export function CollectionScreen({ values, onMake, onBack, backLabel = 'Back to 
       }),
     [values],
   );
+  // Every house look is drawn at one scale, set by the widest view among them.
+  const widest = useMemo(() => Math.max(...looks.map((l) => widestView(l.flat))), [looks]);
   const sample = (shelf === 'house' ? COLLECTION : shelf === 'eras' ? ERA_PIECES : ARCHIVE).some((l) => !lookValues(l, values).own);
 
   return (
@@ -217,11 +220,11 @@ export function CollectionScreen({ values, onMake, onBack, backLabel = 'Back to 
                   <div className={set ? 'set-pieces' : undefined}>
                     {pieces.map(({ look: piece, flat }) => (
                       <div key={piece.id} className="set-piece">
-                        <div className="house-flat">{flat ? <GarmentFabric fabric={lookFabric(piece.fabric)}><TechFlatView flat={flat} title={describePattern(piece.choices).toLowerCase()} /></GarmentFabric> : <p className="muted small">This look can&rsquo;t be drafted to these measurements.</p>}</div>
+                        <div className="house-flat">{flat ? <GarmentFabric fabric={lookFabric(piece.fabric)}><HouseFlat flat={flat} title={describePattern(piece.choices).toLowerCase()} widest={widest} /></GarmentFabric> : <p className="muted small">This look can&rsquo;t be drafted to these measurements.</p>}</div>
                         {set ? <h3>{piece.name}</h3> : <h2>{piece.name}</h2>}
                         <p className="muted">{piece.line}</p>
                         <p className="muted small">Cut in {piece.fabric[0].toLowerCase() + piece.fabric.slice(1)}.</p>
-                        <button type="button" className="secondary" onClick={() => onMake(piece)}>
+                        <button type="button" className="secondary make-look" onClick={() => onMake(piece)}>
                           {set ? `Make the ${piece.name.split(' ').pop()!.toLowerCase()}` : 'Make this look'}
                         </button>
                       </div>

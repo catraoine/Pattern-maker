@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { getPhoto, putPhoto } from './photoStore';
 import { evenLight, seamless } from './engine/fabricTile';
 import { stripeLean } from './fabricStraight';
+import leopardPython from './prints/leopard-python.jpg';
 
 /** The tile's side in pixels: sharp on a phone at the drawing's scale, small enough to keep (about 60 KB). */
 const N = 512;
@@ -16,10 +17,22 @@ const urls = new Map<string, string>();
 const loading = new Map<string, Promise<string | undefined>>();
 
 /** The house's own cloths, photographed (a look made in a real print: the leopard shirt dress, 2026-11-10): their
- * tiles ship with the app in public/prints/house, so they show on any device and never go near the photo store. */
+ * tiles ship with the app in src/prints, so they show on any device and never go near the photo store.
+ * Each is imported, so its address carries a fingerprint of the file and changes whenever the tile does. At a fixed
+ * address (public/prints/house) a phone that had saved the first, slanted leopard tile kept drawing it for good: the
+ * offline copy answers a saved address from itself and never asks again, so the straightened tile (Nov 12) never
+ * reached Cat's phone, and the print stayed diagonal there (Cat, Nov 14: "still showing diagonal print"). */
 const HOUSE = 'house-';
+const LEOPARD_TURN = 3;
+/** Each tile and how far it is drawn turned, in degrees clockwise. Cut from a photo of the cloth taken at a slant, the
+ *  leopard's stripes still lean about 3 degrees once re-cut (Nov 12, turned too far the other way): turned square
+ *  here, the whole repeat turns with them, so the stripes run on unbroken from one tile into the next. */
+const HOUSE_TILES: Record<string, { url: string; turn: number }> = { 'leopard-python': { url: leopardPython, turn: LEOPARD_TURN } };
 export const isHousePhoto = (id: string | undefined) => !!id && id.startsWith(HOUSE);
-const houseUrl = (id: string) => `${import.meta.env.BASE_URL}prints/house/${id.slice(HOUSE.length)}.jpg`;
+const houseTile = (id: string) => HOUSE_TILES[id.slice(HOUSE.length)];
+const houseUrl = (id: string) => houseTile(id)?.url;
+/** How far a house print's tile is drawn turned, in degrees clockwise; 0 for any other photo. */
+export const photoTurn = (id: string | undefined) => (isHousePhoto(id) ? houseTile(id!)?.turn ?? 0 : 0);
 
 export const fabricPhotoUrl = (id: string | undefined) => (id ? (isHousePhoto(id) ? houseUrl(id) : urls.get(id)) : undefined);
 

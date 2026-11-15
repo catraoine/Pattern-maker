@@ -63,10 +63,11 @@ export function ClothDefs({ uid, x1, x2, look, flat }: { uid: string; x1: number
             <>
               <stop offset="0" stopColor={SHADOW} stopOpacity="0.12" />
               <stop offset="0.18" stopColor="#fff" stopOpacity="0" />
-              <stop offset="0.3" stopColor="#fff" stopOpacity={s === 'satin' ? 0.55 : 0.36} />
+              {/* On a flat the satin's catch of light is half as bright: at full it read as streaks down the Ivory Bias Slip (Cat, Nov 14: "soften"). */}
+              <stop offset="0.3" stopColor="#fff" stopOpacity={s === 'satin' ? (flat ? 0.3 : 0.55) : 0.36} />
               <stop offset="0.42" stopColor="#fff" stopOpacity="0" />
               <stop offset="0.6" stopColor={SHADOW} stopOpacity="0.1" />
-              <stop offset="0.72" stopColor="#fff" stopOpacity={s === 'satin' ? 0.2 : 0.1} />
+              <stop offset="0.72" stopColor="#fff" stopOpacity={s === 'satin' ? (flat ? 0.1 : 0.2) : 0.1} />
               <stop offset="0.82" stopColor={SHADOW} stopOpacity="0.15" />
               <stop offset="1" stopColor={SHADOW} stopOpacity="0.45" />
             </>
