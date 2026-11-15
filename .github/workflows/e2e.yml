@@ -170,9 +170,15 @@ jobs:
         run: cat drape-options.md >> "$GITHUB_STEP_SUMMARY" || true
 
   e2e:
-    name: End-to-end (Playwright, phone and desktop)
+    # In three parts side by side: run as one, the click-throughs outgrew the 40 minutes (Nov 14, stopped at 400 of
+    # about 440) and every PR showed red whatever it changed.
+    name: End-to-end (Playwright, phone and desktop) (${{ matrix.shard }})
     runs-on: ubuntu-24.04
     timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ['1/3', '2/3', '3/3']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -183,14 +189,46 @@ jobs:
       # The runner has no browser; the config only points at /opt/pw-browsers/chromium where that exists.
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
+      - run: npm run test:e2e -- --project phone --project desktop --shard ${{ matrix.shard }}
         env:
           CI: true
+      - name: Name the report
+        if: ${{ !cancelled() }}
+        run: echo "PART=$(echo '${{ matrix.shard }}' | tr '/' '-')" >> "$GITHUB_ENV"
       - name: Upload report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-${{ env.PART }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+
+  safari:
+    # The walks a tester takes, in Safari on an iPhone (the list is SAFARI_GATE in e2e/playwright.config.ts). Must be
+    # green before a ship: Safari drew the flats black before the fabric loaded, and Chromium never showed it.
+    name: iPhone Safari (tester walks)
+    runs-on: ubuntu-24.04 # Playwright's browsers don't install on later Ubuntu yet
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install WebKit
+        run: npx playwright install --with-deps webkit
+      - run: npm run test:e2e -- --project iphone-safari
+        env:
+          CI: true
+          E2E_SAFARI: '1'
+      - name: Upload report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-safari
           path: |
             playwright-report/
             test-results/

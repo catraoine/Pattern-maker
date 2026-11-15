@@ -9,7 +9,10 @@ import { runDrape } from './run';
 
 /** The biggest step out, as drawn on the form, from one side-seam point to the next within 4 cm of the waist seam. */
 function worstStep(waistSeam: 'dropped' | 'low'): { step: number; ok?: boolean } {
-  const dress = { garment: 'dress', fit: 'regular', bodice: { ...DEFAULT_BODICE, sleeve: 'none', length: 'waist' }, skirt: { ...INITIAL.choices }, waistSeam } as never;
+  // The low seam is shown on a relaxed dress with a half circle skirt: since the bust dart's minimum went up (Nov 10) the
+  // regular A-line dress's ledge without the fairing is under half as big as it was, too small to prove the fairing on.
+  const low = waistSeam === 'low';
+  const dress = { garment: 'dress', fit: low ? 'relaxed' : 'regular', bodice: { ...DEFAULT_BODICE, sleeve: 'none', length: 'waist' }, skirt: { ...INITIAL.choices, ...(low ? { silhouette: 'half_circle' } : {}) }, waistSeam } as never;
   const dr = GARMENT_DRAFTING.dress.draft(EXAMPLE_BODY, { saved: { ...INITIAL, dress }, form: 'womenswear', fabric: { fibre: 'cotton' } } as never, undefined);
   const m = EXAMPLE_BODY as never;
   const out = runDrape({ kind: 'dress', draft: dr.dress!, m, armhole: roundDress(dr.dress!, m).armhole, fibre: 'cotton' });

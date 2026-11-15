@@ -25,8 +25,18 @@ describe('All round: designs that fell back to the flat drawing', () => {
   // A balloon peplum's hem stood 1.6 cm off the underskirt's round the side seams in wool: closed.
   it('a balloon peplum in wool has its hem sewn shut', () => {
     expect(sew('bodice peplum=balloon', 'wool').quality?.problems ?? []).toEqual([]);
+  }, 240_000);
+
+  // The proof that the closing is what holds it: since the bust dart's minimum went up (Nov 10) the wool top's hem meets
+  // without it too, so the proof is on a V-neck top in linen, whose hem still stands open without the closing.
+  it('a balloon peplum in linen with a V neck has its hem sewn shut, and stands open without the closing', () => {
+    const o = optionDesigns().find((x) => x.key === 'bodice peplum=balloon')!;
+    const saved = JSON.parse(JSON.stringify(o.design.saved)) as { bodice: object };
+    Object.assign(saved.bodice, { length: 'waist', fit: 'regular', neckline: 'v' });
+    const d = { ...o.design, saved: saved as never, fibre: 'linen' as const };
+    expect(sewDesign(d).quality?.problems ?? []).toEqual([]);
     setKnob('__noBalloonClose', 1);
-    expect((sew('bodice peplum=balloon', 'wool').quality?.problems ?? []).map((p) => p.check)).toContain('seam');
+    expect((sewDesign(d).quality?.problems ?? []).map((p) => p.check)).toContain('seam');
   }, 240_000);
 
   // A relaxed T-shirt in silk or viscose: its sleeve drawn in close as a woven silk's bunched at its hem. A knit holds its

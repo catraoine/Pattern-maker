@@ -46,9 +46,9 @@ describe('All round: random mixes that fell back to the flat drawing', () => {
   // bunched out in a jut (the How it works film's dress, Nov 8): in silk and viscose it is held apart like a flared skirt.
   it.each(['silk', 'viscose'] as const)('the film dress in %s is drawn without its skirt crossing itself', (fibre) => {
     const d = { ...dress({ fit: 'relaxed', neckline: 'boat', length: 'waist', darts: 'bust_waist', sleeve: 'short', sleeveShape: 'straight', closure: 'back_zip', sleeveCm: 20, bustEase: 13 }, { fit: 'relaxed', silhouette: 'a_line', length: 'mini', flareCm: 7.5 }, { fit: 'relaxed', waistSeam: 'dropped' }), fibre };
+    // (It also proved the folds cross without the softer drop, until the bust dart's minimum went up on Nov 10: since then
+    // neither this dress nor 39 near it, other bodices, skirts, lengths and flares, cross without it, so that half went.)
     expect(checks(d)).toEqual([]);
-    setKnob('__noSoftDrop', 1);
-    expect(checks(d)).toContain('crossed');
   }, 240_000);
 
   // A diagonal hem was drawn as a V point at the centre front (one half of the skirt sewn, and mirrored), passing every
