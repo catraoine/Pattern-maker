@@ -232,7 +232,10 @@ const STYLE_NOTES = WIDE
   // On a phone too, one dark band lies under both lines the whole way and the lines hand over at the take's dip, so
   // the app's own header never shows through between them (Fable's review, Nov 15).
   : [['', JOURNEY.from, DRAW_DIP + 0.6, 'low', true], ['One question at a time.', JOURNEY.from, DIP_AT ? DIP_AT - 0.3 : MARKS.questions - 0.1, 'low', false], ['Then the cloth.', DIP_AT ? DIP_AT + 0.1 : MARKS.cloth + 0.3, DRAW_DIP - 0.2, 'low', false]];
-const DRAW_NOTES = [[['Draw on your form.'], MARKS.draw + 0.9, MARKS.done - 1.6], [['Draw on your form.', 'The pattern follows.'], MARKS.hem + 0.8, MARKS.done - 1.2]];
+// On a phone the words go a beat sooner: as the dress lengthens the view lifts, and the form's head rose into them
+// (Fable's review, Nov 15). On a computer they sit to the left of the form.
+const DRAW_OFF = WIDE ? 0 : 1.4;
+const DRAW_NOTES = [[['Draw on your form.'], MARKS.draw + 0.9, MARKS.done - 1.6 - DRAW_OFF], [['Draw on your form.', 'The pattern follows.'], MARKS.hem + (WIDE ? 0.8 : 0.5), MARKS.done - 1.2 - DRAW_OFF]];
 const note2 = (lines) => words(WIDE
   ? `<div class="f" style="padding:44px 0 0 96px"><h1 class="n" style="font-size:34px">${lines.join('<br>')}</h1></div>`
   : `<div class="f" style="padding:38px 0 0 22px"><h1 class="n" style="font-size:29px">${lines.join('<br>')}</h1></div>`);
@@ -499,7 +502,8 @@ const CUTS = {
       await piece({ shot: 'collection', ...COLLECTION, fadeIn: f, fadeOut: f, notes: [[await note('Or a look.', 'low'), 0, COLLECTION.dur - 0.3]] }),
       // Ends just after Dress is tapped (about 1.65 s into the take), before the dress's own extra measurements come
       // up; slowed a touch so the line has time to be read.
-      await piece({ shot: 'choose', from: 0.1, dur: 2.6, speed: 0.66, fadeIn: f, fadeOut: 0.4, notes: [[await note(WIDE ? 'Or design your own.' : 'Or design<br>your own.', 'low'), 0.2, 2.4]] }),
+      // Ends a frame before the take moves on to the dress's first measuring page, which showed through the fade.
+      await piece({ shot: 'choose', from: 0.1, dur: 2.5, speed: 0.66, fadeIn: f, fadeOut: 0.4, notes: [[await note(WIDE ? 'Or design your own.' : 'Or design<br>your own.', 'low'), 0.2, 2.3]] }),
       await piece({ still: await card('03', 'Style', 'Make it yours.'), dur: 3, fadeIn: f, fadeOut: f }),
       // Done lands on the pattern sheet, so the pattern follows straight on, then the dress all round (Cat,
       // 2026-10-24: no flash back to the dress between them), each dissolving into the next.

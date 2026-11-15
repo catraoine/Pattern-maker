@@ -463,6 +463,9 @@ const LINES = {
   hemUp: [[0.06, 0.83], [0.5, 0.84], [0.94, 0.83]],
   // From the knee down to mid-calf, on the A-line (Cat's H, Nov 15).
   hemDown: [[0.04, 0.925], [0.5, 0.935], [0.96, 0.925]],
+  // Further down, to a true midi: at hemDown the skirt was 67.5 cm, just under the knee, and read as a knee shift
+  // all round (Fable's review, Nov 15).
+  hemMidi: [[0.03, 0.97], [0.5, 0.98], [0.97, 0.97]],
   side: WIDE ? [[0.13, 0.6], [0.11, 0.68], [-0.104, 0.975]] : [[0.143, 0.483], [0.102, 0.638], [-0.104, 0.99]],
 };
 // Off camera, the dress is made to match the photo the film has just shown, Cat's own check silk dress (Cat,
@@ -535,7 +538,7 @@ await p.evaluate(() => {
   saved.dress = {
     garment: 'dress', fit: 'regular',
     bodice: { garment: 'bodice', fit: 'regular', neckline: 'crew', length: 'waist', darts: 'bust', bustDart: 'french', sleeve: 'long', sleeveShape: 'straight', closure: 'back_zip' },
-    skirt: { fit: 'regular', silhouette: 'a_line', length: 'knee', flareCm: 3, noSeam: 'shift' },
+    skirt: { fit: 'regular', silhouette: 'a_line', length: 'knee', flareCm: 6, noSeam: 'shift' }, // 6 cm, not 3: at 3 the A-line read as a straight shift all round (Fable, Nov 15)
   };
   if (saved.finish) { delete saved.finish.fabric; delete saved.finish.cloth; }
   localStorage.setItem(k, JSON.stringify(saved));
@@ -671,11 +674,12 @@ if (process.env.TOUR_PROBE2) {
   await p.screenshot({ path: `${OUT}/probe2.png` });
   process.exit(0);
 }
-// The hem drawn down from the knee to mid-calf (Cat's H, Nov 15); TOUR_HEM=hemUp draws the shift's shorter hem.
+// The hem drawn down from the knee to mid-calf (Cat's H, Nov 15), to 74 cm (hemMidi); TOUR_HEM=hemDown draws the
+// shorter 67.5 cm, TOUR_HEM=hemUp the shift's shorter hem.
 // The side stays straight. TOUR_FLARE=1 draws the side out as the earlier films did.
 mark('hem');
 await pickKind('Hem', 500);
-await draw(form, process.env.TOUR_FLARE ? LINES.hem : LINES[process.env.TOUR_HEM ?? 'hemDown'], process.env.TOUR_FLARE ? 3000 : 3600);
+await draw(form, process.env.TOUR_FLARE ? LINES.hem : LINES[process.env.TOUR_HEM ?? 'hemMidi'], process.env.TOUR_FLARE ? 3000 : 3600);
 if (process.env.TOUR_PROBE3) { await p.screenshot({ path: `${OUT}/probe3a.png` }); console.log('HEM', JSON.stringify(before), JSON.stringify(await viewBox(form)), JSON.stringify(await form.boundingBox())); }
 if (process.env.TOUR_FLARE) {
   mark('side');
