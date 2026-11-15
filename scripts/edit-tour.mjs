@@ -71,36 +71,27 @@ async function dissolve(a, b2, d) {
   execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', a, '-i', b2, '-filter_complex', `[0:v][1:v]xfade=transition=fade:duration=${d}:offset=${(len - d).toFixed(3)},format=yuv420p[v]`, '-map', '[v]', '-c:v', 'libx264', '-crf', '18', '-preset', 'medium', '-r', String(FPS), out]);
   return out;
 }
-// The tape pulled from the top to the side (Cat, Nov 15: horizontal, from the top to the side; round the waist
-// repeated the waist page): the app's own sewing tape, its metal end leading, over the Measure card and on into the
-// first page, then pulled away out of the frame. One long picture of the tape, moved over the clip.
-// stops: [time, x, y] of the tape's end, as fractions of the frame, eased
-// from one to the next.
-async function pulledTape(clip, { stops, off = 99 }) {
-  // One long picture of the tape, three frames wide, its metal end 14px in from the left edge so it shows.
+// The tape pulled in along the top (Cat, Nov 15: horizontal, from the top to the side, staying full length; round the
+// waist repeated the waist page): the first page's own tape, cut from the clip once the page is in, slides in from
+// the right over the Measure card and lands exactly on itself as the page dissolves in under it, so the hand-over
+// can't be seen. box: the page's tape in the clip, [left (its metal end), top, right, bottom] in film pixels; at: a
+// time in the clip the page is fully in; stops: [time, left] of the tape as a fraction of the frame, eased from one
+// to the next. The tape's far end is the frame's (or column's) edge, so it never shows while it slides in.
+async function pulledTape(clip, { box, at, stops }) {
+  const [l, t, r, btm] = box;
   const pic = join(work, `tape${k++}.png`);
-  await page.evaluate(([css, w]) => {
-    document.head.querySelectorAll('style[data-edit]').forEach((x) => x.remove());
-    const st = document.createElement('style'); st.dataset.edit = '1'; st.textContent = `${css} html,body{width:${w + 40}px!important;height:60px!important}`; document.head.appendChild(st);
-    document.body.innerHTML = `<div class="tape-band landed" style="position:absolute;margin:0;left:14px;top:0;width:${w}px"><div class="tape-marks">${Array.from({ length: 160 }, (_, i) => `<span>${i + 1}</span>`).join('')}</div></div>`;
-  }, [CSS, VW * 3]);
-  await page.evaluate(() => document.fonts.ready);
-  const th = await page.evaluate(() => document.querySelector('.tape-band').getBoundingClientRect().height);
-  await page.screenshot({ path: pic, omitBackground: true, fullPage: true, clip: { x: 0, y: 0, width: VW * 3 + 14, height: Math.ceil(th) } });
+  execFileSync('ffmpeg', ['-v', 'error', '-y', '-ss', String(at), '-i', clip, '-frames:v', '1', '-vf', `crop=${r - l}:${btm - t}:${l}:${t}`, pic]);
   const len = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', clip]).toString());
   const out = join(work, `tape${k++}.mp4`);
-  const path = (i) => {
-    let f = String(stops[stops.length - 1][i]);
-    for (let j = stops.length - 2; j >= 0; j--) {
-      const [t0, t1, a, b2] = [stops[j][0], stops[j + 1][0], stops[j][i], stops[j + 1][i]];
-      const u = `min(1,max(0,(t-${t0})/${t1 - t0}))`;
-      f = `if(lt(t,${t1}),${a}+(${b2 - a})*${u}*${u}*(3-2*${u}),${f})`;
-    }
-    return f;
-  };
-  const pad = Math.round((14 * W) / VW);
+  let f = String(stops[stops.length - 1][1]);
+  for (let j = stops.length - 2; j >= 0; j--) {
+    const [t0, t1, a, b2] = [stops[j][0], stops[j + 1][0], stops[j][1], stops[j + 1][1]];
+    const u = `min(1,max(0,(t-${t0})/${t1 - t0}))`;
+    f = `if(lt(t,${t1}),${a}+(${b2 - a})*${u}*${u}*(3-2*${u}),${f})`;
+  }
+  // Seen only up to the tape's own far end (on a computer, the page's column), so it comes in from that edge.
   execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', clip, '-loop', '1', '-framerate', String(FPS), '-t', String(len), '-i', pic,
-    '-filter_complex', `[1:v]format=rgba,fade=t=out:st=${off}:d=0.5:alpha=1[tp];[0:v][tp]overlay=x='(${path(1)})*${W}-${pad}':y='(${path(2)})*${H}':eval=frame:shortest=1,format=yuv420p[v]`,
+    '-filter_complex', `[0:v]split[b1][b2];[b1][1:v]overlay=x='(${f})*${W}':y=${t}:eval=frame:shortest=1[ov];[ov]crop=${r}:${H}:0:0[cw];[b2][cw]overlay=x=0:y=0,format=yuv420p[v]`,
     '-map', '[v]', '-c:v', 'libx264', '-crf', '14', '-preset', 'medium', '-r', String(FPS), out]);
   return out;
 }
@@ -151,7 +142,8 @@ async function piece({ shot, src, slide = 0, still, from = 0, dur, speed = 1, zo
   const z = cam ? eased(cam, 1) : `(${z0}+(${z1 - z0})*on/${frames})`;
   const [ax, ay] = cam ? [eased(cam, 2), eased(cam, 3)] : at;
   let v = `[0:v]setpts=(PTS-STARTPTS)/${speed},fps=${FPS},scale=${2 * W}:${2 * H},zoompan=z='${z}':x='max(0,min(iw-iw/zoom,(${ax})*iw-iw/zoom/2))':y='max(0,min(ih-ih/zoom,(${ay})*ih-ih/zoom/2))':d=1:s=${W}x${H}:fps=${FPS},trim=end_frame=${frames},setsar=1${reverse ? ',reverse' : ''}`;
-  // bold: thin dark lines thickened, so a pattern sheet's lines read at film size.
+  // bold: thin dark lines on light paper thickened, so a pattern sheet's lines read at film size (dark-on-light only:
+  // on black it would thin light lines).
   if (bold) v = v.replace(`scale=${2 * W}:${2 * H},`, `scale=${2 * W}:${2 * H},erosion,`);
   // slide: the picture travels in from the right edge to its place over that many seconds, starting gently and
   // gathering speed as it goes, like a camera move (Cat, 2026-10-24: "starts slower and ramps up slightly").
@@ -286,7 +278,7 @@ const PATTERN = WIDE
 // On a phone the sheet of pages is thin champagne lines on black; lifted so they read (walkthrough, 2026-10-24).
 // On a computer the pattern pages sit at the top of Print, beside the summary (Nov 14): the take's first second,
 // before it scrolls, drawn in slowly.
-const PAGES = { shot: 'print', from: 5.2, speed: 0.75, ...(WIDE ? { from: 0, speed: 0.25, zoom: [1, 1.05], at: [0.5, 0.4], bold: true } : { zoom: [1.08, 1.12], at: [0.5, 0.36], frame: [0.155, 0.62], bold: true }) };
+const PAGES = { shot: 'print', from: 5.2, speed: 0.75, ...(WIDE ? { from: 0, speed: 0.25, zoom: [1, 1.05], at: [0.5, 0.4], bold: true } : { zoom: [1.08, 1.12], at: [0.5, 0.36], frame: [0.155, 0.62], tint: [1.4, 1.4, 1.4] }) };
 // Cat picked P2 (2026-10-25): on a phone the sheet fills the height of the screen, and the camera drifts slowly from
 // the left pieces to the right ones, eased at each end. Drawn from the sharp picture of the sheet the recorder takes.
 const SHEET = join(SHOTS, 'print-sheet.png');
@@ -425,17 +417,12 @@ const CUTS = {
     const WAIST_AT = Number(process.env.WAIST_AT ?? 7.9);
     // The first page is held about 5.8 s in the take, for the tape.
     const FIRST_DUR = Number(process.env.FIRST_DUR ?? 6.1);
-    // The tape's way, in the card and page together (the page is fully in at 2.2 s). TAPE_STYLE picks one:
-    // A in across the top of the card from the side, then held there full length as the page comes in (Cat's pick);
-    // B dropped in from above the card's top edge, held over the page's top, then pulled out to the side;
-    // C in across the top, down onto the page's top edge, then pulled out to the side.
-    const TOP = WIDE ? 0.008 : 0.006;
-    const TAPE_PULLS = {
-      A: { stops: [[0.5, 1.05, TOP], [1.6, 0, TOP]] },
-      B: { stops: [[0.5, 0, -0.05], [1.4, 0, TOP], [3.6, 0, TOP], [4.8, 1.05, TOP]] },
-      C: { stops: [[0.5, 1.05, -0.01], [1.4, 0, -0.01], [2.4, 0, TOP], [3.6, 0, TOP], [4.8, 1.05, TOP]] },
-    };
-    const TAPE_PULL = TAPE_PULLS[process.env.TAPE_STYLE ?? 'A'];
+    // The tape's way, in the card and page together (the page is fully in at 2.2 s): in from the side along the top of
+    // the card, held there full length as the page comes in under it (Cat's A, Nov 15).
+    // Where the page's tape sits in the cut, in film pixels (measured on the Nov 15 take): it slides in from the right
+    // and lands there by 1.6 s, as the page starts to come in.
+    const LAND = WIDE ? [599, 60, 1324, 124] : [12, 126, 1080, 238];
+    const TAPE_PULL = { box: LAND, at: 3.2, stops: [[0.5, LAND[2] / W], [1.6, LAND[0] / W]] };
     // OPENER_FILM=<walkthrough.mp4> keeps a released film's opening shot and Measure card frame for frame (Cat,
     // 2026-10-24: "go back to that other version exactly"): its first 5.6 s, fades and title already in them.
     const released = process.env.OPENER_FILM ? resolve(process.env.OPENER_FILM) : undefined;
@@ -443,9 +430,9 @@ const CUTS = {
       ...(released
         ? [await piece({ shot: 'round', src: released, from: 0, dur: 5.6 })]
         : [...(await INTROS[INTRO]())]),
-      // The Measure card dissolving into the first page as it is live (Cat's W1, Nov 14), the tape pulled down from
-      // the top of the card on into the page, beside the form (Cat, Nov 15); the page's own heading says what comes
-      // next, so no line over it. Then the waist page, through the take's dip, its tape coming round the waist.
+      // The Measure card dissolving into the first page as it is live, the film's tape sliding in along the top of the
+      // card and landing on the page's own tape, which takes over (Cat, Nov 15); the page's own heading says what
+      // comes next, so no line over it. Then the waist page, through the take's dip, its tape coming round the waist.
       ...(released ? [await piece({ shot: 'tape', from: 0.3, dur: FIRST_DUR, ...TAPE_VIEW, fadeIn: f, fadeOut: 0.35 })] : [await pulledTape(await dissolve(await piece({ still: await card('01', 'Measure', 'Just a few, once.'), dur: 2.2, fadeIn: f }), await piece({ shot: 'tape', from: 0.3, dur: FIRST_DUR, ...TAPE_VIEW, fadeOut: 0.35 }), 0.6), TAPE_PULL)]),
       await piece({ shot: 'tape', from: WAIST_AT, dur: 3.6, ...(WIDE ? {} : TAPE_VIEW), fadeIn: 0.35, fadeOut: f }),
     ];

@@ -212,13 +212,13 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
         else onForm?.(chosen);
         setPage({ kind: 'base', at: firstToTake() });
       };
-      // Cat's T2 without the slide (Nov 8): the tape round the neck lifts away with the page, and the waist page comes
-      // up out of the black, its tape coming in from the side to wrap the waist.
+      // The page's tape lifts away with the page, and the waist page comes up out of the black, its tape coming in
+      // from the side to wrap the waist.
       const card = document.querySelector<HTMLElement>('.measure-step');
-      const form = card?.querySelector<HTMLElement>('.form-picture, .first-tape');
+      const picture = card?.querySelector<HTMLElement>('.form-picture, .first-tape');
       if (!card || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return go();
       introLeft();
-      form?.animate([{ transform: 'none' }, { transform: 'translateY(-28px)' }], { duration: LIFT_MS, easing: 'ease-in', fill: 'forwards' });
+      picture?.animate([{ transform: 'none' }, { transform: 'translateY(-28px)' }], { duration: LIFT_MS, easing: 'ease-in', fill: 'forwards' });
       card.animate([{ opacity: 1 }, { opacity: 0 }], { duration: LIFT_MS, easing: 'ease-in', fill: 'forwards' }).onfinish = go;
     };
     return (

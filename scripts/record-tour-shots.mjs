@@ -323,10 +323,9 @@ await start();
 await wait(9500);
 await stop('form');
 
-// tape: the first page as the app shows it (Cat's W1, Nov 14: the welcome's line form on black). The film draws its own
-// tape over it, pulled down from the top of the Measure card (Cat, Nov 15: round the waist repeated the waist page),
-// so the page is filmed exactly as it is live, held as long as the tape takes; Begin measuring then carries on down
-// to the waist page.
+// tape: the first page as the app shows it (Cat's T1 + F5 + G2, Nov 15: a tape along its top). The film slides its own
+// tape in along the top of the Measure card and lands it on the page's (edit-tour.mjs), so the page is filmed exactly
+// as it is live, held as long as that takes; Begin measuring then carries on down to the waist page.
 {
   // The welcome is skipped (Cat, 2026-10-23): Begin is pressed off camera.
   await main.getByRole('button', { name: 'Begin' }).click();
@@ -911,7 +910,8 @@ if (!WIDE) {
   await wait(500);
   cut(true);
   const drop = Number(process.env.PJ_DROP ?? 170);
-  const cx = 432 * 0.35, cy = 768 * 0.3;
+  const vp = p.viewportSize();
+  const cx = vp.width * 0.35, cy = vp.height * 0.3;
   await p.mouse.move(cx, cy);
   await p.mouse.down();
   for (let i = 1; i <= 12; i++) await p.mouse.move(cx, cy + (drop * i) / 12);
