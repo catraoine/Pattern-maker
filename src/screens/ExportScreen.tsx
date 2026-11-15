@@ -365,15 +365,25 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
                   The PDF couldn't be made. Reload the page to try again: you'll stay on Print.
                 </p>
               )}
-              {canShareFiles && (
-                <button type="button" className="secondary" onClick={checked(share)} disabled={!ready}>
-                  Send to email or a printer
+              {/* Download is the one filled button and every other way sits in a plain list under it, so the main way
+                  stands out at a glance (Cat picked A1 Quiet list, Nov 14: all five were the same gold capitals). */}
+              <p className="eyebrow other-ways-label" id="other-ways">
+                Other ways
+              </p>
+              <div className="other-ways" role="group" aria-labelledby="other-ways">
+                {canShareFiles && (
+                  <button type="button" className="way" onClick={checked(share)} disabled={!ready}>
+                    Send to email or a printer
+                  </button>
+                )}
+                <button type="button" className="way" onClick={checked(openToPrint)} disabled={!ready}>
+                  Open PDF to print
                 </button>
-              )}
-              <button type="button" className="secondary" onClick={checked(openToPrint)} disabled={!ready}>
-                Open PDF to print
-              </button>
-              {!imported && <EmailPdf ready={ready} fileName={fileName} title={title} onSent={left} checked={checked} />}
+                {!imported && <EmailPdf ready={ready} fileName={fileName} title={title} onSent={left} checked={checked} />}
+                {sendLink && onPhone() && (
+                  <SendToDevice link={sendLink} className="way" />
+                )}
+              </div>
               {asking && (
                 <div className="example-ask" role="alertdialog" aria-labelledby="example-ask-title">
                   <p id="example-ask-title" className="small">
@@ -415,12 +425,6 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
                 <button type="button" className="link" onClick={onFitNotes}>
                   {fitNote ? 'Fit notes' : 'How did it fit?'}
                 </button>
-              </div>
-            )}
-            {sendLink && onPhone() && (
-              <div className="stack send-device">
-                <p className="small">Printer on your computer? Send your measurements and patterns there, then print from it.</p>
-                <SendToDevice link={sendLink} className="link" />
               </div>
             )}
             {projector || paper === 'a0' ? (
@@ -1214,7 +1218,7 @@ function EmailPdf({ ready, fileName, title, onSent, checked }: { ready: Uint8Arr
   sentNow.current = onSent;
   if (!open)
     return (
-      <button type="button" className="secondary" onClick={() => setOpen(true)} disabled={!ready}>
+      <button type="button" className="way" onClick={() => setOpen(true)} disabled={!ready}>
         Email me the PDF
       </button>
     );

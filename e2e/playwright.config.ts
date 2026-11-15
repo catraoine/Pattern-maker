@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { defineConfig } from '@playwright/test';
+import { defineConfig, devices } from '@playwright/test';
 
 // Click-through tests of the whole app in Chromium, at phone size and at desktop size.
 // Run with `npm run test:e2e`. See README "End-to-end tests".
@@ -12,6 +12,26 @@ const root = fileURLToPath(new URL('..', import.meta.url));
 // Playwright's own browser is used: `npx playwright install chromium`.
 const LOCAL_CHROMIUM = '/opt/pw-browsers/chromium';
 const launchOptions = existsSync(LOCAL_CHROMIUM) ? { executablePath: LOCAL_CHROMIUM } : {};
+
+// The walks a tester takes, run again in Safari on an iPhone: welcome to printed pattern, the style questions, the
+// waitlist and tester link, the body scan, a fabric photo and a fabric bought from a shop.
+const SAFARI_GATE = [
+  'fresh-visitor.spec.ts',
+  'journey-nov10.spec.ts',
+  'tester-journey-nov11.spec.ts',
+  'style-intro.spec.ts',
+  'straight-to-questions.spec.ts',
+  'waitlist.spec.ts',
+  'tester-code.spec.ts',
+  'body-scan.spec.ts',
+  'fabric-photo.spec.ts',
+  'shop-catalogue.spec.ts',
+];
+
+// Walks left out of the Safari check because the test machine's Safari (WebKit on Linux, not an iPhone) crashes
+// whenever a page is reloaded or left after Print or a fabric photo. Cat's iPhone reloads the Print screen fine
+// (Nov 14), so it's the test machine, not the app. The same walks still run in Chromium on every PR.
+const SAFARI_LEFT_OUT = /a reload keeps your place|a printed pattern is kept in Saved patterns|a photo of your own fabric dresses the sketch|fresh visitor: welcome, measure, style every garment/;
 
 export default defineConfig({
   testDir: '.',
@@ -40,6 +60,15 @@ export default defineConfig({
       name: 'desktop',
       use: { viewport: { width: 1280, height: 800 } },
     },
+    // Safari on an iPhone, for the walks a tester takes, which must pass before every ship. Safari draws some things its
+    // own way (it painted the flats black before the fabric arrived), and Chromium never shows that. Only when E2E_SAFARI
+    // is set, as the Safari check on GitHub does, since most machines have no WebKit browser.
+    ...(process.env.E2E_SAFARI ? [{
+      name: 'iphone-safari',
+      testMatch: SAFARI_GATE,
+      grepInvert: SAFARI_LEFT_OUT,
+      use: { ...devices['iPhone 13'], browserName: 'webkit' as const, launchOptions: {} },
+    }] : []),
   ],
   webServer: {
     command: `npx vite --port ${PORT} --strictPort`,

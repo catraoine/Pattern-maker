@@ -1150,7 +1150,10 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   // The armhole meets the side seam square, so the underarm curve runs on smoothly into the front's.
   backArmhole(back, sideB, swB).line(swB, 'side');
   const backLines: Path[] = [];
-  const dartXB = swB.x * 0.48;
+  // The back dart sits about halfway across the body's back waist, in line with the shoulder blade and the seat. A
+  // shift's back piece is cut much wider than the body there, so its dart is placed from the waist a fitted back would
+  // have; placed from the roomy back it sat out past the blade (13 cm from the centre back at a 109 hip; Cat, Nov 14).
+  const dartXB = (shiftDress ? Math.min(swB.x, backWq + dartB) : swB.x) * 0.48;
   const dartTipB = p(dartXB, scye - dropShoulder + 2.5);
   let hipB = swB;
   let hemB = swB;
