@@ -1,0 +1,75 @@
+/* The collection as an atelier sheet (Cat's H8, Nov 14): each drawing in dark ink on a chalk sheet like the style
+   screen's picture windows, three weights of line so the shape reads before the details, softer side light so the
+   cloth shows one true colour, and a cut swatch of the cloth pinned under it. A dark cloth (black, chocolate) keeps
+   pale stone lines, as ink would vanish into it. On chalk a sheer cloth shows its own colour, not the black behind it. */
+.house-flat {
+  --ink: #1d1a17;
+  --gild: #2a2622;
+  --gild-glow: #1d1a17;
+  --muted: #5e5547;
+  --line-strong: #2a2622;
+  --guide: #b9b2a4;
+  flex-direction: column;
+  height: auto;
+  padding: 22px 12px 12px;
+  color: var(--ink);
+  background: #dcd5c7;
+}
+.house-flat > .techflat,
+.house-flat > .garment-fabric > .techflat {
+  height: 340px;
+}
+.house-flat.dark-cloth .techflat {
+  --gild: #a89c86;
+}
+
+/* Three weights: a firm outline, fine seams and darts, hairline stitching. */
+.house-flat .techflat .flat-shape {
+  stroke-width: 0.6;
+}
+.house-flat .techflat .flat-seam,
+.house-flat .techflat .flat-dart {
+  stroke-width: 0.13;
+}
+.house-flat .techflat .flat-stitch {
+  stroke-width: 0.08;
+  stroke-dasharray: 0.32 0.28;
+}
+.house-flat .techflat .flat-zip {
+  stroke-width: 0.28;
+}
+.house-flat .techflat .flat-label {
+  fill: #5e5547;
+}
+
+/* Even light: the side shadow at a third, so a blush reads blush edge to edge. */
+.house-flat .techflat .flat-shade {
+  opacity: 0.3;
+}
+
+/* The cloth, pinked along its top like a cut swatch, with its name in small caps. */
+.cloth-swatch {
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0 0;
+}
+.cloth-swatch svg {
+  width: 52px;
+  height: 52px;
+  display: block;
+  clip-path: polygon(0% 4%, 4% 0%, 8% 4%, 12% 0%, 16% 4%, 20% 0%, 24% 4%, 28% 0%, 32% 4%, 36% 0%, 40% 4%, 44% 0%, 48% 4%, 52% 0%, 56% 4%, 60% 0%, 64% 4%, 68% 0%, 72% 4%, 76% 0%, 80% 4%, 84% 0%, 88% 4%, 92% 0%, 96% 4%, 100% 0%, 100% 100%, 0% 100%);
+}
+.cloth-swatch .cloth-swatch-cloth {
+  fill: var(--garment, #f6f2ea);
+  stroke: none;
+}
+.cloth-swatch figcaption {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #5e5547;
+  line-height: 1.5;
+}
