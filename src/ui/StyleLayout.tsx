@@ -12,6 +12,7 @@ import { ModeLink } from './ModeLink';
 import { PhotoEntry } from './PhotoEntry';
 import { Title } from './Title';
 import type { Undo } from './useUndo';
+import { OpenDetail } from './FabricHeadsUp';
 import type { MyFabric } from '../engine/fabrics';
 
 /** Whether the style window has lit up yet in this visit. */
@@ -775,6 +776,22 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
     if (q.label !== q.tab) setFolds((f) => ({ ...f, [q.tab]: q.label }));
     goStep(q.tab);
   };
+  // A fabric heads up's link to the style detail that would fix it: on a phone that question's own screen, on a
+  // computer its step with the detail opened. No link when this garment has no such detail.
+  const openDetail = (about: string) => {
+    if (!wide) {
+      const i = qs.findIndex((q) => q.label === about);
+      return i < 0 ? undefined : () => goQ(i);
+    }
+    const sel = `fieldset.group.fold[data-label="${CSS.escape(about)}"]`;
+    const tab = root.current?.querySelector<HTMLElement>(sel)?.dataset.tab;
+    if (!tab) return undefined;
+    return () => {
+      setFolds((f) => ({ ...f, [tab]: about }));
+      choose(tab);
+      requestAnimationFrame(() => root.current?.querySelector(sel)?.scrollIntoView({ block: 'center', behavior: scrollBehavior() }));
+    };
+  };
 
   // On a phone the drawing stands tall at the top, then eases back once the page scrolls into the choices, so they
   // keep their room under it.
@@ -1029,6 +1046,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
             )}
           </div>
           <Fold.Provider value={fold}>
+          <OpenDetail.Provider value={openDetail}>
           <ActiveTab.Provider value={active}>
             <Sections.Provider value={sections}>
             {options}
@@ -1044,6 +1062,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
             )}
             </Sections.Provider>
           </ActiveTab.Provider>
+          </OpenDetail.Provider>
           </Fold.Provider>
           {/* The way on: the next step, or Review after the last (on a computer the summary is already beside it). */}
           {wide && at >= 0 && (
