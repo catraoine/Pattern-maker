@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { CSSProperties, useId } from 'react';
 import type { Flat } from '../engine/flat';
 import { SHADE_STOPS } from './FormSketch';
 import { ClothDefs, ClothOverlay, throughOpacity, borderHems, useFabricLook } from './ClothLook';
@@ -8,17 +8,21 @@ const d = (pts: { x: number; y: number }[], close = false) =>
 
 /** The technical flat: front and back side by side, drawn to scale in fine lines, in the fabric and under the
  *  same light as the garment on the form, so the two drawings read as one piece. */
-export function TechFlatView({ flat, title }: { flat: Flat; title: string }) {
+export function TechFlatView({ flat, title, labelCm, style, part }: { flat: Flat; title: string; labelCm?: number; style?: CSSProperties; part?: boolean }) {
   const pad = 4;
-  const size = Math.max(1.8, flat.width / 45);
+  // (The label's size in cm: given, when several drawings are shown at one scale, so their labels match.)
+  const size = labelCm ?? Math.max(1.8, flat.width / 45);
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const look = useFabricLook();
   return (
     <svg
       viewBox={`${-pad} ${-pad} ${flat.width + 2 * pad} ${flat.height + 2 * pad + size * 2}`}
       className="techflat"
-      role="img"
-      aria-label={`Technical flat of the ${title}, front and back`}
+      style={style}
+      // (One view of several, drawn apart: the group they are in carries the name.)
+      aria-hidden={part || undefined}
+      role={part ? undefined : 'img'}
+      aria-label={part ? undefined : `Technical flat of the ${title}, front and back`}
     >
       {flat.views.map((v, k) => {
         const xs = v.shapes.flat().map((q) => q.x);

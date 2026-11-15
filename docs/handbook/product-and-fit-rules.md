@@ -379,7 +379,7 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    is cut 5.5 cm deep at the back with points of about 10 cm (`LONG_POINT` in `engine/collar.ts`), and a shirttail
    hem may hang up to 6 cm below a hem that is itself past the hip (`bodiceHem.ts`; without the cut a shaped hem
    still stops 12 cm below the hip). A shirt without the cut is drafted exactly as before. The look is drawn in the
-   house's own print, photographed from Cat's cloth: the tile ships in `public/prints/house/` and is named by the
+   house's own print, photographed from Cat's cloth: the tile ships in `src/prints/` (its address fingerprinted, so a phone never keeps an old one) and is named by the
    look's fabric words (`HOUSE_PRINTS` in `collection.ts`), so it shows on any device and never touches the photo
    store. The look has a set-in sleeve and a back yoke with a box pleat under it (Cat, Nov 10: "i want it"). The
    house cut is the one button front that keeps a yoke, and only across the back, where it never meets the buttons

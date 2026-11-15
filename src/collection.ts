@@ -37,7 +37,7 @@ import { HOUSE_COLOURS } from './engine/houseColours';
 
 
 /** The house's own prints, photographed from the real cloth: the words that name one in a look's fabric, its tile in
- * public/prints/house (see fabricPhoto.ts) and how wide one tile shows on the garment, in cm. */
+ * src/prints (see fabricPhoto.ts) and how wide one tile shows on the garment, in cm. */
 const HOUSE_PRINTS: [string, { id: string; size: number }][] = [['leopard python', { id: 'house-leopard-python', size: 26 }]];
 
 /** The fabric a look is named for, read from its words, so its thumbnail draws in that cloth. */
@@ -165,11 +165,26 @@ export const COLLECTION: HouseLook[] = [
   {
     id: 'lilac-lace',
     number: 5,
+    set: 'The Lilac Lace Set',
     name: 'Lilac Lace Blouse',
-    line: 'Lilac lace plunging to the waist, with full bishop sleeves gathered at the wrist. Worn with gold micro shorts.',
+    line: 'Lilac lace plunging to the waist, with full bishop sleeves gathered at the wrist.',
     fabric: 'Lilac silk lace',
     garment: 'bodice',
     choices: bodice({ fit: 'relaxed', bustEase: 20, darts: 'none', sides: 'straight', pullOn: true, neckline: 'plunge', plungeDepth: 'waist', sleeve: 'long', sleeveShape: 'bishop', sleeveFullness: 'full', sleeveCuff: 'elastic', sleeveHead: 'gathered', length: 'hip', yoke: { front: 0, back: 10, frontSlant: 13, trim: true, frontGather: 4, frontBand: 3.5 }, hemTie: 'drawstring' }),
+  },
+  {
+    // A low-rise barrel leg in the snakeskin brown of the leopard cloth (Cat, 2026-11-11). Worn with the lilac lace
+    // blouse as one look, the two side by side (Cat, Nov 14: "put the Barrel trouser and the lilac top in order so they
+    // are a look").
+    id: 'chocolate-barrel',
+    number: 5,
+    set: 'The Lilac Lace Set',
+    name: 'Chocolate Barrel Trouser',
+    line: 'Slung low on the hip, one deep pleat each side opening into a barrel leg that curves out round the knee and narrows to the floor, in a crisp chocolate sateen.',
+    fabric: 'Chocolate crisp cotton sateen',
+    garment: 'trousers',
+    // One deep pleat each side, not two: two added bulk at a low rise (Cat, Nov 14: "fix those pants now").
+    choices: { ...DEFAULT_TROUSERS_CHOICES, fit: 'relaxed', leg: 'barrel', length: 'full', rise: 'low', pockets: 'slant', pleats: 'single', loops: 'loops', backPockets: 'welt' },
   },
   {
     // From Cat's picture of a relaxed bias satin maxi (2026-11-11, "Build bias and correct the neckline for lower
@@ -216,17 +231,6 @@ export const COLLECTION: HouseLook[] = [
       yoke: { back: 9 },
       shirtCut: 'house',
     }),
-  },
-  {
-    // A low-rise barrel leg in the snakeskin brown of the leopard cloth, so it links to the Leopard Shirt Dress (Cat,
-    // 2026-11-11). Look 09 once Look 02 became a set and the Red Pleat Dress left the line.
-    id: 'chocolate-barrel',
-    number: 8,
-    name: 'Chocolate Barrel Trouser',
-    line: 'Slung low on the hip, two deep pleats opening into a barrel leg that curves out round the knee and falls to the floor, in a crisp chocolate sateen.',
-    fabric: 'Chocolate crisp cotton sateen',
-    garment: 'trousers',
-    choices: { ...DEFAULT_TROUSERS_CHOICES, fit: 'relaxed', leg: 'barrel', length: 'full', rise: 'low', pockets: 'slant', pleats: 'double', loops: 'loops', backPockets: 'welt' },
   },
 ];
 
