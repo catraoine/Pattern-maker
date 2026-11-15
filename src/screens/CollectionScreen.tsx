@@ -9,6 +9,8 @@ import { InterestCard } from '../ui/InterestCard';
 import { TechFlatView } from '../ui/TechFlatView';
 import { HouseFlat, widestView } from '../ui/HouseFlat';
 import { GarmentFabric } from '../ui/FabricFill';
+import { ClothSwatch } from '../ui/ClothSwatch';
+import { darkCloth } from '../ui/clothTone';
 import { lookFabric } from '../collection';
 import { TestingTag } from '../ui/TestingTag';
 import { EraShelf } from './EraShelf';
@@ -218,9 +220,12 @@ export function CollectionScreen({ values, onMake, onBack, backLabel = 'Back to 
                   <p className="eyebrow">{lookNo(look.number)}</p>
                   {set && <h2>{set}</h2>}
                   <div className={set ? 'set-pieces' : undefined}>
-                    {pieces.map(({ look: piece, flat }) => (
+                    {pieces.map(({ look: piece, flat }) => {
+                      const cloth = lookFabric(piece.fabric);
+                      return (
                       <div key={piece.id} className="set-piece">
-                        <div className="house-flat">{flat ? <GarmentFabric fabric={lookFabric(piece.fabric)}><HouseFlat flat={flat} title={describePattern(piece.choices).toLowerCase()} widest={widest} /></GarmentFabric> : <p className="muted small">This look can&rsquo;t be drafted to these measurements.</p>}</div>
+                        {/* Drawn on a chalk sheet with the cloth pinned under it (the H8 Atelier Sheet, Nov 14); a dark cloth keeps pale lines. */}
+                        <div className={darkCloth(cloth) ? 'house-flat dark-cloth' : 'house-flat'}>{flat ? <GarmentFabric fabric={cloth}><HouseFlat flat={flat} title={describePattern(piece.choices).toLowerCase()} widest={widest} /><ClothSwatch name={piece.fabric} /></GarmentFabric> : <p className="muted small">This look can&rsquo;t be drafted to these measurements.</p>}</div>
                         {set ? <h3>{piece.name}</h3> : <h2>{piece.name}</h2>}
                         <p className="muted">{piece.line}</p>
                         <p className="muted small">Cut in {piece.fabric[0].toLowerCase() + piece.fabric.slice(1)}.</p>
@@ -228,7 +233,8 @@ export function CollectionScreen({ values, onMake, onBack, backLabel = 'Back to 
                           {set ? `Make the ${piece.name.split(' ').pop()!.toLowerCase()}` : 'Make this look'}
                         </button>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </li>
               );
