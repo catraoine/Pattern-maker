@@ -1080,7 +1080,8 @@ export function createRoundView(): RoundView | undefined {
       // slim leg, cut close, let the form's inner thigh and knee show through between them.
       const under = trousers && !!lg;
       const top = under ? Math.max(LEG_TOP, yH) : LEG_TOP;
-      add(sweep({ at: (a, t) => legPoint(leg, a, top + (FORM_FLOOR - top) * t, !under), out: radial }, -Math.PI, Math.PI, 48, 90), legs, 0, 'leg', leg);
+      const plainTo = !isTop && !trousers ? yOf(longest) : -Infinity;
+      add(sweep({ at: (a, t) => legPoint(leg, a, top + (FORM_FLOOR - top) * t, !under, plainTo), out: radial }, -Math.PI, Math.PI, 48, 90), legs, 0, 'leg', leg);
     }
 
     if (o.draped && o.draped !== 'pending') {

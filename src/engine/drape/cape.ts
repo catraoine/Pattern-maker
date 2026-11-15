@@ -65,14 +65,16 @@ const SEAT_REACH = 4;
  * less the further it is from the seam, so the cape doesn't crease at the seam.
  */
 export function seatCapeNeck(panels: { pc: Piece; base: number; mesh: { pts: { x: number; y: number }[]; runs: Record<string, number[][]> } }[], seams: { i: number; j: number; k: number; t: number }[], res: Float64Array): void {
-  for (const p of panels) {
-    if (!p.pc.meta.cape) continue;
+  // (Only seams onto the top's neck: the two cape pieces are also seamed to each other at the shoulder, and that seam
+  // shares the neck's last point, which would be pulled toward the other cape piece instead of onto the neckline.)
+  const capes = panels.filter((p) => p.pc.meta.cape);
+  const onCape = (g: number) => capes.some((c) => g >= c.base && g < c.base + c.mesh.pts.length);
+  for (const p of capes) {
     const n = p.mesh.pts.length;
-    const mine = (g: number) => g >= p.base && g < p.base + n;
     const neck = new Set((p.mesh.runs.neck ?? []).flat().map((i) => p.base + i));
     const shift = new Map<number, [number, number, number]>();
     for (const { i, j, k, t } of seams) {
-      if (!neck.has(i) || mine(j) || mine(k)) continue;
+      if (!neck.has(i) || onCape(j) || onCape(k)) continue;
       shift.set(i, [0, 1, 2].map((d) => res[j * 3 + d] * (1 - t) + res[k * 3 + d] * t - res[i * 3 + d]) as [number, number, number]);
     }
     if (!shift.size) continue;

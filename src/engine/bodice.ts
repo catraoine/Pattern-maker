@@ -735,7 +735,7 @@ function finish(d: BodiceDraft, s: BodiceStyle, m: BodiceMeasurements & { arm_le
   }
   if (collar !== 'none') {
     const ext = closure === 'front_buttons' && collar !== 'peter_pan' && collar !== 'ruffle' && collar !== 'cape' ? EXTENSION_CM : 0;
-    pieces = [...pieces, ...collarPieces(collar, bf, bb, { back: taggedLength(bb.outline, 'neck'), front: taggedLength(bf.outline, 'neck'), ext, closure, sa: s.seamAllowance, capeCm: capeDepth(m), capeNeck: s.neckline, capeLength: s.length, ...(s.shirtCut === 'house' ? { point: 'long' as const } : {}) })];
+    pieces = [...pieces, ...collarPieces(collar, bf, bb, { back: taggedLength(bb.outline, 'neck'), front: taggedLength(bf.outline, 'neck'), ext, closure, sa: s.seamAllowance, capeCm: capeDepth(m), capeNeck: s.neck || s.unevenNeck ? 'drawn' : s.neckline, capeLength: s.length, ...(s.shirtCut === 'house' ? { point: 'long' as const } : {}) })];
   }
   // Menswear buttons the other way: the left front laps over the right.
   return { ...d, pullOn: pullOn || undefined, ...(pullOn ? { zipCm: 0 } : {}), pieces, block, closure, collar, buttons, ...(buttons && s.fitting?.flatFront ? { lapsLeft: true } : {}) };

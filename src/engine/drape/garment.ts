@@ -6443,7 +6443,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
   // scoop drawn down to its cut depth) and not the ruffle, which was left standing round the neck 2 to 10 cm above a
   // low front neck (All round quality, 2026-11-07). (The neckline itself is left as it is.)
   if (!knob('__noRufSeat')) for (const p of B.panels) if (p.role === 'collar' && typeof p.pc.meta.ruffle === 'number' && !p.pc.meta.bow) seatOn(p, 'neck', 0, false);
-  if (!knob('__noCapeSeat')) seatCapeNeck(B.panels, seams, res);
+  if (!knob('__noCapeSeat')) for (const at of posMirror ? [res, posMirror] : [res]) seatCapeNeck(B.panels, seams, at);
   return { panels: B.panels, pos: res, lines, buttons, seams, ...(shade ? { shade } : {}), ...(posMirror ? { posMirror } : {}) };
 }
 
