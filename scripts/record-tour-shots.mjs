@@ -323,65 +323,17 @@ await start();
 await wait(9500);
 await stop('form');
 
-// tape: the first page as the app shows it (Cat's W1, Nov 14: the welcome's line form on black), and the tape round
-// its waist (Cat's B, Nov 14): it slides in across the form at the waist, draws in to the waist's width and lets go,
-// so the page is left exactly as it is live; Begin measuring then carries on down to the waist page.
+// tape: the first page as the app shows it (Cat's W1, Nov 14: the welcome's line form on black). The film draws its own
+// tape over it, pulled down from the top of the Measure card (Cat, Nov 15: round the waist repeated the waist page),
+// so the page is filmed exactly as it is live, held as long as the tape takes; Begin measuring then carries on down
+// to the waist page.
 {
   // The welcome is skipped (Cat, 2026-10-23): Begin is pressed off camera.
   await main.getByRole('button', { name: 'Begin' }).click();
   await main.getByRole('button', { name: 'Begin measuring', exact: true }).waitFor();
   await wait(2500);
-  // The waist: the narrowest row of the drawn form, found from the canvas's own pixels.
-  const waist = await p.evaluate(() => {
-    const c = document.querySelector('.first-form canvas');
-    const r = c.getBoundingClientRect();
-    const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
-    const lit = (x, y) => d[(y * c.width + x) * 4 + 3] > 60 && d[(y * c.width + x) * 4] > 60;
-    let best = null;
-    for (let y = Math.round(c.height * 0.2); y < c.height * 0.8; y++) {
-      let l = 0, rt = c.width - 1;
-      while (l < c.width && !lit(l, y)) l++;
-      while (rt > 0 && !lit(rt, y)) rt--;
-      if (rt - l > 4 && (!best || rt - l < best.w)) best = { y, l, w: rt - l };
-    }
-    // Nothing lit: the form isn't drawn (yet), so there is no waist to put the tape on.
-    if (!best) return null;
-    const k = r.width / c.width;
-    return { box: { x: r.x, y: r.y, w: r.width, h: r.height }, y: r.y + best.y * k, l: r.x + best.l * k, r: r.x + (best.l + best.w) * k };
-  });
-  if (!waist) throw new Error('tape: the first page\'s form is not drawn, so its waist could not be found');
-  console.log('  waist', JSON.stringify(waist));
-  // The tape, inside a window the form's size, so it comes in from the form's own edge and never over the words.
-  await p.evaluate((w) => {
-    const win = document.createElement('div');
-    win.id = 'rec-tape-window';
-    Object.assign(win.style, { position: 'fixed', left: `${w.box.x}px`, top: `${w.y - 20}px`, width: `${w.box.w}px`, height: '40px', overflow: 'hidden', zIndex: 50, pointerEvents: 'none' });
-    const tape = document.createElement('div');
-    tape.className = 'tape-band landed';
-    tape.innerHTML = `<div class="tape-marks">${Array.from({ length: 80 }, (_, i) => `<span>${i + 1}</span>`).join('')}</div>`;
-    Object.assign(tape.style, { position: 'absolute', margin: 0, left: 0, top: '7px', width: `${w.box.w}px`, transform: `translateX(${w.box.w + 12}px)` });
-    win.appendChild(tape);
-    document.body.appendChild(win);
-  }, waist);
   await start();
-  await wait(900);
-  await p.evaluate((w) => new Promise((done) => {
-    const tape = document.querySelector('#rec-tape-window .tape-band');
-    const ease = 'cubic-bezier(0.35, 0.1, 0.25, 1)';
-    tape.style.transform = 'none';
-    tape.animate([{ transform: `translateX(${w.box.w + 12}px)` }, { transform: 'none' }], { duration: 1300, easing: ease }).finished.then(() => {
-      // Drawn in to the waist: its ends come in to the form's sides, as a tape is pulled snug.
-      const l = w.l - w.box.x - 2, wd = w.r - w.l + 4;
-      setTimeout(() => {
-        tape.animate([{ left: '0px', width: `${w.box.w}px` }, { left: `${l}px`, width: `${wd}px` }], { duration: 900, easing: 'cubic-bezier(0.45, 0, 0.25, 1)', fill: 'forwards' }).finished.then(() => {
-          // Then it lets go: the page is left as it is live.
-          setTimeout(() => tape.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 600, easing: 'ease-in', fill: 'forwards' }).finished.then(done), 700);
-        });
-      }, 450);
-    });
-  }), waist);
-  await p.evaluate(() => document.getElementById('rec-tape-window')?.remove());
-  await wait(900);
+  await wait(5750);
 }
 // Womenswear and For me are already chosen, so the film goes straight on: Begin measuring, through a short dip to
 // black, to the waist page, its tape coming round the waist.
@@ -515,6 +467,8 @@ const LINES = {
   hem: WIDE ? [[0.104, 0.975], [0.5, 0.99], [0.896, 0.975]] : [[0.104, 0.99], [0.5, 1.0], [0.896, 0.99]],
   // From the knee to just above it, on the straight shift (measured on the phone's picture, 2026-11-08).
   hemUp: [[0.06, 0.83], [0.5, 0.84], [0.94, 0.83]],
+  // From the knee down to mid-calf, on the A-line (Cat's H, Nov 15).
+  hemDown: [[0.04, 0.925], [0.5, 0.935], [0.96, 0.925]],
   side: WIDE ? [[0.13, 0.6], [0.11, 0.68], [-0.104, 0.975]] : [[0.143, 0.483], [0.102, 0.638], [-0.104, 0.99]],
 };
 // Off camera, the dress is made to match the photo the film has just shown, Cat's own check silk dress (Cat,
@@ -577,17 +531,17 @@ if (process.env.TOUR_OPENER) {
     }), [K, 8500]));
   process.exit(0);
 }
-// The film's dress (Cat, 2026-11-08: start in calico, then build the dress; she applied the clean shift, the recut's
-// Option 1): it opens as the app's own starting dress in calico, the cut, darts and neckline are answered one
-// question at a time on camera, and then the cloth drops in, the jade python. Set off camera first: the starting
-// dress with a straight skirt and the French dart ready, so the answers on camera turn it into the shift.
+// The film's dress (Cat, 2026-11-08: start in calico, then build the dress; Nov 15 she picked H, an A-line midi with
+// long sleeves, as the shift looked bad on the form): it opens in calico as a shift with long sleeves, the cut (a
+// waist seam), darts and neckline (scoop) are answered one question at a time on camera, then the cloth drops in,
+// the jade python, and the hem is drawn down from the knee to mid-calf.
 await p.evaluate(() => {
   const k = 'pattern-maker:skirt';
   const saved = JSON.parse(localStorage.getItem(k) ?? '{}');
   saved.dress = {
     garment: 'dress', fit: 'regular',
-    bodice: { garment: 'bodice', fit: 'regular', neckline: 'crew', length: 'waist', darts: 'bust_waist', bustDart: 'french', sleeve: 'none', sleeveShape: 'straight', closure: 'back_zip' },
-    skirt: { fit: 'regular', silhouette: 'straight', length: 'knee', flareCm: 3 },
+    bodice: { garment: 'bodice', fit: 'regular', neckline: 'crew', length: 'waist', darts: 'bust', bustDart: 'french', sleeve: 'long', sleeveShape: 'straight', closure: 'back_zip' },
+    skirt: { fit: 'regular', silhouette: 'a_line', length: 'knee', flareCm: 3, noSeam: 'shift' },
   };
   if (saved.finish) { delete saved.finish.fabric; delete saved.finish.cloth; }
   localStorage.setItem(k, JSON.stringify(saved));
@@ -617,11 +571,11 @@ const QUICK = !WIDE && process.env.TOUR_QUICK !== '0'; // A computer keeps the e
 if (PHONE_QS) {
   // One question at a time (Cat's B + K, live Nov 8): Cut, then the darts, then the neckline.
   await press(next(), 700);
-  await press(chip('Shift'), 1300);
+  await press(chip('Waist seam'), 1300);
   for (let i = 0; i < 3 && !/Darts/.test(await main.locator('main h2, h2').filter({ visible: true }).allTextContents().then((t) => t.join('|'))); i++) await press(next(), 600);
-  await press(chip('Bust only'), 1200);
+  await press(chip('Bust and waist'), 1200);
   await press(next(), 700);
-  await press(chip('Boat'), 1500);
+  await press(chip('Scoop'), 1500);
   mark('questions done');
   // On to the fabric through a short dip to black: the questions between (collar, back, sleeves, skirt) stay as
   // they are, and stepping through them would only be app text.
@@ -639,12 +593,12 @@ if (PHONE_QS) {
   const row = (name) => main.locator('button').filter({ hasText: new RegExp(`^\\s*${name}`) }).filter({ visible: true }).first();
   await wait(600);
   await press(row('Cut'), 700);
-  await press(chip('Shift'), 1300);
+  await press(chip('Waist seam'), 1300);
   await press(row('Darts'), 700);
-  await press(chip('Bust only'), 1200);
+  await press(chip('Bust and waist'), 1200);
   await press(main.locator('button', { hasText: /^\s*Next/ }).filter({ visible: true }).first(), 900);
   await press(row('Neckline'), 700);
-  await press(chip('Boat'), 1500);
+  await press(chip('Scoop'), 1500);
   mark('questions done');
   await press(main.getByRole('tab', { name: /Fabric/ }).first(), 900);
 }
@@ -719,11 +673,11 @@ if (process.env.TOUR_PROBE2) {
   await p.screenshot({ path: `${OUT}/probe2.png` });
   process.exit(0);
 }
-// The hem drawn up from the knee to just above it, the shift's length (Cat applied the clean shift, 2026-11-08). The
-// side stays straight. TOUR_FLARE=1 draws the side out as the earlier films did.
+// The hem drawn down from the knee to mid-calf (Cat's H, Nov 15); TOUR_HEM=hemUp draws the shift's shorter hem.
+// The side stays straight. TOUR_FLARE=1 draws the side out as the earlier films did.
 mark('hem');
 await pickKind('Hem', 500);
-await draw(form, process.env.TOUR_FLARE ? LINES.hem : LINES.hemUp, process.env.TOUR_FLARE ? 3000 : 3600);
+await draw(form, process.env.TOUR_FLARE ? LINES.hem : LINES[process.env.TOUR_HEM ?? 'hemDown'], process.env.TOUR_FLARE ? 3000 : 3600);
 if (process.env.TOUR_PROBE3) { await p.screenshot({ path: `${OUT}/probe3a.png` }); console.log('HEM', JSON.stringify(before), JSON.stringify(await viewBox(form)), JSON.stringify(await form.boundingBox())); }
 if (process.env.TOUR_FLARE) {
   mark('side');
@@ -759,7 +713,8 @@ await tap(main.getByRole('group', { name: 'Garment view' }).getByRole('button', 
 // close, then in and in, cinematic). The canvas is lifted out at its closest size, so it is drawn sharp, and shown
 // smaller by a scale that grows; resizing it as it goes would blank it between redraws.
 // (After the pattern: from All round, Pattern doesn't redraw in time.)
-await p.evaluate((look) => { window.__tourFilm = look === 'old' ? 'old' : true; }, process.env.TOUR_LOOK);
+// On black (Cat, Nov 15: keep All round on a black background): the film's switch draws it in the app's dark tone.
+await p.evaluate((look) => { window.__tourFilm = look === 'old' ? 'old' : true; window.__tourFilmDark = true; }, process.env.TOUR_LOOK);
 await main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round' }).click();
 await wait(800);
 // The garment is sewn from its pattern pieces a few seconds after All round opens: shot once it's drawn.
@@ -770,10 +725,10 @@ await p.evaluate((K) => {
   const c = document.querySelector('.all-round-canvas');
   document.body.appendChild(c);
   const w = innerWidth * K, h = (innerHeight + 96) * K;
-  // On the chalk All round is drawn on now (34-chalk-windows), the whole screen chalk round it; the legs fade out at
-  // the canvas's foot rather than stopping on a line (Cat, Nov 14: close-ups like All round may leave things out).
+  // On black, the whole screen black round it; the legs fade out at the canvas's foot rather than stopping on a line
+  // (Cat, Nov 14: close-ups like All round may leave things out).
   const fade = 'linear-gradient(to bottom, #000 0, #000 93%, transparent 100%)';
-  Object.assign(c.style, { position: 'fixed', zIndex: 9999, background: '#dcd5c7', maxWidth: 'none', maxHeight: 'none', aspectRatio: 'auto', margin: 0, width: `${w}px`, height: `${h}px`, left: `${innerWidth / 2 - w / 2}px`, maskImage: fade, webkitMaskImage: fade });
+  Object.assign(c.style, { position: 'fixed', zIndex: 9999, background: '#000000', maxWidth: 'none', maxHeight: 'none', aspectRatio: 'auto', margin: 0, width: `${w}px`, height: `${h}px`, left: `${innerWidth / 2 - w / 2}px`, maskImage: fade, webkitMaskImage: fade });
 }, CLOSEST);
 const zoomTo = (from, to, ms, delay = 0) => p.evaluate(([from, to, ms, K, delay]) => new Promise((done) => {
   const c = document.querySelector('.all-round-canvas');
@@ -793,11 +748,11 @@ const zoomTo = (from, to, ms, delay = 0) => p.evaluate(([from, to, ms, K, delay]
   const step = (now) => { const x = Math.max(0, Math.min(1, (now - t0) / (ms || 1))); set(from + (to - from) * ease(x)); x < 1 ? requestAnimationFrame(step) : done(); };
   requestAnimationFrame(step);
 }), [from, to, ms, CLOSEST, delay]);
-// Chalk behind the canvas, so the page doesn't show round a dress drawn smaller than the screen.
-await p.evaluate(() => { const d = document.createElement('div'); d.id = 'round-ground'; Object.assign(d.style, { position: 'fixed', inset: 0, background: '#dcd5c7', zIndex: 9998 }); document.body.appendChild(d); });
+// Black behind the canvas, so the page doesn't show round a dress drawn smaller than the screen.
+await p.evaluate(() => { const d = document.createElement('div'); d.id = 'round-ground'; Object.assign(d.style, { position: 'fixed', inset: 0, background: '#000000', zIndex: 9998 }); document.body.appendChild(d); });
 // On a computer the screen is short, so the whole dress can be drawn larger than on a phone and still fit.
 // Cat picked Z2 (2026-11-08): on a phone the dress held at 0.95 throughout, leaving room for the words.
-// On the chalk All round (Nov 14) the phone's dress draws larger, so it is held at 0.6, the whole dress above the words.
+// Held at 0.6 on a phone, the whole dress above the words.
 const [ROUND_FROM, ROUND_TO] = process.env.ROUND_Z ? process.env.ROUND_Z.split(',').map(Number) : WIDE ? [0.66, 0.85] : [0.6, 0.6];
 await zoomTo(ROUND_FROM, ROUND_FROM, 0);
 await wait(600);
@@ -882,7 +837,7 @@ if ((await paper.count()) && !/A4/.test(await paper.innerText())) {
   await paper.click();
   await main.getByRole('menuitemradio', { name: /^A4/ }).first().click();
 }
-await main.getByRole('button', { name: /^Download PDF/ }).waitFor({ timeout: 45000 });
+await main.getByRole('button', { name: /^(Download PDF|Download pattern)/ }).waitFor({ timeout: 45000 });
 // On a phone the sheet of pages is folded away (Cat, 2026-10-24); it is opened off camera, so the film can glide to it.
 const see = main.locator('button.see-pages');
 if (!WIDE && (await see.count()) && (await see.getAttribute('aria-expanded')) !== 'true') await see.evaluate((el) => el.click());
@@ -950,7 +905,21 @@ if (await lineUpNext.isVisible()) {
   await wait(700);
   cut(false);
 }
-await wait(3600);
+// At true size the piece runs off the top of a phone: moved down off camera, so its top is in view (Cat, Nov 15:
+// the top was cut off). PJ_DROP sets how far, in screen points.
+if (!WIDE) {
+  await wait(500);
+  cut(true);
+  const drop = Number(process.env.PJ_DROP ?? 170);
+  const cx = 432 * 0.35, cy = 768 * 0.3;
+  await p.mouse.move(cx, cy);
+  await p.mouse.down();
+  for (let i = 1; i <= 12; i++) await p.mouse.move(cx, cy + (drop * i) / 12);
+  await p.mouse.up();
+  await wait(500);
+  cut(false);
+}
+await wait(WIDE ? 3600 : 4100);
 await stop('projector');
 await p.keyboard.press('Escape');
 await wait(600);

@@ -23,7 +23,7 @@ import { placeOnForm } from './allRoundShape';
 import { cachedDrape, drapeKey, requestDrape, sewnAnyway } from './drapeClient';
 import { FEEL_STEPS, clothCard, type Feel } from '../engine/drape/clothCard';
 import { TestingTag } from './TestingTag';
-import { CHALK, SHADOW, type Tone } from './palette';
+import { CHALK, DARK, SHADOW, type Tone } from './palette';
 import { inTestingNote } from './allRoundWhy';
 
 // Matching --gild, --gild-glow, --guide, --muted and --ok in styles.css.
@@ -143,6 +143,9 @@ export function checked(rows: Row[]): string {
 const SEW_LIMIT_MS = 30_000;
 
 export function AllRound({ round, m, striped = false, fabric, label, draw, drape, fallback, tone = CHALK }: Props) {
+  // The How it works film draws All round on black (Cat, Nov 15: keep All round on a black background); the recorder sets
+  // the flag. Nothing a maker sees changes.
+  if ((window as Window & { __tourFilmDark?: boolean }).__tourFilmDark) tone = DARK;
   const ref = useRef<HTMLCanvasElement>(null);
   const drawRef = useRef(draw);
   drawRef.current = draw;
