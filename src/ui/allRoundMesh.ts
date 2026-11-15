@@ -169,6 +169,8 @@ export function material(mode: Mode, map?: THREE.Texture, scale = 1, opacity = 1
       mat.envMapIntensity = 0;
       break;
   }
+  // How far from edge on (the cosine of the angle to the eye) a surface turning away from the eye is shaded.
+  const graze = Math.max(0.01, knobs().__graze ?? 0.6);
   mat.uniforms = { hideAbove: { value: -1e9 }, hideBelow: { value: 1e9 }, shadeY: { value: 0 }, shadeDepth: { value: 0 } };
   mat.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, mat.uniforms);
@@ -193,9 +195,18 @@ export function material(mode: Mode, map?: THREE.Texture, scale = 1, opacity = 1
       // as the outside, the inside of a black vest's back showed through its armholes and above its collar as pale
       // patches (Cat, Nov 12). The face a cloth's thickness in (thickened) faces in, so it is marked as the far side too.
       .replace('#include <normal_fragment_begin>', '#include <normal_fragment_begin>\nbool farSide = !gl_FrontFacing || vInner > 0.5;\nif (farSide) diffuseColor.rgb *= 0.45;')
-      .replace('#include <opaque_fragment>', 'if (farSide) outgoingLight = min(outgoingLight, diffuseColor.rgb + totalEmissiveRadiance);\n#include <opaque_fragment>');
+      // A surface turning edge on to the eye takes no shine and sinks toward its own colour in shadow, as cloth does where it
+      // turns away: lit in full, the side of a sleeve, where it turns in toward the body, caught the lamps' light at a
+      // slant and showed down the front armhole as a pale sliver with no print in it (the How it works film's silk
+      // dress, Nov 15). (From the smoothed normals: the faces' own showed the mesh's grain on a plain cloth.)
+      .replace(
+        '#include <opaque_fragment>',
+        `if (farSide) outgoingLight = min(outgoingLight, diffuseColor.rgb + totalEmissiveRadiance);
+else { float edgeOn = 1.0 - smoothstep(0.0, ${graze.toFixed(2)}, abs(dot(normal, normalize(vViewPosition)))); outgoingLight = mix(outgoingLight, min(outgoingLight, diffuseColor.rgb * 0.35 + totalEmissiveRadiance), edgeOn); }
+#include <opaque_fragment>`,
+      );
   };
-  mat.customProgramCacheKey = () => `round-${mode}${physical ? '-physical' : ''}`;
+  mat.customProgramCacheKey = () => `round-${mode}${physical ? '-physical' : ''}-${graze}`;
   return mat;
 }
 
@@ -624,6 +635,39 @@ function buildDraped(
   const SLEEVE_LIFT = ((globalThis as unknown as { __drapeKnobs?: Record<string, number> }).__drapeKnobs ?? {}).__slvLift ?? 0.8;
   const inSleeve = new Uint8Array(d.pos.length / 3);
   for (const p of d.panels) if (p.role === 'sleeve') for (let i = 0; i < p.uv.length / 2; i++) inSleeve[p.base + i] = 1;
+  // (And the dress or top round the armhole raised with it, easing back over a few cm: the sleeve alone raised left a
+  // step at the seam, and from the front the sleeve's inside showed down the front armhole as a dark slit, the How it
+  // works film's dress under "Seams meet.", Nov 15.)
+  const armLift = new Float32Array(d.pos.length / 3);
+  const ARM_EASE = knobs().__armEase ?? 4;
+  if (SLEEVE_LIFT && ARM_EASE) {
+    const sleeveAt: number[] = [];
+    // (Only the sleeve's edge points: the dress near the armhole is nearest its cap edge, and measuring to every point of
+    // the sleeve cost a long coat's build tens of millions of steps.)
+    for (const p of d.panels) {
+      if (p.role !== 'sleeve' || p.hidden) continue;
+      const cnt = new Map<string, number>();
+      for (const [a, b, c] of p.tris) for (const [u, v] of [[a, b], [b, c], [c, a]]) {
+        const k = u < v ? `${u},${v}` : `${v},${u}`;
+        cnt.set(k, (cnt.get(k) ?? 0) + 1);
+      }
+      const edge = new Set<number>();
+      for (const [k, c] of cnt) if (c === 1) for (const v of k.split(',')) edge.add(p.base + Number(v));
+      sleeveAt.push(...edge);
+    }
+    const dist = (a: number, b: number) => Math.hypot(d.pos[a * 3] - d.pos[b * 3], d.pos[a * 3 + 1] - d.pos[b * 3 + 1], d.pos[a * 3 + 2] - d.pos[b * 3 + 2]);
+    for (const p of d.panels) {
+      if (p.role === 'sleeve' || p.hidden || !sleeveAt.length) continue;
+      for (let i = 0; i < p.uv.length / 2; i++) {
+        const g = p.base + i;
+        let m = Infinity;
+        for (const s of sleeveAt) m = Math.min(m, dist(g, s));
+        if (m >= ARM_EASE) continue;
+        const e = m / ARM_EASE;
+        armLift[g] = SLEEVE_LIFT * (1 - e * e * (3 - 2 * e));
+      }
+    }
+  }
   // (A tailored collar's fall a cm further out still: laid close on the sim's body, it went in under the drawn form's
   // fuller neck and shoulders, so from the side only its stand showed, a wall with a ragged top, Cat Nov 8.)
   const FALL_LIFT = knobs().__fallLift ?? 1;
@@ -632,7 +676,7 @@ function buildDraped(
     const pos = e < 0 && d.posMirror ? d.posMirror : d.pos;
     const x = pos[i * 3];
     const z = pos[i * 3 + 2];
-    const k = 1 + (LIFT + more + (inSleeve[i] === 1 ? SLEEVE_LIFT : inSleeve[i] === 3 ? FALL_LIFT : 0)) / (Math.sqrt(x * x + z * z) || 1);
+    const k = 1 + (LIFT + more + (inSleeve[i] === 1 ? SLEEVE_LIFT : inSleeve[i] === 3 ? FALL_LIFT : armLift[i])) / (Math.sqrt(x * x + z * z) || 1);
     return toForm(x * k * e, pos[i * 3 + 1], z * k, d.hang?.[i] || undefined);
   };
   // (A piece cut whole, a one-shoulder's front, holds both its halves: drawn once, not mirrored.)
@@ -980,9 +1024,11 @@ export function createRoundView(): RoundView | undefined {
   fill.position.set(0.8, 0.3, 0.45);
   const rim = new THREE.DirectionalLight(0xffffff, 1.6);
   rim.position.set(0.3, -0.3, -1);
-  // Sky above (y down: the sky is at -y), a dimmer warm ground below.
+  // Sky above, a dimmer warm ground below. The cloth's normals point in toward the body, so its sky is set at +y (the
+  // ground, as y runs down): set at -y it lit every upward face, the top of a shoulder, from the ground, and the far
+  // shoulder showed a dark band by the neck.
   const sky = new THREE.HemisphereLight(0xe4ecff, 0x5a4a3a, 0.8);
-  sky.position.set(0.35, -1, 0.3);
+  sky.position.set(-0.35, 1, -0.3);
   scene.add(key, fill, rim, sky);
   const lamps = [key, fill, rim, sky];
   const flat = new THREE.AmbientLight(0xffffff, 4.5);
