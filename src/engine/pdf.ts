@@ -243,7 +243,7 @@ interface PdfExtras {
   guide?: SewingGuide;
   summary?: Summary;
   /** Which file (Cat, Nov 15: the pattern is what you print, the instructions are a booklet of their own): `pattern` is
-   *  only the pages that tape together, `booklet` is the cover, summary, layouts and steps. Left out, one file holds all. */
+   *  the page map (home paper) and the pages that tape together, `booklet` is the cover, summary, layouts and steps. Left out, one file holds all. */
   part?: 'pattern' | 'booklet';
 }
 
@@ -318,6 +318,8 @@ export async function toTiledPdf(sheet: Sheet, paper: Paper, extras?: PdfExtras)
   const used = usedTiles(sheet, paper);
   const has = (r: number, c: number) => !!used[r]?.[c];
   const total = used.flat().filter(Boolean).length;
+  // The pattern file opens on the page map, which is what the pages are taped by (an A0 sheet needs no taping).
+  if (extras?.part === 'pattern' && paper !== 'a0') addMapPage(doc, fonts, sheet, paper, used, total, [stepX, stepY]);
   let number = 0;
   for (let r = 0; r < (tiles ? rows : 0); r++) {
     for (let c = 0; c < cols; c++) {
@@ -366,7 +368,7 @@ export async function toTiledPdf(sheet: Sheet, paper: Paper, extras?: PdfExtras)
     }
   }
   if (!book) return doc.save();
-  if (extras?.summary) addSummaryPage(doc, fonts, sheet, paper === 'a0' ? 'a4' : paper, used, total, extras.title, extras.summary, [stepX, stepY]);
+  if (extras?.summary) addSummaryPage(doc, fonts, sheet, paper === 'a0' ? 'a4' : paper, used, total, extras.title, extras.summary, [stepX, stepY], extras.part !== 'booklet');
   if (extras?.summary?.lays?.length) addLayPages(doc, fonts, paper === 'a0' ? 'a4' : paper, extras.summary.lays);
   if (extras?.summary?.byHand?.length) addHandPages(doc, fonts, paper === 'a0' ? 'a4' : paper, extras.title, extras.summary.byHand);
   if (extras?.summary?.drafting?.length) addDraftingPages(doc, fonts, paper === 'a0' ? 'a4' : paper, extras.title, extras.summary.drafting);
@@ -487,6 +489,7 @@ function addSummaryPage(
   title: string,
   s: Summary,
   [stepX, stepY]: [number, number],
+  withMap = true,
 ) {
   const { st, write, label, room, left, width } = flow(doc, paper, fonts);
   drawText(st.page, ['MAISON TRACÉ', s.madeFor && `MADE FOR ${s.madeFor}`, s.date, s.edition, s.code && `CODE ${s.code}`].filter(Boolean).join('   ·   ').toUpperCase(), {
@@ -551,6 +554,15 @@ function addSummaryPage(
   }
   st.y -= 16;
 
+  // The page map is the pattern file's first page now (Cat, Nov 15: it is what you tape by), or its own page here
+  // when everything is one file.
+  if (withMap) addMapPage(doc, fonts, sheet, paper, used, total, [stepX, stepY]);
+}
+
+/** The page map on a page of its own, as large as the page allows (Cat, Nov 15: it was a small sketch under the seam
+ *  check, too small to tape by): how to print and join the pages, and every page's place over the pieces. */
+function addMapPage(doc: PDFDocument, fonts: Fonts, sheet: Sheet, paper: 'a4' | 'letter', used: boolean[][], total: number, [stepX, stepY]: [number, number]) {
+  const { st, write, label, left, width } = flow(doc, paper, fonts);
   label('PAGE LAYOUT');
   write(
     `Print the ${total} pattern pages (page A1 onward) at 100% (actual size) and measure the 10 cm test square on page A1. Trim each page along its dashed line on the left and top, then lay it over the page before it so the half diamonds make whole ones, and tape.${used.flat().some((u) => !u) ? " Pages with nothing on them aren't printed, so there are gaps in the numbers: leave a gap where a page is missing, as on the map below." : ''}`,
@@ -559,9 +571,9 @@ function addSummaryPage(
     0,
     10,
   );
-  // A small map: the pieces' cutting lines with the page grid over them.
-  const k = Math.min(width / sheet.width, 190 / sheet.height);
-  room(sheet.height * k + 10);
+  // The map: the pieces' cutting lines with the page grid over them, filling the rest of the page.
+  st.y -= 6;
+  const k = Math.min(width / sheet.width, (st.y - 2 * CM - 10) / sheet.height);
   const x0 = left;
   const y0 = st.y;
   const at = (q: P) => ({ x: x0 + q.x * k, y: y0 - q.y * k });
@@ -576,7 +588,9 @@ function addSummaryPage(
       if (!on) return;
       const a = at({ x: c * stepX, y: r * stepY });
       st.page.drawRectangle({ x: a.x, y: a.y - ph0 * k, width: pw0 * k, height: ph0 * k, borderColor: rgb(0.6, 0.6, 0.6), borderWidth: 0.4, borderDashArray: [2, 2] });
-      drawText(st.page, pageName(r, c), { x: a.x + 3, y: a.y - 10, size: 7, font: fonts.label, tracking: 0.1, grey: 0.4 });
+      // Page names as large as the boxes allow, so each taped page can be found on the map at a glance.
+      const size = Math.max(7, Math.min(16, ph0 * k * 0.18));
+      drawText(st.page, pageName(r, c), { x: a.x + 4, y: a.y - size - 3, size, font: fonts.label, tracking: 0.1, grey: 0.35 });
     }),
   );
   st.y -= sheet.height * k + 10;
