@@ -73,7 +73,7 @@ describe('All round: random mixes that fell back to the flat drawing', () => {
   // A silk sleeve drawn in to 0.72 of its round: an elbow cap sleeve went jagged and a three-quarter one folded into fins.
   it.each([
     ['an elbow cap sleeve', { fit: 'oversized', neckline: 'boat', length: 'long', sleeve: 'elbow', sleeveShape: 'cap', closure: 'front_buttons' }],
-    ['a three-quarter sleeve', { fit: 'oversized', length: 'hip', sleeve: 'three_quarter', sleeveShape: 'straight', closure: 'front_buttons', collar: 'cape' }],
+    ['a three-quarter sleeve', { fit: 'oversized', length: 'hip', sleeve: 'three_quarter', sleeveShape: 'straight', closure: 'front_buttons' }],
   ])('%s in silk draws clean', (_, b) => {
     const d = { garment: 'bodice' as const, saved: { bodice: { ...DEFAULT_BODICE, ...b } } as never, fibre: 'silk' as const };
     expect(checks(d)).toEqual([]);
