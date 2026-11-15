@@ -922,6 +922,7 @@ export default function App() {
                 setAccount(updatePerson(added, added.active!, { form: f }));
               }}
               theirs={person.id !== ME}
+              theirName={person.id !== ME ? personName(account, person) : undefined}
               form={form}
               onForm={(f) => setAccount(updatePerson(account, person.id, { form: f }))}
               garment={garment}

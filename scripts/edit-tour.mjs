@@ -71,30 +71,6 @@ async function dissolve(a, b2, d) {
   execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', a, '-i', b2, '-filter_complex', `[0:v][1:v]xfade=transition=fade:duration=${d}:offset=${(len - d).toFixed(3)},format=yuv420p[v]`, '-map', '[v]', '-c:v', 'libx264', '-crf', '18', '-preset', 'medium', '-r', String(FPS), out]);
   return out;
 }
-// The tape pulled in along the top (Cat, Nov 15: horizontal, from the top to the side, staying full length; round the
-// waist repeated the waist page): the first page's own tape, cut from the clip once the page is in, slides in from
-// the right over the Measure card and lands exactly on itself as the page dissolves in under it, so the hand-over
-// can't be seen. box: the page's tape in the clip, [left (its metal end), top, right, bottom] in film pixels; at: a
-// time in the clip the page is fully in; stops: [time, left] of the tape as a fraction of the frame, eased from one
-// to the next. The tape's far end is the frame's (or column's) edge, so it never shows while it slides in.
-async function pulledTape(clip, { box, at, stops }) {
-  const [l, t, r, btm] = box;
-  const pic = join(work, `tape${k++}.png`);
-  execFileSync('ffmpeg', ['-v', 'error', '-y', '-ss', String(at), '-i', clip, '-frames:v', '1', '-vf', `crop=${r - l}:${btm - t}:${l}:${t}`, pic]);
-  const len = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', clip]).toString());
-  const out = join(work, `tape${k++}.mp4`);
-  let f = String(stops[stops.length - 1][1]);
-  for (let j = stops.length - 2; j >= 0; j--) {
-    const [t0, t1, a, b2] = [stops[j][0], stops[j + 1][0], stops[j][1], stops[j + 1][1]];
-    const u = `min(1,max(0,(t-${t0})/${t1 - t0}))`;
-    f = `if(lt(t,${t1}),${a}+(${b2 - a})*${u}*${u}*(3-2*${u}),${f})`;
-  }
-  // Seen only up to the tape's own far end (on a computer, the page's column), so it comes in from that edge.
-  execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', clip, '-loop', '1', '-framerate', String(FPS), '-t', String(len), '-i', pic,
-    '-filter_complex', `[0:v]split[b1][b2];[b1][1:v]overlay=x='(${f})*${W}':y=${t}:eval=frame:shortest=1[ov];[ov]crop=${r}:${H}:0:0[cw];[b2][cw]overlay=x=0:y=0,format=yuv420p[v]`,
-    '-map', '[v]', '-c:v', 'libx264', '-crf', '14', '-preset', 'medium', '-r', String(FPS), out]);
-  return out;
-}
 // A black frame round a drawing, so a zoomed-in moment shows the drawing alone, not cut-off words around it.
 // top and bottom (and left and right, if given): where the picture shows, as fractions of the frame; it fades in
 // over the 3% outside them, or over soft at the top (a crisp top reads as the paper's own edge, not a blur).
@@ -494,20 +470,11 @@ const CUTS = {
     // tape's brass tip stays on screen the whole way (Cat, 2026-10-24: the end of the tape must stay the same).
     // On a computer the measuring pages are a column in the middle of the window: drawn in on it (Nov 14).
     const TAPE_VIEW = WIDE ? { zoom: [1.15, 1.15], at: [0.5, 0.53] } : { zoom: [1.08, 1.08], at: [0.49, 0.545] };
-    // A page that sits still drifts in slowly, from a time in the piece on, like a hand-held camera (Fable's review,
-    // Nov 15). The first page drifts only once the film's tape has handed over to the page's own, so the two meet (the
-    // hand-over is TAPE_PULL.at in the card and page together; the page starts about 2 s into that).
-    const drift = ({ zoom = [1, 1], at = [0.5, 0.5] }, dur, from = 0) => ({ cam: [[0, zoom[0], ...at], [from, zoom[0], ...at], [dur, zoom[0] * 1.025, ...at]] });
-    // The waist page is fully up in the take about 7.9 s in, after the dip from the first page.
-    const WAIST_AT = Number(process.env.WAIST_AT ?? 7.9);
-    // The first page is held about 5.8 s in the take, for the tape.
-    const FIRST_DUR = Number(process.env.FIRST_DUR ?? (WIDE ? 4.0 : 4.8)); // trimmed from 6.1: the page held still too long (Fable's review, Nov 15)
-    // The tape's way, in the card and page together (the page is fully in at 2.2 s): in from the side along the top of
-    // the card, held there full length as the page comes in under it (Cat's A, Nov 15).
-    // Where the page's tape sits in the cut, in film pixels (measured on the Nov 15 take): it slides in from the right
-    // and lands there by 1.6 s, as the page starts to come in.
-    const LAND = WIDE ? [599, 60, 1324, 124] : [12, 126, 1080, 238];
-    const TAPE_PULL = { box: LAND, at: 3.2, stops: [[0.5, LAND[2] / W], [1.6, LAND[0] / W]] };
+    // The measuring pages hold still: a drift in made the tape grow, and the tape must stay one size (Cat, Nov 15).
+    // Begin goes straight to the waist page (Fable's concept A, Cat's apply, Nov 15): the take opens in black and the
+    // page comes up out of it about WAIST_AT s in, its tape coming round the waist.
+    const WAIST_AT = Number(process.env.WAIST_AT ?? (WIDE ? 2.6 : 2.35));
+    const WAIST_DUR = Number(process.env.WAIST_DUR ?? 3.8); // held only a beat once wrapped: a still page read as a freeze (Fable, Nov 15)
     // OPENER_FILM=<walkthrough.mp4> keeps a released film's opening shot and Measure card frame for frame (Cat,
     // 2026-10-24: "go back to that other version exactly"): its first 5.6 s, fades and title already in them.
     const released = process.env.OPENER_FILM ? resolve(process.env.OPENER_FILM) : undefined;
@@ -515,12 +482,11 @@ const CUTS = {
       ...(released
         ? [await piece({ shot: 'round', src: released, from: 0, dur: 5.6 })]
         : [...(await INTROS[INTRO]())]),
-      // The Measure card, then the first page as it is live, the film's tape sliding in along the top of the card and
-      // landing on the page's own tape, which takes over (Cat, Nov 15). The title fades out before the page fades in, so
-      // the two never overlap (Fable's review, Nov 15); the page's own heading says what
-      // comes next, so no line over it. Then the waist page, through the take's dip, its tape coming round the waist.
-      ...(released ? [await piece({ shot: 'tape', from: 0.3, dur: FIRST_DUR, ...TAPE_VIEW, fadeIn: f, fadeOut: 0.35 })] : [await pulledTape(await dissolve(await piece({ still: await card('01', 'Measure', 'Just a few, once.'), dur: 2.2, fadeIn: f, fadeOut: 0.5 }), await piece({ shot: 'tape', from: 0.3, dur: FIRST_DUR, ...drift(TAPE_VIEW, FIRST_DUR, TAPE_PULL.at - 2), fadeIn: 0.5, fadeOut: 0.35 }), 0.04), TAPE_PULL)]),
-      await piece({ shot: 'tape', from: WAIST_AT, dur: 3.6, ...drift(WIDE ? {} : TAPE_VIEW, 3.6), fadeIn: 0.35, fadeOut: f }),
+      // The Measure card, then the waist page as it is live, its tape coming round the waist and staying one size
+      // (Cat, Nov 15). The card's words fade out before the page comes in, so the two never overlap (Fable's review).
+      ...(released
+        ? [await piece({ shot: 'tape', from: WAIST_AT, dur: WAIST_DUR, ...(WIDE ? {} : TAPE_VIEW), fadeIn: f, fadeOut: f })]
+        : [await dissolve(await piece({ still: await card('01', 'Measure', 'Just a few, once.'), dur: 2.2, fadeIn: f, fadeOut: 0.5 }), await piece({ shot: 'tape', from: WAIST_AT, dur: WAIST_DUR, ...(WIDE ? {} : TAPE_VIEW), fadeIn: 0.5, fadeOut: f }), 0.04)]),
     ];
     // TOUR_PREVIEW=1 stops after the opening and the tape, to try an opening without cutting the whole film.
     if (process.env.TOUR_PREVIEW) return opening;

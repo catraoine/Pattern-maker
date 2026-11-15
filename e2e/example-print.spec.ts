@@ -11,5 +11,5 @@ test('printing the example body asks before it prints', async ({ page }) => {
   const ask = main.getByRole('alertdialog');
   await expect(ask).toContainText('drafted to an example body');
   await ask.getByRole('button', { name: 'Measure me' }).click();
-  await expect(main.getByRole('heading', { name: /take some measurements/i })).toBeVisible();
+  await expect(main.getByRole('heading', { name: /Your waist/i })).toBeVisible();
 });

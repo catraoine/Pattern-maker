@@ -323,26 +323,20 @@ await start();
 await wait(9500);
 await stop('form');
 
-// tape: the first page as the app shows it (Cat's T1 + F5 + G2, Nov 15: a tape along its top). The film slides its own
-// tape in along the top of the Measure card and lands it on the page's (edit-tour.mjs), so the page is filmed exactly
-// as it is live, held as long as that takes; Begin measuring then carries on down to the waist page.
+// tape: Begin goes straight to the waist page (Fable's concept A, Cat's apply, Nov 15: no first page). The welcome
+// dips to black off camera, Begin is pressed under it, and the take opens as the waist page comes up out of the
+// black, its tape coming round the waist; the tape stays one size from here on.
 {
-  // The welcome is skipped (Cat, 2026-10-23): Begin is pressed off camera.
-  await main.getByRole('button', { name: 'Begin' }).click();
-  await main.getByRole('button', { name: 'Begin measuring', exact: true }).waitFor();
-  await wait(2500);
+  await dip(1, 30);
+  await wait(450);
   await start();
-  await wait(5750);
+  await wait(300);
+  await main.getByRole('button', { name: 'Begin' }).click();
+  await main.getByRole('heading', { name: /Your waist/i }).waitFor();
+  await wait(250);
+  await dip(0, 30);
+  await wait(5500);
 }
-// Womenswear and For me are already chosen, so the film goes straight on: Begin measuring, through a short dip to
-// black, to the waist page, its tape coming round the waist.
-await wait(400);
-await dip(1, 30);
-await wait(420);
-await main.getByRole('button', { name: 'Begin measuring', exact: true }).click();
-await wait(250);
-await dip(0, 30);
-await wait(4500);
 await stop('tape');
 // TOUR_TAPE_ONLY=1 records just the tape shot, to check the measuring pages without the rest.
 if (process.env.TOUR_TAPE_ONLY) {

@@ -4,7 +4,6 @@ import { ContourForm, type FormStart } from '../ui/ContourForm';
 import type { FormKind } from '../measurements';
 import { TOUR_LABEL, TourPlayer } from '../ui/TourPlayer';
 import { Title } from '../ui/Title';
-import { tapeRested } from '../ui/tapeHandoff';
 import { filmTape } from '../ui/filmTape';
 import { WaitlistForm, type FoundingSignIn } from '../ui/Waitlist';
 
@@ -207,7 +206,6 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
   useEffect(() => {
     if (!leaving) return;
     const t = window.setTimeout(() => {
-      if (tape.current) tapeRested(tape.current);
       done.current();
     }, LEAVE_MS);
     return () => window.clearTimeout(t);

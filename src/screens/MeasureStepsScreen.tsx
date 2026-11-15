@@ -1,18 +1,15 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { FIELDS, checkMeasurements, type Check, type FormKind, type Garment, type MeasurementId, type MeasurementValues, type Unit } from '../measurements';
 import { BASE, baseDone, begun, fieldOf, fullSetMissing, GARMENT_NAME, GARMENTS, labelOf, mistakesOf, neededFor, seatedOf, stepsOf, stringOf, tipOf, titleOf } from '../measureFlow';
-import { createPortal } from 'react-dom';
-import { clearTapeRest, introLeft, takeIntroLeft, takeTapeRest } from '../ui/tapeHandoff';
 import { WEIGHT_HARD, WeightEntry, fromKg, weightUnitOf } from '../ui/WeightEntry';
 import { HowClip } from '../ui/HowClip';
-import { CARRY_MS, FormPicture, HEAD_TOP, labelLevel, readCamera, TapeDemo, TAPE_PX } from '../ui/ContourForm';
+import { FormPicture, HEAD_TOP, labelLevel, readCamera, TapeDemo } from '../ui/ContourForm';
 import { canGoBack, goBack, usePageHistory } from '../nav';
 import { estimateOne } from '../estimate';
 import { Title } from '../ui/Title';
 import type { PatternChoices } from '../garments';
 import { keepMenswear, menswearOpen, testingNote } from '../launch';
 import { TestingTag } from '../ui/TestingTag';
-import { FirstNeeds, FirstTape } from '../ui/FirstTape';
 import { ideaChoices, ideaRows, pieceGarment } from '../photo/idea';
 import { isSwimIntimates } from '../photo/swim';
 import { InterestCard } from '../ui/InterestCard';
@@ -45,6 +42,8 @@ interface Props {
   onSomeoneElse?: (name: string, form: FormKind) => void;
   /** The measurements in use are someone else's, so every page is worded for the person holding the tape. */
   theirs?: boolean;
+  /** Their name, for the line over the first measurement. */
+  theirName?: string;
   /** Skip, the quiet link under the button: try the app with example measurements (for the garment being measured). */
   onSkip?: (garment?: Garment) => void;
   /** Finish later: stop measuring, keeping what's in, and pick up at the first one still to take. */
@@ -65,7 +64,6 @@ interface Props {
 export type StepsStart = { kind: 'resume' } | { kind: 'choose' } | { kind: 'form' } | { kind: 'for'; garment: Garment; also?: MeasurementId[]; /** What the design doesn't use, so isn't asked: a vest's arms. */ skip?: MeasurementId[]; /** The garment's name when it isn't the usual one: "vest" for a jacket without sleeves. */ word?: string } | { kind: 'redo'; garment: Garment; ids: MeasurementId[] };
 
 type Page =
-  | { kind: 'intro' }
   | { kind: 'form' }
   | { kind: 'base'; at: number; back?: 'check' }
   | { kind: 'weight'; back?: 'check' }
@@ -101,10 +99,10 @@ const aOrAn = (name: string) => (/(s|wear|lingerie)$/i.test(name) && !/dress$/i.
 // straight to the first extra that garment still needs. "Something else" asks what they have in mind and
 // answers "We can make that", "The closest we can do" or "Not yet" (Cat's pick, 2026-10-18); only "Not yet"
 // offers the full set of measurements, for a dressmaker.
-// The first page asks who you are designing for, since "Someone else" words every page for the person holding the
-// tape and asks their name first (Cat's pick V2, 2026-10-17). A quiet "Measure later" in capitals sits under the
-// button wherever measuring can be skipped.
-export function MeasureStepsScreen({ testerCode, garment: current, unit, values, onUnit, onValues, helped = [], weight, onWeight, onDone, start, onSomeoneElse, theirs, onSkip, onLater, form = 'womenswear', onForm, onIdea, onPhoto, onLooks, onMade, onNews }: Props) {
+// There is no first page (Fable's concept A, Cat's apply, Nov 15): Begin opens on the waist. Who you are designing
+// for, and the form, sit in one quiet line above the first measurement, with Change for the few who need it;
+// "Someone else" words every page for the person holding the tape and asks their name before any number is taken.
+export function MeasureStepsScreen({ testerCode, garment: current, unit, values, onUnit, onValues, helped = [], weight, onWeight, onDone, start, onSomeoneElse, theirs, theirName, onSkip, onLater, form = 'womenswear', onForm, onIdea, onPhoto, onLooks, onMade, onNews }: Props) {
   const aimed = start?.kind === 'for' ? start.garment : undefined;
   // Each page is a history entry, so the header's back and the phone's back go one page back.
   const [page, setPage] = usePageHistory<Page>(() => {
@@ -114,25 +112,29 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     // (tester journey, Nov 11). Every number typed so far is already kept.
     if (start?.kind === 'resume') {
       if (baseDone(values)) return { kind: 'check' };
-      if (begun(values)) return { kind: 'base', at: Math.max(0, BASE.findIndex((m) => values[m] === undefined)) };
-      return { kind: 'intro' };
+      return { kind: 'base', at: Math.max(0, BASE.findIndex((m) => values[m] === undefined)) };
     }
-    // Choosing another garment, or measuring for one, never goes back to the first-visit page once anything is
+    // Choosing another garment, or measuring for one, never goes back to the base measurements once anything is
     // measured: straight to the garments, or to the pages that garment still needs (Cat's A, 2026-10-24).
-    if (!baseDone(values) && !(begun(values) && (start?.kind === 'choose' || aimed))) return { kind: 'intro' };
+    if (!baseDone(values) && !(begun(values) && (start?.kind === 'choose' || aimed))) return { kind: 'base', at: Math.max(0, BASE.findIndex((m) => values[m] === undefined)) };
     if (start?.kind === 'choose') return { kind: 'choose' };
     // `also`: more the design needs beyond the garment's own list (a collection top's sleeves need the arms).
     const also = start?.kind === 'for' ? (start.also ?? []).filter((id) => values[id] === undefined) : [];
     const skip = start?.kind === 'for' ? (start.skip ?? []) : [];
     const ids = aimed ? [...neededFor(aimed, values, form).map((f) => f.id), ...also].filter((id, i, a) => a.indexOf(id) === i && !skip.includes(id)) : [];
     return ids.length ? { kind: 'extra', garment: aimed!, ids, at: 0 } : { kind: 'check' };
-    // A remembered first page is stale once the base measurements are in (back from the collection, Nov 11):
-    // open as if afresh, on the list or the check.
-  }, (s) => typeof s === 'object' && s !== null && 'kind' in s && !((s as Page).kind === 'intro' && baseDone(values)));
+    // A remembered first page (from before Nov 15, when there was one) opens as if afresh. So does a remembered base
+    // page once the base measurements are in (back from the collection, Nov 11): this screen's first entry is the
+    // waist, and coming back to it opens on the list or the check instead. Mending one from the check is kept.
+  }, (s) => typeof s === 'object' && s !== null && 'kind' in s && (s as { kind: string }).kind !== 'intro' && !((s as Page).kind === 'base' && !(s as { back?: string }).back && baseDone(values)));
   // Opened on the check because the measurements were taken on an earlier visit: say so.
   // Not when stepping back into it during this visit: only on opening it afresh.
   const [returning] = useState(() => !start && baseDone(values) && (window.history.state as { sub?: unknown } | null)?.sub === undefined);
   const [helper, setHelper] = useState(!!theirs);
+  const [who, setWho] = useState(false);
+  // The who line shows on a first waist page opened with nothing measured, and stays while the waist is typed (the
+  // values change on every key, Nov 15 code review).
+  const [freshStart] = useState(() => !Object.keys(values).length);
   // Menswear can't be picked this fit round (launch.ts menswearOpen), unless this person already drafts on it.
   const [onMenswear] = useState(() => {
     if (form === 'menswear') keepMenswear();
@@ -203,76 +205,8 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     }
   };
 
-  // The first page (Cat's F1 Form Joins In, 2026-10-18): who you're designing for and the dress form to draft on,
-  // together, then Begin measuring. "Someone else" asks their name here, before any measurement is taken.
-  if (page.kind === 'intro') {
-    const begin = () => {
-      clearTapeRest();
-      const go = () => {
-        // One change for someone else: their name and form together. Two in a row lost the new person (Nov 7).
-        if (helper && onSomeoneElse) onSomeoneElse(name.trim(), chosen);
-        else onForm?.(chosen);
-        setPage({ kind: 'base', at: firstToTake() });
-      };
-      // The page's tape lifts away with the page, and the waist page comes up out of the black, its tape coming in
-      // from the side to wrap the waist.
-      const card = document.querySelector<HTMLElement>('.measure-step');
-      const picture = card?.querySelector<HTMLElement>('.form-picture, .first-tape');
-      if (!card || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return go();
-      introLeft();
-      picture?.animate([{ transform: 'none' }, { transform: 'translateY(-28px)' }], { duration: LIFT_MS, easing: 'ease-in', fill: 'forwards' });
-      card.animate([{ opacity: 1 }, { opacity: 0 }], { duration: LIFT_MS, easing: 'ease-in', fill: 'forwards' }).onfinish = go;
-    };
-    return (
-      // Cat's C Tape Lines (2026-10-30): the body with the bust, waist and hip marked on it, then two switches of two
-      // halves each, the chosen half filled, for the form and for whom; Begin, and Measure later in quiet capitals.
-      // Cat's T1 + F5 + G2 (Nov 15): a tape full width along the top in place of the form, what you need under the
-      // title, then the two switches under their own label in the same style, so the page reads as one set. The How it
-      // works film slides its tape in and lands on this one (scripts/edit-tour.mjs).
-      <Shell title="First, let's take some measurements." first>
-        <FirstTape />
-        <FirstNeeds />
-        <p className="first-label first-who">Who it is for</p>
-        {onForm && (
-          <div className="switch two-part" role="radiogroup" aria-label="Which form to draft on?">
-            {(['womenswear', 'menswear'] as const).map((k) => (
-              <button key={k} type="button" role="radio" aria-checked={chosen === k} disabled={formShut(k)} onClick={() => setChosen(k)}>
-                {k === 'womenswear' ? 'Womenswear' : 'Menswear'}
-                {formShut(k) && <TestingTag tool="menswear" />}
-              </button>
-            ))}
-          </div>
-        )}
-        <div className="switch two-part" role="radiogroup" aria-label="Who are you designing for?">
-          <button type="button" role="radio" aria-checked={!helper} onClick={() => setHelper(false)}>
-            For me
-          </button>
-          <button type="button" role="radio" aria-checked={helper} onClick={() => setHelper(true)}>
-            Someone else
-          </button>
-        </div>
-        {helper && (
-          <div className="field plain ready">
-            <label htmlFor="who-name">Name</label>
-            <input id="who-name" autoComplete="off" autoFocus value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-        )}
-        <div className="first-room" />
-        {/* The page's one filled button: the picked halves above are outlined (Cat's S1, 2026-10-31). */}
-        <button type="button" className="primary main-go" disabled={helper && !name.trim()} onClick={begin}>
-          Begin measuring
-        </button>
-        {onSkip && (
-          <button type="button" className="later" onClick={() => onSkip()}>
-            Try it with an example body
-          </button>
-        )}
-      </Shell>
-    );
-  }
-
-  // Changing the dress form later, from the measurements list (Cat's B2 Two Forms; the first pick is on the
-  // intro page). The menswear form asks for the chest and none of the bust measurements.
+  // Changing the dress form later, from the measurements list (Cat's B2 Two Forms; the first pick is in the line
+  // above the waist). The menswear form asks for the chest and none of the bust measurements.
   if (page.kind === 'form')
     return (
       <Shell title={helper ? 'Their form' : 'Your form'} skip={start?.kind !== 'form' && onSkip ? () => onSkip() : undefined}>
@@ -519,9 +453,77 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     else setPage({ ...page, at: at + 1 });
   };
 
+  // Who it is for, and the form: one quiet line over the first measurement of a fresh start, Change opening the two
+  // switches in a window (Fable's concept A, Nov 15). Set before any number is typed, as the first page did.
+  const fresh = page.kind === 'base' && !page.back && at === 0 && freshStart;
+  const pickWho = () => {
+    // Someone else is added once; after that the window only changes their form.
+    if (helper && !theirs && onSomeoneElse) onSomeoneElse(name.trim(), chosen);
+    else if (chosen !== form) onForm?.(chosen);
+    setWho(false);
+  };
+  // Closed without Done: nothing picked in the window stays, so the pages never word for someone not added.
+  const dropWho = () => {
+    setHelper(!!theirs);
+    setChosen(form);
+    setName('');
+    setWho(false);
+  };
+  const whoLine = fresh && (onForm || onSomeoneElse) && (
+    <p className="eyebrow who-line">
+      <span>
+        {theirs ? `For ${theirName || 'someone else'}` : helper ? `For ${name.trim() || 'someone else'}` : 'For me'} · {form === 'menswear' ? 'Menswear' : 'Womenswear'}
+      </span>
+      <button type="button" className="later go who-change" aria-expanded={who} onClick={() => setWho(true)}>
+        Change
+      </button>
+    </p>
+  );
+  const whoWindow = who && (
+    <div className="how-sheet" role="dialog" aria-modal="true" aria-labelledby="who-title" onClick={dropWho}>
+      <div className="how-panel who-panel" onClick={(e) => e.stopPropagation()}>
+        <p id="who-title" className="eyebrow">
+          Who it is for
+        </p>
+        {onForm && (
+          <div className="switch two-part" role="radiogroup" aria-label="Which form to draft on?">
+            {(['womenswear', 'menswear'] as const).map((k) => (
+              <button key={k} type="button" role="radio" aria-checked={chosen === k} disabled={formShut(k)} onClick={() => setChosen(k)}>
+                {k === 'womenswear' ? 'Womenswear' : 'Menswear'}
+                {formShut(k) && <TestingTag tool="menswear" />}
+              </button>
+            ))}
+          </div>
+        )}
+        {!theirs && (
+          <div className="switch two-part" role="radiogroup" aria-label="Who are you designing for?">
+            <button type="button" role="radio" aria-checked={!helper} onClick={() => setHelper(false)}>
+              For me
+            </button>
+            <button type="button" role="radio" aria-checked={helper} onClick={() => setHelper(true)}>
+              Someone else
+            </button>
+          </div>
+        )}
+        {helper && !theirs && (
+          <div className="field plain ready">
+            <label htmlFor="who-name">Name</label>
+            <input id="who-name" autoComplete="off" autoFocus value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+        )}
+        <button type="button" className="primary" disabled={helper && !theirs && !name.trim()} onClick={pickWho}>
+          Done
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <MeasurePage
       key={`${page.kind}-${id}`}
+      who={whoLine}
+      whoWindow={whoWindow}
+      tapeFirst={fresh}
       id={id}
       eyebrow={eyebrow}
       dots={[ids.length, at]}
@@ -549,6 +551,9 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   );
 }
 
+/** The first tip begins with what to measure with, said once where it's used (the first page's list, Nov 15). */
+const withTape = (tip: string) => `With a soft tape measure, ${tip.charAt(0).toLowerCase()}${tip.slice(1)}`;
+
 /** The measurements that could be right but don't quite agree with the rest, each with how to take it again. Nothing stops here. */
 export function DoubleChecks({ checks }: { checks: Check[] }) {
   if (!checks.length) return null;
@@ -566,10 +571,6 @@ export function DoubleChecks({ checks }: { checks: Check[] }) {
 /** How long a tapped garment stays lit before the next page opens. */
 const TAP_BLINK_MS = 160;
 
-const TAPE_MARKS = Array.from({ length: 100 }, (_, i) => i + 1);
-
-/** How long the first page takes to fade as Begin measuring lifts the tape away. */
-const LIFT_MS = 280;
 export function Shell({
   eyebrow,
   title,
@@ -578,7 +579,7 @@ export function Shell({
   centred,
   skip,
   later,
-  first,
+  top,
   aside,
   labels,
   children,
@@ -593,8 +594,8 @@ export function Shell({
   /** Finish later, in place of Skip once real measurements are in (Cat, 2026-10-20): an example under real
    *  numbers would draft a pattern that fits no one, so later pages only offer to stop and keep them. */
   later?: () => void;
-  /** The first measuring page, laid out on a computer as its own composed group (styles/39-first-form.css). */
-  first?: boolean;
+  /** A quiet line above the eyebrow: who it is for, on the first measurement. */
+  top?: ReactNode;
   /** Which step of how many: the picture's dots went in the aesthetic review (2026-10-21); the eyebrow says it. */
   dots?: [number, number];
   /** A shorter form on top, so a longer list fits above its button. */
@@ -611,7 +612,7 @@ export function Shell({
   // form in the middle, and the question on the right; with no list the form takes the first two.
   return (
     <div className="welcome">
-      <section className={['card welcome-card measure-step', short && 'short', centred && 'centred', hero && 'has-hero', aside && 'has-aside', labels && 'has-labels', first && 'first-page'].filter(Boolean).join(' ')} aria-labelledby="stitle">
+      <section className={['card welcome-card measure-step', short && 'short', centred && 'centred', hero && 'has-hero', aside && 'has-aside', labels && 'has-labels'].filter(Boolean).join(' ')} aria-labelledby="stitle">
         {aside && <aside className="step-list">{aside}</aside>}
         {hero && (
           <div className="welcome-hero">
@@ -622,6 +623,7 @@ export function Shell({
           </div>
         )}
         <div className="step-words">
+          {top}
           {eyebrow && <p className="eyebrow">{eyebrow}</p>}
           <ShellTitle text={title} />
           {children}
@@ -639,58 +641,6 @@ export function Shell({
         </div>
       </section>
     </div>
-  );
-}
-
-/** The first page's tape, carried down from across the top to lie level at the waist, its hook at the body's left
- *  edge, where the form's own tape takes over and wraps it round (Cat, 2026-10-21). The form is at the welcome's
- *  scale here, so the tape is still the welcome's size. */
-function CarriedTape({ from }: { from: { left: number; top: number } }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useLayoutEffect(() => {
-    const tape = ref.current;
-    if (!tape) return;
-    tape.style.left = `${from.left}px`;
-    tape.style.top = `${from.top}px`;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return void (tape.style.display = 'none');
-    // The waist page comes up under the tape as it travels, rather than cutting in (Cat, 2026-10-22).
-    document.querySelector('.measure-step')?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 400, easing: 'ease-out' });
-    // The form's first frame places the waist; then the tape travels to it.
-    let frame = 0;
-    let tries = 0;
-    const land = () => {
-      const cam = readCamera();
-      if (!cam) {
-        if (++tries < 30) frame = requestAnimationFrame(land);
-        else tape.style.opacity = '0';
-        return;
-      }
-      const c = cam.canvas.getBoundingClientRect();
-      // On a computer it stops at the form's own edge, clear of the words beside it.
-      if (!window.matchMedia('(max-width: 640px)').matches) tape.style.width = `${c.right - c.left - cam.x(0.1)}px`;
-      const to = `translate(${c.left + cam.x(0.1) - from.left}px, ${c.top + cam.Y(0.1) - TAPE_PX / 2 - from.top}px)`;
-      // It lands as the form's tape takes over, then gives way to it.
-      tape.animate(
-        [
-          { transform: 'none', opacity: 1 },
-          { transform: to, opacity: 1, offset: 0.8 },
-          { transform: to, opacity: 0 },
-        ],
-        { duration: CARRY_MS + 250, easing: 'cubic-bezier(0.3, 0.1, 0.2, 1)', fill: 'forwards' },
-      );
-    };
-    frame = requestAnimationFrame(land);
-    return () => cancelAnimationFrame(frame);
-  }, [from]);
-  return createPortal(
-    <div ref={ref} className="tape-band landed carried" aria-hidden="true">
-      <div className="tape-marks">
-        {TAPE_MARKS.map((n) => (
-          <span key={n} />
-        ))}
-      </div>
-    </div>,
-    document.body,
   );
 }
 
@@ -812,7 +762,15 @@ export function MeasurePage({
   canEstimate,
   ids,
   listTitle,
+  who,
+  whoWindow,
+  tapeFirst,
 }: {
+  /** Who it is for and the form, a quiet line over the first measurement, and the window Change opens. */
+  who?: ReactNode;
+  whoWindow?: ReactNode;
+  /** The first measurement of a fresh start: its tip begins with what to measure with (the first page's list, Nov 15). */
+  tapeFirst?: boolean;
   id: MeasurementId;
   eyebrow: string;
   dots: [number, number];
@@ -841,14 +799,6 @@ export function MeasurePage({
   listTitle?: string;
 }) {
   const fieldLabel = labelOf(id, form);
-  // Opened by Begin measuring: the tape across the top of the first page comes down to the waist with it.
-  const [carry] = useState(() => (id === BASE[0] ? takeTapeRest() : undefined));
-  // Opened by Begin measuring: the page comes up out of the black as the first page went into it.
-  const [fromIntro] = useState(() => id === BASE[0] && takeIntroLeft());
-  useLayoutEffect(() => {
-    if (fromIntro && !window.matchMedia('(prefers-reduced-motion: reduce)').matches)
-      document.querySelector('.measure-step')?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 420, easing: 'ease-out' });
-  }, [fromIntro]);
   const guess = canEstimate ? estimateOne(id, values, form) : undefined;
   const [estimated, setEstimated] = useState(false);
   const [text, setText] = useState<string | null>(null);
@@ -905,17 +855,17 @@ export function MeasurePage({
       dots={dots}
       skip={skip}
       later={later}
+      top={who}
       hero={
         <>
-          <TapeDemo id={id} kind={form} carried={!!carry} />
-          {carry && <CarriedTape from={carry} />}
+          <TapeDemo id={id} kind={form} />
         </>
       }
       aside={ids && <StepList title={listTitle ?? 'Your measurements'} ids={ids} at={dots[1]} values={values} unit={unit} form={form} />}
       labels={ids && ids.length <= 8 && ids.every((i) => labelLevel(i, form) !== undefined) && <FormLabels ids={ids} at={dots[1]} values={values} unit={unit} form={form} />}
     >
       <p className="muted step-tip">
-        {tipOf(id, helper, form)}
+        {tapeFirst ? withTape(tipOf(id, helper, form)) : tipOf(id, helper, form)}
         {/* On the tip's own line, so the page still fits a phone without scrolling. */}
         {stringOf(id, helper, form) && <span className="string-tip"> {stringOf(id, helper, form)}</span>}
       </p>
@@ -1076,6 +1026,7 @@ export function MeasurePage({
           </div>
         </div>
       )}
+      {whoWindow}
     </Shell>
   );
 }

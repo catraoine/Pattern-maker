@@ -3,7 +3,7 @@ import { MEASUREMENTS, expect, skipLoading, test } from './fixtures';
 
 // Measuring for another garment once some measurements are in (Cat's A, 2026-10-24): "Make something else" goes
 // straight to the garments, and the next one asks only what it still needs, a missing bust included, on its own
-// pages. Never back to "First, let's take some measurements", and never again for a number already taken.
+// pages. Never back to the start of measuring (the waist with who it is for), and never again for a number already taken.
 
 const account = {
   onboarded: true,
@@ -52,7 +52,9 @@ test('make something else goes to the garments and asks only what is missing', a
 
   await main.getByRole('button', { name: 'Make something else' }).click();
   await expect(main.getByRole('heading', { level: 1, name: 'What would you like to make?' })).toBeVisible();
-  await expect(main.getByText("let's take some measurements")).toHaveCount(0);
+  // Never back to the start of measuring: since Nov 15 that is the waist with the who line over it.
+  await expect(main.locator('.who-line')).toHaveCount(0);
+  await expect(main.getByRole('heading', { level: 1, name: 'Your waist' })).toHaveCount(0);
   // The garment being made is already lit; a tap on another goes straight to what it still needs.
   await expect(main.getByRole('button', { name: /^Top/ })).toHaveAttribute('aria-current', 'true');
   await main.getByRole('button', { name: /^Skirt/ }).click();
@@ -85,5 +87,7 @@ test('a garment missing an opening measurement asks it on its own pages, then st
   expect(asked).not.toContain('Full hip');
   expect(asked).not.toContain('Height');
   await expect(main.getByRole('heading', { level: 1, name: 'Style your top' })).toBeVisible();
-  await expect(main.getByText("let's take some measurements")).toHaveCount(0);
+  // Never back to the start of measuring: since Nov 15 that is the waist with the who line over it.
+  await expect(main.locator('.who-line')).toHaveCount(0);
+  await expect(main.getByRole('heading', { level: 1, name: 'Your waist' })).toHaveCount(0);
 });

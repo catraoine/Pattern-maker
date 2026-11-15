@@ -33,6 +33,6 @@ test('skip: the example body is tagged until you measure', async ({ page }) => {
   const tag = main.getByRole('button', { name: /Drafted to an example body/ });
   await expect(tag).toBeVisible();
   await tag.click();
-  await expect(main.getByRole('heading', { name: /take some measurements/i })).toBeVisible();
+  await expect(main.getByRole('heading', { name: /Your waist/i })).toBeVisible();
   await expect(main.getByRole('button', { name: /Drafted to an example body/ })).toHaveCount(0);
 });

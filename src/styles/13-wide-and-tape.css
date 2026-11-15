@@ -835,7 +835,7 @@ button.later.garment-change {
 @media (min-width: 1100px) {
   .measure-step.has-labels .step-list,
   .measure-step.has-labels .dots,
-  .measure-step.has-labels .step-words > .eyebrow {
+  .measure-step.has-labels .step-words > .eyebrow:not(.who-line) {
     display: none;
   }
   .measure-step.has-labels.has-aside .welcome-hero {

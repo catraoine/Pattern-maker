@@ -50,18 +50,29 @@ test('fresh visitor: welcome, measure, style every garment, print the A4 PDF', a
 
   // Begin, then the base measurements one page at a time.
   await main.getByRole('button', { name: 'Begin' }).click();
-  await expect(main.getByRole('heading', { name: /take some measurements/i })).toBeVisible();
+  await expect(main.getByRole('heading', { name: /Your waist/i })).toBeVisible();
 
-  // Who you're designing for, and the form, come first: someone else asks their name before any measurement;
-  // this visitor measures herself.
-  await main.getByRole('radio', { name: 'Someone else' }).click();
-  const who = main.getByRole('textbox', { name: 'Name' });
+  // Who you're designing for, and the form, sit in one quiet line over the waist; Change opens them. Someone else
+  // asks their name before any measurement; this visitor measures herself.
+  await main.locator('.who-line').getByRole('button', { name: 'Change' }).click();
+  const win = page.getByRole('dialog', { name: 'Who it is for' });
+  await win.getByRole('radio', { name: 'Someone else' }).click();
+  const who = win.getByRole('textbox', { name: 'Name' });
   await expect(who).toBeVisible();
   await expect(who).not.toHaveAttribute('placeholder');
-  await expect(main.getByRole('button', { name: 'Begin measuring' })).toBeDisabled();
-  await main.getByRole('radio', { name: 'For me' }).click();
+  await expect(win.getByRole('button', { name: 'Done' })).toBeDisabled();
+  await win.getByRole('radio', { name: 'For me' }).click();
   await expect(who).toHaveCount(0);
-  await expect(main.getByRole('button', { name: 'Begin measuring' })).toBeEnabled();
+  await win.getByRole('button', { name: 'Done' }).click();
+  await expect(win).toHaveCount(0);
+  // Closed by a tap outside, nothing picked in it stays: the pages are still worded for her.
+  await main.locator('.who-line').getByRole('button', { name: 'Change' }).click();
+  await win.getByRole('radio', { name: 'Someone else' }).click();
+  await win.getByRole('textbox', { name: 'Name' }).fill('Ana');
+  await page.mouse.click(5, 5);
+  await expect(win).toHaveCount(0);
+  await expect(main.locator('.who-line')).toContainText('For me');
+  await expect(main.getByRole('heading', { name: /Your waist/i })).toBeVisible();
 
   await measureMe(page);
   await fillStepPages(page);

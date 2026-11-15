@@ -125,11 +125,21 @@ export async function skipToExample(page: Page) {
 
 /** "Me" on the first measuring page, with the form to draft on beside it (Cat's F1 Form Joins In): womenswear unless given. */
 export async function measureMe(page: Page, form: 'Womenswear' | 'Menswear' = 'Womenswear') {
-  await main(page).getByRole('radio', { name: 'For me' }).click();
-  const pick = main(page).getByRole('radiogroup', { name: 'Which form to draft on?' }).getByRole('radio', { name: new RegExp(`^${form}`) });
-  await pick.click();
-  await expect(pick).toHaveAttribute('aria-checked', 'true');
-  await main(page).getByRole('button', { name: 'Begin measuring', exact: true }).click();
+  // Begin goes straight to the waist (Cat, Nov 15); the quiet line over it says who and which form, and Change
+  // opens the window that switches them.
+  const line = main(page).locator('.who-line');
+  await expect(line).toContainText('For me');
+  // Case matters: "Womenswear" holds "menswear" but not "Menswear".
+  if (!((await line.textContent()) ?? '').includes(form)) {
+    await line.getByRole('button', { name: 'Change' }).click();
+    const win = page.getByRole('dialog', { name: 'Who it is for' });
+    const pick = win.getByRole('radiogroup', { name: 'Which form to draft on?' }).getByRole('radio', { name: new RegExp(`^${form}`) });
+    await pick.click();
+    await expect(pick).toHaveAttribute('aria-checked', 'true');
+    await win.getByRole('button', { name: 'Done', exact: true }).click();
+    await expect(win).toHaveCount(0);
+  }
+  await expect(line).toContainText(form);
 }
 
 /** The one-measurement-per-page flow: fill each page until the button that ends it. */

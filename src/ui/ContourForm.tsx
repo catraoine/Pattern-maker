@@ -239,7 +239,7 @@ const lineFor = (S: number) => Math.max(0.7, S / 252) * 1.2;
 let pageOneScale: number | undefined;
 /** The welcome's tape is this many pixels wide against the form at the welcome's scale, and the first page's strip
  *  the same; it never grows (Cat, 2026-10-21). 26px from Cat's C (2026-10-27: 18px read as a hairline ruler). */
-export const TAPE_PX = 26;
+const TAPE_PX = 26;
 /** The welcome's own framing: a close crop of the torso, the neck running off the top and no head in view
  *  (Cat went back to this from the full figure, 2026-10-20). */
 function welcomeLayout(w: number, h: number) {
@@ -897,8 +897,6 @@ let lastTurn = 0;
 const played = new Set<MeasurementId>();
 const ZOOM = 1000;
 const PLAY = 2600;
-/** How long the tape carried down from the first page takes to land level across the waist. */
-export const CARRY_MS = 900;
 /** How far into a girth's play its tape lies level across the body, ready to wrap. */
 const WRAP_FROM = 0.55;
 
@@ -987,8 +985,8 @@ function paintTape(g: CanvasRenderingContext2D, w: number, h: number, from: Cam,
   }
   if (!t || p <= 0) return;
 
-  // The tape keeps the welcome's width against the body, so it grows and shrinks with the zoom.
-  const tw = Math.max(4, (TAPE_PX * S) / (pageOneScale ?? pageOne(w, h)));
+  // The tape is one size everywhere, close in on the waist or pulled back for the height (Fable's concept A, Cat, Nov 15).
+  const tw = TAPE_PX;
   const edge = w + tw;
   const k = inOut(seg(p, 0, WRAP_FROM));
   const m = inOut(seg(p, WRAP_FROM, 0.85));
@@ -1107,7 +1105,7 @@ function allTapes(g: CanvasRenderingContext2D, w: number, h: number, kind?: Form
 
 /** One measurement's how-to: the figure with the tape played once to where it goes. Change `replay` to play it
  *  again from the start. */
-export function TapeDemo({ id, mode = 'play', kind, replay = 0, carried = false }: { id: MeasurementId; name?: string; mode?: DemoMode; kind?: FormKind; replay?: number; carried?: boolean }) {
+export function TapeDemo({ id, mode = 'play', kind, replay = 0 }: { id: MeasurementId; name?: string; mode?: DemoMode; kind?: FormKind; replay?: number }) {
   const run = useRef<{ start: number; from: Cam; to: Cam; turn: [number, number]; zoom: number; hold: number; play: number } | null>(null);
   const ref = useCanvas(
     (g, w, h, now) => {
@@ -1126,7 +1124,7 @@ export function TapeDemo({ id, mode = 'play', kind, replay = 0, carried = false 
         const turnTo = t && isBack(t) ? Math.PI : 0;
         const same = Math.abs(from.y - to.y) < 1e-3 && from.view?.[0] === to.view?.[0] && from.view?.[1] === to.view?.[1] && lastTurn === turnTo;
         // Carried down from the page before, the tape arrives already level across the body and only wraps.
-        run.current = { start: now, from, to, turn: [lastTurn, turnTo], zoom: same ? 0 : fast ? ZOOM / 2 : ZOOM, hold: carried ? CARRY_MS : 0, play: fast ? PLAY / 2 : PLAY };
+        run.current = { start: now, from, to, turn: [lastTurn, turnTo], zoom: same ? 0 : fast ? ZOOM / 2 : ZOOM, hold: 0, play: fast ? PLAY / 2 : PLAY };
         lastCam = to;
         lastTurn = turnTo;
       }

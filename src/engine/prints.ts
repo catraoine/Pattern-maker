@@ -47,7 +47,9 @@ export function printTileCm(kind: PrintKind, repeat: number | undefined, stripes
   // The check and stripe swatches show three repeats across.
   if (kind === 'checks') return r! * 3;
   if (kind === 'border') return 30;
-  return kind === 'ditsy' ? 12 : 20;
+  // A one-way print (the python) at 12 cm, not 20: drawn larger, its diamonds broke into square steps as All round
+  // turned (Fable's film review; Cat chose the finer print, Nov 15).
+  return kind === 'ditsy' || kind === 'oneway' ? 12 : 20;
 }
 
 /** The print recorded for a fabric: fabrics saved before the picker only had the checks switch. */

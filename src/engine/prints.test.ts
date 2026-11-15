@@ -11,6 +11,8 @@ describe('prints', () => {
     expect(printTileCm('checks', undefined, true)).toBe(STRIPES_REPEAT * 3);
     expect(printTileCm('checks', 4, true)).toBe(12);
     expect(printTileCm('checks', undefined)).toBe(30);
+    // The python is drawn fine enough that All round shows no steps in it (Nov 15).
+    expect(printTileCm('oneway', undefined)).toBe(12);
   });
 
   it('reads checks saved before the picker as a checks print', () => {
