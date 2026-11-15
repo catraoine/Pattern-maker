@@ -169,6 +169,8 @@ export function material(mode: Mode, map?: THREE.Texture, scale = 1, opacity = 1
       mat.envMapIntensity = 0;
       break;
   }
+  // How far from edge on (the cosine of the angle to the eye) a surface turning away from the eye is shaded.
+  const graze = Math.max(0.01, knobs().__graze ?? 0.6);
   mat.uniforms = { hideAbove: { value: -1e9 }, hideBelow: { value: 1e9 }, shadeY: { value: 0 }, shadeDepth: { value: 0 } };
   mat.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, mat.uniforms);
@@ -193,9 +195,18 @@ export function material(mode: Mode, map?: THREE.Texture, scale = 1, opacity = 1
       // as the outside, the inside of a black vest's back showed through its armholes and above its collar as pale
       // patches (Cat, Nov 12). The face a cloth's thickness in (thickened) faces in, so it is marked as the far side too.
       .replace('#include <normal_fragment_begin>', '#include <normal_fragment_begin>\nbool farSide = !gl_FrontFacing || vInner > 0.5;\nif (farSide) diffuseColor.rgb *= 0.45;')
-      .replace('#include <opaque_fragment>', 'if (farSide) outgoingLight = min(outgoingLight, diffuseColor.rgb + totalEmissiveRadiance);\n#include <opaque_fragment>');
+      // A surface turning edge on to the eye takes no shine and sinks toward its own colour in shadow, as cloth does where it
+      // turns away: lit in full, the side of a sleeve, where it turns in toward the body, caught the lamps' light at a
+      // slant and showed down the front armhole as a pale sliver with no print in it (the How it works film's silk
+      // dress, Nov 15). (From the smoothed normals: the faces' own showed the mesh's grain on a plain cloth.)
+      .replace(
+        '#include <opaque_fragment>',
+        `if (farSide) outgoingLight = min(outgoingLight, diffuseColor.rgb + totalEmissiveRadiance);
+else { float edgeOn = 1.0 - smoothstep(0.0, ${graze.toFixed(2)}, abs(dot(normal, normalize(vViewPosition)))); outgoingLight = mix(outgoingLight, min(outgoingLight, diffuseColor.rgb * 0.35 + totalEmissiveRadiance), edgeOn); }
+#include <opaque_fragment>`,
+      );
   };
-  mat.customProgramCacheKey = () => `round-${mode}${physical ? '-physical' : ''}`;
+  mat.customProgramCacheKey = () => `round-${mode}${physical ? '-physical' : ''}-${graze}`;
   return mat;
 }
 
