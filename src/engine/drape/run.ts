@@ -290,6 +290,13 @@ function sewDrape(job: DrapeJob, sleevedHoldZ?: number, tierFoldCap?: number): D
       quality.ok = false;
     }
   }
+  // A cape doesn't yet settle as cloth: it crumples into shards over the shoulders and down the back, and on some
+  // dresses the drawing's check still passed it, so the crumpled cape showed (Nov 15). Shown as its drawing until it has
+  // cloth of its own.
+  if (d.panels.some((p) => !p.hidden && p.pc.meta.cape) && !knob('__capeShown')) {
+    quality.problems.unshift({ check: 'broken', part: 'Cape', worst: 1 });
+    quality.ok = false;
+  }
   return {
     panels: [...d.panels.map((p) => ({
       role: p.role,
