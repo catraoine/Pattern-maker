@@ -31,6 +31,7 @@ import { CollarOnFront, collarOnFront } from './collarEnd';
 import { cropHold } from './cropHold';
 import { flutterPlace } from './flutter';
 import { closeBalloonHem } from './balloonHem';
+import { droopShoulders } from './vestShoulder';
 import { layTurnbackCuff } from './turnbackCuff';
 import { capeForDrape } from './cape';
 import { heavyChainK } from './heavyHold';
@@ -6815,6 +6816,8 @@ export function drapeOuter(sp: Space, d: OuterDraft, o: DrapeOptions = {}): Drap
     // breaking near the waist, is left to hang (pressing drags its long front down).
     { pad: d.pads, stiff: !!o.crisp || !!o.stiffBend, boxCut: d.base.waistDarts.front + d.base.waistDarts.back < 0.5, stiffMax: d.hood ? HOOD_BEND : stiffBendNow(), lieLapel: !!d.lapel && base.front.waistCentre.y - d.lapel.breakPt.y > 10, layExtension: true, ...o, buttons: { y: d.buttons.at, r: d.buttons.sizeCm / 2, waistY: base.front.waistCentre.y, ...(d.buttons.columns.length > 1 ? { x: d.buttons.columns } : {}), ...(d.buttons.show ? { show: { y: d.buttons.show.y, x: d.buttons.show.columns } } : {}) }, ...(o.crisp ? { boxy: false, bendK: d.hood ? HOOD_BEND : stiffBendNow(), thick: Math.min(o.thick ?? STIFF_THICK, STIFF_THICK) } : o.stiffBend ? { bendK: Math.min(d.hood ? HOOD_BEND : stiffBendNow(), o.stiffBend), thick: Math.min(o.thick ?? STIFF_THICK, STIFF_THICK) } : {}), pinFront: knob("__pinAll") ? [{ y: 52, span: 12 }] : knob('__oldPins') || d.hood ? d.buttons.at.map((y) => ({ y, span: 2 })) : frontPins(d.buttons.at, shell) },
   );
+  // (A sleeveless jacket's shoulder past the form's falls over the arm: vestShoulder.ts.)
+  if (!shell.some((pc) => /sleeve/i.test(pc.name)) && !knob('__noVestDroop')) droopShoulders(out, sp);
   if (cs)
     for (const pnl of out.panels) {
       const Y = seamAt(pnl.pc);
