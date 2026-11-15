@@ -356,18 +356,20 @@ export default function App() {
    *  "Fabric should go back to calico for new garment"). A look that brings its own fabric sets it after this. */
   const plainCloth = (g: Garment): Partial<Saved> => (g !== garment && saved.finish?.fabric ? { finish: { ...saved.finish, fabric: undefined } } : {});
   /** Measure later: try the app with the example measurements, under any already taken, and open Style. */
-  const tryWithExample = (g?: Garment) => {
+  const tryWithExample = (g?: Garment, to: 'style' | 'export' = 'style') => {
     const example = (Object.keys(EXAMPLE_BODY) as MeasurementId[]).filter((id) => measured[id] === undefined);
     setAccount(updatePerson({ ...account, onboarded: true, mode }, person.id, { values: { ...EXAMPLE_BODY, ...values }, example }));
     if (g && g !== garment) setSaved({ ...saved, ...plainCloth(g), garment: g });
-    setStep('style');
+    setStep(to);
   };
   // Review link (Cat, Nov 6: previews should open on the spot to review): ?go=style opens Style on the dress with the
   // example body, as Measure later would, so a preview link lands on the screen that changed. Pair it with ?fresh.
+  // ?go=print does the same and opens Print my pattern instead.
   useEffect(() => {
-    if (gated || new URLSearchParams(window.location.search).get('go') !== 'style') return;
+    const go = new URLSearchParams(window.location.search).get('go');
+    if (gated || (go !== 'style' && go !== 'print')) return;
     window.history.replaceState(window.history.state, '', window.location.pathname + window.location.hash);
-    tryWithExample('dress');
+    tryWithExample('dress', go === 'print' ? 'export' : 'style');
   // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once on arrival; the link decides, not later state
   }, [gated]);
   const setMode = (m: Mode) => setAccount({ ...account, mode: m });
