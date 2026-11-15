@@ -344,9 +344,12 @@ await stop('form');
       while (rt > 0 && !lit(rt, y)) rt--;
       if (rt - l > 4 && (!best || rt - l < best.w)) best = { y, l, w: rt - l };
     }
+    // Nothing lit: the form isn't drawn (yet), so there is no waist to put the tape on.
+    if (!best) return null;
     const k = r.width / c.width;
     return { box: { x: r.x, y: r.y, w: r.width, h: r.height }, y: r.y + best.y * k, l: r.x + best.l * k, r: r.x + (best.l + best.w) * k };
   });
+  if (!waist) throw new Error('tape: the first page\'s form is not drawn, so its waist could not be found');
   console.log('  waist', JSON.stringify(waist));
   // The tape, inside a window the form's size, so it comes in from the form's own edge and never over the words.
   await p.evaluate((w) => {
