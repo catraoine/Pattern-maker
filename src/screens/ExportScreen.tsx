@@ -359,7 +359,12 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
             </fieldset>
             <div className="stack">
               <button type="button" className="primary" onClick={checked(download_)} disabled={!ready}>
-                {ready ? `Download PDF (${pages} ${pages === 1 ? 'page' : 'pages'})` : pdfFailed ? 'PDF not made' : 'Making your PDF…'}
+                {ready
+                  ? // On A0 the count is of the big sheets, not every page in the file (Cat, Nov 14), so it says so.
+                    `Download PDF (${pages} ${paper === 'a0' ? (pages === 1 ? 'A0 sheet' : 'A0 sheets') : pages === 1 ? 'page' : 'pages'})`
+                  : pdfFailed
+                    ? 'PDF not made'
+                    : 'Making your PDF…'}
               </button>
               {pdfFailed && (
                 <p className="msg error" role="alert">

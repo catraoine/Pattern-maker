@@ -116,3 +116,11 @@
     color: var(--gild);
   }
 }
+
+/* Send the PDF, once Email me the PDF is open, is filled like Download, so the two main buttons match (Cat, Nov 14). */
+.print-controls .email-pdf button.primary:not(:disabled) {
+  background: var(--gild);
+  color: var(--paper);
+  border-color: var(--gild);
+  font-weight: 600;
+}

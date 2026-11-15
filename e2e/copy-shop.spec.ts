@@ -8,6 +8,7 @@ test('Print at a copy shop switches to A0 and says what to ask for', async ({ pa
   await expect(main.getByRole('button', { name: /^Download PDF \(\d+ pages?\)$/ })).toBeEnabled({ timeout: 45_000 });
   await main.getByRole('button', { name: 'Print at a copy shop' }).click();
   await expect(main.getByRole('group', { name: 'Paper' })).toContainText('A0 copy shop');
+  await expect(main.getByRole('button', { name: /^Download PDF \(\d+ A0 sheets?\)$/ })).toBeEnabled({ timeout: 45_000 });
   const shop = main.getByRole('group', { name: 'Print at a copy shop' });
   await expect(shop).toContainText(/A0 paper .*printed at 100% \(actual size\), pages? 2( to \d+)? of the PDF\./, { timeout: 45_000 });
   await expect(shop.getByRole('link', { name: 'Find a copy shop near me' })).toHaveAttribute('href', /google\.com\/maps\/search/);
