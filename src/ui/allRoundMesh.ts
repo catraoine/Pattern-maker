@@ -624,6 +624,39 @@ function buildDraped(
   const SLEEVE_LIFT = ((globalThis as unknown as { __drapeKnobs?: Record<string, number> }).__drapeKnobs ?? {}).__slvLift ?? 0.8;
   const inSleeve = new Uint8Array(d.pos.length / 3);
   for (const p of d.panels) if (p.role === 'sleeve') for (let i = 0; i < p.uv.length / 2; i++) inSleeve[p.base + i] = 1;
+  // (And the dress or top round the armhole raised with it, easing back over a few cm: the sleeve alone raised left a
+  // step at the seam, and from the front the sleeve's inside showed down the front armhole as a dark slit, the How it
+  // works film's dress under "Seams meet.", Nov 15.)
+  const armLift = new Float32Array(d.pos.length / 3);
+  const ARM_EASE = knobs().__armEase ?? 4;
+  if (SLEEVE_LIFT && ARM_EASE) {
+    const sleeveAt: number[] = [];
+    // (Only the sleeve's edge points: the dress near the armhole is nearest its cap edge, and measuring to every point of
+    // the sleeve cost a long coat's build tens of millions of steps.)
+    for (const p of d.panels) {
+      if (p.role !== 'sleeve' || p.hidden) continue;
+      const cnt = new Map<string, number>();
+      for (const [a, b, c] of p.tris) for (const [u, v] of [[a, b], [b, c], [c, a]]) {
+        const k = u < v ? `${u},${v}` : `${v},${u}`;
+        cnt.set(k, (cnt.get(k) ?? 0) + 1);
+      }
+      const edge = new Set<number>();
+      for (const [k, c] of cnt) if (c === 1) for (const v of k.split(',')) edge.add(p.base + Number(v));
+      sleeveAt.push(...edge);
+    }
+    const dist = (a: number, b: number) => Math.hypot(d.pos[a * 3] - d.pos[b * 3], d.pos[a * 3 + 1] - d.pos[b * 3 + 1], d.pos[a * 3 + 2] - d.pos[b * 3 + 2]);
+    for (const p of d.panels) {
+      if (p.role === 'sleeve' || p.hidden || !sleeveAt.length) continue;
+      for (let i = 0; i < p.uv.length / 2; i++) {
+        const g = p.base + i;
+        let m = Infinity;
+        for (const s of sleeveAt) m = Math.min(m, dist(g, s));
+        if (m >= ARM_EASE) continue;
+        const e = m / ARM_EASE;
+        armLift[g] = SLEEVE_LIFT * (1 - e * e * (3 - 2 * e));
+      }
+    }
+  }
   // (A tailored collar's fall a cm further out still: laid close on the sim's body, it went in under the drawn form's
   // fuller neck and shoulders, so from the side only its stand showed, a wall with a ragged top, Cat Nov 8.)
   const FALL_LIFT = knobs().__fallLift ?? 1;
@@ -632,7 +665,7 @@ function buildDraped(
     const pos = e < 0 && d.posMirror ? d.posMirror : d.pos;
     const x = pos[i * 3];
     const z = pos[i * 3 + 2];
-    const k = 1 + (LIFT + more + (inSleeve[i] === 1 ? SLEEVE_LIFT : inSleeve[i] === 3 ? FALL_LIFT : 0)) / (Math.sqrt(x * x + z * z) || 1);
+    const k = 1 + (LIFT + more + (inSleeve[i] === 1 ? SLEEVE_LIFT : inSleeve[i] === 3 ? FALL_LIFT : armLift[i])) / (Math.sqrt(x * x + z * z) || 1);
     return toForm(x * k * e, pos[i * 3 + 1], z * k, d.hang?.[i] || undefined);
   };
   // (A piece cut whole, a one-shoulder's front, holds both its halves: drawn once, not mirrored.)
