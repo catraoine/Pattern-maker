@@ -25,12 +25,17 @@ export function FirstNeeds() {
       </p>
       <ol>
         <li>A soft tape measure</li>
-        {/* The asides close up on a short screen (39-first-form.css), so the three fit on fewer lines. */}
+        {/* The asides close up on a short screen (39-first-form.css), so the three fit on fewer lines. Each row's words sit
+            in one span, because the row is a flex box and its gap would otherwise open a space before the comma. */}
         <li>
-          A piece of string<span className="first-aside">, if you have one</span>
+          <span>
+            A piece of string<span className="first-aside">, if you have one</span>
+          </span>
         </li>
         <li>
-          Someone to help<span className="first-aside">, if you can</span>
+          <span>
+            Someone to help<span className="first-aside">, if you can</span>
+          </span>
         </li>
       </ol>
     </section>

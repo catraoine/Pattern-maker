@@ -853,8 +853,8 @@ await wait(3500);
 await stop('print');
 // On a phone the film fills the screen with the sheet and drifts across it (Cat picked P2, 2026-10-25); the screencast
 // is too soft to blow up, so the sheet is also taken as one sharp picture, drawn seven times over, without its Watch
-// demo button (a film inside the film).
-if (!WIDE) {
+// demo button (a film inside the film). A computer's film drifts down the same sheet (Fable's review, Nov 15).
+if (await main.locator('.preview.tiles').count()) {
   await main.locator('.preview.tiles').evaluate((el) => el.querySelectorAll('button').forEach((b) => (b.style.visibility = 'hidden')));
   const box = await main.locator('.preview.tiles').boundingBox();
   const y = await p.evaluate(() => scrollY);

@@ -2,7 +2,7 @@
 // own type and the lofi track (scripts/tour-music.m4a) under it. Needs the app running (npx vite --port 5173) for
 // the fonts, and ffmpeg. Usage: node scripts/edit-tour.mjs <shots dir> [out.mp4] [--wide]
 // --wide cuts the computer's film from the shots record-tour-shots.mjs --wide records (Cat, 2026-10-22).
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -209,7 +209,10 @@ const MARKS = existsSync(join(SHOTS, 'marks.json')) ? JSON.parse(readFileSync(jo
   : { calico: 1.6, questions: 11.5, cloth: 12.5, enlarge: 15.4, draw: 15.4, hem: 17.9, side: 23.4, done: 23.4 };
 // Played at 1.4 times its speed, however long the take (Cat, 2026-11-01: less time on the dress page, no enlarge).
 // Ends as Done is tapped, on the drawing: Shop the fabric follows, not the pattern sheet (Cat, 2026-11-02).
-const JOURNEY = { from: 0.6, to: MARKS.done - 0.2, dur: Math.round(((MARKS.done + 0.3) / 1.4) * 10) / 10 };
+// On a phone the take opens on the Fit step, already answered, which only flashed past before Cut (Fable's review,
+// Nov 15), so the phone's journey starts on Cut.
+const JOURNEY_FROM = WIDE ? 0.6 : Number(process.env.JOURNEY_FROM ?? 2.1);
+const JOURNEY = { from: JOURNEY_FROM, to: MARKS.done - 0.2, dur: Math.round(((MARKS.done + 0.9 - JOURNEY_FROM) / 1.4) * 10) / 10 };
 const atOut = (t) => ((t - JOURNEY.from) * JOURNEY.dur) / (JOURNEY.to - JOURNEY.from);
 // [shot time, zoom, x, y]: on a computer, the whole page, then in on the enlarged form to draw, and back as the
 // pattern comes up. A phone shows the whole screen throughout. Both end framed as the pattern shot opens, so the
@@ -226,14 +229,26 @@ const STYLE_CAM = (WIDE
 // The calico build (Cat, 2026-11-08): "One question at a time." as the questions are answered, then "Then the cloth."
 // as the python drops in. Each [line, from, to, where] in shot time.
 // On a phone the take goes to black after the last question, sometimes with its dip's fade lost in the cut: the
-// film eases into the black itself (DIP_AT: shot time the take is black, release X take 11.57 s).
-const DIP_AT = WIDE ? 0 : Number(process.env.DIP_AT ?? 11.57);
+// film eases into the black itself (DIP_AT: shot time the take is black). Found in the take itself, the first black
+// after the questions begin: a fixed time went stale with a new take and made a second blink (Fable's review, Nov 15).
+function firstBlack(after) {
+  const run = spawnSync('ffmpeg', ['-v', 'info', '-i', join(SHOTS, 'style.mp4'), '-vf', 'blackdetect=d=0.05:pix_th=0.08', '-an', '-f', 'null', '-'], { encoding: 'utf8' });
+  if (run.error) throw run.error;
+  const log = run.stderr ?? '';
+  const starts = [...log.matchAll(/black_start:([\d.]+)/g)].map((m) => Number(m[1])).filter((t) => t > after);
+  return starts.length ? starts[0] + 0.05 : 0;
+}
+const DIP_AT = WIDE ? 0 : Number(process.env.DIP_AT ?? firstBlack(MARKS.calico + 1));
+// And the dip into the drawing, where the lines' band ends, so the header doesn't show as it fades.
+const DRAW_DIP = WIDE ? 0 : firstBlack(DIP_AT ? DIP_AT + 0.5 : MARKS.cloth) || MARKS.draw + 0.5;
 // On a computer there is no dip between them, so one dark band lies under both lines the whole way (an entry with no
 // words) and the lines themselves hand over: the app's own header never shows through between.
 const STYLE_NOTES = WIDE
   ? [['', MARKS.calico + 0.4, MARKS.enlarge - 0.4, 'low', true], ['One question at a time.', MARKS.calico + 0.4, MARKS.cloth + 0.3, 'low', false], ['Then the cloth.', MARKS.cloth + 0.3, MARKS.enlarge - 0.4, 'low', false]]
-  : [['One question at a time.', MARKS.calico + 0.4, MARKS.questions - 0.1, 'low'], ['Then the cloth.', MARKS.cloth + 0.3, MARKS.enlarge - 0.4, 'low']];
-const DRAW_NOTES = [[['Draw on your form.'], MARKS.draw + 0.9, MARKS.done - 1.6], [['Draw on your form.', 'The pattern follows.'], MARKS.hem + 2.5, MARKS.done - 1.6]];
+  // On a phone too, one dark band lies under both lines the whole way and the lines hand over at the take's dip, so
+  // the app's own header never shows through between them (Fable's review, Nov 15).
+  : [['', JOURNEY.from, DRAW_DIP + 0.6, 'low', true], ['One question at a time.', JOURNEY.from, DIP_AT ? DIP_AT - 0.3 : MARKS.questions - 0.1, 'low', false], ['Then the cloth.', DIP_AT ? DIP_AT + 0.1 : MARKS.cloth + 0.3, DRAW_DIP - 0.2, 'low', false]];
+const DRAW_NOTES = [[['Draw on your form.'], MARKS.draw + 0.9, MARKS.done - 1.6], [['Draw on your form.', 'The pattern follows.'], MARKS.hem + 0.8, MARKS.done - 1.2]];
 const note2 = (lines) => words(WIDE
   ? `<div class="f" style="padding:44px 0 0 96px"><h1 class="n" style="font-size:34px">${lines.join('<br>')}</h1></div>`
   : `<div class="f" style="padding:38px 0 0 22px"><h1 class="n" style="font-size:29px">${lines.join('<br>')}</h1></div>`);
@@ -282,19 +297,25 @@ const PAGES = { shot: 'print', from: 5.2, speed: 0.75, ...(WIDE ? { from: 0, spe
 // Cat picked P2 (2026-10-25): on a phone the sheet fills the height of the screen, and the camera drifts slowly from
 // the left pieces to the right ones, eased at each end. Drawn from the sharp picture of the sheet the recorder takes.
 const SHEET = join(SHOTS, 'print-sheet.png');
+// On a computer the sheet is wider than tall against a wide frame, so it fills the width and drifts from its top
+// pieces down to its foot instead (Fable's review, Nov 15: a still shot of the whole Print page read as clutter).
 function sheetPan(dur) {
   const out = join(work, 'sheet-pan.mp4');
+  const u = `(0.5-0.5*cos(PI*min(1,t/${dur})))`;
   const th = Math.round(H * 0.92 / 2) * 2;
   const m = Math.round(W * 0.04);
-  const u = `(0.5-0.5*cos(PI*min(1,t/${dur})))`;
+  const tw = Math.round(W * 0.84 / 2) * 2;
+  const [fit, x, y] = WIDE
+    ? [`scale=${tw}:-2:flags=lanczos`, String((W - tw) / 2), `if(gt(overlay_h+${2 * m},${H}),${m}-(overlay_h+${2 * m}-${H})*${u},(${H}-overlay_h)/2)`]
+    : [`scale=-2:${th}:flags=lanczos`, `${m}-(overlay_w+${2 * m}-${W})*${u}`, String((H - th) / 2)];
   execFileSync('ffmpeg', ['-v', 'error', '-y', '-f', 'lavfi', '-i', `color=black:s=${W}x${H}:d=${dur + 0.5}:r=${FPS}`, '-loop', '1', '-framerate', String(FPS), '-t', String(dur + 0.5), '-i', SHEET,
-    '-filter_complex', `[1:v]erosion,scale=-2:${th}:flags=lanczos[s];[0:v][s]overlay=x='${m}-(overlay_w+${2 * m}-${W})*${u}':y=${(H - th) / 2}:shortest=1,format=yuv420p[v]`,
+    '-filter_complex', `[1:v]erosion,${fit}[s];[0:v][s]overlay=x='${x}':y='${y}':shortest=1,format=yuv420p[v]`,
     '-map', '[v]', '-c:v', 'libx264', '-crf', '14', '-preset', 'medium', out]);
   return out;
 }
 // The sheet is shown in the app's own chalk, not lifted to white, and its lines thickened so they read at film size
 // (Cat, Nov 15: a little darker, like the All round's chalk, and clearer lines).
-const pages = (dur, fades) => (!WIDE && existsSync(SHEET) ? piece({ src: sheetPan(dur), dur, ...fades }) : piece({ ...PAGES, dur, ...fades }));
+const pages = (dur, fades) => (existsSync(SHEET) ? piece({ src: sheetPan(dur), dur, ...fades }) : piece({ ...PAGES, dur, ...fades }));
 // Cat's B Three Checks (2026-10-22): what All round is for, a line at a time over the turning form. On a phone under
 // the hem; on a computer to the left of the form. All round is filmed on black (Cat, Nov 15), so the words are the
 // film's own gold. Each line is its own picture, all laid out together so they stack in place.
@@ -340,11 +361,12 @@ const REVIEW = WIDE || process.env.REVIEW !== '1' ? undefined : { from: 0.4, dur
 // 2026-10-29: skip the second scroll down the print page; less blank space). On a phone it sits low and large, its
 // foot level with the pattern sheet's (Cat, 2026-10-30: it was cut off under the words).
 // On a computer the piece is projected at the right of the screen: drawn in on it, the dart in view (Nov 14).
-const PROJECTOR = WIDE ? { from: 8.6, dur: 4.2, zoom: [1.6, 1.64], at: [0.8, 0.36] } : { from: Number(process.env.PJ_FROM ?? 10.6), dur: 4, zoom: [1.5, 1.53], at: [0.5, 0.3], drop: 0.07 };
+const PROJECTOR = WIDE ? { from: 8.6, dur: 4.2, zoom: [1.6, 1.64], at: [0.8, 0.36] } : { from: Number(process.env.PJ_FROM ?? 11.1), dur: 4, zoom: [1.5, 1.53], at: [0.5, 0.3], drop: 0.07 };
 // Phone: drawn in a little less and set lower, so the piece sits whole under its two lines of words (Cat, 2026-11-06:
 // cut off by the words at the top).
 // The photo is in about 0.9 s into the take; the reading is up by about 2.9 s.
-const PHOTO_FROM = Number(process.env.PHOTO_FROM ?? 0.9);
+// From the moment the photo is up: the Snap page before it flashed past unread (Fable's review, Nov 15).
+const PHOTO_FROM = Number(process.env.PHOTO_FROM ?? 1.45);
 async function photoMoment(line = 'Start from a photo.') {
   // The app's own Start from a photo screen (Cat, Nov 14: all literal matches): the photo goes in, the app scans it
   // and says what it sees. Recorded by record-tour-shots.mjs (photo.mp4).
@@ -416,7 +438,7 @@ const CUTS = {
     // The waist page is fully up in the take about 7.9 s in, after the dip from the first page.
     const WAIST_AT = Number(process.env.WAIST_AT ?? 7.9);
     // The first page is held about 5.8 s in the take, for the tape.
-    const FIRST_DUR = Number(process.env.FIRST_DUR ?? 6.1);
+    const FIRST_DUR = Number(process.env.FIRST_DUR ?? 4.8); // trimmed from 6.1: the page held still too long (Fable's review, Nov 15)
     // The tape's way, in the card and page together (the page is fully in at 2.2 s): in from the side along the top of
     // the card, held there full length as the page comes in under it (Cat's A, Nov 15).
     // Where the page's tape sits in the cut, in film pixels (measured on the Nov 15 take): it slides in from the right
@@ -433,7 +455,7 @@ const CUTS = {
       // The Measure card dissolving into the first page as it is live, the film's tape sliding in along the top of the
       // card and landing on the page's own tape, which takes over (Cat, Nov 15); the page's own heading says what
       // comes next, so no line over it. Then the waist page, through the take's dip, its tape coming round the waist.
-      ...(released ? [await piece({ shot: 'tape', from: 0.3, dur: FIRST_DUR, ...TAPE_VIEW, fadeIn: f, fadeOut: 0.35 })] : [await pulledTape(await dissolve(await piece({ still: await card('01', 'Measure', 'Just a few, once.'), dur: 2.2, fadeIn: f }), await piece({ shot: 'tape', from: 0.3, dur: FIRST_DUR, ...TAPE_VIEW, fadeOut: 0.35 }), 0.6), TAPE_PULL)]),
+      ...(released ? [await piece({ shot: 'tape', from: 0.3, dur: FIRST_DUR, ...TAPE_VIEW, fadeIn: f, fadeOut: 0.35 })] : [await pulledTape(await dissolve(await piece({ still: await card('01', 'Measure', 'Just a few, once.'), dur: 2.2, fadeIn: f, fadeOut: 0.6 }), await piece({ shot: 'tape', from: 0.3, dur: FIRST_DUR, ...TAPE_VIEW, fadeOut: 0.35 }), 0.6), TAPE_PULL)]),
       await piece({ shot: 'tape', from: WAIST_AT, dur: 3.6, ...(WIDE ? {} : TAPE_VIEW), fadeIn: 0.35, fadeOut: f }),
     ];
     // TOUR_PREVIEW=1 stops after the opening and the tape, to try an opening without cutting the whole film.
@@ -466,7 +488,7 @@ const CUTS = {
       await pages(4.4, { fadeIn: f, fadeOut: f }),
       await piece({ shot: 'projector', ...PROJECTOR, fadeIn: f, fadeOut: f, notes: [[await note(WIDE ? 'Or project it, true size.' : 'Or project it,<br>true size.', 'low'), 0.3, PROJECTOR.dur - 0.3]] }),
       await piece({ still: await card('', 'Drafted<br>to your body'), dur: 4.5, fadeIn: 0.8, fadeOut: 1.2 }),
-      await piece({ still: await endCard(), dur: 3, fadeIn: 0.8, fadeOut: 0.8 }),
+      await piece({ still: await endCard(), dur: 4, fadeIn: 0.8, fadeOut: 0.8 }), // a second longer, so the ending lands (Fable's review, Nov 15)
     ];
   },
 };
