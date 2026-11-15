@@ -1013,9 +1013,11 @@ export function createRoundView(): RoundView | undefined {
   fill.position.set(0.8, 0.3, 0.45);
   const rim = new THREE.DirectionalLight(0xffffff, 1.6);
   rim.position.set(0.3, -0.3, -1);
-  // Sky above (y down: the sky is at -y), a dimmer warm ground below.
+  // Sky above, a dimmer warm ground below. The cloth's normals point in toward the body, so its sky is set at +y (the
+  // ground, as y runs down): set at -y it lit every upward face, the top of a shoulder, from the ground, and the far
+  // shoulder showed a dark band by the neck.
   const sky = new THREE.HemisphereLight(0xe4ecff, 0x5a4a3a, 0.8);
-  sky.position.set(0.35, -1, 0.3);
+  sky.position.set(-0.35, 1, -0.3);
   scene.add(key, fill, rim, sky);
   const lamps = [key, fill, rim, sky];
   const flat = new THREE.AmbientLight(0xffffff, 4.5);
