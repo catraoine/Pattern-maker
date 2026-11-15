@@ -11,6 +11,7 @@ import { KNITS, KNIT_IDS, isKnit } from '../engine/knitFabrics';
 import { CLOSENESS, ShopFabric, buyAmount, buyLink, closestShopColours, colourHex, coloursFor, hexToHsl, hslToHex, isHex, shopFabric, shopFabricsFor, shopListsOn, shopPrice, withShopFabric } from '../engine/shopFabrics';
 import { catalogueVersion, loadCatalogue, matchesSearch, rememberPicked, subscribeCatalogue } from '../engine/shopCatalogue';
 import { FabricMetres } from './FabricCard';
+import { FabricHeadsUp } from './FabricHeadsUp';
 import { ExactColour } from './ExactColour';
 import { TestingTag } from './TestingTag';
 import { FabricLook, FabricLookContext } from './ClothLook';
@@ -359,6 +360,7 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
           <span className="muted">See it in your fabric</span>
         )}
       </p>
+      <FabricHeadsUp fabric={fabric} />
       <div className="swatches" role="radiogroup" aria-label="Fabric for the sketch">
         <button
           type="button"
