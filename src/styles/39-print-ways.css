@@ -8,6 +8,16 @@
   font-weight: 600;
 }
 
+/* The pattern and its instructions are two downloads (Cat, Nov 15). Both take the column's full width, so "Download
+   pattern (17 pages)" stays on one line on a phone instead of wrapping its count; a little less side padding gives it
+   room up to a hundred-odd pages. */
+.print-controls .stack > button.primary,
+.print-controls .stack > button.secondary {
+  width: 100%;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
 .print-controls .other-ways-label {
   margin: 16px 0 -4px;
   color: var(--muted);

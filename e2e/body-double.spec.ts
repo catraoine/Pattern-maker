@@ -24,7 +24,7 @@ test('body double: pad map, cover pattern and form check', async ({ page }, info
   await main.getByRole('button', { name: 'Get the cover pattern' }).click();
   await expect(main.getByRole('figure', { name: 'Pattern envelope: Form cover' })).toBeVisible();
   await expect(main.getByText(/· 4 pieces/)).toBeVisible();
-  const pdf = main.getByRole('button', { name: /^Download PDF \(\d+ pages?\)$/ });
+  const pdf = main.getByRole('button', { name: /^Download pattern \(\d+ pages?\)$/ });
   await expect(pdf).toBeEnabled({ timeout: 45_000 });
   const { bytes } = await download(page, pdf, info);
   expect(bytes.subarray(0, 5).toString('latin1')).toBe('%PDF-');

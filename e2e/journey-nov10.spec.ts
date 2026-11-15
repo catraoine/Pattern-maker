@@ -38,7 +38,7 @@ test('a reload keeps your place, and back still climbs from there', async ({ pag
 test('a printed pattern is kept in Saved patterns', async ({ page }) => {
   await startWithExample(page);
   await goPrint(page);
-  const download = main(page).getByRole('button', { name: /^Download PDF/ });
+  const download = main(page).getByRole('button', { name: /^Download pattern/ });
   await expect(download).toBeEnabled({ timeout: 45_000 });
   const waiting = page.waitForEvent('download');
   await download.click();
@@ -80,24 +80,27 @@ test('Back to the original style puts the choices back, after asking', async ({ 
   expect(fit).toBe('regular');
 });
 
-test('Email me the PDF sends the PDF the app made, and says where it went', async ({ page }) => {
-  let sent: { to: string; pdf: string; fileName: string } | undefined;
+test('Email me the files sends the pattern and its instructions the app made, and says where they went', async ({ page }) => {
+  let sent: { to: string; pdf: string; fileName: string; booklet?: string; bookletName?: string } | undefined;
   await page.route('**/.netlify/functions/email-pdf', async (route) => {
     sent = route.request().postDataJSON();
     await route.fulfill({ json: { ok: true } });
   });
   await startWithExample(page);
   await goPrint(page);
-  const email = main(page).getByRole('button', { name: 'Email me the PDF' });
+  const email = main(page).getByRole('button', { name: 'Email me the files' });
   await expect(email).toBeEnabled({ timeout: 45_000 });
   await email.click();
   await main(page).locator('form.email-pdf').getByLabel('Your email').fill('sewist@example.com');
-  await main(page).getByRole('button', { name: 'Send the PDF' }).click();
+  await main(page).getByRole('button', { name: 'Send', exact: true }).click();
   await main(page).getByRole('button', { name: 'Print the example anyway' }).click();
   await expect(main(page).getByRole('status').filter({ hasText: 'Sent to sewist@example.com' })).toBeVisible();
   expect(sent?.to).toBe('sewist@example.com');
   expect(sent?.pdf.startsWith('JVBER')).toBe(true);
   expect(sent?.fileName).toMatch(/\.pdf$/);
+  // The instructions booklet goes with it as its own file (Cat, Nov 15).
+  expect(sent?.booklet?.startsWith('JVBER')).toBe(true);
+  expect(sent?.bookletName).toMatch(/-instructions\.pdf$/);
 });
 
 test('the print screen says blank pages are left out', async ({ page }) => {

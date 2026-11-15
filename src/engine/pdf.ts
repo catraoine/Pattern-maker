@@ -242,6 +242,9 @@ interface PdfExtras {
   unit?: Unit;
   guide?: SewingGuide;
   summary?: Summary;
+  /** Which file (Cat, Nov 15: the pattern is what you print, the instructions are a booklet of their own): `pattern` is
+   *  only the pages that tape together, `booklet` is the cover, summary, layouts and steps. Left out, one file holds all. */
+  part?: 'pattern' | 'booklet';
 }
 
 interface HandPiece {
@@ -305,7 +308,9 @@ export async function toTiledPdf(sheet: Sheet, paper: Paper, extras?: PdfExtras)
   inchMode = extras?.unit === 'in';
   const doc = await PDFDocument.create();
   const fonts = await embedFonts(doc);
-  doc.setTitle(extras ? `Maison Tracé: ${extras.title}` : 'Maison Tracé pattern');
+  doc.setTitle(extras ? `Maison Tracé: ${extras.title}${extras.part === 'booklet' ? ' (instructions)' : ''}` : 'Maison Tracé pattern');
+  const tiles = extras?.part !== 'booklet';
+  const book = extras?.part !== 'pattern';
   const grey = rgb(0.6, 0.6, 0.6);
   // The top and left pages of a join are trimmed halfway across the overlap.
   const trim = OVERLAP / 2;
@@ -314,7 +319,7 @@ export async function toTiledPdf(sheet: Sheet, paper: Paper, extras?: PdfExtras)
   const has = (r: number, c: number) => !!used[r]?.[c];
   const total = used.flat().filter(Boolean).length;
   let number = 0;
-  for (let r = 0; r < rows; r++) {
+  for (let r = 0; r < (tiles ? rows : 0); r++) {
     for (let c = 0; c < cols; c++) {
       if (!has(r, c)) continue;
       number++;
@@ -360,6 +365,7 @@ export async function toTiledPdf(sheet: Sheet, paper: Paper, extras?: PdfExtras)
       });
     }
   }
+  if (!book) return doc.save();
   if (extras?.summary) addSummaryPage(doc, fonts, sheet, paper === 'a0' ? 'a4' : paper, used, total, extras.title, extras.summary, [stepX, stepY]);
   if (extras?.summary?.lays?.length) addLayPages(doc, fonts, paper === 'a0' ? 'a4' : paper, extras.summary.lays);
   if (extras?.summary?.byHand?.length) addHandPages(doc, fonts, paper === 'a0' ? 'a4' : paper, extras.title, extras.summary.byHand);

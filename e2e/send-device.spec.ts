@@ -30,7 +30,7 @@ test('send to another device: a link from one browser brings measurements and pa
   if (SHOTS) await there.screenshot({ path: `${SHOTS}/arrive-${info.project.name}.png` });
   await arrived.getByRole('button', { name: 'Bring it here' }).click();
   await arrived.getByRole('button', { name: 'Carry on' }).click();
-  await expect(arrived.getByRole('button', { name: /^Download PDF/ })).toBeVisible();
+  await expect(arrived.getByRole('button', { name: /^Download pattern/ })).toBeVisible();
   // The hash is gone, so a reload doesn't offer it again.
   expect(new URL(there.url()).hash).toBe('');
   await other.close();
