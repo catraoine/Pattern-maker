@@ -5425,12 +5425,20 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
       // (The seam into the armhole stays where it is sewn: on a short puff the underarm is well down the sleeve, and
       // stood out with the crown it pulled 3 cm off the bodice's armhole, All round quality 2026-11-07.)
       const seam = knob('__puffSeam') === 0 ? [] : (p.mesh.runs.armhole ?? []).flat().map((i) => p.mesh.pts[i]);
+      // (The crown's gathers lie over the top of the arm, between the notches: underneath, where the sleeve's seam meets
+      // the bodice's side, it is cut plain, so it stands out less there, and eases out further from the seam (16 cm
+      // over the top, more underneath). Stood out as far all round from 12 cm, it pulled the underarm to 2.7 times its
+      // cut and puff-sleeved dresses in cotton, wool and linen fell back to the drawing: the How it works film's dress,
+      // Nov 15. 19 of 20 puffs pass now, 14 before.)
+      const half = Math.max(...p.mesh.pts.map((q) => Math.abs(q.x))) || 1;
+      const under = knob('__puffUnder') ?? 0.3;
       p.mesh.pts.forEach((q, i) => {
         const t = (q.y - y0) / H;
         let dc = Infinity;
         for (const c of seam) dc = Math.min(dc, Math.hypot(c.x - q.x, c.y - q.y));
-        const ts = seam.length ? Math.min(1, dc / (knob('__puffRamp') ?? 12)) : 1;
-        const off = P * Math.sin(Math.PI * Math.min(1, t * 1.05)) * ts * ts * (3 - 2 * ts);
+        const s = Math.min(1, Math.max(0, (Math.abs(q.x) / half - 0.55) / 0.45));
+        const ts = seam.length ? Math.min(1, dc / ((knob('__puffRamp') ?? 16) * (1 + (knob('__puffRampUnder') ?? 0.5) * s))) : 1;
+        const off = P * Math.sin(Math.PI * Math.min(1, t * 1.05)) * ts * ts * (3 - 2 * ts) * (1 - (1 - under) * s * s * (3 - 2 * s));
         const I = (p.base + i) * 3;
         const e = res[I] >= 0 ? 1 : -1;
         const r = [res[I] * e - arm.a[0], res[I + 1] - arm.a[1], res[I + 2] - arm.a[2]];
