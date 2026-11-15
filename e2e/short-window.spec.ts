@@ -28,9 +28,9 @@ test('the first measuring page survives a window with no room for the form', asy
   await expect(form).toBeVisible();
 });
 
-// In the app the first page shows the 3D form on chalk (Cat's F1, Nov 14): it too gives way to a window with no room
+// In the app the first page shows the welcome's line form (Cat's W1, Nov 14): it too gives way to a window with no room
 // and comes back.
-test('the 3D form on the first measuring page gives way to a window with no room and comes back', async ({ page }) => {
+test('the form on the first measuring page gives way to a window with no room and comes back', async ({ page }) => {
   await openFresh(page);
   const main = page.getByRole('main');
   await main.getByRole('button', { name: 'Begin' }).click();

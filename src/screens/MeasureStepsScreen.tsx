@@ -229,8 +229,8 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     return (
       // Cat's C Tape Lines (2026-10-30): the body with the bust, waist and hip marked on it, then two switches of two
       // halves each, the chosen half filled, for the form and for whom; Begin, and Measure later in quiet capitals.
-      // Cat's F1 Sculpted Form (Nov 14): the 3D form from the How to do it clips on a chalk panel, the string tied at
-      // its waist; the tape round the neck is the film's alone now (filmTape).
+      // Cat's W1 (Nov 14): the welcome's own line form, so the body is the same from the welcome on; the tape round the
+      // neck is the film's alone now (filmTape).
       <Shell title="First, let's take some measurements." tape={film} first>
         {onForm && (film ? <FormPicture kind={chosen} tapes neckTape={tapeHanded ? NECK_AT - 220 : 'rest'} /> : <FirstForm kind={chosen} />)}
         {onForm && (
