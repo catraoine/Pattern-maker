@@ -180,11 +180,20 @@ const OVERSIZED_OPTIONS: Record<string, readonly string[]> = { fit: ['oversized'
 export const oversizedInTesting = (group: string, id: string) => !!OVERSIZED_OPTIONS[group]?.includes(id);
 
 /** Menswear stays on the form choice but can't be picked while this fit round tests womenswear only (Cat, Nov 14),
- *  with the "In testing" tag. Someone who already drafts on it keeps it. The menswear checks open it with this switch. */
+ *  with the "In testing" tag. The menswear checks open it with this switch, and keepMenswear opens it for good on a
+ *  browser that already drafts on it, so switching to womenswear and back never locks anyone out. */
+const MENSWEAR_KEY = 'maison-trace-menswear';
 export function menswearOpen() {
   try {
-    return localStorage.getItem('maison-trace-menswear') === 'on';
+    return localStorage.getItem(MENSWEAR_KEY) === 'on';
   } catch {
     return false;
+  }
+}
+export function keepMenswear() {
+  try {
+    localStorage.setItem(MENSWEAR_KEY, 'on');
+  } catch {
+    // Storage blocked: the form choice still keeps menswear for this visit (MeasureStepsScreen's onMenswear).
   }
 }
