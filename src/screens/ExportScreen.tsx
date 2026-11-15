@@ -2,6 +2,7 @@ import { DropMenu } from '../ui/DropMenu';
 import { TesterReport } from '../ui/TesterReport';
 import { useTablet, useWide } from '../ui/StyleLayout';
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
+import { CopyShopWay } from '../ui/CopyShopWay';
 import { SendToDevice } from '../ui/SendToDevice';
 import { OVERLAP, PAGE_MARGIN, Paper, Sheet, layout, pageCount, pageName, pageSize, tileGrid, toSvg, usedTiles } from '../engine/export';
 import { checkPattern } from '../engine/qc';
@@ -380,6 +381,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
                   Open PDF to print
                 </button>
                 {!imported && <EmailPdf ready={ready} fileName={fileName} title={title} onSent={left} checked={checked} />}
+                <CopyShopWay a0={paper === 'a0'} onA0={() => setPaper('a0')} sheets={pages} firstPage={paper === 'a0' && pdf?.paper === 'a0' ? (pdf.total > pages ? 2 : 1) : undefined} unit={unit} />
                 {sendLink && onPhone() && (
                   <SendToDevice link={sendLink} className="way" />
                 )}
@@ -431,7 +433,8 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
               <p>
                 {projector
                   ? 'One page at true size, for a projector app such as Pattern Projector. Line your projector up with the 10 cm test square.'
-                  : 'Ask the copy shop to print at 100% (actual size). Measure the 10 cm test square before you cut.'}
+                  : // What to ask the copy shop for is in Print at a copy shop, open above whenever the paper is A0.
+                    'Measure the 10 cm test square before you cut.'}
               </p>
             ) : (
               // Each step opens in bold, like How styling works (copy review, Nov 14), so the one that matters is found at a glance.
