@@ -107,8 +107,15 @@ export function rehydrate<T>(v: T): T {
  *  Front drawing as before. No hold suited every design: each moved some passes to fails. */
 export function runDrape(job: DrapeJob): DrapedLite {
   const first = sewDrape(job);
+  if (first.quality?.ok !== false || knob('__noSecondTry')) return first;
+  // A tiered skirt in a soft light cloth (a polyester) can crumple into a fin in its bottom tier when its gathers start
+  // 3 cm deep: started at 2, it sews clean (2 of 189 tiered skirts fell back to the drawing, Cat's sweep Nov 13).
+  if (first.quality.problems?.some((q) => q.check === 'fin' && /^Tier /.test(q.part))) {
+    const tiers = sewDrape(job, undefined, 2);
+    if (tiers.quality?.ok) return tiers;
+  }
   const sleeved = (job.kind === 'bodice' || job.kind === 'dress') && !!job.sleeve?.pieces?.length;
-  if (first.quality?.ok !== false || !sleeved || knob('__noSecondTry')) return first;
+  if (!sleeved) return first;
   const second = sewDrape(job, SECOND_HOLD);
   return second.quality?.ok ? second : first;
 }
@@ -116,7 +123,7 @@ export function runDrape(job: DrapeJob): DrapedLite {
 /** Where the second try holds a sleeved shoulder seam, cm in front of the side. */
 const SECOND_HOLD = -1;
 
-function sewDrape(job: DrapeJob, sleevedHoldZ?: number): DrapedLite {
+function sewDrape(job: DrapeJob, sleevedHoldZ?: number, tierFoldCap?: number): DrapedLite {
   const sp = makeSpace(placeOnForm({ armhole: job.armhole }, job.m), job.m, { widen: widensForm(job) });
   // (Every garment now follows its cloth. A jacket or coat is cut in a firm cloth whatever the swatch: its own cloth
   // moves that firmness 0.9 to 1.6 times (the square root of 0.81 to 2.56), and it lies at most 0.6 cm off the body.
@@ -126,7 +133,7 @@ function sewDrape(job: DrapeJob, sleevedHoldZ?: number): DrapedLite {
   // round the hip that fairDroppedSeam takes out, Fabric behaviour on release M.)
   const dropped = job.kind === 'dress' && (job.draft.seamDrop ?? 0) > 1;
   const outer = job.kind === 'outer';
-  const t: DrapeOptions = { bendK: c.bendK, thick: outer ? Math.min(c.thick, 0.6) : c.thick, ...(c.crisp ? { crisp: c.crisp } : {}), ...(c.fall !== 1 ? { fall: c.fall } : {}), ...(c.skirtBend !== 1 ? { skirtBend: outer ? Math.min(2.56, Math.max(0.81, c.skirtBend)) : c.skirtBend } : {}), ...(c.stretch ? { stretch: c.stretch } : {}), ...(c.bias && !dropped ? { bias: c.bias } : {}), ...(sleevedHoldZ !== undefined ? { sleevedHoldZ } : {}) };
+  const t: DrapeOptions = { bendK: c.bendK, thick: outer ? Math.min(c.thick, 0.6) : c.thick, ...(c.crisp ? { crisp: c.crisp } : {}), ...(c.fall !== 1 ? { fall: c.fall } : {}), ...(c.skirtBend !== 1 ? { skirtBend: outer ? Math.min(2.56, Math.max(0.81, c.skirtBend)) : c.skirtBend } : {}), ...(c.stretch ? { stretch: c.stretch } : {}), ...(c.bias && !dropped ? { bias: c.bias } : {}), ...(sleevedHoldZ !== undefined ? { sleevedHoldZ } : {}), ...(tierFoldCap ? { tierFoldCap } : {}) };
   let d: Draped;
   switch (job.kind) {
     case 'outer':

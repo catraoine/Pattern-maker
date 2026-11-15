@@ -254,6 +254,8 @@ export interface DrapeOptions {
   /** A sleeved top's or dress's shoulder seam held this far in front of the side (cm), in place of 0.5: run.ts's second
    *  try when the first sewing fails the quality check. */
   sleevedHoldZ?: number;
+  /** How deep a tier's gathers start, at most, in cm (3; a second try starts them at 2: see runDrape). */
+  tierFoldCap?: number;
   /** A shirt worn open above a button: the roll line (break at the front edge, to just inside the neck point) the
    *  fronts above it turn back along, as a soft lapel. */
   rollFront?: [P, P];
@@ -1064,7 +1066,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
                 const spare = w / Math.max(1, Q);
                 // (Deep enough that the tier's whole width starts in its folds, up to 3 cm: started shallower, the rest was
                 // squeezed flat and crumpled into sharp creases on the finer mesh tight gathers need, Cat Nov 12: "Tight gathers".)
-                const Af = knob('__tierSqrtFold') ? Math.min(3, (2 * Math.sqrt(Math.max(0, spare - 1))) / k) : foldDepth(spare, Q / folds, knob('__tierAcap') ?? 3);
+                const Af = knob('__tierSqrtFold') ? Math.min(3, (2 * Math.sqrt(Math.max(0, spare - 1))) / k) : foldDepth(spare, Q / folds, knob('__tierAcap') ?? o.tierFoldCap ?? 3);
                 return ringAt(sp, u * Q, c, isBack, off + Af * (1 + Math.sin(TAU * folds * u)));
               };
           // (On a finer mesh than plain cloth, 1.2 cm, so tight gathers can form: at 1.6 cm they could only be wide waves.)
