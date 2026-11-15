@@ -55,41 +55,57 @@ const SIDE_BY_SIDE = '(min-width: 960px) and (min-aspect-ratio: 1/1)';
 
 const standalone = typeof window !== 'undefined' && !!window.matchMedia?.('(display-mode: standalone)').matches;
 
-/** "Started in Safari?": a quiet link that opens a box for the Send to another device link. */
-function BringFromSafari({ onBring }: { onBring: (link: string) => Promise<boolean> }) {
+/** "Started in your browser?": on the app added to the home screen only, which keeps its own copy of everything, apart
+ *  from the browser's (an iPhone does this whatever the browser), so work begun in the browser isn't there. A quiet link
+ *  opens the steps to move it across in a sheet over the page: opened in place, it squashed the form to half its size
+ *  and named only Safari in one long sentence (Cat, Nov 15). */
+function BringFromBrowser({ onBring }: { onBring: (link: string) => Promise<boolean> }) {
   const [open, setOpen] = useState(false);
   const [link, setLink] = useState('');
   const [wrong, setWrong] = useState(false);
-  if (!open)
-    return (
+  return (
+    <>
       <p className="resume-more">
         <button type="button" className="link quiet" onClick={() => setOpen(true)}>
-          Started in Safari? Bring your work here
+          Started in your browser? Bring your work here
         </button>
       </p>
-    );
-  return (
-    <form
-      className="stack bring-safari"
-      onSubmit={async (e) => {
-        e.preventDefault();
-        setWrong(!(await onBring(link)));
-      }}
-    >
-      <p className="small">In Safari, open Your account, then Your data, tap Send to another device and choose Copy. Paste the link here.</p>
-      <label className="field">
-        <span>Link from Safari</span>
-        <input type="url" value={link} onChange={(e) => setLink(e.target.value)} autoComplete="off" />
-      </label>
-      {wrong && (
-        <p className="msg small" role="status">
-          That isn't a Send to another device link. Copy it again from Safari.
-        </p>
+      {open && (
+        <div className="form-leave bring-sheet" role="dialog" aria-modal="true" aria-labelledby="bring-title">
+          <form
+            className="form-leave-box"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setWrong(!(await onBring(link)));
+            }}
+          >
+            <h2 id="bring-title">Bring your work here</h2>
+            <p>The app on your home screen keeps its own copy of your work. To move what you started in your browser:</p>
+            <ol className="bring-steps">
+              <li>Open Maison Tracé in your browser.</li>
+              <li>Tap the person icon at the top, then Your data.</li>
+              <li>Tap Send to another device, then Copy.</li>
+              <li>Come back here and paste the link below.</li>
+            </ol>
+            <label className="field">
+              <span>Link you copied</span>
+              <input type="text" inputMode="url" value={link} onChange={(e) => setLink(e.target.value)} autoComplete="off" />
+            </label>
+            {wrong && (
+              <p className="msg small" role="status">
+                That isn't a Send to another device link. Copy it again in your browser.
+              </p>
+            )}
+            <button type="submit" className="primary done" disabled={!link.trim()}>
+              Bring it here
+            </button>
+            <button type="button" className="secondary" onClick={() => setOpen(false)}>
+              Not now
+            </button>
+          </form>
+        </div>
       )}
-      <button type="submit" className="secondary" disabled={!link.trim()}>
-        Bring it here
-      </button>
-    </form>
+    </>
   );
 }
 
@@ -269,7 +285,7 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
             <button type="button" className="primary" onClick={begin}>
               Begin
             </button>
-            {onBringLink && standalone && <BringFromSafari onBring={onBringLink} />}
+            {onBringLink && standalone && <BringFromBrowser onBring={onBringLink} />}
           </div>
         )}
         {/* The agreement shows once, hushed, on a first visit; coming back you've already agreed, and the links

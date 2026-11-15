@@ -125,8 +125,9 @@ test('in the home-screen app, work from Safari comes across with a pasted link',
   // In Safari: Send to another device, with the share sheet caught to read the link.
   await startWithExample(page);
   await page.evaluate(() => {
-    (navigator as unknown as { share: (d: { url: string }) => Promise<void> }).share = async (d) => {
-      (window as unknown as { shared: string }).shared = d.url;
+    (navigator as unknown as { share: (d: { url: string; text?: string }) => Promise<void> }).share = async (d) => {
+      (window as unknown as { shared: string; sharedText?: string }).shared = d.url;
+      (window as unknown as { sharedText?: string }).sharedText = d.text;
     };
   });
   await openAccount(page);
@@ -135,6 +136,8 @@ test('in the home-screen app, work from Safari comes across with a pasted link',
   // The link is made after the click (the work is packed first), so wait for it.
   await expect.poll(() => page.evaluate(() => (window as unknown as { shared?: string }).shared ?? '')).toContain('#move=');
   const link = await page.evaluate(() => (window as unknown as { shared: string }).shared);
+  // The link goes alone, so the share sheet's Copy copies the link and not a sentence (Cat, Nov 15).
+  expect(await page.evaluate(() => (window as unknown as { sharedText?: string }).sharedText)).toBeUndefined();
 
   // The home-screen app: its own storage, opened in standalone mode.
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, baseURL: test.info().project.use.baseURL });
@@ -146,8 +149,9 @@ test('in the home-screen app, work from Safari comes across with a pasted link',
   });
   await app.goto('/');
   await app.keyboard.press('Escape');
-  await main(app).getByRole('button', { name: 'Started in Safari? Bring your work here' }).click();
-  await main(app).getByLabel('Link from Safari').fill(link);
+  await main(app).getByRole('button', { name: 'Started in your browser? Bring your work here' }).click();
+  // Pasted with words around it (a whole message copied), it still finds the link.
+  await main(app).getByLabel('Link you copied').fill(`My Maison Tracé measurements and patterns. ${link} `);
   await main(app).getByRole('button', { name: 'Bring it here' }).click();
   await expect(h1(app, /Your work/)).toBeVisible();
   await main(app).getByRole('button', { name: 'Bring it here' }).click();

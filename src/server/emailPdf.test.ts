@@ -20,6 +20,7 @@ describe('Email me the PDF', () => {
     expect(e.from).toBe('Maison Tracé <hello@maisontrace.co>');
     expect(e.to).toEqual(['sewist@example.com']);
     expect(e.subject).not.toMatch(/[<>"]/);
+    expect(emailFor({ ...ok, title: 'win a prize at evil.example' }).subject).not.toContain('evil.example');
     expect(e.attachments[0]).toEqual({ filename: ok.fileName, content: pdf });
   });
   it('attaches the instructions booklet as a second file, checked like the pattern (Nov 15)', () => {

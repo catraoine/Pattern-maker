@@ -25,7 +25,8 @@ export function ShareLink() {
   const share = async () => {
     if (!navigator.share) return copy();
     try {
-      await navigator.share({ title: 'Maison Tracé', text: 'Sewing patterns drafted to your own measurements. Join the waitlist:', url });
+      // The link inside the words, so Copy in an iPhone's share sheet keeps it (see shareLink).
+      await navigator.share({ title: 'Maison Tracé', text: `Sewing patterns drafted to your own measurements. Join the waitlist: ${url}` });
     } catch {
       // Closing the share sheet is fine.
     }

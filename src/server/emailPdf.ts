@@ -42,8 +42,9 @@ export function checkEmailRequest(text: string): EmailRequest | null {
   }
 }
 
-/** Words only from the app, never from the request, so the function can't be used to send anyone else's message. */
-const clean = (s: string) => s.replace(/[^\p{L}\p{N} '’&.,()-]/gu, '').slice(0, 80);
+/** Words only from the app, never from the request (the pattern's name aside), so the function can't be used to send anyone else's message. */
+// No full stops, so a web address can't be written into the subject or the email (security pass, Nov 15).
+const clean = (s: string) => s.replace(/[^\p{L}\p{N} '’&,()-]/gu, '').slice(0, 80);
 
 /** What goes to the email service. */
 export function emailFor(r: EmailRequest) {

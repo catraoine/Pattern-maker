@@ -18,6 +18,7 @@ import { isSwimIntimates } from '../photo/swim';
 import { InterestCard } from '../ui/InterestCard';
 import { MAX_IDEA_CHARS, type IdeaReading, type IdeaResponse, type PhotoError } from '../photo/types';
 import { testerHeaders } from '../ui/TesterCode';
+import { typedLength } from '../units';
 
 interface Props {
   /** Opens the Maison collection from "What would you like to make?": the fit testers sew a house look (Nov 11). */
@@ -887,10 +888,10 @@ export function MeasurePage({
   const type = (t: string) => {
     setText(t);
     setEstimated(false);
-    const n = parseFloat(t.replace(',', '.'));
+    const n = typedLength(t, unit);
     const v = { ...values };
     if (Number.isNaN(n)) delete v[id];
-    else v[id] = Math.round((unit === 'cm' ? n : n * 2.54) * 10) / 10;
+    else v[id] = Math.round(n * 10) / 10;
     onValues(v);
   };
 

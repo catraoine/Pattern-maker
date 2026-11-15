@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fmtLength, fmtMeasure, inInches, toFeetInches, toInches, toYards } from './units';
+import { fmtLength, fmtMeasure, inInches, toFeetInches, toInches, toYards, typedLength } from './units';
 
 describe('inches', () => {
   it('rounds to the nearest eighth', () => {
@@ -37,5 +37,35 @@ describe('heights in feet and inches', () => {
     expect(fmtMeasure('height', 165, 'in')).toBe('5 ft 5 in');
     expect(fmtMeasure('height', 165, 'cm')).toBe('165 cm');
     expect(fmtMeasure('waist', 76, 'in')).toBe('29.9 in');
+  });
+});
+
+// Pasted or typed lengths (bug hunt's paste check, Nov 15): the unit written wins, and a tape's fractions count.
+describe('typedLength', () => {
+  it('reads the number in the screen unit when no unit is written', () => {
+    expect(typedLength('84', 'cm')).toBe(84);
+    expect(typedLength(' 84,5 \n', 'cm')).toBe(84.5);
+    expect(typedLength('33', 'in')).toBeCloseTo(83.82);
+  });
+
+  it('takes the unit someone writes over the screen unit', () => {
+    expect(typedLength('33 in', 'cm')).toBeCloseTo(83.82);
+    expect(typedLength('33"', 'cm')).toBeCloseTo(83.82);
+    expect(typedLength('33 inches', 'cm')).toBeCloseTo(83.82);
+    expect(typedLength('84.5cm', 'in')).toBe(84.5);
+    expect(typedLength('845 mm', 'in')).toBe(84.5);
+  });
+
+  it('counts a tape fraction', () => {
+    expect(typedLength('33 1/2', 'in')).toBeCloseTo(85.09);
+    expect(typedLength('33½ in', 'cm')).toBeCloseTo(85.09);
+    expect(typedLength('12/2', 'cm')).toBe(6);
+  });
+
+  it('gives NaN when there is no number, and keeps reading a number followed by other words', () => {
+    expect(typedLength('', 'cm')).toBeNaN();
+    expect(typedLength('abc', 'cm')).toBeNaN();
+    expect(typedLength('1/0', 'cm')).toBeNaN();
+    expect(typedLength('84 about', 'cm')).toBe(84);
   });
 });

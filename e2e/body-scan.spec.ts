@@ -21,7 +21,7 @@ test('body scan: only testers see it, and it opens the scanner from a pass our s
   const open = fold.getByRole('link', { name: /Open the scanner/ });
   await expect(open).toHaveAttribute('href', /platform\.bodygram\.com\/.*token=example/);
   await expect(open).toHaveAttribute('target', '_blank');
-  expect(sent).toBe('example-code');
+  expect(sent).toBe('EXAMPLE-CODE');
   await expect(fold).toContainText('email just the numbers');
   if (SHOTS) await page.screenshot({ path: `${SHOTS}/body-scan-${info.project.name}.png` });
 });

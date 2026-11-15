@@ -2,6 +2,8 @@
 // Cat) get the full app. A tester gets in by opening their tester link (maisontrace.co/?tester=CODE) or by typing
 // the code under "Use your code"; the code is checked once against TESTER_CODES, then this device is let in for good.
 
+import { cleanCode } from './photo/limit';
+
 /** Kept outside the app's own "pattern-maker:" keys, so a ?fresh review link doesn't lock Cat out again. */
 export const ACCESS_KEY = 'maison-trace-access';
 
@@ -36,7 +38,7 @@ export function rememberAccess(storage: Store = local()) {
 
 /** The code on a tester link (?tester=TOILE-ONE), if there is one. */
 export function testerFromLink(search: string): string | undefined {
-  const code = new URLSearchParams(search).get('tester')?.trim();
+  const code = cleanCode(new URLSearchParams(search).get('tester') ?? '');
   return code && code.length <= 60 ? code : undefined;
 }
 
@@ -53,7 +55,7 @@ type CodeCheck = 'tester' | 'wrong' | 'limit' | 'failed';
 /** Asks the tester function whether a code is one of the tester codes. */
 export async function checkCode(code: string): Promise<CodeCheck> {
   try {
-    const res = await fetch('/.netlify/functions/tester', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: code.trim() }) });
+    const res = await fetch('/.netlify/functions/tester', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: cleanCode(code) }) });
     const data = (await res.json().catch(() => ({}))) as { ok?: boolean; tester?: boolean; error?: string };
     if (data.ok) return data.tester ? 'tester' : 'wrong';
     return data.error === 'limit_reached' ? 'limit' : 'failed';
