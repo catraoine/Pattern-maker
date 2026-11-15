@@ -101,7 +101,9 @@ export const LEG_WIDTHS: Record<Leg, { knee: number; hem: number }> = {
   culotte: { knee: 0.68, hem: 0.76 },
   flare: { knee: 0.41, hem: 0.62 },
   bootcut: { knee: 0.43, hem: 0.5 },
-  barrel: { knee: 0.62, hem: 0.4 },
+  // (Hem 0.37, was 0.4: about 40 cm round on the Chocolate Barrel Trouser, so the leg narrows to the ankle and reads full
+  // length, where 46 cm read cropped; Cat, Nov 14.)
+  barrel: { knee: 0.62, hem: 0.37 },
 };
 
 export const LEG_WORDS: Record<Leg, string> = { straight: 'straight-leg trousers', wide: 'wide-leg trousers', tapered: 'tapered trousers', culotte: 'culottes', flare: 'flared trousers', bootcut: 'bootcut trousers', barrel: 'barrel-leg trousers' };

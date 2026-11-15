@@ -180,10 +180,11 @@ export const COLLECTION: HouseLook[] = [
     number: 5,
     set: 'The Lilac Lace Set',
     name: 'Chocolate Barrel Trouser',
-    line: 'Slung low on the hip, two deep pleats opening into a barrel leg that curves out round the knee and falls to the floor, in a crisp chocolate sateen.',
+    line: 'Slung low on the hip, one deep pleat each side opening into a barrel leg that curves out round the knee and narrows to the floor, in a crisp chocolate sateen.',
     fabric: 'Chocolate crisp cotton sateen',
     garment: 'trousers',
-    choices: { ...DEFAULT_TROUSERS_CHOICES, fit: 'relaxed', leg: 'barrel', length: 'full', rise: 'low', pockets: 'slant', pleats: 'double', loops: 'loops', backPockets: 'welt' },
+    // One deep pleat each side, not two: two added bulk at a low rise (Cat, Nov 14: "fix those pants now").
+    choices: { ...DEFAULT_TROUSERS_CHOICES, fit: 'relaxed', leg: 'barrel', length: 'full', rise: 'low', pockets: 'slant', pleats: 'single', loops: 'loops', backPockets: 'welt' },
   },
   {
     // From Cat's picture of a relaxed bias satin maxi (2026-11-11, "Build bias and correct the neckline for lower
