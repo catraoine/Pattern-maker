@@ -10,7 +10,10 @@ import { canGoBack, goBack, usePageHistory } from '../nav';
 import { estimateOne } from '../estimate';
 import { Title } from '../ui/Title';
 import type { PatternChoices } from '../garments';
-import { testingNote } from '../launch';
+import { keepMenswear, menswearOpen, testingNote } from '../launch';
+import { TestingTag } from '../ui/TestingTag';
+import { FirstForm } from '../ui/FirstForm';
+import { filmTape } from '../ui/filmTape';
 import { ideaChoices, ideaRows, pieceGarment } from '../photo/idea';
 import { isSwimIntimates } from '../photo/swim';
 import { InterestCard } from '../ui/InterestCard';
@@ -131,6 +134,14 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   const [helper, setHelper] = useState(!!theirs);
   // Opened by Begin on the welcome: the tape it pulled out falls from across the top onto the form's neck.
   const [tapeHanded] = useState(() => !!takeTapeRest());
+  // The welcome's tape is the How it works film's only (Cat, Nov 14); the app opens this page without it.
+  const [film] = useState(filmTape);
+  // Menswear can't be picked this fit round (launch.ts menswearOpen), unless this person already drafts on it.
+  const [onMenswear] = useState(() => {
+    if (form === 'menswear') keepMenswear();
+    return form === 'menswear';
+  });
+  const formShut = (k: FormKind) => k === 'menswear' && !onMenswear && !menswearOpen();
   // Measuring yourself with a friend holding the tape (measuring accuracy, 2026-10-21): every page is then worded for
   // the friend, and the numbers taken this way are noted, so a fit report can tell them from those taken alone.
   const [friend, setFriend] = useState(false);
@@ -209,7 +220,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
       // Cat's T2 without the slide (Nov 8): the tape round the neck lifts away with the page, and the waist page comes
       // up out of the black, its tape coming in from the side to wrap the waist.
       const card = document.querySelector<HTMLElement>('.measure-step');
-      const form = card?.querySelector<HTMLElement>('.form-picture');
+      const form = card?.querySelector<HTMLElement>('.form-picture, .first-form');
       if (!card || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return go();
       introLeft();
       form?.animate([{ transform: 'none' }, { transform: 'translateY(-28px)' }], { duration: LIFT_MS, easing: 'ease-in', fill: 'forwards' });
@@ -218,13 +229,16 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     return (
       // Cat's C Tape Lines (2026-10-30): the body with the bust, waist and hip marked on it, then two switches of two
       // halves each, the chosen half filled, for the form and for whom; Begin, and Measure later in quiet capitals.
-      <Shell title="First, let's take some measurements." tape>
-        {onForm && <FormPicture kind={chosen} tapes neckTape={tapeHanded ? NECK_AT - 220 : 'rest'} />}
+      // Cat's F1 Sculpted Form (Nov 14): the 3D form from the How to do it clips on a chalk panel, the string tied at
+      // its waist; the tape round the neck is the film's alone now (filmTape).
+      <Shell title="First, let's take some measurements." tape={film} first>
+        {onForm && (film ? <FormPicture kind={chosen} tapes neckTape={tapeHanded ? NECK_AT - 220 : 'rest'} /> : <FirstForm kind={chosen} />)}
         {onForm && (
           <div className="switch two-part" role="radiogroup" aria-label="Which form to draft on?">
             {(['womenswear', 'menswear'] as const).map((k) => (
-              <button key={k} type="button" role="radio" aria-checked={chosen === k} onClick={() => setChosen(k)}>
+              <button key={k} type="button" role="radio" aria-checked={chosen === k} disabled={formShut(k)} onClick={() => setChosen(k)}>
                 {k === 'womenswear' ? 'Womenswear' : 'Menswear'}
+                {formShut(k) && <TestingTag tool="menswear" />}
               </button>
             ))}
           </div>
@@ -266,9 +280,10 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
         </p>
         <div className="form-pick" role="group" aria-labelledby="form-q">
           {(['womenswear', 'menswear'] as const).map((k) => (
-            <button key={k} type="button" aria-current={chosen === k || undefined} className={chosen === k ? 'on' : ''} onClick={() => tapForm(k)}>
+            <button key={k} type="button" aria-current={chosen === k || undefined} className={chosen === k ? 'on' : ''} disabled={formShut(k)} onClick={() => tapForm(k)}>
               <FormPicture kind={k} />
               <span>{k === 'womenswear' ? 'Womenswear' : 'Menswear'}</span>
+              {formShut(k) && <TestingTag tool="menswear" />}
             </button>
           ))}
         </div>
@@ -638,6 +653,7 @@ export function Shell({
   skip,
   later,
   tape,
+  first,
   aside,
   labels,
   children,
@@ -654,6 +670,8 @@ export function Shell({
   later?: () => void;
   /** The tape Begin pulls out on the welcome, across the top of the first page (Cat, 2026-10-21). */
   tape?: boolean;
+  /** The first measuring page, laid out on a computer as its own composed group (styles/39-first-form.css). */
+  first?: boolean;
   /** Which step of how many: the picture's dots went in the aesthetic review (2026-10-21); the eyebrow says it. */
   dots?: [number, number];
   /** A shorter form on top, so a longer list fits above its button. */
@@ -670,7 +688,7 @@ export function Shell({
   // form in the middle, and the question on the right; with no list the form takes the first two.
   return (
     <div className="welcome">
-      <section className={['card welcome-card measure-step', short && 'short', centred && 'centred', hero && 'has-hero', aside && 'has-aside', labels && 'has-labels', tape && 'has-tape'].filter(Boolean).join(' ')} aria-labelledby="stitle">
+      <section className={['card welcome-card measure-step', short && 'short', centred && 'centred', hero && 'has-hero', aside && 'has-aside', labels && 'has-labels', tape && 'has-tape', first && 'first-page'].filter(Boolean).join(' ')} aria-labelledby="stitle">
         {tape && <LandedTape />}
         {aside && <aside className="step-list">{aside}</aside>}
         {hero && (

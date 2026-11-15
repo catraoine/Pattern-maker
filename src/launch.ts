@@ -72,7 +72,8 @@ export type TestingTool =
   | 'boxy_tee'
   | 'flap_pockets'
   | 'chest_pocket'
-  | 'pattern_tools';
+  | 'pattern_tools'
+  | 'menswear';
 
 export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; proof: string }> = {
   draw_lines: { name: 'Draw your lines', where: 'Style, Draw on your form', proof: 'fit testers draw a hem, a neckline and a side and the pattern follows' },
@@ -142,6 +143,8 @@ export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; p
   boxy_tee: { name: 'Boxy drop-shoulder T-shirt', where: 'the Dropped, boxy chip under Shoulder on the T-shirt', proof: 'two testers sew a boxy tee and the shoulder seam sits evenly down the arm, the sleeve going in with no puckers' },
   flap_pockets: { name: 'Flap pockets on jackets and coats', where: 'the Flap chip under Pockets on a jacket or coat', proof: 'two testers sew flap pockets and the jets are even, the flap lies flat over the opening and the corners are clean' },
   chest_pocket: { name: 'Chest welt pocket on jackets and coats', where: 'the Welt chip under Chest pocket on a jacket or coat', proof: 'two testers sew a chest pocket and it sits level with the slight rise toward the side, clear of the lapel, flat over the chest' },
+  // Shown but not pickable while this fit round tests womenswear only (Cat, Nov 14); see menswearOpen below.
+  menswear: { name: 'Menswear form', where: 'the form choice on the first measuring page and Your form', proof: 'a menswear fit round is run and two testers sew a menswear toile that fits' },
   pattern_tools: { name: 'Draw a line on the pattern', where: 'Style, Pattern, Move points: a line drawn across a piece to spread it, add fullness or make a new piece', proof: 'two testers spread or cut a piece with a drawn line and sew it as edited, and it hangs as the edited pattern shows' },
   belt_loops: { name: 'Belt loops on trousers', where: 'the Belt loops chips on trousers', proof: 'two testers sew the five loops and a belt sits level in them, the loops clear of the pockets and the fly' },
   // And for the flared lilac blazer from Cat's plaid-blazer picture (2026-10-31).
@@ -175,3 +178,22 @@ export const optionInTesting = (group: string, id: string) => !!OPTIONS_IN_TESTI
 /** The top's chips under the oversized tool. */
 const OVERSIZED_OPTIONS: Record<string, readonly string[]> = { fit: ['oversized'], length: ['long'] };
 export const oversizedInTesting = (group: string, id: string) => !!OVERSIZED_OPTIONS[group]?.includes(id);
+
+/** Menswear stays on the form choice but can't be picked while this fit round tests womenswear only (Cat, Nov 14),
+ *  with the "In testing" tag. The menswear checks open it with this switch, and keepMenswear opens it for good on a
+ *  browser that already drafts on it, so switching to womenswear and back never locks anyone out. */
+const MENSWEAR_KEY = 'maison-trace-menswear';
+export function menswearOpen() {
+  try {
+    return localStorage.getItem(MENSWEAR_KEY) === 'on';
+  } catch {
+    return false;
+  }
+}
+export function keepMenswear() {
+  try {
+    localStorage.setItem(MENSWEAR_KEY, 'on');
+  } catch {
+    // Storage blocked: the form choice still keeps menswear for this visit (MeasureStepsScreen's onMenswear).
+  }
+}

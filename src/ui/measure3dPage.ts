@@ -14,7 +14,7 @@ const pose = q.get('pose');
 const wholeName = q.get('whole');
 const whole = wholeName ? await (await fetch(`/measure-limbs/body-${wholeName}.json`)).json() : undefined;
 const limbs = pose ? await (await fetch(`/measure-limbs/limbs-${pose}.json`)).json() : undefined;
-const scene = createMeasureScene(canvas, shot, (q.get('look') ?? 'none') as Lift, q.get('limbs') !== '0', (q.get('finish') ?? 'satin') as Finish, limbs, q.get('tape') === 'dark', q.get('shade') ?? undefined, q.get('face') ? { face: q.get('face')!, ink: q.get('ink') ?? '#2b2418' } : undefined, q.get('shadow') === '1', whole, Number(q.get('tw') ?? 1.6), id);
+const scene = createMeasureScene(canvas, shot, (q.get('look') ?? 'none') as Lift, q.get('limbs') !== '0', (q.get('finish') ?? 'satin') as Finish, limbs, q.get('tape') === 'dark', q.get('shade') ?? undefined, q.get('face') ? { face: q.get('face')!, ink: q.get('ink') ?? '#2b2418' } : undefined, q.get('shadow') === '1', whole, Number(q.get('tw') ?? 1.6), id, q.get('knot') === 'front');
 // The clip's spoken-style directions, written over the foot of the frame (Cat, Nov 11: key directions in text).
 const caption = document.createElement('div');
 // On a band of the chalk itself, so the words never sit over the dark form; the band stays put, only the words fade.
