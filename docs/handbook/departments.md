@@ -1,34 +1,47 @@
 # Departments
 
-Threads are departments. Before starting new work, check whether a department below owns it. When a
-department's piece of work ships or is decided, its next piece starts in a fresh thread with a short
-handoff, and this table is updated.
+Threads are departments, and every thread title reads "Department: topic" (team.md lists the nine
+job titles and the department names). New work goes to the department that already owns it, never a
+new one-off thread. A thread that gets heavy hands off to a fresh one with a short handoff, and this
+table is updated. This table was rewritten on Nov 14, 2026, when Cat applied the thread tidy; the
+older one-off threads it used to list are closed and their work sits with the departments below.
 
-| Department | Owns | Key docs |
+| Department (job title) | Thread | Owns |
 | --- | --- | --- |
-| Product Dev: Sewist Fit Testing | Fit rounds, tester mail, Staples prints, fit gate | Fit test plan, tester kit, print test checklist |
-| UX/UI: Measure | Measuring screens and form on them | — |
-| UX/UI: Style & Photo | Style page, photo-to-pattern screens (`PhotoScreen.tsx`, `PhotoCheck.tsx`) | — |
-| UX/UI: Fabric rendering | How fabrics and the form render | — |
-| Accessibility | Accessibility reviews (A1 to A7 waiting on apply) | Screens in project files `accessibility/` |
-| QA: Devices | Device and browser checks | — |
-| Media: Demo videos | How it works films, Watch demo clips, re-records after visual changes | Film rules in project memory |
-| Media: Measuring video | "Mastering measuring" film (option C picked; films at the Nov 8 shoot) | Mastering measuring doc |
-| Media: All Round intro | Film opening | — |
-| All round quality | Making every design look right in All round: nightly sweep, weekly Fable eye check, the Front-drawing safety net, the option check on every PR | `src/drapeSweep.ts`, `src/drapeOptions.json`, project files `all-round-quality/` |
-| Quality: Automated checks | The six checks Cat asked for on Nov 4, each on every PR and nightly: pattern geometry on every option, fit sweep on 300 bodies, print check, DXF round trip, Front drawing check, screen check | `src/patternSweep.ts`, `src/patternOptions.json`, `src/fitSweep.ts`, `src/fitKnown.json`, `src/printCheck.ts`, `src/printKnown.json`, `src/dxfRoundTrip.ts`, `src/dxfKnown.json`, `src/frontCheck.ts`, `src/frontKnown.json`, `e2e/front-drawing.spec.ts`, `e2e/screen-check.spec.ts`, `e2e/screenAudit.ts`, `src/screenKnown.json`, `.github/workflows/quality-nightly.yml` |
-| Design: Fabric | What the maker's own cloth looks like in the app: Your photo (photograph your fabric), and with Fabric rendering, how it drapes | Product and fit rules 54 |
-| Design: The Collection | Seasonal collections (SS27), drops path, open calls | Collection calendar, drop path doc |
-| Design: Garment range | New garment types: jumpsuit, knit dress, hoodie (freeze broken Nov 7). Page: [garment-range.md](garment-range.md) | Round 1 option sheet in project files `garment-range/` |
-| Design: Pattern tools | Free-form pattern editing on the flat pattern: Move points and Draw a line (spread, add fullness, new pieces; round 3: tap a cut to change it, darts closed into yokes, new pieces sewn in All round; round 4: edits after a cut show in All round, move any dart by a line from its point), In testing (Nov 8) | `src/engine/pointEdit.ts`, `src/engine/pieceEdit.ts`, `src/ui/PointEditor.tsx`, option sheet in project files `pattern-tools/` |
-| Design: Collection Preview | Pieces Cat sews from the coming collection before launch | Capsule doc, preview sheet |
-| Organic Social / First solo session | Social strategy, calendar, shoots | Social strategy, social calendar deck |
-| Customer & Community | Community plan, AI stance, customer research | Community plan, Meet the sewist, AI stance |
-| Affiliates | Affiliate programmes and partner outreach | — |
-| Finance & Legal | Tax, legal, trademark, cost tally, grants | Tax playbook, setup doc, cost tally |
-| Engineering: Code review and rules | The coding rules (CLAUDE.md), the review before every PR, the Monday weekly review of the week's merges | `CLAUDE.md`, Code review and coding rules doc |
-| Engineering: Security and privacy | Security and privacy checks of accounts, server functions, API caps, the public repo and the policy | Security and privacy check doc, developer review brief |
-| Monday Fable pick | Weekly Fable job pick | — |
+| Engineering (Release Manager) | Engineering: Releases 4 | The only shipper: lists every difference from live, deploys on Cat's "ship", saves a backup after. See [release-state.md](release-state.md). |
+| Engineering (Release Manager) | Engineering: Regular bug hunt | Nightly journey checks and tester journeys on the live app |
+| Engineering (Release Manager) | Engineering: Photo reading | Photo-to-pattern reading and its scorecard |
+| Engineering (Release Manager) | Engineering: Fix glitchy All round view | All round drawing fixes; real legs on the form after launch |
+| Engineering (Release Manager) | Engineering: Body scan button for testers | The tester body scan button |
+| Engineering (Release Manager) | Engineering: Build founding member perks | Founding places, numbers, early access |
+| Fit (Head Pattern Cutter) | Product Dev: CLO overnight tests 3 (to be "Fit: CLO tests") | CLO checks of every pattern; owns the open findings list |
+| Fit (Head Pattern Cutter) | Fit: Tester pattern review | Independent review of tester and era pieces, and the fixes it finds |
+| Design (Creative Director) | Design: Build full era garment lines | The era pieces and their fit-week fixes |
+| Creative (Creative Director) | Creative: Shoot The Fitting film | Shoots and films |
+| Marketing (Head of Marketing & Growth) | Marketing: Grow the waitlist to 1,000 | The waitlist and thank-you emails |
+| Marketing (Head of Marketing & Growth) | Marketing: Plan social to launch | Social on every channel, launch week posts, the giveaway |
+| Community (Community Lead) | Recruit Fit Testers (to be "Community: Fit testers") | Fit testers: recruiting, tester mail, check-ins, payouts tracking |
+| Community (Community Lead) | Community: Customer and community plan | Community plan, customer research, Monday community nudge |
+| Finance & Legal (CFO & Counsel) | Finance & Legal: Tax, legal and trademark | Tax, legal review, trademark, cost tally, sole prop registration |
+| Finance & Legal (CFO & Counsel) | Finance & Legal: Affiliates and fabric shops | Affiliate programmes, fabric shop catalogue (weekly refresh) |
+| Operations (Chief of Staff) | Chief of Staff: Company status | The Company status page (7:37 am) and the daily "Still waiting on you" reminder (weekdays 6 pm, weekends 10 am) |
+| Operations (Chief of Staff) | Chief of Staff: Weekly department connect | Sunday and Monday department connect for the Monday review |
+
+## Company status and questions for Cat
+
+- **Company status** is the first tab of the Planning hub (Claude Doc). It shows what is waiting on
+  Cat, promises due in the next two weeks, open findings counts, and every department's thread, what
+  it is doing and what it waits on. Chief of Staff refreshes it every morning at 7:37 am Vancouver
+  time.
+- **Asking Cat:** departments ask Cat directly, as things come up. Each thread that asks Cat a choice
+  also adds one row to the waiting list (`morning-batch/queue.md` in project files) and moves it to
+  Answered when she answers.
+- **Still waiting on you:** weekdays just before 6 pm and weekends just before 10 am, Chief of Staff posts one reminder with every
+  question still unanswered from the day before or earlier, plus open decision cards and stuck
+  threads, answerable with letters ("1A 2B") or "recs". It never asks anything new. On Mondays the
+  same list also goes into part 1 of the 8 am review.
+- Before a thread is closed or merged, its scheduled tasks, open cards, findings and promises move
+  to their new owner, and nothing may still point at the closed thread.
 
 **Cat's hub** is the business plan (Claude Doc). Every new doc, plan or agreement any department
 creates is linked from it. **Cat's to-do list** (Claude Doc) holds everything only she can do;
