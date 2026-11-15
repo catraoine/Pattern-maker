@@ -354,6 +354,12 @@ const fullCircle = (skirt: Piece[] | undefined) => (skirt ?? []).filter((pc) => 
  *  (no cloth-on-cloth contact) shows as tears. It hangs as a panel of SIM_GATHER fullness, and its folds are laid on
  *  for drawing at the real fullness. */
 const SIM_GATHER = 1.8;
+
+/** A gathered skirt's mesh, in cm, and how often (in iterations) its folds are held apart. At 0.8 cm and every second
+ *  iteration a gathered midi dress took 26 s to sew, and the How it works film's dress fell back to the drawing; at
+ *  1.1 cm and every third it sews in about 7 s, its folds still several points across (Nov 15). */
+const GATHER_MESH = 1.1;
+const GATHER_SELF_EVERY = 3;
 function narrowed(pc: Piece): Piece {
   const g = (pc.meta.gathered as number | undefined) ?? 1;
   if (g <= SIM_GATHER || pc.meta.waistRadius || knob("__noNarrow")) return pc;
@@ -973,7 +979,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
         [],
         // (Pressed pleats on a finer mesh cut along each fold, so the fold's step and the shadow under it are crisp.)
         // (A heavily gathered skirt on a finer one too: its many folds need more than a point or two across each.)
-        pc.meta.pleatFolds ? 1.2 : ((pc.meta.gatherShown as number | undefined) ?? 1) > 2 || (fineGathers && ((pc.meta.gatherShown as number | undefined) ?? 1) > 1.05 && !pc.meta.tier) ? (knob('__gh') ?? 0.8) : 1.6,
+        pc.meta.pleatFolds ? 1.2 : ((pc.meta.gatherShown as number | undefined) ?? 1) > 2 || (fineGathers && ((pc.meta.gatherShown as number | undefined) ?? 1) > 1.05 && !pc.meta.tier) ? (knob('__gh') ?? GATHER_MESH) : 1.6,
         creasesOf(pc),
       );
       levelOf.set(p, level);
@@ -2303,6 +2309,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
     const sewnAt = new Set<number>();
     for (const { i, j, k } of seams) sewnAt.add(i).add(j).add(k);
     let flare = 0;
+    let anyGathered = false;
     B.panels.forEach((p, n) => {
       // (Not a pleated skirt's, whose pressed folds lie on each other, nor a balloon's, gathered onto its underskirt.)
       if (p.hidden || !/^Skirt/.test(p.pc.name) || !/peplum/.test(p.role) || p.mesh.runs.pleat?.length || p.pc.meta.pleatFolds || p.mesh.runs.balloon?.length) return;
@@ -2315,6 +2322,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
       if (!gathered && runLen('hem') < (knob('__selfFlare') ?? ((extra.drop ?? 0) > 1 ? droppedFlareCut(o.bendK ?? 0.05) : 1.25)) * runLen('waist')) return;
       // (Only a panel cut with its own waist: one sewn to a yoke has none, and read as a huge flare, 2026-11-08.)
       if (runLen('waist') > 5) flare = Math.max(flare, runLen('hem') / runLen('waist'));
+      anyGathered ||= gathered;
       p.mesh.pts.forEach((q, i) => {
         ids.push(p.base + i);
         u.push(q.x);
@@ -2322,7 +2330,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
         piece.push(n);
       });
     });
-    if (ids.length) input.self = { ids: Int32Array.from(ids), u: Float64Array.from(u), v: Float64Array.from(v), piece: Int32Array.from(piece), sewn: Uint8Array.from(ids, (g) => (sewnAt.has(g) ? 1 : 0)), d: selfGap(flare) };
+    if (ids.length) input.self = { ids: Int32Array.from(ids), u: Float64Array.from(u), v: Float64Array.from(v), piece: Int32Array.from(piece), sewn: Uint8Array.from(ids, (g) => (sewnAt.has(g) ? 1 : 0)), d: selfGap(flare), ...(anyGathered ? { every: GATHER_SELF_EVERY } : {}) };
   }
   // Trousers settle in fewer steps: laid on their legs they are near where they hang, and left to run the full count the
   // cloth below the crotch kept drifting into folds and opened the inside leg (All round quality, 2026-11-07: of 51

@@ -62,7 +62,8 @@ export interface SimInput {
   /** Points of cloth kept from passing through each other (a full skirt's flutes): each kept `d` cm from any other
    *  that is further than that from it in the cut (u, v: its pattern place; piece: which piece; sewn: on a seam, where
    *  the other piece's seam points meet it). */
-  self?: { ids: Int32Array; u: Float64Array; v: Float64Array; piece: Int32Array; sewn: Uint8Array; d: number };
+  /** (every: how many iterations between passes holding it apart; 2 unless set.) */
+  self?: { ids: Int32Array; u: Float64Array; v: Float64Array; piece: Int32Array; sewn: Uint8Array; d: number; every?: number };
   bendK: number;
   /** How hard each edge holds its cut length, 1 = fully (a woven cloth); a knit gives (clothCard.ts). */
   edgeK?: number;
@@ -189,6 +190,7 @@ export function simulate(s: Space, inp: SimInput, steps = knob("__steps") ?? 260
   // Cloth barely stretches along its length: a heavy skirt pulls a bodice down only so far. The few iterations above
   // can't carry its whole weight up to the shoulders, so after them each step every edge that runs down the cloth is
   // held to near its cut length, top first, the lower end drawn up to the upper (a hanging chain, settled from the top).
+  const SELF_EVERY = knob('__selfEvery') ?? inp.self?.every ?? 2;
   const LIM = knob('__strain') ?? 1.06;
   const EK = knob('__edgeK') ?? inp.edgeK ?? 1;
   const CHK = knob('__chainK') ?? 1;
@@ -203,18 +205,45 @@ export function simulate(s: Space, inp: SimInput, steps = knob("__steps") ?? 260
     if (!S) return undefined;
     const D = S.d;
     const D2 = D * D;
-    const cell = new Map<number, number[]>();
     const hash = (a: number, b: number, c: number) => ((a * 73856093) ^ (b * 19349663) ^ (c * 83492791)) | 0;
+    // The points sorted into their cells once a pass, in flat arrays rather than a map of lists: with a gathered skirt's
+    // 9,000 close-packed points the map took 10 ms a pass, two thirds of a gathered dress's 26 s sew (the How it works
+    // film's dress fell back to the drawing on a phone, Nov 15). Same cells, same order, so the same cloth.
+    const n = S.ids.length;
+    let size = 1;
+    while (size < n * 2) size *= 2;
+    const keys = new Int32Array(size);
+    const slotBucket = new Int32Array(size);
+    const stamp = new Int32Array(size);
+    const bucketOf = new Int32Array(n);
+    const start = new Int32Array(n + 1);
+    const items = new Int32Array(n);
+    let pass = 0;
+    const slot = (h: number) => {
+      let k = (Math.imul(h, 0x9e3779b1) >>> 0) & (size - 1);
+      while (stamp[k] === pass && keys[k] !== h) k = (k + 1) & (size - 1);
+      return k;
+    };
     return () => {
-      cell.clear();
-      for (let q = 0; q < S.ids.length; q++) {
+      pass++;
+      let buckets = 0;
+      start.fill(0);
+      for (let q = 0; q < n; q++) {
         const I = S.ids[q] * 3;
         const h = hash(Math.floor(x[I] / D), Math.floor(x[I + 1] / D), Math.floor(x[I + 2] / D));
-        const c = cell.get(h);
-        if (c) c.push(q);
-        else cell.set(h, [q]);
+        const k = slot(h);
+        if (stamp[k] !== pass) {
+          stamp[k] = pass;
+          keys[k] = h;
+          slotBucket[k] = buckets++;
+        }
+        bucketOf[q] = slotBucket[k];
+        start[slotBucket[k] + 1]++;
       }
-      for (let q = 0; q < S.ids.length; q++) {
+      for (let b = 0; b < buckets; b++) start[b + 1] += start[b];
+      const fillAt = start.slice(0, buckets);
+      for (let q = 0; q < n; q++) items[fillAt[bucketOf[q]]++] = q;
+      for (let q = 0; q < n; q++) {
         const I = S.ids[q] * 3;
         const cx = Math.floor(x[I] / D);
         const cy = Math.floor(x[I + 1] / D);
@@ -222,10 +251,19 @@ export function simulate(s: Space, inp: SimInput, steps = knob("__steps") ?? 260
         for (let a = -1; a <= 1; a++)
           for (let b = -1; b <= 1; b++)
             for (let c = -1; c <= 1; c++) {
-              const list = cell.get(hash(cx + a, cy + b, cz + c));
-              if (!list) continue;
-              for (const r of list) {
-                if (r <= q) continue;
+              const k = slot(hash(cx + a, cy + b, cz + c));
+              if (stamp[k] !== pass) continue;
+              const bk = slotBucket[k];
+              // (Each pair once, from its lower point: the bucket's points are in order, so start past q.)
+              let lo = start[bk];
+              let hi = start[bk + 1];
+              while (lo < hi) {
+                const mid = (lo + hi) >> 1;
+                if (items[mid] <= q) lo = mid + 1;
+                else hi = mid;
+              }
+              for (let m = lo; m < start[bk + 1]; m++) {
+                const r = items[m];
                 const J = S.ids[r] * 3;
                 const dx = x[J] - x[I];
                 const dy = x[J + 1] - x[I + 1];
@@ -343,7 +381,7 @@ export function simulate(s: Space, inp: SimInput, steps = knob("__steps") ?? 260
           x[I + 2] += dz * f;
         }
       }
-      if (repel && it % 2 === 1) repel();
+      if (repel && it % SELF_EVERY === SELF_EVERY - 1) repel();
       for (let i = 0; i < n; i++) {
         if (inp.side[i] && x[i * 3] < 0) x[i * 3] = 0;
         collide(i, it === iters - 1 ? fric : 0);
