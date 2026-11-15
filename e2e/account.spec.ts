@@ -1,4 +1,4 @@
-import { download, expect, expectStyle, openFold, openReview, startWithExample, test } from './fixtures';
+import { download, expect, expectStyle, fillStepPages, measureMe, openAccount, openFold, openFresh, openReview, startWithExample, stepButton, test } from './fixtures';
 
 test('account: save a pattern, rename it, back up, delete it, restore', async ({ page }, info) => {
   await startWithExample(page);
@@ -43,4 +43,32 @@ test('account: save a pattern, rename it, back up, delete it, restore', async ({
   await expect(rows.first()).toContainText('Wedding guest skirt');
   await rows.first().getByRole('button', { name: 'Open' }).click();
   await expectStyle(page, 'Skirt');
+});
+
+// A top or dress made from the collection with only the first measuring pages taken was drawn in Saved patterns
+// from those numbers alone, with no estimates for the rest of the upper body, so it drew as nothing and the browser
+// logged NaN in the drawing (tester personas, Nov 15). The console check fails this test on any such error.
+test('a dress made after the first measuring pages still draws in Saved patterns', async ({ page }) => {
+  const main = page.getByRole('main');
+  await openFresh(page);
+  await main.getByRole('button', { name: 'Begin' }).click();
+  await measureMe(page);
+  await fillStepPages(page);
+  await main.getByRole('button', { name: 'Choose what to make' }).click();
+  await main.getByRole('button', { name: 'The collection ›' }).click();
+  await main.getByRole('listitem').filter({ has: page.getByRole('heading', { name: 'Blush Shift', exact: true }) }).getByRole('button', { name: 'Make this look', exact: true }).click();
+  // The dress asks for the upper body measurements it needs, as a tester is asked.
+  await fillStepPages(page);
+  await expect(main.getByRole('button', { name: 'Change a detail' })).toBeVisible({ timeout: 30_000 });
+  // Printing keeps it in Saved patterns.
+  await stepButton(page, 'Print').click();
+  const dl = main.getByRole('button', { name: /^Download pattern/ });
+  await expect(dl).toBeEnabled({ timeout: 60_000 });
+  const got = page.waitForEvent('download');
+  await dl.click();
+  await got;
+  await openAccount(page);
+  const row = main.getByRole('region', { name: 'Saved patterns' }).getByRole('listitem').first();
+  await expect(row.getByRole('img', { name: /^Technical flat of the / })).toBeVisible();
+  await expect(row.locator('svg.techflat path').first()).toBeAttached();
 });
