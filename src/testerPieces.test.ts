@@ -105,6 +105,15 @@ describe.each(Object.entries(BODIES))('the other tester pieces on a %s body', (_
     expect(step(p, 'Line the neck and armholes')).toContain('stop every line of stitching 3 cm short of the shoulder edges');
   });
 
+  it("sets the Blush Shift's back dart about halfway across the body's back waist, not out past the shoulder blade", () => {
+    // Placed from the roomy back piece, the dart sat 13 cm from the centre back at a 109 hip (Cat, CLO, Nov 14).
+    const xs = piece(made('blush-shift', body).pieces, 'Dress back').lines.flatMap((l) => l.taggedPoints(8).pts.map((q) => q.x));
+    const middle = (Math.min(...xs) + Math.max(...xs)) / 2;
+    const half = body.waist! / 8;
+    expect(middle).toBeGreaterThan(half);
+    expect(middle).toBeLessThan(half + 2);
+  });
+
   it("writes the Black Pleated Skirt's waist to the millimetre, no finer", () => {
     expect(made('black-pleated-skirt', body).notes[0]).toMatch(/^Finished waist \d+(\.\d)? cm,/);
   });
