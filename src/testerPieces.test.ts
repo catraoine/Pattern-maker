@@ -133,8 +133,20 @@ describe.each(Object.entries(BODIES))('the other tester pieces on a %s body', (_
     expect(step(p, 'Hem the shell')).toContain('Leave the front facings unfolded at the hem for now');
     expect(step(p, 'Bag the lining')).toContain('finish the foot of each front facing');
     // The front and back side seams are still one length.
-    const [ft, fb] = sideEnds(piece(p.pieces, 'Jacket front'));
-    const [bt, bb] = sideEnds(piece(p.pieces, 'Jacket back'));
+    const [ft, fb] = sideEnds(piece(p.pieces, 'Vest front'));
+    const [bt, bb] = sideEnds(piece(p.pieces, 'Vest back'));
     expect(Math.hypot(fb.x - ft.x, fb.y - ft.y)).toBeCloseTo(Math.hypot(bb.x - bt.x, bb.y - bt.y), 1);
+  });
+
+  // Fit-test walk, Nov 15: the vest was called a jacket on its pieces, and asked for arm measurements it doesn't use.
+  it('calls the Black Vest a vest, and prints the same with or without arm measurements', () => {
+    const { arm_length: _a, upper_arm: _u, ...noArms } = body;
+    const print = (v: MeasurementValues) => made('black-vest', v);
+    const all = (p: ReturnType<typeof made>) => JSON.stringify([p.pieces.map((pc) => [pc.name, pc.labels.map((l) => l.text), pc.outline.taggedPoints(24).pts.map((q) => [q.x.toFixed(3), q.y.toFixed(3)])]), p.notes, p.guide.steps]);
+    const without = all(print(noArms));
+    expect(without).not.toMatch(/jacket/i);
+    expect(print(noArms).pieces.map((pc) => pc.name)).toContain('Vest front');
+    expect(all(print({ ...noArms, arm_length: 50, upper_arm: 36 }))).toBe(without);
+    expect(all(print({ ...noArms, arm_length: 64, upper_arm: 26 }))).toBe(without);
   });
 });

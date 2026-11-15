@@ -1173,7 +1173,8 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     s = { ...s, dropCm: by(s.dropCm, knee), breakCm: by(s.breakCm, back), buttonGapCm: by(s.buttonGapCm, back) };
   }
   if (s.kind === 'coat' && !m.waist_to_knee) throw new DraftError('Add your waist to knee measurement to make a coat.');
-  if (!(m.arm_length && m.upper_arm)) throw new DraftError(`Add your arm length and upper arm measurements for the ${s.kind}'s sleeves.`);
+  // The arms are for the sleeves only: a vest (no sleeves) is drafted without them (fit-test walk, Nov 15).
+  if (s.sleeve !== 'none' && !(m.arm_length && m.upper_arm)) throw new DraftError(`Add your arm length and upper arm measurements for the ${s.kind}'s sleeves.`);
   // A shoulder measured off a photo: the shoulder point moved out (or in) along the shoulder, so the armhole, and
   // the sleeve drafted to it, follow. Kept within what still sits on the body.
   if (s.shoulderCm && Number.isFinite(s.shoulderCm) && m.shoulder_length) {
@@ -1238,7 +1239,8 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
   // A rib hem band stands in for the last of the length, where the shell is long enough to give it up.
   const extra = Math.max(0, drop - base.drop - (rib ? RIB.hem : 0));
   const flare = (FLARE_PER_40[s.flare] * extra) / 40;
-  const KIND = s.kind === 'coat' ? 'Coat' : 'Jacket';
+  // A jacket without sleeves is a vest, on its pieces too (garments.ts outerWord). Only the names change.
+  const KIND = s.kind === 'coat' ? 'Coat' : s.sleeve === 'none' ? 'Vest' : 'Jacket';
   const rename = (pc: Piece): Piece => ({
     ...pc,
     name: pc.name.replace(/^Bodice/, KIND),
@@ -1383,10 +1385,13 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     armholeAllowance: 1,
     hemAllowance: rib ? 1 : 4,
   };
-  let sleeve = draftSleeve(base, m, sleeveStyle);
+  // A vest drafts a sleeve it never cuts (the draft's shape needs one); without measured arms it is drafted to stand-in
+  // arms, since nothing the vest prints comes from it (testerPieces.test.ts checks the pieces don't change with them).
+  const armsFor = s.sleeve === 'none' && !(m.arm_length && m.upper_arm) ? { ...m, arm_length: m.arm_length ?? Math.round((m.nape_to_waist ?? 41) * 1.45), upper_arm: m.upper_arm ?? Math.round(m.full_bust * 0.31) } : m;
+  let sleeve = draftSleeve(base, armsFor, sleeveStyle);
   // Rib cuffs: the sleeve stops a cuff's depth short, and ends in a band the sleeve blouses over a little.
   if (rib) {
-    const shorter = draftSleeve(base, m, { ...sleeveStyle, lengthCm: Math.max(sleeve.length.min, sleeve.lengthCm - RIB.cuff) });
+    const shorter = draftSleeve(base, armsFor, { ...sleeveStyle, lengthCm: Math.max(sleeve.length.min, sleeve.lengthCm - RIB.cuff) });
     const round = r1(shorter.hemCm * RIB.draw);
     sleeve = { ...shorter, hemCm: round, gathers: { hem: r1(shorter.hemCm - round) }, cuff: { kind: 'elastic', depth: RIB.cuff, round } };
   }

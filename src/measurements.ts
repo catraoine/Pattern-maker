@@ -788,8 +788,9 @@ export function weightChecks(v: MeasurementValues, weight: number | undefined, f
 }
 
 /** True when every measurement the garment always needs is filled in. */
-export function isComplete(v: MeasurementValues, garment: Garment = 'skirt', form: FormKind = 'womenswear'): boolean {
-  return fieldsFor(garment, form).every((f) => f.optional || has(v, f.id));
+/** `skip`: what this design doesn't draft from, so isn't needed (a vest's arms). */
+export function isComplete(v: MeasurementValues, garment: Garment = 'skirt', form: FormKind = 'womenswear', skip: readonly MeasurementId[] = []): boolean {
+  return fieldsFor(garment, form).every((f) => f.optional || skip.includes(f.id) || has(v, f.id));
 }
 
 export const hasHip = (v: MeasurementValues) => has(v, 'full_hip') && has(v, 'waist_to_hip');

@@ -36,7 +36,7 @@ updatePerson,
 recordMeasurements,
 withPeople,
 } from './account';
-import { validDetails, PatternChoices } from './garments';
+import { validDetails, PatternChoices, outerWord } from './garments';
 import type { Printable } from './screens/ExportScreen';
 import { describePattern } from './screens/describe';
 import { WelcomeScreen } from './screens/WelcomeScreen';
@@ -122,8 +122,16 @@ const MeasureStepsScreen = screen(() => import('./screens/MeasureStepsScreen').t
 /** Where each garment past the skirt, bodice and dress keeps its choices in the saved work. */
 const SLOT: Partial<Record<Garment, keyof Saved>> = { trousers: 'trousers', tee: 'tee', knit_dress: 'knitDress', hoodie: 'hoodie', jumpsuit: 'jumpsuit', lingerie: 'lingerie', jacket: 'jacket', coat: 'coat' };
 
-const ready = (values: MeasurementValues, unit: Unit, garment: Garment, form?: FormKind) =>
-  isComplete(values, garment, form) && !checkMeasurements(values, unit, garment, form).some((c) => c.level === 'error');
+/** The measurement checks, less "is needed" for what this design doesn't use (`skip`: a vest's arms). */
+const checksFor = (values: MeasurementValues, unit: Unit, garment: Garment, form?: FormKind, skip: readonly MeasurementId[] = [], body?: Parameters<typeof checkMeasurements>[4]) =>
+  checkMeasurements(values, unit, garment, form, body).filter((c) => !(skip.includes(c.id) && values[c.id] === undefined));
+const ready = (values: MeasurementValues, unit: Unit, garment: Garment, form?: FormKind, skip: readonly MeasurementId[] = []) =>
+  isComplete(values, garment, form, skip) && !checksFor(values, unit, garment, form, skip).some((c) => c.level === 'error');
+
+/** A vest (a jacket without sleeves) isn't drafted from the arms, so they're neither asked nor needed: the Black Vest
+ *  asked arm length and upper arm (fit-test walk, Nov 15). Saved jackets without a sleeve setting have sleeves. */
+const vestOf = (g: Garment, s: Pick<Saved, 'jacket'>) => g === 'jacket' && !!s.jacket && outerWord(s.jacket) === 'vest';
+const skipFor = (g: Garment, s: Pick<Saved, 'jacket'>): MeasurementId[] => (vestOf(g, s) ? ['arm_length', 'upper_arm'] : []);
 
 export default function App() {
   const [saved, setSaved] = usePersistent<Saved>('skirt', INITIAL);
@@ -341,8 +349,8 @@ export default function App() {
   const profile = profileName(account);
   const owner = personName(account, account.people.find((p) => p.id === ME)!);
 
-  const checks = checkMeasurements(measured, saved.unit, garment, form, { weight: person.weight });
-  const canLeaveMeasure = ready(measured, saved.unit, garment, form);
+  const checks = checksFor(measured, saved.unit, garment, form, skipFor(garment, saved), { weight: person.weight });
+  const canLeaveMeasure = ready(measured, saved.unit, garment, form, skipFor(garment, saved));
 
   // Corrections from this person's toile fittings go into every pattern drafted for them: the garment's
   // own toile first, then what the person's other toiles found that this one hasn't looked at.
@@ -631,9 +639,10 @@ export default function App() {
 
   /** Switch garment, going straight to the measurements the new one still needs, one page each. */
   const switchGarment = (g: Garment, next: Partial<Saved> = {}, to: View = step, using: MeasurementValues = measured, also: MeasurementId[] = []) => {
-    setSaved({ ...saved, ...plainCloth(g), ...next, garment: g });
+    const after = { ...saved, ...plainCloth(g), ...next, garment: g };
+    setSaved(after);
     const stays = to === 'style' || to === 'export';
-    if (stays && (!ready(using, saved.unit, g, form) || also.length)) measureFor(g, using, form, also);
+    if (stays && (!ready(using, saved.unit, g, form, skipFor(g, after)) || also.length)) measureFor(g, using, form, also, after);
     else setStep(to);
   };
 
@@ -641,10 +650,11 @@ export default function App() {
    * Not ready for this garment: take the measurements it still needs, one page each. When none are missing,
    * one of them fails a check, so open the list with the reason rather than going round the guided pages again.
    */
-  const measureFor = (g: Garment, using: MeasurementValues, on: FormKind = form, also: MeasurementId[] = []) => {
-    const wrong = isComplete(using, g, on) && checkMeasurements(using, saved.unit, g, on).find((c) => c.level === 'error');
-    if (wrong) sendToMeasure(`Check your ${g === 'tee' ? 'T-shirt' : g} measurements: ${wrong.message}`);
-    else openSteps({ kind: 'for', garment: g, ...(also.length ? { also } : {}) });
+  const measureFor = (g: Garment, using: MeasurementValues, on: FormKind = form, also: MeasurementId[] = [], s: Pick<Saved, 'jacket'> = saved) => {
+    const skip = skipFor(g, s);
+    const wrong = isComplete(using, g, on, skip) && checksFor(using, saved.unit, g, on, skip).find((c) => c.level === 'error');
+    if (wrong) sendToMeasure(`Check your ${g === 'tee' ? 'T-shirt' : vestOf(g, s) ? 'vest' : g} measurements: ${wrong.message}`);
+    else openSteps({ kind: 'for', garment: g, ...(also.length ? { also } : {}), ...(skip.length ? { skip } : {}), ...(vestOf(g, s) ? { word: 'vest' } : {}) });
   };
 
   // Why Style or Print didn't open while measuring, shown over the guided pages for a moment.
@@ -670,7 +680,7 @@ export default function App() {
   const switchPerson = (id: string, to: View = step) => {
     const who = account.people.find((p) => p.id === id) ?? person;
     setAccount({ ...account, active: who.id });
-    if ((to === 'style' || to === 'export') && !ready(who.values, saved.unit, garment, formOf(who))) measureFor(garment, who.values, formOf(who));
+    if ((to === 'style' || to === 'export') && !ready(who.values, saved.unit, garment, formOf(who), skipFor(garment, saved))) measureFor(garment, who.values, formOf(who));
     else setStep(to);
   };
 
@@ -892,7 +902,7 @@ export default function App() {
               }}
               resume={
                 account.onboarded && canLeaveMeasure
-                  ? { garment: GARMENT_NAME[garment], onResume: () => setStep('style'), onSaved: () => setStep('account'), onNew: startNew }
+                  ? { garment: vestOf(garment, saved) ? 'vest' : GARMENT_NAME[garment], onResume: () => setStep('style'), onSaved: () => setStep('account'), onNew: startNew }
                   : undefined
               }
             />

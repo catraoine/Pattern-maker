@@ -461,6 +461,10 @@ export function oversizeOuter(c: OuterChoices): OuterChoices {
   return { ...c, shaping: 'boxy', pads: 'none', sleeve: c.sleeve === 'raglan' || c.sleeve === 'none' ? c.sleeve : 'straight' };
 }
 
+/** What a jacket or coat is called: a jacket cut without sleeves is a vest (the Black Vest was named a jacket on every
+ *  screen and piece, fit-test walk, Nov 15). */
+export const outerWord = (c: Pick<OuterChoices, 'garment' | 'sleeve'>): 'jacket' | 'coat' | 'vest' => (c.garment === 'jacket' && c.sleeve === 'none' ? 'vest' : c.garment);
+
 /** A plain name, such as "Hip-length single-breasted jacket with notched lapels". */
 export function describeOuter(c: OuterChoices) {
   const front = c.front === 'double' ? 'double-breasted' : c.front === 'zip' ? 'zip-front' : 'single-breasted';
@@ -468,8 +472,8 @@ export function describeOuter(c: OuterChoices) {
   const shape = c.flare === 'flared' ? ' flared' : c.garment === 'coat' && c.flare === 'a_line' ? ' A-line' : '';
   const big = c.fit === 'oversized' ? ' oversized' : '';
   return c.collar === 'collarless'
-    ? `${OUTER_LENGTH_WORDS[c.length]}${big} collarless ${front}${shape} ${c.garment}`
-    : `${OUTER_LENGTH_WORDS[c.length]}${big} ${front}${shape} ${c.garment} ${collar}`;
+    ? `${OUTER_LENGTH_WORDS[c.length]}${big} collarless ${front}${shape} ${outerWord(c)}`
+    : `${OUTER_LENGTH_WORDS[c.length]}${big} ${front}${shape} ${outerWord(c)} ${collar}`;
 }
 
 /** A saved pattern's choices. Skirt choices predate bodices, so they carry no garment field. */

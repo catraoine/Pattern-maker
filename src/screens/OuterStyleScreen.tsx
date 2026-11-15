@@ -5,7 +5,7 @@ import { outerSpec } from '../engine/spec';
 import { FinishedTable, finishedLines } from '../ui/FinishedTable';
 import { OuterDraft, OuterMeasurements, lapelled, outerDrop } from '../engine/outerwear';
 import { outerFlat, wornLines, wornShapes } from '../engine/flat';
-import { OuterChoices, describeOuter, outerAllowed, outerGroups, oversizeOuter } from '../garments';
+import { OuterChoices, describeOuter, outerAllowed, outerWord, outerGroups, oversizeOuter } from '../garments';
 import { TestingTag } from '../ui/TestingTag';
 import { TechFlatView } from '../ui/TechFlatView';
 import { AllRound } from '../ui/AllRound';
@@ -75,6 +75,8 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const [fit, setFit] = useState(false);
   const canFit = !!easeMap?.length && can('easeMap');
   const kind = choices.garment;
+  // What it's called on this screen: a jacket without sleeves is a vest.
+  const word = outerWord(choices);
   const pieces = useMemo(() => draft?.pieces ?? [], [draft]);
   const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
   const flat = useMemo(() => (draft ? outerFlat(draft) : undefined), [draft]);
@@ -125,7 +127,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           ['vent', 'Vent'],
         ]}
         help={{
-          hem: `Draw across where you want the hem: it takes the nearest of the ${kind}’s lengths. Curve it up to the front edge at the centre for a cutaway front.`,
+          hem: `Draw across where you want the hem: it takes the nearest of the ${word}’s lengths. Curve it up to the front edge at the centre for a cutaway front.`,
           fit: `Draw down the side: closer to the body for a closer fit${kind === 'coat' ? ', and out from the hip to the hem for an A-line coat' : ''}.`,
           seam: 'Draw from the armhole through the bust down to the waist for princess seams. Any other line keeps the darts.',
           sleeve: OUTER_SLEEVE_HELP,
@@ -179,7 +181,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       onPrint={onNext}
       flat={flat}
       undo={undo}
-      label={`your ${kind}`}
+      label={`your ${word}`}
       garment={kind}
       name={title}
       metres={draft ? outerFabricMetres(draft) : undefined}
@@ -191,7 +193,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       onMode={onMode}
       finished={
         draft && (
-          <FinishedTable lines={finishedLines(outerSpec(values as OuterMeasurements, draft))} noun={kind === 'coat' ? 'Coat' : 'Jacket'}>
+          <FinishedTable lines={finishedLines(outerSpec(values as OuterMeasurements, draft))} noun={word === 'coat' ? 'Coat' : word === 'vest' ? 'Vest' : 'Jacket'}>
             <p className="muted small">
               Room to wear it {kind === 'coat' ? 'over a jacket or a thick jumper' : 'over a blouse or a fine knit'}
               {extra.bust ? `, ${extra.bust} cm of the bust ease for your heavy fabric` : ''}.

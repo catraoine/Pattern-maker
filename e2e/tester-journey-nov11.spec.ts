@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { expect, fillStepPages, measureMe, openAccount, openFold, openFresh, startWithExample, test } from './fixtures';
+import { expect, fillStepPages, measureMe, openAccount, openFold, openFresh, startWithExample, stepButton, test } from './fixtures';
 
 // The tester journey check (Nov 11, 2026): what a fit tester would trip on, and Cat's "fix all".
 
@@ -80,4 +80,32 @@ test('a collection top below the waist asks for the hip first, so Style drafts i
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('pattern-maker:account') ?? '{}'));
   expect(JSON.stringify(saved)).toContain('"waist_to_hip"');
   await expect(main(page).getByText(/Add your full hip and waist to hip/)).toHaveCount(0);
+});
+
+// Fit-test walk, Nov 15: the Black Vest was called a jacket while measuring, on Your look and on Print, and asked for
+// the arm length and upper arm, which a vest isn't drafted from.
+test('the Black Vest is called a vest throughout and asks for no arm measurements', async ({ page }) => {
+  const m = main(page);
+  await openFresh(page);
+  await m.getByRole('button', { name: 'Begin' }).click();
+  await measureMe(page);
+  await fillStepPages(page);
+  await m.getByRole('button', { name: 'Choose what to make' }).click();
+  await m.getByRole('button', { name: 'The collection ›' }).click();
+  await m.getByRole('listitem').filter({ has: page.getByRole('heading', { name: 'The Black Vest Set', exact: true }) }).getByRole('button', { name: 'Make the vest', exact: true }).click();
+  // Any pages it still needs are the vest's, and none is an arm.
+  await expect(m.getByRole('textbox').first().or(m.getByRole('button', { name: 'Change a detail' }))).toBeVisible({ timeout: 30_000 });
+  if (await m.getByRole('textbox').count()) {
+    await expect(m.locator('.eyebrow').first()).not.toContainText(/jacket/i);
+    await fillStepPages(page);
+  }
+  const taken = await page.evaluate(() => JSON.parse(localStorage.getItem('pattern-maker:account') ?? '{}').people?.[0]?.values ?? {});
+  expect(taken.arm_length).toBeUndefined();
+  expect(taken.upper_arm).toBeUndefined();
+  await expect(m.getByRole('button', { name: 'Change a detail' })).toBeVisible({ timeout: 30_000 });
+  await expect(m).not.toContainText(/jacket/i);
+  await expect(m.getByRole('columnheader', { name: 'Vest' })).toBeVisible();
+  await stepButton(page, 'Print').click();
+  await expect(m.getByText(/^Vest front: cut 2/)).toBeVisible({ timeout: 30_000 });
+  await expect(m.getByRole('listitem').filter({ hasText: /^Jacket/ })).toHaveCount(0);
 });
