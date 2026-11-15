@@ -146,8 +146,8 @@ test('in the home-screen app, work from Safari comes across with a pasted link',
   });
   await app.goto('/');
   await app.keyboard.press('Escape');
-  await main(app).getByRole('button', { name: 'Started in Safari? Bring your work here' }).click();
-  await main(app).getByLabel('Link from Safari').fill(link);
+  await main(app).getByRole('button', { name: 'Started in your browser? Bring your work here' }).click();
+  await main(app).getByLabel('Link you copied').fill(link);
   await main(app).getByRole('button', { name: 'Bring it here' }).click();
   await expect(h1(app, /Your work/)).toBeVisible();
   await main(app).getByRole('button', { name: 'Bring it here' }).click();
