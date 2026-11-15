@@ -32,6 +32,8 @@ import { cropHold } from './cropHold';
 import { flutterPlace } from './flutter';
 import { closeBalloonHem } from './balloonHem';
 import { droopShoulders } from './vestShoulder';
+import { topPeplumSeam } from './peplumSeam';
+import { puffUnder } from './puffUnder';
 import { layTurnbackCuff } from './turnbackCuff';
 import { capeForDrape } from './cape';
 import { heavyChainK } from './heavyHold';
@@ -5150,6 +5152,9 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
   // side of it, not in a crease the mesh draws as a row of beads.
   if (!knob('__noFoldSmooth')) {
     const onC = new Set(centre);
+    const sewnAll = new Set(seams.flatMap(({ i, j, k }) => [i, j, k]));
+    // (A top's points sewn to its own peplum, not a dress's to its skirt: peplumSeam.ts.)
+    const toPeplum = topPeplumSeam(B.panels, seams);
     for (const p of B.panels) {
       // (A skirt cut on the fold, or a top's centre back seam: the same smoothing either way.)
       const skirtFold = (p.role === 'peplum-front' || p.role === 'peplum-back') && !!(p.mesh.runs.fold?.length || (p.mesh.runs.centre?.length && !knob('__noSkirtCentre')));
@@ -5173,16 +5178,8 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
       // (Nor a top's waist with a peplum sewn to it: drawn out at the centre back, a bust-dart-only top's waist stood
       // 1.6 to 1.9 cm off its balloon peplum in wool, cotton and linen, and fell back to the drawing, Nov 14.)
       const held = new Set<number>();
-      if (p.pc.meta.tier && !knob('__tierHemFree')) {
-        const sewn = new Set(seams.flatMap(({ i, j, k }) => [i, j, k]));
-        for (const i of (p.mesh.runs.hem ?? []).flat()) if (sewn.has(p.base + i)) held.add(i);
-      }
-      if (topCentre && !knob('__topWaistFree')) {
-        const sewn = new Set(seams.flatMap(({ i, j, k }) => [i, j, k]));
-        pts.forEach((_, i) => {
-          if (sewn.has(p.base + i)) held.add(i);
-        });
-      }
+      if (p.pc.meta.tier && !knob('__tierHemFree')) for (const i of (p.mesh.runs.hem ?? []).flat()) if (sewnAll.has(p.base + i)) held.add(i);
+      if (topCentre && !knob('__topWaistFree')) for (const g of toPeplum) if (g >= p.base && g < p.base + pts.length) held.add(g - p.base);
       const band = (i: number) => Math.abs(pts[i].x) < (knob('__foldBand') ?? 2.5) && !onC.has(p.base + i) && pts[i].y > yTop && pts[i].y < ventTop && !held.has(i);
       for (let it = 0; it < (knob('__foldIt') ?? 6); it++)
         pts.forEach((_, i) => {
@@ -5434,20 +5431,14 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
       // (The seam into the armhole stays where it is sewn: on a short puff the underarm is well down the sleeve, and
       // stood out with the crown it pulled 3 cm off the bodice's armhole, All round quality 2026-11-07.)
       const seam = knob('__puffSeam') === 0 ? [] : (p.mesh.runs.armhole ?? []).flat().map((i) => p.mesh.pts[i]);
-      // (The crown's gathers lie over the top of the arm, between the notches: underneath, where the sleeve's seam meets
-      // the bodice's side, it is cut plain, so it stands out less there, and eases out further from the seam (16 cm
-      // over the top, more underneath). Stood out as far all round from 12 cm, it pulled the underarm to 2.7 times its
-      // cut and puff-sleeved dresses in cotton, wool and linen fell back to the drawing: the How it works film's dress,
-      // Nov 15. 19 of 20 puffs pass now, 14 before.)
       const half = Math.max(...p.mesh.pts.map((q) => Math.abs(q.x))) || 1;
-      const under = knob('__puffUnder') ?? 0.3;
       p.mesh.pts.forEach((q, i) => {
         const t = (q.y - y0) / H;
         let dc = Infinity;
         for (const c of seam) dc = Math.min(dc, Math.hypot(c.x - q.x, c.y - q.y));
-        const s = Math.min(1, Math.max(0, (Math.abs(q.x) / half - 0.55) / 0.45));
-        const ts = seam.length ? Math.min(1, dc / ((knob('__puffRamp') ?? 16) * (1 + (knob('__puffRampUnder') ?? 0.5) * s))) : 1;
-        const off = P * Math.sin(Math.PI * Math.min(1, t * 1.05)) * ts * ts * (3 - 2 * ts) * (1 - (1 - under) * s * s * (3 - 2 * s));
+        const { ramp, stand } = puffUnder(q.x, half);
+        const ts = seam.length ? Math.min(1, dc / ramp) : 1;
+        const off = P * Math.sin(Math.PI * Math.min(1, t * 1.05)) * ts * ts * (3 - 2 * ts) * stand;
         const I = (p.base + i) * 3;
         const e = res[I] >= 0 ? 1 : -1;
         const r = [res[I] * e - arm.a[0], res[I + 1] - arm.a[1], res[I + 2] - arm.a[2]];
@@ -6817,7 +6808,7 @@ export function drapeOuter(sp: Space, d: OuterDraft, o: DrapeOptions = {}): Drap
     { pad: d.pads, stiff: !!o.crisp || !!o.stiffBend, boxCut: d.base.waistDarts.front + d.base.waistDarts.back < 0.5, stiffMax: d.hood ? HOOD_BEND : stiffBendNow(), lieLapel: !!d.lapel && base.front.waistCentre.y - d.lapel.breakPt.y > 10, layExtension: true, ...o, buttons: { y: d.buttons.at, r: d.buttons.sizeCm / 2, waistY: base.front.waistCentre.y, ...(d.buttons.columns.length > 1 ? { x: d.buttons.columns } : {}), ...(d.buttons.show ? { show: { y: d.buttons.show.y, x: d.buttons.show.columns } } : {}) }, ...(o.crisp ? { boxy: false, bendK: d.hood ? HOOD_BEND : stiffBendNow(), thick: Math.min(o.thick ?? STIFF_THICK, STIFF_THICK) } : o.stiffBend ? { bendK: Math.min(d.hood ? HOOD_BEND : stiffBendNow(), o.stiffBend), thick: Math.min(o.thick ?? STIFF_THICK, STIFF_THICK) } : {}), pinFront: knob("__pinAll") ? [{ y: 52, span: 12 }] : knob('__oldPins') || d.hood ? d.buttons.at.map((y) => ({ y, span: 2 })) : frontPins(d.buttons.at, shell) },
   );
   // (A sleeveless jacket's shoulder past the form's falls over the arm: vestShoulder.ts.)
-  if (!shell.some((pc) => /sleeve/i.test(pc.name)) && !knob('__noVestDroop')) droopShoulders(out, sp);
+  if (d.sleeveless && !knob('__noVestDroop')) droopShoulders(out, sp);
   if (cs)
     for (const pnl of out.panels) {
       const Y = seamAt(pnl.pc);

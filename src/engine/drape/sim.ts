@@ -190,7 +190,7 @@ export function simulate(s: Space, inp: SimInput, steps = knob("__steps") ?? 260
   // Cloth barely stretches along its length: a heavy skirt pulls a bodice down only so far. The few iterations above
   // can't carry its whole weight up to the shoulders, so after them each step every edge that runs down the cloth is
   // held to near its cut length, top first, the lower end drawn up to the upper (a hanging chain, settled from the top).
-  const SELF_EVERY = knob('__selfEvery') ?? inp.self?.every ?? 2;
+  const SELF_EVERY = Math.max(1, Math.round(knob('__selfEvery') ?? inp.self?.every ?? 2));
   const LIM = knob('__strain') ?? 1.06;
   const EK = knob('__edgeK') ?? inp.edgeK ?? 1;
   const CHK = knob('__chainK') ?? 1;
@@ -218,6 +218,7 @@ export function simulate(s: Space, inp: SimInput, steps = knob("__steps") ?? 260
     const bucketOf = new Int32Array(n);
     const start = new Int32Array(n + 1);
     const items = new Int32Array(n);
+    const fillAt = new Int32Array(n);
     let pass = 0;
     const slot = (h: number) => {
       let k = (Math.imul(h, 0x9e3779b1) >>> 0) & (size - 1);
@@ -241,7 +242,7 @@ export function simulate(s: Space, inp: SimInput, steps = knob("__steps") ?? 260
         start[slotBucket[k] + 1]++;
       }
       for (let b = 0; b < buckets; b++) start[b + 1] += start[b];
-      const fillAt = start.slice(0, buckets);
+      fillAt.set(start.subarray(0, buckets));
       for (let q = 0; q < n; q++) items[fillAt[bucketOf[q]]++] = q;
       for (let q = 0; q < n; q++) {
         const I = S.ids[q] * 3;
@@ -381,7 +382,8 @@ export function simulate(s: Space, inp: SimInput, steps = knob("__steps") ?? 260
           x[I + 2] += dz * f;
         }
       }
-      if (repel && it % SELF_EVERY === SELF_EVERY - 1) repel();
+      // (Counted back from the step's last iteration, so the cloth is always held apart last, as at every second.)
+      if (repel && (iters - 1 - it) % SELF_EVERY === 0) repel();
       for (let i = 0; i < n; i++) {
         if (inp.side[i] && x[i * 3] < 0) x[i * 3] = 0;
         collide(i, it === iters - 1 ? fric : 0);

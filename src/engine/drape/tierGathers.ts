@@ -39,7 +39,7 @@ export function layTierGathers(panels: TierPanel[], res: Float64Array, bodyR: (a
     const a = Math.atan2(Math.abs(x), z);
     // (Easing out over the last few cm to the centre front and back, where the half sewn meets its mirror: at full
     // depth there the two halves' folds met edge to edge, and a light jagged strip stood out down the front of a
-    // tiered pencil maxi seen from the side, Cat's sweep Nov 13.)
+    // tiered pencil maxi seen from the side, the Nov 13 sweep.)
     const fromCentre = rho * Math.min(a, Math.PI - a);
     const cf = knob('__gatherCentreFade') ?? 6;
     const amp = A * Math.min(1, (c - top) / fadeIn) * (cf > 0 ? Math.min(1, fromCentre / cf) : 1);

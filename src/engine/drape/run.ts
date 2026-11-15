@@ -108,15 +108,19 @@ export function rehydrate<T>(v: T): T {
 export function runDrape(job: DrapeJob): DrapedLite {
   const first = sewDrape(job);
   if (first.quality?.ok !== false || knob('__noSecondTry')) return first;
+  // (A cape is shown as its drawing whatever the sewing: no second try can pass it, see sewDrape.)
+  if (first.quality.problems?.some((q) => q.part === 'Cape')) return first;
   // A tiered skirt in a soft light cloth (a polyester) can crumple into a fin in its bottom tier when its gathers start
-  // 3 cm deep: started at 2, it sews clean (2 of 189 tiered skirts fell back to the drawing, Cat's sweep Nov 13).
-  if (first.quality.problems?.some((q) => q.check === 'fin' && /^Tier /.test(q.part))) {
+  // 3 cm deep: started at 2, it sews clean (2 of 189 tiered skirts fell back to the drawing, the Nov 13 sweep).
+  const tierFin = !!first.quality.problems?.some((q) => q.check === 'fin' && /^Tier /.test(q.part));
+  if (tierFin) {
     const tiers = sewDrape(job, undefined, 2);
     if (tiers.quality?.ok) return tiers;
   }
   const sleeved = (job.kind === 'bodice' || job.kind === 'dress') && !!job.sleeve?.pieces?.length;
   if (!sleeved) return first;
-  const second = sewDrape(job, SECOND_HOLD);
+  // (A sleeved tiered dress that needed the shallower gathers keeps them on its second try too.)
+  const second = sewDrape(job, SECOND_HOLD, tierFin ? 2 : undefined);
   return second.quality?.ok ? second : first;
 }
 
