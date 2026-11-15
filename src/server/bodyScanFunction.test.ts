@@ -5,12 +5,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 vi.mock('./blobCounts', () => {
   const data = new Map<string, number>();
   return {
-    blobCounts: () => ({
-      get: async (k: string) => data.get(k) ?? 0,
+    // Each named store counts on its own, as Netlify Blobs stores do.
+    blobCounts: (name: string) => ({
+      get: async (k: string) => data.get(`${name}:${k}`) ?? 0,
       take: async (k: string, cap: number) => {
-        const n = data.get(k) ?? 0;
+        const n = data.get(`${name}:${k}`) ?? 0;
         if (n >= cap) return false;
-        data.set(k, n + 1);
+        data.set(`${name}:${k}`, n + 1);
         return true;
       },
     }),
@@ -58,5 +59,12 @@ describe('body-scan function, end to end', () => {
     expect(await call('example-code')).toEqual({ status: 502, body: { ok: false, error: 'failed' } });
     expect(log.mock.calls.flat().join(' ')).toContain('401');
     log.mockRestore();
+  });
+
+  // Last, since it uses up this address's checks for the day.
+  it('stops answering after 10 code checks a day from one address, even for a right code', async () => {
+    vi.stubGlobal('fetch', async () => Response.json({ token: 'pass-3' }));
+    for (let i = 0; i < 10; i++) await call(`guess-${i}`);
+    expect(await call('example-code')).toEqual({ status: 429, body: { ok: false, error: 'limit_reached' } });
   });
 });

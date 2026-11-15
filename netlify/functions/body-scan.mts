@@ -2,7 +2,7 @@
 // x-tester-code header). Needs BODYGRAM_API_KEY in Netlify: Site configuration > Environment variables.
 import { createHash } from 'node:crypto';
 import { blobCounts } from '../../src/server/blobCounts';
-import { isTesterCode } from '../../src/photo/limit';
+import { isTesterCode, takeAllowance } from '../../src/photo/limit';
 import { newScanToken, scanUrl, takeScanPass } from '../../src/server/bodyScan';
 
 // Provided by the Netlify runtime.
@@ -10,6 +10,11 @@ declare const Netlify: { env: { get(name: string): string | undefined } };
 
 // Testers are counted by a hash of their IP address, so no address is stored.
 const visitorId = (ip: string | undefined) => createHash('sha256').update(ip ?? 'unknown').digest('hex').slice(0, 24);
+
+// Code checks here are capped as the tester check's are (tester.mts), counted before the code is looked at: without
+// it, this function answered "tester or not" up to 10 times a minute, so codes could be guessed here instead
+// (security pass, Nov 15). A tester makes a scan or two a day.
+const CODE_CAPS = { visitor: 10, all: 500 };
 
 export default async (req: Request, context: { ip?: string }) => {
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
@@ -23,6 +28,13 @@ export default async (req: Request, context: { ip?: string }) => {
   // The code comes in the body, as the tester check's does: a header can't carry every character a code might have
   // (an accented letter, say), and the two checks must agree. The header is still read, for older copies of the app.
   const code = typeof sent === 'string' ? sent : req.headers.get('x-tester-code');
+  try {
+    if ((await takeAllowance(blobCounts('body-scan-code-limits'), visitorId(context.ip), new Date(), CODE_CAPS)) !== 'ok') return Response.json({ ok: false, error: 'limit_reached' }, { status: 429 });
+  } catch (e) {
+    // Fails closed: an uncounted check is one the cap can't stop.
+    console.error('body scan code limit failed', e);
+    return Response.json({ ok: false, error: 'busy' }, { status: 503 });
+  }
   if (!isTesterCode(code, Netlify.env.get('TESTER_CODES'))) {
     // Never the code itself: only whether one was sent, so a stale code on a phone shows up in the log.
     console.error('body scan: not a tester code', code ? '(a code was sent)' : '(no code sent)');
