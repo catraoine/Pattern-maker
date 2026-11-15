@@ -498,12 +498,8 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
                 <ProjectorMode pieces={made.pieces} unit={unit} onClose={() => setProjecting(false)} />
               </Suspense>
             )}
-            {/* The file is longer than the tiles: a copy shop prints and charges for every page (the tester walk, 2026-10-27). */}
-            {!projector && paper !== 'a0' && ready && pdf && pdf.total > pages && (
-              <p className="small muted">
-                <b>At a copy shop,</b> ask for pages 2 to {pages + 1} of the PDF. The rest are the cover, the cutting layout and the sewing steps.
-              </p>
-            )}
+            {/* No "ask for pages 2 to N" line here: the PDF they download is what they print, cover, layout and steps
+                included (Cat, Nov 15). The cover carries the pattern code testers need for their report. */}
             {!projector && paper !== 'a0' && (
               <details className="small fold-link">
                 <summary>How the pages fit together</summary>

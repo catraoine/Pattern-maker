@@ -4,6 +4,7 @@ import { TESTER_REPORT_URL } from '../testerReport';
 export function TesterReport({ lead = 'Fit tester?' }: { lead?: string }) {
   return (
     <div className="stack tester-report">
+      <p className="tester-report-label">Fit testers</p>
       <p className="small">
         {lead} Your report goes on the tester form. Have the pattern code from your PDF cover ready.
       </p>
