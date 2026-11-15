@@ -5169,10 +5169,18 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
       const ventTop = p.mesh.runs.vent?.length && !knob('__foldVent') ? Math.min(...p.mesh.runs.vent.flat().map((i) => pts[i].y)) : Infinity;
       // (Nor a tier's hem with the next tier gathered onto it: drawn out to the cloth beside it, it stood 2 to 3 cm off the
       // tier below's top at the centre front and back, 2026-11-13.)
+      // (Nor a top's waist with a peplum sewn to it: drawn out at the centre back, a bust-dart-only top's waist stood
+      // 1.6 to 1.9 cm off its balloon peplum in wool, cotton and linen, and fell back to the drawing, Nov 14.)
       const held = new Set<number>();
       if (p.pc.meta.tier && !knob('__tierHemFree')) {
         const sewn = new Set(seams.flatMap(({ i, j, k }) => [i, j, k]));
         for (const i of (p.mesh.runs.hem ?? []).flat()) if (sewn.has(p.base + i)) held.add(i);
+      }
+      if (topCentre && !knob('__topWaistFree')) {
+        const sewn = new Set(seams.flatMap(({ i, j, k }) => [i, j, k]));
+        pts.forEach((_, i) => {
+          if (sewn.has(p.base + i)) held.add(i);
+        });
       }
       const band = (i: number) => Math.abs(pts[i].x) < (knob('__foldBand') ?? 2.5) && !onC.has(p.base + i) && pts[i].y > yTop && pts[i].y < ventTop && !held.has(i);
       for (let it = 0; it < (knob('__foldIt') ?? 6); it++)
