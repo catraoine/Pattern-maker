@@ -14,7 +14,7 @@ test('ties: a pussy bow, a sash and belt loops', async ({ page }, info) => {
   await addCloserFit(page, 'Bodice');
 
   await chooseChip(page, 'Collar', 'Pussy bow');
-  await expect(main.getByText(/pussy-bow bodice/i).first()).toBeAttached();
+  await expect(main.getByText(/pussy-bow top/i).first()).toBeAttached();
   await page.screenshot({ path: info.outputPath('pussy-bow.png'), fullPage: true });
   // A bow ties at the front, so it can't go with a button front.
   await chooseChip(page, 'Opening', 'Front buttons');

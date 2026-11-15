@@ -183,9 +183,9 @@ describe('the choices', () => {
   });
 
   it('names them plainly', () => {
-    expect(describeBodice({ ...DEFAULT_BODICE, neckline: 'one_shoulder' })).toBe('waist-length one-shoulder bodice');
-    expect(describeBodice({ ...DEFAULT_BODICE, neckline: 'cowl' })).toBe('waist-length cowl-neck bodice');
-    expect(describeBodice({ ...DEFAULT_BODICE, peplum: 'flared' })).toBe('waist-length crew neck bodice with a flared peplum');
+    expect(describeBodice({ ...DEFAULT_BODICE, neckline: 'one_shoulder' })).toBe('waist-length one-shoulder top');
+    expect(describeBodice({ ...DEFAULT_BODICE, neckline: 'cowl' })).toBe('waist-length cowl-neck top');
+    expect(describeBodice({ ...DEFAULT_BODICE, peplum: 'flared' })).toBe('waist-length crew neck top with a flared peplum');
     expect(bodiceDetails({ ...DEFAULT_BODICE, neckline: 'one_shoulder', sleeve: 'short' })).toBe('a one-shoulder neckline');
   });
 
@@ -352,8 +352,8 @@ describe('with the corsetry and the slip skirt', () => {
     expect(validDetails({ ...DEFAULT_BODICE, neckline: 'strapless', peplum: 'flared' })).toMatchObject({ structure: 'boned', peplum: 'flared' });
     expect(validDetails({ ...DEFAULT_BODICE, neckline: 'strapless', peplum: 'flared' }, 'dress').peplum).toBe('none');
     expect(validDetails({ ...DEFAULT_BODICE, neckline: 'cami', peplum: 'gathered' }).peplum).toBe('gathered');
-    expect(describeBodice({ ...DEFAULT_BODICE, neckline: 'strapless', peplum: 'flared' })).toBe('boned strapless bodice with a flared peplum');
-    expect(describeBodice({ ...DEFAULT_BODICE, neckline: 'cami', peplum: 'gathered' })).toBe('waist-length cami bodice with spaghetti straps and a gathered peplum');
+    expect(describeBodice({ ...DEFAULT_BODICE, neckline: 'strapless', peplum: 'flared' })).toBe('boned strapless top with a flared peplum');
+    expect(describeBodice({ ...DEFAULT_BODICE, neckline: 'cami', peplum: 'gathered' })).toBe('waist-length cami top with spaghetti straps and a gathered peplum');
   });
 });
 

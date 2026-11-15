@@ -759,21 +759,22 @@ function wrapAllowed(id: string, opt: string): boolean {
   return true;
 }
 
-/** A top below the shoulders, named: "boned strapless sweetheart bodice", "cami bodice with spaghetti straps". */
-function topWords(v: BodiceChoices, length: string) {
+/** A top below the shoulders, named: "boned strapless sweetheart top", "cami top with spaghetti straps". On its own it is
+ *  a "top", the word the tester picked (Cat, Nov 15); as the upper part of a dress it stays a "bodice". */
+function topWords(v: BodiceChoices, length: string, noun: 'top' | 'bodice' = 'bodice') {
   const straps = v.neckline === 'cami' ? ' with spaghetti straps' : v.neckline === 'halter' ? ' tied at the neck' : '';
   const shirred = isShirred(v) ? `${straps ? ' and' : ' with'} a shirred back` : '';
-  return `${isBoned(v) ? 'boned ' : length}${NECK_WORDS[v.neckline]} bodice${straps}${shirred}`;
+  return `${isBoned(v) ? 'boned ' : length}${NECK_WORDS[v.neckline]} ${noun}${straps}${shirred}`;
 }
 
-/** A name with its peplum: "boned strapless bodice with a flared peplum". */
+/** A name with its peplum: "boned strapless top with a flared peplum". */
 function withPeplum(name: string, v: BodiceChoices) {
   if (!v.peplum || v.peplum === 'none') return name;
   return `${name}${/ with /.test(name) ? ' and' : ' with'} a ${v.peplumSize === 'big' ? 'big ' : ''}${v.peplum} peplum${v.peplumHem === 'high_low' ? ', longer at the back' : ''}`;
 }
 const LENGTH_WORDS: Record<BodiceLength, string> = { cropped: 'cropped', waist: 'waist-length', high_hip: 'high-hip-length', hip: 'hip-length', long: 'long' };
 
-/** The style seam as a word before "bodice": "empire-waist", "side-panel", "yoked", "front-yoke". */
+/** The style seam as a word before "top": "empire-waist", "side-panel", "yoked", "front-yoke". */
 function seamAdjective(v: BodiceChoices) {
   const kind = seamOf(v);
   if (kind === 'empire') return 'empire-waist';
@@ -819,7 +820,7 @@ export function bodiceDetails(c: BodiceChoices) {
 
 export function describeBodice(c: BodiceChoices) {
   const v = validDetails(c);
-  if (isTop(v.neckline)) return withPeplum(topWords(v, `${LENGTH_WORDS[v.length]} `), v);
+  if (isTop(v.neckline)) return withPeplum(topWords(v, `${LENGTH_WORDS[v.length]} `, 'top'), v);
   const peplum = v.peplum && v.peplum !== 'none' ? `a ${v.peplumSize === 'big' ? 'big ' : ''}${v.peplum} peplum${v.peplumHem === 'high_low' ? ' longer at the back' : ''}` : '';
   const sleeveWords = sleeveWordsOf(sleeveOf(v));
   const backWords = v.back && v.back !== 'plain' ? BACK_WORDS[v.back] : '';
@@ -835,5 +836,5 @@ export function describeBodice(c: BodiceChoices) {
   const shapedHem = isShaped(c.hem) && (c.length !== 'waist' || dropped) ? ', with a shaped hem' : '';
   // Oversized is a cut of its own, so it is named; the other fits are read off the drawing.
   const big = v.fit === 'oversized' ? 'oversized ' : '';
-  return `${lengthWords}${big}${neck}${princess}${seam} bodice${sleeve}${dropped ? `, ${Math.round(c.dropCm!)} cm below the waist` : ''}${shapedHem}`;
+  return `${lengthWords}${big}${neck}${princess}${seam} top${sleeve}${dropped ? `, ${Math.round(c.dropCm!)} cm below the waist` : ''}${shapedHem}`;
 }
