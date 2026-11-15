@@ -651,7 +651,7 @@ function ringArc(path: Path, r: number, R: number, a0: number, a1: number, tag: 
  * the front and back quarters meet at the shoulder seams. It opens where the bodice does: at the zip
  * (the backs cut as a pair, the front on the fold), or down the front of a button front.
  */
-function capePieces(c: CollarIn, depth: number): Piece[] {
+function capePieces(c: CollarIn, depth: number, neck?: string): Piece[] {
   const buttons = c.closure === 'front_buttons';
   const r = (c.front + c.back) / Math.PI;
   const R = r + depth;
@@ -685,7 +685,8 @@ function capePieces(c: CollarIn, depth: number): Piece[] {
       seamAllowance: c.sa,
       allowances: { 'cape-neck': 1, hem: hemSa, opening: hemSa, fold: 0 },
       // Front and back shoulders are the same length: nothing is eased.
-      meta: { cape: depth, shoulderEase: 0 },
+      // (The neckline it goes round: All round hangs it as cloth only round some, see drape/cape.ts.)
+      meta: { cape: depth, shoulderEase: 0, ...(neck ? { capeNeck: neck } : {}) },
     };
     pc.draft = draftNotes([
       ['1', `The neck circle: radius ${r.toFixed(1)} cm, so its whole round is the neckline as sewn, ${(2 * (c.front + c.back)).toFixed(1)} cm.`],
@@ -800,9 +801,9 @@ export function poloSlit(front: Piece): { front: Piece; facing: Piece } {
   return { front: slitFront, facing: facingPiece };
 }
 
-export function collarPieces(kind: Collar, front: Piece, back: Piece, c: CollarIn & { capeCm?: number }): Piece[] {
+export function collarPieces(kind: Collar, front: Piece, back: Piece, c: CollarIn & { capeCm?: number; capeNeck?: string }): Piece[] {
   if (kind === 'polo') return poloCollar(c);
-  if (kind === 'cape') return capePieces(c, c.capeCm ?? 40);
+  if (kind === 'cape') return capePieces(c, c.capeCm ?? 40, c.capeNeck);
   if (kind === 'peter_pan') return peterPanCollar(front, back, c);
   if (isBandCollar(kind)) return bandCollar(c, kind);
   if (kind === 'shirt') return shirtCollar(c);

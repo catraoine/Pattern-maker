@@ -1214,6 +1214,30 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
       })();
       const key = hood ? hoodNeck.key : flat && nk.length > 1 ? alongNeck() : fromFold(pc);
       const capeFolds = flat && pc.meta.cape && !knob('__capeNoFolds') ? capeFold(pc) : undefined;
+      // Where on the top's neckline, as laid, a cape's neck point at `k` cm along its neck edge is sewn: the front piece
+      // from the centre front (the front neck runs from the shoulder), the back from the centre back.
+      const capeSeamAt = (() => {
+        if (!flat || !pc.meta.cape || knob('__capeRing')) return undefined;
+        const chain = capeFromFront(pc) ? frontNeck : bodyNeck;
+        if (chain.ids.length < 2) return undefined;
+        const total = Math.max(...nk.map((m) => key(m))) || 1;
+        const L = chain.s[chain.s.length - 1] || 1;
+        const startOf = (g: number): V3 => {
+          const bp = B.panels.find((x) => g >= x.base && g < x.base + x.mesh.pts.length)!;
+          return bp.start[g - bp.base] as V3;
+        };
+        return (k: number): V3 => {
+          const share = Math.min(1, Math.max(0, k / total));
+          const t = (capeFromFront(pc) ? 1 - share : share) * L;
+          let j = 1;
+          while (j < chain.s.length - 1 && chain.s[j] < t) j++;
+          const d = chain.s[j] - chain.s[j - 1];
+          const u = d > 1e-9 ? Math.min(1, Math.max(0, (t - chain.s[j - 1]) / d)) : 0;
+          const A = startOf(chain.ids[j - 1]);
+          const Bp = startOf(chain.ids[j]);
+          return [0, 1, 2].map((m) => A[m] * (1 - u) + Bp[m] * u) as V3;
+        };
+      })();
       const hoodBox = hood ? { x0: Math.min(...tp.pts.map((q) => q.x)), D: Math.max(...tp.pts.map((q) => q.x)) - Math.min(...tp.pts.map((q) => q.x)), top: Math.min(...tp.pts.map((q) => q.y)), bottom: Math.max(...tp.pts.map((q) => q.y)) } : undefined;
       // The hood's centre seam as the piece's far edge: its x at a height up its side (it curves in to the nape), and
       // its height across the top (the crown's curve), so a point's way across is measured from the seam itself.
@@ -1442,25 +1466,43 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
                 n = k;
               }
             }
-            const c0 = neckC - 1;
-            const at = ringAt(sp, key(n), c0, !capeFromFront(pc), 0);
+            // (A cape starts from where its neck seam lies on the top's neckline, as laid: started from a ring round the
+            // neck at the nape's level, on a scoop or square neck it was 5 to 10 cm above its seam and crumpled as it
+            // was pulled down to it.)
+            const onSeam = capeSeamAt ? capeSeamAt(key(n)) : undefined;
+            const c0 = onSeam ? onSeam[1] : neckC - 1;
+            const at = onSeam ?? ringAt(sp, key(n), c0, !capeFromFront(pc), 0);
             const a = Math.atan2(at[0], at[2]);
             // Out along the surface from the neck seam: nearly level over the shoulder's top, down over the chest and back.
             // (The body table steps out at the shoulder's ridge: where the body just below is wider than the point has
             // reached, the point goes out level to meet it before it goes down.)
             let cI = c0;
-            let rI = sp.bodyR(a, cI);
+            let rI = onSeam ? Math.max(sp.bodyR(a, cI), Math.hypot(onSeam[0], onSeam[2])) : sp.bodyR(a, cI);
+            // (A cape's way down: 0 going out level, a quarter turn hanging straight down.)
+            let th = 0;
             for (let left = w; left > 0; left -= 0.25) {
               const step = Math.min(0.25, left);
               const below = sp.bodyR(a, cI + 0.25);
-              if (rI + 1e-6 < below) {
-                rI = Math.min(below, rI + step);
-                continue;
-              }
               // (A cape hangs straight down from the widest of the shoulders, as cloth with weight does, not in along the
               // body under it: laid on the body, its hem lay tucked in round the waist and the cape stood out as a puff.)
+              // A cape goes out over the shoulder down its slope, not level from the neck (level, it stood above the
+              // shoulder and its tips stood up as points), and turns down over the shoulder's end on a curve, not a
+              // corner.
               if (pc.meta.cape && !knob('__capeLay')) {
-                cI += step;
+                if (rI + 1e-6 < below && th === 0) {
+                  const slope = Math.min(knob('__capeSlope') ?? 3, (below - rI) / 0.25);
+                  const dc = step / Math.sqrt(1 + slope * slope);
+                  cI += dc;
+                  rI = Math.min(below, rI + slope * dc);
+                  continue;
+                }
+                th = Math.min(Math.PI / 2, th + step / (knob('__capeRound') ?? 4));
+                rI += step * Math.cos(th);
+                cI += step * Math.sin(th);
+                continue;
+              }
+              if (rI + 1e-6 < below) {
+                rI = Math.min(below, rI + step);
                 continue;
               }
               const slope = (below - rI) / 0.25;

@@ -94,3 +94,8 @@ export function seatCapeNeck(panels: { pc: Piece; base: number; mesh: { pts: { x
     }
   }
 }
+
+/** Where a cape hangs as cloth in All round, not as its drawing: on a dress with a round or scoop neck. (On a top the
+ *  cape's weight pulls the neckline out over the shoulders 6x stretched, with nothing below the waist to hold it, and
+ *  round a boat or square neck its neck edge still crumples: Nov 15.) */
+export const capeHangs = (kind: string, neckline: string | undefined): boolean => kind === 'dress' && (neckline === 'crew' || neckline === 'scoop');

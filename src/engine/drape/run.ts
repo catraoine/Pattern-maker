@@ -21,6 +21,7 @@ import { closeSeams, hangScales } from './hang';
 import { sideTie, type SideTieSpec } from './tie';
 import { camiStraps } from './strap';
 import { knob } from './knob';
+import { capeHangs } from './cape';
 import { fairDroppedSeam } from './seamFair';
 import { BUST_Y, fitRoom, type FitPin } from './fitMap';
 import { clearCollars } from './collarClear';
@@ -294,10 +295,10 @@ function sewDrape(job: DrapeJob, sleevedHoldZ?: number, tierFoldCap?: number): D
       quality.ok = false;
     }
   }
-  // A cape doesn't yet settle as cloth: it crumples into shards over the shoulders and down the back, and on some
-  // dresses the drawing's check still passed it, so the crumpled cape showed (Nov 15). Shown as its drawing until it has
-  // cloth of its own.
-  if (d.panels.some((p) => !p.hidden && p.pc.meta.cape) && !knob('__capeShown')) {
+  // A cape doesn't yet settle as cloth everywhere: on a top, and round a boat or square neck, it still crumples at the
+  // neck and on some the drawing's check passes it, so a crumpled cape showed (Nov 15). Those are shown as their
+  // drawing; on a dress with a round or scoop neck it hangs in clean folds (stills, Nov 15), and is scored as any cloth.
+  if (d.panels.some((p) => !p.hidden && p.pc.meta.cape && !capeHangs(job.kind, p.pc.meta.capeNeck as string | undefined)) && !knob('__capeShown')) {
     quality.problems.unshift({ check: 'broken', part: 'Cape', worst: 1 });
     quality.ok = false;
   }
