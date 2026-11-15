@@ -1348,7 +1348,12 @@ export function createRoundView(): RoundView | undefined {
     }
 
     // The lines: the garment's edges, its seams and darts, and in lines its cloth as lines down and round it.
-    const lines = (style: Style) => {
+    // While the cloth is still sewing, this shape stands in for a moment: its lines are drawn as fine as the sewn
+    // cloth's, and nothing shows through from the far side (an armhole read as a ghost ring over the shoulder), so the
+    // change to the sewn garment is quiet (Cat's sweep, Nov 13).
+    const waiting = o.draped === 'pending';
+    const lines = (style0: Style) => {
+      const style = waiting && !style0.onTop ? { ...style0, width: Math.min(style0.width, 0.7), alpha: Math.min(style0.alpha ?? 1, 0.55), back: 0 } : style0;
       const l = new Lines(style, turning);
       lineSets.push(l);
       return l;
