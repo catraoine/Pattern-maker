@@ -252,7 +252,7 @@ const DRAW_DIP = WIDE ? 0 : firstBlack(DIP_AT ? DIP_AT + 0.5 : MARKS.cloth) || M
 // On a computer there is no dip between them, so one dark band lies under both lines the whole way (an entry with no
 // words) and the lines themselves hand over: the app's own header never shows through between.
 const STYLE_NOTES = WIDE
-  ? [['', MARKS.calico + 0.4, MARKS.enlarge, 'low', true], ['One question at a time.', MARKS.calico + 0.4, MARKS.cloth + 0.3, 'low', false], ['Then the cloth.', MARKS.cloth + 0.3, MARKS.enlarge - 0.4, 'low', false]]
+  ? [['', JOURNEY.from, MARKS.enlarge, 'low', true], ['One question at a time.', JOURNEY.from, MARKS.cloth + 0.3, 'low', false], ['Then the cloth.', MARKS.cloth + 0.3, MARKS.enlarge - 0.4, 'low', false]]
   // On a phone too, one dark band lies under both lines the whole way and the lines hand over at the take's dip, so
   // the app's own header never shows through between them (Fable's review, Nov 15).
   : [['', JOURNEY.from, DRAW_DIP + 0.6, 'low', true], ['One question at a time.', JOURNEY.from, DIP_AT ? DIP_AT - 0.3 : MARKS.questions - 0.1, 'low', false], ['Then the cloth.', DIP_AT ? DIP_AT + 0.1 : MARKS.cloth + 0.3, DRAW_DIP - 0.2, 'low', false]];
@@ -412,8 +412,9 @@ const REVIEW = WIDE || process.env.REVIEW !== '1' ? undefined : { from: 0.4, dur
 // foot level with the pattern sheet's (Cat, 2026-10-30: it was cut off under the words).
 // On a computer the piece is projected at the right of the screen: drawn in on it, the dart in view (Nov 14).
 // On a phone the piece is moved down off camera so its top shows, then framed on the whole piece, with just the line's
-// room above it (Cat, Nov 15: no empty black over it, no foot cut off).
-const PROJECTOR = WIDE ? { from: 8.6, dur: 4.2, zoom: [1.6, 1.64], at: [0.8, 0.36] } : { from: Number(process.env.PJ_FROM ?? 11.1), dur: 4, zoom: [1.6, 1.63], at: [0.48, 0.49] };
+// room above it (Cat, Nov 15: no empty black over it, no foot cut off), and the app's ring at the top right left out.
+// On a computer, the whole piece too, beside the line (Fable, Nov 15: it was cut off at the foot).
+const PROJECTOR = WIDE ? { from: 8.6, dur: 4.2, zoom: [1, 1.03], at: [0.75, 0.45], frame: [-0.1, 0.9] } : { from: Number(process.env.PJ_FROM ?? 11.1), dur: 4, zoom: [1.6, 1.63], at: [0.43, 0.49] };
 // Phone: drawn in a little less and set lower, so the piece sits whole under its two lines of words (Cat, 2026-11-06:
 // cut off by the words at the top).
 // The photo is in about 0.9 s into the take; the reading is up by about 2.9 s.
@@ -539,7 +540,7 @@ const CUTS = {
       // projector back in).
       ...(REVIEW ? [await piece({ shot: 'review', ...REVIEW, fadeIn: f })] : []),
       await pages(4.4, { fadeIn: f, fadeOut: f }),
-      await piece({ shot: 'projector', ...PROJECTOR, fadeIn: f, fadeOut: f, notes: [[await note(WIDE ? 'Or project it, true size.' : 'Or project it,<br>true size.', 'low'), 0.3, PROJECTOR.dur - 0.3]] }),
+      await piece({ shot: 'projector', ...PROJECTOR, fadeIn: f, fadeOut: f, notes: [[await note(WIDE ? 'Or project it, true size.' : 'Or project it,<br>true size.', 'low', !WIDE), 0.3, PROJECTOR.dur - 0.3]] /* on a computer no dark band, which hid the piece's shoulder */ }),
       await piece({ still: await card('', 'Drafted<br>to your body'), dur: 4.5, fadeIn: 0.8, fadeOut: 1.2 }),
       await piece({ still: await endCard(), dur: 4, fadeIn: 0.8, fadeOut: 0.8 }), // a second longer, so the ending lands (Fable's review, Nov 15)
     ];
