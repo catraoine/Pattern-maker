@@ -95,7 +95,10 @@ export function seatCapeNeck(panels: { pc: Piece; base: number; mesh: { pts: { x
   }
 }
 
-/** Where a cape hangs as cloth in All round, not as its drawing: on a dress with a round or scoop neck. (On a top the
- *  cape's weight pulls the neckline out over the shoulders 6x stretched, with nothing below the waist to hold it, and
- *  round a boat or square neck its neck edge still crumples: Nov 15.) */
-export const capeHangs = (kind: string, neckline: string | undefined): boolean => kind === 'dress' && (neckline === 'crew' || neckline === 'scoop');
+/** Where a cape hangs as cloth in All round, not as its drawing: on a dress round a round or scoop neck, and on a top
+ *  round a round neck when the top is long enough to lie on below the cape (to the hip or longer). (On a top to the
+ *  waist or shorter the cape's weight pulls the neckline out over the shoulders 6x stretched; on a scoop neck top the
+ *  top's neckline shows as a pale band below the cape's; round a boat or square neck the cape's neck edge still
+ *  crumples: Nov 15.) */
+export const capeHangs = (kind: string, neckline: unknown, length: unknown): boolean =>
+  kind === 'dress' ? neckline === 'crew' || neckline === 'scoop' : kind === 'bodice' && neckline === 'crew' && (length === 'hip' || length === 'long');

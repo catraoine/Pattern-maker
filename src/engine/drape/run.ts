@@ -295,10 +295,10 @@ function sewDrape(job: DrapeJob, sleevedHoldZ?: number, tierFoldCap?: number): D
       quality.ok = false;
     }
   }
-  // A cape doesn't yet settle as cloth everywhere: on a top, and round a boat or square neck, it still crumples at the
-  // neck and on some the drawing's check passes it, so a crumpled cape showed (Nov 15). Those are shown as their
-  // drawing; on a dress with a round or scoop neck it hangs in clean folds (stills, Nov 15), and is scored as any cloth.
-  if (d.panels.some((p) => !p.hidden && p.pc.meta.cape && !capeHangs(job.kind, p.pc.meta.capeNeck as string | undefined)) && !knob('__capeShown')) {
+  // A cape doesn't yet settle as cloth everywhere: on a short top, and round a boat or square neck, it still crumples
+  // at the neck and on some the drawing's check passes it, so a crumpled cape showed (Nov 15). Those are shown as their
+  // drawing; where it hangs in clean folds (capeHangs, stills Nov 15) it is scored as any cloth.
+  if (d.panels.some((p) => !p.hidden && p.pc.meta.cape && !capeHangs(job.kind, p.pc.meta.capeNeck, p.pc.meta.capeLength)) && !knob('__capeShown')) {
     quality.problems.unshift({ check: 'broken', part: 'Cape', worst: 1 });
     quality.ok = false;
   }
