@@ -35,7 +35,7 @@ import { droopShoulders } from './vestShoulder';
 import { topPeplumSeam } from './peplumSeam';
 import { puffUnder } from './puffUnder';
 import { layTurnbackCuff } from './turnbackCuff';
-import { capeForDrape } from './cape';
+import { capeFold, capeForDrape, capeFromFront, capeRadius } from './cape';
 import { heavyChainK } from './heavyHold';
 import { wholeSkirt } from './wholeSkirt';
 import { fullHemLevel } from './hemWidth';
@@ -1213,6 +1213,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
         return { key: (q: P) => Math.min(span, Math.max(0, cb - q.x)), total: span, yAt: (q: P) => yOf(q.x) };
       })();
       const key = hood ? hoodNeck.key : flat && nk.length > 1 ? alongNeck() : fromFold(pc);
+      const capeFolds = flat && pc.meta.cape && !knob('__capeNoFolds') ? capeFold(pc) : undefined;
       const hoodBox = hood ? { x0: Math.min(...tp.pts.map((q) => q.x)), D: Math.max(...tp.pts.map((q) => q.x)) - Math.min(...tp.pts.map((q) => q.x)), top: Math.min(...tp.pts.map((q) => q.y)), bottom: Math.max(...tp.pts.map((q) => q.y)) } : undefined;
       // The hood's centre seam as the piece's far edge: its x at a height up its side (it curves in to the nape), and
       // its height across the top (the crown's curve), so a point's way across is measured from the seam itself.
@@ -1442,7 +1443,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
               }
             }
             const c0 = neckC - 1;
-            const at = ringAt(sp, key(n), c0, true, 0);
+            const at = ringAt(sp, key(n), c0, !capeFromFront(pc), 0);
             const a = Math.atan2(at[0], at[2]);
             // Out along the surface from the neck seam: nearly level over the shoulder's top, down over the chest and back.
             // (The body table steps out at the shoulder's ridge: where the body just below is wider than the point has
@@ -1456,11 +1457,18 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
                 rI = Math.min(below, rI + step);
                 continue;
               }
+              // (A cape hangs straight down from the widest of the shoulders, as cloth with weight does, not in along the
+              // body under it: laid on the body, its hem lay tucked in round the waist and the cape stood out as a puff.)
+              if (pc.meta.cape && !knob('__capeLay')) {
+                cI += step;
+                continue;
+              }
               const slope = (below - rI) / 0.25;
               cI += step / Math.sqrt(1 + slope * slope);
               rI = sp.bodyR(a, cI);
             }
-            const R = Math.max(rI, sp.bodyR(a, cI)) + 1 + (knob('__flatOff') ?? 0.4);
+            let R = Math.max(rI, sp.bodyR(a, cI)) + 1 + (knob('__flatOff') ?? 0.4);
+            if (capeFolds) R += capeFolds(q, R, w);
             return [Math.sin(a) * R, cI, Math.cos(a) * R];
           }
           const cc = neckC - 1 - lift + r.y;
@@ -1498,6 +1506,10 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
         if (p.mesh.runs.gorge && !knob("__oldGorge")) sew(seams, joinChains(B.chain([p], 'neck', key), B.chain([p], 'gorge', key)), joinChains(target, B.chain(front, 'gorge', (q) => -q.x)));
         // (A shirt worn open: its stiff collar is laid on the neckline after, as it settles with the fronts turned back,
         // not sewn to it while it settles, which would hold the turned neckline up round the neck.)
+        // (A cape is two pieces, each sewn to its own half of the neckline: the back to the back neck from the centre
+        // back, the front to the front neck from the shoulder. Each sewn along the whole neckline, the front piece's
+        // centre front was sewn to the centre back and pulled the top's front neck round the body.)
+        else if (pc.meta.cape && !knob('__capeWhole')) sew(seams, capeFromFront(pc) ? B.chain([p], 'neck', (q) => -key(q)) : B.chain([p], 'neck', key), capeFromFront(pc) ? frontNeck : bodyNeck);
         else if (!(o.rollFront && stiff)) sew(seams, B.chain([p], 'neck', key), target);
         if (stiff) stiff.target = target;
         if (p.mesh.runs.stand) standTop = { panel: p, key };
@@ -1505,6 +1517,11 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
       if (p.mesh.runs.gorge && knob("__oldGorge")) sew(seams, B.chain([p], 'gorge', (q) => q.y * -1), B.chain(front, 'gorge', (q) => -q.x));
     }
   }
+
+  // A cape's front and back pieces seamed together down the shoulder, from the neck to the hem. (Left open, the two
+  // pieces' neck corners pulled apart over the shoulder's top and stretched the neck seam there 8x.)
+  const capes = B.panels.filter((p) => p.role === 'collar' && p.pc.meta.cape);
+  if (capes.length === 2 && !knob('__capeOpen')) sew(seams, B.chain([capes[0]], 'shoulder', capeRadius(capes[0].pc)), B.chain([capes[1]], 'shoulder', capeRadius(capes[1].pc)));
 
   let capRatio = 1;
   let cuffPanel: Panel | undefined;
