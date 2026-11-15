@@ -113,14 +113,13 @@ function tintTable(hex: string): [string, string, string] {
 const IVORY = '#efe8d6';
 const INK = '#2a2826';
 const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
-const light = (hex: string) => {
+/** How light a colour looks, 0 (black) to 1 (white). */
+export const luminance = (hex: string) => {
   const [r, g, b] = rgb(hex);
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.55;
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 };
-const dark = (hex: string) => {
-  const [r, g, b] = rgb(hex);
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.12;
-};
+const light = (hex: string) => luminance(hex) > 0.55;
+const dark = (hex: string) => luminance(hex) < 0.12;
 /** The two colours a print is drawn in: the chosen colour on ivory, or, when the colour is a light one, ink on it. */
 const twoTone = (hex: string | undefined): { tone: string; ground: string } => (!hex ? { tone: INK, ground: IVORY } : light(hex) ? { tone: INK, ground: hex } : { tone: hex, ground: IVORY });
 /** A print's darks in the tone and its lights in the ground, so the print keeps its drawing in the chosen colour. */

@@ -1,16 +1,16 @@
-/* The collection as an atelier sheet (Cat's H8, Nov 14): each drawing in dark ink on a chalk sheet like the style
-   screen's picture windows, three weights of line so the shape reads before the details, softer side light so the
-   cloth shows one true colour, and a cut swatch of the cloth pinned under it. A dark cloth (black, chocolate) keeps
-   pale stone lines, as ink would vanish into it. On chalk a sheer cloth shows its own colour, not the black behind it. */
+/* The collection as an atelier sheet (H8, Nov 14): each drawing in dark ink on a chalk sheet like the style screen's
+   picture windows, three weights of line so the shape reads before the details, softer side light so the cloth shows
+   one true colour, and a cut swatch of the cloth pinned under it. A dark cloth (black, chocolate) keeps its firm ink
+   outline against the chalk, but its seams turn pale stone, as ink would vanish into it. On chalk a sheer cloth shows
+   its own colour, not the black behind it. */
 .house-flat {
   --ink: #1d1a17;
   --gild: #2a2622;
-  --gild-glow: #1d1a17;
   --muted: #5e5547;
-  --line-strong: #2a2622;
-  --guide: #b9b2a4;
   flex-direction: column;
   height: auto;
+  /* (As tall as a drawing, so a piece that can't be drafted keeps its place in the row.) */
+  min-height: 340px;
   padding: 22px 12px 12px;
   color: var(--ink);
   background: #dcd5c7;
@@ -21,6 +21,9 @@
 }
 .house-flat.dark-cloth .techflat {
   --gild: #a89c86;
+}
+.house-flat.dark-cloth .techflat .flat-shape {
+  stroke: #2a2622;
 }
 
 /* Three weights: a firm outline, fine seams and darts, hairline stitching. */
@@ -39,12 +42,13 @@
   stroke-width: 0.28;
 }
 .house-flat .techflat .flat-label {
-  fill: #5e5547;
+  fill: var(--muted);
 }
 
-/* Even light: the side shadow at a third, so a blush reads blush edge to edge. */
+/* Even light: the side shadow at a third, so a blush reads blush edge to edge. (fill-opacity, so it still multiplies
+   with the lighter shade a sheer or faint cloth is given.) */
 .house-flat .techflat .flat-shade {
-  opacity: 0.3;
+  fill-opacity: 0.3;
 }
 
 /* The cloth, pinked along its top like a cut swatch, with its name in small caps. */
@@ -70,6 +74,6 @@
   font-size: 11px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: #5e5547;
+  color: var(--muted);
   line-height: 1.5;
 }

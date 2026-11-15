@@ -217,10 +217,12 @@ export function CollectionScreen({ values, onMake, onBack, backLabel = 'Back to 
                   <p className="eyebrow">{lookNo(look.number)}</p>
                   {set && <h2>{set}</h2>}
                   <div className={set ? 'set-pieces' : undefined}>
-                    {pieces.map(({ look: piece, flat }) => (
+                    {pieces.map(({ look: piece, flat }) => {
+                      const cloth = lookFabric(piece.fabric);
+                      return (
                       <div key={piece.id} className="set-piece">
-                        {/* Drawn on a chalk sheet with the cloth pinned under it (Cat's H8 Atelier Sheet, Nov 14); a dark cloth keeps pale lines. */}
-                        <div className={darkCloth(lookFabric(piece.fabric)) ? 'house-flat dark-cloth' : 'house-flat'}>{flat ? <GarmentFabric fabric={lookFabric(piece.fabric)}><TechFlatView flat={flat} title={describePattern(piece.choices).toLowerCase()} /><ClothSwatch name={piece.fabric} /></GarmentFabric> : <p className="muted small">This look can&rsquo;t be drafted to these measurements.</p>}</div>
+                        {/* Drawn on a chalk sheet with the cloth pinned under it (the H8 Atelier Sheet, Nov 14); a dark cloth keeps pale lines. */}
+                        <div className={darkCloth(cloth) ? 'house-flat dark-cloth' : 'house-flat'}>{flat ? <GarmentFabric fabric={cloth}><TechFlatView flat={flat} title={describePattern(piece.choices).toLowerCase()} /><ClothSwatch name={piece.fabric} /></GarmentFabric> : <p className="muted small">This look can&rsquo;t be drafted to these measurements.</p>}</div>
                         {set ? <h3>{piece.name}</h3> : <h2>{piece.name}</h2>}
                         <p className="muted">{piece.line}</p>
                         <p className="muted small">Cut in {piece.fabric[0].toLowerCase() + piece.fabric.slice(1)}.</p>
@@ -228,7 +230,8 @@ export function CollectionScreen({ values, onMake, onBack, backLabel = 'Back to 
                           {set ? `Make the ${piece.name.split(' ').pop()!.toLowerCase()}` : 'Make this look'}
                         </button>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </li>
               );
