@@ -76,9 +76,9 @@
   }
 }
 
-/* On a computer the page keeps the layout it had with the tape (13-wide-and-tape.css, 14-aesthetic-review.css, keyed
-   on .has-tape, which the app no longer sets here): a 520px column down the middle, the title centred over the
-   picture; from 1100px the picture fills the left column and the words and switches sit on the right. */
+/* On a computer the page is the phone's, in a column down the middle (Cat, Nov 14: "I want this", pointing at the
+   phone): the title, the window under it, then the switches and Begin. The tape-era layouts in 13-wide-and-tape.css
+   and 14-aesthetic-review.css are keyed on .has-tape, which the app no longer sets here. */
 @media (min-width: 960px) {
   .measure-step.first-page:not(.has-tape) {
     max-width: 520px;
@@ -86,46 +86,9 @@
     margin-right: auto;
     row-gap: 18px;
   }
-  .measure-step.first-page:not(.has-tape) h1 {
-    text-align: center;
-  }
   .measure-step.first-page > .step-words > .first-form {
-    max-height: 300px;
+    max-height: 360px;
     margin-left: 0;
     margin-right: 0;
-  }
-}
-@media (min-width: 1100px) {
-  .measure-step.first-page:not(.has-tape) {
-    max-width: none;
-    display: grid;
-    grid-template-columns: minmax(0, 1.9fr) minmax(340px, 1.25fr);
-    grid-template-rows: auto repeat(6, auto) 1fr;
-    align-items: start;
-    column-gap: 40px;
-    row-gap: 14px;
-    min-height: calc(100svh - 150px);
-  }
-  .measure-step.first-page > .step-words > .first-form {
-    grid-column: 1;
-    grid-row: 2 / -1;
-    align-self: stretch;
-    max-height: none;
-    min-height: 520px;
-  }
-  .measure-step.first-page:not(.has-tape) > .step-words > :not(.first-form) {
-    grid-column: 2;
-    max-width: 520px;
-  }
-  .measure-step.first-page:not(.has-tape) > .step-words > h1 {
-    margin-top: 42px;
-  }
-  .measure-step.first-page:not(.has-tape) h1 {
-    text-align: left;
-  }
-  .measure-step.first-page:not(.has-tape) > .step-words > .switch,
-  .measure-step.first-page:not(.has-tape) > .step-words > button.later {
-    justify-self: start;
-    align-self: start;
   }
 }
