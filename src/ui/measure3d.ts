@@ -617,7 +617,7 @@ function fitBody(body: WholeBody) {
   return { pos: out, joints };
 }
 
-export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot, lift: Lift = 'none', limbs = true, finish: Finish = 'satin', limbData: typeof LIMBS = LIMBS, darkTape = false, shade?: string, tapeColours?: { face: string; ink: string }, tapeShadow = false, whole?: WholeBody, tapeCm = 1.6, id?: string) {
+export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot, lift: Lift = 'none', limbs = true, finish: Finish = 'satin', limbData: typeof LIMBS = LIMBS, darkTape = false, shade?: string, tapeColours?: { face: string; ink: string }, tapeShadow = false, whole?: WholeBody, tapeCm = 1.6, id?: string, knotFront = false) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, preserveDrawingBuffer: true });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NeutralToneMapping;
@@ -801,7 +801,8 @@ export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot,
     const sp = shot.stringPath;
     // Started from its knot at the right side (away from the side the side lengths are read on), so it can be drawn
     // on going round, as a hand ties it.
-    const k = sp ? sp.reduce((bi, q, i) => (q.p[0] < sp[bi].p[0] ? i : bi), 0) : 0;
+    // Or at the centre front, where a straight-on still shows it (the first measuring page, Cat's F1, Nov 14).
+    const k = sp ? sp.reduce((bi, q, i) => (knotFront ? q.p[2] > sp[bi].p[2] : q.p[0] < sp[bi].p[0]) ? i : bi, 0) : 0;
     const from = sp ? [...sp.slice(k), ...sp.slice(0, k)] : undefined;
     const geo = from ? new THREE.TubeGeometry(new THREE.CatmullRomCurve3(from.map((q) => new THREE.Vector3(...q.p)), true), STRING_SEGS, 0.0045, 6, true) : waistString(bodyLandmarks().waist);
     stringMesh = new THREE.Mesh(geo, m);
@@ -812,7 +813,9 @@ export function createMeasureScene(canvas: HTMLCanvasElement, shot: MeasureShot,
       const out = norm(at.n);
       knot.add(new THREE.Mesh(new THREE.SphereGeometry(0.016, 12, 8), m));
       for (const s of [-1, 1]) {
-        const tail = new THREE.CatmullRomCurve3([new THREE.Vector3(0, 0, 0), new THREE.Vector3(...add(scale(out, 0.008), [0, 0.06, s * 0.015])), new THREE.Vector3(...add(scale(out, 0.006), [0, 0.16, s * 0.035]))]);
+        // The two ends part sideways across the body: front to back at the side, left and right at the front.
+        const apart = (d: number): V3 => (knotFront ? [s * d, 0, 0] : [0, 0, s * d]);
+        const tail = new THREE.CatmullRomCurve3([new THREE.Vector3(0, 0, 0), new THREE.Vector3(...add(add(scale(out, 0.008), [0, 0.06, 0]), apart(0.015))), new THREE.Vector3(...add(add(scale(out, 0.006), [0, 0.16, 0]), apart(0.035)))]);
         knot.add(new THREE.Mesh(new THREE.TubeGeometry(tail, 24, 0.004, 6, false), m));
       }
       knot.position.set(...add(at.p, scale(out, 0.004)));

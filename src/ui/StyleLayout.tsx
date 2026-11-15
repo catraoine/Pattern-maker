@@ -12,10 +12,9 @@ import { ModeLink } from './ModeLink';
 import { PhotoEntry } from './PhotoEntry';
 import { Title } from './Title';
 import type { Undo } from './useUndo';
+import { OpenDetail } from './FabricHeadsUp';
 import type { MyFabric } from '../engine/fabrics';
-
-/** Whether the style window has lit up yet in this visit. */
-let litOnce = false;
+import { firstLightUp } from './lightsUp';
 
 // Every style screen, laid out as Cat's B Pinned Sketch with a Looks tab (2026-10-18): the sketch stays
 // pinned at the top, a row of tabs sits under it, and only one tab's choices show at a time, so choosing
@@ -502,12 +501,10 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   const [intro, setIntro] = useState(() => !introSeen());
   const [tabs, setTabs] = useState<string[]>([]);
   const root = useRef<HTMLDivElement>(null);
-  // The first time Style opens in a visit, its picture window lights up from black to chalk (Cat, Nov 11), easing the
-  // black of measuring into the chalk the garment sits on. Once only, and never with reduced motion (the CSS skips it).
+  // The first chalk of a visit lights up from black (Cat, Nov 11). Since Nov 14 that is the first measuring page;
+  // Style's window lights up only when measuring was skipped. Never with reduced motion (the CSS skips it).
   useEffect(() => {
-    if (litOnce) return;
-    litOnce = true;
-    root.current?.classList.add('lights-up');
+    if (firstLightUp()) root.current?.classList.add('lights-up');
   }, []);
   const panel = useRef<HTMLDivElement>(null);
   const swipe = useRef<{ x: number; y: number; sideways: boolean }>();
@@ -775,6 +772,22 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
     if (q.label !== q.tab) setFolds((f) => ({ ...f, [q.tab]: q.label }));
     goStep(q.tab);
   };
+  // A fabric heads up's link to the style detail that would fix it: on a phone that question's own screen, on a
+  // computer its step with the detail opened. No link when this garment has no such detail.
+  const openDetail = (about: string) => {
+    if (!wide) {
+      const i = qs.findIndex((q) => q.label === about);
+      return i < 0 ? undefined : () => goQ(i);
+    }
+    const sel = `fieldset.group.fold[data-label="${CSS.escape(about)}"]`;
+    const tab = root.current?.querySelector<HTMLElement>(sel)?.dataset.tab;
+    if (!tab) return undefined;
+    return () => {
+      setFolds((f) => ({ ...f, [tab]: about }));
+      choose(tab);
+      requestAnimationFrame(() => root.current?.querySelector(sel)?.scrollIntoView({ block: 'center', behavior: scrollBehavior() }));
+    };
+  };
 
   // On a phone the drawing stands tall at the top, then eases back once the page scrolls into the choices, so they
   // keep their room under it.
@@ -1029,6 +1042,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
             )}
           </div>
           <Fold.Provider value={fold}>
+          <OpenDetail.Provider value={openDetail}>
           <ActiveTab.Provider value={active}>
             <Sections.Provider value={sections}>
             {options}
@@ -1044,6 +1058,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
             )}
             </Sections.Provider>
           </ActiveTab.Provider>
+          </OpenDetail.Provider>
           </Fold.Provider>
           {/* The way on: the next step, or Review after the last (on a computer the summary is already beside it). */}
           {wide && at >= 0 && (

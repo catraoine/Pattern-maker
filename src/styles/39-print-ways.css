@@ -79,3 +79,48 @@
 .print-controls .print-steps {
   margin-top: 14px;
 }
+
+/* Print at a copy shop opens in the list like Email me the PDF: what to ask for, then a map of shops nearby. */
+.print-controls .other-ways .copy-shop {
+  gap: 10px;
+  padding: 16px 0 0;
+}
+
+.print-controls .other-ways .copy-shop .eyebrow {
+  margin: 0;
+  color: var(--gild);
+}
+
+.print-controls a.way {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 56px;
+  padding: 14px 2px;
+  border-bottom: 1px solid rgb(217 196 155 / 0.25);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 17px;
+  text-decoration: none;
+}
+
+.print-controls a.way::after {
+  content: '↗';
+  content: '↗' / '';
+  color: var(--gild);
+  font-size: 18px;
+}
+
+@media (hover: hover) {
+  .print-controls a.way:hover {
+    color: var(--gild);
+  }
+}
+
+/* Send the PDF, once Email me the PDF is open, is filled like Download, so the two main buttons match (Cat, Nov 14). */
+.print-controls .email-pdf button.primary:not(:disabled) {
+  background: var(--gild);
+  color: var(--paper);
+  border-color: var(--gild);
+  font-weight: 600;
+}
