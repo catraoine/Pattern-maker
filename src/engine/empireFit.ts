@@ -3,7 +3,8 @@
 // 17 cm over the underbust on the Sixties empire mini (tester pattern review, Nov 14). Here the waist dart that crosses
 // the seam on each piece is opened wider at the seam, from nothing at its point to the full amount at the seam, as a
 // pattern cutter deepens an under-bust dart. The side seams and the centre stay where they are, so the side seams still
-// match and the bust keeps its room; only the seam between them comes in.
+// match and the bust keeps its room; only the seam between them comes in. A bodice with too little seam either side of
+// its darts to give it all comes in as far as it can.
 import { P, Path, p, taggedLength } from './geometry';
 import type { Piece } from './piece';
 import type { BodiceDraft } from './bodice';
@@ -58,7 +59,8 @@ function opened(q: P, d: { near: number; far: number; tip: number; foot: P }, op
   const x = Math.abs(q.x);
   const side = Math.abs(d.foot.x);
   if (w <= 0 || x >= side) return q;
-  const a = open * w;
+  // Never more than the seam either side of the dart can give and still run on outward without folding back on itself.
+  const a = Math.min(open, 0.45 * d.near, 0.45 * (side - d.far)) * w;
   // Eased to nothing at the centre and at the side, so the seam still leaves both square and runs on smoothly across them.
   const to =
     x <= d.near
@@ -70,11 +72,11 @@ function opened(q: P, d: { near: number; far: number; tip: number; foot: P }, op
 }
 
 /**
- * A bodice cut across for an empire seam (raiseBodice), its waist darts opened at the seam until the seam is the
- * underbust plus EMPIRE_EASE. One that already fits closer, or has no waist dart to open, is left as it is.
+ * A bodice cut across for an empire seam (raiseBodice), its waist darts opened at the seam until the seam is the body's
+ * girth there (the underbust, right under the bust) plus EMPIRE_EASE. One that already fits closer, or has no waist dart to open, is left as it is.
  */
-export function snugEmpire(b: BodiceDraft, underbust: number): BodiceDraft {
-  const target = underbust + EMPIRE_EASE;
+export function snugEmpire(b: BodiceDraft, girth: number): BodiceDraft {
+  const target = girth + EMPIRE_EASE;
   const before = seamGirth(b.pieces);
   if (!(before > target + 0.1)) return b;
   const main = b.pieces.filter((pc) => !pc.kind && /^Bodice/.test(pc.name));

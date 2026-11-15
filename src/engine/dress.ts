@@ -24,6 +24,9 @@ import { SIDE_ZIPS } from './drape';
 
 export type DressMeasurements = BodiceMeasurements & SkirtMeasurements & SleeveMeasurements;
 
+/** Skirts a pulled-on dress can have: narrow enough to cut on the fold, and on the straight grain. */
+const PULL_ON_SKIRTS: string[] = ['straight', 'pencil', 'a_line'];
+
 /** Standard dress zips, in cm. */
 export const DRESS_ZIPS = [45, 50, 55, 60, 65];
 /** How far the zip runs on below the waist, at least, so the dress steps on over the hips. */
@@ -373,11 +376,12 @@ export function draftDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyl
   // Dropped: the bodice runs on to the seam and its hem becomes the waist seam. Raised: the waist-length
   // bodice is cut across above the waist. Either way the skirt is drafted from the seam. The draft keeps
   // the bodice as drawn, hem and all, for the drawings; its printed pieces sew to the skirt.
-  // At the empire line, right under the bust, the seam is drawn in to sit close (snugEmpire): a seam part way up keeps
-  // the waist's room, as a babydoll's does.
+  // At the empire line, as high as the seam goes, it is drawn in to sit close (snugEmpire): a seam part way up keeps the
+  // waist's room, as a babydoll's does. It is drawn in to the body's girth where the seam sits (fromSeam's, which the skirt
+  // is drafted from): the underbust when the seam is right under the bust, more where a side bust dart keeps it lower.
   const empire = drop < 0 && -drop >= raise - 0.05;
   const raised = drop < 0 ? raiseBodice(natural, -drop) : natural;
-  const bodice = drop > 0 ? draftBodice(m, { ...base, length: 'high_hip', dropCm: drop }) : empire ? snugEmpire(raised, (m as { underbust?: number }).underbust ?? m.waist + 0.5 * (m.full_bust - m.waist)) : raised;
+  const bodice = drop > 0 ? draftBodice(m, { ...base, length: 'high_hip', dropCm: drop }) : empire ? snugEmpire(raised, fromSeam(m, drop).waist) : raised;
   const bodicePieces = drop > 0 ? bodice.pieces.map(hemToSeam) : bodice.pieces;
   const sm = fromSeam(m, drop);
   const buttoned = bodice.closure === 'front_buttons' && !!bodice.buttons;
@@ -403,7 +407,18 @@ export function draftDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyl
   // edge clears the head and the waist seam, dropped below the waist, clears the bust and shoulders. Below a dropped
   // seam the skirt is cut from the hip girth with its ease, so it clears the hips too.
   const pullOn =
-    !!bodiceStyle.pullOn && closure === 'back_zip' && !bodice.drape && OVER_HEAD_NECKS.includes(bodiceStyle.neckline ?? '') && natural.neck >= HEAD_PASS_CM && drop > 0 && 2 * (waist.front + waist.back) >= m.full_bust + PULL_ON_CM;
+    !!bodiceStyle.pullOn &&
+    closure === 'back_zip' &&
+    !bodice.drape &&
+    bodiceStyle.back !== 'keyhole' &&
+    OVER_HEAD_NECKS.includes(bodiceStyle.neckline ?? '') &&
+    natural.neck >= HEAD_PASS_CM &&
+    drop > 0 &&
+    // Both rings it passes on the way down, the natural waist and the seam, clear the bust and shoulders.
+    Math.min(bodice.finishedWaist, 2 * (waist.front + waist.back)) >= m.full_bust + PULL_ON_CM &&
+    // A narrow skirt cut on the fold, with no slit or vent at the centre back to keep its seam for.
+    PULL_ON_SKIRTS.includes(skirtStyle.silhouette ?? 'a_line') &&
+    (skirtStyle.slit ?? (walkingSlit({ silhouette: 'a_line', length: 'knee', ...skirtStyle }) ? 'back' : 'none')) !== 'back';
   // One-shoulder: the zip goes in the right side seam from under the arm instead.
   const sideOpen = bodice.drape?.zip;
   let zipCm = sideOpen
@@ -496,7 +511,7 @@ export function draftDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyl
   return {
     bodice: pullOn ? { ...bodice, pullOn: true, zipCm: 0, pieces: bodice.pieces.map(backFold) } : bodice,
     // The skirt as drafted, its front still whole, for its drawing and steps; the pieces to cut are opened.
-    skirt: buttoned || pullOn ? { ...skirt, zipCm: 0, pieces: skirt.pieces.map((pc) => (/^Skirt back/.test(pc.name) ? backOnFold(pc) : pc)) } : skirt,
+    skirt: buttoned ? { ...skirt, zipCm: 0, pieces: skirt.pieces.map((pc) => (/^Skirt back/.test(pc.name) ? backOnFold(pc) : pc)) } : pullOn ? { ...skirt, zipCm: 0, pieces: skirt.pieces.map(backFold) } : skirt,
     pieces: pullOn ? [...bodicePieces.map(unzip).map(backFold), ...skirtPieces.map(backFold)] : [...bodicePieces.map(unzip), ...skirtPieces],
     zipCm: buttoned || wrapped || pullOn ? 0 : zipCm,
     ...(pullOn ? { pullOn: true as const } : {}),

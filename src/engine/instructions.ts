@@ -906,7 +906,15 @@ function pullOnDress(g: SewingGuide, draft: DressDraft): SewingGuide {
       case 'Finish the lining at the zip':
         return [];
       case 'Cut out':
-        return [{ ...st, text: st.text.replace(' Place the skirt front on the fold and the skirt back on both layers.', ' Place the skirt front and the skirt back on the fold.').concat(' The dress goes on over your head, so neither back has a seam or a zip.') }];
+        return [
+          {
+            ...st,
+            text: st.text
+              .replace(' Place the skirt front on the fold and the skirt back on both layers.', ' Place the skirt front and the skirt back on the fold.')
+              .replace(' The skirt pieces are too wide for folded fabric: cut them from a single layer, turning the pattern over for the second of each so you get pairs.', ' The skirt pieces are too wide for fabric folded selvedge to selvedge: fold just enough of the width to take each one on its fold line.')
+              .concat(' The dress goes on over your head, so neither back has a seam or a zip.'),
+          },
+        ];
       case 'Neaten the edges':
         return [{ ...st, text: st.text.replace(', the side edges of the skirt, and the centre back edges of both', ' and the side edges of the skirt').replace(', and the centre back edges of both', '') }];
       case 'Join the bodice to the skirt':
@@ -917,6 +925,10 @@ function pullOnDress(g: SewingGuide, draft: DressDraft): SewingGuide {
         return [st];
     }
   });
+  // A lined dress's lining is finished at the waist inside, which the zip's lining step used to do.
+  const lined = steps.some((st) => st.title === 'Make the lining');
+  const hem = steps.findIndex((st) => st.title === 'Hem');
+  if (lined && hem >= 0) steps.splice(hem, 0, { title: 'Finish the lining at the waist', text: "Turn the lining's waist edge under and slip-stitch it over the waist seam inside, all the way round." });
   return { ...g, notions: g.notions.filter((n) => !/zip|hook and eye/i.test(n)), steps };
 }
 

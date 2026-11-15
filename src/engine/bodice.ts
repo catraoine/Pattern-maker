@@ -614,18 +614,18 @@ export function draftBodice(m: BodiceMeasurements, style: Partial<BodiceStyle> =
   const s = wrapStyle(unevenStyle(seamStyle(drapeStyle({ ...DEFAULT_BODICE_STYLE, ...style }))));
   // A peplum (drape.ts) goes on any waist-length bodice, a boned one too.
   const redraft = (st: BodiceStyle) => draftBlock(m, st);
-  // A V or boat neck pulls on only if its edge goes over the head; a smaller one keeps its zip.
-  if (s.pullOn && OVER_HEAD_NECKS.includes(s.neckline)) {
-    const d = draftBodice(m, { ...style, pullOn: false });
-    if (d.neck < HEAD_PASS_CM) return d;
-  }
-  if (isTop(s.neckline)) {
-    // Cut below the shoulders: the block drafted as usual, then cut along the top edge and shaped.
-    const t = topStyle(s);
-    const cut = cutTop(draftBlock(m, t), t, s.fitting?.lowShoulder);
-    return drapeBodice(isBoned(t) ? bonedPanels(cut, t) : isShirred(t) ? shirredBack(shape(cut, t)) : shape(cut, t), t, m, redraft);
-  }
-  return drapeBodice(unevenFront(finish(cutSleeves(styleSeams(shape(draftBlock(m, s), s), s), s, m as BodiceMeasurements & SleeveMeasurements), s, m), s), s, m, redraft);
+  const once = (st: BodiceStyle): BodiceDraft => {
+    if (isTop(st.neckline)) {
+      // Cut below the shoulders: the block drafted as usual, then cut along the top edge and shaped.
+      const t = topStyle(st);
+      const cut = cutTop(draftBlock(m, t), t, st.fitting?.lowShoulder);
+      return drapeBodice(isBoned(t) ? bonedPanels(cut, t) : isShirred(t) ? shirredBack(shape(cut, t)) : shape(cut, t), t, m, redraft);
+    }
+    return drapeBodice(unevenFront(finish(cutSleeves(styleSeams(shape(draftBlock(m, st), st), st), st, m as BodiceMeasurements & SleeveMeasurements), st, m), st), st, m, redraft);
+  };
+  const d = once(s);
+  // A V or boat neck pulls on only if its edge goes over the head; a smaller one is drafted again with its zip.
+  return d.pullOn && OVER_HEAD_NECKS.includes(s.neckline) && d.neck < HEAD_PASS_CM ? once({ ...s, pullOn: false }) : d;
 }
 
 /**
