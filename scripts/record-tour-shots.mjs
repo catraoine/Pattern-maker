@@ -415,7 +415,8 @@ const pen = (x, y, o) => p.evaluate(([x, y, o]) => Object.assign(document.getEle
 const press = async (loc, ms) => {
   const bx = await loc.boundingBox();
   if (!bx || bx.y < 0 || bx.y + bx.height > (WIDE ? 810 : 768)) return tap(loc, ms);
-  await pen(bx.x + bx.width / 2, bx.y + bx.height / 2, 1);
+  // On a wide button the dot presses its blank right end, not its letters (Fable's review, Nov 15).
+  await pen(bx.width > 160 ? bx.x + bx.width - 22 : bx.x + bx.width / 2, bx.y + bx.height / 2, 1);
   await wait(380);
   await loc.evaluate((el) => el.click());
   await wait(220);
@@ -571,7 +572,9 @@ if (PHONE_QS) {
   // One question at a time (Cat's B + K, live Nov 8): Cut, then the darts, then the neckline.
   await press(next(), 700);
   await press(chip('Waist seam'), 1300);
-  for (let i = 0; i < 3 && !/Darts/.test(await main.locator('main h2, h2').filter({ visible: true }).allTextContents().then((t) => t.join('|'))); i++) await press(next(), 600);
+  // Waist height is held a full 2 s, long enough to read (Fable's review, Nov 15).
+  const asked = () => main.locator('main h2, h2').filter({ visible: true }).allTextContents().then((t) => t.join('|'));
+  for (let i = 0; i < 3 && !/Darts/.test(await asked()); i++) { await press(next(), 600); if (/Waist height/.test(await asked())) await wait(1400); }
   await press(chip('Bust and waist'), 1200);
   await press(next(), 700);
   await press(chip('Scoop'), 1500);
@@ -602,14 +605,16 @@ if (PHONE_QS) {
   await press(main.getByRole('tab', { name: /Fabric/ }).first(), 900);
 }
 // Then the cloth: silk, printed one way, the jade python, landing as one change.
+// The calico dress is held a beat first, then each choice is pressed with the pen dot, so the cloth is seen being
+// chosen and the dress seen changing (Fable's review, Nov 15).
 mark('cloth');
-await p.evaluate(async () => {
-  const pickIn = (label, name) => [...document.querySelectorAll(`[role=radiogroup][aria-label="${label}"] [role=radio], [role=radiogroup][aria-label="${label}"] button[aria-pressed]`)].find((el) => (el.getAttribute('aria-label') || el.textContent.trim()).startsWith(name))?.click();
-  pickIn('Fabric for the sketch', 'Silk');
-  for (let i = 0; i < 4; i++) await Promise.resolve();
-  pickIn("What's printed on your fabric", 'One-way');
-});
-await wait(2600);
+await wait(900);
+const swatch = (label, name) => p.evaluateHandle(([label, name]) => [...document.querySelectorAll(`[role=radiogroup][aria-label="${label}"] [role=radio], [role=radiogroup][aria-label="${label}"] button[aria-pressed]`)].find((el) => (el.getAttribute('aria-label') || el.textContent.trim()).startsWith(name)), [label, name]).then((h) => h.asElement());
+for (const [label, name, ms] of [['Fabric for the sketch', 'Silk', 900], ["What's printed on your fabric", 'One-way', 2600]]) {
+  const el = await swatch(label, name);
+  if (el) await press(el, ms);
+  else console.log(`  no ${name} in ${label}`);
+}
 console.log('  dress', await p.evaluate(() => { const d = JSON.parse(localStorage.getItem('pattern-maker:skirt')); return JSON.stringify({ dress: d.dress, fabric: d.finish?.fabric }); }));
 if (process.env.TOUR_PROBE_STYLE) {
   await p.screenshot({ path: `${OUT}/probe-style.png` });
@@ -630,7 +635,7 @@ const kinds = main.getByRole('group', { name: 'What you are drawing' });
 // until the tool is open on the shorter dress is cut out of the shot.
 const drawOn = main.getByRole('button', { name: 'Draw on your form' }).first();
 const db = await drawOn.boundingBox();
-await pen(db.x + db.width / 2, db.y + db.height / 2, 1);
+await pen(db.x + db.width - 3, db.y + db.height - 3, 1); // the button's corner, not its letters (Fable, Nov 15)
 await wait(380);
 // Into just the form through a short dip to black, so the cut from the whole screen to the form isn't a jump.
 if (process.env.TOUR_DRAW_FOCUS !== '0') { await p.evaluate(() => { document.getElementById('pen').style.opacity = 0; }); await dip(1); await wait(450); }
@@ -685,6 +690,12 @@ if (process.env.TOUR_FLARE) {
 } else mark('side');
 if (process.env.TOUR_PROBE3) {
   await p.screenshot({ path: `${OUT}/probe3.png` });
+  process.exit(0);
+}
+// TOUR_STATE=<file> saves the dress as drawn (the saved design after the hem is drawn) and stops, so All round can
+// be checked on the exact garment the film shows.
+if (process.env.TOUR_STATE) {
+  writeFileSync(process.env.TOUR_STATE, await p.evaluate(() => localStorage.getItem('pattern-maker:skirt')));
   process.exit(0);
 }
 // Done lands on the pattern sheet, and the film stays there (Cat, 2026-10-24: no flash back to the dress).

@@ -212,7 +212,7 @@ const MARKS = existsSync(join(SHOTS, 'marks.json')) ? JSON.parse(readFileSync(jo
 // Ends as Done is tapped, on the drawing: Shop the fabric follows, not the pattern sheet (Cat, 2026-11-02).
 // On a phone the take opens on the Fit step, already answered, which only flashed past before Cut (Fable's review,
 // Nov 15), so the phone's journey starts on Cut.
-const JOURNEY_FROM = WIDE ? 0.6 : Number(process.env.JOURNEY_FROM ?? 2.1);
+const JOURNEY_FROM = WIDE ? Number(process.env.JOURNEY_FROM ?? 2.4) /* opens as the Cut row opens, not on the Shape summary (Fable, Nov 15) */ : Number(process.env.JOURNEY_FROM ?? 2.1);
 const JOURNEY = { from: JOURNEY_FROM, to: MARKS.done - 0.2, dur: Math.round(((MARKS.done + 0.9 - JOURNEY_FROM) / 1.4) * 10) / 10 };
 const atOut = (t) => ((t - JOURNEY.from) * JOURNEY.dur) / (JOURNEY.to - JOURNEY.from);
 // [shot time, zoom, x, y]: on a computer, the whole page, then in on the enlarged form to draw, and back as the
@@ -220,7 +220,7 @@ const atOut = (t) => ((t - JOURNEY.from) * JOURNEY.dur) / (JOURNEY.to - JOURNEY.
 // sheet doesn't jump as one dissolves into the other (Cat, 2026-10-25).
 // With the drawing shown as just the form (Cat, 2026-11-07), the computer's film stays on the whole frame too.
 const STYLE_CAM = (WIDE
-  ? [[0.6, 1, 0.5, 0.5], [JOURNEY.to, 1, 0.5, 0.5]]
+  ? [[0.6, 1, 0.5, 0.5], [JOURNEY.to, 1.03, 0.5, 0.5]] // a slow drift in, so the panels don't sit still (Fable, Nov 15)
   : [[0.6, 1, 0.5, 0.5], [JOURNEY.to, 1.05, 0.5, 0.47]]).map(([t, ...r]) => [atOut(t), ...r]);
 // No step words over the Style journey: what each move does is left to show itself (Cat, 2026-10-24: "take out
 // these headings, just leave it implied"), nor over the pattern: after the photo's own line, the next words are
@@ -284,10 +284,13 @@ function styleGaps() {
   if (process.env.STYLE_GAPS === '0') return [];
   if (WIDE) {
     const run = blackAfter(MARKS.enlarge - 0.5);
-    return run ? [[MARKS.enlarge - 0.15, run[1] + 0.3]] : [];
+    return run ? [[MARKS.enlarge - 0.15, run[1] + 0.3, true]] : [];
   }
-  const run = DIP_AT && blackAfter(DIP_AT - 0.2);
-  return run ? [[run[0] - 0.35, run[1] + 0.3]] : [];
+  // Both dips: the one before the cloth, and the one into just the form, which the take fades too quickly
+  // (Fable's review, Nov 15).
+  // The second goes through black, as the computer's does: from the whole screen to just the form a dissolve would
+  // show two dresses.
+  return [[DIP_AT && blackAfter(DIP_AT - 0.2), false], [DRAW_DIP && blackAfter(DRAW_DIP - 0.2), true]].filter(([run]) => run).map(([run, black]) => [run[0] - 0.35, run[1] + 0.3, black]);
 }
 const styleJourney = async () => {
   // One at a time: the words are all drawn on the one page.
@@ -302,6 +305,8 @@ const styleJourney = async () => {
   const parts = [];
   let s0 = JOURNEY.from;
   for (const [end, next] of cuts) { parts.push([s0, end]); s0 = next; }
+  // Each gap's way across: through black (true) or a dissolve.
+  const black = cuts.map(([, , b]) => !!b);
   parts.push([s0, JOURNEY.to]);
   const camAt = (t) => { const u = (t - JOURNEY.from) / (JOURNEY.to - JOURNEY.from); return STYLE_CAM.length > 1 ? [STYLE_CAM[0][1] + (STYLE_CAM[1][1] - STYLE_CAM[0][1]) * u, 0.5, STYLE_CAM[0][3] + (STYLE_CAM[1][3] - STYLE_CAM[0][3]) * u] : [1, 0.5, 0.5]; };
   const liftAt = JOURNEY.from + (JOURNEY.dur - 2.4) * speed;
@@ -314,17 +319,16 @@ const styleJourney = async () => {
     // A line (not the band under it) that runs across a dissolve goes out before it and the next comes in after it,
     // so the two never print over each other.
     const last = i === parts.length - 1;
-    const ns = notes.filter(([, on, off]) => off > a && on < b).map(([pic, on, off, band]) => [pic, on <= a ? (band || i === 0 ? -0.45 : 0.5) : inPart(on), off >= b ? (band || last ? dur + 0.45 : dur - 0.35) : inPart(off)]);
+    const ns = notes.filter(([, on, off]) => off > a && on < b).map(([pic, on, off, band]) => [pic, on <= a ? (band || i === 0 ? -0.45 : 0.5) : inPart(on), off >= b ? (band || last ? dur + 0.45 : dur - 0.35) : inPart(off)]).filter(([, on, off]) => off - Math.max(on, 0) >= 0.5); // a line that only grazes the part is left out
     const cs = cards.filter(([, on, off]) => off > a && on < b).map(([pic, on, off]) => [pic, inPart(on), inPart(off)]);
     const darkAt = !cuts.length && DIP_AT && DIP_AT > a && DIP_AT < b ? { darken: [inPart(DIP_AT), 0.3] } : {};
     const lifting = LIFT && liftAt < b ? { lift: [LIFT, inPart(liftAt), 1.6] } : {};
     // On a computer the drawing comes up centred on black, away from where the dress stood beside the steps, so a
     // dissolve would show two dresses: it goes through a short fade to black instead.
-    const dip = WIDE ? 0.4 : 0;
-    pieces.push(await piece({ shot: 'style', from: a, dur, speed, cam: [[0, ...camAt(a)], [dur, ...camAt(b)]], fadeIn: i === 0 ? 0.5 : dip, fadeOut: last ? 0 : dip, notes: ns, cards: cs, ...darkAt, ...lifting }));
+    pieces.push(await piece({ shot: 'style', from: a, dur, speed, cam: [[0, ...camAt(a)], [dur, ...camAt(b)]], fadeIn: i === 0 ? 0.5 : black[i - 1] ? 0.4 : 0, fadeOut: last ? 0 : black[i] ? 0.4 : 0, notes: ns, cards: cs, ...darkAt, ...lifting }));
   }
   let out = pieces[0];
-  for (const p of pieces.slice(1)) out = await dissolve(out, p, WIDE ? 0.04 : 0.6);
+  for (const [i, p] of pieces.slice(1).entries()) out = await dissolve(out, p, black[i] ? 0.04 : 0.6);
   return out;
 };
 // Cat (2026-10-22): the cream pattern paper was too bright after the black pages; a deeper champagne here.
@@ -402,7 +406,7 @@ const note = (line0, where, shade = true) => {
 };
 // The scroll down the collection's looks, the way down to Print my pattern, and projector mode, as recorded
 // (record-tour-shots.mjs: the phone's scrolls are longer).
-const COLLECTION = WIDE ? { from: 0.8, dur: 8.5, speed: 1.45 } : { from: 0.8, dur: 8.5, speed: 1.75, drop: 0.05 };
+const COLLECTION = WIDE ? { from: 0.8, dur: 8.5, speed: 1.45 } : { from: 1.6, dur: 7.9, speed: 1.75, drop: 0.05, frame: [0.21, 1.1] }; // on a phone the band above the look is kept black, so Make this look never shows behind the words as the page scrolls (Fable, Nov 15)
 // A computer has no Review page to scroll (Print my pattern sits beside the drawing), so its projector runs longer.
 // Print opens straight on the pattern pieces' sideways scroll, no Review page first (Cat, 2026-11-06), so on a phone
 // too there is nothing here; REVIEW=1 brings the scroll down the Review page back.
@@ -414,7 +418,9 @@ const REVIEW = WIDE || process.env.REVIEW !== '1' ? undefined : { from: 0.4, dur
 // On a phone the piece is moved down off camera so its top shows, then framed on the whole piece, with just the line's
 // room above it (Cat, Nov 15: no empty black over it, no foot cut off), and the app's ring at the top right left out.
 // On a computer, the whole piece too, beside the line (Fable, Nov 15: it was cut off at the foot).
-const PROJECTOR = WIDE ? { from: 8.6, dur: 4.2, zoom: [1, 1.03], at: [0.75, 0.45], frame: [-0.1, 0.9] } : { from: Number(process.env.PJ_FROM ?? 11.1), dur: 4, zoom: [1.6, 1.63], at: [0.43, 0.49] };
+// The computer's piece sits at the right of the screen: drawn in on it, past the toolbar and the corner ring; the
+// phone's ring at the right edge is masked (Fable's review, Nov 15).
+const PROJECTOR = WIDE ? { from: Number(process.env.PJ_FROM ?? 10.0), dur: 4.2, zoom: [1.08, 1.1], at: [0.85, 0.5], frame: [0.075, 0.935, -1, 2, 0.015] } : { from: Number(process.env.PJ_FROM ?? 11.1), dur: 4, zoom: [1.6, 1.63], at: [0.43, 0.49], frame: [-0.1, 1.1, -0.1, 0.95] };
 // Phone: drawn in a little less and set lower, so the piece sits whole under its two lines of words (Cat, 2026-11-06:
 // cut off by the words at the top).
 // The photo is in about 0.9 s into the take; the reading is up by about 2.9 s.
@@ -488,6 +494,10 @@ const CUTS = {
     // tape's brass tip stays on screen the whole way (Cat, 2026-10-24: the end of the tape must stay the same).
     // On a computer the measuring pages are a column in the middle of the window: drawn in on it (Nov 14).
     const TAPE_VIEW = WIDE ? { zoom: [1.15, 1.15], at: [0.5, 0.53] } : { zoom: [1.08, 1.08], at: [0.49, 0.545] };
+    // A page that sits still drifts in slowly, from a time in the piece on, like a hand-held camera (Fable's review,
+    // Nov 15). The first page drifts only once the film's tape has handed over to the page's own, so the two meet (the
+    // hand-over is TAPE_PULL.at in the card and page together; the page starts about 2 s into that).
+    const drift = ({ zoom = [1, 1], at = [0.5, 0.5] }, dur, from = 0) => ({ cam: [[0, zoom[0], ...at], [from, zoom[0], ...at], [dur, zoom[0] * 1.025, ...at]] });
     // The waist page is fully up in the take about 7.9 s in, after the dip from the first page.
     const WAIST_AT = Number(process.env.WAIST_AT ?? 7.9);
     // The first page is held about 5.8 s in the take, for the tape.
@@ -509,8 +519,8 @@ const CUTS = {
       // landing on the page's own tape, which takes over (Cat, Nov 15). The title fades out before the page fades in, so
       // the two never overlap (Fable's review, Nov 15); the page's own heading says what
       // comes next, so no line over it. Then the waist page, through the take's dip, its tape coming round the waist.
-      ...(released ? [await piece({ shot: 'tape', from: 0.3, dur: FIRST_DUR, ...TAPE_VIEW, fadeIn: f, fadeOut: 0.35 })] : [await pulledTape(await dissolve(await piece({ still: await card('01', 'Measure', 'Just a few, once.'), dur: 2.2, fadeIn: f, fadeOut: 0.5 }), await piece({ shot: 'tape', from: 0.3, dur: FIRST_DUR, ...TAPE_VIEW, fadeIn: 0.5, fadeOut: 0.35 }), 0.04), TAPE_PULL)]),
-      await piece({ shot: 'tape', from: WAIST_AT, dur: 3.6, ...(WIDE ? {} : TAPE_VIEW), fadeIn: 0.35, fadeOut: f }),
+      ...(released ? [await piece({ shot: 'tape', from: 0.3, dur: FIRST_DUR, ...TAPE_VIEW, fadeIn: f, fadeOut: 0.35 })] : [await pulledTape(await dissolve(await piece({ still: await card('01', 'Measure', 'Just a few, once.'), dur: 2.2, fadeIn: f, fadeOut: 0.5 }), await piece({ shot: 'tape', from: 0.3, dur: FIRST_DUR, ...drift(TAPE_VIEW, FIRST_DUR, TAPE_PULL.at - 2), fadeIn: 0.5, fadeOut: 0.35 }), 0.04), TAPE_PULL)]),
+      await piece({ shot: 'tape', from: WAIST_AT, dur: 3.6, ...drift(WIDE ? {} : TAPE_VIEW, 3.6), fadeIn: 0.35, fadeOut: f }),
     ];
     // TOUR_PREVIEW=1 stops after the opening and the tape, to try an opening without cutting the whole film.
     if (process.env.TOUR_PREVIEW) return opening;

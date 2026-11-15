@@ -25,8 +25,8 @@ const WIDE_SCREEN = '(min-width: 900px) and (min-aspect-ratio: 1/1)';
 const PARTS: FilmPart[] = [
   { name: 'Measure', from: 0, says: 'Just a few measurements, taken once. The dress form takes your shape as you go.' },
   { name: 'Choose', from: 15.6, says: 'Then what to make: pick a garment, start from a look in the collection, or upload a photo of a piece you love.' },
-  { name: 'Style', from: 33.3, says: 'Make it yours: its shape, length, hem and details, step by step on the drawing. Your pattern is drafted as you go, and you can shop the fabric for it.' },
-  { name: 'Print', from: 67.4, says: 'Print it at home on ordinary paper, full size at a copy shop, or project it true size onto your fabric. Drafted to your body.' },
+  { name: 'Style', from: 32.8, says: 'Make it yours: its shape, length, hem and details, step by step on the drawing. Your pattern is drafted as you go, and you can shop the fabric for it.' },
+  { name: 'Print', from: 68.9, says: 'Print it at home on ordinary paper, full size at a copy shop, or project it true size onto your fabric. Drafted to your body.' },
 ];
 export const TOUR_LABEL = '1:30';
 
