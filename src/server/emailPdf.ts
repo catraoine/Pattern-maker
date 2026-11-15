@@ -7,8 +7,10 @@ import { z } from 'zod';
 /** The biggest PDF taken (a long coat on A4 is well under 1 MB), as base64, which is a third bigger. */
 const PDF_MAX_BYTES = 4_000_000;
 const PDF_MAX_B64 = Math.ceil(PDF_MAX_BYTES / 3) * 4;
-/** The whole request, with a little room for the address and the names. */
-export const MAX_EMAIL_REQUEST = PDF_MAX_B64 + 4_000;
+/** The whole request: the pattern and its instructions booklet, with a little room for the address and the names. */
+export const MAX_EMAIL_REQUEST = 2 * PDF_MAX_B64 + 4_000;
+const PDF_B64 = z.string().max(PDF_MAX_B64).regex(/^JVBER[A-Za-z0-9+/]+={0,2}$/);
+const PDF_NAME = z.string().trim().max(120).regex(/^[a-z0-9-]+\.pdf$/);
 /** Daily caps, per sender and for the whole site, inside the email service's free 100 a day. */
 export const EMAIL_CAPS = { visitor: 5, all: 90 };
 
@@ -17,11 +19,16 @@ const EmailSchema = z
     to: z.string().trim().max(254).email(),
     // The pattern's name, as on the Print screen, such as "knee A-line skirt" (cut to 80 letters in the email).
     title: z.string().trim().min(1).max(200),
-    fileName: z.string().trim().max(120).regex(/^[a-z0-9-]+\.pdf$/),
+    fileName: PDF_NAME,
     // The PDF itself, base64. "JVBER" is how "%PDF-" starts in base64, so only a PDF is ever attached.
-    pdf: z.string().max(PDF_MAX_B64).regex(/^JVBER[A-Za-z0-9+/]+={0,2}$/),
+    pdf: PDF_B64,
+    // The instructions booklet, its own file since Nov 15 (Cat: the pattern is what you print). Checked the same way.
+    bookletName: PDF_NAME.optional(),
+    booklet: PDF_B64.optional(),
   })
-  .strict();
+  .strict()
+  // The booklet comes with its name or not at all, so the email never says "second file" without one.
+  .refine((r) => !r.booklet === !r.bookletName);
 
 type EmailRequest = z.infer<typeof EmailSchema>;
 
@@ -48,11 +55,13 @@ export function emailFor(r: EmailRequest) {
     text: [
       `Here is your ${name} pattern, drafted to you.`,
       '',
-      'Print it at 100% (actual size) and measure the 10 cm test square on page A1 before you cut. The cutting layout and sewing steps are on the last pages.',
+      r.booklet && r.bookletName
+        ? 'Print the pattern at 100% (actual size) and measure the 10 cm test square on page A1 before you cut. The instructions, with the cutting layout and sewing steps, are in the second file.'
+        : 'Print it at 100% (actual size) and measure the 10 cm test square on page A1 before you cut.',
       '',
       'Maison Tracé',
       'You asked for this email on the Print screen. We used your address only to send it.',
     ].join('\n'),
-    attachments: [{ filename: r.fileName, content: r.pdf }],
+    attachments: [{ filename: r.fileName, content: r.pdf }, ...(r.booklet && r.bookletName ? [{ filename: r.bookletName, content: r.booklet }] : [])],
   };
 }

@@ -22,4 +22,15 @@ describe('Email me the PDF', () => {
     expect(e.subject).not.toMatch(/[<>"]/);
     expect(e.attachments[0]).toEqual({ filename: ok.fileName, content: pdf });
   });
+  it('attaches the instructions booklet as a second file, checked like the pattern (Nov 15)', () => {
+    const both = { ...ok, bookletName: 'knee-a-line-skirt-instructions.pdf', booklet: pdf };
+    expect(checkEmailRequest(JSON.stringify(both))).toEqual(both);
+    expect(checkEmailRequest(JSON.stringify({ ...both, booklet: Buffer.from('<html>').toString('base64') }))).toBeNull();
+    expect(checkEmailRequest(JSON.stringify({ ...both, bookletName: '../evil.exe' }))).toBeNull();
+    expect(checkEmailRequest(JSON.stringify({ ...ok, booklet: pdf }))).toBeNull();
+    const e = emailFor(both);
+    expect(e.attachments).toEqual([{ filename: ok.fileName, content: pdf }, { filename: both.bookletName, content: pdf }]);
+    expect(e.text).toMatch(/second file/);
+    expect(emailFor(ok).attachments).toHaveLength(1);
+  });
 });
