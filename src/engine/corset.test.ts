@@ -233,8 +233,8 @@ describe('boned and strapless tops', () => {
   });
 
   it('names the tops', () => {
-    expect(describeBodice({ ...DEFAULT_BODICE, neckline: 'sweetheart', structure: 'boned' })).toMatch(/boned strapless sweetheart bodice/);
-    expect(describeBodice({ ...DEFAULT_BODICE, neckline: 'strapless' })).toMatch(/boned strapless bodice/);
+    expect(describeBodice({ ...DEFAULT_BODICE, neckline: 'sweetheart', structure: 'boned' })).toMatch(/boned strapless sweetheart top/);
+    expect(describeBodice({ ...DEFAULT_BODICE, neckline: 'strapless' })).toMatch(/boned strapless top/);
     expect(describeBodice({ ...DEFAULT_BODICE, neckline: 'cami' })).toMatch(/cami/);
     expect(describePattern({ garment: 'dress', fit: 'fitted', bodice: { ...DEFAULT_BODICE, neckline: 'strapless' }, skirt: { fit: 'fitted', silhouette: 'a_line', length: 'midi' } } as never)).toMatch(/strapless/);
   });

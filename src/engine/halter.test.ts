@@ -59,6 +59,6 @@ describe('halter neck', () => {
     expect(dressGuide(dress, { silhouette: 'a_line', length: 'knee' }, 2.5, 1, {}).steps.map((s) => s.title)).toContain('Make the neck ties');
     expect(bodiceSpec(m, d, 'waist').some((r) => /Neck tie/.test(r.label))).toBe(true);
     expect(bodiceFlat(d).views[0].shapes.length).toBeGreaterThan(1);
-    expect(describePattern({ ...DEFAULT_BODICE, neckline: 'halter' } as never)).toMatch(/halter bodice tied at the neck/);
+    expect(describePattern({ ...DEFAULT_BODICE, neckline: 'halter' } as never)).toMatch(/halter top tied at the neck/);
   });
 });

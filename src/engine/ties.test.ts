@@ -38,7 +38,7 @@ describe('the pussy bow', () => {
     expect(draftBodice(b, { closure: 'front_buttons', collar: 'bow' }).collar).toBe('none');
     expect(detailAllowed({ ...DEFAULT_BODICE, neckline: 'v' }, 'collar', 'bow')).toBe(true);
     expect(detailAllowed({ ...DEFAULT_BODICE, closure: 'front_buttons' }, 'collar', 'bow')).toBe(false);
-    expect(describeBodice({ ...DEFAULT_BODICE, collar: 'bow' })).toMatch(/pussy-bow bodice/);
+    expect(describeBodice({ ...DEFAULT_BODICE, collar: 'bow' })).toMatch(/pussy-bow top/);
   });
 
   it('finishes the neck itself, and is sewn and drawn', () => {

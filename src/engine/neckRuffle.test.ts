@@ -50,7 +50,7 @@ describe('ruffle neckline', () => {
     const dr = draftDress(m as never, { fit: 'regular', neckline: 'crew', collar: 'ruffle' }, { silhouette: 'a_line', length: 'knee' });
     expect(titles(dressGuide(dr, { silhouette: 'a_line', length: 'knee' }, 2, 1, {}))).toContain('Attach the ruffle');
     expect(bodiceFlat(d).views[0].shapes.length).toBeGreaterThan(bodiceFlat(draftBodice(m, { fit: 'regular', neckline: 'v' })).views[0].shapes.length);
-    expect(describeBodice({ ...DEFAULT_BODICE, neckline: 'v', collar: 'ruffle' })).toMatch(/ruffled V-neck bodice/);
+    expect(describeBodice({ ...DEFAULT_BODICE, neckline: 'v', collar: 'ruffle' })).toMatch(/ruffled V-neck top/);
     expect(detailAllowed({ ...DEFAULT_BODICE, neckline: 'cami' }, 'collar', 'ruffle')).toBe(false);
   });
 });
@@ -100,6 +100,6 @@ describe('shirred back', () => {
     expect(validDetails({ ...c, structure: 'shirred' }, 'dress').structure).toBe('boned');
     expect(detailAllowed({ ...DEFAULT_BODICE }, 'structure', 'shirred')).toBe(false);
     expect(detailAllowed({ ...c, neckline: 'cami', structure: 'shirred' }, 'peplum', 'flared')).toBe(false);
-    expect(describeBodice({ ...c, structure: 'shirred' })).toMatch(/strapless bodice with a shirred back/);
+    expect(describeBodice({ ...c, structure: 'shirred' })).toMatch(/strapless top with a shirred back/);
   });
 });

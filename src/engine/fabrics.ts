@@ -362,7 +362,7 @@ const FIT_WORDS: Record<BodiceFit, string> = { fitted: 'fitted', regular: 'regul
 /** Fabrics for a bodice style. */
 export function bodiceFabrics(style: { fit: BodiceFit; neckline: Neckline; length?: BodiceLength; darts?: BodiceDarts; structure?: Structure; neck?: unknown; peplum?: 'none' | 'flared' | 'gathered' | 'balloon' }): FabricAdvice {
   if (style.structure === 'boned')
-    return { style: 'a boned bodice', picks: BONED.picks, avoid: BONED.avoid, note: BONED.note, lining: BODICE_LINING };
+    return { style: 'a boned top', picks: BONED.picks, avoid: BONED.avoid, note: BONED.note, lining: BODICE_LINING };
   // Shirring draws up only light cloth.
   if (style.structure === 'shirred')
     return {
@@ -384,7 +384,7 @@ export function bodiceFabrics(style: { fit: BodiceFit; neckline: Neckline; lengt
   const drawnOver = (style.neckline === 'cowl' || style.neckline === 'one_shoulder') && !!style.neck;
   const peplum = style.peplum && style.peplum !== 'none' ? PEPLUM_NOTES[style.peplum] : undefined;
   return {
-    style: cowl ? `a ${FIT_WORDS[style.fit]} cowl-neck bodice` : `a ${FIT_WORDS[style.fit]} bodice`,
+    style: cowl ? `a ${FIT_WORDS[style.fit]} cowl-neck top` : `a ${FIT_WORDS[style.fit]} top`,
     picks: base.picks,
     avoid: `${base.avoid} ${STRETCH}`,
     note: (drawnOver ? undefined : NECK_NOTES[style.neckline]) ?? peplum,

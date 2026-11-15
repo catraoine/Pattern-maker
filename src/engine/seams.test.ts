@@ -182,10 +182,10 @@ describe('style seam choices', () => {
   });
 
   it('name the bodice and the dress by its seam', () => {
-    expect(describeBodice({ ...c, empire: 8 })).toBe('waist-length crew neck empire-waist bodice');
-    expect(describeBodice({ ...c, panel: { at: 0.6 } })).toBe('waist-length crew neck side-panel bodice');
-    expect(describeBodice({ ...c, yoke: { front: 10, back: 12 } })).toBe('waist-length crew neck yoked bodice');
-    expect(describeBodice({ ...c, yoke: { back: 12 }, sleeve: 'short' })).toBe('waist-length crew neck back-yoke bodice with short sleeves');
+    expect(describeBodice({ ...c, empire: 8 })).toBe('waist-length crew neck empire-waist top');
+    expect(describeBodice({ ...c, panel: { at: 0.6 } })).toBe('waist-length crew neck side-panel top');
+    expect(describeBodice({ ...c, yoke: { front: 10, back: 12 } })).toBe('waist-length crew neck yoked top');
+    expect(describeBodice({ ...c, yoke: { back: 12 }, sleeve: 'short' })).toBe('waist-length crew neck back-yoke top with short sleeves');
     expect(bodiceDetails({ ...c, empire: 8 })).toBe('a crew neck and an empire waist');
     expect(bodiceDetails({ ...c, yoke: { front: 10 }, sleeve: 'short' })).toBe('a crew neck, a front yoke and short sleeves');
   });

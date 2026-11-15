@@ -16,7 +16,7 @@ export function PlansScreen({ account, onBack }: { account: Account; onBack: () 
     <div className="plans">
       <section className="card plan" aria-labelledby="freetitle">
         <p className="eyebrow">Free{yours('free')}</p>
-        <h1 id="freetitle">Skirt and bodice</h1>
+        <h1 id="freetitle">Skirt and top</h1>
         <p className="muted">
           Every style option, a pattern you print at home, {FREE_SAVED_LIMIT} saved patterns, {FREE_PHOTO_DRAFTS} photo drafts a month and how much
           fabric to buy.

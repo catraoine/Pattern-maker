@@ -7,7 +7,7 @@ test('wrap: a bodice that crosses over and ties', async ({ page }, info) => {
   const main = page.getByRole('main');
   await switchGarment(page, 'Bodice');
   await chooseChip(page, 'Opening', 'Wrap');
-  await expect(main.getByText(/wrap V-neck bodice/i).first()).toBeAttached();
+  await expect(main.getByText(/wrap V-neck top/i).first()).toBeAttached();
   await page.screenshot({ path: info.outputPath('bodice-form.png'), fullPage: true });
   await main.getByRole('button', { name: 'Flat', exact: true }).click();
   await page.screenshot({ path: info.outputPath('bodice-drawing.png'), fullPage: true });
