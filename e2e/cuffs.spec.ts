@@ -16,7 +16,7 @@ test('cuffs: shirt, elastic and tie on the bodice and the dress', async ({ page 
   await chooseChip(page, 'Sleeves', 'Long');
   await chooseChip(page, 'Sleeve shape', 'Straight');
   await chooseChip(page, 'Cuffs', 'Shirt cuff');
-  await expect(main.getByText(/bodice with long sleeves with shirt cuffs$/i).first()).toBeAttached();
+  await expect(main.getByText(/top with long sleeves with shirt cuffs$/i).first()).toBeAttached();
   await page.screenshot({ path: info.outputPath('shirt-cuff.png'), fullPage: true });
   // A shirt cuff is for a long sleeve; elastic goes on shorter ones too.
   await chooseChip(page, 'Sleeves', 'Elbow');
