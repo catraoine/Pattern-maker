@@ -381,15 +381,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
                 </button>
                 {!imported && <EmailPdf ready={ready} fileName={fileName} title={title} onSent={left} checked={checked} />}
                 {sendLink && onPhone() && (
-                  <SendToDevice
-                    link={sendLink}
-                    className="way"
-                    label={
-                      <span>
-                        Send to my computer<small>Then print from the printer there</small>
-                      </span>
-                    }
-                  />
+                  <SendToDevice link={sendLink} className="way" />
                 )}
               </div>
               {asking && (

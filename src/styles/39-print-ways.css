@@ -51,13 +51,6 @@
   line-height: 1;
 }
 
-.print-controls button.way small {
-  display: block;
-  margin-top: 3px;
-  color: var(--muted);
-  font-size: 13.5px;
-}
-
 .print-controls button.way:disabled {
   color: var(--disabled);
   cursor: not-allowed;
