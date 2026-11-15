@@ -126,7 +126,7 @@ test('the collection: the next drop stays hidden until it has a piece, and the A
   await expect(main.getByText('ARC · 1954 · 001')).toHaveCount(0);
 });
 
-test('the Chocolate Barrel Trouser: made low on the hip with two pleats, in chocolate sateen', async ({ page }) => {
+test('the Chocolate Barrel Trouser: made low on the hip with one pleat, in chocolate sateen', async ({ page }) => {
   await startWithExample(page);
   const main = page.getByRole('main');
   await openCollection(page);
@@ -141,7 +141,7 @@ test('the Chocolate Barrel Trouser: made low on the hip with two pleats, in choc
   await expectLook(page, 'Chocolate Barrel Trouser');
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('pattern-maker:skirt') ?? '{}'));
   expect(saved.finish?.fabric).toMatchObject({ fibre: 'cotton', colour: '#3d2418', drape: 'crisp', sheen: 'soft' });
-  expect(saved.trousers).toMatchObject({ leg: 'barrel', rise: 'low', pleats: 'double', loops: 'loops', length: 'full' });
+  expect(saved.trousers).toMatchObject({ leg: 'barrel', rise: 'low', pleats: 'single', loops: 'loops', length: 'full' });
 });
 
 test('a collection top with sleeves asks for the arms first, so its pattern has its sleeves', async ({ page }) => {
