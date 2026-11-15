@@ -16,13 +16,13 @@ test('sleeve cuts: raglan and dropped shoulder on the bodice, kimono on the dres
   await chooseChip(page, 'Sleeves', 'Long');
   await chooseChip(page, 'Sleeve shape', 'Straight');
   await chooseChip(page, 'Sleeve cut', 'Raglan');
-  await expect(main.getByText(/bodice with long raglan sleeves$/i).first()).toBeAttached();
+  await expect(main.getByText(/top with long raglan sleeves$/i).first()).toBeAttached();
   await page.screenshot({ path: info.outputPath('raglan.png'), fullPage: true });
   // A kimono sleeve goes to three-quarter length at most.
   const cut = await openGroup(page, 'Sleeve cut');
   await expect(cut.getByRole('button', { name: 'Kimono' })).toBeDisabled();
   await chooseChip(page, 'Sleeve cut', 'Dropped shoulder');
-  await expect(main.getByText(/bodice with long dropped-shoulder sleeves$/i).first()).toBeAttached();
+  await expect(main.getByText(/top with long dropped-shoulder sleeves$/i).first()).toBeAttached();
 
   await switchGarment(page, 'Dress');
   await chooseChip(page, 'Sleeves', 'Elbow');
