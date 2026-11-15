@@ -12,7 +12,7 @@ import { Title } from '../ui/Title';
 import type { PatternChoices } from '../garments';
 import { keepMenswear, menswearOpen, testingNote } from '../launch';
 import { TestingTag } from '../ui/TestingTag';
-import { FirstForm } from '../ui/FirstForm';
+import { FirstNeeds, FirstTape } from '../ui/FirstTape';
 import { ideaChoices, ideaRows, pieceGarment } from '../photo/idea';
 import { isSwimIntimates } from '../photo/swim';
 import { InterestCard } from '../ui/InterestCard';
@@ -215,7 +215,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
       // Cat's T2 without the slide (Nov 8): the tape round the neck lifts away with the page, and the waist page comes
       // up out of the black, its tape coming in from the side to wrap the waist.
       const card = document.querySelector<HTMLElement>('.measure-step');
-      const form = card?.querySelector<HTMLElement>('.form-picture, .first-form');
+      const form = card?.querySelector<HTMLElement>('.form-picture, .first-tape');
       if (!card || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return go();
       introLeft();
       form?.animate([{ transform: 'none' }, { transform: 'translateY(-28px)' }], { duration: LIFT_MS, easing: 'ease-in', fill: 'forwards' });
@@ -224,10 +224,13 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     return (
       // Cat's C Tape Lines (2026-10-30): the body with the bust, waist and hip marked on it, then two switches of two
       // halves each, the chosen half filled, for the form and for whom; Begin, and Measure later in quiet capitals.
-      // Cat's W1 (Nov 14): the welcome's own line form, so the body is the same from the welcome on. The film shows this
-      // page as it is too: its tape is drawn by the recorder (scripts/record-tour-shots.mjs), not by the app.
+      // Cat's T1 + F5 + G2 (Nov 15): a tape full width along the top in place of the form, what you need under the
+      // title, then the two switches under their own label in the same style, so the page reads as one set. The How it
+      // works film slides its tape in and lands on this one (scripts/edit-tour.mjs).
       <Shell title="First, let's take some measurements." first>
-        {onForm && <FirstForm kind={chosen} />}
+        <FirstTape />
+        <FirstNeeds />
+        <p className="first-label first-who">Who it is for</p>
         {onForm && (
           <div className="switch two-part" role="radiogroup" aria-label="Which form to draft on?">
             {(['womenswear', 'menswear'] as const).map((k) => (
@@ -252,6 +255,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
             <input id="who-name" autoComplete="off" autoFocus value={name} onChange={(e) => setName(e.target.value)} />
           </div>
         )}
+        <div className="first-room" />
         {/* The page's one filled button: the picked halves above are outlined (Cat's S1, 2026-10-31). */}
         <button type="button" className="primary main-go" disabled={helper && !name.trim()} onClick={begin}>
           Begin measuring
