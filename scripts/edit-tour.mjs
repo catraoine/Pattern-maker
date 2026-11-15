@@ -167,7 +167,8 @@ async function piece({ shot, src, slide = 0, still, from = 0, dur, speed = 1, zo
   });
   const firstNote = firstOver + overs.length;
   notes.forEach(([, on, off], i) => {
-    v += `[n${i}];[${firstNote + i}:v]format=rgba,fade=t=in:st=${on}:d=0.45:alpha=1,fade=t=out:st=${off - 0.45}:d=0.45:alpha=1[c${i}];[n${i}][c${i}]overlay=0:0:shortest=1`;
+    // A line that comes in before the piece starts (on below 0) is up from its first frame.
+    v += `[n${i}];[${firstNote + i}:v]format=rgba${on < 0 ? '' : `,fade=t=in:st=${on}:d=0.45:alpha=1`},fade=t=out:st=${off - 0.45}:d=0.45:alpha=1[c${i}];[n${i}][c${i}]overlay=0:0:shortest=1`;
   });
   // cards: [picture, when it comes in, when it goes], a card that glides in a little from the right as it fades in,
   // holds still, and fades away.
@@ -231,12 +232,19 @@ const STYLE_CAM = (WIDE
 // On a phone the take goes to black after the last question, sometimes with its dip's fade lost in the cut: the
 // film eases into the black itself (DIP_AT: shot time the take is black). Found in the take itself, the first black
 // after the questions begin: a fixed time went stale with a new take and made a second blink (Fable's review, Nov 15).
-function firstBlack(after) {
+let blacks;
+/** The style take's dips to black, each [start, end] in shot time. */
+function blackRuns() {
+  if (blacks) return blacks;
   const run = spawnSync('ffmpeg', ['-v', 'info', '-i', join(SHOTS, 'style.mp4'), '-vf', 'blackdetect=d=0.05:pix_th=0.08', '-an', '-f', 'null', '-'], { encoding: 'utf8' });
   if (run.error) throw run.error;
-  const log = run.stderr ?? '';
-  const starts = [...log.matchAll(/black_start:([\d.]+)/g)].map((m) => Number(m[1])).filter((t) => t > after);
-  return starts.length ? starts[0] + 0.05 : 0;
+  blacks = [...(run.stderr ?? '').matchAll(/black_start:([\d.]+) black_end:([\d.]+)/g)].map((m) => [Number(m[1]), Number(m[2])]);
+  return blacks;
+}
+const blackAfter = (after) => blackRuns().find(([b]) => b > after);
+function firstBlack(after) {
+  const run = blackAfter(after);
+  return run ? run[0] + 0.05 : 0;
 }
 const DIP_AT = WIDE ? 0 : Number(process.env.DIP_AT ?? firstBlack(MARKS.calico + 1));
 // And the dip into the drawing, where the lines' band ends, so the header doesn't show as it fades.
@@ -244,7 +252,7 @@ const DRAW_DIP = WIDE ? 0 : firstBlack(DIP_AT ? DIP_AT + 0.5 : MARKS.cloth) || M
 // On a computer there is no dip between them, so one dark band lies under both lines the whole way (an entry with no
 // words) and the lines themselves hand over: the app's own header never shows through between.
 const STYLE_NOTES = WIDE
-  ? [['', MARKS.calico + 0.4, MARKS.enlarge - 0.4, 'low', true], ['One question at a time.', MARKS.calico + 0.4, MARKS.cloth + 0.3, 'low', false], ['Then the cloth.', MARKS.cloth + 0.3, MARKS.enlarge - 0.4, 'low', false]]
+  ? [['', MARKS.calico + 0.4, MARKS.enlarge, 'low', true], ['One question at a time.', MARKS.calico + 0.4, MARKS.cloth + 0.3, 'low', false], ['Then the cloth.', MARKS.cloth + 0.3, MARKS.enlarge - 0.4, 'low', false]]
   // On a phone too, one dark band lies under both lines the whole way and the lines hand over at the take's dip, so
   // the app's own header never shows through between them (Fable's review, Nov 15).
   : [['', JOURNEY.from, DRAW_DIP + 0.6, 'low', true], ['One question at a time.', JOURNEY.from, DIP_AT ? DIP_AT - 0.3 : MARKS.questions - 0.1, 'low', false], ['Then the cloth.', DIP_AT ? DIP_AT + 0.1 : MARKS.cloth + 0.3, DRAW_DIP - 0.2, 'low', false]];
@@ -268,14 +276,56 @@ async function clothCard() {
   const [left, top, w, tex, strip] = WIDE ? [690, 250, 120, 170, 46] : [300, 166, 108, 214, 44];
   return words(`<div style="position:fixed;left:${left}px;top:${top}px;width:${w}px;box-shadow:0 12px 28px rgba(0,0,0,.6)"><div style="height:${tex}px;background:url(data:image/png;base64,${cloth}) center/cover"></div><div style="height:${strip}px;box-sizing:border-box;padding:${WIDE ? 10 : 8}px ${WIDE ? 10 : 8}px;background:linear-gradient(90deg,#ece2cb 0%,#ece2cb 78%,#d3c7ab 100%);font-family:'Chakra Petch',monospace;text-transform:uppercase;white-space:nowrap;overflow:hidden"><div style="font-weight:600;font-size:${WIDE ? 10.5 : 8.5}px;letter-spacing:.16em;color:#151311">${CARD.name}</div><div style="font-size:${WIDE ? 8.5 : 7}px;letter-spacing:.14em;color:#6c6250;margin-top:4px">${CARD.colour}</div></div></div>`);
 }
+// Where the take is cut and the two sides dissolved into each other instead (Fable's review, Nov 15: no blink to
+// black inside the chapter, no snap into the enlarged view). Each [last shot time before, first shot time after]. On a
+// phone, the dip after the last question; on a computer, from just before the enlarged view to after the dip that
+// brings the drawing up on black.
+function styleGaps() {
+  if (process.env.STYLE_GAPS === '0') return [];
+  if (WIDE) {
+    const run = blackAfter(MARKS.enlarge - 0.5);
+    return run ? [[MARKS.enlarge - 0.15, run[1] + 0.3]] : [];
+  }
+  const run = DIP_AT && blackAfter(DIP_AT - 0.2);
+  return run ? [[run[0] - 0.35, run[1] + 0.3]] : [];
+}
 const styleJourney = async () => {
   // One at a time: the words are all drawn on the one page.
   const notes = [];
-  for (const [line, on, off, where, shade = true] of STYLE_NOTES) notes.push([await note(line, where, shade), atOut(on), atOut(off)]);
-  if (process.env.TOUR_DRAW_FOCUS !== '0') for (const [lines, on, off] of DRAW_NOTES) notes.push([await note2(lines), atOut(on), atOut(off)]);
+  for (const [line, on, off, where, shade = true] of STYLE_NOTES) notes.push([await note(line, where, shade), on, off, !line]);
+  if (process.env.TOUR_DRAW_FOCUS !== '0') for (const [lines, on, off] of DRAW_NOTES) notes.push([await note2(lines), on, off]);
   // The app now draws its own palette card beside the form (Release 53), so the film's card is off unless CARD=1.
-  const cards = process.env.CARD !== '1' ? [] : [[await clothCard(), atOut(CARD.at), atOut(CARD_OFF)]];
-  return piece({ shot: 'style', from: JOURNEY.from, dur: JOURNEY.dur, speed: (JOURNEY.to - JOURNEY.from) / JOURNEY.dur, cam: STYLE_CAM, fadeIn: 0.5, notes, cards, ...(DIP_AT && { darken: [atOut(DIP_AT), 0.3] }), ...(LIFT && { lift: [LIFT, JOURNEY.dur - 2.4, 1.6] }) });
+  const cards = process.env.CARD !== '1' ? [] : [[await clothCard(), CARD.at, CARD_OFF]];
+  const speed = (JOURNEY.to - JOURNEY.from) / JOURNEY.dur;
+  // The journey in parts, split at the gaps, each part its own piece with the words and camera that fall in it.
+  const cuts = styleGaps();
+  const parts = [];
+  let s0 = JOURNEY.from;
+  for (const [end, next] of cuts) { parts.push([s0, end]); s0 = next; }
+  parts.push([s0, JOURNEY.to]);
+  const camAt = (t) => { const u = (t - JOURNEY.from) / (JOURNEY.to - JOURNEY.from); return STYLE_CAM.length > 1 ? [STYLE_CAM[0][1] + (STYLE_CAM[1][1] - STYLE_CAM[0][1]) * u, 0.5, STYLE_CAM[0][3] + (STYLE_CAM[1][3] - STYLE_CAM[0][3]) * u] : [1, 0.5, 0.5]; };
+  const liftAt = JOURNEY.from + (JOURNEY.dur - 2.4) * speed;
+  const pieces = [];
+  for (const [i, [a, b]] of parts.entries()) {
+    const dur = Math.round(((b - a) / speed) * 100) / 100;
+    const inPart = (t) => (t - a) / speed;
+    // A line that runs on past the part's end stays fully up to it, so the dissolve hands it over unbroken; a band
+    // that starts the journey is already up as the page fades in, so the app's header never shows (Fable, Nov 15).
+    // A line (not the band under it) that runs across a dissolve goes out before it and the next comes in after it,
+    // so the two never print over each other.
+    const last = i === parts.length - 1;
+    const ns = notes.filter(([, on, off]) => off > a && on < b).map(([pic, on, off, band]) => [pic, on <= a ? (band || i === 0 ? -0.45 : 0.5) : inPart(on), off >= b ? (band || last ? dur + 0.45 : dur - 0.35) : inPart(off)]);
+    const cs = cards.filter(([, on, off]) => off > a && on < b).map(([pic, on, off]) => [pic, inPart(on), inPart(off)]);
+    const darkAt = !cuts.length && DIP_AT && DIP_AT > a && DIP_AT < b ? { darken: [inPart(DIP_AT), 0.3] } : {};
+    const lifting = LIFT && liftAt < b ? { lift: [LIFT, inPart(liftAt), 1.6] } : {};
+    // On a computer the drawing comes up centred on black, away from where the dress stood beside the steps, so a
+    // dissolve would show two dresses: it goes through a short fade to black instead.
+    const dip = WIDE ? 0.4 : 0;
+    pieces.push(await piece({ shot: 'style', from: a, dur, speed, cam: [[0, ...camAt(a)], [dur, ...camAt(b)]], fadeIn: i === 0 ? 0.5 : dip, fadeOut: last ? 0 : dip, notes: ns, cards: cs, ...darkAt, ...lifting }));
+  }
+  let out = pieces[0];
+  for (const p of pieces.slice(1)) out = await dissolve(out, p, WIDE ? 0.04 : 0.6);
+  return out;
 };
 // Cat (2026-10-22): the cream pattern paper was too bright after the black pages; a deeper champagne here.
 // Wide: from the moment the pattern is up, slowed a touch to fill its time (Cat, 2026-10-22: the drawing flashed before it).
@@ -361,7 +411,9 @@ const REVIEW = WIDE || process.env.REVIEW !== '1' ? undefined : { from: 0.4, dur
 // 2026-10-29: skip the second scroll down the print page; less blank space). On a phone it sits low and large, its
 // foot level with the pattern sheet's (Cat, 2026-10-30: it was cut off under the words).
 // On a computer the piece is projected at the right of the screen: drawn in on it, the dart in view (Nov 14).
-const PROJECTOR = WIDE ? { from: 8.6, dur: 4.2, zoom: [1.6, 1.64], at: [0.8, 0.36] } : { from: Number(process.env.PJ_FROM ?? 11.1), dur: 4, zoom: [1.5, 1.53], at: [0.5, 0.3], drop: 0.07 };
+// On a phone the piece is moved down off camera so its top shows, then framed on the whole piece, with just the line's
+// room above it (Cat, Nov 15: no empty black over it, no foot cut off).
+const PROJECTOR = WIDE ? { from: 8.6, dur: 4.2, zoom: [1.6, 1.64], at: [0.8, 0.36] } : { from: Number(process.env.PJ_FROM ?? 11.1), dur: 4, zoom: [1.6, 1.63], at: [0.48, 0.49] };
 // Phone: drawn in a little less and set lower, so the piece sits whole under its two lines of words (Cat, 2026-11-06:
 // cut off by the words at the top).
 // The photo is in about 0.9 s into the take; the reading is up by about 2.9 s.
@@ -380,7 +432,7 @@ async function shopMoment() {
   // literal matches, in place of the strip of cards the film drew). Recorded by record-tour-shots.mjs (shop.mp4).
   // On a computer the list is the narrow column beside the drawing, and the drawing is scrolled away under it: drawn
   // in on the list (a close-up, Cat Nov 14).
-  return piece({ shot: 'shop', from: 0.3, dur: 7, ...(WIDE && { zoom: [2.1, 2.1], at: [0.82, 0.5] }), fadeIn: 0.5, fadeOut: 0.5, notes: [[await note('Shop the fabric.', 'low'), 0.2, 6.7]] });
+  return piece({ shot: 'shop', from: 0.3, dur: 7, ...(WIDE && { zoom: [2.1, 2.1], at: [0.82, 0.5] }), fadeIn: 0.5, fadeOut: 0.5, notes: [[await note('Shop the fabric.', 'low'), 0.2, 7.45]] }); // the line goes with the picture, not before it (Fable, Nov 15)
 }
 // The opening (Cat, 2026-10-22: the old one repeated the loading screen and welcome the viewer had just seen).
 const INTRO = process.env.TOUR_INTRO ?? 'W'; // Cat's pick, 2026-10-30: W Welcome Push (was C2 Pull Back)
@@ -438,7 +490,7 @@ const CUTS = {
     // The waist page is fully up in the take about 7.9 s in, after the dip from the first page.
     const WAIST_AT = Number(process.env.WAIST_AT ?? 7.9);
     // The first page is held about 5.8 s in the take, for the tape.
-    const FIRST_DUR = Number(process.env.FIRST_DUR ?? 4.8); // trimmed from 6.1: the page held still too long (Fable's review, Nov 15)
+    const FIRST_DUR = Number(process.env.FIRST_DUR ?? (WIDE ? 4.0 : 4.8)); // trimmed from 6.1: the page held still too long (Fable's review, Nov 15)
     // The tape's way, in the card and page together (the page is fully in at 2.2 s): in from the side along the top of
     // the card, held there full length as the page comes in under it (Cat's A, Nov 15).
     // Where the page's tape sits in the cut, in film pixels (measured on the Nov 15 take): it slides in from the right
@@ -452,10 +504,11 @@ const CUTS = {
       ...(released
         ? [await piece({ shot: 'round', src: released, from: 0, dur: 5.6 })]
         : [...(await INTROS[INTRO]())]),
-      // The Measure card dissolving into the first page as it is live, the film's tape sliding in along the top of the
-      // card and landing on the page's own tape, which takes over (Cat, Nov 15); the page's own heading says what
+      // The Measure card, then the first page as it is live, the film's tape sliding in along the top of the card and
+      // landing on the page's own tape, which takes over (Cat, Nov 15). The title fades out before the page fades in, so
+      // the two never overlap (Fable's review, Nov 15); the page's own heading says what
       // comes next, so no line over it. Then the waist page, through the take's dip, its tape coming round the waist.
-      ...(released ? [await piece({ shot: 'tape', from: 0.3, dur: FIRST_DUR, ...TAPE_VIEW, fadeIn: f, fadeOut: 0.35 })] : [await pulledTape(await dissolve(await piece({ still: await card('01', 'Measure', 'Just a few, once.'), dur: 2.2, fadeIn: f, fadeOut: 0.6 }), await piece({ shot: 'tape', from: 0.3, dur: FIRST_DUR, ...TAPE_VIEW, fadeOut: 0.35 }), 0.6), TAPE_PULL)]),
+      ...(released ? [await piece({ shot: 'tape', from: 0.3, dur: FIRST_DUR, ...TAPE_VIEW, fadeIn: f, fadeOut: 0.35 })] : [await pulledTape(await dissolve(await piece({ still: await card('01', 'Measure', 'Just a few, once.'), dur: 2.2, fadeIn: f, fadeOut: 0.5 }), await piece({ shot: 'tape', from: 0.3, dur: FIRST_DUR, ...TAPE_VIEW, fadeIn: 0.5, fadeOut: 0.35 }), 0.04), TAPE_PULL)]),
       await piece({ shot: 'tape', from: WAIST_AT, dur: 3.6, ...(WIDE ? {} : TAPE_VIEW), fadeIn: 0.35, fadeOut: f }),
     ];
     // TOUR_PREVIEW=1 stops after the opening and the tape, to try an opening without cutting the whole film.

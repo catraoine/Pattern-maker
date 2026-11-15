@@ -7,7 +7,7 @@ import { openingAt, paintOpening } from './filmOpening';
 // Re-record the video (npm run record:tour) whenever the app changes enough that the tour looks out of date.
 
 /** H.264 for Safari and Chrome; WebM for browsers without it. A tall film for phones, and a wide one, recorded in the
- * computer layout, for wide screens (Cat, 2026-10-22); the same moments in the same order. PARTS gives the phone's times (the computer's run up to about 3 s later); the player
+ * computer layout, for wide screens (Cat, 2026-10-22); the same moments in the same order. PARTS gives the phone's times (the computer's are within about 2 s); the player
  * only reads their names and words, for the film in words, so one list fits both. */
 const SOURCES = {
   tall: [
@@ -24,9 +24,9 @@ const WIDE_SCREEN = '(min-width: 900px) and (min-aspect-ratio: 1/1)';
 /** says: what the part shows, in words, for anyone who can't see the film (the accessibility review, 2026-10-30). */
 const PARTS: FilmPart[] = [
   { name: 'Measure', from: 0, says: 'Just a few measurements, taken once. The dress form takes your shape as you go.' },
-  { name: 'Choose', from: 15.0, says: 'Then what to make: pick a garment, start from a look in the collection, or upload a photo of a piece you love.' },
-  { name: 'Style', from: 32.9, says: 'Make it yours: its shape, length, hem and details, step by step on the drawing. Your pattern is drafted as you go, and you can shop the fabric for it.' },
-  { name: 'Print', from: 68.2, says: 'Print it at home on ordinary paper, full size at a copy shop, or project it true size onto your fabric. Drafted to your body.' },
+  { name: 'Choose', from: 15.6, says: 'Then what to make: pick a garment, start from a look in the collection, or upload a photo of a piece you love.' },
+  { name: 'Style', from: 33.3, says: 'Make it yours: its shape, length, hem and details, step by step on the drawing. Your pattern is drafted as you go, and you can shop the fabric for it.' },
+  { name: 'Print', from: 67.4, says: 'Print it at home on ordinary paper, full size at a copy shop, or project it true size onto your fabric. Drafted to your body.' },
 ];
 export const TOUR_LABEL = '1:30';
 
