@@ -14,9 +14,10 @@
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  /* Shoulders at the top whatever the panel's height; a short panel loses the hip first, never the string's knot. */
-  object-position: center 30%;
+  /* The whole picture, shoulders to hip, at whatever size the panel allows: its ground is the panel's chalk, so the
+     edges don't show, and the form stays further out than a close crop (Cat, Nov 14: "too much boob focus"). */
+  object-fit: contain;
+  object-position: center bottom;
 }
 /* Menswear's line form, its champagne lines turned to dark ink on the chalk (multiply keeps the chalk ground). */
 .first-form.menswear > .form-picture {
