@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { countStep, flushReports, keepMyRef, signupRef, signupSource } from '../report/report';
 import { CODE_MESSAGE, checkCode } from '../access';
+import { cleanCode } from '../photo/limit';
 import { SEW_LANGS, SEW_LANG_NAME, type SewLang } from '../langs';
 import type { Cloud } from '../cloud/useCloud';
 import type { Founding } from '../cloud/useFounding';
@@ -59,12 +60,12 @@ export function WaitlistForm({ onJoined, onCode, linkMessage, onRetry, founding 
 
   const useCode = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!code.trim()) return;
+    if (!cleanCode(code)) return;
     setChecking(true);
     setCodeMsg('');
     const result = await checkCode(code);
     setChecking(false);
-    if (result === 'tester') onCode(code.trim());
+    if (result === 'tester') onCode(cleanCode(code));
     else setCodeMsg(CODE_MESSAGE[result]);
   };
 
@@ -155,7 +156,7 @@ export function WaitlistForm({ onJoined, onCode, linkMessage, onRetry, founding 
                 It doesn't: the check ignores case (isTesterCode). */}
             <input id="wl-code" autoComplete="off" autoCapitalize="characters" spellCheck={false} placeholder="Tester code" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} />
           </div>
-          <button type="submit" className="secondary sm" disabled={checking || !code.trim()}>
+          <button type="submit" className="secondary sm" disabled={checking || !cleanCode(code)}>
             {checking ? 'Checking…' : 'Use code'}
           </button>
           {codeMsg && (

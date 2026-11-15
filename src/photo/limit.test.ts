@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ALL_VISITORS_PER_DAY, CountStore, PER_VISITOR_PER_DAY, TESTER_CAPS, TESTER_POOL, isTesterCode, takeAllowance } from './limit';
+import { ALL_VISITORS_PER_DAY, CountStore, PER_VISITOR_PER_DAY, TESTER_CAPS, TESTER_POOL, cleanCode, isTesterCode, takeAllowance } from './limit';
 
 const memoryStore = (): CountStore & { data: Map<string, number> } => {
   const data = new Map<string, number>();
@@ -69,6 +69,16 @@ describe('isTesterCode', () => {
     expect(isTesterCode(' Atelier 26 ', 'ATELIER26, seam-two')).toBe(true);
     expect(isTesterCode('seam-two', 'ATELIER26,seam-two')).toBe(true);
     expect(isTesterCode('atelier', 'ATELIER26')).toBe(false);
+  });
+
+  // A code pasted from a web email or a sentence brings invisible characters and punctuation with it (Nov 15).
+  it('matches a pasted code with invisible characters or a full stop round it', () => {
+    expect(isTesterCode('\u200bATELIER26', 'ATELIER26')).toBe(true);
+    expect(isTesterCode('ATELIER26.', 'ATELIER26')).toBe(true);
+    expect(isTesterCode('\u201cATELIER26\u201d\u00a0', 'ATELIER26')).toBe(true);
+    expect(isTesterCode('seam-two\ufeff', 'seam-two')).toBe(true);
+    expect(cleanCode(' seam-two. ')).toBe('seam-two');
+    expect(cleanCode('...')).toBe('');
   });
 
   it('turns nothing on when no codes are set, or for empty or too-short ones', () => {

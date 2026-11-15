@@ -2,7 +2,7 @@ import { TesterReport } from './TesterReport';
 import { BodyScan } from './BodyScan';
 import type { Unit } from '../measurements';
 import { useState } from 'react';
-import { TESTER_CAPS } from '../photo/limit';
+import { TESTER_CAPS, cleanCode } from '../photo/limit';
 import { CODE_MESSAGE, checkCode } from '../access';
 
 /** The header that tells the photo and idea readers this is a fit tester, when a code is kept. */
@@ -19,12 +19,12 @@ export function TesterCode({ code, unit, onCode }: { code?: string; unit: Unit; 
 
   const check = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!typed.trim()) return;
+    if (!cleanCode(typed)) return;
     setChecking(true);
     setMsg('');
     const result = await checkCode(typed);
     if (result === 'tester') {
-      onCode(typed.trim());
+      onCode(cleanCode(typed));
       setTyped('');
     } else setMsg(CODE_MESSAGE[result]);
     setChecking(false);
@@ -49,7 +49,7 @@ export function TesterCode({ code, unit, onCode }: { code?: string; unit: Unit; 
         {/* In capitals as it is typed, like the code box on the welcome page (Cat, Nov 15); the check ignores case. */}
         <input id="tester-code" autoComplete="off" autoCapitalize="characters" spellCheck={false} value={typed} onChange={(e) => setTyped(e.target.value.toUpperCase())} />
       </div>
-      <button type="submit" className="secondary sm" disabled={checking || !typed.trim()}>
+      <button type="submit" className="secondary sm" disabled={checking || !cleanCode(typed)}>
         {checking ? 'Checking…' : 'Use code'}
       </button>
       {msg && (

@@ -12,11 +12,19 @@ export const TESTER_CAPS = { visitor: 20, all: 600 };
 export const TESTER_POOL = 'testers';
 
 /**
+ * A tester code as pasted, cleaned of what comes with it: spaces, the invisible characters a web email puts between
+ * words, and a full stop or quote mark caught from the sentence round it. A pasted code with any of these was turned
+ * away (bug hunt's paste check, Nov 15).
+ */
+export const cleanCode = (c: string) =>
+  c.replace(/[\s\u200b-\u200d\u2060\ufeff]+/g, '').replace(/^[.,;:!?'"\u2018\u2019\u201c\u201d()]+|[.,;:!?'"\u2018\u2019\u201c\u201d()]+$/g, '');
+
+/**
  * Whether a code someone typed is one of the tester codes (TESTER_CODES in Netlify, comma separated).
- * Case and spaces don't matter, so a code read out or typed on a phone still works.
+ * Case, spaces and what a paste brings with it don't matter, so a code read out, typed or pasted still works.
  */
 export function isTesterCode(given: string | null | undefined, codes: string | undefined): boolean {
-  const norm = (c: string) => c.trim().toLowerCase().replace(/\s+/g, '');
+  const norm = (c: string) => cleanCode(c).toLowerCase();
   const want = (codes ?? '').split(',').map(norm).filter((c) => c.length >= 4);
   return !!given && want.includes(norm(given));
 }
