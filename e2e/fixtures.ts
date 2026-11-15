@@ -439,7 +439,7 @@ export async function printA4(page: Page, info: TestInfo) {
   await goPrint(page);
   await expect(main(page).getByRole('group', { name: 'Paper' })).toBeVisible();
   await chooseDrop(page, 'Paper', 'A4');
-  const button = main(page).getByRole('button', { name: /^Download PDF \(\d+ pages?\)$/ });
+  const button = main(page).getByRole('button', { name: /^Download pattern \(\d+ pages?\)$/ });
   await expect(button).toBeEnabled({ timeout: 45_000 });
   const { download: d, bytes } = await download(page, button, info);
   expect(d.suggestedFilename()).toMatch(/-a4\.pdf$/);

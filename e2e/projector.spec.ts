@@ -7,7 +7,7 @@ test('projector: line up on the mat, check the square, then project a piece', as
   await goPrint(page);
   const main = page.getByRole('main');
   await chooseDrop(page, 'Paper', 'Projector');
-  await expect(main.getByRole('button', { name: /^Download PDF \(1 page\)$/ })).toBeEnabled({ timeout: 45_000 });
+  await expect(main.getByRole('button', { name: /^Download pattern \(1 page\)$/ })).toBeEnabled({ timeout: 45_000 });
   // What you'll need (K1 Fold-out, 2026-10-29): the kit, each with an Amazon link, folded under the card.
   await main.locator('.projector-kit > summary').click();
   const kit = main.locator('.projector-kit');
@@ -83,7 +83,7 @@ test('projector: line up on a sheet of paper and check the grid far from it', as
   await goPrint(page);
   const main = page.getByRole('main');
   await chooseDrop(page, 'Paper', 'Projector');
-  await expect(main.getByRole('button', { name: /^Download PDF \(1 page\)$/ })).toBeEnabled({ timeout: 45_000 });
+  await expect(main.getByRole('button', { name: /^Download pattern \(1 page\)$/ })).toBeEnabled({ timeout: 45_000 });
   await main.getByRole('button', { name: 'Open projector mode' }).click();
   const pj = page.getByRole('dialog', { name: 'Projector mode' });
   await expect(pj.getByRole('heading', { name: 'Drag each corner onto a corner of the paper' })).toBeVisible();
@@ -104,7 +104,7 @@ test('projector: on a phone turned sideways, a finger drags a corner and the arr
   await goPrint(page);
   const main = page.getByRole('main');
   await chooseDrop(page, 'Paper', 'Projector');
-  await expect(main.getByRole('button', { name: /^Download PDF \(1 page\)$/ })).toBeEnabled({ timeout: 45_000 });
+  await expect(main.getByRole('button', { name: /^Download pattern \(1 page\)$/ })).toBeEnabled({ timeout: 45_000 });
   await page.setViewportSize({ width: 844, height: 390 });
   await main.getByRole('button', { name: 'Open projector mode' }).click();
 

@@ -882,8 +882,9 @@ export default function App() {
                 setStep('steps');
               }}
               onBringLink={async (link) => {
-                const at = link.indexOf('#');
-                const b = at >= 0 ? await readMoveLink<Saved>(link.slice(at)) : null;
+                // The link may come with words around it (a message pasted whole): take the #move= part wherever it is.
+                const found = link.match(/#move=[^\s"'<>]+/);
+                const b = found ? await readMoveLink<Saved>(found[0]) : null;
                 if (!b || b === 'broken') return false;
                 setMoving(b);
                 setStep('move');

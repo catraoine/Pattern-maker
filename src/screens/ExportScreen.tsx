@@ -156,7 +156,9 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
   // The copy-shop sheet (Cat, 2026-10-22) and the projector file (Cat, 2026-10-28) show in every view: many
   // sewists, beginners too, project instead of taping pages.
   const paper: Output = picked;
-  const [pdf, setPdf] = useState<{ paper: Output; bytes: Uint8Array; total: number } | null>(null);
+  // The pattern to print and, apart from it, the instructions booklet (Cat, Nov 15: what they download is what they
+  // print, so the cover, layouts and steps are a file of their own). A projector's booklet is on A4 or Letter paper.
+  const [pdf, setPdf] = useState<{ paper: Output; bytes: Uint8Array; booklet: { bytes: Uint8Array; pages: number } | null } | null>(null);
   // A PDF that couldn't be made says so, instead of "Making your PDF…" for ever (Anna, Nov 10).
   const [pdfFailed, setPdfFailed] = useState(false);
   const [shareNote, setShareNote] = useState('');
@@ -215,13 +217,17 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
     let live = true;
     setPdf(null);
     setPdfFailed(false);
-    let countPages = async (_: Uint8Array) => 0;
     import('../engine/pdf')
-      .then(({ toTiledPdf, toProjectorPdf, pdfPageCount }) => {
-        countPages = pdfPageCount;
-        return isProjector(paper) ? toProjectorPdf(sheet, { dark: paper === 'projectorDark', title }) : toTiledPdf(sheet, paper, { title, guide, summary, unit });
+      .then(async ({ toTiledPdf, toProjectorPdf, pdfPageCount }) => {
+        const [bytes, book] = await Promise.all([
+          isProjector(paper) ? toProjectorPdf(sheet, { dark: paper === 'projectorDark', title }) : toTiledPdf(sheet, paper, { title, unit, part: 'pattern' }),
+          toTiledPdf(sheet, isProjector(paper) ? (unit === 'in' ? 'letter' : 'a4') : paper, { title, guide, summary, unit, part: 'booklet' }),
+        ]);
+        const pages = await pdfPageCount(book);
+        // A booklet with nothing in it isn't offered.
+        return { paper, bytes, booklet: pages ? { bytes: book, pages } : null };
       })
-      .then(async (bytes) => live && setPdf({ paper, bytes, total: await countPages(bytes) }))
+      .then((made) => live && setPdf(made))
       .catch(() => live && !reloadPending() && setPdfFailed(true));
     return () => {
       live = false;
@@ -258,6 +264,10 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
 
   const fileName = `${fileBase}-${paper === 'projectorDark' ? 'projector-black' : paper}.pdf`;
   const ready = pdf?.paper === paper ? pdf.bytes : null;
+  const booklet = pdf?.paper === paper ? pdf.booklet : null;
+  const bookletName = `${fileBase}-instructions.pdf`;
+  // Both files together, for sharing and emailing.
+  const files = () => [new File([ready!], fileName, { type: 'application/pdf' }), ...(booklet ? [new File([booklet.bytes], bookletName, { type: 'application/pdf' })] : [])];
 
   const showPages = wide || tablet || seePages;
   const checked = (go: () => void) => () => (example && !exampleOk ? setAsking(() => go) : go());
@@ -274,7 +284,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
   const share = async () => {
     if (!ready) return;
     try {
-      await navigator.share({ files: [new File([ready], fileName, { type: 'application/pdf' })], title: `Maison Tracé: ${title}` });
+      await navigator.share({ files: files(), title: `Maison Tracé: ${title}` });
       left();
       setShareNote('');
     } catch (e) {
@@ -294,6 +304,11 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
     if (!ready) return;
     left();
     download(ready, 'application/pdf', fileName);
+  };
+  const downloadBooklet = () => {
+    if (!booklet) return;
+    left();
+    download(booklet.bytes, 'application/pdf', bookletName);
   };
   const paperChoice = projector ? 'projector' : paper;
 
@@ -361,11 +376,16 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
               <button type="button" className="primary" onClick={checked(download_)} disabled={!ready}>
                 {ready
                   ? // On A0 the count is of the big sheets, not every page in the file (Cat, Nov 14), so it says so.
-                    `Download PDF (${pages} ${paper === 'a0' ? (pages === 1 ? 'A0 sheet' : 'A0 sheets') : pages === 1 ? 'page' : 'pages'})`
+                    `Download pattern (${pages} ${paper === 'a0' ? (pages === 1 ? 'A0 sheet' : 'A0 sheets') : pages === 1 ? 'page' : 'pages'})`
                   : pdfFailed
                     ? 'PDF not made'
                     : 'Making your PDF…'}
               </button>
+              {booklet && (
+                <button type="button" className="secondary" onClick={checked(downloadBooklet)}>
+                  {`Download instructions (${booklet.pages} ${booklet.pages === 1 ? 'page' : 'pages'})`}
+                </button>
+              )}
               {pdfFailed && (
                 <p className="msg error" role="alert">
                   The PDF couldn't be made. Reload the page to try again: you'll stay on Print.
@@ -383,10 +403,10 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
                   </button>
                 )}
                 <button type="button" className="way" onClick={checked(openToPrint)} disabled={!ready}>
-                  Open PDF to print
+                  Open pattern to print
                 </button>
-                {!imported && <EmailPdf ready={ready} fileName={fileName} title={title} onSent={left} checked={checked} />}
-                <CopyShopWay a0={paper === 'a0'} onA0={() => setPaper('a0')} sheets={pages} firstPage={paper === 'a0' && pdf?.paper === 'a0' ? (pdf.total > pages ? 2 : 1) : undefined} unit={unit} />
+                {!imported && <EmailPdf ready={ready} fileName={fileName} booklet={booklet?.bytes ?? null} bookletName={bookletName} title={title} onSent={left} checked={checked} />}
+                <CopyShopWay a0={paper === 'a0'} onA0={() => setPaper('a0')} unit={unit} />
                 {sendLink && onPhone() && (
                   <SendToDevice link={sendLink} className="way" />
                 )}
@@ -498,12 +518,8 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
                 <ProjectorMode pieces={made.pieces} unit={unit} onClose={() => setProjecting(false)} />
               </Suspense>
             )}
-            {/* The file is longer than the tiles: a copy shop prints and charges for every page (the tester walk, 2026-10-27). */}
-            {!projector && paper !== 'a0' && ready && pdf && pdf.total > pages && (
-              <p className="small muted">
-                <b>At a copy shop,</b> ask for pages 2 to {pages + 1} of the PDF. The rest are the cover, the cutting layout and the sewing steps.
-              </p>
-            )}
+            {/* No "ask for pages 2 to N" line here: the PDF they download is what they print, cover, layout and steps
+                included (Cat, Nov 15). The cover carries the pattern code testers need for their report. */}
             {!projector && paper !== 'a0' && (
               <details className="small fold-link">
                 <summary>How the pages fit together</summary>
@@ -556,7 +572,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
           <h2 id="flattitle">{title}</h2>
           <TechFlatView flat={made.flat} title={title} />
           <p className="muted small">
-            Drawn to scale from your pattern{garment === 'tee' ? '' : ', with the darts sewn'}. It goes on the first page of the PDF, for a dressmaker or anyone
+            Drawn to scale from your pattern{garment === 'tee' ? '' : ', with the darts sewn'}. It goes on the cover of the instructions, for a dressmaker or anyone
             checking the design.
           </p>
         </section>
@@ -742,7 +758,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
                 <li key={n}>{n}</li>
               ))}
             </ul>
-            <p className="muted small">These steps are also on the last pages of the PDF.</p>
+            <p className="muted small">These steps are also in the instructions booklet.</p>
           </div>
           <ol className="sewsteps">
             {guide.steps.map((st) => (
@@ -1213,10 +1229,10 @@ function toBase64(bytes: Uint8Array) {
 }
 
 /**
- * "Email me the PDF" (journey review, Nov 10): on every phone, tablet and computer, where "Send to email or a printer"
+ * "Email me the files" (journey review, Nov 10; was "Email me the PDF" until the instructions became their own file, Nov 15): on every phone, tablet and computer, where "Send to email or a printer"
  * needs a share menu that some computer browsers don't have. The address is used only to send this email.
  */
-function EmailPdf({ ready, fileName, title, onSent, checked }: { ready: Uint8Array | null; fileName: string; title: string; onSent: () => void; checked: (go: () => void) => () => void }) {
+function EmailPdf({ ready, fileName, booklet, bookletName, title, onSent, checked }: { ready: Uint8Array | null; fileName: string; booklet: Uint8Array | null; bookletName: string; title: string; onSent: () => void; checked: (go: () => void) => () => void }) {
   const [open, setOpen] = useState(false);
   const [to, setTo] = useState('');
   const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'limit' | 'off' | 'big' | 'failed'>('idle');
@@ -1227,7 +1243,7 @@ function EmailPdf({ ready, fileName, title, onSent, checked }: { ready: Uint8Arr
   if (!open)
     return (
       <button type="button" className="way" onClick={() => setOpen(true)} disabled={!ready}>
-        Email me the PDF
+        Email me the files
       </button>
     );
   const send = async () => {
@@ -1237,7 +1253,7 @@ function EmailPdf({ ready, fileName, title, onSent, checked }: { ready: Uint8Arr
       const res = await fetch('/.netlify/functions/email-pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: to.trim(), title: title.slice(0, 200), fileName, pdf: toBase64(ready) }),
+        body: JSON.stringify({ to: to.trim(), title: title.slice(0, 200), fileName, pdf: toBase64(ready), ...(booklet ? { bookletName, booklet: toBase64(booklet) } : {}) }),
       });
       if (res.ok) {
         setSentTo(to.trim());
@@ -1261,7 +1277,7 @@ function EmailPdf({ ready, fileName, title, onSent, checked }: { ready: Uint8Arr
         <input type="email" required value={to} onChange={(e) => setTo(e.target.value)} autoComplete="email" inputMode="email" />
       </label>
       <button type="submit" className="primary" disabled={!ready || state === 'sending' || !to.trim()}>
-        {state === 'sending' ? 'Sending…' : 'Send the PDF'}
+        {state === 'sending' ? 'Sending…' : 'Send'}
       </button>
       {state === 'sent' ? (
         <p className="msg small" role="status">
@@ -1280,7 +1296,7 @@ function EmailPdf({ ready, fileName, title, onSent, checked }: { ready: Uint8Arr
           It didn't send. Check the address, or download the PDF instead.
         </p>
       ) : (
-        <p className="small muted">We use it only to send this PDF.</p>
+        <p className="small muted">We use it only to send the pattern and its instructions.</p>
       )}
     </form>
   );

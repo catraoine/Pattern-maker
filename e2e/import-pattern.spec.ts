@@ -19,7 +19,7 @@ test('import a pattern: check a DXF, then use it to print and send', async ({ pa
 
   await expect(main.getByRole('group', { name: 'Paper' })).toBeVisible();
   await expect(main.getByText(/\.dxf · \d+ pieces from Maison Tracé/)).toBeVisible();
-  const pdf = main.getByRole('button', { name: /^Download PDF \(\d+ pages?\)$/ });
+  const pdf = main.getByRole('button', { name: /^Download pattern \(\d+ pages?\)$/ });
   await expect(pdf).toBeEnabled({ timeout: 45_000 });
   const { bytes } = await download(page, pdf, info);
   expect(bytes.subarray(0, 5).toString()).toBe('%PDF-');

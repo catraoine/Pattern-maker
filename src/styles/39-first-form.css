@@ -1,24 +1,58 @@
-/* The first measuring page's picture (Cat's W1, Nov 14, src/ui/FirstForm.tsx): the welcome's contour form, champagne
-   on black, bleeding to the card's edges and filling the room above the switches as the welcome's hero does
-   (.welcome-hero in 02-welcome.css). */
-.measure-step > .step-words > .first-form {
-  flex: 1 1 0;
-  min-height: 96px;
-  max-height: 420px;
-  /* Out to the card's edges, past its 22px padding, as the welcome's form does. */
-  margin-left: -22px;
-  margin-right: -22px;
+/* The first measuring page (Cat's T1 + F5 + G2, Nov 15, src/ui/FirstTape.tsx): a tape full width along the top in
+   place of the form, what you need under the title, the switches under a matching label, and the room left over
+   just above Begin measuring, so the page reads as one set from the top. */
+.measure-step > .step-words > .first-tape {
+  order: -1;
+  flex: none;
+  /* Out to the card's edges, past its 22px padding, as the form was. */
+  margin: 0 -22px 26px;
   overflow: hidden;
-  position: relative;
 }
-/* Pinned to the panel's edges, as .welcome-hero canvas is: Safari doesn't resolve height: 100% inside a flexed box. */
-.first-form > canvas {
-  display: block;
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+/* Larger than the travelling tape (26px), so it reads as a tape, not a header bar (Cat, Nov 8); its metal end just in
+   from the left edge. */
+.first-tape > .tape-band.landed {
+  --u: calc(42px / 18);
+  margin: 0 0 0 calc(10 * var(--u));
+  width: max-content;
+}
+.measure-step .first-label {
+  margin: 0 0 12px;
+  font: var(--w-strong) 11px/1 var(--mono);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--gild);
+}
+.measure-step .first-needs {
+  margin-top: 26px;
+}
+.first-needs ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: need;
+}
+.first-needs li {
+  display: flex;
+  gap: 14px;
+  align-items: baseline;
+  padding: 12px 0;
+  border-top: 1px solid rgba(217, 196, 155, 0.25);
+  font: 400 16px/1.2 var(--sans);
+  color: var(--ink);
+  counter-increment: need;
+}
+.first-needs li::before {
+  content: '0' counter(need);
+  font: var(--w-strong) 11px/1 var(--mono);
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+.measure-step .first-who {
+  margin-top: 26px;
+}
+.measure-step > .step-words > .first-room {
+  flex: 1 1 0;
+  min-height: 18px;
 }
 /* A choice that is shown but can't be picked yet: Menswear while this fit round tests womenswear only. */
 .switch.two-part button:disabled,
@@ -43,14 +77,9 @@
   line-height: 1;
   background: none;
 }
-@media (max-height: 480px) {
-  .measure-step > .step-words > .first-form {
-    display: none;
-  }
-}
 
 /* On a computer the page is the phone's, in a column down the middle (Cat, Nov 14: "I want this", pointing at the
-   phone): the title, the window under it, then the switches and Begin. The tape-era layouts in 13-wide-and-tape.css
+   phone): the tape over the title, what you need, then the switches and Begin. The tape-era layouts in 13-wide-and-tape.css
    and 14-aesthetic-review.css are keyed on .has-tape, which the app no longer sets here. */
 @media (min-width: 960px) {
   .measure-step.first-page:not(.has-tape) {
@@ -59,9 +88,75 @@
     margin-right: auto;
     row-gap: 18px;
   }
-  .measure-step.first-page > .step-words > .first-form {
-    max-height: 360px;
+  .measure-step.first-page > .step-words > .first-tape {
     margin-left: 0;
     margin-right: 0;
+  }
+}
+
+/* A shorter phone (an iPhone SE is 667 tall): the tape a little smaller and the rows closer, so Begin measuring
+   stays on screen without a scroll. */
+@media (max-height: 740px) {
+  .measure-step > .step-words > .first-tape {
+    margin-bottom: 10px;
+  }
+  .first-tape > .tape-band.landed {
+    --u: calc(32px / 18);
+  }
+  .measure-step .first-needs,
+  .measure-step .first-who {
+    margin-top: 12px;
+  }
+  .measure-step .first-label {
+    margin-bottom: 8px;
+  }
+  .first-needs li {
+    padding: 5px 0;
+    font-size: 14px;
+  }
+  .measure-step > .step-words > .first-room {
+    min-height: 8px;
+  }
+}
+/* Shorter still (an iPhone 12 to 15 in Safari, with its bars, is 664): what you need closes up into one or two lines,
+   the numbers kept, so the whole page fits without a scroll (the fold rule, e2e/fold.spec.ts). */
+@media (max-height: 700px) {
+  .first-needs ol {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+  }
+  .first-needs li {
+    padding: 0;
+    border: 0;
+    gap: 8px;
+  }
+  .first-needs .first-aside {
+    display: none;
+  }
+  .measure-step .first-needs {
+    margin-top: 8px;
+  }
+}
+/* An SE in Safari (553) or a small Android: the tape slimmer, the room above the switches closed up. */
+@media (max-height: 600px) {
+  .first-tape > .tape-band.landed {
+    --u: calc(26px / 18);
+  }
+  .measure-step .first-needs {
+    margin-top: 8px;
+  }
+  /* The switches speak for themselves here; their label goes to make room. */
+  .measure-step .first-who {
+    display: none;
+  }
+}
+/* No room at all (the first SE, a phone on its side, a keyboard up): the title, the switches and Begin, as the page
+   was before it had a picture. */
+@media (max-height: 480px) {
+  .measure-step > .step-words > .first-tape,
+  .measure-step .first-needs,
+  .measure-step .first-who {
+    display: none;
   }
 }

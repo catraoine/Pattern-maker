@@ -19,13 +19,15 @@ test('fit tester code: checked once, kept, and sent with each photo reading', as
   await fold.getByRole('button', { name: 'Use code' }).click();
   await expect(fold).toContainText("That isn't a tester code");
   await box.fill('Atelier26');
+  // Shown in capitals as it is typed, so nobody wonders whether case matters (Cat, Nov 15); the check ignores case.
+  await expect(box).toHaveValue('ATELIER26');
   await fold.getByRole('button', { name: 'Use code' }).click();
   await expect(fold).toContainText('Tester code on');
   if (SHOTS) await fold.screenshot({ path: `${SHOTS}/tester-code-${info.project.name}.png` });
 
   // Kept on this device, and sent with a photo reading.
   const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('pattern-maker:account') ?? '{}').testerCode);
-  expect(stored).toBe('Atelier26');
+  expect(stored).toBe('ATELIER26');
   let sent: string | undefined;
   await page.route('**/.netlify/functions/analyze-photo', (route) => {
     sent = route.request().headers()['x-tester-code'];
@@ -35,7 +37,7 @@ test('fit tester code: checked once, kept, and sent with each photo reading', as
   const main = page.getByRole('main');
   await openPhoto(page);
   await main.locator('input[type=file]').setInputFiles({ name: 'look.png', mimeType: 'image/png', buffer: PNG });
-  await expect.poll(() => sent).toBe('Atelier26');
+  await expect.poll(() => sent).toBe('ATELIER26');
 });
 
 test('a tester link on a phone let in before replaces an old saved code, once the new one checks out', async ({ page }) => {

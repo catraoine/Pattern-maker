@@ -40,6 +40,25 @@
 .body-scan {
   margin: 12px 0;
 }
+/* The tester's note is a box of its own in deep champagne with ivory words (Cat's T2, Nov 15): a special note only
+   testers see, so it stands apart from the chalk notes everyone gets and from the lighter champagne main button. */
+.tester-report {
+  background: #6e5a3a;
+  color: #f3dfb7;
+  padding: 16px 18px;
+  gap: 6px;
+}
+.tester-report > p {
+  margin: 0;
+  color: #f3dfb7;
+}
+.tester-report > .tester-report-label {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #e6d3a8;
+}
 /* Its link reads like the app's other quiet links (Send to my computer), not a browser-blue one. */
 .tester-report a.link,
 .body-scan a.link {
@@ -55,4 +74,7 @@
   text-transform: uppercase;
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+.tester-report a.link {
+  color: #f3dfb7;
 }

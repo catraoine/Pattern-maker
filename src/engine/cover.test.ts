@@ -23,6 +23,24 @@ describe('envelope cover', () => {
     expect(plain.getPageCount()).toBeGreaterThan(tiles);
   });
 
+  // Cat, Nov 15: what they download is what they print. The pattern file is only the pages that tape together, and
+  // the cover, summary and steps are the instructions booklet, cover first; together they are the one file of before.
+  it('splits into a pattern of only the taped pages and an instructions booklet that opens on the cover', async () => {
+    const draft = draftSkirt(m);
+    const sheet = layout(draft.pieces, 'Knee a-line skirt', []);
+    const tiles = pageCount(sheet, 'a4');
+    const extras = { title: 'knee a-line skirt', summary: { rows: [], checks: [], madeFor: 'Me', flat: skirtFlat(draft) } };
+    const all = await PDFDocument.load(await toTiledPdf(sheet, 'a4', extras));
+    const pattern = await PDFDocument.load(await toTiledPdf(sheet, 'a4', { ...extras, part: 'pattern' }));
+    const booklet = await PDFDocument.load(await toTiledPdf(sheet, 'a4', { ...extras, part: 'booklet' }));
+    // The pattern is only the tiles; the booklet has everything else, the full-page map included.
+    expect(pattern.getPageCount()).toBe(tiles);
+    expect(booklet.getPageCount()).toBe(all.getPageCount() - tiles);
+    expect(booklet.getTitle()).toMatch(/\(instructions\)$/);
+    // Page 1 of the booklet is the cover, the same page as page 1 of the single file.
+    expect(booklet.getPage(0).getSize()).toEqual(all.getPage(0).getSize());
+  });
+
   // Fit tester walk, Nov 14: the Ice Peplum's long name ran off the cover in one line.
   it('wraps a long name onto as many lines as it needs, each inside the frame', () => {
     const widthOf = (l: string, size: number) => l.length * size * 0.6;

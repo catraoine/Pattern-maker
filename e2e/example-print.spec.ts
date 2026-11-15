@@ -5,7 +5,7 @@ test('printing the example body asks before it prints', async ({ page }) => {
   await startWithExample(page);
   await goPrint(page);
   const main = page.getByRole('main');
-  const pdf = main.getByRole('button', { name: /^Download PDF \(\d+ pages?\)$/ });
+  const pdf = main.getByRole('button', { name: /^Download pattern \(\d+ pages?\)$/ });
   await expect(pdf).toBeEnabled({ timeout: 45_000 });
   await pdf.click();
   const ask = main.getByRole('alertdialog');

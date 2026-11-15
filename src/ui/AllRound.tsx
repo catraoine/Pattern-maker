@@ -23,7 +23,8 @@ import { placeOnForm } from './allRoundShape';
 import { cachedDrape, drapeKey, requestDrape, sewnAnyway } from './drapeClient';
 import { FEEL_STEPS, clothCard, type Feel } from '../engine/drape/clothCard';
 import { TestingTag } from './TestingTag';
-import { CHALK, SHADOW, type Tone } from './palette';
+import { CHALK, DARK, SHADOW, type Tone } from './palette';
+import { filmDark } from './filmTape';
 import { inTestingNote } from './allRoundWhy';
 
 // Matching --gild, --gild-glow, --guide, --muted and --ok in styles.css.
@@ -142,7 +143,9 @@ export function checked(rows: Row[]): string {
 /** How long a design may take to sew before its Front drawing stands in (a slow phone sews a dress in a few seconds). */
 const SEW_LIMIT_MS = 30_000;
 
-export function AllRound({ round, m, striped = false, fabric, label, draw, drape, fallback, tone = CHALK }: Props) {
+export function AllRound({ round, m, striped = false, fabric, label, draw, drape, fallback, tone: toneProp = CHALK }: Props) {
+  // The How it works film draws All round on black (filmDark); nothing a maker sees changes.
+  const tone = filmDark() ? DARK : toneProp;
   const ref = useRef<HTMLCanvasElement>(null);
   const drawRef = useRef(draw);
   drawRef.current = draw;

@@ -127,3 +127,24 @@ export function showInInches(root: Node): () => void {
     }
   };
 }
+
+const FRACTION: Record<string, number> = { '¼': 0.25, '½': 0.5, '¾': 0.75, '⅛': 0.125, '⅜': 0.375, '⅝': 0.625, '⅞': 0.875 };
+const UNIT_SAID = /\s*(cm|centimet(?:er|re)s?|mm|in|inch(?:es)?|"|”|″)$/;
+
+/**
+ * A length as someone types or pastes it, in centimetres. A unit written with it wins over the screen's unit, and
+ * a tape's fractions ("33 1/2", "33½") count, because "33 in" pasted into a cm box was read as 33 cm and "33 1/2"
+ * as 33, then turned away as out of range (bug hunt's paste check, Nov 15). NaN when there's no number.
+ */
+export function typedLength(text: string, unit: Unit): number {
+  let t = text.trim().toLowerCase().replace(/(\d),(\d)/, '$1.$2');
+  const said = t.match(UNIT_SAID)?.[1];
+  if (said) t = t.slice(0, -said.length).trim();
+  // "33 1/2" (a space before the fraction, so "12/2" isn't read as 1 and 2/2), "33½", "1/2", or a plain number.
+  const m = t.match(/^(?:(\d+(?:\.\d+)?)(?:\s+(\d+)\/(\d+)|\s*([¼½¾⅛⅜⅝⅞]))?|(\d+)\/(\d+))$/);
+  const n = !m ? parseFloat(t) : m[5] ? Number(m[5]) / Number(m[6]) : parseFloat(m[1]) + (m[2] ? Number(m[2]) / Number(m[3]) : m[4] ? FRACTION[m[4]] : 0);
+  if (!Number.isFinite(n)) return NaN;
+  if (said === 'mm') return n / 10;
+  if (said?.startsWith('c')) return n;
+  return said || unit === 'in' ? n * 2.54 : n;
+}

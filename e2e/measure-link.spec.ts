@@ -17,7 +17,12 @@ async function catchShares(page: Page) {
     });
   });
 }
-const lastShared = (page: Page) => page.evaluate(() => (window as unknown as { __shared: ShareData[] }).__shared.at(-1)!);
+// The link travels inside the words (shareLink), so every choice in the share sheet carries it: read it back out.
+const lastShared = (page: Page) =>
+  page.evaluate(() => {
+    const d = (window as unknown as { __shared: ShareData[] }).__shared.at(-1)!;
+    return { ...d, url: d.url ?? d.text?.match(/https?:\/\/\S+/)?.[0] };
+  });
 
 async function measure(page: Page, values: [string, string][]) {
   const main = page.getByRole('main');

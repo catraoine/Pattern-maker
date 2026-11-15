@@ -38,7 +38,7 @@ test('a reload keeps your place, and back still climbs from there', async ({ pag
 test('a printed pattern is kept in Saved patterns', async ({ page }) => {
   await startWithExample(page);
   await goPrint(page);
-  const download = main(page).getByRole('button', { name: /^Download PDF/ });
+  const download = main(page).getByRole('button', { name: /^Download pattern/ });
   await expect(download).toBeEnabled({ timeout: 45_000 });
   const waiting = page.waitForEvent('download');
   await download.click();
@@ -80,24 +80,27 @@ test('Back to the original style puts the choices back, after asking', async ({ 
   expect(fit).toBe('regular');
 });
 
-test('Email me the PDF sends the PDF the app made, and says where it went', async ({ page }) => {
-  let sent: { to: string; pdf: string; fileName: string } | undefined;
+test('Email me the files sends the pattern and its instructions the app made, and says where they went', async ({ page }) => {
+  let sent: { to: string; pdf: string; fileName: string; booklet?: string; bookletName?: string } | undefined;
   await page.route('**/.netlify/functions/email-pdf', async (route) => {
     sent = route.request().postDataJSON();
     await route.fulfill({ json: { ok: true } });
   });
   await startWithExample(page);
   await goPrint(page);
-  const email = main(page).getByRole('button', { name: 'Email me the PDF' });
+  const email = main(page).getByRole('button', { name: 'Email me the files' });
   await expect(email).toBeEnabled({ timeout: 45_000 });
   await email.click();
   await main(page).locator('form.email-pdf').getByLabel('Your email').fill('sewist@example.com');
-  await main(page).getByRole('button', { name: 'Send the PDF' }).click();
+  await main(page).getByRole('button', { name: 'Send', exact: true }).click();
   await main(page).getByRole('button', { name: 'Print the example anyway' }).click();
   await expect(main(page).getByRole('status').filter({ hasText: 'Sent to sewist@example.com' })).toBeVisible();
   expect(sent?.to).toBe('sewist@example.com');
   expect(sent?.pdf.startsWith('JVBER')).toBe(true);
   expect(sent?.fileName).toMatch(/\.pdf$/);
+  // The instructions booklet goes with it as its own file (Cat, Nov 15).
+  expect(sent?.booklet?.startsWith('JVBER')).toBe(true);
+  expect(sent?.bookletName).toMatch(/-instructions\.pdf$/);
 });
 
 test('the print screen says blank pages are left out', async ({ page }) => {
@@ -122,8 +125,9 @@ test('in the home-screen app, work from Safari comes across with a pasted link',
   // In Safari: Send to another device, with the share sheet caught to read the link.
   await startWithExample(page);
   await page.evaluate(() => {
-    (navigator as unknown as { share: (d: { url: string }) => Promise<void> }).share = async (d) => {
-      (window as unknown as { shared: string }).shared = d.url;
+    (navigator as unknown as { share: (d: { url: string; text?: string }) => Promise<void> }).share = async (d) => {
+      (window as unknown as { shared: string; sharedText?: string }).shared = d.url;
+      (window as unknown as { sharedText?: string }).sharedText = d.text;
     };
   });
   await openAccount(page);
@@ -132,6 +136,8 @@ test('in the home-screen app, work from Safari comes across with a pasted link',
   // The link is made after the click (the work is packed first), so wait for it.
   await expect.poll(() => page.evaluate(() => (window as unknown as { shared?: string }).shared ?? '')).toContain('#move=');
   const link = await page.evaluate(() => (window as unknown as { shared: string }).shared);
+  // The link goes alone, so the share sheet's Copy copies the link and not a sentence (Cat, Nov 15).
+  expect(await page.evaluate(() => (window as unknown as { sharedText?: string }).sharedText)).toBeUndefined();
 
   // The home-screen app: its own storage, opened in standalone mode.
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, baseURL: test.info().project.use.baseURL });
@@ -143,8 +149,9 @@ test('in the home-screen app, work from Safari comes across with a pasted link',
   });
   await app.goto('/');
   await app.keyboard.press('Escape');
-  await main(app).getByRole('button', { name: 'Started in Safari? Bring your work here' }).click();
-  await main(app).getByLabel('Link from Safari').fill(link);
+  await main(app).getByRole('button', { name: 'Started in your browser? Bring your work here' }).click();
+  // Pasted with words around it (a whole message copied), it still finds the link.
+  await main(app).getByLabel('Link you copied').fill(`My Maison Tracé measurements and patterns. ${link} `);
   await main(app).getByRole('button', { name: 'Bring it here' }).click();
   await expect(h1(app, /Your work/)).toBeVisible();
   await main(app).getByRole('button', { name: 'Bring it here' }).click();

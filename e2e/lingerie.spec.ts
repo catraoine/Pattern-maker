@@ -55,5 +55,5 @@ test('measures the underbust, drafts a bralette and a swimsuit, and prints', asy
   await print.click();
   // Print names it on the card only (Cat, Nov 7: the line above the card went).
   await expect(main(page).getByRole('figure', { name: 'Pattern envelope: Swimsuit' })).toBeVisible();
-  await expect(main(page).getByRole('button', { name: /^Download PDF/ })).toBeVisible();
+  await expect(main(page).getByRole('button', { name: /^Download pattern/ })).toBeVisible();
 });

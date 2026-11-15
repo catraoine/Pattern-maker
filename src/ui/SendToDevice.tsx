@@ -12,7 +12,8 @@ export function SendToDevice({ link, label = 'Send to my computer', className = 
   const send = async () => {
     const u = await link();
     setUrl(u);
-    setSent(await shareLink('My Maison Tracé measurements and patterns. Open this link on my computer to carry on there.', u));
+    // The link alone, so Copy copies a link that pastes straight into the other device (see shareLink).
+    setSent(await shareLink('', u));
   };
   return (
     <>

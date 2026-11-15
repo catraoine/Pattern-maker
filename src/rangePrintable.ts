@@ -92,7 +92,7 @@ export function rangePrintable(d: { knitDress?: KnitDressDraft; hoodie?: HoodieD
       notes: [
         `Knit dress for fabric with ${k.style.stretch} stretch. Finished bust ${k.tee.finishedBust} cm, hem ${r1(k.hemCm)} cm round, ${r1(k.belowWaist + (k.bands?.hemBand ?? 0))} cm below the waist at the side.`,
         KNIT_NOTE,
-        `Neckband ${k.tee.neckband.length} cm, ${Math.round(k.tee.neckband.ratio * 100)}% of the ${k.tee.necklineCm} cm neckline.${k.bands ? ' Hem band and cuffs from rib.' : ''} In testing: tell us how it sews. Sewing steps are on the last pages.`,
+        `Neckband ${k.tee.neckband.length} cm, ${Math.round(k.tee.neckband.ratio * 100)}% of the ${k.tee.necklineCm} cm neckline.${k.bands ? ' Hem band and cuffs from rib.' : ''} In testing: tell us how it sews. Sewing steps are in the instructions booklet.`,
       ],
       guide: withKnitFabric(knitDressGuide(k, selfM(lays, knitDressMetres(k)), { width: c.width }), c.fabric),
       spec: knitDressSpec(c.values as unknown as KnitDressMeasurements, k),
@@ -108,7 +108,7 @@ export function rangePrintable(d: { knitDress?: KnitDressDraft; hoodie?: HoodieD
       notes: [
         `Hoodie for sweatshirt fleece or French terry with ${h.style.stretch} stretch. Finished bust ${h.tee.finishedBust} cm, ${r1(h.belowWaist)} cm below the waist at the side.`,
         KNIT_NOTE,
-        `Lined hood ${h.hood.height} cm high. ${h.bands.hemBand ? 'Hem band and cuffs' : 'Cuffs'} from rib.${h.zipCm ? ` ${h.zipCm} cm zip.` : ''} In testing: tell us how it sews. Sewing steps are on the last pages.`,
+        `Lined hood ${h.hood.height} cm high. ${h.bands.hemBand ? 'Hem band and cuffs' : 'Cuffs'} from rib.${h.zipCm ? ` ${h.zipCm} cm zip.` : ''} In testing: tell us how it sews. Sewing steps are in the instructions booklet.`,
       ],
       guide: withKnitFabric(hoodieGuide(h, selfM(lays, hoodieMetres(h)), { width: c.width }), c.fabric),
       spec: hoodieSpec(c.values as unknown as TeeMeasurements, h),
@@ -128,7 +128,7 @@ export function rangePrintable(d: { knitDress?: KnitDressDraft; hoodie?: HoodieD
         c.couture
           ? `Couture allowances: ${c.seams.seam} cm at the seams, 1 cm on the crotch curve, ${hem} cm at the hem. Thread-trace the solid stitching line.`
           : `Seam allowance ${c.seams.seam} cm included, 1 cm on the crotch curve, ${hem} cm at the hem. Dashed line = stitching line.`,
-        `The top and ${/^Shorts/.test(pieces.find((pc) => /front/.test(pc.name) && !/Bodice/.test(pc.name))?.name ?? '') ? 'shorts' : 'legs'} join at the waist, cut lower in the body to sit in. ${j.closure === 'front_buttons' ? `Buttons down the front with a ${j.zipCm} cm fly zip below.` : `A ${j.zipCm} cm invisible zip at the centre back.`} In testing: make a toile first. Sewing steps are on the last pages.`,
+        `The top and ${/^Shorts/.test(pieces.find((pc) => /front/.test(pc.name) && !/Bodice/.test(pc.name))?.name ?? '') ? 'shorts' : 'legs'} join at the waist, cut lower in the body to sit in. ${j.closure === 'front_buttons' ? `Buttons down the front with a ${j.zipCm} cm fly zip below.` : `A ${j.zipCm} cm invisible zip at the centre back.`} In testing: make a toile first. Sewing steps are in the instructions booklet.`,
         ...c.fittingNotes,
       ],
       guide: withFabric(jumpsuitGuide(j, selfM(lays, jumpsuitMetres(j)), { width: c.width, seams: c.seams }), c.fabric, 'dress'),
