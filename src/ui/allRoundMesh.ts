@@ -10,7 +10,8 @@ import { LineSegments2 } from 'three/examples/jsm/lines/LineSegments2.js';
 import { LineSegmentsGeometry } from 'three/examples/jsm/lines/LineSegmentsGeometry.js';
 import { RoundGarment, RoundPt } from '../engine/allRound';
 import { bodyHalf, reach as bodyReach } from '../engine/body';
-import { FORM_DEPTH, FORM_FLOOR, FORM_LEG, FORM_LEG_X } from './ContourForm';
+import { FORM_DEPTH, FORM_FLOOR, FORM_LEG } from './ContourForm';
+import { legPoint } from './formLegs';
 import type { DrapedLite } from '../engine/drape/run';
 import type { ClothTiles } from './allRoundCloth';
 import { FAINT_OPACITY } from './ClothLook';
@@ -1075,7 +1076,12 @@ export function createRoundView(): RoundView | undefined {
         legs.uniforms.shadeY.value = hemMean;
         legs.uniforms.shadeDepth.value = 0.3;
       }
-      add(sweep({ at: (a, t) => T(leg * FORM_LEG_X, a, FORM_LEG(LEG_TOP + (FORM_FLOOR - LEG_TOP) * t), LEG_TOP + (FORM_FLOOR - LEG_TOP) * t), out: radial }, -Math.PI, Math.PI, 48, 60), legs, 0, 'leg', leg);
+      // Under trousers the form's legs start at the trousers' hem: higher up they're inside the trouser legs, and a
+      // slim leg, cut close, let the form's inner thigh and knee show through between them.
+      const under = trousers && !!lg;
+      const top = under ? Math.max(LEG_TOP, yH) : LEG_TOP;
+      const plainTo = !isTop && !trousers ? yOf(longest) : -Infinity;
+      add(sweep({ at: (a, t) => legPoint(leg, a, top + (FORM_FLOOR - top) * t, !under, plainTo), out: radial }, -Math.PI, Math.PI, 48, 90), legs, 0, 'leg', leg);
     }
 
     if (o.draped && o.draped !== 'pending') {
@@ -1348,7 +1354,12 @@ export function createRoundView(): RoundView | undefined {
     }
 
     // The lines: the garment's edges, its seams and darts, and in lines its cloth as lines down and round it.
-    const lines = (style: Style) => {
+    // While the cloth is still sewing, this shape stands in for a moment: its lines are drawn as fine as the sewn
+    // cloth's, and nothing shows through from the far side (an armhole read as a ghost ring over the shoulder), so the
+    // change to the sewn garment is quiet (the Nov 13 sweep).
+    const waiting = o.draped === 'pending';
+    const lines = (style0: Style) => {
+      const style = waiting && !style0.onTop ? { ...style0, width: Math.min(style0.width, 0.7), alpha: Math.min(style0.alpha ?? 1, 0.55), back: 0 } : style0;
       const l = new Lines(style, turning);
       lineSets.push(l);
       return l;

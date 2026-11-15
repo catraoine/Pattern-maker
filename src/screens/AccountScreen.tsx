@@ -8,11 +8,12 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { countStep } from '../report/report';
 import { deletePhoto } from '../photoStore';
 import { garmentKind } from '../fit';
-import { Account, ME, Person, SavedPattern, activePerson, personName } from '../account';
+import { Account, ME, Person, SavedPattern, activePerson, formOf, personName } from '../account';
+import { withEstimates } from '../estimate';
 import { choicesFlat } from '../collection';
 import { Envelope } from '../ui/Envelope';
 import { PeopleSwitch } from '../ui/PeopleSwitch';
-import { BODICE_FIELDS, SKIRT_FIELDS, TROUSERS_FIELDS, Unit } from '../measurements';
+import { BODICE_FIELDS, SKIRT_FIELDS, TROUSERS_FIELDS, Unit, type FormKind } from '../measurements';
 import { describePattern } from './describe';
 import { FitForm } from '../ui/FitForm';
 import { FitFeedback, fitReport, fitSummary, sendFitReport } from '../fit';
@@ -154,7 +155,7 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
           ) : (
             <ul className="saved">
               {account.patterns.map((p) => (
-                <PatternRow key={p.id} pattern={p} values={valuesFor(p)} helped={personFor(p).helped} whoFor={whoFor(p)} startFitting={openFit === p.id} tester={!!account.testerCode} onOpen={() => onOpen(p)} onRename={(n) => onRename(p.id, n)} onRemove={() => onRemove(p.id)} onFit={(f) => onFit(p.id, f)} />
+                <PatternRow key={p.id} pattern={p} values={valuesFor(p)} form={formOf(personFor(p))} helped={personFor(p).helped} whoFor={whoFor(p)} startFitting={openFit === p.id} tester={!!account.testerCode} onOpen={() => onOpen(p)} onRename={(n) => onRename(p.id, n)} onRemove={() => onRemove(p.id)} onFit={(f) => onFit(p.id, f)} />
               ))}
             </ul>
           )}
@@ -414,6 +415,7 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
 function PatternRow({
   pattern,
   values,
+  form,
   helped,
   whoFor,
   onOpen,
@@ -425,6 +427,8 @@ function PatternRow({
 }: {
   pattern: SavedPattern;
   values: MeasurementValues;
+  /** The dress form the pattern's person is drafted on. */
+  form: FormKind;
   /** The measurements a friend held the tape for, sent with fit notes. */
   helped?: MeasurementId[];
   whoFor?: string;
@@ -462,7 +466,9 @@ function PatternRow({
     setEditing(false);
   };
   const detail = describePattern(pattern.choices);
-  const flat = useMemo(() => choicesFlat(pattern.choices, values), [pattern.choices, values]);
+  // Drawn from the same numbers Style drafts with: what was measured, plus estimates for the upper body not taken
+  // yet. From the measured numbers alone a top or dress drew as nothing, with NaN in the drawing (tester personas, Nov 15).
+  const flat = useMemo(() => choicesFlat(pattern.choices, withEstimates(values, form)), [pattern.choices, values, form]);
 
   return (
     <li ref={row}>
