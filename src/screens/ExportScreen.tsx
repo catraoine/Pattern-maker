@@ -259,8 +259,6 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
   const projector = isProjector(paper);
   const grid = projector ? { rows: 1, cols: 1 } : tileGrid(sheet, paper);
   const pages = projector ? 1 : pageCount(sheet, paper);
-  // The pattern file on home paper opens on the page map, so it holds one page more than the tiles (Cat, Nov 15).
-  const filePages = projector || paper === 'a0' ? pages : pages + 1;
   const passed = checks.filter((c) => c.ok).length;
   const fileBase = title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
@@ -378,7 +376,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
               <button type="button" className="primary" onClick={checked(download_)} disabled={!ready}>
                 {ready
                   ? // On A0 the count is of the big sheets, not every page in the file (Cat, Nov 14), so it says so.
-                    `Download pattern (${filePages} ${paper === 'a0' ? (filePages === 1 ? 'A0 sheet' : 'A0 sheets') : filePages === 1 ? 'page' : 'pages'})`
+                    `Download pattern (${pages} ${paper === 'a0' ? (pages === 1 ? 'A0 sheet' : 'A0 sheets') : pages === 1 ? 'page' : 'pages'})`
                   : pdfFailed
                     ? 'PDF not made'
                     : 'Making your PDF…'}

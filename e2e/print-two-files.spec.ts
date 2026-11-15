@@ -1,7 +1,7 @@
 import { PDFDocument } from 'pdf-lib';
 import { chooseDrop, download, expect, goPrint, startWithExample, test } from './fixtures';
 
-// What they download is what they print (Cat, Nov 15): the pattern is the page map and the pages that tape together, and the
+// What they download is what they print (Cat, Nov 15): the pattern is only the pages that tape together, and the
 // cover, cutting layout and sewing steps are an instructions booklet of their own.
 test('Print gives the pattern and the instructions as two files', async ({ page }, info) => {
   await startWithExample(page);

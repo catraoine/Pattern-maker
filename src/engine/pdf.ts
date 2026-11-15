@@ -243,7 +243,7 @@ interface PdfExtras {
   guide?: SewingGuide;
   summary?: Summary;
   /** Which file (Cat, Nov 15: the pattern is what you print, the instructions are a booklet of their own): `pattern` is
-   *  the page map (home paper) and the pages that tape together, `booklet` is the cover, summary, layouts and steps. Left out, one file holds all. */
+   *  only the pages that tape together, `booklet` is the cover, summary, page map, layouts and steps. Left out, one file holds all. */
   part?: 'pattern' | 'booklet';
 }
 
@@ -318,8 +318,6 @@ export async function toTiledPdf(sheet: Sheet, paper: Paper, extras?: PdfExtras)
   const used = usedTiles(sheet, paper);
   const has = (r: number, c: number) => !!used[r]?.[c];
   const total = used.flat().filter(Boolean).length;
-  // The pattern file opens on the page map, which is what the pages are taped by (an A0 sheet needs no taping).
-  if (extras?.part === 'pattern' && paper !== 'a0') addMapPage(doc, fonts, sheet, paper, used, total, [stepX, stepY]);
   let number = 0;
   for (let r = 0; r < (tiles ? rows : 0); r++) {
     for (let c = 0; c < cols; c++) {
@@ -368,7 +366,7 @@ export async function toTiledPdf(sheet: Sheet, paper: Paper, extras?: PdfExtras)
     }
   }
   if (!book) return doc.save();
-  if (extras?.summary) addSummaryPage(doc, fonts, sheet, paper === 'a0' ? 'a4' : paper, used, total, extras.title, extras.summary, [stepX, stepY], extras.part !== 'booklet');
+  if (extras?.summary) addSummaryPage(doc, fonts, sheet, paper === 'a0' ? 'a4' : paper, used, total, extras.title, extras.summary, [stepX, stepY]);
   if (extras?.summary?.lays?.length) addLayPages(doc, fonts, paper === 'a0' ? 'a4' : paper, extras.summary.lays);
   if (extras?.summary?.byHand?.length) addHandPages(doc, fonts, paper === 'a0' ? 'a4' : paper, extras.title, extras.summary.byHand);
   if (extras?.summary?.drafting?.length) addDraftingPages(doc, fonts, paper === 'a0' ? 'a4' : paper, extras.title, extras.summary.drafting);
@@ -489,7 +487,6 @@ function addSummaryPage(
   title: string,
   s: Summary,
   [stepX, stepY]: [number, number],
-  withMap = true,
 ) {
   const { st, write, label, room, left, width } = flow(doc, paper, fonts);
   drawText(st.page, ['MAISON TRACÉ', s.madeFor && `MADE FOR ${s.madeFor}`, s.date, s.edition, s.code && `CODE ${s.code}`].filter(Boolean).join('   ·   ').toUpperCase(), {
@@ -554,9 +551,8 @@ function addSummaryPage(
   }
   st.y -= 16;
 
-  // The page map is the pattern file's first page now (Cat, Nov 15: it is what you tape by), or its own page here
-  // when everything is one file.
-  if (withMap) addMapPage(doc, fonts, sheet, paper, used, total, [stepX, stepY]);
+  // The page map follows on a full page of its own, in the instructions (Cat, Nov 15).
+  addMapPage(doc, fonts, sheet, paper, used, total, [stepX, stepY]);
 }
 
 /** The page map on a page of its own, as large as the page allows (Cat, Nov 15: it was a small sketch under the seam
