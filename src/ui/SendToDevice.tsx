@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { CopyBox } from '../screens/MeasureLinkScreen';
 import { shareLink } from './shareLink';
 
@@ -6,7 +6,7 @@ import { shareLink } from './shareLink';
  * "Send to my computer": packs everything on this device into a link and hands it to the share sheet, so the
  * sewist can email or AirDrop it to themselves and carry on there. Where there's no share sheet it's copied.
  */
-export function SendToDevice({ link, label = 'Send to my computer', className = 'secondary' }: { link: () => Promise<string>; label?: string; className?: string }) {
+export function SendToDevice({ link, label = 'Send to my computer', className = 'secondary' }: { link: () => Promise<string>; label?: ReactNode; className?: string }) {
   const [sent, setSent] = useState<'shared' | 'copied' | 'cancelled' | 'failed' | null>(null);
   const [url, setUrl] = useState('');
   const send = async () => {

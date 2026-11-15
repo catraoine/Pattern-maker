@@ -1,0 +1,88 @@
+/* Print my pattern, easier to scan (Cat picked A1 Quiet list, Nov 14): every way to get the PDF used to be the same
+   gold capitals, so nothing stood out. Download is now the one filled button, and the other ways are a plain list
+   in ordinary words under a small "Other ways" label, each row ruled off with an arrow, like a menu. */
+.print-controls .stack > button.primary:not(:disabled) {
+  background: var(--gild);
+  color: var(--paper);
+  border-color: var(--gild);
+  font-weight: 600;
+}
+
+.print-controls .other-ways-label {
+  margin: 16px 0 -4px;
+  color: var(--muted);
+}
+
+.print-controls .other-ways {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid rgb(217 196 155 / 0.25);
+}
+
+.print-controls button.way {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  min-height: 56px;
+  padding: 14px 2px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgb(217 196 155 / 0.25);
+  border-radius: 0;
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 17px;
+  font-weight: var(--w-body);
+  letter-spacing: 0;
+  text-transform: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* The arrow says "this goes somewhere"; screen readers skip it (older Safari reads the first line, and shows it all the same). */
+.print-controls button.way::after {
+  content: '›';
+  content: '›' / '';
+  flex: none;
+  color: var(--gild);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.print-controls button.way small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 13.5px;
+}
+
+.print-controls button.way:disabled {
+  color: var(--disabled);
+  cursor: not-allowed;
+}
+
+.print-controls button.way:active:not(:disabled) {
+  color: var(--gild);
+}
+
+@media (hover: hover) {
+  .print-controls button.way:hover:not(:disabled) {
+    color: var(--gild);
+  }
+}
+
+/* Email me the PDF opens its address box in the list, ruled off like a row. */
+.print-controls .other-ways .email-pdf {
+  padding: 14px 0 18px;
+  border-bottom: 1px solid rgb(217 196 155 / 0.25);
+}
+
+.print-controls .other-ways .msg {
+  margin: 10px 0;
+}
+
+.print-controls .print-steps {
+  margin-top: 14px;
+}
