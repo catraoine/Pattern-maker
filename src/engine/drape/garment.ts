@@ -36,6 +36,7 @@ import { topPeplumSeam } from './peplumSeam';
 import { puffUnder } from './puffUnder';
 import { layTurnbackCuff } from './turnbackCuff';
 import { capeFold, capeForDrape, capeFromFront, capeRadius, seatCapeNeck } from './cape';
+import { seatSleeves } from './sleeveSeat';
 import { heavyChainK } from './heavyHold';
 import { wholeSkirt } from './wholeSkirt';
 import { fullHemLevel } from './hemWidth';
@@ -6444,6 +6445,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
   // low front neck (All round quality, 2026-11-07). (The neckline itself is left as it is.)
   if (!knob('__noRufSeat')) for (const p of B.panels) if (p.role === 'collar' && typeof p.pc.meta.ruffle === 'number' && !p.pc.meta.bow) seatOn(p, 'neck', 0, false);
   if (!knob('__noCapeSeat')) for (const at of posMirror ? [res, posMirror] : [res]) seatCapeNeck(B.panels, seams, at);
+  for (const at of posMirror ? [res, posMirror] : [res]) seatSleeves(B.panels, seams, at);
   return { panels: B.panels, pos: res, lines, buttons, seams, ...(shade ? { shade } : {}), ...(posMirror ? { posMirror } : {}) };
 }
 
