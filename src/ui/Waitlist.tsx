@@ -151,7 +151,9 @@ export function WaitlistForm({ onJoined, onCode, linkMessage, onRetry, founding 
             <label htmlFor="wl-code" className="visually-hidden">
               Tester code
             </label>
-            <input id="wl-code" autoComplete="off" autoCapitalize="none" spellCheck={false} placeholder="Tester code" value={code} onChange={(e) => setCode(e.target.value)} />
+            {/* Shown in capitals as it is typed, as the codes are written, so nobody wonders whether case matters (Cat, Nov 15).
+                It doesn't: the check ignores case (isTesterCode). */}
+            <input id="wl-code" autoComplete="off" autoCapitalize="characters" spellCheck={false} placeholder="Tester code" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} />
           </div>
           <button type="submit" className="secondary sm" disabled={checking || !code.trim()}>
             {checking ? 'Checking…' : 'Use code'}

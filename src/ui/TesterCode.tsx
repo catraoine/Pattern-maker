@@ -46,7 +46,8 @@ export function TesterCode({ code, unit, onCode }: { code?: string; unit: Unit; 
       <p className="muted small">Came in without your tester link? Type the code from your tester email.</p>
       <div className="field plain">
         <label htmlFor="tester-code">Tester code</label>
-        <input id="tester-code" autoComplete="off" autoCapitalize="none" spellCheck={false} value={typed} onChange={(e) => setTyped(e.target.value)} />
+        {/* In capitals as it is typed, like the code box on the welcome page (Cat, Nov 15); the check ignores case. */}
+        <input id="tester-code" autoComplete="off" autoCapitalize="characters" spellCheck={false} value={typed} onChange={(e) => setTyped(e.target.value.toUpperCase())} />
       </div>
       <button type="submit" className="secondary sm" disabled={checking || !typed.trim()}>
         {checking ? 'Checking…' : 'Use code'}

@@ -66,6 +66,7 @@ test('a wrong tester link says so, and the code can be typed instead', async ({ 
   const main = page.getByRole('main');
   await expect(main).toContainText("That tester link isn't working");
   await main.getByLabel('Tester code').fill('Toile-Two');
+  await expect(main.getByLabel('Tester code')).toHaveValue('TOILE-TWO');
   await main.getByRole('button', { name: 'Use code' }).click();
   await expect(main.getByRole('button', { name: 'Begin' })).toBeVisible();
 });
