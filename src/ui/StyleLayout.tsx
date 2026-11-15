@@ -7,6 +7,7 @@ import type { Flat } from '../engine/flat';
 import { DemoButton } from './DemoButton';
 import { EnlargeSketch, useEnlarged } from './EnlargeSketch';
 import { Envelope } from './Envelope';
+import { GarmentFabric } from './FabricFill';
 import { ExampleTag, GarmentDrop, LookName } from './GarmentSwitch';
 import { ModeLink } from './ModeLink';
 import { PhotoEntry } from './PhotoEntry';
@@ -482,7 +483,7 @@ function questionRank(q: Question): [number, number] {
 /** Past this many letters ("your trousers"), the garment's name and the example note don't share a phone's line. */
 const LONG_NAME = 13;
 
-export function StyleLayout({ children, label, name, ready, onChooseGarment, onPhoto, photo, matched, mode, onMode, onEditMeasurements, sections = NO_SECTIONS, undo, flat, onPrint, finished }: Props) {
+export function StyleLayout({ children, label, name, ready, onChooseGarment, onPhoto, photo, matched, mode, onMode, onEditMeasurements, sections = NO_SECTIONS, undo, flat, fabric, onPrint, finished }: Props) {
   const [options, preview, summary] = Children.toArray(children);
   const [page, setPage] = usePageHistory<'edit' | 'review'>(() => 'edit', (s) => s === 'edit' || s === 'review');
   // Read here and cleared once mounted: React may run this twice, and the second run must see it too.
@@ -827,7 +828,13 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           <span className="eyebrow">{look ? 'Your look' : `Review · ${label}`}</span>
           {look ?? Name}
         </h1>
-        {flat && <Envelope house={false} name={Name} flat={flat} foot="Drafted to you" />}
+        {/* In the look's own cloth: drawn without it, the flat took the page's black, so the Blush Shift showed as a black
+            dress (tester persona walk, Nov 15; Cat, Nov 14: "How come not showing in colour"). */}
+        {flat && (
+          <GarmentFabric fabric={fabric}>
+            <Envelope house={false} name={Name} flat={flat} foot="Drafted to you" />
+          </GarmentFabric>
+        )}
         {/* Changing it sits right under the drawing, where the eye is. */}
         <p className="review-edits review-change">
           <button type="button" className="later" onClick={() => (canGoBack() ? goBack() : setPage('edit'))}>
