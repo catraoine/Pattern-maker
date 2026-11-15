@@ -89,7 +89,7 @@ function BringFromBrowser({ onBring }: { onBring: (link: string) => Promise<bool
             </ol>
             <label className="field">
               <span>Link you copied</span>
-              <input type="url" value={link} onChange={(e) => setLink(e.target.value)} autoComplete="off" />
+              <input type="text" inputMode="url" value={link} onChange={(e) => setLink(e.target.value)} autoComplete="off" />
             </label>
             {wrong && (
               <p className="msg small" role="status">
