@@ -8,8 +8,9 @@ import { rucheFor, spread } from './ruche';
 import { P, add, len, mul, p, sub, taggedLength, unit } from './geometry';
 import type { Piece } from './piece';
 import { notchesAlong, withoutNotchesNear } from './pockets';
-import { BodiceDraft, BodiceMeasurements, BodiceStyle, DROP_MIN, draftBodice, girthBelowWaist } from './bodice';
+import { BodiceDraft, BodiceMeasurements, BodiceStyle, DROP_MIN, HEAD_PASS_CM, OVER_HEAD_NECKS, PULL_ON_CM, draftBodice, girthBelowWaist } from './bodice';
 import { maxRaise, raiseBodice } from './waistline';
+import { snugEmpire } from './empireFit';
 import { Buttons, EXTENSION_CM, backOnFold } from './collar';
 import { BUTTONS_STOP_ABOVE_HEM, openSkirtFront, skirtFrontFacing } from './skirtFront';
 import { DraftError, FIT_EASE, LENGTHS, NoSeam, Silhouette, SkirtDraft, SkirtMeasurements, SkirtStyle, draftSkirt, flareRange, lengthRange } from './skirt';
@@ -88,6 +89,8 @@ export interface DressDraft {
   /** A shirt dress: no zip, the buttons running on below the waist, down the skirt front (in the
    * skirt's own coordinates, down from the waist). `skirt` keeps its front whole; `pieces` has it opened. */
   skirtButtons?: Buttons;
+  /** No opening: it goes on over the head, the backs cut on the fold (a look's pullOn, where the dress can). */
+  pullOn?: true;
   /** How far the waist seam is below the natural waist in cm: 0 at the waist, negative above it. */
   seamDrop: number;
   /** Round the waist seam as sewn, darts closed, when the seam is moved off the waist: what the seam check
@@ -356,7 +359,8 @@ export function draftDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyl
   const wantWrap = bodiceStyle.closure === 'wrap' && wrapSkirtAllowed({ silhouette: 'a_line', ...skirtStyle });
   const at = typeof seam === 'string' ? { at: seam } : seam;
   const closure = wantButtons ? ('front_buttons' as const) : wantWrap ? ('wrap' as const) : ('back_zip' as const);
-  const base = { ...bodiceStyle, length: 'waist' as const, dropCm: undefined, hem: undefined, closure, peplum: 'none' as const };
+  // The dress decides a pull-on itself (below): the bodice alone would judge it by its own hem, not the whole dress.
+  const base = { ...bodiceStyle, length: 'waist' as const, dropCm: undefined, hem: undefined, closure, peplum: 'none' as const, pullOn: false };
   const natural = draftBodice(m, base);
   // Only a plain front and back are cut across or carried down: panels, a drape and boning keep the seam
   // at the waist. A button front buttons on to a moved seam and a wrap ties at it, so they move with it.
@@ -369,7 +373,11 @@ export function draftDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyl
   // Dropped: the bodice runs on to the seam and its hem becomes the waist seam. Raised: the waist-length
   // bodice is cut across above the waist. Either way the skirt is drafted from the seam. The draft keeps
   // the bodice as drawn, hem and all, for the drawings; its printed pieces sew to the skirt.
-  const bodice = drop > 0 ? draftBodice(m, { ...base, length: 'high_hip', dropCm: drop }) : drop < 0 ? raiseBodice(natural, -drop) : natural;
+  // At the empire line, right under the bust, the seam is drawn in to sit close (snugEmpire): a seam part way up keeps
+  // the waist's room, as a babydoll's does.
+  const empire = drop < 0 && -drop >= raise - 0.05;
+  const raised = drop < 0 ? raiseBodice(natural, -drop) : natural;
+  const bodice = drop > 0 ? draftBodice(m, { ...base, length: 'high_hip', dropCm: drop }) : empire ? snugEmpire(raised, (m as { underbust?: number }).underbust ?? m.waist + 0.5 * (m.full_bust - m.waist)) : raised;
   const bodicePieces = drop > 0 ? bodice.pieces.map(hemToSeam) : bodice.pieces;
   const sm = fromSeam(m, drop);
   const buttoned = bodice.closure === 'front_buttons' && !!bodice.buttons;
@@ -391,12 +399,17 @@ export function draftDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyl
   const waist = { front: waistOf(side('front')), back: waistOf(side('back')) };
   const dartAt = { front: dartOf(side('front')), back: dartOf(side('back')) };
   const cb = bodice.backLength;
+  // A look can ask for a dress that goes on over the head with no zip (DressChoices bodice.pullOn): only where the neck
+  // edge clears the head and the waist seam, dropped below the waist, clears the bust and shoulders. Below a dropped
+  // seam the skirt is cut from the hip girth with its ease, so it clears the hips too.
+  const pullOn =
+    !!bodiceStyle.pullOn && closure === 'back_zip' && !bodice.drape && OVER_HEAD_NECKS.includes(bodiceStyle.neckline ?? '') && natural.neck >= HEAD_PASS_CM && drop > 0 && 2 * (waist.front + waist.back) >= m.full_bust + PULL_ON_CM;
   // One-shoulder: the zip goes in the right side seam from under the arm instead.
   const sideOpen = bodice.drape?.zip;
   let zipCm = sideOpen
     ? (SIDE_ZIPS.find((z) => z - sideOpen.openingCm >= ZIP_BELOW_WAIST) ?? SIDE_ZIPS[SIDE_ZIPS.length - 1])
     : (DRESS_ZIPS.find((z) => z - cb >= ZIP_BELOW_WAIST + Math.max(0, -drop)) ?? DRESS_ZIPS[DRESS_ZIPS.length - 1]);
-  const belowOf = (z: number) => (buttoned || wrapped ? 0 : Math.round((z - (sideOpen ? sideOpen.openingCm : cb)) * 10) / 10);
+  const belowOf = (z: number) => (buttoned || wrapped || pullOn ? 0 : Math.round((z - (sideOpen ? sideOpen.openingCm : cb)) * 10) / 10);
   let below = belowOf(zipCm);
 
   // The skirt's waist curve is a little longer than its width, so walk it to the bodice's.
@@ -441,7 +454,7 @@ export function draftDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyl
   // bust the zip takes the next standard length until it does, and if none does, the dress goes on over
   // the head instead and the steps say so.
   let overHead = false;
-  if (below > 0 && !sideOpen) {
+  if (below > 0 && !sideOpen && !pullOn) {
     const hipAt = (z: number) => ringAt(skirt.pieces, belowOf(z) + 1) >= m.full_hip - HIP_CLEAR;
     if (!hipAt(zipCm)) {
       const longer = DRESS_ZIPS.find((z) => z > zipCm && hipAt(z));
@@ -478,12 +491,15 @@ export function draftDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyl
       skirtFrontFacing(opened),
     ];
   }
+  // Pulled on over the head, the bodice back and the skirt back are each cut on the fold: no centre back seam.
+  const backFold = (pc: Piece) => (/back/i.test(pc.name) && !pc.kind ? backOnFold(pc) : pc);
   return {
-    bodice,
+    bodice: pullOn ? { ...bodice, pullOn: true, zipCm: 0, pieces: bodice.pieces.map(backFold) } : bodice,
     // The skirt as drafted, its front still whole, for its drawing and steps; the pieces to cut are opened.
-    skirt: buttoned ? { ...skirt, zipCm: 0, pieces: skirt.pieces.map((pc) => (/^Skirt back/.test(pc.name) ? backOnFold(pc) : pc)) } : skirt,
-    pieces: [...bodicePieces.map(unzip), ...skirtPieces],
-    zipCm: buttoned || wrapped ? 0 : zipCm,
+    skirt: buttoned || pullOn ? { ...skirt, zipCm: 0, pieces: skirt.pieces.map((pc) => (/^Skirt back/.test(pc.name) ? backOnFold(pc) : pc)) } : skirt,
+    pieces: pullOn ? [...bodicePieces.map(unzip).map(backFold), ...skirtPieces.map(backFold)] : [...bodicePieces.map(unzip), ...skirtPieces],
+    zipCm: buttoned || wrapped || pullOn ? 0 : zipCm,
+    ...(pullOn ? { pullOn: true as const } : {}),
     zipBelowWaist: below,
     ...(skirtButtons ? { skirtButtons } : {}),
     ...(sideOpen ? { zipSide: true } : {}),

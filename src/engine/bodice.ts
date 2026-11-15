@@ -614,6 +614,11 @@ export function draftBodice(m: BodiceMeasurements, style: Partial<BodiceStyle> =
   const s = wrapStyle(unevenStyle(seamStyle(drapeStyle({ ...DEFAULT_BODICE_STYLE, ...style }))));
   // A peplum (drape.ts) goes on any waist-length bodice, a boned one too.
   const redraft = (st: BodiceStyle) => draftBlock(m, st);
+  // A V or boat neck pulls on only if its edge goes over the head; a smaller one keeps its zip.
+  if (s.pullOn && OVER_HEAD_NECKS.includes(s.neckline)) {
+    const d = draftBodice(m, { ...style, pullOn: false });
+    if (d.neck < HEAD_PASS_CM) return d;
+  }
   if (isTop(s.neckline)) {
     // Cut below the shoulders: the block drafted as usual, then cut along the top edge and shaped.
     const t = topStyle(s);
@@ -804,7 +809,11 @@ function draftBlock(m: BodiceMeasurements, style: BodiceStyle): BodiceDraft {
 const ZIPS = [20, 22, 25, 30, 35, 40, 45, 50, 55, 60];
 /** The longest standard invisible zip that fits the centre back opening. */
 /** A top pulls on over a zip that stops at the waist only if the waist below it is this much more than the bust. */
-const PULL_ON_CM = 2;
+export const PULL_ON_CM = 2;
+/** Necklines that can go on over the head with no opening when a look asks (BodiceStyle.pullOn), besides a plunge. */
+export const OVER_HEAD_NECKS: string[] = ['v', 'boat'];
+/** A neck edge this long, or longer, goes over an adult head in a woven cloth (an adult head is about 55 to 58 cm round). */
+export const HEAD_PASS_CM = 60;
 /** Zips for a top that opens right through to its hem: the tops' own, and a dress's longer ones for a long top. */
 const THROUGH_ZIPS = [...ZIPS, 65, 70, 75];
 const zipFor = (opening: number) => [...ZIPS].reverse().find((z) => z <= opening) ?? ZIPS[0];
@@ -1210,8 +1219,8 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   const zipCm = zipThrough ? (THROUGH_ZIPS.find((z) => z >= cbRun - 0.5) ?? THROUGH_ZIPS[THROUGH_ZIPS.length - 1]) : tight ? THROUGH_ZIPS[THROUGH_ZIPS.length - 1] : zipFor(wb - bd - key + (s.dressHem ? DRESS_ZIP_BELOW : below ? 0 : -2));
   const zipEnd = p(0, bd + key + (zipThrough ? cbRun : zipCm));
   // A top that goes on over the head with no opening: a plunge is a neck wide enough for the head, and nothing below
-  // it is a ring the bust and shoulders don't pass.
-  const pullOn = !!s.pullOn && !tight && !s.dressHem && !key && s.neckline === 'plunge' && !s.neck;
+  // it is a ring the bust and shoulders don't pass. A V or boat neck can be too: draftBodice checks its edge clears the head.
+  const pullOn = !!s.pullOn && !tight && !s.dressHem && !key && (s.neckline === 'plunge' || OVER_HEAD_NECKS.includes(s.neckline)) && !s.neck;
   const backCut = 'Cut 2 (1 pair)';
   const backDraft = {
     frame: [
