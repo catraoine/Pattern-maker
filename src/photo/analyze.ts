@@ -144,7 +144,7 @@ Pick the closest option in each group:
   - "gathered" is a straight, full piece of cloth gathered into the waist, so it puffs out from the waist in many soft folds (a dirndl, a peasant or tiered maxi, the skirt of most smocked or prairie dresses).
   - "slip" is cut on the bias: fluid, close over the hips and falling in soft, swaying ripples at the hem, usually in satin or silky cloth (a slip skirt, the skirt of a slip dress).
 - length, where the hem falls on the wearer: "mini" (mid-thigh), "above_knee", "knee", "midi" (mid-calf), "maxi" (near the ankle). For a skirt laid flat or on a hanger, estimate from its proportions and use low confidence.
-- fit, how much room there is round the hips: "fitted" only when the fabric clearly lies close across the hips and seat, like a pencil skirt or a lace gown that hugs the body to the knee; "regular" (some room) when the skirt holds its own shape away from the hips, as an A-line, a pleated or a structured skirt does; "relaxed" only when the whole garment hangs loose, with no shaping at the waist and soft folds of spare cloth falling past the hips (a loose gauze or jersey maxi, a column that skims the body, a shirt dress worn unbelted). A dress pulled in at the waist by a seam, a wrap, a tie or a belt is "regular", however soft its skirt, and so is a short, neat dress. A snug waistband alone does not make a skirt fitted.
+- fit, how much room there is round the hips: "fitted" only when the fabric clearly lies close across the hips and seat, like a pencil skirt or a lace gown that hugs the body to the knee; "regular" (some room) when the skirt holds its own shape away from the hips, as an A-line, a pleated or a structured skirt does; "relaxed" when it hangs loose and easy, with soft folds falling from the hips rather than a shaped outline: most draped, wrap, jersey, gauze, chiffon or shirt dresses, and any dress that skims the body without being shaped to it. A snug waistband alone does not make a skirt fitted. When unsure between "regular" and "relaxed", look at the cloth at the hips: soft folds or drape mean "relaxed".
 - shape: the exact proportions, so the pattern can match the photo rather than a standard shape. Measure them against the wearer's body, not the photo frame:
   - hemAt: where the hem falls, as a fraction of the distance from the natural waist (0) down to the floor (1). On a typical body the hip line is about 0.2, mid-thigh 0.38, just above the knee 0.5, the knee 0.56, mid-calf 0.76 and the ankle 0.93. For a skirt that sits below the natural waist, still measure from the natural waist.
   - hemFullness: the hem's circumference divided by the circumference round the hips. Judge it from how far the hem stands out from the hips and how deep and many the folds are. A pencil skirt is about 0.85 to 0.95, a straight skirt 1, an A-line 1.2 to 1.8, a half circle skirt about 2.5 to 3.5 and a full circle skirt 4 to 6 (more for a long one). Use any number in between that fits what you see.
@@ -158,7 +158,7 @@ Pick the closest option in each group:
   - slit: an open slit up from the hem: "front" (at the centre front), "side" (up a side seam) or "back" (at the centre back, when it shows), otherwise "none".
 
 top: fill this in for a top, a T-shirt, the bodice of a dress, or a top worn under an open jacket; otherwise null.
-- fit: how close it sits round the bust and waist: "fitted" when shaped close to the body, "regular" with some ease but still following the body, "relaxed" only when it is loose or blousy and not shaped in at the waist at all (a shirt dress worn unbelted, a column that skims the body). A bodice pulled in by a waist seam, a wrap, a tie or a belt is "regular". A dress's bodice and skirt usually share the same fit.
+- fit: how close it sits round the bust and waist: "fitted" when shaped close to the body, "regular" with some ease but still following the body, "relaxed" when it is loose or blousy and not shaped in at the waist (a shirt dress worn loose, a draped or cowled bodice, a column that skims the body). A dress's bodice and skirt usually share the same fit.
 - neckline: "crew" (round, close to the neck), "scoop" (lower round), "v", "square", "boat" (wide and shallow, shoulder to shoulder), "one_shoulder", "cowl" (draped folds at the front), "strapless" (straight across), "sweetheart" (strapless with two curves over the bust), "cami" (thin straps), "halter" (rises to the neck and ties or fastens behind it, shoulders bare).
 - sleeve: "none", "short", "elbow", "three_quarter" or "long". sleeveShape: "fitted" (narrow, close to the arm), "straight", "puff" (gathered at the shoulder and the band), "bishop" (long, full, gathered into a cuff), "cap" (a tiny sleeve just covering the shoulder, short only) or "flutter" (short, flared and rippling at the hem, short only). Use "straight" when there are no sleeves.
 - length: where its hem falls: "cropped" (above the waist), "waist", "high_hip", "hip" or "tunic" (to the upper thigh). For a dress, use "waist".
@@ -350,7 +350,7 @@ const ANSWER = 'record_answer';
 export async function askFor<T extends z.ZodType>(
   client: Anthropic,
   schema: T,
-  ask: { label: string; max_tokens: number; system: string; content: UserContent },
+  ask: { label: string; max_tokens: number; system: string; content: UserContent; effort?: 'low' | 'medium' },
 ): Promise<z.infer<T> | null | 'refused'> {
   const { $schema: _, ...input_schema } = z.toJSONSchema(schema, { io: 'input' }) as Record<string, unknown>;
   const messages: Anthropic.Beta.BetaMessageParam[] = [{ role: 'user', content: ask.content }];
@@ -358,8 +358,8 @@ export async function askFor<T extends z.ZodType>(
     const response = await client.beta.messages.create({
       model: 'claude-opus-5-5',
       max_tokens: ask.max_tokens,
-      // Reading a photo is a quick classification, so low effort keeps it fast and cheap.
-      output_config: { effort: 'low' },
+      // Most asks are a quick classification, so low effort keeps them fast and cheap; the front photo reading asks for more.
+      output_config: { effort: ask.effort ?? 'low' },
       betas: ['server-side-fallback-2026-07-01'],
       fallbacks: 'default',
       system: `${ask.system}\n\nGive your answer by calling the ${ANSWER} tool once, with every field filled in.`,
@@ -494,6 +494,8 @@ export async function analyzePhoto(input: AnalyzeInput, client: Anthropic | null
   try {
     const reading = await askFor(client, Reading, {
       label: 'photo reading',
+      // Judging fit and small details at low effort swung from run to run on the scorecard (Nov 14), so the main reading thinks a little longer.
+      effort: 'medium',
       // A reading is a few hundred words at most; the ceiling bounds what one request can ever cost (about 16 cents, or 32 when askFor has to ask a second time).
       max_tokens: 8000,
       system: SYSTEM,
