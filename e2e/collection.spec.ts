@@ -1,3 +1,4 @@
+import { stripeLean } from '../src/fabricStraight';
 import { changeLook, expect, expectLook, expectStyle, fillStepPages, goPrint, measureMe, openCollection, openFresh, openGroup, pickToMake, startWithExample, switchGarment, test } from './fixtures';
 
 test('the Maison collection: open it from styling, draw every look, make one', async ({ page }) => {
@@ -7,9 +8,9 @@ test('the Maison collection: open it from styling, draw every look, make one', a
   await expect(main.getByRole('heading', { level: 1, name: 'The collection' })).toBeVisible();
   // Every look is drawn flat, front and back.
   const looks = main.getByRole('listitem');
-  // Eight looks; Look 02 is a set of two pieces, the vest and the skirt, side by side (Nov 11); the Red Pleat Dress and
-  // the Ivory Palazzo left the line.
-  await expect(looks).toHaveCount(8);
+  // Seven looks; Look 02 is a set of two pieces, the vest and the skirt, side by side (Nov 11), and Look 05 the lilac
+  // lace blouse with the chocolate barrel trouser (Nov 14); the Red Pleat Dress and the Ivory Palazzo left the line.
+  await expect(looks).toHaveCount(7);
   await expect(main.getByRole('img', { name: /Technical flat/ })).toHaveCount(9);
   // The House shows one season at a time.
   await expect(main.getByText('SS27 · Spring Summer 2027')).toBeVisible();
@@ -73,6 +74,44 @@ test('the Leopard Shirt Dress: made in the house print, with its long-point coll
   expect(after.finish?.fabric).toBeUndefined();
 });
 
+test('the Leopard Shirt Dress: its print runs straight down, from a tile whose address changes with it', async ({ page }) => {
+  await startWithExample(page);
+  await openCollection(page);
+  const look = page.getByRole('main').getByRole('listitem').filter({ has: page.getByRole('heading', { name: 'Leopard Shirt Dress' }) });
+  // The tile the drawing is painted with.
+  const tile = look.locator('.garment-fabric pattern').first();
+  const href = await tile.locator('image').getAttribute('href');
+  expect(href).toBeTruthy();
+  // As drawn: turned by the pattern's own turn, if it has one.
+  const turn = Number((await tile.getAttribute('patternTransform'))?.match(/rotate\(([-\d.]+)\)/)?.[1] ?? 0);
+  // Its address carries a fingerprint of the file (a built app names it leopard-python-<fingerprint>.jpg), so a phone
+  // that kept an earlier tile fetches the new one: at a fixed address Cat's phone kept the first, slanted tile and drew
+  // the print on a diagonal two days after it was straightened (Nov 14).
+  expect(href).not.toMatch(/\/prints\/house\//);
+  // And its stripes run straight down: under the 1.5 degrees the eye can see, read the way a photo of the maker's own
+  // cloth is read (fabricStraight.ts). The first tile leaned about 6 degrees.
+  const grey = await page.evaluate(
+    async ([src, deg]) => {
+      const img = new Image();
+      img.src = src;
+      await img.decode();
+      // The repeat painted turned, as the drawing paints it, one tile to 128 pixels; read from its middle.
+      const n = 128;
+      const c = document.createElement('canvas');
+      c.width = c.height = n;
+      const g = c.getContext('2d')!;
+      const pat = g.createPattern(img, 'repeat')!;
+      pat.setTransform(new DOMMatrix().rotate(deg).scale(n / img.naturalWidth));
+      g.fillStyle = pat;
+      g.fillRect(0, 0, n, n);
+      const d = g.getImageData(0, 0, n, n).data;
+      return Array.from({ length: n * n }, (_, i) => (d[i * 4] + d[i * 4 + 1] + d[i * 4 + 2]) / 3);
+    },
+    [href!, turn] as const,
+  );
+  expect(Math.abs((stripeLean(grey, 128) * 180) / Math.PI)).toBeLessThan(1.5);
+});
+
 test('the collection: the next drop stays hidden until it has a piece, and the Archive stays hidden until it opens', async ({ page }) => {
   await startWithExample(page);
   const main = page.getByRole('main');
@@ -87,18 +126,22 @@ test('the collection: the next drop stays hidden until it has a piece, and the A
   await expect(main.getByText('ARC · 1954 · 001')).toHaveCount(0);
 });
 
-test('the Chocolate Barrel Trouser: made low on the hip with two pleats, in chocolate sateen', async ({ page }) => {
+test('the Chocolate Barrel Trouser: made low on the hip with one pleat, in chocolate sateen', async ({ page }) => {
   await startWithExample(page);
   const main = page.getByRole('main');
   await openCollection(page);
-  const look = main.getByRole('listitem').filter({ has: page.getByRole('heading', { name: 'Chocolate Barrel Trouser' }) });
+  // Worn with the lilac lace blouse as Look 05, a set of two (Cat, Nov 14).
+  const set = main.getByRole('listitem').filter({ has: page.getByRole('heading', { name: 'The Lilac Lace Set' }) });
+  await expect(set).toContainText('SS27 · Look 05');
+  await expect(set.getByRole('img', { name: /Technical flat/ })).toHaveCount(2);
+  const look = set.locator('.set-piece').filter({ has: page.getByRole('heading', { name: 'Chocolate Barrel Trouser' }) });
   await expect(look.getByRole('img', { name: /Technical flat/ })).toBeVisible();
   if (process.env.SHOTS) await look.screenshot({ path: `${process.env.SHOTS}/chocolate-barrel-look-${test.info().project.name}.png` });
-  await look.getByRole('button', { name: 'Make this look' }).click();
+  await look.getByRole('button', { name: 'Make the trouser' }).click();
   await expectLook(page, 'Chocolate Barrel Trouser');
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('pattern-maker:skirt') ?? '{}'));
   expect(saved.finish?.fabric).toMatchObject({ fibre: 'cotton', colour: '#3d2418', drape: 'crisp', sheen: 'soft' });
-  expect(saved.trousers).toMatchObject({ leg: 'barrel', rise: 'low', pleats: 'double', loops: 'loops', length: 'full' });
+  expect(saved.trousers).toMatchObject({ leg: 'barrel', rise: 'low', pleats: 'single', loops: 'loops', length: 'full' });
 });
 
 test('a collection top with sleeves asks for the arms first, so its pattern has its sleeves', async ({ page }) => {

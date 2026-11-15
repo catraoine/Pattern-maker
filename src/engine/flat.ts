@@ -57,6 +57,16 @@ export interface Flat {
 const GAP = 12; // cm between the front and back views
 /** The least a trouser leg's inner edge stays from the centre, so the legs read as two. */
 const LEG_GAP = 0.6;
+/** How far a full-length trouser's front hem drops at the middle of the leg, where it breaks over the shoe, in cm. */
+const BREAK_CM = 1;
+
+/** A cubic curve from a to d, pulled toward b and c, in 16 steps. */
+const cubic = (a: P, b: P, c: P, d: P): P[] =>
+  Array.from({ length: 17 }, (_, i) => {
+    const t = i / 16;
+    const u = 1 - t;
+    return p(u * u * u * a.x + 3 * u * u * t * b.x + 3 * u * t * t * c.x + t * t * t * d.x, u * u * u * a.y + 3 * u * u * t * b.y + 3 * u * t * t * c.y + t * t * t * d.y);
+  });
 
 const mirror = (pts: P[]) => pts.map((q) => p(-q.x, q.y));
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
@@ -1531,22 +1541,36 @@ export function trousersView(d: TrousersDraft, m: { waist_to_hip: number; crotch
   const xh = Math.max(xk, hem + LEG_GAP);
   {
     const top = back ? -0.8 : 0;
+    const out = xk + knee;
+    // From the hip down to the knee. A leg that swings out wider than the hip goes straight out to the knee: led down
+    // from the hip first, it pinched in under the hip and belled out below, so the Gold Python Bermuda read short and
+    // squat (Cat, Nov 14: "shorts look vertically squished"). A barrel bows out from the hip, widest at the knee.
+    const hipToKnee =
+      d.leg === 'barrel' && out > hw
+        ? cubic(p(hw, hd), p(hw + (out - hw) * 0.25, hd + (kn - hd) * 0.3), p(out, hd + (kn - hd) * 0.55), p(out, kn))
+        : out > hw + 0.5
+          ? // (Where the hem is as wide as the knee, the side runs on in one straight line from the hip to the hem.)
+            [p(hw, hd), p(Math.abs(d.kneeCm - d.hemCm) < 1 ? hw + ((xh + hem - hw) * (kn - hd)) / Math.max(1, L - hd) : out, kn)]
+          : bend(p(hw, hd), p(hw, (hd + kn) / 2), p(out, kn));
+    // Trousers to the ankle or the floor rest on the foot: the front hem drops a little at the middle of each leg, as
+    // it breaks over the shoe. Cut off level, the Chocolate Barrel Trouser read as cropped (Cat, Nov 14).
+    const breaks = !back && !!d.fullLengthCm && d.lengthCm >= d.fullLengthCm - 1;
     const run = [
       p(0, top),
       p(W, 0),
       ...bend(p(W, 0), p(hw, hd * 0.45), p(hw, hd)).slice(1),
-      ...bend(p(hw, hd), p(hw, (hd + kn) / 2), p(xk + knee, kn)).slice(1),
-      // A barrel leg bows out round the knee and curves back in to the hem.
-      ...(d.leg === 'barrel' ? bend(p(xk + knee, kn), p(xk + knee + (L - kn) * 0.04, kn + (L - kn) * 0.55), p(xh + hem, L)).slice(1, -1) : []),
-      p(xh + hem, L),
-      p(xh - hem, L),
+      ...hipToKnee.slice(1),
+      // A barrel leg curves back in from the knee to the hem: the long taper over the calf reads as a full leg, where
+      // its widest point low on the calf read as a cropped balloon.
+      ...(d.leg === 'barrel' ? bend(p(out, kn), p(out, kn + (L - kn) * 0.5), p(xh + hem, L)).slice(1, -1) : []),
+      ...(breaks ? bend(p(xh + hem, L), p(xh, L + BREAK_CM * 2), p(xh - hem, L)) : [p(xh + hem, L), p(xh - hem, L)]),
       p(xk - knee, kn),
       ...bend(p(xk - knee, kn), p(Math.min(0.4, xk - knee), cd + 2), p(0, cd)).slice(1),
     ];
     const shapes = [whole(run), whole([p(0, top), p(W, 0), p(W, -WAISTBAND_CM), p(0, top - WAISTBAND_CM)])];
     const lines: FlatView['lines'] = [
       { pts: [p(0, top), p(0, cd)], kind: 'seam' },
-      ...both([p(xc, hd + 2), p(xk, kn), p(xh, L)]).map((pts) => ({ pts, kind: 'stitch' as const })),
+      ...both([p(xc, hd + 2), p(xk, kn), p(xh, L + (breaks ? BREAK_CM : 0))]).map((pts) => ({ pts, kind: 'stitch' as const })),
     ];
     const darts = back ? [0.36, 0.66].slice(0, d.dartsPerSide.back) : [0.5].slice(0, d.dartsPerSide.front);
     for (const f of darts) lines.push(...both([p(W * f, 0), p(W * f + 0.2, back ? 12 : 8)]).map((pts) => ({ pts, kind: 'dart' as const })));
@@ -1714,8 +1738,10 @@ export function outerFlat(d: OuterDraft): Flat {
           over.push([...neck, ...neck.map((q) => p(q.x, q.y - 3.5)).reverse()]);
         }
       }
-      // The left front under the right, then the right front over it; a zip front closes edge to edge.
-      shapes.push(mirror(half), half);
+      // The left front under the right, then the right front over it; a zip front closes edge to edge. The left lapel
+      // goes on before the right front, so the right front hides its point below the break: drawn over it, that point
+      // showed as a small triangle under the crossing on the Black Vest (Cat, Nov 14: "should be hidden").
+      shapes.push(mirror(half), ...(d.lapel ? [mirror(over[0])] : []), half);
       lines.push({ pts: [p(-ext, footY), p(-ext, d.lapel ? d.lapel.breakPt.y : neckRun[0].y)], kind: zip ? 'zip' : 'seam' });
       if (d.hood) {
         // The hood behind the head, its face edge standing up behind the neck: `up` above the neck at the centre front,
@@ -1812,7 +1838,8 @@ export function outerFlat(d: OuterDraft): Flat {
       const xs = crossingsAt(whole(h.run), y);
       if (xs.length >= 2) lines.push({ pts: [p(Math.min(...xs), y), p(Math.max(...xs), y)], kind: 'seam' });
     }
-    for (const o of over) shapes.push(isFront ? mirror(o) : o, ...(isFront ? [o] : []));
+    // (The left lapel, over[0], is in already, under the right front.)
+    over.forEach((o, k) => shapes.push(...(isFront ? (d.lapel && k === 0 ? [o] : [mirror(o), o]) : [o])));
     // Menswear buttons left over right: the same front seen in a mirror.
     if (isFront && d.lapsLeft) return { label: 'FRONT' as const, shapes: shapes.map(mirror), lines: lines.map((l) => ({ ...l, pts: mirror(l.pts) })), sleeves };
     return { label: isFront ? ('FRONT' as const) : ('BACK' as const), shapes, lines, sleeves };

@@ -15,7 +15,7 @@ import { FabricHeadsUp } from './FabricHeadsUp';
 import { ExactColour } from './ExactColour';
 import { TestingTag } from './TestingTag';
 import { FabricLook, FabricLookContext } from './ClothLook';
-import { fabricPhotoUrl, isHousePhoto, saveFabricPhoto, useFabricPhoto } from '../fabricPhoto';
+import { fabricPhotoUrl, isHousePhoto, photoTurn, saveFabricPhoto, useFabricPhoto } from '../fabricPhoto';
 
 /** One tile, in the sketch's own centimetres: larger than life, so ribs and twill read on a phone. */
 const TILE = 16;
@@ -104,23 +104,42 @@ export function pickShopColour(finish: Finish, id: string, colour: string): Fini
   return withFabric(finish, { ...withShopFabric(finish.fabric ?? {}, f), colour });
 }
 
-/** Lightness levels for a tinted swatch: the weave keeps its shading, in the chosen colour. */
-function tintTable(hex: string): [string, string, string] {
+/** Each cloth swatch's average lightness, 0 to 1, as greyed (public/fabrics/flat, measured Nov 14). */
+const SWATCH_LIGHT: Record<string, number> = { blend: 0.55, corduroy: 0.45, cotton: 0.7, default: 0.52, denim: 0.3, interlock: 0.8, jersey: 0.65, lace: 0.58, leather: 0.33, linen: 0.69, modal: 0.37, polyester: 0.34, ponte: 0.23, rib: 0.4, satin: 0.53, sequins: 0.69, sheer: 0.83, silk: 0.73, slub: 0.71, terry: 0.53, velvet: 0.29, viscose: 0.44, waffle: 0.79, wool: 0.42 };
+/** How many lightness steps the tint table holds. */
+const TINT_STEPS = 11;
+
+/** Lightness levels for a tinted swatch: the weave keeps its shading, in the chosen colour. The swatch's own average
+ *  lightness takes the colour exactly, darker threads go toward its shadow and lighter ones toward its light, each
+ *  channel in proportion so the hue holds. Spread evenly from dark to light, a dark swatch (wool) drew every colour
+ *  a fifth darker than named, and a pale colour's red ran out of room first, so the Blush Shift drew grey-taupe
+ *  (Cat, Nov 14: "doesn't look blush"). `contrast` under 1 quietens the swatch's own marks: a satin's folds. */
+function tintTable(hex: string, swatch: string | undefined, contrast = 1): [string, string, string] {
   const ch = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
-  return ch.map((c) => `${(c * 0.45).toFixed(3)} ${Math.min(1, c * 1.3 + 0.06).toFixed(3)}`) as [string, string, string];
+  const mean = SWATCH_LIGHT[swatch ?? ''] ?? 0.5;
+  // The lights: up by as much as the brightest channel allows, so all three rise together.
+  const lift = Math.min(1.3, 1 / Math.max(...ch, 0.01));
+  return ch.map((c) => {
+    const lo = c * 0.45;
+    const hi = Math.min(1, c * lift + 0.06 * (c / Math.max(...ch, 0.01)));
+    return Array.from({ length: TINT_STEPS }, (_, i) => {
+      const l = mean + (i / (TINT_STEPS - 1) - mean) * contrast;
+      const v = l < mean ? lo + ((c - lo) * l) / mean : c + ((hi - c) * (l - mean)) / (1 - mean);
+      return Math.min(1, Math.max(0, v)).toFixed(3);
+    }).join(' ');
+  }) as [string, string, string];
 }
 
 const IVORY = '#efe8d6';
 const INK = '#2a2826';
 const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
-const light = (hex: string) => {
+/** How light a colour looks, 0 (black) to 1 (white). */
+export const luminance = (hex: string) => {
   const [r, g, b] = rgb(hex);
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.55;
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 };
-const dark = (hex: string) => {
-  const [r, g, b] = rgb(hex);
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.12;
-};
+const light = (hex: string) => luminance(hex) > 0.55;
+const dark = (hex: string) => luminance(hex) < 0.12;
 /** The two colours a print is drawn in: the chosen colour on ivory, or, when the colour is a light one, ink on it. */
 const twoTone = (hex: string | undefined): { tone: string; ground: string } => (!hex ? { tone: INK, ground: IVORY } : light(hex) ? { tone: INK, ground: hex } : { tone: hex, ground: IVORY });
 /** A print's darks in the tone and its lights in the ground, so the print keeps its drawing in the chosen colour. */
@@ -163,6 +182,8 @@ export interface FabricPaint {
   look?: FabricLook;
   /** All round's plain calico: how much of its own colour it gives off, so the lamps don't grey it. */
   lift?: number;
+  /** How far the swatch is drawn turned, in degrees clockwise: a house print's tile set square (fabricPhoto.ts). */
+  turn?: number;
 }
 
 /** The paint for a fabric, or undefined when the garment is left in lines. */
@@ -171,7 +192,8 @@ export function fabricPaint(fabric: MyFabric | undefined, base: string): FabricP
   const photo = fabricPhotoUrl(fabric?.photo?.id);
   if (photo && fabric?.photo) {
     const special = fabric.special;
-    return { href: photo, size: fabric.photo.size, tone: INK, ground: IVORY, half: mix(INK, IVORY, 0.5), plain: IVORY, look: special ? { special, sheer: special === 'sheer' || special === 'lace' } : undefined };
+    const turn = photoTurn(fabric.photo.id);
+    return { href: photo, size: fabric.photo.size, tone: INK, ground: IVORY, half: mix(INK, IVORY, 0.5), plain: IVORY, look: special ? { special, sheer: special === 'sheer' || special === 'lace' } : undefined, ...(turn ? { turn } : {}) };
   }
   const id = flatId(fabric);
   const kind = printShown(fabric);
@@ -186,7 +208,9 @@ export function fabricPaint(fabric: MyFabric | undefined, base: string): FabricP
   // A pictured print in a dark colour is mostly that colour: its ground, with the drawing picked out pale.
   const { tone, ground } = hex && bodyKind && !drawn && dark(hex) ? { tone: mix(IVORY, hex, 0.3), ground: hex } : two;
   // A cloth is tinted in its colour; a pictured print keeps its drawing but takes the colour, when one is chosen.
-  const table = bodyKind ? (hex ? printTable(tone, ground) : undefined) : hex ? tintTable(hex) : undefined;
+  // (A satin's swatch is all folds of light: at full strength they drew as hard streaks down the Ivory Bias Slip, Cat
+  // Nov 14 "soften", so they are drawn at half.)
+  const table = bodyKind ? (hex ? printTable(tone, ground) : undefined) : hex ? tintTable(hex, id, id === 'satin' ? 0.5 : 1) : undefined;
   const repeat = printRepeat(fabric);
   const stripes = !!fabric?.checks?.stripes;
   const size = drawn ? printTileCm('checks', repeat, stripes) / 3 : bodyKind ? printTileCm(bodyKind, repeat, stripes) : TILE;
@@ -214,7 +238,7 @@ export function GarmentFabric({ fabric, children }: { fabric: MyFabric | undefin
   const drawn = !!paint.drawn;
   const stripes = paint.drawn === 'stripes';
   const tile = (pid: string, turn: boolean) => (
-    <pattern id={pid} patternUnits="userSpaceOnUse" width={size} height={size} patternTransform={turn ? 'rotate(90)' : undefined}>
+    <pattern id={pid} patternUnits="userSpaceOnUse" width={size} height={size} patternTransform={turn || paint.turn ? `rotate(${(turn ? 90 : 0) + (paint.turn ?? 0)})` : undefined}>
       {drawn ? (
         stripes ? (
           <>

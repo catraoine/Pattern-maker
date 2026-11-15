@@ -512,16 +512,21 @@ table.history td.moved {
   margin: 0;
 }
 
+/* Every look drawn at one scale (HouseFlat.tsx), front over back: each drawing as tall as its garment is long, so a
+   skirt no longer sits small under a gap in a box sized for a maxi (Cat, Nov 14). */
 .house-flat {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 340px;
   padding: 12px 0 4px;
 }
 
-.house-flat .techflat {
-  height: 100%;
+.house-views {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.house-views .techflat {
+  height: auto;
   max-height: none;
 }
 
@@ -532,6 +537,21 @@ table.history td.moved {
 .house-look button.secondary {
   align-self: flex-start;
   margin-top: 6px;
+}
+
+/* Make this look: filled in champagne, the one solid thing under each look, so it reads as the way in rather than
+   one more line of words (Cat, Nov 14: "Make button are not distinct enough"). */
+.house-look button.secondary.make-look {
+  background: var(--gild);
+  color: var(--paper);
+  border-color: var(--gild);
+}
+
+@media (hover: hover) {
+  .house-look button.secondary.make-look:hover {
+    background: var(--ink);
+    border-color: var(--ink);
+  }
 }
 
 /* A set (SS27 Look 02): its pieces side by side under one look, across the whole row on wide screens */

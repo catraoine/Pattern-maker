@@ -18,6 +18,24 @@ export const lerp = (a: P, b: P, t: number): P => add(a, mul(sub(b, a), t));
 
 type Seg = { kind: 'L'; to: P } | { kind: 'C'; c1: P; c2: P; to: P };
 
+/** The Bezier weights at each of `steps` steps along a curve, worked out once per step count: every curve flattened
+ *  with the same count uses the same ones. Each is the same product, in the same order, as written out in full, so a
+ *  point comes out the same to the last digit. */
+const weightsFor = new Map<number, Float64Array>();
+function bezierWeights(steps: number): Float64Array {
+  let w = weightsFor.get(steps);
+  if (!w) {
+    w = new Float64Array(4 * steps);
+    for (let k = 1; k <= steps; k++) {
+      const t = k / steps;
+      const mt = 1 - t;
+      w.set([mt ** 3, 3 * mt ** 2 * t, 3 * mt * t ** 2, t ** 3], 4 * (k - 1));
+    }
+    weightsFor.set(steps, w);
+  }
+  return w;
+}
+
 /** A path made of line and cubic Bezier segments. Each segment carries a tag such as "waist" or "hem". */
 export class Path {
   segs: Seg[] = [];
@@ -53,15 +71,9 @@ export class Path {
         pts.push(s.to);
         tags.push(tag);
       } else {
-        for (let k = 1; k <= steps; k++) {
-          const t = k / steps;
-          const mt = 1 - t;
-          pts.push(
-            p(
-              mt ** 3 * cur.x + 3 * mt ** 2 * t * s.c1.x + 3 * mt * t ** 2 * s.c2.x + t ** 3 * s.to.x,
-              mt ** 3 * cur.y + 3 * mt ** 2 * t * s.c1.y + 3 * mt * t ** 2 * s.c2.y + t ** 3 * s.to.y,
-            ),
-          );
+        const w = bezierWeights(steps);
+        for (let k = 0; k < 4 * steps; k += 4) {
+          pts.push(p(w[k] * cur.x + w[k + 1] * s.c1.x + w[k + 2] * s.c2.x + w[k + 3] * s.to.x, w[k] * cur.y + w[k + 1] * s.c1.y + w[k + 2] * s.c2.y + w[k + 3] * s.to.y));
           tags.push(tag);
         }
       }
@@ -75,19 +87,46 @@ export class Path {
   }
 
   length(): number {
-    const pts = this.points(48);
     let total = 0;
-    for (let i = 1; i < pts.length; i++) total += len(sub(pts[i], pts[i - 1]));
+    this.edges(48, (d) => (total += d));
     return total;
+  }
+
+  /** Each edge's length, in order, for the polyline `taggedPoints(steps)` gives, with the segment's index: the same
+   *  points by the same sums, so the same lengths to the last digit, without building the points. The bodice's
+   *  searches measure armholes and side seams thousands of times a draft, and building the points was most of a
+   *  draft's time (the full body sweep of 2,000 bodices ran 80 s here and past its 120 s limit on GitHub, Nov 15). */
+  edges(steps: number, fn: (d: number, seg: number) => void): void {
+    // (cur is where each segment's curve starts from; px, py the last point the polyline reached.)
+    let cur = this.start;
+    let px = cur.x;
+    let py = cur.y;
+    for (let i = 0; i < this.segs.length; i++) {
+      const s = this.segs[i];
+      if (s.kind === 'L') {
+        fn(Math.hypot(s.to.x - px, s.to.y - py), i);
+        px = s.to.x;
+        py = s.to.y;
+      } else {
+        const w = bezierWeights(steps);
+        for (let k = 0; k < 4 * steps; k += 4) {
+          const x = w[k] * cur.x + w[k + 1] * s.c1.x + w[k + 2] * s.c2.x + w[k + 3] * s.to.x;
+          const y = w[k] * cur.y + w[k + 1] * s.c1.y + w[k + 2] * s.c2.y + w[k + 3] * s.to.y;
+          fn(Math.hypot(x - px, y - py), i);
+          px = x;
+          py = y;
+        }
+      }
+      cur = s.to;
+    }
   }
 }
 
 /** Length of the part of a path whose segments carry `tag`. */
 export function taggedLength(path: Path, tag: string): number {
-  const { pts, tags } = path.taggedPoints(48);
   let total = 0;
-  tags.forEach((t, i) => {
-    if (t === tag) total += len(sub(pts[i + 1], pts[i]));
+  path.edges(48, (d, seg) => {
+    if (path.tags[seg] === tag) total += d;
   });
   return total;
 }

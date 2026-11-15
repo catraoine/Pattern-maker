@@ -605,6 +605,9 @@ function buildDraped(
   if (cloth) {
     tex = new THREE.CanvasTexture(cloth.body);
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    // A house print's tile set square (ClothTiles.turn): the texture's v runs up where the drawing's y runs down, so
+    // a turn clockwise on the drawing is the same number of degrees here.
+    if (cloth.turn) tex.rotation = (cloth.turn * Math.PI) / 180;
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.anisotropy = maxAniso;
     disposables.push(tex);
