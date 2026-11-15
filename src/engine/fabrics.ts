@@ -517,6 +517,26 @@ export function pickTag(p: Pick<FabricPick, 'weight' | 'drape'>): string {
   return `${cap(p.weight.join(' to '))}, ${p.drape}`;
 }
 
+/** The style details a fabric warning can point to. */
+export type Detail = 'shape' | 'fullness' | 'neckline' | 'fit' | 'structure' | 'leg';
+
+/** A fabric warning, and the style detail that a different choice would fix. */
+interface HeadsUp {
+  text: string;
+  about?: Detail;
+}
+
+/** The warnings for this fabric in this style, for the Fabric step in Style, each with the detail to change if a
+ * change of style fixes it (Cat, Nov 14: a heads up where the fabric is picked, not only on Print). */
+export function fabricHeadsUp(style: FabricStyle, f: MyFabric | undefined): HeadsUp[] {
+  if (!f) return [];
+  const out = f.weight || f.drape ? styleWarnings(style, f) : [];
+  // A special cloth warns only against a skirt shape or a trouser leg (specialFabrics.ts), so that is the detail.
+  const about: Detail | undefined = 'silhouette' in style ? 'shape' : 'leg' in style ? 'leg' : undefined;
+  if (f.special) out.push(...specialWarnings(f.special, style).map((text) => ({ text, about })));
+  return out;
+}
+
 interface FabricNote {
   level: 'ok' | 'warn' | 'info';
   text: string;
@@ -540,7 +560,7 @@ export function checkFabric(style: FabricStyle, f: MyFabric): FabricNote[] {
   if (weight || drape) {
     const warns = styleWarnings(style, f);
     const advice = adviceFor(style);
-    if (warns.length) notes.push(...warns.map((text) => ({ level: 'warn' as const, text })));
+    if (warns.length) notes.push(...warns.map(({ text }) => ({ level: 'warn' as const, text })));
     else {
       const close = advice.picks.some(
         (p) => (!drape || p.drape === drape) && (!weight || (weightRank[weight] >= weightRank[p.weight[0]] && weightRank[weight] <= weightRank[p.weight[p.weight.length - 1]])),
@@ -571,43 +591,46 @@ export function adviceFor(style: FabricStyle): FabricAdvice {
 }
 
 /** What to watch for with this fabric in this style. */
-function styleWarnings(style: FabricStyle, { weight, drape, knit }: MyFabric): string[] {
-  if (style.garment === 'tee') return teeWarnings(style, { weight, drape, knit });
-  if (style.garment === 'lingerie') return weight === 'heavy' ? ['A heavy knit is too thick for lingerie or swimwear. Choose a light one.'] : [];
-  const out: string[] = [];
+function styleWarnings(style: FabricStyle, { weight, drape, knit }: MyFabric): HeadsUp[] {
+  if (style.garment === 'tee') return teeWarnings(style, { weight, drape, knit }).map((text) => ({ text }));
+  if (style.garment === 'lingerie') return weight === 'heavy' ? [{ text: 'A heavy knit is too thick for lingerie or swimwear. Choose a light one.' }] : [];
+  const out: HeadsUp[] = [];
+  // `about` names the style detail that would fix it, for the link under the warning; advice that a change of
+  // style wouldn't fix (tape it, hang it, interface it) has none.
+  const push = (text: string, about?: Detail) => out.push({ text, about });
   const name = adviceFor(style).style;
   if (style.garment === 'skirt' || style.garment === 'dress') {
     const s = style.silhouette;
-    if (drape === 'fluid' && (s === 'pencil' || s === 'straight')) out.push(`A fluid fabric on ${name} will cling and show every line underneath. Lining it helps.`);
-    if (drape === 'fluid' && s === 'a_line') out.push('A fluid fabric will soften the A shape so it hangs closer to the body.');
-    if (weight === 'light' && s === 'pencil') out.push('A light fabric wrinkles and seats on a pencil skirt. Line it, or choose a medium weight.');
-    if (drape === 'crisp' && weight === 'heavy' && (s === 'trumpet' || s === 'half_circle' || s === 'circle')) out.push('A heavy, crisp fabric makes the flare stand out stiffly. A softer one swings better.');
-    else if (weight === 'heavy' && (s === 'half_circle' || s === 'circle')) out.push('Heavy fabric drags on the bias of a circle. Hang the skirt for two days before you hem it.');
-    else if (drape === 'crisp' && s === 'trumpet') out.push('A crisp fabric makes the trumpet flare stand out. A soft or fluid one flutes better.');
-    out.push(...volumeWarnings(style, { weight, drape }));
-    if ((style as { ruched?: boolean }).ruched && (drape === 'crisp' || weight === 'heavy')) out.push('Ruched sides need a soft, fluid fabric: a crisp or heavy one bunches into stiff ridges. Choose a crepe or a light satin.');
-    if (s === 'slip' && drape === 'crisp') out.push('A crisp fabric will not mould to the body on the bias: it twists at the seams and stands away. Choose a fluid one, like silk satin, crepe de chine or viscose crepe.');
-    if (s === 'slip' && weight === 'heavy') out.push('A heavy fabric drops and grows on the bias under its own weight. Choose a light one, and hang the skirt for a day before you level the hem.');
+    if (drape === 'fluid' && (s === 'pencil' || s === 'straight')) push(`A fluid fabric on ${name} will cling and show every line underneath. Lining it helps.`, 'shape');
+    if (drape === 'fluid' && s === 'a_line') push('A fluid fabric will soften the A shape so it hangs closer to the body.');
+    if (weight === 'light' && s === 'pencil') push('A light fabric wrinkles and seats on a pencil skirt. Line it, or choose a medium weight.', 'shape');
+    if (drape === 'crisp' && weight === 'heavy' && (s === 'trumpet' || s === 'half_circle' || s === 'circle')) push('A heavy, crisp fabric makes the flare stand out stiffly. A softer one swings better.', 'shape');
+    else if (weight === 'heavy' && (s === 'half_circle' || s === 'circle')) push('Heavy fabric drags on the bias of a circle. Hang the skirt for two days before you hem it.');
+    else if (drape === 'crisp' && s === 'trumpet') push('A crisp fabric makes the trumpet flare stand out. A soft or fluid one flutes better.', 'shape');
+    for (const text of volumeWarnings(style, { weight, drape })) push(text, 'fullness');
+    if ((style as { ruched?: boolean }).ruched && (drape === 'crisp' || weight === 'heavy')) push('Ruched sides need a soft, fluid fabric: a crisp or heavy one bunches into stiff ridges. Choose a crepe or a light satin.', 'fullness');
+    if (s === 'slip' && drape === 'crisp') push('A crisp fabric will not mould to the body on the bias: it twists at the seams and stands away. Choose a fluid one, like silk satin, crepe de chine or viscose crepe.', 'shape');
+    if (s === 'slip' && weight === 'heavy') push('A heavy fabric drops and grows on the bias under its own weight. Choose a light one, and hang the skirt for a day before you level the hem.', 'shape');
   }
   if (style.garment === 'bodice' || style.garment === 'dress') {
-    if (style.neckline === 'cowl' && drape && drape !== 'fluid') out.push('A cowl needs a fluid fabric. A crisp or soft one stands away in ridges instead of falling into folds.');
-    if (style.neckline === 'one_shoulder' && drape === 'fluid') out.push('A fluid fabric pulls at a one-shoulder edge. Stay-tape the edge firmly, and underline the bodice if it is very slippery.');
-    if (drape === 'fluid' && style.fit !== 'relaxed' && style.structure !== 'boned' && style.neckline !== 'cowl') out.push('A fluid fabric puckers at the darts and will not hold a fitted bodice. Underline it with cotton batiste, or choose a relaxed fit.');
-    if (weight === 'heavy' && style.fit !== 'relaxed') out.push('A heavy fabric makes thick darts and a bulky neckline. Face or line it with something light, and trim the seams well.');
-    if (drape === 'crisp' && weight === 'heavy' && style.fit === 'relaxed') out.push('A heavy, crisp fabric stands away from the body without darts.');
+    if (style.neckline === 'cowl' && drape && drape !== 'fluid') push('A cowl needs a fluid fabric. A crisp or soft one stands away in ridges instead of falling into folds.', 'neckline');
+    if (style.neckline === 'one_shoulder' && drape === 'fluid') push('A fluid fabric pulls at a one-shoulder edge. Stay-tape the edge firmly, and underline the bodice if it is very slippery.');
+    if (drape === 'fluid' && style.fit !== 'relaxed' && style.structure !== 'boned' && style.neckline !== 'cowl') push('A fluid fabric puckers at the darts and will not hold a fitted bodice. Underline it with cotton batiste, or choose a relaxed fit.', 'fit');
+    if (weight === 'heavy' && style.fit !== 'relaxed') push('A heavy fabric makes thick darts and a bulky neckline. Face or line it with something light, and trim the seams well.', 'fit');
+    if (drape === 'crisp' && weight === 'heavy' && style.fit === 'relaxed') push('A heavy, crisp fabric stands away from the body without darts.', 'fit');
     if (style.structure === 'boned' && (drape === 'fluid' || weight === 'light'))
-      out.push('A boned bodice needs a firm fabric. A fluid or light one wrinkles over the coutil and shows the boning channels. Choose a medium weight, crisp cloth such as duchess satin or taffeta.');
-    if (style.neckline === 'cami' && style.structure !== 'boned' && weight === 'heavy') out.push('A heavy fabric drags on rouleau straps. Choose a light one.');
-    if (style.neckline === 'boat' && drape === 'fluid') out.push('A boat neck in a fluid fabric can slide off the shoulder. Stay the neckline with tape.');
+      push('A boned bodice needs a firm fabric. A fluid or light one wrinkles over the coutil and shows the boning channels. Choose a medium weight, crisp cloth such as duchess satin or taffeta.', 'structure');
+    if (style.neckline === 'cami' && style.structure !== 'boned' && weight === 'heavy') push('A heavy fabric drags on rouleau straps. Choose a light one.', 'neckline');
+    if (style.neckline === 'boat' && drape === 'fluid') push('A boat neck in a fluid fabric can slide off the shoulder. Stay the neckline with tape.');
   }
   if (isOuterwear(style.garment)) {
-    if (weight === 'light') out.push(`A light fabric will not hold the collar and shoulders of ${name}. Interface it throughout, or choose a medium or heavy weight.`);
-    if (drape === 'fluid') out.push(`A fluid fabric collapses at the lapels and hem of ${name}. Choose a crisper cloth.`);
+    if (weight === 'light') push(`A light fabric will not hold the collar and shoulders of ${name}. Interface it throughout, or choose a medium or heavy weight.`);
+    if (drape === 'fluid') push(`A fluid fabric collapses at the lapels and hem of ${name}. Choose a crisper cloth.`);
   }
   if (style.garment === 'trousers') {
-    if (weight === 'light') out.push('Light fabric bags at the seat and knees in trousers, and can show through. Choose a medium weight, or line them.');
-    if (drape === 'fluid' && style.leg !== 'wide') out.push(`A fluid fabric clings at the seat on ${name}. It suits a wide leg better.`);
-    if (drape === 'crisp' && weight === 'heavy' && style.leg === 'wide') out.push('A heavy, crisp fabric makes wide legs stand out instead of falling.');
+    if (weight === 'light') push('Light fabric bags at the seat and knees in trousers, and can show through. Choose a medium weight, or line them.');
+    if (drape === 'fluid' && style.leg !== 'wide') push(`A fluid fabric clings at the seat on ${name}. It suits a wide leg better.`, 'leg');
+    if (drape === 'crisp' && weight === 'heavy' && style.leg === 'wide') push('A heavy, crisp fabric makes wide legs stand out instead of falling.', 'leg');
   }
   return out;
 }

@@ -18,6 +18,8 @@ const b = await chromium.launch(existsSync(LOCAL_CHROMIUM) ? { executablePath: L
 const ctx = await b.newContext(WIDE ? { viewport: { width: 1440, height: 810 }, deviceScaleFactor: 4 / 3 } : { viewport: { width: 432, height: 768 }, deviceScaleFactor: 2.5, isMobile: true, hasTouch: true });
 // The waitlist front page only lets testers in; the recording browser is one.
 await ctx.addInitScript(() => { try { localStorage.setItem('maison-trace-access', 'tester'); } catch {} });
+// The tape Begin pulls across the first measuring page is the film's alone (Cat, Nov 14; src/ui/filmTape.ts).
+await ctx.addInitScript(() => { window.__filmTape = true; });
 const p = await ctx.newPage();
 const main = p.getByRole('main');
 const wait = (ms) => p.waitForTimeout(ms);

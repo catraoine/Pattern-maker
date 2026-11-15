@@ -1,0 +1,94 @@
+/* The first measuring page's picture (Cat's F1 Sculpted Form, Nov 14, src/ui/FirstForm.tsx): a chalk panel the full
+   width of the phone, filling the room above the switches, the 3D form cropped shoulders to hip inside it. */
+.measure-step > .step-words > .first-form {
+  flex: 1 1 0;
+  min-height: 96px;
+  max-height: 420px;
+  /* Out to the card's edges, past its 22px padding, as the welcome's form does (.welcome-hero). */
+  margin-left: -22px;
+  margin-right: -22px;
+  overflow: hidden;
+  background: #dcd5c7;
+}
+.first-form > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* The whole picture, shoulders to hip, at whatever size the panel allows: its ground is the panel's chalk, so the
+     edges don't show, and the form stays further out than a close crop (Cat, Nov 14: "too much boob focus"). */
+  object-fit: contain;
+  object-position: center bottom;
+}
+/* Menswear's line form, its champagne lines turned to dark ink on the chalk (multiply keeps the chalk ground). */
+.first-form.menswear > .form-picture {
+  height: 100%;
+  filter: invert(1) grayscale(1) sepia(0.35);
+  mix-blend-mode: multiply;
+}
+/* The first chalk of a visit lights up from black (the same ease as Style's window had, 34-chalk-windows.css); the
+   form comes up with it. */
+.first-form.lights-up {
+  animation: chalk-lights-up 1800ms ease-in-out 400ms both;
+}
+.first-form.lights-up > * {
+  animation: first-form-in 1800ms ease-in-out 400ms both;
+}
+@keyframes first-form-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .first-form.lights-up,
+  .first-form.lights-up > * {
+    animation: none;
+  }
+}
+/* A choice that is shown but can't be picked yet: Menswear while this fit round tests womenswear only. */
+.switch.two-part button:disabled,
+.form-pick button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+.switch.two-part button:disabled {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+/* The In testing chip sits as a small second line under the word, without its box, so the switch keeps its height. */
+.switch.two-part button:disabled .testing-tag {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-height: 0;
+  font-size: 10px;
+  line-height: 1;
+  background: none;
+}
+@media (max-height: 480px) {
+  .measure-step > .step-words > .first-form {
+    display: none;
+  }
+}
+
+/* On a computer the page is the phone's, in a column down the middle (Cat, Nov 14: "I want this", pointing at the
+   phone): the title, the window under it, then the switches and Begin. The tape-era layouts in 13-wide-and-tape.css
+   and 14-aesthetic-review.css are keyed on .has-tape, which the app no longer sets here. */
+@media (min-width: 960px) {
+  .measure-step.first-page:not(.has-tape) {
+    max-width: 520px;
+    margin-left: auto;
+    margin-right: auto;
+    row-gap: 18px;
+  }
+  .measure-step.first-page > .step-words > .first-form {
+    max-height: 360px;
+    margin-left: 0;
+    margin-right: 0;
+  }
+}

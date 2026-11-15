@@ -6,7 +6,8 @@ import { BodiceDraft } from './engine/bodice';
 import { withAllowances } from './engine/allowances';
 import { Fitting, carriedFitting, describeCarried, describeFitting, saveVersion, alterationSheet } from './engine/fitting';
 import { layPlans } from './engine/layplan';
-import { clothFor } from './engine/fabrics';
+import { FabricStyle, clothFor } from './engine/fabrics';
+import { FabricStyleOf } from './ui/FabricHeadsUp';
 import { needsNap, withSpecialAllowances } from './engine/specialFabrics';
 import { printNap, printOf } from './engine/prints';
 import { layAmount } from './engine/layplan';
@@ -719,6 +720,26 @@ export default function App() {
     return r && r.width > 0 && r.height > 0 ? { x: r.left, y: r.top, w: r.width, h: r.height, kind: form } : null;
   };
 
+  // The style the fabric is checked against: Print's fabric notes, and the heads up on Style's Fabric step.
+  const fabricStyle: FabricStyle =
+    isOuterGarment
+      ? { garment, fit: outerChoices.fit }
+      : garment === 'bodice'
+      ? { garment, fit: saved.bodice.fit, neckline: saved.bodice.neckline, structure: validDetails(saved.bodice).structure }
+      : garment === 'dress'
+        ? { garment, fit: dress.fit, neckline: dress.bodice.neckline, silhouette: dress.skirt.silhouette, length: dress.skirt.length, structure: validDetails(dress.bodice).structure, asymHem: dress.skirt.asymHem, pleats: dress.skirt.pleats, godets: dress.skirt.godets, flounce: dress.skirt.flounce }
+        : garment === 'trousers'
+          ? { garment, fit: trousersChoices.fit, leg: trousersChoices.leg }
+          : garment === 'tee'
+            ? { garment, fit: teeChoices.fit, stretch: teeChoices.stretch, neckline: teeChoices.neckline }
+          : rangeChoices.garment !== 'jumpsuit' && isRangeGarment(garment)
+            ? { garment: 'tee', fit: teeFitOf(rangeChoices.fit), stretch: rangeChoices.stretch, neckline: 'neckline' in rangeChoices ? rangeChoices.neckline : 'crew' }
+          : rangeChoices.garment === 'jumpsuit' && garment === 'jumpsuit'
+            ? { garment: 'trousers', fit: rangeChoices.legFit, leg: rangeChoices.leg }
+          : garment === 'lingerie'
+            ? { garment, piece: lingerieChoices.piece, stretch: lingerieChoices.stretch }
+          : { garment: 'skirt', silhouette: saved.choices.silhouette, length: saved.choices.length, asymHem: saved.choices.asymHem, pleats: saved.choices.pleats, godets: saved.choices.godets, flounce: saved.choices.flounce };
+
   return (
     <>
       {opening && (
@@ -729,6 +750,7 @@ export default function App() {
         />
       )}
       <DemoGarment.Provider value={garment}>
+      <FabricStyleOf.Provider value={fabricStyle}>
       <PointEditContext.Provider value={pointEditing}>
       <StartOver.Provider value={startOver}>
       <div className="app" {...{ inert: opening ? '' : undefined }}>
@@ -1288,25 +1310,7 @@ export default function App() {
               fit={'fit' in current ? current.fit : 'close'}
               finish={finish}
               onFinish={setFinish}
-              style={
-                isOuterGarment
-                  ? { garment, fit: outerChoices.fit }
-                  : garment === 'bodice'
-                  ? { garment, fit: saved.bodice.fit, neckline: saved.bodice.neckline, structure: validDetails(saved.bodice).structure }
-                  : garment === 'dress'
-                    ? { garment, fit: dress.fit, neckline: dress.bodice.neckline, silhouette: dress.skirt.silhouette, length: dress.skirt.length, structure: validDetails(dress.bodice).structure, asymHem: dress.skirt.asymHem, pleats: dress.skirt.pleats, godets: dress.skirt.godets, flounce: dress.skirt.flounce }
-                    : garment === 'trousers'
-                      ? { garment, fit: trousersChoices.fit, leg: trousersChoices.leg }
-                      : garment === 'tee'
-                        ? { garment, fit: teeChoices.fit, stretch: teeChoices.stretch, neckline: teeChoices.neckline }
-                      : rangeChoices.garment !== 'jumpsuit' && isRangeGarment(garment)
-                        ? { garment: 'tee', fit: teeFitOf(rangeChoices.fit), stretch: rangeChoices.stretch, neckline: 'neckline' in rangeChoices ? rangeChoices.neckline : 'crew' }
-                      : rangeChoices.garment === 'jumpsuit' && garment === 'jumpsuit'
-                        ? { garment: 'trousers', fit: rangeChoices.legFit, leg: rangeChoices.leg }
-                      : garment === 'lingerie'
-                        ? { garment, piece: lingerieChoices.piece, stretch: lingerieChoices.stretch }
-                      : { garment: 'skirt', silhouette: saved.choices.silhouette, length: saved.choices.length, asymHem: saved.choices.asymHem, pleats: saved.choices.pleats, godets: saved.choices.godets, flounce: saved.choices.flounce }
-              }
+              style={fabricStyle}
               made={printable}
               error={styleError}
               fitting={ownFitting}
@@ -1419,6 +1423,7 @@ export default function App() {
       </div>
       </StartOver.Provider>
       </PointEditContext.Provider>
+      </FabricStyleOf.Provider>
       </DemoGarment.Provider>
     </>
   );

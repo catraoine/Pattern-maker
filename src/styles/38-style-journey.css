@@ -180,3 +180,36 @@ section[aria-label='Preview'] > .preview .all-round-feel-step[aria-pressed='true
   margin-bottom: 10px;
   font-stretch: 100%;
 }
+
+/* A fabric heads up on Style's Fabric step, under the fabric's name, in the fabric notes' heads-up colour, with a
+   link to the style detail that would fix it (Cat, Nov 14). */
+.fabric-heads-up {
+  margin: 4px 0 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--warn);
+  font-size: 15px;
+  line-height: 1.4;
+}
+.fabric-heads-up > p {
+  margin: 0;
+}
+.fabric-heads-up > p + p {
+  margin-top: 10px;
+}
+.fabric-heads-up b {
+  color: var(--warn);
+  font-weight: 600;
+}
+.fabric-heads-up .heads-up-go {
+  margin-top: 8px;
+  padding: 0;
+  min-height: 32px;
+  background: none;
+  border: 0;
+  color: var(--gild);
+  font-family: var(--mono);
+  font-size: 13.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+}

@@ -5,6 +5,7 @@ import type { FormKind } from '../measurements';
 import { TOUR_LABEL, TourPlayer } from '../ui/TourPlayer';
 import { Title } from '../ui/Title';
 import { tapeRested } from '../ui/tapeHandoff';
+import { filmTape } from '../ui/filmTape';
 import { WaitlistForm, type FoundingSignIn } from '../ui/Waitlist';
 
 interface Props {
@@ -198,7 +199,8 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
 
   const begin = () => {
     if (leaving) return;
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) onFinish();
+    // The tape Begin pulls across is the How it works film's only (Cat, Nov 14): in the app Begin goes straight on.
+    if (!filmTape() || matchMedia('(prefers-reduced-motion: reduce)').matches) onFinish();
     else setLeaving(matchMedia('(min-width: 960px)').matches ? 'computer' : 'phone');
   };
 

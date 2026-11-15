@@ -3,6 +3,8 @@ import { expect, expectStyle, fillStepPages, measureMe, openFresh, pickToMake, s
 // The menswear form (Cat's B2 Two Forms, 2026-10-18): picked before the first measurement, it asks for the
 // chest, skips the bust measurements, and the bodice is drafted with no bust dart.
 test('menswear form: chest, no bust measurements, a bodice with no bust dart', async ({ page }) => {
+  // Menswear is shown but shut while this fit round tests womenswear only (Cat, Nov 14); this check opens it.
+  await page.addInitScript(() => localStorage.setItem('maison-trace-menswear', 'on'));
   await openFresh(page);
   const main = page.getByRole('main');
   await main.getByRole('button', { name: 'Begin' }).click();
