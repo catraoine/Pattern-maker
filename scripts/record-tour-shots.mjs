@@ -1,7 +1,7 @@
 // Records the How it works film's shots from the running app (npx vite --port 5173 first): each moment as its own
 // full-screen clip, with no captions, into [out dir]/<shot>.mp4. scripts/edit-tour.mjs cuts them into the film.
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { chromium } from '@playwright/test';
@@ -23,6 +23,74 @@ await ctx.addInitScript(() => { window.__filmTape = true; });
 const p = await ctx.newPage();
 const main = p.getByRole('main');
 const wait = (ms) => p.waitForTimeout(ms);
+
+// The photo the film starts from (a dress on a hanger), read as the app would read it. The reading is stubbed, so
+// nothing is sent anywhere and the film doesn't use up the tester allowance (as record-demos.mjs does for its clip).
+const PHOTO_FILE = resolve('scripts/tour/photo-dress.jpg');
+const PHOTO_READING = {
+  garment: 'dress', worn: false, details: '',
+  pieces: [{ garment: 'dress', x: 0.5, y: 0.5 }],
+  silhouette: { value: 'straight', confidence: 'high' },
+  length: { value: 'mini', confidence: 'medium' },
+  fit: { value: 'regular', confidence: 'medium' },
+  shape: { hemAt: 0.6, hemFullness: 1.05, flareAt: null, confidence: 'medium' },
+  extras: { volume: 'none', asymHem: 'none', pockets: false, elasticWaist: false, slit: 'none' },
+  top: { fit: { value: 'regular', confidence: 'medium' }, neckline: 'boat', sleeve: 'short', sleeveShape: 'straight', length: 'waist', seams: 'darts', opening: 'back', collar: 'none', sleeveCut: 'set_in', cuff: 'none', dressCut: 'seam', peplum: 'none', boned: false, knit: false, waistSeam: true, waistSeamAt: 'dropped', belt: 'loops' },
+  trousers: null, outer: null,
+  fabric: { type: 'plain', colour: 'yellow', print: 'checks', sheer: false },
+  missing: [], unsure: null,
+};
+await ctx.route('**/.netlify/functions/analyze-photo', async (route) => {
+  await new Promise((r) => setTimeout(r, 2200));
+  await route.fulfill({ json: { ok: true, reading: PHOTO_READING, changes: [] } });
+});
+// photo and shop: the two moments the film used to draw itself (a framed photo, a strip of swatch cards), filmed from
+// the app's own screens instead (Cat, Nov 14: "all literal matches"). Taken last, from Style, so nothing after them
+// changes. shop: the Fabric step's partner-shop list for the silk already picked, gliding down through its swatches.
+// photo: Start from a photo in the title's drop-down, the photo going in, and the app's reading of it.
+async function extras() {
+  const toStyle = p.getByRole('navigation').getByRole('link', { name: /^Style/ }).or(p.getByRole('button', { name: /^Style$/ })).first();
+  if (await toStyle.count()) await toStyle.click();
+  await main.getByRole('heading', { level: 1, name: /^Style your/ }).waitFor({ timeout: 20000 });
+  // The line over each takes the top of the screen, so the app's header is left out under it, as for the collection.
+  await p.addStyleTag({ content: 'main .testing-tag, .topbar { display: none !important; } main { padding-top: ' + (WIDE ? 110 : 96) + 'px !important; }' });
+  await wait(1200);
+  // On a computer the Fabric step is a tab; on a phone, Next through the questions to it, as the style shot does.
+  if (WIDE) await main.getByRole('tab', { name: /Fabric/ }).first().click();
+  else {
+    const n = () => main.locator('button.primary', { hasText: /^Next/ }).first();
+    // Back from Print, Style can open on its last step (Review): step back until the Fabric list or a Next shows.
+    for (let i = 0; i < 6 && !(await main.locator('.shopfab-tile.photo').filter({ visible: true }).count()) && !(await n().isVisible().catch(() => false)); i++) {
+      const back = main.locator('button.step-back-arrow').filter({ visible: true }).first();
+      if (!(await back.count())) break;
+      await back.click();
+      await wait(500);
+    }
+    for (let i = 0; i < 16 && !(await main.locator('.shopfab-tile.photo').filter({ visible: true }).count()) && !/Fabric/.test(await n().textContent().catch(() => '')); i++) { await n().click(); await wait(250); }
+    if (!(await main.locator('.shopfab-tile.photo').filter({ visible: true }).count()) && /Fabric/.test(await n().textContent().catch(() => ''))) await n().click();
+  }
+  await main.locator('.shopfab-tile.photo').filter({ visible: true }).first().waitFor({ timeout: 30000 });
+  await wait(2500);
+  const listTop = await main.locator('.shopwrap').evaluate((el) => Math.max(0, el.getBoundingClientRect().top + scrollY - 90));
+  await p.evaluate((y) => window.scrollTo(0, y), listTop);
+  await wait(800);
+  await start();
+  await wait(1200);
+  await glide(listTop + (WIDE ? 200 : 240), 5200);
+  await wait(900);
+  await stop('shop');
+  await p.evaluate(() => window.scrollTo(0, 0));
+  await wait(800);
+  await main.getByRole('group', { name: 'Garment' }).locator('.drop-button').click();
+  await main.getByRole('menuitemradio', { name: /Start from a photo/ }).click();
+  await wait(1200);
+  await start();
+  await wait(1000);
+  await main.locator('input[type=file]').first().setInputFiles(PHOTO_FILE);
+  await main.locator('.photohead h1').waitFor({ timeout: 20000 });
+  await wait(4200);
+  await stop('photo');
+}
 
 let cdp, frames;
 // While held, no frames are kept: the last one stays on screen until the change is drawn.
@@ -130,10 +198,11 @@ async function fillAll() {
   let last = '';
   const checked = main.getByRole('heading', { name: 'Do these look right?' });
   const styled = main.getByRole('heading', { level: 1, name: /^Style your/ });
+  const startStyling = main.getByRole('button', { name: /^Start styling/ });
   for (let n = 0; n < 40; n++) {
     const input = main.getByRole('textbox');
     for (let k = 0; k < 80; k++) {
-      if (await styled.count()) return;
+      if ((await styled.count()) || (await startStyling.count())) return;
       if (last && (await checked.count())) return;
       if ((await input.count()) === 1) { const l = await input.evaluate((el) => (el.labels?.[0]?.textContent ?? '').replace(/\(optional\)/i, '').trim()); if (l !== last) { last = l; break; } }
       await wait(100);
@@ -146,6 +215,16 @@ async function fillAll() {
     if (!/^Next$/.test(name)) return;
   }
 }
+// The first visit to Style opens on How styling works (Nov 14); the film passes it off camera with Start styling.
+async function intoStyle() {
+  const startStyling = main.getByRole('button', { name: /^Start styling/ });
+  const styled = main.getByRole('heading', { level: 1, name: /^Style your/ });
+  for (let i = 0; i < 100 && !(await styled.count()); i++) {
+    if (await startStyling.count()) await startStyling.click();
+    await wait(200);
+  }
+  await styled.first().waitFor();
+}
 /** A slow, eased scroll, smoother than the browser's own. */
 const glide = (to, ms) => p.evaluate(([to, ms]) => new Promise((done) => {
   const from = scrollY; const t0 = performance.now();
@@ -154,6 +233,19 @@ const glide = (to, ms) => p.evaluate(([to, ms]) => new Promise((done) => {
   requestAnimationFrame(step);
 }), [to, ms]);
 
+// TOUR_EXTRAS=<saved design json> records just photo and shop, from a design saved by SAVE_DESIGN, and stops.
+if (process.env.TOUR_EXTRAS) {
+  const saved = JSON.parse(readFileSync(process.env.TOUR_EXTRAS, 'utf8'));
+  await ctx.addInitScript((saved) => { if (!sessionStorage.getItem('rec-loaded')) { sessionStorage.setItem('rec-loaded', '1'); for (const [k, v] of Object.entries(saved)) localStorage.setItem(k, v); } }, saved);
+  await p.goto(APP);
+  await wait(4000);
+  const carry = p.getByRole('button', { name: /^Carry on with your/ });
+  if (await carry.count()) await carry.first().click();
+  await wait(1500);
+  await extras();
+  await b.close();
+  process.exit(0);
+}
 // welcome: the film's opening (Cat, 2026-10-30: "this smooth zoom in version"). The welcome page as it stands, then
 // its words and button fade as the camera pushes in on the form and it starts to turn, slowly. The page is taken
 // twice (whole, and without the form), then each frame is drawn on one canvas the film's size: the form painted
@@ -203,7 +295,8 @@ if (process.env.TOUR_WELCOME) {
       g.setTransform(1, 0, 0, 1, 0, 0);
       const { p, z } = op.openingAt(t);
       const cx = cx0 + (innerWidth / 2 - cx0) * p, cy = cy0 + (innerHeight / 2 - cy0) * p;
-      const ua = 1 - ease(t / op.OPENING.wordsS);
+      // The words fade as fast as the page's own (filmOpening.ts OPENING.wordsS, 0.4 s; no longer exported).
+      const ua = 1 - ease(t / 0.4);
       if (ua > 0) {
         g.globalAlpha = ua;
         g.globalCompositeOperation = 'screen';
@@ -230,48 +323,72 @@ await start();
 await wait(9500);
 await stop('form');
 
-// tape: the tape pulls in across the top of the first page; the form and who; Begin measuring carries it on down
-// to the waist, all in one move
+// tape: the first page as the app shows it (Cat's W1, Nov 14: the welcome's line form on black), and the tape round
+// its waist (Cat's B, Nov 14): it slides in across the form at the waist, draws in to the waist's width and lets go,
+// so the page is left exactly as it is live; Begin measuring then carries on down to the waist page.
 {
-  // The film skips the welcome (Cat, 2026-10-23): after 01 Measure the tape pulls in along the top from the right,
-  // hook first, then the first page comes up under it. Begin is pressed off camera.
+  // The welcome is skipped (Cat, 2026-10-23): Begin is pressed off camera.
   await main.getByRole('button', { name: 'Begin' }).click();
   await main.getByRole('button', { name: 'Begin measuring', exact: true }).waitFor();
   await wait(2500);
-  await p.evaluate(() => {
-    const tape = document.querySelector('.tape-band.landed');
-    const page = [...tape.parentElement.children].filter((c) => c !== tape).flatMap((c) => (getComputedStyle(c).display === 'contents' ? [...c.children] : [c]));
-    tape.style.transform = `translateX(${innerWidth - tape.getBoundingClientRect().left + 8}px)`;
-    // (The page's own entrance is a CSS animation, which an inline opacity can't hold down; an animation can.)
-    window.recHidden = page.map((c) => c.animate([{ opacity: 0 }, { opacity: 0 }], { duration: 1, fill: 'forwards' }));
+  // The waist: the narrowest row of the drawn form, found from the canvas's own pixels.
+  const waist = await p.evaluate(() => {
+    const c = document.querySelector('.first-form canvas');
+    const r = c.getBoundingClientRect();
+    const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+    const lit = (x, y) => d[(y * c.width + x) * 4 + 3] > 60 && d[(y * c.width + x) * 4] > 60;
+    let best = null;
+    for (let y = Math.round(c.height * 0.2); y < c.height * 0.8; y++) {
+      let l = 0, rt = c.width - 1;
+      while (l < c.width && !lit(l, y)) l++;
+      while (rt > 0 && !lit(rt, y)) rt--;
+      if (rt - l > 4 && (!best || rt - l < best.w)) best = { y, l, w: rt - l };
+    }
+    const k = r.width / c.width;
+    return { box: { x: r.x, y: r.y, w: r.width, h: r.height }, y: r.y + best.y * k, l: r.x + best.l * k, r: r.x + (best.l + best.w) * k };
   });
+  console.log('  waist', JSON.stringify(waist));
+  // The tape, inside a window the form's size, so it comes in from the form's own edge and never over the words.
+  await p.evaluate((w) => {
+    const win = document.createElement('div');
+    win.id = 'rec-tape-window';
+    Object.assign(win.style, { position: 'fixed', left: `${w.box.x}px`, top: `${w.y - 20}px`, width: `${w.box.w}px`, height: '40px', overflow: 'hidden', zIndex: 50, pointerEvents: 'none' });
+    const tape = document.createElement('div');
+    tape.className = 'tape-band landed';
+    tape.innerHTML = `<div class="tape-marks">${Array.from({ length: 80 }, (_, i) => `<span>${i + 1}</span>`).join('')}</div>`;
+    Object.assign(tape.style, { position: 'absolute', margin: 0, left: 0, top: '7px', width: `${w.box.w}px`, transform: `translateX(${w.box.w + 12}px)` });
+    win.appendChild(tape);
+    document.body.appendChild(win);
+  }, waist);
   await start();
-  await wait(400);
-  await p.evaluate(() => new Promise((done) => {
-    const tape = document.querySelector('.tape-band.landed');
-    const page = [...tape.parentElement.children].filter((c) => c !== tape).flatMap((c) => (getComputedStyle(c).display === 'contents' ? [...c.children] : [c]));
-    const from = tape.style.transform;
-    tape.style.transform = '';
-    tape.animate([{ transform: from }, { transform: 'none' }], { duration: 1600, easing: 'cubic-bezier(0.35, 0.1, 0.25, 1)' }).finished.then(() => {
-      page.forEach((c, i) => {
-        c.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 700, easing: 'ease-out', fill: 'forwards' }).finished.then((a) => a.cancel());
-        window.recHidden[i].cancel();
-      });
-      done();
+  await wait(900);
+  await p.evaluate((w) => new Promise((done) => {
+    const tape = document.querySelector('#rec-tape-window .tape-band');
+    const ease = 'cubic-bezier(0.35, 0.1, 0.25, 1)';
+    tape.style.transform = 'none';
+    tape.animate([{ transform: `translateX(${w.box.w + 12}px)` }, { transform: 'none' }], { duration: 1300, easing: ease }).finished.then(() => {
+      // Drawn in to the waist: its ends come in to the form's sides, as a tape is pulled snug.
+      const l = w.l - w.box.x - 2, wd = w.r - w.l + 4;
+      setTimeout(() => {
+        tape.animate([{ left: '0px', width: `${w.box.w}px` }, { left: `${l}px`, width: `${wd}px` }], { duration: 900, easing: 'cubic-bezier(0.45, 0, 0.25, 1)', fill: 'forwards' }).finished.then(() => {
+          // Then it lets go: the page is left as it is live.
+          setTimeout(() => tape.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 600, easing: 'ease-in', fill: 'forwards' }).finished.then(done), 700);
+        });
+      }, 450);
     });
-  }));
-  await wait(1500);
+  }), waist);
+  await p.evaluate(() => document.getElementById('rec-tape-window')?.remove());
+  await wait(900);
 }
-await main.getByRole('radiogroup', { name: 'Which form to draft on?' }).getByRole('radio', { name: /^Womenswear/ }).click();
-await wait(600);
-await main.getByRole('radio', { name: 'For me' }).click();
-await wait(900);
+// Womenswear and For me are already chosen, so the film goes straight on: Begin measuring, through a short dip to
+// black, to the waist page, its tape coming round the waist.
+await wait(400);
 await dip(1, 30);
 await wait(420);
 await main.getByRole('button', { name: 'Begin measuring', exact: true }).click();
 await wait(250);
 await dip(0, 30);
-await wait(3350);
+await wait(4500);
 await stop('tape');
 // TOUR_TAPE_ONLY=1 records just the tape shot, to check the measuring pages without the rest.
 if (process.env.TOUR_TAPE_ONLY) {
@@ -298,14 +415,14 @@ await stop('choose');
 await chooseOnly.evaluate((el) => el.remove());
 await wait(800);
 await fillAll();
-await main.getByRole('heading', { level: 1, name: 'Style your dress' }).waitFor();
+await intoStyle();
 await wait(1500);
 
 // collection: the Maison collection's looks, a slow scroll down through them from just under the drop alert, for
 // "start from a look" (Cat, 2026-10-29: add it back, the film longer, nothing cut). Taken before the dress is styled.
 await main.getByRole('group', { name: 'Garment' }).locator('.drop-button').click();
-await main.getByRole('menuitemradio', { name: /Start from a look/ }).click();
-await main.getByRole('button', { name: 'Start from the Maison collection' }).click();
+// The collection is its own line in the Style title's drop-down now (Cat, Nov 12).
+await main.getByRole('menuitemradio', { name: /^The collection/ }).click();
 await main.getByRole('heading', { level: 1, name: 'The collection' }).waitFor();
 await wait(1500);
 // From the top, so the season reads (Cat picked A, 2026-10-29), in one eased glide down to the last look. In the film
@@ -378,7 +495,15 @@ const draw = async (loc, pts, pause, ref) => {
   await wait(pause);
 };
 let t0;
-const mark = (what) => console.log(`  style ${what}: ${((Date.now() - t0) / 1000 - skipped).toFixed(1)} s`);
+// Each moment's time in the style take, printed and kept in marks.json for edit-tour.mjs (the times shift a little
+// from take to take).
+const marks = {};
+const mark = (what) => {
+  const at = Number(((Date.now() - t0) / 1000 - skipped).toFixed(1));
+  marks[what.split(' ')[0]] = at;
+  writeFileSync(join(OUT, 'marks.json'), JSON.stringify(marks));
+  console.log(`  style ${what}: ${at} s`);
+};
 // The lines, as fractions of the form picture, drawn on the dress itself (Cat's D1 Draw on the Dress, 2026-10-24):
 // the mini hem drawn longer, to the knee, then the side drawn out from the hip so the straight skirt flares (Cat,
 // 2026-10-24: longer and flare, the neck and waist kept as in her photo).
@@ -642,7 +767,10 @@ await p.evaluate((K) => {
   const c = document.querySelector('.all-round-canvas');
   document.body.appendChild(c);
   const w = innerWidth * K, h = (innerHeight + 96) * K;
-  Object.assign(c.style, { position: 'fixed', zIndex: 9999, background: '#000000', maxWidth: 'none', maxHeight: 'none', aspectRatio: 'auto', margin: 0, width: `${w}px`, height: `${h}px`, left: `${innerWidth / 2 - w / 2}px` });
+  // On the chalk All round is drawn on now (34-chalk-windows), the whole screen chalk round it; the legs fade out at
+  // the canvas's foot rather than stopping on a line (Cat, Nov 14: close-ups like All round may leave things out).
+  const fade = 'linear-gradient(to bottom, #000 0, #000 93%, transparent 100%)';
+  Object.assign(c.style, { position: 'fixed', zIndex: 9999, background: '#dcd5c7', maxWidth: 'none', maxHeight: 'none', aspectRatio: 'auto', margin: 0, width: `${w}px`, height: `${h}px`, left: `${innerWidth / 2 - w / 2}px`, maskImage: fade, webkitMaskImage: fade });
 }, CLOSEST);
 const zoomTo = (from, to, ms, delay = 0) => p.evaluate(([from, to, ms, K, delay]) => new Promise((done) => {
   const c = document.querySelector('.all-round-canvas');
@@ -662,11 +790,12 @@ const zoomTo = (from, to, ms, delay = 0) => p.evaluate(([from, to, ms, K, delay]
   const step = (now) => { const x = Math.max(0, Math.min(1, (now - t0) / (ms || 1))); set(from + (to - from) * ease(x)); x < 1 ? requestAnimationFrame(step) : done(); };
   requestAnimationFrame(step);
 }), [from, to, ms, CLOSEST, delay]);
-// Black behind the canvas, so the page doesn't show round a dress drawn smaller than the screen.
-await p.evaluate(() => { const d = document.createElement('div'); d.id = 'round-ground'; Object.assign(d.style, { position: 'fixed', inset: 0, background: '#000000', zIndex: 9998 }); document.body.appendChild(d); });
+// Chalk behind the canvas, so the page doesn't show round a dress drawn smaller than the screen.
+await p.evaluate(() => { const d = document.createElement('div'); d.id = 'round-ground'; Object.assign(d.style, { position: 'fixed', inset: 0, background: '#dcd5c7', zIndex: 9998 }); document.body.appendChild(d); });
 // On a computer the screen is short, so the whole dress can be drawn larger than on a phone and still fit.
 // Cat picked Z2 (2026-11-08): on a phone the dress held at 0.95 throughout, leaving room for the words.
-const [ROUND_FROM, ROUND_TO] = process.env.ROUND_Z ? process.env.ROUND_Z.split(',').map(Number) : WIDE ? [0.66, 0.85] : [0.75, 0.75];
+// On the chalk All round (Nov 14) the phone's dress draws larger, so it is held at 0.6, the whole dress above the words.
+const [ROUND_FROM, ROUND_TO] = process.env.ROUND_Z ? process.env.ROUND_Z.split(',').map(Number) : WIDE ? [0.66, 0.85] : [0.6, 0.6];
 await zoomTo(ROUND_FROM, ROUND_FROM, 0);
 await wait(600);
 if (process.env.SAVE_DESIGN) {
@@ -820,5 +949,8 @@ if (await lineUpNext.isVisible()) {
 }
 await wait(3600);
 await stop('projector');
+await p.keyboard.press('Escape');
+await wait(600);
+await extras();
 
 await b.close();
