@@ -220,8 +220,7 @@ jobs:
       - run: npm ci
       - name: Install WebKit
         run: npx playwright install --with-deps webkit
-      # One browser at a time: WebKit here draws the 3D view without a graphics card, and two at once ran out of room.
-      - run: npm run test:e2e -- --project iphone-safari --workers 1 zz-safari-debug
+      - run: npm run test:e2e -- --project iphone-safari
         env:
           CI: true
           E2E_SAFARI: '1'
