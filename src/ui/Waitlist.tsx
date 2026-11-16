@@ -1,3 +1,4 @@
+import { typeCaps } from './typeCaps';
 import { useState } from 'react';
 import { countStep, flushReports, keepMyRef, signupRef, signupSource } from '../report/report';
 import { CODE_MESSAGE, checkCode } from '../access';
@@ -154,7 +155,7 @@ export function WaitlistForm({ onJoined, onCode, linkMessage, onRetry, founding 
             </label>
             {/* Shown in capitals as it is typed, as the codes are written, so nobody wonders whether case matters (Cat, Nov 15).
                 It doesn't: the check ignores case (isTesterCode). */}
-            <input id="wl-code" autoComplete="off" autoCapitalize="characters" spellCheck={false} placeholder="Tester code" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} />
+            <input id="wl-code" autoComplete="off" autoCapitalize="characters" spellCheck={false} placeholder="Tester code" value={code} onChange={typeCaps(setCode)} />
           </div>
           <button type="submit" className="secondary sm" disabled={checking || !cleanCode(code)}>
             {checking ? 'Checking…' : 'Use code'}

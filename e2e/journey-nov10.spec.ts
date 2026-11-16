@@ -151,7 +151,8 @@ test('in the home-screen app, work from Safari comes across with a pasted link',
   await app.keyboard.press('Escape');
   await main(app).getByRole('button', { name: 'Started in your browser? Bring your work here' }).click();
   // Pasted with words around it (a whole message copied), it still finds the link.
-  await main(app).getByLabel('Link you copied').fill(`My Maison Tracé measurements and patterns. ${link} `);
+  // The link inside a message, with the full stop of its sentence after it (code review, Nov 15).
+  await main(app).getByLabel('Link you copied').fill(`My Maison Tracé measurements and patterns: ${link}. `);
   await main(app).getByRole('button', { name: 'Bring it here' }).click();
   await expect(h1(app, /Your work/)).toBeVisible();
   await main(app).getByRole('button', { name: 'Bring it here' }).click();

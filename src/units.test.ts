@@ -60,6 +60,9 @@ describe('typedLength', () => {
     expect(typedLength('33 1/2', 'in')).toBeCloseTo(85.09);
     expect(typedLength('33½ in', 'cm')).toBeCloseTo(85.09);
     expect(typedLength('12/2', 'cm')).toBe(6);
+    expect(typedLength('33-1/2', 'in')).toBeCloseTo(85.09);
+    expect(typedLength('33 in.', 'cm')).toBeCloseTo(83.82);
+    expect(typedLength('84,5 cm,', 'in')).toBe(84.5);
   });
 
   it('gives NaN when there is no number, and keeps reading a number followed by other words', () => {

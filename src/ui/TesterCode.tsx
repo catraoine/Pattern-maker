@@ -1,3 +1,4 @@
+import { typeCaps } from './typeCaps';
 import { TesterReport } from './TesterReport';
 import { BodyScan } from './BodyScan';
 import type { Unit } from '../measurements';
@@ -47,7 +48,7 @@ export function TesterCode({ code, unit, onCode }: { code?: string; unit: Unit; 
       <div className="field plain">
         <label htmlFor="tester-code">Tester code</label>
         {/* In capitals as it is typed, like the code box on the welcome page (Cat, Nov 15); the check ignores case. */}
-        <input id="tester-code" autoComplete="off" autoCapitalize="characters" spellCheck={false} value={typed} onChange={(e) => setTyped(e.target.value.toUpperCase())} />
+        <input id="tester-code" autoComplete="off" autoCapitalize="characters" spellCheck={false} value={typed} onChange={typeCaps(setTyped)} />
       </div>
       <button type="submit" className="secondary sm" disabled={checking || !cleanCode(typed)}>
         {checking ? 'Checking…' : 'Use code'}

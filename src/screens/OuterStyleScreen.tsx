@@ -5,6 +5,7 @@ import { outerSpec } from '../engine/spec';
 import { FinishedTable, finishedLines } from '../ui/FinishedTable';
 import { OuterDraft, OuterMeasurements, lapelled, outerDrop } from '../engine/outerwear';
 import { outerFlat, wornLines, wornShapes } from '../engine/flat';
+import { needsArms } from '../engine/sleeve';
 import { OuterChoices, describeOuter, outerAllowed, outerWord, outerGroups, oversizeOuter } from '../garments';
 import { TestingTag } from '../ui/TestingTag';
 import { TechFlatView } from '../ui/TechFlatView';
@@ -77,6 +78,9 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const kind = choices.garment;
   // What it's called on this screen: a jacket without sleeves is a vest.
   const word = outerWord(choices);
+  // A vest can be made without the arms; sleeves can't be drafted until they're taken, so they're greyed with the
+  // reason above them, as on a top (code review, Nov 15: picking one drew nothing and asked for nothing).
+  const arms = !needsArms(values as OuterMeasurements);
   const pieces = useMemo(() => draft?.pieces ?? [], [draft]);
   const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
   const flat = useMemo(() => (draft ? outerFlat(draft) : undefined), [draft]);
@@ -207,9 +211,17 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           .filter((g) => g.id !== 'lapel' || lapelled(choices.collar))
           .map((g) => (
           <Group key={g.id} label={g.label}>
+            {g.id === 'sleeve' && !arms && (
+              <p className="muted small sleeve-why">
+                Sleeves need your arm measurements.{' '}
+                <button type="button" className="link inline-link" onClick={onEditMeasurements}>
+                  Add them
+                </button>
+              </p>
+            )}
             <div className={chipsClass(kind, g.id)}>
               {g.options.map(([id, label]) => {
-                const allowed = outerAllowed(choices, g.id, id);
+                const allowed = outerAllowed(choices, g.id, id) && (arms || g.id !== 'sleeve' || id === 'none');
                 return (
                   <button
                     key={id}

@@ -137,11 +137,13 @@ const UNIT_SAID = /\s*(cm|centimet(?:er|re)s?|mm|in|inch(?:es)?|"|”|″)$/;
  * as 33, then turned away as out of range (bug hunt's paste check, Nov 15). NaN when there's no number.
  */
 export function typedLength(text: string, unit: Unit): number {
-  let t = text.trim().toLowerCase().replace(/(\d),(\d)/, '$1.$2');
+  // A full stop or comma after it ("33 in.", pasted from a sentence) is left off (code review, Nov 15).
+  let t = text.trim().toLowerCase().replace(/(\d),(\d)/, '$1.$2').replace(/[.,;:]+$/, '');
   const said = t.match(UNIT_SAID)?.[1];
   if (said) t = t.slice(0, -said.length).trim();
-  // "33 1/2" (a space before the fraction, so "12/2" isn't read as 1 and 2/2), "33½", "1/2", or a plain number.
-  const m = t.match(/^(?:(\d+(?:\.\d+)?)(?:\s+(\d+)\/(\d+)|\s*([¼½¾⅛⅜⅝⅞]))?|(\d+)\/(\d+))$/);
+  // "33 1/2" or "33-1/2" (a space or dash before the fraction, so "12/2" isn't read as 1 and 2/2), "33½", "1/2", or a
+  // plain number.
+  const m = t.match(/^(?:(\d+(?:\.\d+)?)(?:(?:\s+|\s*-\s*)(\d+)\/(\d+)|\s*([¼½¾⅛⅜⅝⅞]))?|(\d+)\/(\d+))$/);
   const n = !m ? parseFloat(t) : m[5] ? Number(m[5]) / Number(m[6]) : parseFloat(m[1]) + (m[2] ? Number(m[2]) / Number(m[3]) : m[4] ? FRACTION[m[4]] : 0);
   if (!Number.isFinite(n)) return NaN;
   if (said === 'mm') return n / 10;

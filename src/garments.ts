@@ -2,6 +2,7 @@
 import { CUFFS, Cuff, cuffAllowed } from './engine/cuffs';
 import { BACK_NECKS, BackNeck, backBlocked } from './engine/backNeck';
 import type { Choices } from './savedWork';
+import type { MeasurementId } from './measurements';
 import type { BodiceDarts, BodiceFit, BodiceLength, DrawnNeck, Neckline, UnevenNeck } from './engine/bodice';
 import { SHAPES_FOR_LENGTH, SleeveLength, SleeveShape } from './engine/sleeve';
 import { SLEEVE_CUTS, SleeveCut, sleeveCutBlocked, sleeveCutOf } from './engine/sleeveCut';
@@ -464,6 +465,10 @@ export function oversizeOuter(c: OuterChoices): OuterChoices {
 /** What a jacket or coat is called: a jacket cut without sleeves is a vest (the Black Vest was named a jacket on every
  *  screen and piece, fit-test walk, Nov 15). */
 export const outerWord = (c: Pick<OuterChoices, 'garment' | 'sleeve'>): 'jacket' | 'coat' | 'vest' => (c.garment === 'jacket' && c.sleeve === 'none' ? 'vest' : c.garment);
+
+/** The measurements a design doesn't draft from, so they're neither asked nor needed: a vest's arms, which a jacket
+ *  uses only for its sleeves. One place for the rule, used by the measuring pages, the checks and the collection. */
+export const unusedFor = (c: PatternChoices | undefined): MeasurementId[] => (c && isOuter(c) && outerWord(c) === 'vest' ? ['arm_length', 'upper_arm'] : []);
 
 /** A plain name, such as "Hip-length single-breasted jacket with notched lapels". */
 export function describeOuter(c: OuterChoices) {

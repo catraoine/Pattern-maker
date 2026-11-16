@@ -36,11 +36,12 @@ updatePerson,
 recordMeasurements,
 withPeople,
 } from './account';
-import { validDetails, PatternChoices, outerWord } from './garments';
+import { validDetails, PatternChoices, outerWord, unusedFor } from './garments';
 import type { Printable } from './screens/ExportScreen';
 import { describePattern } from './screens/describe';
 import { WelcomeScreen } from './screens/WelcomeScreen';
 import { CODE_MESSAGE, checkCode, hasAccess, rememberAccess, testerFromLink, withoutTester } from './access';
+import { cleanCode } from './photo/limit';
 import { keepOffline } from './swUpdate';
 import { preloadScreens, screen } from './screens/load';
 import { FABRIC, StartOver, openLookNext, openTabNext } from './ui/StyleLayout';
@@ -131,7 +132,7 @@ const ready = (values: MeasurementValues, unit: Unit, garment: Garment, form?: F
 /** A vest (a jacket without sleeves) isn't drafted from the arms, so they're neither asked nor needed: the Black Vest
  *  asked arm length and upper arm (fit-test walk, Nov 15). Saved jackets without a sleeve setting have sleeves. */
 const vestOf = (g: Garment, s: Pick<Saved, 'jacket'>) => g === 'jacket' && !!s.jacket && outerWord(s.jacket) === 'vest';
-const skipFor = (g: Garment, s: Pick<Saved, 'jacket'>): MeasurementId[] => (vestOf(g, s) ? ['arm_length', 'upper_arm'] : []);
+const skipFor = (g: Garment, s: Pick<Saved, 'jacket'>): MeasurementId[] => (g === 'jacket' ? unusedFor(s.jacket) : []);
 
 export default function App() {
   const [saved, setSaved] = usePersistent<Saved>('skirt', INITIAL);
@@ -296,7 +297,9 @@ export default function App() {
     if (access) {
       // A device let in earlier can hold an old code that no longer works (Cat's phone, Nov 14: the body scan turned
       // it away while Fit testing still said "Tester code on"). A newer link's code replaces it, once it's checked.
-      if (code !== storedAccount.testerCode) void checkCode(code).then((r) => r === 'tester' && setAccount({ ...latestAccount.current, testerCode: code }));
+      // Compared as codes are matched (case and stray characters aside), so a typed code kept in capitals isn't
+      // checked again on every visit by a link in small letters (code review, Nov 15).
+      if (cleanCode(code).toLowerCase() !== cleanCode(storedAccount.testerCode ?? '').toLowerCase()) void checkCode(code).then((r) => r === 'tester' && setAccount({ ...latestAccount.current, testerCode: code }));
       return;
     }
     linkCode.current = code;
@@ -654,7 +657,7 @@ export default function App() {
     const skip = skipFor(g, s);
     const wrong = isComplete(using, g, on, skip) && checksFor(using, saved.unit, g, on, skip).find((c) => c.level === 'error');
     if (wrong) sendToMeasure(`Check your ${g === 'tee' ? 'T-shirt' : vestOf(g, s) ? 'vest' : g} measurements: ${wrong.message}`);
-    else openSteps({ kind: 'for', garment: g, ...(also.length ? { also } : {}), ...(skip.length ? { skip } : {}), ...(vestOf(g, s) ? { word: 'vest' } : {}) });
+    else openSteps({ kind: 'for', garment: g, ...(also.length ? { also } : {}) });
   };
 
   // Why Style or Print didn't open while measuring, shown over the guided pages for a moment.
@@ -893,7 +896,9 @@ export default function App() {
               }}
               onBringLink={async (link) => {
                 // The link may come with words around it (a message pasted whole): take the #move= part wherever it is.
-                const found = link.match(/#move=[^\s"'<>]+/);
+                // Only the link's own characters (z. or p., then URL-safe base64), so a full stop or bracket after it in a
+    // pasted message isn't read as part of it (code review, Nov 15).
+    const found = link.match(/#move=[zp]\.[A-Za-z0-9_-]+/);
                 const b = found ? await readMoveLink<Saved>(found[0]) : null;
                 if (!b || b === 'broken') return false;
                 setMoving(b);
@@ -915,6 +920,8 @@ export default function App() {
           {step === 'steps' && (
             <MeasureStepsScreen
               key={stepsStart.at}
+              unused={(g) => skipFor(g, saved)}
+              named={(g) => (vestOf(g, saved) ? 'vest' : GARMENT_NAME[g])}
               testerCode={account.testerCode}
               start={stepsStart.start}
               onSomeoneElse={(name, f) => {

@@ -53,6 +53,10 @@ interface Props {
   onForm?: (form: FormKind) => void;
   /** "Something else", described and matched to a garment: style it from these choices, measuring for it first. */
   onIdea?: (choices: PatternChoices) => void;
+  /** What the garment's current design doesn't draft from, so it isn't asked (a vest's arms). */
+  unused?: (g: Garment) => MeasurementId[];
+  /** The garment's name for its current design ("vest" for a jacket without sleeves). */
+  named?: (g: Garment) => string;
   /** "Or start from a photo" on the describe page. */
   onPhoto?: () => void;
   /** "How your pattern is made", for the AI line on the describe page. */
@@ -61,7 +65,7 @@ interface Props {
   onNews?: () => void;
 }
 
-export type StepsStart = { kind: 'resume' } | { kind: 'choose' } | { kind: 'form' } | { kind: 'for'; garment: Garment; also?: MeasurementId[]; /** What the design doesn't use, so isn't asked: a vest's arms. */ skip?: MeasurementId[]; /** The garment's name when it isn't the usual one: "vest" for a jacket without sleeves. */ word?: string } | { kind: 'redo'; garment: Garment; ids: MeasurementId[] };
+export type StepsStart = { kind: 'resume' } | { kind: 'choose' } | { kind: 'form' } | { kind: 'for'; garment: Garment; also?: MeasurementId[] } | { kind: 'redo'; garment: Garment; ids: MeasurementId[] };
 
 type Page =
   | { kind: 'form' }
@@ -102,7 +106,7 @@ const aOrAn = (name: string) => (/(s|wear|lingerie)$/i.test(name) && !/dress$/i.
 // There is no first page (Fable's concept A, Cat's apply, Nov 15): Begin opens on the waist. Who you are designing
 // for, and the form, sit in one quiet line above the first measurement, with Change for the few who need it;
 // "Someone else" words every page for the person holding the tape and asks their name before any number is taken.
-export function MeasureStepsScreen({ testerCode, garment: current, unit, values, onUnit, onValues, helped = [], weight, onWeight, onDone, start, onSomeoneElse, theirs, theirName, onSkip, onLater, form = 'womenswear', onForm, onIdea, onPhoto, onLooks, onMade, onNews }: Props) {
+export function MeasureStepsScreen({ testerCode, garment: current, unit, values, onUnit, onValues, helped = [], weight, onWeight, onDone, start, onSomeoneElse, theirs, theirName, onSkip, onLater, form = 'womenswear', onForm, onIdea, onPhoto, onLooks, onMade, onNews, unused = () => [], named = (g) => GARMENT_NAME[g] }: Props) {
   const aimed = start?.kind === 'for' ? start.garment : undefined;
   // Each page is a history entry, so the header's back and the phone's back go one page back.
   const [page, setPage] = usePageHistory<Page>(() => {
@@ -120,8 +124,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     if (start?.kind === 'choose') return { kind: 'choose' };
     // `also`: more the design needs beyond the garment's own list (a collection top's sleeves need the arms).
     const also = start?.kind === 'for' ? (start.also ?? []).filter((id) => values[id] === undefined) : [];
-    const skip = start?.kind === 'for' ? (start.skip ?? []) : [];
-    const ids = aimed ? [...neededFor(aimed, values, form).map((f) => f.id), ...also].filter((id, i, a) => a.indexOf(id) === i && !skip.includes(id)) : [];
+    const ids = aimed ? [...neededFor(aimed, values, form).map((f) => f.id), ...also].filter((id, i, a) => a.indexOf(id) === i && !unused(aimed).includes(id)) : [];
     return ids.length ? { kind: 'extra', garment: aimed!, ids, at: 0 } : { kind: 'check' };
     // A remembered first page (from before Nov 15, when there was one) opens as if afresh. So does a remembered base
     // page once the base measurements are in (back from the collection, Nov 11): this screen's first entry is the
@@ -161,7 +164,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   };
   const go = (g: Pick) => {
     if (g === 'other') return setPage({ kind: 'describe' });
-    const ids = neededFor(g, values, form).map((f) => f.id);
+    const ids = neededFor(g, values, form).map((f) => f.id).filter((id) => !unused(g).includes(id));
     if (ids.length) setPage({ kind: 'extra', garment: g, ids, at: 0 });
     else onDone(g);
   };
@@ -435,8 +438,6 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   const id = ids[at];
   const last = at === ids.length - 1;
   const g = page.kind === 'extra' ? page.garment : null;
-  // The garment's name on these pages: the look's own word where it has one (a vest), else the usual name.
-  const named = (x: Garment) => (start?.kind === 'for' && start.garment === x && start.word) || GARMENT_NAME[x];
   const eyebrow = `${page.kind === 'base' ? '' : g === 'other' ? 'Full set · ' : `${cap(named(g!))} · `}${at + 1} of ${ids.length}`;
   const label =
     (page.kind === 'base' && page.back === 'check') || (page.kind === 'extra' && page.redo && last) ? 'Save' : page.kind === 'extra' && page.redo ? 'Next' : page.kind === 'base' ? (last && !onWeight ? 'Done' : 'Next') : g === 'other' ? (last ? 'Done' : 'Next') : last ? `Next: style your ${named(g!)}` : 'Next';
