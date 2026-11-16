@@ -101,7 +101,9 @@ describe('a photo read as any garment', () => {
   });
 
   it('says when a dress has no waist seam', () => {
-    expect(pieceNote({ ...dress, top: { ...top, waistSeam: false } }, 'dress')).toMatch(/no waist seam/);
+    // A dropped seam is drafted where it is, so no note; a dress with no seam that can't be drafted in one gets it.
+    expect(pieceNote({ ...dress, top: { ...top, waistSeam: false, waistSeamAt: 'dropped' } }, 'dress')).toBe('');
+    expect(pieceNote({ ...dress, top: { ...top, waistSeam: false, waistSeamAt: 'none', opening: 'front_buttons' } }, 'dress')).toMatch(/no waist seam/);
     expect(pieceNote(dress, 'dress')).toBe('');
   });
 });

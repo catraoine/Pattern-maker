@@ -555,7 +555,7 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
       <div className="photohead">
         {thumb}
         <div>
-          <p className="eyebrow">{`We see ${aPiece(piece)}${flat ? ' · laid flat' : ''}`}</p>
+          <p className="eyebrow">{`We see ${aPiece(piece)}${flat ? ' · not worn' : ''}`}</p>
           <h1 id="seetitle">{title}</h1>
         </div>
       </div>

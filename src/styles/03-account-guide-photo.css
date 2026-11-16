@@ -222,3 +222,17 @@ b {
   opacity: 0.35;
   cursor: not-allowed;
 }
+
+/* "How your pattern is made" under the photo page's AI line: a plain underlined link in the sentence's own words.
+   With no style of its own it showed as a grey filled button, running into Demo (walk on live, Nov 16). */
+.muted.small > button.inline-link {
+  min-height: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+  text-decoration: underline;
+}

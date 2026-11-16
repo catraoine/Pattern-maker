@@ -402,7 +402,12 @@ export function choicesFor(r: PhotoReading, garment: PieceKind, body?: PhotoBody
  */
 export function pieceNote(r: PhotoReading, garment: PieceKind): string {
   const t = r.top;
-  if (garment === 'dress' && t && !t.waistSeam) return 'This dress has no waist seam. We draft dresses with one, so the pattern joins bodice and skirt at your waist.';
+  // Only when the photo has no seam and the dress still has to be drafted with one: a dropped or raised seam is drafted
+  // where it is, and a sheath, shift or slip is drafted in one (the note said otherwise under a drop-waist name, Nov 16).
+  if (garment === 'dress' && t && t.waistSeamAt === 'none') {
+    const c = dressChoices(r);
+    if (!c.skirt.noSeam) return 'This dress has no waist seam. We draft this one with a seam, so the pattern joins bodice and skirt at your waist.';
+  }
   if (garment === 'tee' && t?.sleeve === 'none') return 'T-shirts come with sleeves, so this starts with short ones.';
   if (garment === 'tee') return 'A photo can’t show how stretchy a knit is, so set your own knit’s stretch on the next screen.';
   if ((garment === 'jacket' || garment === 'coat') && r.outer) return 'The back vent and sleeve can’t be seen from the front, so they start as standard.';
