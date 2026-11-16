@@ -3,7 +3,6 @@
 // first year of Premium free (Cat's pick, Nov 12; given when charging starts). The code is a short hash of the email, so it needs no extra store
 // and the same person always gets the same link; nothing extra goes to Kit.
 import { createHash } from 'node:crypto';
-import { KIT_API } from './kit';
 
 export const REF_PATTERN = /^[a-z0-9]{8}$/;
 
@@ -19,13 +18,13 @@ interface Referrer {
   code: string;
   /** Friends on the waitlist who joined through their link. */
   joined: number;
-  /** Of those, the ones who confirmed their email in Kit (null when Kit couldn't be asked). Only these count towards the
-   *  free year (Cat's "apply" pending, Nov 16): a made-up address never confirms. */
+  /** Of those, the ones who have since signed in with that email (null when accounts couldn't be read). Only these
+   *  count towards the free year (Cat's "apply" pending, Nov 16): a made-up address can never sign in. */
   confirmed: number | null;
 }
 
 /** Who brought friends, most confirmed first, for the read-out. A sign-up with their own code doesn't count.
- *  `confirmed` holds the emails Kit has confirmed, lower case; null when that couldn't be read. */
+ *  `confirmed` holds the emails with a confirmed account, lower case; null when that couldn't be read. */
 export function referrers(news: unknown[], confirmed: Set<string> | null = null): Referrer[] {
   const entries = news.flatMap((n) => {
     const e = n as { email?: unknown; ref?: unknown } | null;
@@ -47,20 +46,20 @@ export function referrers(news: unknown[], confirmed: Set<string> | null = null)
 
 type Fetch = (url: string, init: RequestInit) => Promise<Pick<Response, 'ok' | 'json'>>;
 
-/** Every email Kit has confirmed (its double opt-in), lower case, or null when Kit isn't set up or can't be read. */
-export async function confirmedInKit(apiKey: string | undefined, fetcher: Fetch = fetch, maxPages = 50): Promise<Set<string> | null> {
-  if (!apiKey) return null;
+/** Every email with a confirmed account (sign-in proves the person owns the inbox), lower case, or null when the account
+ *  service isn't set up or can't be read. Read from Supabase rather than Kit: Kit's API needs a paid plan, and the free
+ *  year is only given when charging starts, after accounts open, so a friend who signed in is the one that counts. */
+export async function confirmedAccounts(url: string | undefined, serviceKey: string | undefined, fetcher: Fetch = fetch, maxPages = 50): Promise<Set<string> | null> {
+  if (!url || !serviceKey) return null;
   const out = new Set<string>();
-  let after: string | undefined;
   try {
-    for (let page = 0; page < maxPages; page++) {
-      const url = `${KIT_API}/subscribers?status=active&per_page=1000${after ? `&after=${encodeURIComponent(after)}` : ''}`;
-      const res = await fetcher(url, { headers: { Accept: 'application/json', 'X-Kit-Api-Key': apiKey } });
+    for (let page = 1; page <= maxPages; page++) {
+      const res = await fetcher(`${url}/auth/v1/admin/users?page=${page}&per_page=1000`, { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } });
       if (!res.ok) return null;
-      const body = (await res.json()) as { subscribers?: { email_address?: unknown }[]; pagination?: { has_next_page?: boolean; end_cursor?: string } };
-      for (const s of body.subscribers ?? []) if (typeof s.email_address === 'string') out.add(s.email_address.trim().toLowerCase());
-      if (!body.pagination?.has_next_page || !body.pagination.end_cursor) return out;
-      after = body.pagination.end_cursor;
+      const body = (await res.json()) as { users?: { email?: unknown; email_confirmed_at?: unknown }[] };
+      const users = body.users ?? [];
+      for (const u of users) if (typeof u.email === 'string' && u.email_confirmed_at) out.add(u.email.trim().toLowerCase());
+      if (users.length < 1000) return out;
     }
     return out;
   } catch {

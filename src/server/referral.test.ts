@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { REF_PATTERN, confirmedInKit, refCode, referrers } from './referral';
+import { REF_PATTERN, confirmedAccounts, refCode, referrers } from './referral';
 
 describe('referral links', () => {
   it('gives each email its own short code, the same every time and whatever the case', () => {
@@ -45,17 +45,14 @@ describe('referral links', () => {
     ]);
   });
 
-  it("reads Kit's confirmed emails page by page, and gives null when Kit can't be read", async () => {
-    const pages = [
-      { subscribers: [{ email_address: 'One@Example.com' }], pagination: { has_next_page: true, end_cursor: 'c1' } },
-      { subscribers: [{ email_address: 'two@example.com' }], pagination: { has_next_page: false } },
-    ];
+  it('reads confirmed accounts page by page, skips unconfirmed ones, and gives null when accounts can\'t be read', async () => {
+    const full = Array.from({ length: 1000 }, (_, n) => ({ email: `p${n}@example.com`, email_confirmed_at: null }));
+    const pages = [{ users: [...full.slice(1), { email: 'One@Example.com', email_confirmed_at: '2026-12-01T00:00:00Z' }] }, { users: [{ email: 'two@example.com', email_confirmed_at: '2026-12-02T00:00:00Z' }] }];
     const urls: string[] = [];
     const ok = async (url: string) => (urls.push(url), { ok: true, json: async () => pages[urls.length - 1] });
-    expect(await confirmedInKit('key', ok)).toEqual(new Set(['one@example.com', 'two@example.com']));
-    expect(urls[0]).toContain('status=active');
-    expect(urls[1]).toContain('after=c1');
-    expect(await confirmedInKit(undefined, ok)).toBeNull();
-    expect(await confirmedInKit('key', async () => ({ ok: false, json: async () => ({}) }))).toBeNull();
+    expect(await confirmedAccounts('https://db.example', 'key', ok)).toEqual(new Set(['one@example.com', 'two@example.com']));
+    expect(urls).toEqual(['https://db.example/auth/v1/admin/users?page=1&per_page=1000', 'https://db.example/auth/v1/admin/users?page=2&per_page=1000']);
+    expect(await confirmedAccounts(undefined, 'key', ok)).toBeNull();
+    expect(await confirmedAccounts('https://db.example', 'key', async () => ({ ok: false, json: async () => ({}) }))).toBeNull();
   });
 });
