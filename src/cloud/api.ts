@@ -14,9 +14,9 @@ interface CloudApi {
   /** Who is signed in on this device, if anyone (also finishes a sign-in arriving from an email link). */
   user(): Promise<CloudUser | null>;
   onChange(fn: (u: CloudUser | null) => void): () => void;
-  /** Emails a sign-in link with a 6-digit code in it. */
+  /** Emails a sign-in link with a code in it. */
   sendLink(email: string, returnTo: string): Promise<void>;
-  /** The 6-digit code from that email, for when the link opens in another browser (or outside the home-screen app). */
+  /** The code from that email, for when the link opens in another browser (or outside the home-screen app). */
   verifyCode(email: string, code: string): Promise<CloudUser>;
   /** Whether "Continue with Google" is switched on in the account service (it's off until Cat sets up Google). */
   googleOn(): Promise<boolean>;
