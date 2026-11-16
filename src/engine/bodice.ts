@@ -506,7 +506,9 @@ function shape(d: BodiceDraft, s: BodiceStyle): BodiceDraft {
   }
   if (princess) {
     if (s.darts !== 'bust_waist') return d;
-    const pp = princessPieces(front, back, d.front.apex, princess, s.lineAt, flat);
+    // (A top's or dress's side seam, which no longer flares under the arm, may need its fair curve run further: see
+    // manipulate.ts fairSide.)
+    const pp = princessPieces(front, back, d.front.apex, princess, s.lineAt, flat, !s.outer);
     if (!pp) return d;
     return {
       ...d,
@@ -789,8 +791,11 @@ function draftBlock(m: BodiceMeasurements, style: BodiceStyle): BodiceDraft {
   const pinned = (d: { armhole: number; inner: { pin: number } }) => d.armhole + d.inner.pin;
   for (let i = 0; i < 30; i++) {
     const mid = (lo + hi) / 2;
-    // Found without any shoulder pad: a pad raises the shoulder, not the underarm.
-    if (pinned(draft(m, { ...s, shoulderPad: 0 }, mid)) < target) lo = mid;
+    // Found without any shoulder pad: a pad raises the shoulder, not the underarm. Found with the block's flare too:
+    // princess seams' underarm, moved out rather than flared (sideAt), lengthens the armhole, and found with it the
+    // underarm came up 1 cm on a fuller bust (the head pattern cutter's check of the Ice Peplum fix, Nov 16). The armhole
+    // keeps its depth and grows that little instead, as a full bust adjustment's does.
+    if (pinned(draft(m, { ...s, shoulderPad: 0 }, mid, { flareMax: FLARE_MAX })) < target) lo = mid;
     else hi = mid;
   }
   const result = withSides((lo + hi) / 2);
@@ -886,6 +891,8 @@ function frontNeck(path: Path, hps: P, uShoulder: P, shape: Neckline | 'drawn', 
  * the side seam below the bust to keep from the first line, and the back side seam length to match. */
 interface SideLine {
   drop?: number;
+  /** The front side seam's flare under the arm, in place of the style's (see sideAt). */
+  flareMax?: number;
   keep?: { bustDart: number; lower: number; forward: number; pin: number; turn: number };
   backSide?: number;
 }
@@ -1098,11 +1105,11 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   // one, the side front's side seam bowed out below the arm and hooked in at the underarm, worse the fuller the bust
   // (a fit tester with 10 cm between full and high bust on the Ice Peplum, Nov 16). The underarm moves out instead, as a
   // full bust adjustment spreads the side out whole. Not a jacket's or coat's: see `outer`.
-  const flareMax = s.princess && s.princess !== 'none' && !s.outer ? PRINCESS_FLARE_MAX : FLARE_MAX;
-  const sideAt = (fw: number, pinned = true) => {
+  const flareMax = side.flareMax ?? (s.princess && s.princess !== 'none' && !s.outer ? PRINCESS_FLARE_MAX : FLARE_MAX);
+  const sideAt = (fw: number, pinned = true, flare = flareMax) => {
     const bustX = frontW - fw;
     const frameX = Math.max((HB + be) / 4 + 0.5, AF / 2 + 3) - fw;
-    return { bustX, underF: (pinned ? pivotSide : pivot)(p(Math.min(bustX, Math.max(frameX, bustX - flareMax)), scye)), underB: p(backW + fw, underY), swB: p(swB0.x + fw, wb) };
+    return { bustX, underF: (pinned ? pivotSide : pivot)(p(Math.min(bustX, Math.max(frameX, bustX - flare)), scye)), underB: p(backW + fw, underY), swB: p(swB0.x + fw, wb) };
   };
   const down = turnArm(turnV(p(0, 1)));
   // The two armholes: across back (or front) and round the underarm, meeting the side seam square.
@@ -1112,8 +1119,10 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     path.curve(add(spF, mul(perp(uF), 2.5)), sub(afPt, p(0, 3)), afPt, 'armhole').curve(add(afPt, p(0, (scye - afPt.y) * 0.5)), sub(sideF, mul(squareTo(sideDown), (sideF.x - afPt.x) * 0.75)), sideF, 'armhole');
   // Moved forward until the back armhole is ARMHOLE_BALANCE longer than the front's (never backward), weighed before
   // the armhole pin, so the pin shortens the front armhole rather than moving the seam back to let it out again.
+  // Weighed with the block's flare, so princess seams' underarm moved out (see flareMax) leaves the waist where the block
+  // has it: weighed with it, the seam came 1 cm forward on a fuller bust and the waist and peplum with it (Nov 16).
   const balance = (fw: number) => {
-    const at = sideAt(fw, false);
+    const at = sideAt(fw, false, side.flareMax ?? FLARE_MAX);
     return backArmhole(new Path(spB), at.underB, at.swB).length() - frontArmhole(new Path(spF), at.underF, turnV(p(0, 1))).length() - ARMHOLE_BALANCE;
   };
   let forward = side.keep?.forward ?? 0;

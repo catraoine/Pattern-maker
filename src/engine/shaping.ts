@@ -240,6 +240,7 @@ export function princessPieces(
   line: Exclude<PrincessLine, 'none'>,
   at?: number,
   flat = false,
+  fairFurther = false,
 ): { pieces: Piece[]; lines: { front: P[]; back: P[] } } | undefined {
   // Front: the bust dart moved into the line, opened right to the bust point; `at` is where along the
   // shoulder or armhole it was drawn, and the back's line starts the same way along its own edge. A flat
@@ -255,7 +256,7 @@ export function princessPieces(
     const iQ = insertAlong(r, run, neckFirst || line !== 'shoulder' ? d : total - d);
     f = panels(front, { ring: r, i1: iQ, i2: iQ, pivot: dartTipOf(front, r), move: (q) => q, top: r.pts[iQ] }, ['Bodice centre front', 'Bodice side front'], ['Cut 1 on fold', 'Cut 2 (1 pair)'], {});
   } else {
-    const m = moveBustDart(front.outline, apex, line, { princess: true, armholeNotch: front.notches[0]?.[0], belowNotch: 2, at });
+    const m = moveBustDart(front.outline, apex, line, { princess: true, armholeNotch: front.notches[0]?.[0], belowNotch: 2, at, fairFurther });
     if (!m) return undefined;
     f = panels(front, { ring: m.ring, i1: m.i1, i2: m.i1 + 1, pivot: apex, move: m.move, top: m.closedAt }, ['Bodice centre front', 'Bodice side front'], ['Cut 1 on fold', 'Cut 2 (1 pair)'], {});
   }

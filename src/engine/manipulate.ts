@@ -175,7 +175,7 @@ interface Moved {
  * Close the side bust dart about the bust point and open it at `to`. With `short` 0 the dart is left
  * open to the bust point with no peak, ready to become a princess seam.
  */
-export function moveBustDart(path: Path, apex: P, to: DartPlace, opts: { armholeNotch?: P; short?: number; princess?: boolean; belowNotch?: number; waistSide?: P; along?: number; at?: number; edge?: string } = {}): Moved | undefined {
+export function moveBustDart(path: Path, apex: P, to: DartPlace, opts: { armholeNotch?: P; short?: number; princess?: boolean; belowNotch?: number; waistSide?: P; along?: number; at?: number; edge?: string; fairFurther?: boolean } = {}): Moved | undefined {
   const r = ringOf(path);
   const side = dartAfter(r, 'side');
   if (!side || to === 'side') return undefined;
@@ -303,7 +303,7 @@ export function moveBustDart(path: Path, apex: P, to: DartPlace, opts: { armhole
     tags.splice(peakAt, 1);
     tags[i1] = 'princess';
     const seamAt = pts[i1];
-    fairSide(pts, tags, joined);
+    fairSide(pts, tags, joined, opts.fairFurther);
     return { ring: { pts, tags }, q1, q2, i1: pts.indexOf(seamAt), move, closedAt };
   }
   const mid = lerp(q1, q2, 0.5);
@@ -333,11 +333,16 @@ export function moveBustDart(path: Path, apex: P, to: DartPlace, opts: { armhole
  * bust to 4 cm below the join (further when it must: see below), along the seam's own line at both ends, and is as long
  * as the seam it replaces.
  */
-function fairSide(pts: P[], tags: string[], joined: P) {
+function fairSide(pts: P[], tags: string[], joined: P, further = false) {
   // A seam that barely runs out under the arm (a princess line's side: see bodice.ts sideAt) can be longer, kinked, than
   // any fair curve over the 4 cm below the join, and the side front came up 0.1 to 0.2 cm short of the back on a big cup
   // (Nov 16). Then the curve runs on further down the seam, as far as it can short of the waist, and bows out a little to
-  // keep the length: over the longer run the bow is gentlest.
+  // keep the length: over the longer run the bow is gentlest. Only where asked (`further`: a princess-seamed top or
+  // dress, not a jacket or coat, nor a moved dart), so nothing else changes in the pattern freeze to Dec 6.
+  if (!further) {
+    fairSideOnce(pts, tags, joined, 4, false);
+    return;
+  }
   const plain = fairSideOnce(pts.slice(), tags.slice(), joined, 4, false);
   let below = 4;
   if (plain !== undefined && plain > SIDE_FAIR_SHORT) for (const more of [6, 8, 10, 12]) if (fairSideOnce(pts.slice(), tags.slice(), joined, more, false) !== undefined) below = more;
