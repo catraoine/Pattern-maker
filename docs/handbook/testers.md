@@ -18,7 +18,7 @@ Tester names, emails and codes live there and in Cat's Gmail, never in this repo
 | Nov 16 to Dec 6 | Full round: accept 24 so 20 finish, spread over six hip bands; each tester sews a dress, skirt or top of their choice; the call shows two example SS27 looks, a dress and a skirt with a top, and testers can change the length or style (Cat, Nov 1); plus one tester sews a boxy dress (Cat, Oct 30: Boxy launches untagged) |
 | Dec 7 to 11 | Fix week (sign-in switches on) |
 | Jan 4 to 17 | Round 2 |
-| **Mon Jan 18, 2027** | **Fit gate**: 20 sewists averaging 4 of 5 on a skirt or bodice toile |
+| **Mon Jan 18, 2027** | **Fit gate**: 20 sewists have sewn a toile; scored per piece across the five tester pieces (Blush Shift, Ice Peplum Top, Black Pleated Skirt, Chocolate Barrel Trouser, Black Vest). A piece launches only if its own average fit score is 4 of 5 or better; the rest stay In testing (Cat, Nov 16) |
 | Thu Feb 11, 2027 | Launch |
 
 ## Recruiting (Nov 1)
