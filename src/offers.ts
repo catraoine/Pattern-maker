@@ -1,6 +1,8 @@
 // Paid extras that aren't built yet. Each one is shown as a sign-up so we can see who wants it before building
 // the paid part. Prices are the business plan's planned prices; nothing is charged until paid plans open.
 
+import { FOUNDING_LINE } from './founding';
+
 export const OFFER_IDS = ['founding', 'printed', 'tools', 'sewalong', 'designers', 'designer-partner', 'kit', 'gift', 'fitcheck', 'sizerun', 'classroom', 'sponsor', 'deadstock', 'cutforme', 'drops', 'archive', 'labels', 'engine', 'nights', 'swim', 'dyed'] as const;
 
 /** Where Atelier Nights could run, first one first. Night sign-ups are counted per city. */
@@ -29,8 +31,8 @@ export const OFFERS: Record<OfferId, Offer> = {
     id: 'founding',
     eyebrow: `Founding Atelier · ${FOUNDING_PLACES} numbered places`,
     title: `Be one of the first ${FOUNDING_PLACES}`,
-    text: 'Premium at a founding price, locked in for as long as you stay subscribed. Founding members also get early access, their own founding number and a say in what comes next.',
-    prices: [['Founding Premium', '$35 a year (Premium will be $49 a year)']],
+    text: `${FOUNDING_LINE} The price stays locked for as long as you stay subscribed. Founding members also get early access, their own founding number and a say in what comes next.`,
+    prices: [['Founding Premium', '$34 a year (Premium will be $49 a year)']],
     button: 'Save my place',
     thanks: "Your place is saved. We'll email you when founding places open. Nothing is charged today.",
   },

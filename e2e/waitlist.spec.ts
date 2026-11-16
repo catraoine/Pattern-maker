@@ -85,7 +85,7 @@ test('on a phone the waitlist sits over the form drawn at full size from the sta
   const hero = page.locator('.welcome-hero');
   // A stranger can join at once: no loading screen and nothing to wait for (the waitlist review, Cat's A, 2026-11-10).
   await expect(main.getByRole('button', { name: 'Join the waitlist' })).toBeInViewport({ timeout: 1500 });
-  await expect(main).toContainText('The waitlist gets first claim on 250 numbered Founding places.');
+  await expect(main).toContainText('The first 250 lock in 30% off Premium.');
   if (info.project.name === 'phone') {
     // Curtain Up (Cat's O2, 2026-10-25): the form keeps Begin's full height, cropped from the bottom by the waitlist.
     const shown = (await hero.boundingBox())!.height;

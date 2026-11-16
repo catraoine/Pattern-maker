@@ -6,6 +6,7 @@ import { TOUR_LABEL, TourPlayer } from '../ui/TourPlayer';
 import { Title } from '../ui/Title';
 import { filmTape } from '../ui/filmTape';
 import { WaitlistForm, type FoundingSignIn } from '../ui/Waitlist';
+import { FOUNDING_LINE } from '../founding';
 
 interface Props {
   onFinish: () => void;
@@ -253,6 +254,8 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
           joined ? (
             <div className="stack waitlist">
               {/* The "one email when your invitation is ready" line came out (Cat, Nov 11 2026): just the share link. */}
+              {/* What joining gets them, said once more now they are on the list (Cat, Nov 16 2026). */}
+              <p className="waitlist-line">{FOUNDING_LINE}</p>
               <ShareLink />
             </div>
           ) : waitlist.checking ? (

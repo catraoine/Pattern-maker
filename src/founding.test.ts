@@ -12,11 +12,11 @@ describe('founding promises', () => {
     const tester = foundingLines({ n: 3, kind: 'tester' }).join(' ');
     expect(tester).toContain('Feb 9');
     expect(tester).toContain('free first year of Premium');
-    expect(tester).toContain('$35 a year instead of $49, locked in for as long as you stay');
+    expect(tester).toContain('$34 a year instead of $49, locked in for as long as you stay');
     expect(tester).toContain('vote on what we make next');
     const member = foundingLines({ n: 60, kind: 'founding' }).join(' ');
     expect(member).toContain('Early access');
-    expect(member).toContain('$35 a year instead of $49, locked in for as long as you stay');
+    expect(member).toContain('$34 a year instead of $49, locked in for as long as you stay');
     expect(member).toContain('next fit round');
     expect(member).toContain('a say in what we draft next');
   });

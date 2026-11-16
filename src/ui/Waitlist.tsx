@@ -7,6 +7,7 @@ import { SEW_LANGS, SEW_LANG_NAME, type SewLang } from '../langs';
 import type { Cloud } from '../cloud/useCloud';
 import type { Founding } from '../cloud/useFounding';
 import { CloudAccount } from './CloudAccount';
+import { FOUNDING_LINE } from '../founding';
 
 /** Founding members' way in, from Feb 9: sign in with the email on the founding list. */
 export interface FoundingSignIn {
@@ -108,7 +109,7 @@ export function WaitlistForm({ onJoined, onCode, linkMessage, onRetry, founding 
   return (
     <div className="stack waitlist">
       {/* Why to join, naming only what is decided: no prices (Cat's B1, 2026-11-10) */}
-      <p className="waitlist-line">Opening 2027. The waitlist gets first claim on 250 numbered Founding places.</p>
+      <p className="waitlist-line">Opening 2027. {FOUNDING_LINE}</p>
       <form className="stack" onSubmit={join}>
         {/* The language is a small tag at the end of the email line, not a line of its own (Cat's L1, 2026-10-25): it
             shows the language's short name and opens the full list. */}
