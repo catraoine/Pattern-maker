@@ -23,6 +23,14 @@ rate (All round quality), pockets, jacket and trouser options (styling options),
 - Each new garment gets its pattern sweep, fit sweep, print and DXF checks, and its Front drawing check, like the others.
 - Releases go out on Cat's "ship" with everyone else's.
 
+## Next collections
+
+- **Spring 2027 house drop, designed by Cat's partner** (Cat, Nov 16): about three pieces, credited "Designed by" him,
+  in the house drop slot before the sewist open call (Drop 01, Jun 24, 2027, unchanged). It starts after the Jan 18
+  fit gate with a one-hour kickoff in late January: he brings a mood board and about ten rough sketches, and Design
+  turns his picks into drawings, still mock-ups until Cat says "apply". Contributor terms are signed first. Nothing
+  goes to him until Cat sends it.
+
 ## Where it stands
 
 - Nov 7: round 1 sheet sent (J1 to J5 jumpsuits, K1 to K5 knit dresses, H1 to H5 hoodies), waiting on Cat's pick.
