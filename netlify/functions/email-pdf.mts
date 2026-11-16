@@ -43,3 +43,7 @@ export default async (req: Request, context: { ip?: string }) => {
   }
   return Response.json({ ok: true });
 };
+
+// Netlify turns away more than 10 requests a minute from one address before the function even starts, as the photo and
+// body scan functions do, so a script can't empty the day's 90 sends in one burst (weekly review, Nov 16).
+export const config = { rateLimit: { windowLimit: 10, windowSize: 60, aggregateBy: ['ip', 'domain'] } };

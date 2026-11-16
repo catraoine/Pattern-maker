@@ -24,13 +24,16 @@ export default async (req: Request, context: { ip?: string }) => {
 
   try {
     const ip = createHash('sha256').update(context.ip ?? 'unknown').digest('hex').slice(0, 24);
-    if ((await takeAllowance(blobCounts('founding-limits'), ip, new Date(), CAPS)) !== 'ok') return Response.json({ ok: false, error: 'limit_reached' }, { status: 429 });
+    const allowance = await takeAllowance(blobCounts('founding-limits'), ip, new Date(), CAPS);
+    if (allowance !== 'ok') return Response.json({ ok: false, error: allowance }, { status: allowance === 'busy' ? 503 : 429 });
 
     // Who the token belongs to, asked of Supabase itself. Only an email Supabase has checked counts.
     const who = await fetch(`${url}/auth/v1/user`, { headers: { apikey: key, Authorization: `Bearer ${token}` } });
     if (!who.ok) return Response.json({ ok: false, error: 'signed_out' }, { status: 401 });
-    const { email } = (await who.json()) as { email?: string };
-    if (!email) return Response.json({ ok: false, error: 'signed_out' }, { status: 401 });
+    const { email, email_confirmed_at } = (await who.json()) as { email?: string; email_confirmed_at?: string | null };
+    // Only an email its owner has confirmed earns a place: someone who could sign up with another person's address
+    // without confirming it never gets their number or early access (weekly review, Nov 16).
+    if (!email || !email_confirmed_at) return Response.json({ ok: false, error: 'signed_out' }, { status: 401 });
 
     const list = readList(await getStore({ name: 'founding', consistency: 'strong' }).get(MEMBERS_KEY, { type: 'json' }));
     if (!list) return Response.json({ ok: true, place: null });
