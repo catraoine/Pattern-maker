@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EARLY_ACCESS_FROM, earlyAccessOpen, foundingLines } from './founding';
+import { EARLY_ACCESS_FROM, FOUNDING_LINE, earlyAccessOpen, foundingLines } from './founding';
 
 describe('founding promises', () => {
   it('opens early access at midnight on Feb 9, Vancouver time', () => {
@@ -19,5 +19,12 @@ describe('founding promises', () => {
     expect(member).toContain('$34 a year instead of $49, locked in for as long as you stay');
     expect(member).toContain('next fit round');
     expect(member).toContain('a say in what we draft next');
+  });
+
+  it('keeps the discount in the one line strangers read true to the two prices', () => {
+    // The line says 30% off; the prices a member sees must give at least that (Cat, Nov 16: $34 against $49 is 31%).
+    const [, founding, usual] = /\$(\d+) a year instead of \$(\d+)/.exec(foundingLines({ n: 60, kind: 'founding' }).join(' '))!;
+    const claimed = Number(/(\d+)% off/.exec(FOUNDING_LINE)![1]);
+    expect(1 - Number(founding) / Number(usual)).toBeGreaterThanOrEqual(claimed / 100);
   });
 });
