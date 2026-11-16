@@ -40,6 +40,8 @@ import { DemoButton } from '../ui/DemoButton';
 import { reloadPending } from './load';
 import { isKnit, isLowerBody } from '../measurements';
 import { isWaistRow } from '../engine/spec';
+import { cloud } from '../cloud/api';
+import { testerHeaders } from '../ui/TesterCode';
 
 /** What to print: the drafted pieces of either garment, with its notes and sewing steps. */
 export interface Printable {
@@ -84,6 +86,9 @@ interface Props {
   onFitNotes?: () => void;
   /** A fit tester's device: after printing, the tester form instead of the app's own fit notes. */
   tester?: boolean;
+  /** Who "Email me the files" may send to: the signed-in person's own email, or, for a fit tester, any address they
+   *  type (with their code). Neither: the email way isn't offered (weekly review, Nov 16). */
+  emailTo?: { signedIn?: string; testerCode?: string };
   /** The fit already reported for this pattern, in a line, if there is one. */
   fitNote?: string;
   /** Corrections from toile fittings, and their notes, already in the pattern. */
@@ -141,7 +146,7 @@ const printedDate = () => new Date().toLocaleDateString('en-GB', { day: 'numeric
 
 
 
-export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPaper, onPaper, sendLink, profile, title, lookName, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, onFitNotes, tester, fitNote, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label }: Props) {
+export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPaper, onPaper, sendLink, profile, title, lookName, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, onFitNotes, tester, emailTo, fitNote, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label }: Props) {
   const can = (t: ProTool) => shows(mode, t);
   /** Knits fit by their stretch: tested in a spare knit, not a calico toile. */
   const knit = isKnit(garment);
@@ -405,7 +410,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
                 <button type="button" className="way" onClick={checked(openToPrint)} disabled={!ready}>
                   Open pattern to print
                 </button>
-                {!imported && <EmailPdf ready={ready} fileName={fileName} booklet={booklet?.bytes ?? null} bookletName={bookletName} title={title} onSent={left} checked={checked} />}
+                {!imported && (emailTo?.signedIn || emailTo?.testerCode) && <EmailPdf who={emailTo} ready={ready} fileName={fileName} booklet={booklet?.bytes ?? null} bookletName={bookletName} title={title} onSent={left} checked={checked} />}
                 <CopyShopWay a0={paper === 'a0'} onA0={() => setPaper('a0')} unit={unit} />
                 {sendLink && onPhone() && (
                   <SendToDevice link={sendLink} className="way" />
@@ -1232,10 +1237,12 @@ function toBase64(bytes: Uint8Array) {
  * "Email me the files" (journey review, Nov 10; was "Email me the PDF" until the instructions became their own file, Nov 15): on every phone, tablet and computer, where "Send to email or a printer"
  * needs a share menu that some computer browsers don't have. The address is used only to send this email.
  */
-function EmailPdf({ ready, fileName, booklet, bookletName, title, onSent, checked }: { ready: Uint8Array | null; fileName: string; booklet: Uint8Array | null; bookletName: string; title: string; onSent: () => void; checked: (go: () => void) => () => void }) {
+function EmailPdf({ who, ready, fileName, booklet, bookletName, title, onSent, checked }: { who: { signedIn?: string; testerCode?: string }; ready: Uint8Array | null; fileName: string; booklet: Uint8Array | null; bookletName: string; title: string; onSent: () => void; checked: (go: () => void) => () => void }) {
   const [open, setOpen] = useState(false);
-  const [to, setTo] = useState('');
-  const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'limit' | 'off' | 'big' | 'failed'>('idle');
+  const [typed, setTo] = useState('');
+  // Signed in, it goes to the account's own email, which the server checks again; a tester types any address.
+  const to = who.signedIn ?? typed;
+  const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'limit' | 'off' | 'big' | 'refused' | 'failed'>('idle');
   const [sentTo, setSentTo] = useState('');
   // The latest onSent when the send comes back, not the one from when it started, so nothing changed meanwhile is lost.
   const sentNow = useRef(onSent);
@@ -1250,16 +1257,17 @@ function EmailPdf({ ready, fileName, booklet, bookletName, title, onSent, checke
     if (!ready) return;
     setState('sending');
     try {
+      const token = who.signedIn ? await (await cloud()).token() : null;
       const res = await fetch('/.netlify/functions/email-pdf', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : testerHeaders(who.testerCode)) },
         body: JSON.stringify({ to: to.trim(), title: title.slice(0, 200), fileName, pdf: toBase64(ready), ...(booklet ? { bookletName, booklet: toBase64(booklet) } : {}) }),
       });
       if (res.ok) {
         setSentTo(to.trim());
         setState('sent');
         sentNow.current();
-      } else setState(res.status === 429 ? 'limit' : res.status === 503 ? 'off' : res.status === 413 ? 'big' : 'failed');
+      } else setState(res.status === 429 ? 'limit' : res.status === 503 ? 'off' : res.status === 403 ? 'refused' : res.status === 413 ? 'big' : 'failed');
     } catch {
       setState('failed');
     }
@@ -1272,10 +1280,14 @@ function EmailPdf({ ready, fileName, booklet, bookletName, title, onSent, checke
         checked(() => void send())();
       }}
     >
-      <label className="field">
-        <span>Your email</span>
-        <input type="email" required value={to} onChange={(e) => setTo(e.target.value)} autoComplete="email" inputMode="email" />
-      </label>
+      {who.signedIn ? (
+        <p className="small">To {who.signedIn}, the email you signed in with.</p>
+      ) : (
+        <label className="field">
+          <span>Your email</span>
+          <input type="email" required value={typed} onChange={(e) => setTo(e.target.value)} autoComplete="email" inputMode="email" />
+        </label>
+      )}
       <button type="submit" className="primary" disabled={!ready || state === 'sending' || !to.trim()}>
         {state === 'sending' ? 'Sending…' : 'Send'}
       </button>
@@ -1290,6 +1302,10 @@ function EmailPdf({ ready, fileName, booklet, bookletName, title, onSent, checke
       ) : state === 'off' || state === 'big' ? (
         <p className="msg small" role="status">
           {state === 'off' ? "Emailing isn't working just now." : 'This PDF is too big to email.'} Download the PDF instead.
+        </p>
+      ) : state === 'refused' ? (
+        <p className="msg small" role="status">
+          {who.signedIn ? 'Your sign-in has run out. Sign in again from Account, then send it.' : 'Your fit tester code didn\'t go through. Check it under Account, or download the PDF instead.'}
         </p>
       ) : state === 'failed' ? (
         <p className="msg small" role="status">
