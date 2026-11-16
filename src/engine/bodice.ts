@@ -90,6 +90,9 @@ export interface DrawnNeck {
    * wide, in cm, so a narrow neckline still has a narrow strap, sitting over the middle of the shoulder. With it the
    * neckline may go lower, to 2 cm above the bust point (In testing, Cat 2026-11-11, SS27 Look 07). */
   strap?: number;
+  /** The front neck lifted this many cm from wherever its depth and the bust point leave it (never above the block's
+   * neck), so a slip's scoop rises on a fuller bust (see slipRise.ts). Older saves have none. */
+  rise?: number;
 }
 
 /** A front neckline drawn differently on the two sides (see uneven.ts), cut across a whole front: its
@@ -1043,7 +1046,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   frontSlope = dropped(frontSlope, SL - widen + ext);
   // Deep necklines stop 5 cm above the bust point; a plunge runs on past it, nearly to the waist.
   const plunge = s.neckline === 'plunge' && !s.neck;
-  const cfNeck = p(0, Math.max(cfNeck0.y, Math.min(cfNeck0.y + nl.frontDepth, plunge ? wf - (s.plungeDepth === 'waist' ? PLUNGE.toWaist : PLUNGE.aboveWaist) : apex.y - (strap !== undefined ? 2 : 5))));
+  const cfNeck = p(0, Math.max(cfNeck0.y, Math.min(cfNeck0.y + nl.frontDepth, plunge ? wf - (s.plungeDepth === 'waist' ? PLUNGE.toWaist : PLUNGE.aboveWaist) : apex.y - (strap !== undefined ? 2 : 5)) - (s.neck?.rise ?? 0)));
 
   // A neck gape pinned out at the toile is closed the way a pattern cutter does it: slash from the
   // middle of the neckline to the bust point, and pivot the shoulder, armhole and upper side seam

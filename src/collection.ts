@@ -33,6 +33,7 @@ import {
   sleeveOf,
   validDetails,
 } from './garments';
+import { withSlipRise } from './slipRise';
 import { EXAMPLE_BODY, Garment, MeasurementId, MeasurementValues, isComplete } from './measurements';
 import { HOUSE_COLOURS } from './engine/houseColours';
 
@@ -250,7 +251,9 @@ const MINI_CLEAR = 10.5;
  * with the waist to knee and its drawn leg with the hip; on the sample body, or without those measurements, nothing changes.
  */
 export function lookChoices(look: Pick<HouseLook, 'choices'>, m: MeasurementValues): PatternChoices {
-  const c = look.choices;
+  const c0 = look.choices;
+  // A slip's scoop and armhole rise with a fuller bust (see slipRise.ts).
+  const c = isDress(c0) ? withSlipRise(c0, m) : c0;
   // A mini dress is never so short that it ends within MINI_CLEAR of the judged crotch level: the named mini came to 4 cm
   // below it on a long rise. Only then is its length set in centimetres; most bodies keep the named mini.
   if (isDress(c) && c.skirt.length === 'mini' && c.skirt.lengthCm === undefined && m.waist_to_knee && m.waist_to_hip) {
