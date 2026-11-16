@@ -26,7 +26,7 @@ const ANSWERS: [string, string][] = [
   ['Where is my work kept?', signinShown ? 'On this phone or computer, and in your account once you sign in under Your data. Download a backup from Your data to keep a copy of your own.' : 'On this phone or computer. Download a backup from Your data to keep a copy.'],
   // Only once there is sign-in to ask about (the Dec 7 rehearsal, Nov 16).
   ...(signinShown
-    ? ([['My sign-in email hasn’t come', 'It comes from hello@maisontrace.co within a minute, so look in spam too. Ask for a new one if it isn’t there: only the newest email works. If its link opens somewhere other than the app, type the code from that email in the app instead.']] as [string, string][])
+    ? ([['My sign-in email hasn’t come', 'It comes within a minute, so look in spam too. Ask for a new one if it isn’t there: only the newest email works. If its link opens somewhere other than the app, type the code from that email in the app instead.']] as [string, string][])
     : []),
 ];
 

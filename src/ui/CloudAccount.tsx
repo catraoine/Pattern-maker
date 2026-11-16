@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { signinFailed } from '../cloud/flag';
 import type { Cloud } from '../cloud/useCloud';
+import { keepSigninSent, signinSent } from '../cloud/sent';
 
 const STATUS: Record<string, string> = {
   checking: 'Checking…',
@@ -31,28 +32,13 @@ function GoogleMark() {
 const CODE_MIN = 6;
 const CODE_MAX = 10;
 
-const SENT_KEY = 'pattern-maker:signin-sent';
-const sentBefore = () => {
-  try {
-    return sessionStorage.getItem(SENT_KEY) ?? '';
-  } catch {
-    return '';
-  }
-};
-
 export function CloudAccount({ cloud }: { cloud: Cloud }) {
   const [email, setEmail] = useState('');
-  // Who the sign-in email went to, kept for this tab: a phone often reloads the page while its owner is in the mail app
-  // fetching the code, and the code box has to still be there when they come back (the Dec 7 rehearsal, Nov 16).
-  const [sentTo, setSentToState] = useState(sentBefore);
+  // Who the sign-in email went to, kept for this tab so the code box outlasts a reload (src/cloud/sent.ts).
+  const [sentTo, setSentToState] = useState(signinSent);
   const setSentTo = (to: string) => {
     setSentToState(to);
-    try {
-      if (to) sessionStorage.setItem(SENT_KEY, to);
-      else sessionStorage.removeItem(SENT_KEY);
-    } catch {
-      // Storage off: the code box just doesn't outlast a reload.
-    }
+    keepSigninSent(to);
   };
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
