@@ -184,6 +184,9 @@ export interface BodiceStyle {
   peplumSize?: PeplumSize;
   /** Boned like a corset (always with a strapless neckline, by choice with a cami); soft otherwise. */
   structure?: Structure;
+  /** Set for a jacket or coat: its side seam runs out below the arm as a darted block's does, princess seams or not, so
+   *  the underarm stays put and the armhole the sleeve is drafted to keeps its size over the ease (see sideAt). */
+  outer?: boolean;
   /** Style seams drawn on the form (see seams.ts), one kind at a time: a front and/or back yoke (cm
    * below the neck point at the centre), an empire seam (cm below the bust point), or side panels
    * (where the seam leaves the armhole, 0 to 1). */
@@ -550,6 +553,9 @@ export const SIDE_DART_MAX = 6;
  * few cm between them bubbles out under the arm, so a full bust moves the underarm out instead, as a
  * full bust adjustment does. */
 const FLARE_MAX = 3;
+/** The same with princess seams, which shape the bust themselves (see sideAt). A little is kept so a small bust's
+ *  side seam is the block's. */
+const PRINCESS_FLARE_MAX = 1;
 /** How much longer the back armhole is than the front's, in cm: room for the shoulder blade and the
  * arm reaching forward, as most blocks have it. The side seam is moved forward under the arm to give it. */
 const ARMHOLE_BALANCE = 0.7;
@@ -1088,10 +1094,15 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   // The whole side seam then moves `fw` forward, the back wider by as much as the front is narrower
   // from the underarm to the waist (and hem), so the seam keeps its line and length and the bust and
   // waist their size. A dress skirt is drafted to the bodice's front and back waists, so it follows.
+  // Princess seams take the bust's fullness over the bust point, where it is, so the side seam needs no flare: with
+  // one, the side front's side seam bowed out below the arm and hooked in at the underarm, worse the fuller the bust
+  // (a fit tester with 10 cm between full and high bust on the Ice Peplum, Nov 16). The underarm moves out instead, as a
+  // full bust adjustment spreads the side out whole. Not a jacket's or coat's: see `outer`.
+  const flareMax = s.princess && s.princess !== 'none' && !s.outer ? PRINCESS_FLARE_MAX : FLARE_MAX;
   const sideAt = (fw: number, pinned = true) => {
     const bustX = frontW - fw;
     const frameX = Math.max((HB + be) / 4 + 0.5, AF / 2 + 3) - fw;
-    return { bustX, underF: (pinned ? pivotSide : pivot)(p(Math.min(bustX, Math.max(frameX, bustX - FLARE_MAX)), scye)), underB: p(backW + fw, underY), swB: p(swB0.x + fw, wb) };
+    return { bustX, underF: (pinned ? pivotSide : pivot)(p(Math.min(bustX, Math.max(frameX, bustX - flareMax)), scye)), underB: p(backW + fw, underY), swB: p(swB0.x + fw, wb) };
   };
   const down = turnArm(turnV(p(0, 1)));
   // The two armholes: across back (or front) and round the underarm, meeting the side seam square.

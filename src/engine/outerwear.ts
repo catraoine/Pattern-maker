@@ -1216,6 +1216,7 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     length: length === 'cropped' ? 'high_hip' : 'hip',
     darts: big ? 'none' : shaping === 'boxy' ? 'bust' : 'bust_waist',
     princess: shaping === 'princess' ? 'armhole' : 'none',
+    outer: true,
     bustEase: Math.min(easeRange.max, ease),
     seamAllowance: s.seamAllowance,
     neckArmholeAllowance: 1,

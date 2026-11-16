@@ -330,16 +330,39 @@ export function moveBustDart(path: Path, apex: P, to: DartPlace, opts: { armhole
  * The side seam where a side bust dart was closed, made one fair curve across the join. Closing the dart swings the seam
  * above it round the bust point, so it met the seam below at a corner, in then out again: on the Ice Peplum's side front
  * it printed as a kink under the armhole (a fit tester, Nov 12). The curve runs from where the seam is widest over the
- * bust to 4 cm below the join, along the seam's own line at both ends, and is as long as the seam it replaces.
+ * bust to 4 cm below the join (further when it must: see below), along the seam's own line at both ends, and is as long
+ * as the seam it replaces.
  */
 function fairSide(pts: P[], tags: string[], joined: P) {
+  // A seam that barely runs out under the arm (a princess line's side: see bodice.ts sideAt) can be longer, kinked, than
+  // any fair curve over the 4 cm below the join, and the side front came up 0.1 to 0.2 cm short of the back on a big cup
+  // (Nov 16). Then the curve runs on further down the seam, as far as it can short of the waist, and bows out a little to
+  // keep the length: over the longer run the bow is gentlest.
+  const plain = fairSideOnce(pts.slice(), tags.slice(), joined, 4, false);
+  let below = 4;
+  if (plain !== undefined && plain > SIDE_FAIR_SHORT) for (const more of [6, 8, 10, 12]) if (fairSideOnce(pts.slice(), tags.slice(), joined, more, false) !== undefined) below = more;
+  fairSideOnce(pts, tags, joined, below, true);
+}
+
+/** Up to this much shorter than the seam it replaces (cm), the fair curve needs no bow: well inside the seams' 0.1 cm. */
+const SIDE_FAIR_SHORT = 0.05;
+
+/** One go at fairSide, the curve running on `below` cm under the join (bowing out to keep its length when `bow`): how
+ *  much shorter the seam came out, or undefined when there was nothing to fair or too little seam left below (the curve
+ *  stops 3 cm clear of the seam's end, so the corner at the waist stays as drafted). */
+function fairSideOnce(pts: P[], tags: string[], joined: P, below: number, bow: boolean): number | undefined {
   const n = pts.length;
   const j = pts.findIndex((q) => len(sub(q, joined)) < 1e-6);
-  if (j < 0 || tags[j] !== 'side' || tags[(j - 1 + n) % n] !== 'side') return;
+  if (j < 0 || tags[j] !== 'side' || tags[(j - 1 + n) % n] !== 'side') return undefined;
   // The side run's start: the underarm.
   let a0 = j;
   while (tags[(a0 - 1 + n) % n] === 'side' && a0 > 0) a0--;
-  if (a0 === 0 && tags[n - 1] === 'side') return;
+  if (a0 === 0 && tags[n - 1] === 'side') return undefined;
+  let end = j;
+  while (end + 1 < pts.length - 1 && tags[end] === 'side') end++;
+  let toEnd = 0;
+  for (let i = j; i < end; i++) toEnd += len(sub(pts[i + 1], pts[i]));
+  if (below > 4 && below > toEnd - 3) return undefined;
   // A point put in on the seam `cm` along it from index i (back up it when cm is negative), or i if it runs out first.
   const putIn = (i: number, cm: number): number => {
     const dir = cm < 0 ? -1 : 1;
@@ -360,12 +383,12 @@ function fairSide(pts: P[], tags: string[], joined: P) {
       at = nx;
     }
   };
-  // From where the seam is widest over the bust (the block swings it out to the bust's width there), to 4 cm on below
-  // the join. Above that the underarm curve stays as drafted.
-  const b = putIn(j, 4);
+  // From where the seam is widest over the bust (the block swings it out to the bust's width there), to `below` cm on
+  // below the join. Above that the underarm curve stays as drafted.
+  const b = putIn(j, below);
   let a = a0;
   for (let i = a0; i < j - 1; i++) if (pts[i].x > pts[a].x) a = i;
-  if (b - a < 3 || b + 1 >= pts.length || a < 1) return;
+  if (b - a < 3 || b + 1 >= pts.length || a < 1) return undefined;
   const A = pts[a];
   const B = pts[b];
   // At the underarm itself (the seam widest there), the way it leaves it, square to the armhole.
@@ -373,17 +396,22 @@ function fairSide(pts: P[], tags: string[], joined: P) {
   const dB = unit(sub(pts[b + 1], B));
   let was = 0;
   for (let i = a; i < b; i++) was += len(sub(pts[i + 1], pts[i]));
+  // Out from the piece, square to the chord (the side seam is the piece's outer edge, at its greatest x).
+  const chord = unit(sub(B, A));
+  const outward = chord.y >= 0 ? p(chord.y, -chord.x) : p(-chord.y, chord.x);
   // How far the curve holds each end's line is set so it is as long as the seam it replaces: the side seams still match.
-  const curveFor = (f: number): P[] => {
+  // A bow swells out as sin² along it, so it still leaves A and meets B along their lines.
+  const curveFor = (f: number, out = 0): P[] => {
     const c1 = add(A, mul(dA, len(sub(B, A)) * f));
     const c2 = sub(B, mul(dB, len(sub(B, A)) * f));
-    const out: P[] = [];
+    const res: P[] = [];
     for (let i = 1; i < 24; i++) {
       const t = i / 24;
       const m = 1 - t;
-      out.push(p(m * m * m * A.x + 3 * m * m * t * c1.x + 3 * m * t * t * c2.x + t * t * t * B.x, m * m * m * A.y + 3 * m * m * t * c1.y + 3 * m * t * t * c2.y + t * t * t * B.y));
+      const q = p(m * m * m * A.x + 3 * m * m * t * c1.x + 3 * m * t * t * c2.x + t * t * t * B.x, m * m * m * A.y + 3 * m * m * t * c1.y + 3 * m * t * t * c2.y + t * t * t * B.y);
+      res.push(add(q, mul(outward, out * Math.sin(Math.PI * t) ** 2)));
     }
-    return out;
+    return res;
   };
   const lengthOf = (c: P[]) => [A, ...c, B].reduce((t, q, i, all) => (i ? t + len(sub(q, all[i - 1])) : 0), 0);
   let lo = 0.05;
@@ -393,9 +421,21 @@ function fairSide(pts: P[], tags: string[], joined: P) {
     if (lengthOf(curveFor(mid)) < was) lo = mid;
     else hi = mid;
   }
-  const curve = curveFor((lo + hi) / 2);
+  const f = (lo + hi) / 2;
+  let curve = curveFor(f);
+  if (bow && lengthOf(curve) < was - SIDE_FAIR_SHORT) {
+    let lb = 0;
+    let hb = 2;
+    for (let i = 0; i < 30; i++) {
+      const mid = (lb + hb) / 2;
+      if (lengthOf(curveFor(f, mid)) < was) lb = mid;
+      else hb = mid;
+    }
+    curve = curveFor(f, (lb + hb) / 2);
+  }
   pts.splice(a + 1, b - a - 1, ...curve);
   tags.splice(a + 1, b - a - 1, ...curve.map(() => 'side'));
+  return was - lengthOf(curve);
 }
 
 /** Whether a point lies on the ring between indices lo and hi (inclusive), within 0.6 cm. */
