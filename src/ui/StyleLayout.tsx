@@ -953,9 +953,8 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           {undo && <BigUndo undo={undo} host={host} />}
         </div>
         {/* The box rises from the foot of the screen, over everything, so the pinned drawing never covers it; the hint
-            sits on the drawing itself, at its foot. */}
+            opens the step under the drawing (on the drawing, it ran over the trousers: screen check, Nov 17). */}
         {asking && createPortal(<LengthBox key={asking.name} ask={asking} unit={unit} onClose={() => setAsking(undefined)} />, document.body)}
-        {!asking && lengthOn && host && createPortal(<p className="length-hint">Drag the dot, or tap the length to type it.</p>, host)}
         <div
           className={!wide && split(active) ? 'style-panel one-q' : 'style-panel'}
           ref={panel}
@@ -979,6 +978,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           {/* A garment matched to a photo says so above its first question, with a way to try another; the way in
               is "Start from a photo" in the name's drop-down (Cat, Nov 12). */}
           {active === steps[0] && (wide || qAt <= 0) && (matched ?? (photo && <PhotoEntry onPhoto={onPhoto} photo={photo} />))}
+          {!asking && lengthOn && <p className="length-hint">Drag the dot, or tap the length to type it.</p>}
           <div className="chapter" ref={chapter}>
             {/* Watch demo sits across from the step on a computer (Cat's D3, 2026-10-29). On a phone the step bars are
                 gone and Watch demo is a link at the end of the step (Cat's P1, 2026-10-31): "Step 1 of 5" opens the

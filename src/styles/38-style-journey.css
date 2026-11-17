@@ -234,17 +234,11 @@ section[aria-label='Preview'] > .preview .all-round-feel-step[aria-pressed='true
   cursor: text;
   pointer-events: all;
 }
-/* The hint, on the drawing at its foot, in the drawing's own quiet ink. */
+/* The hint, over the step under the drawing (on the drawing it ran over the trousers: screen check, Nov 17). */
 .length-hint {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 6px;
-  margin: 0;
-  text-align: center;
-  font: 12px/1.3 var(--sans);
-  color: var(--card-quiet);
-  pointer-events: none;
+  margin: 8px 0 0;
+  font: 13px/1.3 var(--sans);
+  color: var(--muted);
 }
 /* The box, a sheet risen from the foot of the screen. */
 .length-box {
