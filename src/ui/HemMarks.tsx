@@ -4,6 +4,7 @@
 // dress, T-shirt and trousers: the dot's own name says it, with less clutter (Cat, 2026-11-06).
 import { PointerEvent, RefObject, useState } from 'react';
 import type { P } from '../engine/geometry';
+import { LengthTap } from './LengthEntry';
 
 export interface HemChoice {
   /** What the dot sets, read out, such as "Dress length". */
@@ -14,8 +15,9 @@ export interface HemChoice {
   onPick: (id: string) => void;
   /** The dot glides to any length between the named ones (Cat, 2026-11-06), pausing at each named one as it passes:
    *  `zero` is where a length of 0 cm sits on the drawing, `min` and `max` how far the length goes, `cm` a length
-   *  set between the named ones (left out on a named one), and `onCm` sets one. Without it the dot only steps. */
-  free?: { zero: number; min: number; max: number; cm?: number; onCm: (cm: number) => void };
+   *  set between the named ones (left out on a named one), and `onCm` sets one. Without it the dot only steps. `from`
+   *  says where the length is measured from, over the box a tapped label opens ("from the waist" if left out). */
+  free?: { zero: number; min: number; max: number; cm?: number; onCm: (cm: number) => void; from?: string };
 }
 
 /** How near a named length the gliding dot catches on it and holds still, in handle sizes (a finger's few millimetres
@@ -85,6 +87,17 @@ export function HemMarks({ name, marks, value, onPick, svg, cx, k, hemAt, bare, 
         <text key={held?.on ?? ''} className={held?.on ? 'caught' : undefined} x={bare ? dot.x - r - 3.2 * k : dot.x + r + 3.2 * k} y={dot.y + 0.9 * k} fontSize={2.6 * k} textAnchor={bare ? 'end' : undefined}>
           {label.toUpperCase()}
         </text>
+        {/* Tapped, the length's name opens a box to type it (testers, Nov 17). Under the disc's own hit area, so a drag
+            still starts wherever it did. */}
+        {free && (
+          <LengthTap
+            x={bare ? dot.x - r - 3.2 * k - label.length * 2.6 * k * 0.85 : dot.x + r + 3.2 * k}
+            y={dot.y - 3 * k}
+            width={label.length * 2.6 * k * 0.85}
+            height={5 * k}
+            ask={{ name, from: free.from ?? 'from the waist', cm: cmAt(y), min: free.min, max: free.max, onCm: free.onCm }}
+          />
+        )}
         <circle
           cx={dot.x}
           cy={dot.y}

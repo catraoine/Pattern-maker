@@ -66,6 +66,7 @@ import { ImportedPattern, importedGuide } from './engine/importDxf';
 import { lookArmsMissing, lookFabric, lookHipMissing, lookNameOf, lookPatch, lookResized, lookValues } from './collection';
 import { archiveCut } from './archive';
 import { CollectionLink, ExampleTag, GarmentPick, LookName } from './ui/GarmentSwitch';
+import { UnitNow } from './ui/LengthEntry';
 import { LoadingScreen } from './ui/LoadingScreen';
 import type { FormStart } from './ui/ContourForm';
 import type { Piece } from './engine/piece';
@@ -1105,6 +1106,7 @@ export default function App() {
           )}
           {/* On Style it sits under the garment's name (Cat's K3, 2026-10-28), so StyleLayout draws it. */}
           {step === 'export' && exampleTag}
+          <UnitNow.Provider value={saved.unit}>
           <ExampleTag.Provider value={step === 'style' ? exampleTag : undefined}>
           <LookName.Provider value={step === 'style' ? lookName : undefined}>
           <CollectionLink.Provider value={step === 'style' ? () => { setLookFrom('style'); setStep('collection'); window.scrollTo(0, 0); } : undefined}>
@@ -1309,6 +1311,7 @@ export default function App() {
           </CollectionLink.Provider>
           </LookName.Provider>
           </ExampleTag.Provider>
+          </UnitNow.Provider>
           {step === 'export' && !hasGarment(account, garment) && <UnlockGarment garment={garment} onPlans={openPlans} onBack={() => setStep('style')} />}
           {step === 'export' && hasGarment(account, garment) && (
             <ExportScreen

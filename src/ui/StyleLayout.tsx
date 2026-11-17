@@ -8,7 +8,8 @@ import { DemoButton } from './DemoButton';
 import { EnlargeSketch, useEnlarged } from './EnlargeSketch';
 import { Envelope } from './Envelope';
 import { GarmentFabric } from './FabricFill';
-import { ExampleTag, GarmentDrop, LookName } from './GarmentSwitch';
+import { CollectionLink, ExampleTag, GarmentDrop, LookName } from './GarmentSwitch';
+import { LengthAsk, LengthBox, TypeLength, UnitNow } from './LengthEntry';
 import { ModeLink } from './ModeLink';
 import { PhotoEntry } from './PhotoEntry';
 import { Title } from './Title';
@@ -515,6 +516,21 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   const swipe = useRef<{ x: number; y: number; sideways: boolean }>();
   const wide = useWide();
   const exampleTag = useContext(ExampleTag);
+  const openCollection = useContext(CollectionLink);
+  const unit = useContext(UnitNow);
+  // A length typed instead of dragged: the drawing's length label opens the box under it (testers, Nov 17).
+  const [asking, setAsking] = useState<LengthAsk>();
+  const [lengthOn, setLengthOn] = useState(false);
+  // The hint shows while the drawing has a length label to tap; the drawing redraws itself, so it is watched.
+  useEffect(() => {
+    const el = root.current;
+    if (!el) return;
+    const look = () => setLengthOn(!!el.querySelector('.len-type'));
+    look();
+    const watch = new MutationObserver(look);
+    watch.observe(el, { childList: true, subtree: true });
+    return () => watch.disconnect();
+  }, []);
   const look = useContext(LookName);
   // The open question on each step. Every question starts folded (Cat, 2026-11-06: the first one stood open, so
   // See the choices didn't show the whole list); a tap on one opens it.
@@ -907,13 +923,22 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
         <Title id="opts" big="Style" label={look ?? label} hideLabel />
         <GarmentDrop label={look ?? label} onChoose={onChooseGarment} onPhoto={onPhoto} />
       </div>
+      {/* The collection one tap away: from Style it was only in the name's drop-down, and a tester looking for it
+          didn't find it there (testers, Nov 17; Cat applied). */}
+      {openCollection && (
+        <button type="button" className="collection-go" onClick={openCollection}>
+          The collection ›
+        </button>
+      )}
       {exampleTag}
       <div className="style-edit">
         <div className={['style-pin', tall && 'tall'].filter(Boolean).join(' ')} ref={pin}>
           {/* The drawing knows which step is open: on the length step it reaches down to the longest length. */}
           <ActiveTab.Provider value={active}>
             <Sections.Provider value={sections}>
-              <Corner.Provider value={corner}>{preview}</Corner.Provider>
+              <Corner.Provider value={corner}>
+                <TypeLength.Provider value={setAsking}>{preview}</TypeLength.Provider>
+              </Corner.Provider>
             </Sections.Provider>
           </ActiveTab.Provider>
           {host &&
@@ -927,6 +952,10 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           <EnlargeSketch host={host} corner={corner} name={name} />
           {undo && <BigUndo undo={undo} host={host} />}
         </div>
+        {/* The box rises from the foot of the screen, over everything, so the pinned drawing never covers it; the hint
+            sits on the drawing itself, at its foot. */}
+        {asking && createPortal(<LengthBox key={asking.name} ask={asking} unit={unit} onClose={() => setAsking(undefined)} />, document.body)}
+        {!asking && lengthOn && host && createPortal(<p className="length-hint">Drag the dot, or tap the length to type it.</p>, host)}
         <div
           className={!wide && split(active) ? 'style-panel one-q' : 'style-panel'}
           ref={panel}
