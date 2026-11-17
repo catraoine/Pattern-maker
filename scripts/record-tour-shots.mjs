@@ -395,10 +395,11 @@ const captionRoom = 'main .testing-tag, main .testing-note, .topbar { display: n
 const chooseOnly = await p.addStyleTag({ content: captionRoom });
 await wait(900);
 await start();
-await wait(1600);
-// Clicked straight on the button: Playwright's click waits for the screen to settle, and the form never stops moving.
-await main.getByRole('group', { name: 'What would you like to make?' }).getByRole('button', { name: /^Dress\b/ }).evaluate((el) => el.click());
-await wait(1800);
+await wait(900);
+// The pen presses Dress early, so the choice is seen to land before the film moves on (the critic's review, Nov 16:
+// Dress lit up only as the screen faded). press() clicks straight on the button: the form never stops moving.
+await press(main.getByRole('group', { name: 'What would you like to make?' }).getByRole('button', { name: /^Dress\b/ }), 0);
+await wait(2000);
 await stop('choose');
 await chooseOnly.evaluate((el) => el.remove());
 await wait(800);
@@ -756,6 +757,10 @@ await tap(patternView, 0);
 await main.getByRole('button', { name: 'Move points' }).waitFor({ timeout: 20000 });
 await wait(3000);
 await stop('pattern');
+// The pattern's own drawing, kept for the film's Print climax, where edit-tour.mjs draws it line by line from her
+// numbers (the critic's review, Nov 16: show the pattern being drafted from her body).
+writeFileSync(join(OUT, 'draft.svg'), await main.locator('svg.preview-svg').first().evaluate((el) => el.outerHTML));
+if (process.env.TOUR_PROBE) process.exit(0);
 await tap(main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: /^Front/ }).first(), 800);
 
 // round: turning all round on the form, filling the screen and drawing closer as it turns (Cat, 2026-10-22: start
