@@ -1,5 +1,5 @@
 import { stripeLean } from '../src/fabricStraight';
-import { changeLook, expect, expectLook, expectStyle, fillStepPages, goPrint, measureMe, openCollection, openFresh, openGroup, pickToMake, startWithExample, switchGarment, test } from './fixtures';
+import { MEASUREMENTS, changeLook, expect, expectLook, expectStyle, fillStepPages, goPrint, measureMe, openCollection, openFresh, openGroup, pickToMake, startWithExample, switchGarment, test } from './fixtures';
 
 test('the Maison collection: open it from styling, draw every look, make one', async ({ page }) => {
   await startWithExample(page);
@@ -142,6 +142,32 @@ test('the Chocolate Barrel Trouser: made low on the hip with one pleat, in choco
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('pattern-maker:skirt') ?? '{}'));
   expect(saved.finish?.fabric).toMatchObject({ fibre: 'cotton', colour: '#3d2418', drape: 'crisp', sheen: 'soft' });
   expect(saved.trousers).toMatchObject({ leg: 'barrel', rise: 'low', pleats: 'single', loops: 'loops', length: 'full' });
+});
+
+test('the Chocolate Barrel Trouser asks to re-measure on its own page when the crotch length is short for the depth', async ({ page }) => {
+  // The note sat under the pattern preview, which a look's own page leaves out, so a tester never saw it (tester walk, Nov 16).
+  const was = MEASUREMENTS['Crotch length'];
+  MEASUREMENTS['Crotch length'] = '56';
+  try {
+    await openFresh(page);
+    const main = page.getByRole('main');
+    await main.getByRole('button', { name: 'Begin' }).click();
+    await measureMe(page);
+    await fillStepPages(page);
+    await main.getByRole('button', { name: 'Choose what to make' }).click();
+    await pickToMake(page, 'Trousers');
+    await fillStepPages(page);
+    await expectStyle(page, 'Trousers');
+    await openCollection(page);
+    const set = main.getByRole('listitem').filter({ has: page.getByRole('heading', { name: 'The Lilac Lace Set' }) });
+    await set.locator('.set-piece').filter({ has: page.getByRole('heading', { name: 'Chocolate Barrel Trouser' }) }).getByRole('button', { name: 'Make the trouser' }).click();
+    await expect(main.getByRole('button', { name: 'Change a detail' })).toBeVisible();
+    await expect(main.getByText(/Your crotch length is short next to your crotch depth/)).toHaveCount(1);
+    await expect(main.getByText(/Your crotch length is short next to your crotch depth/)).toBeVisible();
+    if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/trouser-remeasure-${test.info().project.name}.png`, fullPage: true });
+  } finally {
+    MEASUREMENTS['Crotch length'] = was;
+  }
 });
 
 test('a collection top with sleeves asks for the arms first, so its pattern has its sleeves', async ({ page }) => {
