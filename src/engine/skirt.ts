@@ -322,10 +322,10 @@ function half(a: HalfArgs): Piece {
   // The hip curve arrives straight down, so a seam that then ran straight out to a flared hem turned a corner at the
   // hip, a kick that shows on the body (SS27 pleated skirt, Nov 12: "to a 10"). On a skirt of its own the curve arrives
   // along the line to the hem instead, so the seam runs on through the hip in one line; the hip point and the hem stay.
-  // Up to an A-line's usual 20 degrees: past that (a balloon's outer skirt) the front and back curves part too far to
-  // keep their hip notches level.
-  // Past 20 degrees it arrives at 20 degrees, so a steep A-line's corner at the hip is only what is left over (the Black
-  // Pleated Skirt's side panels turned 21 to 23 degrees there on a third of hand-measured bodies, tester sweep Nov 16).
+  // Up to an A-line's usual 20 degrees, and no further: arriving along a steeper line (a balloon's outer skirt) parts
+  // the front and back curves too far to keep their hip notches level. Past 20 degrees it arrives at 20 degrees, which
+  // leaves only the rest as a corner (the Black Pleated Skirt's side panels turned 21 to 23 degrees at the hip on a third
+  // of hand-measured bodies, tester sweep Nov 16); the balloon's notches still match on 121 measured bodies at 20.
   const toHem = unit(sub(hemSide, sh));
   const MAX_ARRIVE = Math.sin((20 * Math.PI) / 180);
   const capped = Math.abs(toHem.x) <= MAX_ARRIVE ? toHem : p(Math.sign(toHem.x) * MAX_ARRIVE, Math.sqrt(1 - MAX_ARRIVE * MAX_ARRIVE));
