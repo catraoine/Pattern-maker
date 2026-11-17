@@ -318,12 +318,20 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
         <p className="muted small">
           Drafted to your measurements as you choose.
         </p>
-        {draft?.crotchCapped && (
-          <p className="msg small">
-            Your crotch length is unusual next to your hip, so the crotch is drafted as near to it as the block allows. Please re-measure it,
-            snug between the legs from the front waist to the back waist.
-          </p>
-        )}
+        {draft?.crotchCapped &&
+          (draft.crotch.front + draft.crotch.back > draft.crotch.target ? (
+            <p className="msg small">
+              Your crotch length is short next to your crotch depth, shorter than the pattern can cut. Please re-measure both before you cut:
+              crotch depth seated, from the waist down the side to the chair, and crotch length snug between the legs from the front waist to the
+              back waist.
+            </p>
+          ) : (
+            <p className="msg small">
+              Your crotch length is long next to your crotch depth, longer than the pattern can cut. Please re-measure it, snug between the legs
+              from the front waist to the back waist. If it is right, measure your front and back waist to hip too: a fuller tummy or seat takes
+              more crotch length, and the pattern adds it at the centre waists.
+            </p>
+          ))}
       </section>
 
       <aside className="card" aria-labelledby="sum">

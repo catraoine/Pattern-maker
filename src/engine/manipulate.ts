@@ -319,7 +319,9 @@ export function moveBustDart(path: Path, apex: P, to: DartPlace, opts: { armhole
   const kept = { q1: pts[i1], q2: pts[peakAt + 1] };
   const before2 = pts.length;
   fairSide(pts, tags, joined);
-  // The fairing only changes points on the side seam above the new dart; find the dart's ends again by value.
+  fairAboveDart(pts, tags, [d.near, d.far]);
+  // The fairing changes the side seam above the new dart, and can raise the underarm and redraw the armhole's foot; the
+  // dart's ends stay where they are, so find them again by value.
   const shift = pts.length - before2;
   const at1 = pts.indexOf(kept.q1);
   const out = { pts, tags };
@@ -406,8 +408,11 @@ function bezier(a: P, c1: P, c2: P, b: P, steps: number): P[] {
 /** How far the princess side seam holds the underarm's square line before it runs on to the waist, in cm. */
 const UNDERARM_HOLD = 1;
 
-/** The most the underarm is raised to keep the side seams matching, in cm; beyond it the seam is left to fairSideOnce. */
+/** The most the underarm is raised to keep the side seams matching, in cm; beyond it the seam is left as fairSideOnce
+ *  drew it. A princess side seam needs no more than UNDERARM_RAISE_MAX; above a French dart on a full bust the old seam's
+ *  in-and-out held up to 1 cm more than a fair line (the bug hunt's sweep, Nov 16), so it may raise that far. */
 const UNDERARM_RAISE_MAX = 0.6;
+const UNDERARM_RAISE_DART = 1;
 
 /**
  * A princess top's or dress's side seam (fairSide `further`), made one curve from the underarm to the waist. Closing the
@@ -429,6 +434,15 @@ function fairToWaist(pts: P[], tags: string[], joined: P): boolean {
   // The line to the waist: the one long step after the join.
   const toWaist = len(sub(pts[j + 1], pts[j]));
   if (toWaist < 3) return false;
+  return fairRun(pts, tags, a, j, UNDERARM_RAISE_MAX);
+}
+
+/**
+ * The side seam from the underarm at index a to the end of the step after index j, made one curve that leaves the
+ * underarm square to the armhole (see fairToWaist) and meets the end along that last step's line. False, and nothing
+ * changed, when no such curve keeps the seam's length.
+ */
+function fairRun(pts: P[], tags: string[], a: number, j: number, raiseMax: number): boolean {
   // Skip repeated points at the underarm, so its line is read from the seam itself.
   let a1 = a + 1;
   while (a1 < j && len(sub(pts[a1], pts[a])) < 1e-6) a1++;
@@ -469,7 +483,7 @@ function fairToWaist(pts: P[], tags: string[], joined: P): boolean {
     else hi = mid;
   }
   const curve = curveFor((lo + hi) / 2);
-  if (Math.abs(lengthOf(curve) - was) > 0.02 || raise > UNDERARM_RAISE_MAX) return false;
+  if (Math.abs(lengthOf(curve) - was) > 0.02 || raise > raiseMax) return false;
   // (The armhole is redrawn only once the seam is sure to be, so a seam left as it was keeps its armhole.)
   const k = turn || raise ? retrueFrom(pts, tags, a) : undefined;
   if ((turn || raise) && k === undefined) return false;
@@ -478,6 +492,28 @@ function fairToWaist(pts: P[], tags: string[], joined: P): boolean {
   tags.splice(a + 1, j - a, ...curve.map(() => 'side'));
   if (k !== undefined) retrueArmhole(pts, tags, k, a, dA);
   return true;
+}
+
+/**
+ * A dart moved into the side seam below the bust (a French or side dart), with the seam from the underarm down to its
+ * upper leg made one curve (fairRun). Closing the old side dart leaves that seam bowing out, standing straight where the
+ * old dart closed, and bowing out again before the new dart: on the Blush Shift's front it waved under the arm on
+ * measured bust depths and front lengths (the bug hunt's sweep, Nov 16). The seam still meets the dart along its old line,
+ * so the dart folds to the seam as before.
+ */
+function fairAboveDart(pts: P[], tags: string[], legs: P[]) {
+  for (const leg of legs) {
+    const at = pts.indexOf(leg);
+    let e = at - 1;
+    if (e < 1 || tags[e] !== 'side' || tags[e + 1] !== 'dart') continue;
+    let a = e;
+    while (a > 0 && tags[a - 1] === 'side') a--;
+    if (a === 0 || tags[a - 1] !== 'armhole') continue;
+    // The seam's line into the dart, read over a step long enough to have one.
+    while (e > a + 2 && len(sub(leg, pts[e])) < 0.3) e--;
+    fairRun(pts, tags, a, e, UNDERARM_RAISE_DART);
+    return;
+  }
 }
 
 /** Up to this much shorter than the seam it replaces (cm), the fair curve needs no bow: well inside the seams' 0.1 cm. */
