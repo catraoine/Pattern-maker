@@ -355,7 +355,7 @@ function sheetPan(dur) {
 // The sheet is shown in the app's own chalk, not lifted to white, and its lines thickened so they read at film size
 // (Cat, Nov 15: a little darker, like the All round's chalk, and clearer lines).
 const pages = (dur, fades) => (existsSync(SHEET) ? piece({ src: sheetPan(dur), dur, ...fades }) : piece({ ...PAGES, dur, ...fades }));
-// The Print climax (the critic's review, Nov 16: show the pattern being drafted from her body): her five numbers come
+// The Print climax (the critic's review, Nov 16: show the pattern being drafted from her body): her numbers come
 // up, then the pattern's own pieces, as the app drew them for her (draft.svg, kept by record-tour-shots.mjs), are drawn
 // line by line in the film's champagne on black, outlines first, then the inner lines, the piece names last.
 // Rendered frame by frame, so every line is sharp and the timing exact.
@@ -530,14 +530,7 @@ const CUTS = {
   // round on you, drawing closer as it turns (the recorder fills the screen with it; Cat, 2026-10-22).
   words: async () => {
     const f = 0.5;
-    // On a phone the page is drawn in just enough to fill the frame, and a touch left of centre so the tape's brass tip
-    // stays on screen the whole way (Cat, 2026-10-24: the end of the tape must stay the same).
-    // On a computer the measuring pages are a column in the middle of the window: drawn in on it (Nov 14).
-    // The measuring pages hold still: a drift in made the tape grow, and the tape must stay one size (Cat, Nov 15).
-    const TAPE_VIEW = WIDE ? { zoom: [1.15, 1.15], at: [0.5, 0.53] } : { zoom: [1.08, 1.08], at: [0.49, 0.545] };
-    // Chapter 1 shows the measuring itself (Cat, Nov 16: "There is no chapter 1"; it had shrunk to one idle page): the
-    // waist with its number typed in, the bust and hips with the form taking the body's shape, the length and height
-    // quicker, and the check page that keeps them, each with a line of words. The times come from the take's
+    // Chapter 1 shows the measuring itself (Cat, Nov 16: "There is no chapter 1"). The times come from the take's
     // tape-marks.json (record-tour-shots.mjs).
     // OPENER_FILM=<walkthrough.mp4> keeps a released film's opening shot and Measure card frame for frame (Cat,
     // 2026-10-24: "go back to that other version exactly"): its first 5.6 s, fades and title already in them.
@@ -545,31 +538,27 @@ const CUTS = {
     const marksFile = join(SHOTS, 'tape-marks.json');
     if (!existsSync(marksFile)) throw new Error(`${marksFile} is missing: record the tape shot again (record-tour-shots.mjs writes it)`);
     const T = JSON.parse(readFileSync(marksFile, 'utf8'));
-    const lost = ['waist', 'next-0', 'next-2', 'next-4'].filter((m) => typeof T[m] !== 'number');
-    if (lost.length || (T['skip-5'] ?? T['page-5']) === undefined) throw new Error(`the tape take stopped early: no ${lost.join(', ') || 'page-5'} in ${marksFile}`);
-    const checkAt = (T['skip-5'] ?? T['page-5']) + 1.1; // once the pen dot from Skip has faded
+    // Only the marks the cut uses: the waist and the Next past the hips page.
+    const lost = ['waist', 'next-2'].filter((m) => typeof T[m] !== 'number');
+    if (lost.length) throw new Error(`the tape take stopped early: no ${lost.join(', ')} in ${marksFile}`);
     const span = (from, to, speed) => ({ from, dur: Math.round(((to - from) / speed) * 10) / 10, speed });
     // Each part ends as its last Next is pressed and the page turns, so a line never sits over the next page (the
     // critic's review, Nov 16); the optional weight page is left out.
     const turn = (n) => T[`next-${n}`] + 0.45;
-    const WAIST = span(T.waist - 0.05, turn(0), 1);
-    const ROUND = span(turn(0), turn(2), 1.6);
-    const LONG = span(turn(2), turn(4), 2.4);
-    const CHECK = { from: checkAt, dur: 3, speed: 1 };
-    const tape = (s, more) => piece({ shot: 'tape', ...s, ...(WIDE ? {} : TAPE_VIEW), ...more });
-    const waist = await tape(WAIST, { fadeIn: 0.5, notes: [[await note('A soft tape, round the waist.', 'low'), 0.9, WAIST.dur + 0.45]] });
+    // Just the form taking the body's shape, the tape round the waist, bust and hips in one run, with the app's own
+    // words, numbers and buttons masked off, and one line over it (Cat, Nov 17: "we don't need to show all the
+    // measurements going in"; the narration competed with the app text). The length, height and check pages are left out.
+    const FORM_ONLY = WIDE ? { zoom: [1.4, 1.45], at: [0.27, 0.5], frame: [-0.1, 1.1, -1, 0.74, 0.04] } : { zoom: [1.6, 1.66], at: [0.5, 0.27], frame: [-0.1, 0.565, -1, 2, 0.03] };
+    const BODY = span(T.waist - 0.05, turn(2), 1.7);
+    const shaping = await piece({ shot: 'tape', ...BODY, ...FORM_ONLY, fadeIn: 0.5, fadeOut: f, notes: [[await note('The form takes your shape.', 'low', false), 0.6, BODY.dur - 0.4]] });
     const measuring = [
-      // A released opening (OPENER_FILM) already ends on its own Measure card.
-      released ? waist : await dissolve(await piece({ still: await card('01', 'Measure', 'Five numbers, once.'), dur: 2.2, fadeIn: f, fadeOut: 0.5 }), waist, 0.04),
-      await tape(ROUND, { notes: [[await note('The form takes your shape.', 'low'), 0.3, ROUND.dur + 0.45]] }),
-      await tape(LONG, { fadeOut: 0.3, notes: [[await note('Then your length.', 'low'), 0.3, LONG.dur - 0.1]] }),
-      await tape(CHECK, { ...(WIDE && { zoom: [1.3, 1.3], at: [0.5, 0.4] }), /* drawn in a little higher, so the heading sits clear of the line (critic, Nov 17) */ fadeIn: 0.3, fadeOut: f, notes: [[await note(WIDE ? 'Measured once. Kept for every pattern.' : 'Kept for every pattern.', 'low'), 0.3, CHECK.dur - 0.2]] }),
+      // A released opening (OPENER_FILM) already ends on its own Measure card. No count of measurements: it can be
+      // many more than five (Cat, Nov 17).
+      released ? shaping : await dissolve(await piece({ still: await card('01', 'Measure', 'Your own measurements, once.'), dur: 2.2, fadeIn: f, fadeOut: 0.5 }), shaping, 0.04),
     ];
-    // What the app does, said plainly before chapter 1 (Cat, Nov 16: "it doesn't even say how it works"; "Patterns draft
-    // to your body"): why it's different from a shop pattern, and the four steps the chapters follow.
-    const overview = await piece({ still: await card('', 'Patterns drafted<br>to your body', 'Not a standard size: your own measurements.<br>Measure. Choose. Style. Print.'), dur: 3.8, fadeIn: 0.6, fadeOut: f });
+    // No title card before chapter 1 (Cat, Nov 17: take out this screen): How it works goes straight to Measure.
     const opening = [
-      ...(released ? [await piece({ shot: 'round', src: released, from: 0, dur: 5.6 })] : [...(await INTROS[INTRO]()), overview]),
+      ...(released ? [await piece({ shot: 'round', src: released, from: 0, dur: 5.6 })] : await INTROS[INTRO]()),
       ...measuring,
     ];
     // TOUR_PREVIEW=1 stops after the opening and the tape, to try an opening without cutting the whole film.
@@ -637,7 +626,7 @@ async function realDress(dur = 5.2) {
   const framedClip = join(work, 'real-dress.mp4');
   const frameIt = `[0:v]split[a][b];[a]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},boxblur=24:2,eq=brightness=-0.32:saturation=0.6[bg];[b]${fit}[fg];[bg][fg]${place}`;
   execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', clip ? REAL_CLIP : REAL_PHOTO, '-filter_complex', frameIt, ...(clip ? ['-an', '-t', String(dur + 0.5), framedClip] : ['-frames:v', '1', framed])]);
-  const words2 = await words(`<div class="f mid" style="display:flex;${WIDE ? 'padding-left:48%;background:linear-gradient(to right,rgba(0,0,0,0) 30%,rgba(0,0,0,.6) 60%)' : 'justify-content:flex-end;padding-bottom:70px;background:linear-gradient(to top,rgba(0,0,0,.92) 0,rgba(0,0,0,.85) 24%,rgba(0,0,0,0) 42%)'}"><h1 class="t" style="font-size:${HEAD}px">Drafted<br>to your body</h1><p class="l" style="margin-top:18px">Begin with five measurements.</p></div>`);
+  const words2 = await words(`<div class="f mid" style="display:flex;${WIDE ? 'padding-left:48%;background:linear-gradient(to right,rgba(0,0,0,0) 30%,rgba(0,0,0,.6) 60%)' : 'justify-content:flex-end;padding-bottom:70px;background:linear-gradient(to top,rgba(0,0,0,.92) 0,rgba(0,0,0,.85) 24%,rgba(0,0,0,0) 42%)'}"><h1 class="t" style="font-size:${HEAD}px">Drafted<br>to your body</h1><p class="l" style="margin-top:18px">Begin with your measurements.</p></div>`);
   return clip
     ? piece({ src: framedClip, dur, fadeOut: 1.2, over: words2, overAt: 0.9, overIn: 0.8 })
     : piece({ still: framed, dur, zoom: [1, 1.05], at: WIDE ? [0.34, 0.45] : [0.5, 0.4], fadeOut: 1.2, over: words2, overAt: 0.9, overIn: 0.8 });

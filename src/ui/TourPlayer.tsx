@@ -23,12 +23,12 @@ const WIDE_SCREEN = '(min-width: 900px) and (min-aspect-ratio: 1/1)';
 /** Where each part starts in the video, in seconds, and how long it runs. Update with the video. */
 /** says: what the part shows, in words, for anyone who can't see the film (the accessibility review, 2026-10-30). */
 const PARTS: FilmPart[] = [
-  { name: 'Measure', from: 0, says: 'Not a standard size: a pattern drafted from your own measurements. Five of them, taken once with a soft tape. The dress form takes your shape as you go.' },
-  { name: 'Choose', from: 28.4, says: 'Then what to make: start from a photo of a piece you love, which becomes your dress, pick a look from the collection, or choose a garment.' },
-  { name: 'Style', from: 44.6, says: 'Make it yours: its shape, details and your own cloth, step by step on the drawing, then draw a longer hem on the form. Your pattern is drafted as you go, and the dress turns all round.' },
-  { name: 'Print', from: 76.4, says: 'Print it at home on ordinary paper, full size at a copy shop, or project it true size onto your fabric. Drafted to your body.' },
+  { name: 'Measure', from: 0, says: 'Not a standard size: a pattern drafted from your own measurements, taken once with a soft tape. The dress form takes your shape as you go.' },
+  { name: 'Choose', from: 15.4, says: 'Then what to make: start from a photo of a piece you love, which becomes your dress, pick a look from the collection, or choose a garment.' },
+  { name: 'Style', from: 31.6, says: 'Make it yours: its shape, details and your own cloth, step by step on the drawing, then draw a longer hem on the form. Your pattern is drafted as you go, and the dress turns all round.' },
+  { name: 'Print', from: 63.4, says: 'Print it at home on ordinary paper, full size at a copy shop, or project it true size onto your fabric. Drafted to your body.' },
 ];
-export const TOUR_LABEL = '1:44';
+export const TOUR_LABEL = '1:31';
 
 export type FilmPart = { name: string; from: number; says: string };
 
