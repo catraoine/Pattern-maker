@@ -34,6 +34,8 @@ interface CloudApi {
   deleteAccount(): Promise<void>;
   /** The signed-in person's Founding Atelier place, or null when they aren't on the list. Throws when it can't be checked. */
   founding(): Promise<FoundingPlace | null>;
+  /** The signed-in person's sign-in token, for a server function that sends to their own email; null when signed out. */
+  token(): Promise<string | null>;
 }
 
 export interface Kept {
@@ -133,6 +135,10 @@ async function supabaseCloud(): Promise<CloudApi> {
       if (!res.ok) throw new Error(`Founding check failed (${res.status})`);
       return ((await res.json()) as { place?: FoundingPlace | null }).place ?? null;
     },
+    async token() {
+      const { data } = await sb.auth.getSession();
+      return data.session?.access_token ?? null;
+    },
   };
 }
 
@@ -224,6 +230,9 @@ function fakeCloud(): CloudApi {
       if (!who) return null;
       const places = JSON.parse(localStorage.getItem('pattern-maker:founding-fake') || '{}') as Record<string, FoundingPlace>;
       return places[who.email] ?? null;
+    },
+    async token() {
+      return current() ? 'fake-token' : null;
     },
   };
 }

@@ -1330,6 +1330,7 @@ export default function App() {
               onKeep={saveState === 'can' ? () => setAccount(savePattern(account, current, describePattern(current), person.id)) : undefined}
               onFitNotes={saveState === 'full' && !savedNow ? undefined : openFitNotes}
               tester={!!account.testerCode}
+              emailTo={{ signedIn: cloud.user?.email, testerCode: account.testerCode }}
               fitNote={savedNow?.fit ? fitSummary(savedNow.fit, savedNow.choices) : undefined}
               garment={garment}
               profile={profile}
