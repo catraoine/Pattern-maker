@@ -324,8 +324,12 @@ function half(a: HalfArgs): Piece {
   // along the line to the hem instead, so the seam runs on through the hip in one line; the hip point and the hem stay.
   // Up to an A-line's usual 20 degrees: past that (a balloon's outer skirt) the front and back curves part too far to
   // keep their hip notches level.
+  // Past 20 degrees it arrives at 20 degrees, so a steep A-line's corner at the hip is only what is left over (the Black
+  // Pleated Skirt's side panels turned 21 to 23 degrees there on a third of hand-measured bodies, tester sweep Nov 16).
   const toHem = unit(sub(hemSide, sh));
-  const arrive = a.bendBelowHip && !(hemArc && a.flareFrom !== undefined) && Math.abs(hemSide.x - a.hipQ) > 0.3 && Math.abs(toHem.x) <= Math.sin((20 * Math.PI) / 180) ? toHem : p(0, 1);
+  const MAX_ARRIVE = Math.sin((20 * Math.PI) / 180);
+  const capped = Math.abs(toHem.x) <= MAX_ARRIVE ? toHem : p(Math.sign(toHem.x) * MAX_ARRIVE, Math.sqrt(1 - MAX_ARRIVE * MAX_ARRIVE));
+  const arrive = a.bendBelowHip && !(hemArc && a.flareFrom !== undefined) && Math.abs(hemSide.x - a.hipQ) > 0.3 ? capped : p(0, 1);
   outline.curve(add(sw, mul(squareOff, a.hipDepth * 0.2)), sub(sh, mul(arrive, a.hipDepth * 0.45)), sh, 'side');
   if (hemArc && a.flareFrom !== undefined) {
     const { t } = hemArc;
