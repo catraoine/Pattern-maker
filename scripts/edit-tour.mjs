@@ -327,7 +327,7 @@ const PATTERN = WIDE
   // the sheet's foot, so no view switch or step bar shows under it (Cat, 2026-11-08: cut-off app text).
   // The sheet is chalk now (Nov 14), so it is shown as the app draws it, not toned down, and masked just above the
   // view switches, which sit closer under it.
-  : { from: 1.1, dur: 3.2, speed: 0.75, zoom: [1.42, 1.46], at: [0.5, 0.473], frame: [0.215, 0.675, -1, 2, 0.002] };
+  : { from: 1.1, dur: 3.2, speed: 0.75, zoom: [2.5, 2.56], at: [0.5, 0.425], frame: [0.12, 0.98, -1, 2, 0.002] };
 // On a phone the whole sheet of pages shows, opened under See the pages, the words round it in black (Cat, 2026-10-24:
 // 1.6 was too close).
 // On a phone the sheet of pages is thin champagne lines on black; lifted so they read (walkthrough, 2026-10-24).
