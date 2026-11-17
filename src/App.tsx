@@ -42,7 +42,7 @@ import { describePattern } from './screens/describe';
 import { WelcomeScreen } from './screens/WelcomeScreen';
 import { CODE_MESSAGE, checkCode, hasAccess, rememberAccess, testerFromLink, withoutTester } from './access';
 import { cleanCode } from './photo/limit';
-import { keepOffline } from './swUpdate';
+import { atNewScreen, keepOffline } from './swUpdate';
 import { preloadScreens, screen } from './screens/load';
 import { FABRIC, StartOver, openLookNext, openTabNext } from './ui/StyleLayout';
 import { KeptCount } from './ui/SaveControl';
@@ -346,6 +346,12 @@ export default function App() {
     } catch {
       // Storage off (a private window): a reload starts at the welcome.
     }
+  }, [step]);
+  // After the place is saved, so a new release shown now opens on this screen.
+  const firstScreen = useRef(true);
+  useEffect(() => {
+    if (firstScreen.current) firstScreen.current = false;
+    else atNewScreen(RESTORABLE.includes(step));
   }, [step]);
   // The welcome's dress form waits under the loading screen, which wraps its bodice into the form's outline.
   const [formStart, setFormStart] = useState<FormStart>(opening ? 'wait' : 'fresh');
