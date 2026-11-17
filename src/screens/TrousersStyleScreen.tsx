@@ -162,6 +162,23 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
     );
   }
 
+  // With the finished measurements, above Print: under the preview a look never showed it, since a look opens on its
+  // own page without the preview (tester walk, Nov 16).
+  const crotchNote =
+    draft?.crotchCapped &&
+          (draft.crotch.front + draft.crotch.back > draft.crotch.target ? (
+            <p className="msg small">
+              Your crotch length is short next to your crotch depth, shorter than the pattern can cut. Please re-measure both before you cut:
+              crotch depth seated, from the waist down the side to the chair, and crotch length snug between the legs from the front waist to the
+              back waist.
+            </p>
+          ) : (
+            <p className="msg small">
+              Your crotch length is long next to your crotch depth, longer than the pattern can cut. Please re-measure it, snug between the legs
+              from the front waist to the back waist. If it is right, measure your front and back waist to hip too, and the pattern will add the
+              extra length at the centre waists.
+            </p>
+          ));
   return (
     <StyleLayout
       fabric={fabric}
@@ -181,6 +198,8 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
       onMode={onMode}
       finished={
         draft && (
+          <>
+          {crotchNote}
           <FinishedTable lines={finishedLines(trousersSpec(values as TrousersMeasurements, draft), { elasticCm: draft.elastic?.finishedCm })} noun="Trousers">
             <p className="muted small">
               {draft.elastic ? `The waist is cut to pass over your hips and gathered onto ${draft.elastic.finishedCm} cm of elastic. ` : ''}
@@ -188,6 +207,7 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
               There is {ease.depth} cm of room below the crotch and {ease.crotch} cm along it.
             </p>
           </FinishedTable>
+          </>
         )
       }
     >
@@ -318,20 +338,6 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
         <p className="muted small">
           Drafted to your measurements as you choose.
         </p>
-        {draft?.crotchCapped &&
-          (draft.crotch.front + draft.crotch.back > draft.crotch.target ? (
-            <p className="msg small">
-              Your crotch length is short next to your crotch depth, shorter than the pattern can cut. Please re-measure both before you cut:
-              crotch depth seated, from the waist down the side to the chair, and crotch length snug between the legs from the front waist to the
-              back waist.
-            </p>
-          ) : (
-            <p className="msg small">
-              Your crotch length is long next to your crotch depth, longer than the pattern can cut. Please re-measure it, snug between the legs
-              from the front waist to the back waist. If it is right, measure your front and back waist to hip too: a fuller tummy or seat takes
-              more crotch length, and the pattern adds it at the centre waists.
-            </p>
-          ))}
       </section>
 
       <aside className="card" aria-labelledby="sum">

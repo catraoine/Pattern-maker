@@ -548,7 +548,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
             {/* Said only when a check found something: a line that everything passed was reassurance (copy review, Nov 14). */}
             {!imported && passed < checks.length && (
               <p className="muted small">
-                {checks.length - passed} of {checks.length} seam checks found something to look at. The details are on the last page of the PDF.
+                {checks.length - passed} of {checks.length} seam checks found something to look at. The details are under Seam check in the instructions booklet.
               </p>
             )}
           </div>
