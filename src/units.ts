@@ -44,13 +44,27 @@ export function fmtLength(cm: number, unit: Unit): string {
 }
 
 const NUM = '(\\d+(?:[.,]\\d+)?)';
-// "30 × 20 cm" or "30 x 20 cm": both numbers are centimetres.
-const PAIR_CM = new RegExp(`${NUM}\\s*([×x])\\s*${NUM}\\s*cm\\b(?!\\s*\\()`, 'g');
-const ONE_CM = new RegExp(`${NUM}\\s*cm\\b(?!\\s*\\()`, 'g');
-const ONE_M = new RegExp(`${NUM}\\s*m\\b(?!\\s*\\()`, 'g');
+// "30 × 20 cm" or "30 x 20 cm": both numbers are centimetres. A length already followed by its inches, "10 cm (3.94
+// in)", is left alone; other brackets are not ("neckline 19.5 cm (half)" stayed in cm in the inch booklet, Nov 17).
+const DONE = '(?!\\s*\\(\\d)';
+const PAIR_CM = new RegExp(`${NUM}\\s*([×x])\\s*${NUM}\\s*cm\\b${DONE}`, 'g');
+const ONE_CM = new RegExp(`${NUM}\\s*cm\\b${DONE}`, 'g');
+const ONE_M = new RegExp(`${NUM}\\s*m\\b${DONE}`, 'g');
 // The labels printed along each seam are in capitals ("SHOULDER · 1.5 CM ALLOWANCE") and stayed in centimetres in an
 // inch PDF whose title block said "Seam allowance 5/8 in" (Nov 17).
-const ONE_CM_CAPS = new RegExp(`${NUM}\\s*CM\\b(?!\\s*\\()`, 'g');
+const ONE_CM_CAPS = new RegExp(`${NUM}\\s*CM\\b${DONE}`, 'g');
+// And the fabric amount on the booklet's cover and cutting layout ("2.4 M OF 55⅛ IN FABRIC").
+const ONE_M_CAPS = new RegExp(`${NUM}\\s*M\\b${DONE}`, 'g');
+// Millimetres, for the small steps in sewing ("trim 3 mm off", "2 mm from its edge"): to the nearest sixteenth of an inch,
+// never less than one, since an eighth is too coarse for them (Nov 17: they stayed in mm in the inch booklet).
+const ONE_MM = new RegExp(`${NUM}\\s*mm\\b${DONE}`, 'g');
+function mmToInches(mm: number): string {
+  const sixteenths = Math.max(1, Math.round((mm / 25.4) * 16));
+  return sixteenths % 2 ? `${sixteenths}/16 in` : toInches((sixteenths / 16) * 2.54);
+}
+// "stitch the sides 1 cm in." turned into "3/8 in in."; said the way an inch pattern does instead. Only where "in"
+// means inward (at the end of a clause, or before "from", "as soon", "and along" or "if you"), never "1 cm in length".
+const IN_IN = /([\d⅛¼⅜½⅝¾⅞][\d/⅛¼⅜½⅝¾⅞-]* in) in(?=[.,;:)]|$| from\b| as soon\b| and along\b| if you\b)( from)?/g;
 // The test square is the one length a sewist checks with a ruler, so it keeps the exact figure.
 const SQUARE = /10 cm test square|exactly 10 cm/g;
 const SQUARE_LABEL = /^10 CM$/;
@@ -68,7 +82,10 @@ export function inInches(text: string): string {
     .replace(PAIR_CM, (_, a, sep, b) => `${toInches(num(a)).replace(/ in$/, '')} ${sep} ${toInches(num(b))}`)
     .replace(ONE_CM, (_, a) => toInches(num(a)))
     .replace(ONE_CM_CAPS, (_, a) => toInches(num(a)).replace(/ in$/, ' IN'))
-    .replace(ONE_M, (_, a) => toYards(num(a)));
+    .replace(ONE_M, (_, a) => toYards(num(a)))
+    .replace(ONE_M_CAPS, (_, a) => toYards(num(a)).replace(/ yd$/, ' YD'))
+    .replace(ONE_MM, (_, a) => mmToInches(num(a)))
+    .replace(IN_IN, (_, len, from) => (from ? `${len} from` : `${len} from the edge`));
 }
 
 /**

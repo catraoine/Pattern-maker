@@ -486,7 +486,7 @@ function flow(doc: PDFDocument, paper: 'a4' | 'letter', fonts: Fonts) {
     st.page.drawLine({ start: { x: left, y: st.y }, end: { x: left + width, y: st.y }, thickness: 0.4, color: rgb(0.75, 0.75, 0.75) });
     st.y -= gap + 6;
   };
-  return { st, write, label, room, left, width, pw, ph };
+  return { st, write, wrap, label, room, left, width, pw, ph };
 }
 
 const fmt = (v: number) => (Math.round(v * 10) / 10).toFixed(1);
@@ -503,7 +503,7 @@ function addSummaryPage(
   s: Summary,
   [stepX, stepY]: [number, number],
 ) {
-  const { st, write, label, room, left, width } = flow(doc, paper, fonts);
+  const { st, write, wrap, label, room, left, width } = flow(doc, paper, fonts);
   drawText(st.page, ['MAISON TRACÉ', s.madeFor && `MADE FOR ${s.madeFor}`, s.date, s.edition, s.code && `CODE ${s.code}`].filter(Boolean).join('   ·   ').toUpperCase(), {
     x: left,
     y: st.y,
@@ -557,12 +557,18 @@ function addSummaryPage(
     0,
     10,
   );
+  // A long check name ran on under its own figures ("...blends across the shoulder" over "front 90.1°", Nov 17), so
+  // each column wraps within its own width and the row takes as many lines as the longer one needs.
+  const detailAt = 0.48 * width;
   for (const c of s.checks) {
-    room(14);
+    const names = wrap(c.label, 9, fonts.body, detailAt - 46 - 10);
+    const details = wrap(c.detail, 8.5, fonts.body, width - detailAt);
+    const extra = (Math.max(names.length, details.length) - 1) * 11;
+    room(14 + extra);
     drawText(st.page, c.ok ? 'OK' : 'CHECK', { x: left, y: st.y, size: 7, font: fonts.label, tracking: 0.2, grey: c.ok ? 0.4 : 0 });
-    drawText(st.page, c.label, { x: left + 46, y: st.y, size: 9, font: fonts.body });
-    drawText(st.page, c.detail, { x: left + 0.48 * width, y: st.y, size: 8.5, font: fonts.body, grey: 0.4 });
-    st.y -= 14;
+    names.forEach((l, i) => drawText(st.page, l, { x: left + 46, y: st.y - i * 11, size: 9, font: fonts.body, worded: true }));
+    details.forEach((l, i) => drawText(st.page, l, { x: left + detailAt, y: st.y - i * 11, size: 8.5, font: fonts.body, grey: 0.4, worded: true }));
+    st.y -= 14 + extra;
   }
   st.y -= 16;
 
@@ -627,16 +633,50 @@ function addLayPages(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', lay
     const at = (q: P) => `${(q.y * k).toFixed(2)} ${(q.x * k).toFixed(2)}`;
     st.page.drawRectangle({ x: x0, y: y0 - h, width: lay.length * k, height: h, color: rgb(0.96, 0.96, 0.96) });
     st.page.drawLine({ start: { x: x0, y: y0 }, end: { x: x0 + lay.length * k, y: y0 }, thickness: 0.8, dashArray: lay.folded ? [4, 2] : undefined });
+    const key: string[] = [];
     for (const pl of lay.placements) {
       const d = pl.pts.map((q, i) => `${i ? 'L' : 'M'}${at(q)}`).join(' ') + ' Z';
       st.page.drawSvgPath(d, { x: x0, y: y0, borderColor: rgb(0, 0, 0), borderWidth: 0.7, color: rgb(1, 1, 1) });
       const name = pl.name.toUpperCase() + (pl.single ? ' (1 LAYER)' : '');
-      const size = 6;
-      drawText(st.page, name, { x: x0 + pl.at.y * k, y: y0 - pl.at.x * k - size / 3, size, font: fonts.label, tracking: 0.1, centre: true });
+      // A name wider or taller than its piece ran into the next piece's ("COLLAR" into "POCKET FACING" on the vest, the
+      // trouser's belt loops over its fly facing, Nov 17). It breaks onto lines that fit the piece, a size smaller if
+      // need be; a piece too small for even that carries a number, named in a key under the layout.
+      const xs = pl.pts.map((q) => q.y * k);
+      const ys = pl.pts.map((q) => q.x * k);
+      // Most pieces aren't boxes, so a name gets the middle part of its piece's width, centred in its box.
+      const roomW = 0.8 * (Math.max(...xs) - Math.min(...xs)) - 3;
+      const mid = { x: (Math.max(...xs) + Math.min(...xs)) / 2, y: (Math.max(...ys) + Math.min(...ys)) / 2 };
+      const roomH = Math.max(...ys) - Math.min(...ys) - 2;
+      const wide = (t: string, sz: number) => fonts.label.widthOfTextAtSize(t, sz) + 0.1 * sz * Math.max(0, t.length - 1);
+      const fit = (sz: number) => {
+        const lines: string[] = [];
+        for (const word of name.split(' ')) {
+          const next = lines.length ? `${lines[lines.length - 1]} ${word}` : word;
+          if (lines.length && wide(next, sz) <= roomW) lines[lines.length - 1] = next;
+          else lines.push(word);
+        }
+        return lines.every((l) => wide(l, sz) <= roomW) && lines.length * sz * 1.2 <= roomH ? lines : undefined;
+      };
+      let size = 6;
+      let lines = fit(6);
+      if (!lines) lines = fit((size = 5));
+      if (!lines) {
+        key.push(name);
+        size = 6;
+        lines = [String(key.length)];
+      }
+      const shown = lines;
+      shown.forEach((l, i) =>
+        drawText(st.page, l, { x: x0 + mid.x, y: y0 - mid.y - size / 3 + ((shown.length - 1) / 2 - i) * size * 1.2, size, font: fonts.label, tracking: 0.1, centre: true }),
+      );
     }
     drawText(st.page, lay.folded ? 'FOLD' : 'SELVEDGE', { x: x0, y: y0 + 4, size: 6.5, font: fonts.label, tracking: 0.2, grey: 0.4 });
     drawText(st.page, lay.folded ? 'SELVEDGES' : 'SELVEDGE', { x: x0, y: y0 - h - 10, size: 6.5, font: fonts.label, tracking: 0.2, grey: 0.4 });
     st.y -= h + 24;
+    if (key.length) {
+      st.y += 4;
+      write(key.map((n, i) => `${i + 1}  ${n}`).join('     '), 7.5, fonts.label, 0, 12);
+    }
   }
 }
 

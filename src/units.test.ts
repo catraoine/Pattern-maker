@@ -27,6 +27,16 @@ describe('inches', () => {
     // Seam labels on the pieces are in capitals (Nov 17: they stayed in cm in an inch PDF).
     expect(inInches('SHOULDER · 1.5 CM ALLOWANCE')).toBe('SHOULDER · ⅝ IN ALLOWANCE');
     expect(inInches('HEM · 4 CM ALLOWANCE')).toBe('HEM · 1⅝ IN ALLOWANCE');
+    // A bracket that isn't the length's own inches doesn't stop it ("neckline 19.5 cm (half)" stayed in cm), and the
+    // cover's capital metres turn into yards.
+    expect(inInches('collar 18 cm, neckline 19.5 cm (half), identical')).toBe('collar 7⅛ in, neckline 7⅝ in (half), identical');
+    expect(inInches('2.4 M OF 140 CM FABRIC')).toBe('2⅝ YD OF 55⅛ IN FABRIC');
+    // Millimetres go to sixteenths, and "1 cm in" doesn't read "3/8 in in".
+    expect(inInches('Trim 3 mm off, then edge-stitch 2 mm from its edge, within 1 mm and 5 mm.')).toBe('Trim ⅛ in off, then edge-stitch 1/16 in from its edge, within 1/16 in and 3/16 in.');
+    expect(inInches('stitch the sides 1 cm in. Turn it')).toBe('stitch the sides ⅜ in from the edge. Turn it');
+    expect(inInches('a casing 1.5 cm in from the seam line')).toBe('a casing ⅝ in from the seam line');
+    expect(inInches('stay-stitch 1 cm in as soon as they are cut')).toBe('stay-stitch ⅜ in from the edge as soon as they are cut');
+    expect(inInches('trim to 1 cm in length')).toBe('trim to ⅜ in in length');
     expect(inInches('10 cm (3.94 in) test square')).toBe('10 cm (3.94 in) test square');
     expect(inInches('cm or in')).toBe('cm or in');
     expect(inInches('Page 2 of 4')).toBe('Page 2 of 4');
