@@ -147,6 +147,8 @@ get in with their tester link.
 
 ## Queued for "ship" (as of Nov 6, after Release 72)
 
+- #368 (weekly code review, Nov 16): the sign-in question is not asked again once joined work is on the device; a
+  founding place needs a confirmed email; Email me the PDF rate limit. Waits on green checks and Cat's "ship".
 - #259: bias slip side slit up to the hip with the zip in the right seam (needed for the fit testers' black slit
   slip skirt, fit check Nov 11), plus bias mini, open polo collar and ruffled trouser hem, all In testing. Main merged
   in Nov 6; waits on "ship".
