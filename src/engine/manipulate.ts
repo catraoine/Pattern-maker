@@ -343,10 +343,141 @@ function fairSide(pts: P[], tags: string[], joined: P, further = false) {
     fairSideOnce(pts, tags, joined, 4, false);
     return;
   }
+  if (fairToWaist(pts, tags, joined)) return;
   const plain = fairSideOnce(pts.slice(), tags.slice(), joined, 4, false);
   let below = 4;
   if (plain !== undefined && plain > SIDE_FAIR_SHORT) for (const more of [6, 8, 10, 12]) if (fairSideOnce(pts.slice(), tags.slice(), joined, more, false) !== undefined) below = more;
   fairSideOnce(pts, tags, joined, below, true);
+}
+
+/** How much of the armhole above the underarm is redrawn when the side seam's line under the arm changes, in cm. */
+const ARMHOLE_RETRUE = 7;
+
+/** How far the redrawn armhole runs straight into the underarm, in cm. */
+const ARMHOLE_SQUARE = 0.5;
+
+/** Where the armhole's redrawn stretch starts, back from the underarm at index a: ARMHOLE_RETRUE cm along it, or
+ *  undefined when the armhole is too short. It stays on the armhole itself, so a princess opening or a dart in it is
+ *  never redrawn away. */
+function retrueFrom(pts: P[], tags: string[], a: number): number | undefined {
+  const edge = tags[a - 1];
+  let k = a;
+  let s = 0;
+  while (k > 1 && s < ARMHOLE_RETRUE && tags[k - 2] === edge) {
+    s += len(sub(pts[k], pts[k - 1]));
+    k--;
+  }
+  return s < ARMHOLE_RETRUE * 0.8 || a - k < 3 ? undefined : k;
+}
+
+/** Redraw the armhole from index k to the underarm at index a as one curve that leaves the armhole as it was and
+ *  arrives square to the side seam, which now leaves the underarm along `seam`. */
+function retrueArmhole(pts: P[], tags: string[], k: number, a: number, seam: P) {
+  const N = pts[k];
+  const A = pts[a];
+  const dN = unit(sub(pts[k + 1], pts[k - 1]));
+  let back = a - 1;
+  while (back > k && len(sub(pts[back], A)) < 1e-6) back--;
+  const arrive = unit(sub(A, pts[back]));
+  // Square to the seam, on the side the armhole came in from.
+  const square = p(-seam.y, seam.x);
+  const dAr = square.x * arrive.x + square.y * arrive.y >= 0 ? square : mul(square, -1);
+  // The last ARMHOLE_SQUARE cm runs straight and square into the seam, as the block's own underarm does, so the corner
+  // reads square however the pattern is sampled.
+  const E = sub(A, mul(dAr, ARMHOLE_SQUARE));
+  const reach = len(sub(E, N)) / 3;
+  const curve = bezier(N, add(N, mul(dN, reach)), sub(E, mul(dAr, reach)), E, 30);
+  const tag = tags[a - 1];
+  pts.splice(k + 1, a - k - 1, ...curve);
+  tags.splice(k + 1, a - k - 1, ...curve.map(() => tag));
+}
+
+/** A cubic from a to b (controls c1, c2), as `steps` points after a, ending on b. */
+function bezier(a: P, c1: P, c2: P, b: P, steps: number): P[] {
+  const out: P[] = [];
+  for (let i = 1; i <= steps; i++) {
+    const t = i / steps;
+    const m = 1 - t;
+    out.push(p(m * m * m * a.x + 3 * m * m * t * c1.x + 3 * m * t * t * c2.x + t * t * t * b.x, m * m * m * a.y + 3 * m * m * t * c1.y + 3 * m * t * t * c2.y + t * t * t * b.y));
+  }
+  return out;
+}
+
+/** How far the princess side seam holds the underarm's square line before it runs on to the waist, in cm. */
+const UNDERARM_HOLD = 1;
+
+/** The most the underarm is raised to keep the side seams matching, in cm; beyond it the seam is left to fairSideOnce. */
+const UNDERARM_RAISE_MAX = 0.6;
+
+/**
+ * A princess top's or dress's side seam (fairSide `further`), made one curve from the underarm to the waist. Closing the
+ * side dart leaves the seam in, out and in again over the few cm under the arm, then straight to the waist; a curve over
+ * only part of it kept an S whenever the bust point sits high for the front length (a fit tester's own bust depth and
+ * front length, Nov 16: the app's estimates never showed it). It leaves the underarm square to the armhole for
+ * UNDERARM_HOLD, as a pattern cutter squares off an underarm (re-truing the armhole's foot first when the underarm was
+ * tipped the wrong way), meets the waist along the seam's line to it, so the waist
+ * keeps its shape, and is as long as the seam it replaces, so the side seams still match. False when the seam isn't a
+ * short run under the arm and one long line to the waist, and it is left to fairSideOnce.
+ */
+function fairToWaist(pts: P[], tags: string[], joined: P): boolean {
+  const n = pts.length;
+  const j = pts.findIndex((q) => len(sub(q, joined)) < 1e-6);
+  if (j < 1 || j + 2 >= n || tags[j] !== 'side' || tags[j + 1] !== 'side' || tags[j - 1] !== 'side') return false;
+  let a = j;
+  while (a > 0 && tags[a - 1] === 'side') a--;
+  if (a === 0) return false;
+  // The line to the waist: the one long step after the join.
+  const toWaist = len(sub(pts[j + 1], pts[j]));
+  if (toWaist < 3) return false;
+  // Skip repeated points at the underarm, so its line is read from the seam itself.
+  let a1 = a + 1;
+  while (a1 < j && len(sub(pts[a1], pts[a])) < 1e-6) a1++;
+  let A = pts[a];
+  const B = pts[j + 1];
+  let dA = unit(sub(pts[a1], A));
+  const dB = unit(sub(B, pts[j]));
+  // Closing the dart tips the underarm with the seam above it, so the seam can leave the arm leaning the other way from
+  // the line to the waist: in under the arm, then out. Then the seam leaves along that line instead, and the armhole's
+  // last ARMHOLE_RETRUE cm are redrawn to meet it square, as a pattern cutter re-trues an underarm.
+  const chordDir = unit(sub(B, A));
+  const across = (d: P) => chordDir.x * d.y - chordDir.y * d.x;
+  const turn = across(dA) * across(dB) > 0;
+  if (turn) dA = chordDir;
+  let was = 0;
+  for (let i = a; i <= j; i++) was += len(sub(pts[i + 1], pts[i]));
+  let chord = len(sub(B, A));
+  // The points between the underarm and the waist (both kept as they are).
+  const curveFor = (h: number): P[] => bezier(A, add(A, mul(dA, Math.min(chord / 3, Math.max(UNDERARM_HOLD, h)))), sub(B, mul(dB, h)), B, 40).slice(0, -1);
+  const lengthOf = (c: P[]) => polyLen([A, ...c, B]);
+  // As long as the seam it replaces, by how far the curve holds the waist's line. Where even the longest hold falls
+  // short (the in-and-out under the arm was longer than any smooth line), the underarm is raised along the seam by the
+  // difference and the armhole's foot re-trued to it, as a pattern cutter walks a side seam and corrects the underarm:
+  // a bow long enough to make up the same few mm would stand a full cm off the line.
+  let raise = 0;
+  if (lengthOf(curveFor(chord / 3)) < was) {
+    for (let i = 0; i < 4; i++) {
+      raise += was - lengthOf(curveFor(chord / 3));
+      A = sub(pts[a], mul(dA, raise));
+      chord = len(sub(B, A));
+    }
+  }
+  let lo = 0;
+  let hi = chord / 3;
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2;
+    if (lengthOf(curveFor(mid)) < was) lo = mid;
+    else hi = mid;
+  }
+  const curve = curveFor((lo + hi) / 2);
+  if (Math.abs(lengthOf(curve) - was) > 0.02 || raise > UNDERARM_RAISE_MAX) return false;
+  // (The armhole is redrawn only once the seam is sure to be, so a seam left as it was keeps its armhole.)
+  const k = turn || raise ? retrueFrom(pts, tags, a) : undefined;
+  if ((turn || raise) && k === undefined) return false;
+  pts[a] = A;
+  pts.splice(a + 1, j - a, ...curve);
+  tags.splice(a + 1, j - a, ...curve.map(() => 'side'));
+  if (k !== undefined) retrueArmhole(pts, tags, k, a, dA);
+  return true;
 }
 
 /** Up to this much shorter than the seam it replaces (cm), the fair curve needs no bow: well inside the seams' 0.1 cm. */
