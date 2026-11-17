@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { COLLECTION, lookPatch } from './collection';
 import { withEstimates } from './estimate';
-import { printedPattern } from './patternSweep';
+import { printedPattern, walkDesign } from './patternSweep';
 import type { MeasurementValues } from './measurements';
 
 // A fit tester with 10 cm between full and high bust printed the Ice Peplum's side front with its side seam bowed out
@@ -114,6 +114,44 @@ describe('the Ice Peplum side front on measured bust depths and front lengths', 
       const { both, sharp } = sideS(pts, tags);
       expect(both).toBeLessThan(5);
       expect(sharp).toBeLessThan(4);
+    });
+  }
+});
+
+// The Blush Shift's French dart: closing the side dart left its front side seam, from the underarm down to the dart,
+// bowing out, standing straight where the old dart closed and bowing out again (the bug hunt's sweep, Nov 16: 1,065 of
+// 1,275 measured bodies). Now one fair line, on a small bust and a full one, a short front and a long one, hips to 124.
+describe('the Blush Shift front side seam above the French dart on measured bodies', () => {
+  const look = COLLECTION.find((l) => l.name === 'Blush Shift')!;
+  const cases = [
+    [84, 2, 70, 92, 22, 39, 38],
+    [90, 6, 74, 100, 34, 49, 44],
+    [96, 10, 86, 112, 30, 47, 41],
+    [104, 14, 96, 124, 22, 47, 38],
+    [110, 14, 100, 124, 26, 50, 44],
+    [104, 10, 96, 124, 34, 53, 44],
+    // Here the old in-and-out held more than 0.6 cm over a fair line, so the underarm rises further.
+    [84, 6, 70, 92, 34, 47, 38],
+  ] as const;
+  for (const [high, diff, waist, hip, bustDepth, front, back] of cases) {
+    it(`high bust ${high} (+${diff}), hip ${hip}, bust depth ${bustDepth}, front ${front}, back ${back}: one fair line to the dart`, () => {
+      const values = measured(high, diff, waist, hip, bustDepth, front, back);
+      const { garment, ...saved } = lookPatch(look, values);
+      const design = { key: look.name, garment, saved: saved as never, finish: look.finish };
+      const front1 = printedPattern(design, values).made.pieces.find((pc) => pc.name === 'Dress front')!;
+      const { pts, tags } = front1.outline.taggedPoints();
+      // The side seam's first run: the underarm down to the dart.
+      const s = tags.indexOf('side');
+      let e = s;
+      while (tags[e + 1] === 'side') e++;
+      const run = pts.slice(s, e + 2);
+      const [A, B] = [run[0], run[run.length - 1]];
+      const L = Math.hypot(B.x - A.x, B.y - A.y);
+      // How far it stands either side of the straight line between them: a fair seam bows one way only.
+      const off = run.map((q) => ((q.x - A.x) * (B.y - A.y) - (q.y - A.y) * (B.x - A.x)) / L);
+      expect(Math.min(Math.max(...off), -Math.min(...off))).toBeLessThan(0.1);
+      // And the pattern still walks: side seams matching the back, the armhole blending across them, notches on the edge.
+      expect(walkDesign(design, values).problems).toEqual([]);
     });
   }
 });
