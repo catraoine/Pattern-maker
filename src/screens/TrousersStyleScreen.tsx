@@ -175,8 +175,8 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
           ) : (
             <p className="msg small">
               Your crotch length is long next to your crotch depth, longer than the pattern can cut. Please re-measure it, snug between the legs
-              from the front waist to the back waist. If it is right, measure your front and back waist to hip too: a fuller tummy or seat takes
-              more crotch length, and the pattern adds it at the centre waists.
+              from the front waist to the back waist. If it is right, measure your front and back waist to hip too, and the pattern will add the
+              extra length at the centre waists.
             </p>
           ));
   return (
