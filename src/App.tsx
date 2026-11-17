@@ -686,6 +686,17 @@ export default function App() {
     if (step !== 'steps') setStepsNote(undefined);
   }, [step]);
 
+  // A top or dress with sleeves prints them only once the arms are measured. Measuring left with Finish later and
+  // carried on from Welcome back printed the Ice Peplum without its sleeves, under a title still naming them (pretend
+  // tester, Nov 17). So Print, however it is reached, asks for the arms first.
+  const armsToAsk = lookArmsMissing({ choices: current }, measured);
+  useEffect(() => {
+    if (step !== 'export' || !armsToAsk.length) return;
+    openSteps({ kind: 'for', garment, also: armsToAsk });
+    setStepsNote('Your sleeves are drafted from your arms: add them to print.');
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- asks once each time Print is opened without the arms
+  }, [step, armsToAsk.length]);
+
   /** Switch whose measurements are in use, going back to measuring when theirs aren't done for this garment. */
   const switchPerson = (id: string, to: View = step) => {
     const who = account.people.find((p) => p.id === id) ?? person;
@@ -1100,7 +1111,9 @@ export default function App() {
                 // It opens on itself, ready to print; Change a detail goes on to the questions.
                 openLookNext();
                 switchGarment(g, { ...next, archive: archiveCut(look.id)?.id, finish: withCloth, house: look.finish && { garment: g, finish: look.finish } } as Partial<Saved>, 'style', measured, [...lookHipMissing(look, measured), ...lookArmsMissing(look, measured)]);
-                window.scrollTo(0, 0);
+                // To the top once the look's page is up: scrolled at once, the collection's own top flashed up while
+                // the look was drafted (testers' laptop walk, Nov 17).
+                requestAnimationFrame(() => window.scrollTo(0, 0));
               }}
             />
           )}

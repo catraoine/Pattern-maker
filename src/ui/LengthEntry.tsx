@@ -76,7 +76,8 @@ export function LengthBox({ ask, unit, onClose }: { ask: LengthAsk; unit: Unit; 
     const cm = typedLength(text, unit);
     if (!Number.isFinite(cm) || cm <= 0) return setWrong(`Type a number, ${range}.`);
     if (cm < ask.min - 0.25 || cm > ask.max + 0.25) return setWrong(`This one goes ${range}.`);
-    ask.onCm(Math.min(ask.max, Math.max(ask.min, half(cm))));
+    // Inches are kept as typed: rounded to the half cm, 20 in came back as 20⅛ (pretend tester, Nov 17).
+    ask.onCm(Math.min(ask.max, Math.max(ask.min, unit === 'in' ? Math.round(cm * 100) / 100 : half(cm))));
     onClose();
   };
   return (

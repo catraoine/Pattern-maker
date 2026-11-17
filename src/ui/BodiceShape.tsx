@@ -179,8 +179,12 @@ export function dragDrop(m: BodiceMeasurements, c: BodiceChoices, cm: number): B
 }
 
 /** How far below the waist a top's length can be typed: from the waist (a peplum's seam from its least drop) to the
- *  longest a drag reaches. */
-const dropLimits = (m: BodiceMeasurements, c: BodiceChoices) => ({ min: (c.peplum ?? 'none') === 'none' ? 0 : DROP_MIN, max: dropRange(m, c.length, c.shirtCut).max });
+ *  longest a drag reaches. A peplum's seam stops at PEPLUM_SEAM_MAX, as its drag does: the box offered up to 25 cm and
+ *  then quietly kept 12 (pretend tester, Nov 17). */
+const dropLimits = (m: BodiceMeasurements, c: BodiceChoices) => {
+  const max = dropRange(m, c.length, c.shirtCut).max;
+  return (c.peplum ?? 'none') === 'none' ? { min: 0, max } : { min: DROP_MIN, max: Math.min(max, PEPLUM_SEAM_MAX) };
+};
 
 function dropAt(m: BodiceMeasurements, c: BodiceChoices, cm: number): BodiceChoices {
   const { dropCm: _d, ...rest } = c;

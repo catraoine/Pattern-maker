@@ -61,3 +61,34 @@ test('a length out of range is asked again, not set', async ({ page }) => {
   await page.getByRole('form').getByRole('button', { name: 'Cancel' }).click();
   await expect(page.getByRole('form')).toBeHidden();
 });
+
+// The pretend tester's walk (Nov 17): the Ice Peplum's box offered lengths to 25 cm and quietly kept 12, where its
+// seam stops; and the Blush Shift's label read off its curved hem as drawn, 52 cm for a typed 50.
+test('the peplum offers only the lengths its seam can take', async ({ page }) => {
+  const main = page.getByRole('main');
+  await startWithExample(page);
+  await openCollection(page);
+  await main.getByRole('listitem').filter({ hasText: 'Ice Peplum Top' }).first().getByRole('button', { name: /^Make/ }).first().click();
+  const change = main.getByRole('button', { name: 'Change a detail' });
+  if (await change.count()) await change.click();
+  await main.getByRole('button', { name: /^Type the .*length$/ }).first().click();
+  await expect(page.getByRole('form')).toContainText('6 cm to 12 cm');
+  await page.getByRole('form').getByRole('textbox').fill('20');
+  await page.getByRole('form').getByRole('button', { name: 'Set' }).click();
+  await expect(page.getByRole('alert')).toContainText('This one goes');
+});
+
+test('the shift says the length typed', async ({ page }) => {
+  const main = page.getByRole('main');
+  await startWithExample(page);
+  await openCollection(page);
+  await main.getByRole('listitem').filter({ hasText: 'Blush Shift' }).first().getByRole('button', { name: /^Make/ }).first().click();
+  const change = main.getByRole('button', { name: 'Change a detail' });
+  if (await change.count()) await change.click();
+  await main.getByRole('button', { name: 'Type the dress length' }).click();
+  await page.getByRole('form').getByRole('textbox').fill('50');
+  await page.getByRole('form').getByRole('button', { name: 'Set' }).click();
+  await expect(main.getByRole('slider', { name: 'Dress length' })).toHaveAttribute('aria-valuetext', '50 cm');
+  await main.getByRole('button', { name: 'Type the dress length' }).click();
+  await expect(page.getByRole('form').getByRole('textbox')).toHaveValue('50');
+});

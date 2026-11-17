@@ -54,7 +54,10 @@ export function HemMarks({ name, marks, value, onPick, svg, cx, k, hemAt, bare, 
   const at = marks.find((m) => m.id === on);
   const y = held ? held.y : hemAt ?? between ?? named.y;
   const cmAt = (yy: number) => Math.round((yy - free!.zero) * 2) / 2;
-  const label = at ? at.label : `${Math.round(cmAt(y))} cm`;
+  // A length set between the named ones reads as set: the dot sits on the hem as drawn, which on a shift's curved hem
+  // fell a cm or two lower, so the label said 52 cm for a typed 50 (pretend tester, Nov 17).
+  const setAt = held ? y : between ?? named.y;
+  const label = at ? at.label : `${Math.round(cmAt(setAt))} cm`;
   const toY = (e: PointerEvent) => new DOMPoint(e.clientX, e.clientY).matrixTransform(svg.current!.getScreenCTM()!.inverse()).y;
   const follow = (yy: number) => {
     const near = nearest(marks, yy);
@@ -95,7 +98,7 @@ export function HemMarks({ name, marks, value, onPick, svg, cx, k, hemAt, bare, 
             y={dot.y - 3 * k}
             width={label.length * 2.6 * k * 0.85}
             height={5 * k}
-            ask={{ name, from: free.from ?? 'from the waist', cm: cmAt(y), min: free.min, max: free.max, onCm: free.onCm }}
+            ask={{ name, from: free.from ?? 'from the waist', cm: cmAt(setAt), min: free.min, max: free.max, onCm: free.onCm }}
           />
         )}
         <circle
@@ -113,7 +116,8 @@ export function HemMarks({ name, marks, value, onPick, svg, cx, k, hemAt, bare, 
           onPointerDown={(e) => {
             e.stopPropagation();
             (e.target as Element).setPointerCapture?.(e.pointerId);
-            setHeld({ y, on });
+            // From the length as set, not the drawn hem below it, so a tap without a drag leaves the length alone.
+            setHeld({ y: setAt, on });
           }}
           onPointerMove={(e) => held && follow(toY(e))}
           onPointerUp={end}
