@@ -28,6 +28,40 @@ const f = (n: number) => n.toFixed(2);
  *  welcome and measuring form are drawn beside the same head (Cat, 2026-10-24: the body read wide, the head tiny).
  *  Only the drawing narrows: the garment's lines and the lines drawn on it are read back in the pattern's own cm. */
 export const SQUEEZE = 0.68;
+/** The narrowing is for the body's round girths. A shoulder or a neck is a straight width across, so from the neck
+ *  point up to the bust the drawing eases back to it: at the neck and shoulders the form and the garment are drawn
+ *  at (about) their true width (Cat, Nov 17: a long-sleeve dress read as a coat with padded shoulders, its crew neck as a deep
+ *  U, because the shoulders were drawn a third narrower than the body under them and the arms bulged out past them).
+ *  The arm keeps its own width and moves out with the shoulder; the neck and head above the neck point stay as
+ *  they were. Forms without shoulders (a skirt's) narrow evenly. */
+export function squeezeX(body: FormBody, x: number, y: number): number {
+  const g = widenAt(body, y);
+  if (g === 1 || !body.shoulder) return SQUEEZE * x;
+  const T = body.shoulder.x;
+  const a = Math.abs(x);
+  return Math.sign(x) * SQUEEZE * (Math.min(a, T) * g + Math.max(0, a - T));
+}
+/** Back from the drawing to the pattern's own cm: the inverse of squeezeX, for lines drawn on the form. */
+export function unsqueezeX(body: FormBody, x: number, y: number): number {
+  const g = widenAt(body, y);
+  if (g === 1 || !body.shoulder) return x / SQUEEZE;
+  const T = body.shoulder.x;
+  const a = Math.abs(x) / SQUEEZE;
+  return Math.sign(x) * (a <= T * g ? a / g : a - T * g + T);
+}
+/** How much wider than the even narrowing the drawing is at y: 1 at the bust and below, the full true width at the
+ *  neck point, easing back to 1 a little way up the neck so the neck and head keep their size. */
+function widenAt(body: FormBody, y: number): number {
+  if (!body.shoulder || body.neckY === undefined) return 1;
+  const bustY = body.bustY ?? body.waistY - BUST_ABOVE_WAIST;
+  const up = body.neckY - NECK_EASE;
+  if (y >= bustY || y <= up || bustY - body.neckY < 4) return 1;
+  const t = y >= body.neckY ? (bustY - y) / (bustY - body.neckY) : (y - up) / NECK_EASE;
+  const e = Math.min(1, Math.max(0, t));
+  return 1 + (1 / SQUEEZE - 1) * e * e * (3 - 2 * e);
+}
+/** How far up the neck, from the neck point, the drawing takes to narrow back to the neck's own width, in cm. */
+const NECK_EASE = 5;
 const formPath = (pts: P[]) => pts.map((q, i) => `${i ? 'L' : 'M'}${f(q.x)} ${f(q.y)}`).join(' ');
 
 /** How tall the head stands above the top of the neck, in cm. */
@@ -74,8 +108,9 @@ const SATIN_STOPS: [number, string][] = [
 /** The satin across a drawing whose centre line is at `cx`. With arms, each arm gets the same light across its own
  *  width (`${id}0` the right arm, `${id}1` the left), so it rounds like the body instead of sitting in the body's
  *  shadow as a flat dark slab. */
-function SatinDefs({ id, cx, arms }: { id: string; cx: number; arms?: FormArm }) {
-  const at = arms ? armAt(arms, arms.under.y + 4) : undefined;
+function SatinDefs({ id, cx, arms, body }: { id: string; cx: number; arms?: FormArm; body?: FormBody }) {
+  const armY = arms ? arms.under.y + 4 : 0;
+  const at = arms ? armAt(arms, armY) : undefined;
   return (
     <defs>
       <linearGradient id={id} gradientUnits="userSpaceOnUse" x1={f(cx * 0.1)} x2={f(cx * 1.9)} y1="0" y2="0">
@@ -85,7 +120,7 @@ function SatinDefs({ id, cx, arms }: { id: string; cx: number; arms?: FormArm })
       </linearGradient>
       {at &&
         [1, -1].map((s, i) => {
-          const xs = [cx + SQUEEZE * s * at.inner, cx + SQUEEZE * s * at.outer];
+          const xs = [cx + (body ? squeezeX(body, s * at.inner, armY) : SQUEEZE * s * at.inner), cx + (body ? squeezeX(body, s * at.outer, armY) : SQUEEZE * s * at.outer)];
           const left = Math.min(...xs) - 0.3;
           const right = Math.max(...xs) + 0.3;
           return (
@@ -104,7 +139,7 @@ function SatinDefs({ id, cx, arms }: { id: string; cx: number; arms?: FormArm })
  *  champagne edge round each. Drawing on your form and the Style page's drawings
  *  all draw the form this way. */
 export function FormSatin({ body, cx, arms, uid, bottom = body.bottom, edge = 0.18, legsTo }: { body: FormBody; cx: number; arms?: FormArm; uid: string; bottom?: number; edge?: number; legsTo?: { y: number; half: number } }) {
-  const armLines = useMemo(() => formArmLines(arms, cx), [arms, cx]);
+  const armLines = useMemo(() => formArmLines(arms, cx, body), [arms, cx, body]);
   const { silhouette, sides } = useMemo(() => {
     const top = body.head ? body.top - INTO_HEAD : body.top;
     // With legs below, the torso runs on down into them rather than ending in a flat cut at the hip.
@@ -116,7 +151,7 @@ export function FormSatin({ body, cx, arms, uid, bottom = body.bottom, edge = 0.
       const t = Math.min(1, (y - body.bottom) / Math.max(1, legsTo.y - body.bottom));
       return w + (legsTo.half - w) * t * t;
     };
-    const at = (u: number) => ys.map((y) => ({ x: cx + SQUEEZE * u * widthAt(y), y }));
+    const at = (u: number) => ys.map((y) => ({ x: cx + squeezeX(body, u * widthAt(y), y), y }));
     const right = at(1);
     const left = at(-1);
     return {
@@ -131,7 +166,7 @@ export function FormSatin({ body, cx, arms, uid, bottom = body.bottom, edge = 0.
   const edgeW = Math.min(edge, 0.12);
   return (
     <>
-      <SatinDefs id={id} cx={cx} arms={arms} />
+      <SatinDefs id={id} cx={cx} arms={arms} body={body} />
       {armLines.map((a, i) => (
         <path key={`armfill${i}`} d={`${a.d} Z`} fill={`url(#${id}${i})`} stroke="none" />
       ))}
@@ -150,9 +185,15 @@ export function FormSatin({ body, cx, arms, uid, bottom = body.bottom, edge = 0.
  *  (Cat's D5, 2026-10-26): just wider than the arms and the garment. The bottom stays where the caller puts it (the
  *  skirt and top sketches keep their length marks in reach); the form sketch and the draw tool crop below the hem. */
 export function formFrame(m: Measures, body: FormBody, bottom: number, arms?: FormArm, cloth: P[][] = []) {
-  const wide = Math.max(0, ...cloth.flat().map((q) => Math.abs(q.x) + 1.5));
-  const half = SQUEEZE * Math.max(Math.max(m.full_bust ?? 0, m.full_hip ?? 0, m.waist) / 4 + 3, arms ? armAt(arms, arms.wristY).outer + 1.5 : 0, wide);
-  return { half, top: body.top - (body.head ? HEAD_CM + 1 : 2), bottom: Math.max(body.bottom + 12, bottom) };
+  return { half: formHalf(m, body, arms, cloth), top: body.top - (body.head ? HEAD_CM + 1 : 2), bottom: Math.max(body.bottom + 12, bottom) };
+}
+/** Half the drawing's width: just wider than the body, the arms (down from the shoulder, drawn out with it) and the
+ *  garment, as drawn. */
+export function formHalf(m: Measures, body: FormBody, arms?: FormArm, cloth: P[][] = []): number {
+  const drawn = (x: number, y: number) => Math.abs(squeezeX(body, x, y)) + SQUEEZE * 1.5;
+  const wide = Math.max(0, ...cloth.flat().map((q) => drawn(q.x, q.y)));
+  const arm = arms ? Math.max(...Array.from({ length: 25 }, (_, i) => arms.tip.y + ((arms.wristY - arms.tip.y) * i) / 24).map((y) => drawn(armAt(arms, y).outer, y))) : 0;
+  return Math.max(SQUEEZE * (Math.max(m.full_bust ?? 0, m.full_hip ?? 0, m.waist) / 4 + 3), arm, wide);
 }
 /** How far below the garment's hem the draw tool's drawing goes, in cm: room for the legs to fade out and for the hem
  *  to be drawn longer. */
@@ -639,7 +680,7 @@ function shoulderPoint(cloth: P[][], arm: FormArm): P | undefined {
 
 /** The arms, each its outline round from the shoulder to the wrist and on into a hand, like a mannequin's
  *  (Cat's F5, 2026-10-25: no stripes down them, no flat cut ends; D2, 2026-10-26: hands). */
-function formArmLines(arms: FormArm | undefined, cx: number): { d: string; edge: boolean }[] {
+function formArmLines(arms: FormArm | undefined, cx: number, body: FormBody): { d: string; edge: boolean }[] {
   if (!arms) return [];
   const ys = (a: number, b: number) => Array.from({ length: 41 }, (_, i) => a + ((b - a) * i) / 40);
   const outer = ys(arms.tip.y, arms.wristY).map((y) => ({ x: armAt(arms, y).outer, y }));
@@ -656,7 +697,7 @@ function formArmLines(arms: FormArm | undefined, cx: number): { d: string; edge:
   });
   // Up the inside from the wrist, over the shoulder, down the outside and round the end of the wrist.
   const outline = [...[...inner].reverse(), ...outer, ...cap];
-  return [1, -1].map((s) => ({ d: formPath(outline.map((q) => ({ x: cx + SQUEEZE * s * q.x, y: q.y }))), edge: true }));
+  return [1, -1].map((s) => ({ d: formPath(outline.map((q) => ({ x: cx + squeezeX(body, s * q.x, q.y), y: q.y }))), edge: true }));
 }
 
 /** How long the hand is below the wrist, in cm. */
@@ -847,8 +888,8 @@ interface LayerProps extends Omit<Props, 'cloth' | 'underarmY' | 'label' | 'outl
  */
 export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outline = [], worn, folds = [], sleeve, sleevesOver }: LayerProps) {
   const head = useMemo(() => formHead(body, cx), [body, cx]);
-  const armLines = useMemo(() => formArmLines(arms, cx), [arms, cx]);
-  const at = (pts: P[]) => formPath(pts.map((q) => ({ x: cx + SQUEEZE * q.x, y: q.y })));
+  const armLines = useMemo(() => formArmLines(arms, cx, body), [arms, cx, body]);
+  const at = (pts: P[]) => formPath(pts.map((q) => ({ x: cx + squeezeX(body, q.x, q.y), y: q.y })));
   const showLegs = legs && m.full_hip && m.waist_to_hip && m.waist_to_knee && m.waist_to_floor;
   const cloth = !!worn;
   // The cloth: sleeves first, then the body over their heads, then collars and lapels over that. Each piece is
@@ -936,8 +977,10 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
           <filter id={soft} x="-20%" y="-20%" width="140%" height="140%">
             <feGaussianBlur stdDeviation="0.6" />
           </filter>
+          {/* The shadow the cloth casts is soft: at 0.85 it outlined every garment in a dark halo and a dress read as a
+              heavy coat (Nov 17). */}
           <filter id={cast} x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="0.5" dy="0.9" stdDeviation="0.9" floodColor={SHADOW} floodOpacity="0.85" />
+            <feDropShadow dx="0.5" dy="0.9" stdDeviation="0.9" floodColor={SHADOW} floodOpacity="0.5" />
           </filter>
         </defs>
       )}
@@ -1005,7 +1048,7 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
       )}
       {cloth && arms && !sleeve && (
         <g mask={top !== undefined ? `url(#${neck})` : undefined}>
-          <SatinDefs id={`armsatin${uid}`} cx={cx} arms={arms} />
+          <SatinDefs id={`armsatin${uid}`} cx={cx} arms={arms} body={body} />
           {armLines.map((a, i) => <path key={`armover${i}`} d={`${a.d} Z`} fill={`url(#armsatin${uid}${i})`} stroke="none" />)}
           {armLines.map((a, i) => <path key={`armedge${i}`} d={a.d} className="form-line" fill="none" strokeWidth={0.12} opacity={0.35} />)}
         </g>

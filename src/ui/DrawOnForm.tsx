@@ -13,7 +13,7 @@ import { legsFor } from '../engine/form';
 import { bodyHalf } from '../engine/body';
 
 import { FormLine, FormSide, Reading, landmarks } from './formLines';
-import { BELOW_HEM, CLOTH_EDGES, FormHead, FormLayers, FormSatin, HEAD_CM, SQUEEZE, SewnLevel, WornSleeve, formHead, wornCloth, wornFolds, wornMapper } from './FormSketch';
+import { BELOW_HEM, CLOTH_EDGES, FormHead, FormLayers, FormSatin, HEAD_CM, SQUEEZE, SewnLevel, WornSleeve, formHalf, formHead, squeezeX, unsqueezeX, wornCloth, wornFolds, wornMapper } from './FormSketch';
 import { TestingTag } from './TestingTag';
 import { DemoButton } from './DemoButton';
 import { AllRound, RoundPick } from './AllRound';
@@ -34,6 +34,12 @@ export interface FormBody {
   waistY: number;
   /** A bodice form has a neck, so the head sits on it. */
   head?: boolean;
+  /** A torso form's shoulder tip and the height of its neck point: between them and the bust the drawing shows true
+   *  widths rather than the body's narrowed girths (squeezeX). */
+  shoulder?: P;
+  neckY?: number;
+  /** A torso form's bust height, where the drawing is back to the body's narrowed girths. */
+  bustY?: number;
 }
 
 /** An arm hanging beside the form, as on the bodice sketch: from the shoulder tip, rounding over to
@@ -205,7 +211,7 @@ export function torsoForm({ neckPoint, shoulderTip, apex, waistY }: { neckPoint:
     ...(hip ? [{ y: hip.at, by: 0.82, half: hip.half }] : [{ y: waistY + 8, by: 0.4, half: (m.waist / 4) * 1.08 }]),
   ]);
   const width = (y: number) => side(Math.min(y, bottom));
-  return { width, top: neckPoint.y - 7, bottom, waistY, head: true };
+  return { width, top: neckPoint.y - 7, bottom, waistY, head: true, shoulder: shoulderTip, neckY: neckPoint.y, bustY: apex.y };
 }
 
 /** The skirt form: a lower torso from a little above the waist to below the hip, the waist at y = 0. */
@@ -300,8 +306,7 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
   const heldFrame = useRef<{ half: number; top: number; bottom: number } | null>(null);
   const frame = useMemo(() => {
     const all = (cloth ?? []).flat();
-    const wide = Math.max(0, ...all.map((q) => Math.abs(q.x) + 1.5));
-    const half = SQUEEZE * Math.max(Math.max(m.full_bust ?? 0, m.full_hip ?? 0, m.waist) / 4 + 3, arms ? armAt(arms, arms.wristY).outer + 1.5 : 0, wide);
+    const half = formHalf(m, body, arms, cloth ?? []);
     const floor = Math.max(torsoBottom + 12, bottom, legLines ? legLines.floor + 1 : 0);
     const hem = all.length ? Math.max(...all.map((q) => q.y)) : undefined;
     const low = hem !== undefined ? hem + BELOW_HEM + 2 : floor;
@@ -367,22 +372,22 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
       return { left: 0, width: 2 * cx, top: frame.top, bottom: frame.bottom };
     }
     // Room at the sides for a flare or more ease to be drawn without the view moving.
-    const wide = SQUEEZE * (Math.max(...all.map((q) => Math.abs(q.x))) + 9);
+    const wide = Math.max(...all.map((q) => Math.abs(squeezeX(body, q.x, q.y)))) + SQUEEZE * 9;
     const top = Math.max(frame.top, Math.min(...all.map((q) => q.y)) - 8);
     const was = heldView.current;
     const held = (heldView.current = { wide: was && wide <= was.wide + 1 ? was.wide : wide, top: was ? Math.min(was.top, top) : top });
     return { left: cx - held.wide, width: 2 * held.wide, top: held.top, bottom: frame.bottom };
-  }, [big, worn, cx, frame]);
+  }, [big, worn, cx, frame, body]);
 
   const current = lines(side);
-  const at = (pts: P[]) => path(pts.map((q) => ({ x: cx + SQUEEZE * q.x, y: q.y })));
+  const at = (pts: P[]) => path(pts.map((q) => ({ x: cx + squeezeX(body, q.x, q.y), y: q.y })));
 
   const toSvg = (e: PointerEvent): P => {
     const pt = new DOMPoint(e.clientX, e.clientY).matrixTransform(svg.current!.getScreenCTM()!.inverse());
     return { x: pt.x, y: pt.y };
   };
   // Drawn where the finger went, read in the pattern's own cm: the form is drawn narrower than that.
-  const centred = (s: P[]) => s.map((q) => ({ x: (q.x - cx) / SQUEEZE, y: q.y }));
+  const centred = (s: P[]) => s.map((q) => ({ x: unsqueezeX(body, q.x - cx, q.y), y: q.y }));
   const move = (e: PointerEvent) => {
     if (!stroke) return;
     const next = [...stroke, toSvg(e)];
