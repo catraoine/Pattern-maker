@@ -61,3 +61,9 @@ phone, in short bursts, often by voice dictation. Everything here is a standing 
 - Don't resolve a thread until Cat has seen its result.
 - Don't propose recurring digests unless she asks (the Friday digest was paused as not useful).
 - Never suggest turning on Netlify credit recharge or API auto-reload.
+
+## Rules from Cat, Nov 17 (all departments)
+
+- One ship line: any deploy goes to Cat as ONE combined line, which she writes in the Releases thread: "Deploy <change> to maisontrace.co". Ship items in the 6 pm batch use that same line, and her "all" for the batch does not cover them.
+- Every check and walkthrough covers phone AND laptop/desktop (1280, 1366, 1440 and 1920 wide). Testers use computers too. On Nov 17 the collection and the Measure list were found broken on a laptop after every walk had been done at iPhone size.
+- Before any file or draft link reaches Cat, open that exact file or draft and confirm it is the new version.
