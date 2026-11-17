@@ -461,7 +461,7 @@ const REVIEW = WIDE || process.env.REVIEW !== '1' ? undefined : { from: 0.4, dur
 // On a computer, the whole piece too, beside the line (Fable, Nov 15: it was cut off at the foot).
 // The computer's piece sits at the right of the screen: drawn in on it, past the toolbar and the corner ring; the
 // phone's ring at the right edge is masked (Fable's review, Nov 15).
-const PROJECTOR = WIDE ? { from: Number(process.env.PJ_FROM ?? 10.0), dur: 4.2, zoom: [1.08, 1.1], at: [0.85, 0.5], frame: [0.075, 0.935, -1, 2, 0.015] } : { from: Number(process.env.PJ_FROM ?? 11.1), dur: 4, zoom: [1.6, 1.63], at: [0.43, 0.49], frame: [-0.1, 1.1, -0.1, 0.95] };
+const PROJECTOR = WIDE ? { from: Number(process.env.PJ_FROM ?? 10.0), dur: 4.2, zoom: [1.08, 1.1], at: [0.85, 0.5], frame: [0.075, 0.935, -1, 2, 0.015] } : { from: Number(process.env.PJ_FROM ?? 11.1), dur: 4, zoom: [1.6, 1.63], at: [0.43, 0.4], frame: [-0.1, 1.1, -0.1, 0.95] };
 // Phone: drawn in a little less and set lower, so the piece sits whole under its two lines of words (Cat, 2026-11-06:
 // cut off by the words at the top).
 async function photoMoment(line = 'Start from a photo.', lineEnd = 3.3) {
@@ -608,7 +608,7 @@ const CUTS = {
       await piece({ still: await card('04', 'Print', 'At home, or full size.'), dur: 2.4, fadeIn: f, fadeOut: f }),
       ...(REVIEW ? [await piece({ shot: 'review', ...REVIEW, fadeIn: f })] : []),
       await pages(4.4, { fadeIn: f, fadeOut: f }),
-      await piece({ shot: 'projector', ...PROJECTOR, fadeIn: f, fadeOut: f, notes: [[await note(WIDE ? 'Or project it, true size.' : 'Or project it,<br>true size.', 'low', !WIDE), WIDE ? 0.3 : 1.4, PROJECTOR.dur - (WIDE ? 0.3 : 1.2)]] /* on a phone held clear of the piece's own label as it passes the top (Cat, Nov 17: words never over the app's) */ /* on a computer no dark band, which hid the piece's shoulder */ }),
+      await piece({ shot: 'projector', ...PROJECTOR, fadeIn: f, fadeOut: f, notes: [[await note(WIDE ? 'Or project it, true size.' : 'Or project it,<br>true size.', 'low', !WIDE), 0.3, PROJECTOR.dur - 0.3]] /* on a computer no dark band, which hid the piece's shoulder */ }),
       // REAL_END=1 closes on her real dress instead (the dress turning dissolving into it), once the shoot's clip is in.
       ...(process.env.REAL_END === '1'
         ? [beats.end = await dissolve(await piece({ shot: 'round', from: 9.6, dur: 3.4, speed: 0.6, fadeIn: 0.8, ...(WIDE ? { zoom: [1.05, 1.08], at: [0.62, 0.5] } : { zoom: [1.12, 1.16], at: [0.5, 0.38] }) }), await realDress(), 1.4)]
