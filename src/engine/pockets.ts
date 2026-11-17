@@ -334,7 +334,17 @@ export function slantPocket(front: Piece, opts: Partial<typeof SLANT> = {}): Sla
   let run = 0;
   for (let i = (side - 1 + n) % n; r.tags[i] === 'waist'; i = (i - 1 + n) % n) run += len(sub(r.pts[(i + 1) % n], r.pts[i]));
   const inner = walk(r, (side - 1 + n) % n, Math.min(o.in + o.along, run - 0.5), 'waist', -1);
-  const B = walk(r, side, o.down, 'side');
+  // A notch just above the foot of the slant goes to the facing with the cut-away corner. When it is the top of a double
+  // notch whose other half stays below, or sits within a few mm of the foot, it is split from its match or lost between
+  // the two pieces (a short waist to hip, tester sweep Nov 16). The opening then ends 5 mm above it instead, so the hip
+  // notches stay whole on the front.
+  let B = walk(r, side, o.down, 'side');
+  if (B) {
+    const foot = B.q;
+    const below = front.notches.filter(([q]) => q.y >= foot.y - 0.05 && len(sub(q, foot)) < 2);
+    const split = front.notches.filter(([q]) => q.y < foot.y - 0.05 && len(sub(q, foot)) < 2 && (foot.y - q.y <= 0.35 || below.some(([b]) => len(sub(b, q)) < 1.25)));
+    if (split.length) B = walk(r, side, o.down - (foot.y - Math.min(...split.map(([q]) => q.y))) - 0.5, 'side');
+  }
   const Dside = walk(r, side, o.down + o.depth, 'side');
   if (!A || !inner || !B || !Dside || run - 0.5 < o.in + 1.5) return undefined;
 
