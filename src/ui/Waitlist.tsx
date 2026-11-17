@@ -8,6 +8,7 @@ import type { Cloud } from '../cloud/useCloud';
 import type { Founding } from '../cloud/useFounding';
 import { CloudAccount } from './CloudAccount';
 import { FOUNDING_LINE } from '../founding';
+import { keepSigninSent, signinSent } from '../cloud/sent';
 
 /** Founding members' way in, from Feb 9: sign in with the email on the founding list. */
 export interface FoundingSignIn {
@@ -42,7 +43,8 @@ export function WaitlistForm({ onJoined, onCode, linkMessage, onRetry, founding 
   const [code, setCode] = useState('');
   const [codeMsg, setCodeMsg] = useState(linkMessage ?? '');
   const [checking, setChecking] = useState(false);
-  const [signingIn, setSigningIn] = useState(false);
+  // Back on the sign-in if its email is already on the way: a phone reloads the page while its owner fetches the code.
+  const [signingIn, setSigningIn] = useState(() => !!founding && !!signinSent());
 
   const join = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,6 +99,8 @@ export function WaitlistForm({ onJoined, onCode, linkMessage, onRetry, founding 
             className="inline-link"
             onClick={async () => {
               if (founding.cloud.user) await founding.cloud.signOut();
+              // Forgotten too, or a reload would bring the sign-in back.
+              keepSigninSent('');
               setSigningIn(false);
             }}
           >
@@ -108,7 +112,7 @@ export function WaitlistForm({ onJoined, onCode, linkMessage, onRetry, founding 
 
   return (
     <div className="stack waitlist">
-      {/* Why to join, naming only what is decided: no prices (Cat's B1, 2026-11-10) */}
+      {/* Why to join, in Cat's one line (Nov 16 2026; before that B1, 2026-11-10) */}
       <p className="waitlist-line">Opening 2027. {FOUNDING_LINE}</p>
       <form className="stack" onSubmit={join}>
         {/* The language is a small tag at the end of the email line, not a line of its own (Cat's L1, 2026-10-25): it

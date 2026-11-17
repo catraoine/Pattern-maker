@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { signinFailed } from '../cloud/flag';
 import type { Cloud } from '../cloud/useCloud';
+import { keepSigninSent, signinSent } from '../cloud/sent';
 
 const STATUS: Record<string, string> = {
   checking: 'Checking…',
@@ -23,12 +24,22 @@ function GoogleMark() {
 }
 
 /**
- * Your account > Your data, once sign-in is shown: sign in with Google (once it's switched on), or an emailed link (or the 6-digit code in the same
+ * Your account > Your data, once sign-in is shown: sign in with Google (once it's switched on), or an emailed link (or the code in the same
  * email, for when the link opens in another browser), then the work is kept in the account as well as here.
  */
+// The account service decides how long the emailed code is (it sends 8 digits today; the box used to stop at 6, so no
+// emailed code could be typed in full). Any length it might send is taken, and it does the checking.
+const CODE_MIN = 6;
+const CODE_MAX = 10;
+
 export function CloudAccount({ cloud }: { cloud: Cloud }) {
   const [email, setEmail] = useState('');
-  const [sentTo, setSentTo] = useState('');
+  // Who the sign-in email went to, kept for this tab so the code box outlasts a reload (src/cloud/sent.ts).
+  const [sentTo, setSentToState] = useState(signinSent);
+  const setSentTo = (to: string) => {
+    setSentToState(to);
+    keepSigninSent(to);
+  };
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   // Back from Google (or an old email link) refused: say so, rather than sitting there signed out.
@@ -36,9 +47,11 @@ export function CloudAccount({ cloud }: { cloud: Cloud }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   // Signing in or out starts the section over.
   useEffect(() => {
-    setSentTo('');
+    // Not while still signed out, or a reload would forget the email the code was sent to.
+    if (cloud.user) setSentTo('');
     setCode('');
     setConfirmDelete(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when someone signs in or out
   }, [cloud.user?.id]);
 
   const run = async (fn: () => Promise<void>, failed: string) => {
@@ -131,14 +144,14 @@ export function CloudAccount({ cloud }: { cloud: Cloud }) {
         }}
       >
         <p className="small">
-          Check your email. We sent a link to <b>{sentTo}</b>. Tap it, or type the 6-digit code from the same email here.
+          Check your email. We sent a link to <b>{sentTo}</b>. Tap it, or type the code from the same email here.
         </p>
         <div className="field plain">
           <label htmlFor="signin-code">Code from the email</label>
-          <input id="signin-code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} />
+          <input id="signin-code" inputMode="numeric" autoComplete="one-time-code" maxLength={CODE_MAX} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} />
         </div>
         <div className="row wrap">
-          <button type="submit" className="secondary sm" disabled={busy || code.trim().length !== 6}>
+          <button type="submit" className="secondary sm" disabled={busy || code.trim().length < CODE_MIN}>
             {busy ? 'Signing in…' : 'Sign in'}
           </button>
           <button

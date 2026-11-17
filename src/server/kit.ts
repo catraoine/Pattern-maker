@@ -34,7 +34,7 @@ export async function addToKit(email: string, src: string | undefined, kit: KitS
   }
 }
 
-/** A sign-up Kit didn't take (a rush past Kit's rate limit, or Kit down), kept so the hourly catch-up can send it. */
+/** A sign-up Kit didn't take (a rush past Kit's rate limit, or Kit down), kept so the catch-up can send it. */
 export interface KitRetry {
   email: string;
   src?: string;
@@ -50,8 +50,8 @@ export interface RetryStore {
 
 /** Kit allows roughly 120 calls a minute per key and each sign-up takes two, so a catch-up sends at most 50. */
 const RETRY_BATCH = 50;
-/** After a day of hourly tries something else is wrong (a bad key, a deleted form); the entry stays in the sign-ups store. */
-export const MAX_TRIES = 24;
+/** After a day of tries, one every ten minutes, something else is wrong (a bad key, a deleted form); the entry stays in the sign-ups store. */
+export const MAX_TRIES = 144;
 
 /** Sends sign-ups Kit missed. Returns how many went through; the rest wait for the next run. */
 export async function retryKit(store: RetryStore, kit: KitSettings, site: string, fetcher: Fetch = fetch, batch = RETRY_BATCH): Promise<number> {
