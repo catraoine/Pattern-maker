@@ -323,27 +323,67 @@ await start();
 await wait(9500);
 await stop('form');
 
-// tape: Begin goes straight to the waist page (Fable's concept A, Cat's apply, Nov 15: no first page). The welcome
-// dips to black off camera, Begin is pressed under it, and the take opens as the waist page comes up out of the
-// black, its tape coming round the waist; the tape stays one size from here on.
+// tape: chapter 1 as a story, not one idle page (Cat, Nov 16: "the whole measure section was just rough cut"). Begin
+// goes straight to the waist (no first page since Nov 15). The welcome dips to black off camera, Begin is pressed
+// under it, and the take opens as the waist page comes up, its tape coming round the waist. Then each of the five is
+// typed in with the pen dot pressing Next, the form taking the body's shape page by page, to "Do these look right?".
+// The app's header is left out, as on the Choose and Style shots. Each page's time is kept in tape-marks.json.
+const tapeMarks = {};
+let noTop;
 {
+  // The app's header is hidden for this take only: the film opens on the page, not the app's chrome (Cat, Nov 16), and
+  // the page is set down, as on the Choose shot, to leave the film's line of words room above the form.
+  noTop = await p.addStyleTag({ content: '.topbar { display: none !important; } main { padding-top: ' + (WIDE ? 110 : 96) + 'px !important; }' });
+  await addPen();
   await dip(1, 30);
   await wait(450);
   await start();
+  const tt0 = Date.now();
+  const tmark = (what) => {
+    tapeMarks[what] = Number(((Date.now() - tt0) / 1000).toFixed(2));
+    writeFileSync(join(OUT, 'tape-marks.json'), JSON.stringify(tapeMarks));
+  };
   await wait(300);
   await main.getByRole('button', { name: 'Begin' }).click();
   await main.getByRole('heading', { name: /Your waist/i }).waitFor();
   await wait(250);
   await dip(0, 30);
-  await wait(5500);
+  tmark('waist');
+  await wait(3000);
+  for (let n = 0; n < 6; n++) {
+    const input = main.getByRole('textbox');
+    if (!(await input.count())) break;
+    const label = (await input.evaluate((el) => el.labels?.[0]?.textContent ?? '')).replace(/\(optional\)/i, '').trim();
+    const v = VALUES[label];
+    // Weight is optional and the example body has none: the pen skips it, as most people will.
+    if (!v) {
+      tmark(`skip-${n}`);
+      await press(main.getByRole('button', { name: 'Skip this step' }), 300);
+      await wait(1500);
+      break;
+    }
+    tmark(`type-${n}`);
+    await input.pressSequentially(v, { delay: 170 });
+    await wait(650);
+    tmark(`next-${n}`);
+    await press(main.getByRole('button', { name: /^(Next|Done|Save)\b/ }).first(), 300);
+    // The next page comes in and its tape plays round (or down) the body.
+    await wait(2700);
+    tmark(`page-${n + 1}`);
+  }
+  tmark('check');
+  await main.getByRole('heading', { name: 'Do these look right?' }).waitFor({ timeout: 8000 }).catch(() => console.log('  no check page'));
+  await wait(2600);
+  tmark('end');
 }
 await stop('tape');
+await noTop.evaluate((el) => el.remove());
 // TOUR_TAPE_ONLY=1 records just the tape shot, to check the measuring pages without the rest.
 if (process.env.TOUR_TAPE_ONLY) {
   await b.close();
   process.exit(0);
 }
-await fillAll();
+if (!(await main.getByRole('heading', { name: 'Do these look right?' }).count())) await fillAll();
 
 // choose: what to make, and the dress picked
 await main.getByRole('button', { name: 'Choose what to make' }).click();
@@ -397,16 +437,17 @@ await wait(1500);
 // filled navy, a white stripe and then Prince of Wales, and to end the hem drawn longer and the neckline a soft boat
 // neck straight on the dress in its fabric (D1 Draw on the Dress, 2026-10-24). A tap shows as the pen dot pressing
 // the button; marks prints when each moment starts, for edit-tour.mjs.
-const tap = async (loc, ms) => { await loc.evaluate((el) => el.click()); await p.evaluate(() => window.scrollTo(0, 0)); await wait(ms); };
-const addPen = () => p.evaluate(() => {
+async function tap(loc, ms) { await loc.evaluate((el) => el.click()); await p.evaluate(() => window.scrollTo(0, 0)); await wait(ms); }
+function addPen() { return p.evaluate(() => {
+  if (document.getElementById('pen')) return;
   const d = document.createElement('div');
   d.id = 'pen';
   Object.assign(d.style, { position: 'fixed', width: '8px', height: '8px', margin: '-4px 0 0 -4px', borderRadius: '50%', background: '#f2ece0', opacity: 0, zIndex: 99998, pointerEvents: 'none', transition: 'opacity .25s' });
   document.body.appendChild(d);
-});
+}); }
 await addPen();
-const pen = (x, y, o) => p.evaluate(([x, y, o]) => Object.assign(document.getElementById('pen').style, { left: x + 'px', top: y + 'px', opacity: o }), [x, y, o]);
-const press = async (loc, ms) => {
+function pen(x, y, o) { return p.evaluate(([x, y, o]) => Object.assign(document.getElementById('pen').style, { left: x + 'px', top: y + 'px', opacity: o }), [x, y, o]); }
+async function press(loc, ms) {
   const bx = await loc.boundingBox();
   if (!bx || bx.y < 0 || bx.y + bx.height > (WIDE ? 810 : 768)) return tap(loc, ms);
   // On a wide button the dot presses its blank right end, not its letters (Fable's review, Nov 15).
@@ -416,7 +457,7 @@ const press = async (loc, ms) => {
   await wait(220);
   await p.evaluate(() => { document.getElementById('pen').style.opacity = 0; });
   await wait(ms);
-};
+}
 // A line drawn with the pen dot, through points given as fractions of the form picture.
 // ref: the picture's viewBox the points were measured on; a longer hem makes the picture taller, so the points are
 // moved to stay on the same place on the form.

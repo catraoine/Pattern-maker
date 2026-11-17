@@ -812,6 +812,12 @@ export function MeasurePage({
   const checkAs = BASE.includes(id) ? 'dress' : FIELDS[garment].some((f) => f.id === id) ? garment : GARMENTS.find((g) => FIELDS[g].some((f) => f.id === id)) ?? garment;
   const problems = checkMeasurements({ [id]: value } as MeasurementValues, unit, checkAs, form).filter((c) => c.id === id && c.level === 'error' && value !== undefined);
   const error = problems[0];
+  // A number still short of the range while it's being typed (the 6 of 62) isn't wrong yet: its error waits for Next or
+  // for the box to be left, so nobody is told off mid-number (the film's critic review, Nov 16). Too big shows at once,
+  // and a saved or estimated number nobody is typing is checked straight away.
+  const [typing, setTyping] = useState(false);
+  const least = FIELDS[checkAs].find((f) => f.id === id)?.hard[0];
+  const shownError = error && typing && !tried && value !== undefined && least !== undefined && value < least ? undefined : error;
   // A double-check against the rest (the height, the weight, the other lengths): said here, where the number is
   // typed, and never in the way. Only once the number could be right on its own.
   // A check this number sets off on another one says so here too (Cat, 2026-10-21: the girths checked against each
@@ -825,7 +831,7 @@ export function MeasurePage({
     const before = new Set(warnings(without).map((c) => `${c.id} ${c.message}`));
     return now.find((c) => c.id === id) ?? now.find((c) => !before.has(`${c.id} ${c.message}`));
   })();
-  const note = error ?? (tried && value === undefined ? { level: 'error', message: `Enter ${helper ? 'their' : 'your'} ${fieldLabel.toLowerCase()} to carry on.` } : undefined);
+  const note = shownError ?? (tried && value === undefined ? { level: 'error', message: `Enter ${helper ? 'their' : 'your'} ${fieldLabel.toLowerCase()} to carry on.` } : undefined);
 
   const feetInches = id === 'height' && unit === 'in';
   const [ftIn, setFtIn] = useState<[string, string] | null>(null);
@@ -910,7 +916,11 @@ export function MeasurePage({
                       value={feetText}
                       aria-invalid={note ? true : undefined}
                       aria-describedby={note ? 'step-msg' : undefined}
-                      onChange={(e) => typeFtIn(e.target.value, inchText)}
+                      onBlur={() => setTyping(false)}
+                      onChange={(e) => {
+                        setTyping(true);
+                        typeFtIn(e.target.value, inchText);
+                      }}
                     />
                   </span>
                   <span aria-hidden="true">ft</span>
@@ -925,7 +935,11 @@ export function MeasurePage({
                       aria-label={`${fieldLabel}, inches`}
                       value={inchText}
                       aria-invalid={note ? true : undefined}
-                      onChange={(e) => typeFtIn(feetText, e.target.value)}
+                      onBlur={() => setTyping(false)}
+                      onChange={(e) => {
+                        setTyping(true);
+                        typeFtIn(feetText, e.target.value);
+                      }}
                     />
                   </span>
                   <span aria-hidden="true">in</span>
@@ -940,7 +954,11 @@ export function MeasurePage({
                 value={text ?? toDisplay(value, unit)}
                 aria-invalid={note ? true : undefined}
                 aria-describedby={note ? 'step-msg' : undefined}
-                onChange={(e) => type(e.target.value)}
+                onBlur={() => setTyping(false)}
+                onChange={(e) => {
+                  setTyping(true);
+                  type(e.target.value);
+                }}
               />
             )}
             <span className="unit-switch" role="group" aria-label="Units">

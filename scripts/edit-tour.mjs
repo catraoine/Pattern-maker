@@ -228,10 +228,10 @@ const DRAW_DIP = WIDE ? 0 : firstBlack(DIP_AT ? DIP_AT + 0.5 : MARKS.cloth) || M
 // On a computer there is no dip between them, so one dark band lies under both lines the whole way (an entry with no
 // words) and the lines themselves hand over: the app's own header never shows through between.
 const STYLE_NOTES = WIDE
-  ? [['', JOURNEY.from, MARKS.enlarge, 'low', true], ['One question at a time.', JOURNEY.from, MARKS.cloth + 0.3, 'low', false], ['Then the cloth.', MARKS.cloth + 0.3, MARKS.enlarge - 0.4, 'low', false]]
+  ? [['', JOURNEY.from, MARKS.enlarge, 'low', true], ['Choose each detail. Watch it change.', JOURNEY.from, MARKS.cloth + 0.3, 'low', false], ['Then the cloth.', MARKS.cloth + 0.3, MARKS.enlarge - 0.4, 'low', false]]
   // On a phone too, one dark band lies under both lines the whole way and the lines hand over at the take's dip, so
   // the app's own header never shows through between them (Fable's review, Nov 15).
-  : [['', JOURNEY.from, DRAW_DIP + 0.6, 'low', true], ['One question at a time.', JOURNEY.from, DIP_AT ? DIP_AT - 0.3 : MARKS.questions - 0.1, 'low', false], ['Then the cloth.', DIP_AT ? DIP_AT + 0.1 : MARKS.cloth + 0.3, DRAW_DIP - 0.2, 'low', false]];
+  : [['', JOURNEY.from, DRAW_DIP + 0.6, 'low', true], ['Choose each detail.', JOURNEY.from, DIP_AT ? DIP_AT - 0.3 : MARKS.questions - 0.1, 'low', false], ['Then the cloth.', DIP_AT ? DIP_AT + 0.1 : MARKS.cloth + 0.3, DRAW_DIP - 0.2, 'low', false]];
 // On a phone the words go a beat sooner: as the dress lengthens the view lifts, and the form's head rose into them
 // (Fable's review, Nov 15). On a computer they sit to the left of the form.
 const DRAW_OFF = WIDE ? 0 : 1.4;
@@ -418,7 +418,7 @@ async function shopMoment() {
   // literal matches, in place of the strip of cards the film drew). Recorded by record-tour-shots.mjs (shop.mp4).
   // On a computer the list is the narrow column beside the drawing, and the drawing is scrolled away under it: drawn
   // in on the list (a close-up, Cat Nov 14).
-  return piece({ shot: 'shop', from: 0.3, dur: 7, ...(WIDE && { zoom: [2.1, 2.1], at: [0.82, 0.5] }), fadeIn: 0.5, fadeOut: 0.5, notes: [[await note('Shop the fabric.', 'low'), 0.2, 7.45]] }); // the line goes with the picture, not before it (Fable, Nov 15)
+  return piece({ shot: 'shop', from: 0.3, dur: 4, ...(WIDE && { zoom: [2.1, 2.1], at: [0.82, 0.5] }), fadeIn: 0.5, fadeOut: 0.5, notes: [[await note('Shop the fabric.', 'low'), 0.2, 4.45]] }); // the line goes with the picture, not before it (Fable, Nov 15); 4 s, not 7 (the critic's review, Nov 16)
 }
 // The opening (Cat, 2026-10-22: the old one repeated the loading screen and welcome the viewer had just seen).
 const INTRO = process.env.TOUR_INTRO ?? 'W'; // Cat's pick, 2026-10-30: W Welcome Push (was C2 Pull Back)
@@ -469,33 +469,53 @@ const CUTS = {
   // round on you, drawing closer as it turns (the recorder fills the screen with it; Cat, 2026-10-22).
   words: async () => {
     const f = 0.5;
-    // On a phone the page is drawn in just enough that the header is off the top, and a touch left of centre so the
-    // tape's brass tip stays on screen the whole way (Cat, 2026-10-24: the end of the tape must stay the same).
+    // On a phone the page is drawn in just enough to fill the frame, and a touch left of centre so the tape's brass tip
+    // stays on screen the whole way (Cat, 2026-10-24: the end of the tape must stay the same).
     // On a computer the measuring pages are a column in the middle of the window: drawn in on it (Nov 14).
-    const TAPE_VIEW = WIDE ? { zoom: [1.15, 1.15], at: [0.5, 0.53] } : { zoom: [1.08, 1.08], at: [0.49, 0.545] };
     // The measuring pages hold still: a drift in made the tape grow, and the tape must stay one size (Cat, Nov 15).
-    // Begin goes straight to the waist page (Fable's concept A, Cat's apply, Nov 15): the take opens in black and the
-    // page comes up out of it about WAIST_AT s in, its tape coming round the waist.
-    const WAIST_AT = Number(process.env.WAIST_AT ?? (WIDE ? 2.6 : 2.35));
-    const WAIST_DUR = Number(process.env.WAIST_DUR ?? 3.8); // held only a beat once wrapped: a still page read as a freeze (Fable, Nov 15)
+    const TAPE_VIEW = WIDE ? { zoom: [1.15, 1.15], at: [0.5, 0.53] } : { zoom: [1.08, 1.08], at: [0.49, 0.545] };
+    // Chapter 1 shows the measuring itself (Cat, Nov 16: "There is no chapter 1"; it had shrunk to one idle page): the
+    // waist with its number typed in, the bust and hips with the form taking the body's shape, the length and height
+    // quicker, and the check page that keeps them, each with a line of words. The times come from the take's
+    // tape-marks.json (record-tour-shots.mjs).
     // OPENER_FILM=<walkthrough.mp4> keeps a released film's opening shot and Measure card frame for frame (Cat,
     // 2026-10-24: "go back to that other version exactly"): its first 5.6 s, fades and title already in them.
     const released = process.env.OPENER_FILM ? resolve(process.env.OPENER_FILM) : undefined;
+    const marksFile = join(SHOTS, 'tape-marks.json');
+    if (!existsSync(marksFile)) throw new Error(`${marksFile} is missing: record the tape shot again (record-tour-shots.mjs writes it)`);
+    const T = JSON.parse(readFileSync(marksFile, 'utf8'));
+    const lost = ['waist', 'next-0', 'next-2', 'next-4'].filter((m) => typeof T[m] !== 'number');
+    if (lost.length || (T['skip-5'] ?? T['page-5']) === undefined) throw new Error(`the tape take stopped early: no ${lost.join(', ') || 'page-5'} in ${marksFile}`);
+    const checkAt = (T['skip-5'] ?? T['page-5']) + 1.1; // once the pen dot from Skip has faded
+    const span = (from, to, speed) => ({ from, dur: Math.round(((to - from) / speed) * 10) / 10, speed });
+    // Each part ends as its last Next is pressed and the page turns, so a line never sits over the next page (the
+    // critic's review, Nov 16); the optional weight page is left out.
+    const turn = (n) => T[`next-${n}`] + 0.45;
+    const WAIST = span(T.waist - 0.05, turn(0), 1);
+    const ROUND = span(turn(0), turn(2), 1.6);
+    const LONG = span(turn(2), turn(4), 2.4);
+    const CHECK = { from: checkAt, dur: 3, speed: 1 };
+    const tape = (s, more) => piece({ shot: 'tape', ...s, ...(WIDE ? {} : TAPE_VIEW), ...more });
+    const waist = await tape(WAIST, { fadeIn: 0.5, notes: [[await note('A soft tape, round the waist.', 'low'), 0.9, WAIST.dur + 0.45]] });
+    const measuring = [
+      // A released opening (OPENER_FILM) already ends on its own Measure card.
+      released ? waist : await dissolve(await piece({ still: await card('01', 'Measure', 'Five numbers, once.'), dur: 2.2, fadeIn: f, fadeOut: 0.5 }), waist, 0.04),
+      await tape(ROUND, { notes: [[await note('The form takes your shape.', 'low'), 0.3, ROUND.dur + 0.45]] }),
+      await tape(LONG, { fadeOut: 0.3, notes: [[await note('Then your length.', 'low'), 0.3, LONG.dur - 0.1]] }),
+      await tape(CHECK, { fadeIn: 0.3, fadeOut: f, notes: [[await note(WIDE ? 'Measured once. Kept for every pattern.' : 'Kept for every pattern.', 'low'), 0.3, CHECK.dur - 0.2]] }),
+    ];
+    // What the app does, said plainly before chapter 1 (Cat, Nov 16: "it doesn't even say how it works"; "Patterns draft
+    // to your body"): why it's different from a shop pattern, and the four steps the chapters follow.
+    const overview = await piece({ still: await card('', 'Patterns drafted<br>to your body', 'Not a standard size: your own measurements.<br>Measure. Choose. Style. Print.'), dur: 3.8, fadeIn: 0.6, fadeOut: f });
     const opening = [
-      ...(released
-        ? [await piece({ shot: 'round', src: released, from: 0, dur: 5.6 })]
-        : [...(await INTROS[INTRO]())]),
-      // The Measure card, then the waist page as it is live, its tape coming round the waist and staying one size
-      // (Cat, Nov 15). The card's words fade out before the page comes in, so the two never overlap (Fable's review).
-      ...(released
-        ? [await piece({ shot: 'tape', from: WAIST_AT, dur: WAIST_DUR, ...(WIDE ? {} : TAPE_VIEW), fadeIn: f, fadeOut: f })]
-        : [await dissolve(await piece({ still: await card('01', 'Measure', 'Just a few, once.'), dur: 2.2, fadeIn: f, fadeOut: 0.5 }), await piece({ shot: 'tape', from: WAIST_AT, dur: WAIST_DUR, ...(WIDE ? {} : TAPE_VIEW), fadeIn: 0.5, fadeOut: f }), 0.04)]),
+      ...(released ? [await piece({ shot: 'round', src: released, from: 0, dur: 5.6 })] : [...(await INTROS[INTRO]()), overview]),
+      ...measuring,
     ];
     // TOUR_PREVIEW=1 stops after the opening and the tape, to try an opening without cutting the whole film.
     if (process.env.TOUR_PREVIEW) return opening;
     return [
       ...opening,
-      await piece({ still: await card('02', 'Choose', 'Then what to make.'), dur: 3, fadeIn: f, fadeOut: f }),
+      await piece({ still: await card('02', 'Choose', 'Then what to make.'), dur: 2.4, fadeIn: f, fadeOut: f }),
       // Three ways in (Cat, 2026-11-08): a photo first, then a look, then design your own, which taps Dress and
       // carries on into Style in calico.
       await photoMoment('Start from a photo.'),
@@ -504,7 +524,7 @@ const CUTS = {
       // up; slowed a touch so the line has time to be read.
       // Ends a frame before the take moves on to the dress's first measuring page, which showed through the fade.
       await piece({ shot: 'choose', from: 0.1, dur: 2.5, speed: 0.66, fadeIn: f, fadeOut: 0.4, notes: [[await note(WIDE ? 'Or design your own.' : 'Or design<br>your own.', 'low'), 0.2, 2.3]] }),
-      await piece({ still: await card('03', 'Style', 'Make it yours.'), dur: 3, fadeIn: f, fadeOut: f }),
+      await piece({ still: await card('03', 'Style', 'Make it yours.'), dur: 2.4, fadeIn: f, fadeOut: f }),
       // Done lands on the pattern sheet, so the pattern follows straight on, then the dress all round (Cat,
       // 2026-10-24: no flash back to the dress between them), each dissolving into the next.
       // Shop the fabric sits with Style, straight after the dress is styled (Cat, 2026-11-02: not after the
@@ -515,13 +535,13 @@ const CUTS = {
       // On black (Cat, Nov 15: keep All round on a black background); on a phone lifted in the cut, so its legs clear
       // the three lines under it.
       await piece({ shot: 'round', from: 0.3, dur: 8.6, fadeIn: 0.6, fadeOut: f, ...(!WIDE && { lift: [0.1, -1, 0.001] }), overs: (await threeChecks()).map((p, i) => [p, 0.9 + i * 1.8]) }),
-      await piece({ still: await card('04', 'Print', 'At home, or full size.'), dur: 3, fadeIn: f, fadeOut: f }),
+      await piece({ still: await card('04', 'Print', 'At home, or full size.'), dur: 2.4, fadeIn: f, fadeOut: f }),
       // Down to Print my pattern, the pages, then projector mode (Cat, 2026-10-29: the scroll to print and the
       // projector back in).
       ...(REVIEW ? [await piece({ shot: 'review', ...REVIEW, fadeIn: f })] : []),
-      await pages(4.4, { fadeIn: f, fadeOut: f }),
-      await piece({ shot: 'projector', ...PROJECTOR, fadeIn: f, fadeOut: f, notes: [[await note(WIDE ? 'Or project it, true size.' : 'Or project it,<br>true size.', 'low', !WIDE), 0.3, PROJECTOR.dur - 0.3]] /* on a computer no dark band, which hid the piece's shoulder */ }),
-      await piece({ still: await card('', 'Drafted<br>to your body'), dur: 4.5, fadeIn: 0.8, fadeOut: 1.2 }),
+      await pages(4.4, { fadeIn: f, fadeOut: f, notes: [[await note('Print at home, page by page.', 'low'), 0.3, 4.2]] }),
+      await piece({ shot: 'projector', ...PROJECTOR, fadeIn: f, fadeOut: f, notes: [[await note(WIDE ? 'Or project it onto your cloth.' : 'Or project it<br>onto your cloth.', 'low', !WIDE), 0.3, PROJECTOR.dur - 0.3]] /* on a computer no dark band, which hid the piece's shoulder */ }),
+      await piece({ still: await card('', 'Drafted<br>to your body', 'Begin with five measurements.'), dur: 4.5, fadeIn: 0.8, fadeOut: 1.2 }),
       await piece({ still: await endCard(), dur: 4, fadeIn: 0.8, fadeOut: 0.8 }), // a second longer, so the ending lands (Fable's review, Nov 15)
     ];
   },
