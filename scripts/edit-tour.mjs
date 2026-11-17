@@ -233,15 +233,16 @@ const DRAW_DIP = WIDE ? 0 : firstBlack(DIP_AT ? DIP_AT + 0.5 : MARKS.cloth) || M
 // On a computer there is no dip between them, so one dark band lies under both lines the whole way (an entry with no
 // words) and the lines themselves hand over: the app's own header never shows through between.
 const STYLE_NOTES = WIDE
-  ? [['', JOURNEY.from, MARKS.enlarge, 'low', true], ['Choose each detail. Watch it change.', JOURNEY.from, MARKS.cloth + 0.3, 'low', false], ['Then the cloth.', MARKS.cloth + 0.3, MARKS.enlarge - 0.4, 'low', false]]
+  ? [['', JOURNEY.from, MARKS.enlarge, 'low', true]]
   // On a phone too, one dark band lies under both lines the whole way and the lines hand over at the take's dip, so
   // the app's own header never shows through between them (Fable's review, Nov 15).
-  : [['', JOURNEY.from, DRAW_DIP + 0.6, 'low', true], ['Choose each detail.', JOURNEY.from, DIP_AT ? DIP_AT - 0.3 : MARKS.questions - 0.1, 'low', false], ['Then the cloth.', DIP_AT ? DIP_AT + 0.1 : MARKS.cloth + 0.3, DRAW_DIP - 0.2, 'low', false]];
+  : [['', JOURNEY.from, DRAW_DIP + 0.6, 'low', true]];
 // On a phone the words go a beat sooner: as the dress lengthens the view lifts, and the form's head rose into them
 // (Fable's review, Nov 15). On a computer they sit to the left of the form.
 const DRAW_OFF = WIDE ? 0 : 1.4;
 // One line held through the hem, now the pattern says its own words (the second line was 'The pattern follows.').
-const DRAW_NOTES = [[['Draw on your form.'], MARKS.draw + 0.9, MARKS.done - 1.2 - DRAW_OFF]];
+// Says what the pen is doing, so the drawing reads (Cat, Nov 17: it wasn't clear what it showed).
+const DRAW_NOTES = [[['Draw a longer hem', 'on your form.'], MARKS.draw + 0.9, MARKS.done - 1.2 - DRAW_OFF]];
 const note2 = (lines) => words(WIDE
   ? `<div class="f" style="padding:44px 0 0 96px"><h1 class="n" style="font-size:34px">${lines.join('<br>')}</h1></div>`
   : `<div class="f" style="padding:38px 0 0 22px"><h1 class="n" style="font-size:29px">${lines.join('<br>')}</h1></div>`);
@@ -446,7 +447,7 @@ const note = (line0, where, shade = true) => {
 };
 // The scroll down the collection's looks, the way down to Print my pattern, and projector mode, as recorded
 // (record-tour-shots.mjs: the phone's scrolls are longer).
-const COLLECTION = WIDE ? { from: 0.8, dur: 5.6, speed: 1.3, zoom: [1.3, 1.3], at: [0.42, 0.42] } : { from: 1.6, dur: 5.4, speed: 1.4, drop: 0.05, frame: [0.21, 1.1] }; // drawn in on a computer (the critics' reviews, Nov 16: 8 s was long, half the frame empty); slower, so two or three looks can be seen (critic, Nov 17) // on a phone the band above the look is kept black, so Make this look never shows behind the words as the page scrolls (Fable, Nov 15)
+const COLLECTION = WIDE ? { from: 4.0, dur: 5.6, speed: 1.3, zoom: [1.3, 1.3], at: [0.42, 0.42] } : { from: 3.4, dur: 5.4, speed: 1.4, drop: 0.05, frame: [0.21, 1.1] }; // from the first look, past the page's own title and words (Cat, Nov 17: the line and the app's headings competed) // drawn in on a computer (the critics' reviews, Nov 16: 8 s was long, half the frame empty); slower, so two or three looks can be seen (critic, Nov 17) // on a phone the band above the look is kept black, so Make this look never shows behind the words as the page scrolls (Fable, Nov 15)
 // A computer has no Review page to scroll (Print my pattern sits beside the drawing), so its projector runs longer.
 // Print opens straight on the pattern pieces' sideways scroll, no Review page first (Cat, 2026-11-06), so on a phone
 // too there is nothing here; REVIEW=1 brings the scroll down the Review page back.
@@ -463,16 +464,13 @@ const REVIEW = WIDE || process.env.REVIEW !== '1' ? undefined : { from: 0.4, dur
 const PROJECTOR = WIDE ? { from: Number(process.env.PJ_FROM ?? 10.0), dur: 4.2, zoom: [1.08, 1.1], at: [0.85, 0.5], frame: [0.075, 0.935, -1, 2, 0.015] } : { from: Number(process.env.PJ_FROM ?? 11.1), dur: 4, zoom: [1.6, 1.63], at: [0.43, 0.49], frame: [-0.1, 1.1, -0.1, 0.95] };
 // Phone: drawn in a little less and set lower, so the piece sits whole under its two lines of words (Cat, 2026-11-06:
 // cut off by the words at the top).
-// The photo is in about 0.9 s into the take; the reading is up by about 2.9 s.
-// From the moment the photo is up: the Snap page before it flashed past unread (Fable's review, Nov 15).
-const PHOTO_FROM = Number(process.env.PHOTO_FROM ?? 1.45);
 async function photoMoment(line = 'Start from a photo.', lineEnd = 3.3) {
-  // The app's own Start from a photo screen (Cat, Nov 14: all literal matches): the photo goes in, the app scans it
-  // and says what it sees. Recorded by record-tour-shots.mjs (photo.mp4).
-  // On a computer the photo page is a column in the middle of the window: drawn in on it.
-  // Just the photo going in and the line scanning it (Cat, Nov 15: skip what the app reads; the words under the photo
-  // are too much clutter here): masked off under the photo's card, and over before the reading comes up.
-  return piece({ shot: 'photo', from: PHOTO_FROM, dur: 3.6, speed: 0.5, ...(WIDE ? { zoom: [1.35, 1.35], at: [0.5, 0.47], frame: [0.15, 0.895] } : { frame: [0.135, 0.71] }), fadeIn: 0.5, fadeOut: 0.5, notes: [[await note(line, 'low'), 0.2, lineEnd]] });
+  // Her own dress's photo in the champagne Polaroid, 'That dress' on its strip (Cat's P2, 2026-10-30, back on Nov 17).
+  // Set lower, clear of the line, with nothing blurred over it, no scanning line and no words under it (Cat, Nov 17).
+  const photo = readFileSync(resolve('scripts/tour/photo-python-dress.jpg')).toString('base64');
+  const k = WIDE ? 1.15 : 1;
+  const pic = await words(`<div class="f" style="display:flex;align-items:center;justify-content:center;padding-top:${WIDE ? 90 : 120}px"><div style="background:#efe4cc;padding:${16 * k}px ${16 * k}px ${64 * k}px;box-shadow:0 12px 28px rgba(0,0,0,.6);position:relative"><img src="data:image/jpeg;base64,${photo}" style="display:block;width:${300 * k}px;height:${400 * k}px;object-fit:cover"><div style="position:absolute;left:0;right:0;bottom:${24 * k}px;text-align:center;font:400 ${12 * k}px/1 'Chakra Petch',monospace;letter-spacing:.3em;text-transform:uppercase;color:#6b5a3a">That dress</div></div></div>`, { solid: true });
+  return piece({ still: pic, dur: 3.6, zoom: [1, 1.03], fadeIn: 0.5, fadeOut: 0.5, notes: [[await note(line, 'low'), 0.2, lineEnd]] });
 }
 async function shopMoment() {
   // The Fabric step's own partner-shop list for the silk picked, gliding down through the swatches (Cat, Nov 14: all
@@ -548,9 +546,9 @@ const CUTS = {
     // Just the form taking the body's shape, the tape round the waist, bust and hips in one run, with the app's own
     // words, numbers and buttons masked off, and one line over it (Cat, Nov 17: "we don't need to show all the
     // measurements going in"; the narration competed with the app text). The length, height and check pages are left out.
-    const FORM_ONLY = WIDE ? { zoom: [1.4, 1.45], at: [0.27, 0.5], frame: [-0.1, 1.1, -1, 0.74, 0.04] } : { zoom: [1.6, 1.66], at: [0.5, 0.27], frame: [-0.1, 0.565, -1, 2, 0.03] };
+    const FORM_ONLY = WIDE ? { zoom: [1.4, 1.45], at: [0.27, 0.5], frame: [0.035, 1.1, 0.33, 0.74, 0.04] } : { zoom: [1.6, 1.66], at: [0.5, 0.27], frame: [-0.1, 0.565, -1, 2, 0.03] };
     const BODY = span(T.waist - 0.05, turn(2), 1.7);
-    const shaping = await piece({ shot: 'tape', ...BODY, ...FORM_ONLY, fadeIn: 0.5, fadeOut: f, notes: [[await note('The form takes your shape.', 'low', false), 0.6, BODY.dur - 0.4]] });
+    const shaping = await piece({ shot: 'tape', ...BODY, ...FORM_ONLY, fadeIn: 0.5, fadeOut: f, notes: [] }); // no words: the Measure card already says it (Cat, Nov 17)
     const measuring = [
       // A released opening (OPENER_FILM) already ends on its own Measure card. No count of measurements: it can be
       // many more than five (Cat, Nov 17).
@@ -570,12 +568,24 @@ const CUTS = {
       // carries on into Style in calico.
       // The photo finishes its thought: it dissolves into the dress the app drafts from it, the calico the Style
       // chapter opens on (the critic's review, Nov 17: the photo was scanned and nothing came of it).
-      await dissolve(await photoMoment('Start from a photo.', 2.4 /* out before the dress's line comes in (critic, Nov 17) */), await piece({ shot: 'style', from: 0.2, dur: 3.4, speed: 0.25, fadeOut: f, ...(WIDE ? { zoom: [1.55, 1.6], at: [0.35, 0.49] } : { zoom: [2.15, 2.2], at: [0.5, 0.385] }), notes: [[await note('It becomes your dress.', 'low'), 0, 3.9]] }), 1.1),
+      await dissolve(await photoMoment('Start from a photo.', 2.4 /* out before the dress's line comes in (critic, Nov 17) */), await piece({ shot: 'style', from: WIDE ? MARKS.questions + 0.1 : DIP_AT - 0.75, dur: 2.8, speed: 0.25, fadeOut: f, /* the calico once its questions are answered: the dress the app reads from her photo (Cat, Nov 17: it looked nothing like the photo) */ ...(WIDE ? { zoom: [1.55, 1.6], at: [0.35, 0.49] } : { zoom: [2, 2.04], at: [0.5, 0.37] }), notes: [[await note('It becomes your dress.', 'low'), 0, 3.3]] }), 1.1),
       await piece({ shot: 'collection', ...COLLECTION, fadeIn: f, fadeOut: f, notes: [[await note('Or a look.', 'low'), 0, COLLECTION.dur - 0.3]] }),
       // Ends just after Dress is tapped (about 1.65 s into the take), before the dress's own extra measurements come
       // up; slowed a touch so the line has time to be read.
       // Ends a frame before the take moves on to the dress's first measuring page, which showed through the fade.
-      await piece({ shot: 'choose', from: 0.1, dur: WIDE ? 2.1 : 2.4, speed: 0.6, /* the computer's take turns to the high bust page sooner (critic, Nov 17) */ fadeIn: f, fadeOut: 0.4, notes: [[await note(WIDE ? 'Or design your own.' : 'Or design<br>your own.', 'low'), 0.2, 2.2]] }), // ends as Dress lights up: the app moves straight on to the dress's own measurements
+      // The garment screen up to the pen's tap on Dress, then the moment Dress fills champagne held a beat: the app
+      // moves on in a fifth of a second, too quick to see the pick (Cat, Nov 17: show the selection intentionally).
+      // CHOOSE_PICK: shot time Dress fills (found in the take).
+      ...await (async () => {
+        const pick = Number(process.env.CHOOSE_PICK ?? (WIDE ? 1.43 : 1.30));
+        const said = await note(WIDE ? 'Or design your own.' : 'Or design<br>your own.', 'low');
+        const frame = WIDE ? [0.285, 1.1] : [0.29, 1.1]; // the page's own question masked, so the line doesn't compete with it (Cat, Nov 17)
+        const run = span(0.3, pick, 0.6);
+        return [
+          await piece({ shot: 'choose', ...run, frame, fadeIn: f, notes: [[said, 0.2, run.dur + 1]] }),
+          await piece({ shot: 'choose', from: pick + 0.02, dur: 1.0, speed: 0.15, frame, fadeOut: 0.6, notes: [[said, -1, 1.0]] }),
+        ];
+      })(),
       await piece({ still: await card('03', 'Style', 'Make it yours.'), dur: 2.4, fadeIn: f, fadeOut: f }),
       // Done lands on the pattern sheet, so the pattern follows straight on, then the dress all round (Cat,
       // 2026-10-24: no flash back to the dress between them), each dissolving into the next.
@@ -594,17 +604,15 @@ const CUTS = {
       // The whole turn, a touch quicker, so it ends facing front as the real dress does; held whole in frame, hem and
       // all, with the words beside it on a computer and under its hem on a phone (the critic's review, Nov 17).
       beats.turn = await piece({ shot: 'round', from: 0.3, dur: 8.8, speed: 1.3, fadeIn: 0.6, fadeOut: f, ...(WIDE ? { zoom: [1, 1], at: [0.5, 0.5] } : { zoom: [1, 1.03], at: [0.5, 0.45], lift: [0.12, -1, 0.001] }), overs: (await threeChecks()).map((p, i) => [p, 0.9 + i * 1.8]) }),
-      await piece({ still: await card('04', 'Print', 'At home, or on your cloth.'), dur: 2.4, fadeIn: f, fadeOut: f }),
-      // Down to Print my pattern, the pages, then projector mode (Cat, 2026-10-29: the scroll to print and the
-      // projector back in).
+      // Print and the ending as in the Nov 15 film Cat liked (Cat, Nov 17: start from it, change only what she asked).
+      await piece({ still: await card('04', 'Print', 'At home, or full size.'), dur: 2.4, fadeIn: f, fadeOut: f }),
       ...(REVIEW ? [await piece({ shot: 'review', ...REVIEW, fadeIn: f })] : []),
-      ...(existsSync(DRAFT) ? [await draftMoment()] : []),
-      await pages(4.4, { fadeIn: f, fadeOut: f, notes: [[await note('Print at home, page by page.', 'low'), 0.3, 4.2]] }),
-      await piece({ shot: 'projector', ...PROJECTOR, fadeIn: f, fadeOut: f, notes: [[await note(WIDE ? 'Or project it onto your cloth.' : 'Or project it<br>onto your cloth.', 'low', !WIDE), 0.3, PROJECTOR.dur - 0.3]] /* on a computer no dark band, which hid the piece's shoulder */ }),
-      // The ending comes back to her dress turning on the form, which dissolves into the real dress it was drafted
-      // from, behind the words (Cat, Nov 17: a real shot to close the story; the film's dress follows her own).
-      // The last turn to face front, as her photo does, so the drawn dress and the real one meet front to front.
-      beats.end = await dissolve(await piece({ shot: 'round', from: 9.6, dur: 3.4, speed: 0.6, fadeIn: 0.8, ...(WIDE ? { zoom: [1.05, 1.08], at: [0.62, 0.5] /* the dress left of centre, where the photo's dress then stands, hem in frame */ } : { zoom: [1.12, 1.16], at: [0.5, 0.38] }) }), await realDress(), 1.4),
+      await pages(4.4, { fadeIn: f, fadeOut: f }),
+      await piece({ shot: 'projector', ...PROJECTOR, fadeIn: f, fadeOut: f, notes: [[await note(WIDE ? 'Or project it, true size.' : 'Or project it,<br>true size.', 'low', !WIDE), 0.3, PROJECTOR.dur - 0.3]] /* on a computer no dark band, which hid the piece's shoulder */ }),
+      // REAL_END=1 closes on her real dress instead (the dress turning dissolving into it), once the shoot's clip is in.
+      ...(process.env.REAL_END === '1'
+        ? [beats.end = await dissolve(await piece({ shot: 'round', from: 9.6, dur: 3.4, speed: 0.6, fadeIn: 0.8, ...(WIDE ? { zoom: [1.05, 1.08], at: [0.62, 0.5] } : { zoom: [1.12, 1.16], at: [0.5, 0.38] }) }), await realDress(), 1.4)]
+        : [await piece({ still: await card('', 'Drafted<br>to your body'), dur: 4.5, fadeIn: 0.8, fadeOut: 1.2 })]),
       await piece({ still: await endCard(), dur: 4, fadeIn: 0.8, fadeOut: 0.8 }), // a second longer, so the ending lands (Fable's review, Nov 15)
     ];
   },

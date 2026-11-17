@@ -404,6 +404,11 @@ await wait(900);
 await press(main.getByRole('group', { name: 'What would you like to make?' }).getByRole('button', { name: /^Dress\b/ }), 0);
 await wait(2000);
 await stop('choose');
+// TOUR_CHOOSE_ONLY=1 records the tape and choose shots and stops, to take the garment pick again on its own.
+if (process.env.TOUR_CHOOSE_ONLY) {
+  await b.close();
+  process.exit(0);
+}
 await chooseOnly.evaluate((el) => el.remove());
 await wait(800);
 await fillAll();
