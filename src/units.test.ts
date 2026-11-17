@@ -24,6 +24,9 @@ describe('inches', () => {
     expect(inInches('Measure the test square: it should be exactly 10 cm.')).toBe('Measure the test square: it should be exactly 10 cm (3.94 in).');
     expect(inInches('measure the 10 cm test square on page A1')).toBe('measure the 10 cm (3.94 in) test square on page A1');
     expect(inInches('10 CM')).toBe('10 CM · 3.94 IN');
+    // Seam labels on the pieces are in capitals (Nov 17: they stayed in cm in an inch PDF).
+    expect(inInches('SHOULDER · 1.5 CM ALLOWANCE')).toBe('SHOULDER · ⅝ IN ALLOWANCE');
+    expect(inInches('HEM · 4 CM ALLOWANCE')).toBe('HEM · 1⅝ IN ALLOWANCE');
     expect(inInches('10 cm (3.94 in) test square')).toBe('10 cm (3.94 in) test square');
     expect(inInches('cm or in')).toBe('cm or in');
     expect(inInches('Page 2 of 4')).toBe('Page 2 of 4');

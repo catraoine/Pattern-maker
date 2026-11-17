@@ -48,6 +48,9 @@ const NUM = '(\\d+(?:[.,]\\d+)?)';
 const PAIR_CM = new RegExp(`${NUM}\\s*([×x])\\s*${NUM}\\s*cm\\b(?!\\s*\\()`, 'g');
 const ONE_CM = new RegExp(`${NUM}\\s*cm\\b(?!\\s*\\()`, 'g');
 const ONE_M = new RegExp(`${NUM}\\s*m\\b(?!\\s*\\()`, 'g');
+// The labels printed along each seam are in capitals ("SHOULDER · 1.5 CM ALLOWANCE") and stayed in centimetres in an
+// inch PDF whose title block said "Seam allowance 5/8 in" (Nov 17).
+const ONE_CM_CAPS = new RegExp(`${NUM}\\s*CM\\b(?!\\s*\\()`, 'g');
 // The test square is the one length a sewist checks with a ruler, so it keeps the exact figure.
 const SQUARE = /10 cm test square|exactly 10 cm/g;
 const SQUARE_LABEL = /^10 CM$/;
@@ -64,6 +67,7 @@ export function inInches(text: string): string {
     .replace(SQUARE, (m) => (m.startsWith('exactly') ? 'exactly 10 cm (3.94 in)' : '10 cm (3.94 in) test square'))
     .replace(PAIR_CM, (_, a, sep, b) => `${toInches(num(a)).replace(/ in$/, '')} ${sep} ${toInches(num(b))}`)
     .replace(ONE_CM, (_, a) => toInches(num(a)))
+    .replace(ONE_CM_CAPS, (_, a) => toInches(num(a)).replace(/ in$/, ' IN'))
     .replace(ONE_M, (_, a) => toYards(num(a)));
 }
 
