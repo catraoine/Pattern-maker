@@ -409,9 +409,11 @@ function bezier(a: P, c1: P, c2: P, b: P, steps: number): P[] {
 const UNDERARM_HOLD = 1;
 
 /** The most the underarm is raised to keep the side seams matching, in cm; beyond it the seam is left as fairSideOnce
- *  drew it. A princess side seam needs no more than UNDERARM_RAISE_MAX; above a French dart on a full bust the old seam's
- *  in-and-out held up to 1 cm more than a fair line (the bug hunt's sweep, Nov 16), so it may raise that far. */
-const UNDERARM_RAISE_MAX = 0.6;
+ *  drew it, in and out. A princess side seam on a full bust with a low bust point, or a front much longer than the back,
+ *  needed up to 1.5 cm (0.6 left the Ice Peplum's side front waving and 1 to 2 cm longer than the back on those bodies,
+ *  tester sweep Nov 16). Above a French dart the old seam's in-and-out held up to 1 cm more than a fair line (the bug
+ *  hunt's sweep, Nov 16), so it may raise that far. */
+const UNDERARM_RAISE_MAX = 1.5;
 const UNDERARM_RAISE_DART = 1;
 
 /**
