@@ -175,6 +175,8 @@ const SHORTS_HEM = 3;
 
 /** The narrowest hem a foot goes through. */
 const MIN_HEM = 31;
+/** The shortest front fork, in cm: shorter, the front's cutting line crosses itself at the foot of the crotch (sweep, Nov 16). */
+const FORK_MIN = 3;
 /** A fly zip, and how far the fly's cut-on underlap reaches past the centre front on the waistband. */
 const FLY_ZIP = 18;
 const UNDERLAP = 3.5;
@@ -496,8 +498,8 @@ function solve(g: (x: number) => number, lo: number, hi: number): number {
 
 /** The x where an increasing, nearly straight g is zero, by the secant method, kept within [lo, hi]. */
 function secant(g: (x: number) => number, lo: number, hi: number): number {
-  let x0 = 1;
-  let x1 = 1.15;
+  let x0 = Math.min(hi, Math.max(lo, 1));
+  let x1 = Math.min(hi, Math.max(lo, 1.15));
   let g0 = g(x0);
   let g1 = g(x1);
   for (let i = 0; i < 6 && Math.abs(g1) > 0.02; i++) {
@@ -616,14 +618,17 @@ export function draftTrousers(body: TrousersMeasurements, style: Partial<Trouser
     const back = half(f, { ...backArgs, legShift, forkDrop });
     return { front, back, frontArgs, backArgs: { ...backArgs, legShift, forkDrop } };
   };
-  // The fork's reach sets the crotch seam's length: find the one that makes it the person's own.
+  // The fork's reach sets the crotch seam's length: find the one that makes it the person's own, within the block's
+  // range. Past 1.7 times the block's the leg at the crotch is far wider than any thigh (on a 154 cm hip the back fork
+  // came to 41 cm, Nov 16), and a front fork under 3 cm crosses the front's cutting line where the crotch meets the
+  // inside leg. Past either end the person is asked to re-measure (crotchCapped).
   const reach = (f: Frame) =>
     secant(
       (x) => {
         const b = build(x, f);
         return b.front.crotch + b.back.crotch - target;
       },
-      0.55,
+      Math.max(0.55, FORK_MIN / fork0.front),
       1.7,
     );
   // Shorts are the full-length trousers cut off: the crotch, crease and back leg are settled on the full
