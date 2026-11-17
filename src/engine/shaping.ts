@@ -138,7 +138,7 @@ interface Split {
 
 /** The most a princess side panel is eased into its centre panel over the bust, in cm: up to a centimetre eases in
  *  smoothly over a full bust; more would gather. */
-export const PRINCESS_EASE_MAX = 1;
+const PRINCESS_EASE_MAX = 1;
 
 /** Cut a piece along a princess line into its centre and side panels. */
 export function panels(pc: Piece, s: Split, names: [string, string], cuts: [string, string], meta: Record<string, unknown>): { centre: Piece; side: Piece; line: P[] } {
