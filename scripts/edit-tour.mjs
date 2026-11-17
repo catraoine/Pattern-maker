@@ -447,7 +447,7 @@ const note = (line0, where, shade = true) => {
 };
 // The scroll down the collection's looks, the way down to Print my pattern, and projector mode, as recorded
 // (record-tour-shots.mjs: the phone's scrolls are longer).
-const COLLECTION = WIDE ? { from: 4.0, dur: 5.6, speed: 1.3, zoom: [1.3, 1.3], at: [0.42, 0.42] } : { from: 3.4, dur: 5.4, speed: 1.4, drop: 0.05, frame: [0.21, 1.1] }; // from the first look, past the page's own title and words (Cat, Nov 17: the line and the app's headings competed) // drawn in on a computer (the critics' reviews, Nov 16: 8 s was long, half the frame empty); slower, so two or three looks can be seen (critic, Nov 17) // on a phone the band above the look is kept black, so Make this look never shows behind the words as the page scrolls (Fable, Nov 15)
+const COLLECTION = WIDE ? { from: 4.6, dur: 5.6, speed: 1.3, zoom: [1.3, 1.3], at: [0.42, 0.42] } : { from: 4.6, dur: 5.4, speed: 1.4, drop: 0.05, frame: [0.21, 1.1] }; // from the first look, past the page's own title and words (Cat, Nov 17: the line and the app's headings competed) // drawn in on a computer (the critics' reviews, Nov 16: 8 s was long, half the frame empty); slower, so two or three looks can be seen (critic, Nov 17) // on a phone the band above the look is kept black, so Make this look never shows behind the words as the page scrolls (Fable, Nov 15)
 // A computer has no Review page to scroll (Print my pattern sits beside the drawing), so its projector runs longer.
 // Print opens straight on the pattern pieces' sideways scroll, no Review page first (Cat, 2026-11-06), so on a phone
 // too there is nothing here; REVIEW=1 brings the scroll down the Review page back.
@@ -577,13 +577,13 @@ const CUTS = {
       // moves on in a fifth of a second, too quick to see the pick (Cat, Nov 17: show the selection intentionally).
       // CHOOSE_PICK: shot time Dress fills (found in the take).
       ...await (async () => {
-        const pick = Number(process.env.CHOOSE_PICK ?? (WIDE ? 1.43 : 1.30));
+        const pick = Number(process.env.CHOOSE_PICK ?? (WIDE ? 1.36 : 1.31));
         const said = await note(WIDE ? 'Or design your own.' : 'Or design<br>your own.', 'low');
         const frame = WIDE ? [0.285, 1.1] : [0.29, 1.1]; // the page's own question masked, so the line doesn't compete with it (Cat, Nov 17)
         const run = span(0.3, pick, 0.6);
         return [
           await piece({ shot: 'choose', ...run, frame, fadeIn: f, notes: [[said, 0.2, run.dur + 1]] }),
-          await piece({ shot: 'choose', from: pick + 0.02, dur: 1.0, speed: 0.15, frame, fadeOut: 0.6, notes: [[said, -1, 1.0]] }),
+          await piece({ shot: 'choose', from: pick + 0.02, dur: 1.0, speed: 0.05, frame, fadeOut: 0.6, notes: [[said, -1, 1.0]] }),
         ];
       })(),
       await piece({ still: await card('03', 'Style', 'Make it yours.'), dur: 2.4, fadeIn: f, fadeOut: f }),
@@ -608,7 +608,7 @@ const CUTS = {
       await piece({ still: await card('04', 'Print', 'At home, or full size.'), dur: 2.4, fadeIn: f, fadeOut: f }),
       ...(REVIEW ? [await piece({ shot: 'review', ...REVIEW, fadeIn: f })] : []),
       await pages(4.4, { fadeIn: f, fadeOut: f }),
-      await piece({ shot: 'projector', ...PROJECTOR, fadeIn: f, fadeOut: f, notes: [[await note(WIDE ? 'Or project it, true size.' : 'Or project it,<br>true size.', 'low', !WIDE), 0.3, PROJECTOR.dur - 0.3]] /* on a computer no dark band, which hid the piece's shoulder */ }),
+      await piece({ shot: 'projector', ...PROJECTOR, fadeIn: f, fadeOut: f, notes: [[await note(WIDE ? 'Or project it, true size.' : 'Or project it,<br>true size.', 'low', !WIDE), WIDE ? 0.3 : 1.4, PROJECTOR.dur - (WIDE ? 0.3 : 1.2)]] /* on a phone held clear of the piece's own label as it passes the top (Cat, Nov 17: words never over the app's) */ /* on a computer no dark band, which hid the piece's shoulder */ }),
       // REAL_END=1 closes on her real dress instead (the dress turning dissolving into it), once the shoot's clip is in.
       ...(process.env.REAL_END === '1'
         ? [beats.end = await dissolve(await piece({ shot: 'round', from: 9.6, dur: 3.4, speed: 0.6, fadeIn: 0.8, ...(WIDE ? { zoom: [1.05, 1.08], at: [0.62, 0.5] } : { zoom: [1.12, 1.16], at: [0.5, 0.38] }) }), await realDress(), 1.4)]
