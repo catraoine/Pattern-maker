@@ -603,7 +603,15 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
     order = { piece, step: 'darts' };
     // The lines drawn across the piece (a roll line, dart legs, a pocket, a fold line): the name
     // block keeps off them.
+    // The finished-measurement bullseyes: the peplum's waist mark printed through the middle of its name block
+    // (pretend-tester walk, Nov 17).
+    const bullseyes = (pc.finished ?? []).map((f) => {
+      const c = t(f.at);
+      return [Array.from({ length: 25 }, (_, i) => add(c, p(0.5 * Math.cos((i * Math.PI) / 12), 0.5 * Math.sin((i * Math.PI) / 12)))), [add(c, p(-0.75, 0)), add(c, p(0.75, 0))], [add(c, p(0, -0.75)), add(c, p(0, 0.75))]];
+    });
     const marks: P[][] = [...pc.lines.map((ln) => ln.points().map(t)), ...(pc.balance ?? []).map((b) => b.pts.map(t))];
+    // The name block keeps off the bullseyes; the small labels settle round them as before.
+    const blockMarks = [...marks, ...bullseyes.flat()];
     pc.lines.forEach((ln) => poly(ln.points().map(t), 'mark'));
     drillHoles(pc).forEach((h) => drill(t(h)).forEach((ring) => poly(ring, 'mark')));
     order = { piece, step: 'grain' };
@@ -616,11 +624,12 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
     });
     // The finished measurement marks: a bullseye at the level, its words under it on the sheet, turned
     // piece or not (F5, 2026-10-28).
-    (pc.finished ?? []).forEach((f) => {
+    (pc.finished ?? []).forEach((f, k) => {
       const c = t(f.at);
-      poly(Array.from({ length: 25 }, (_, i) => add(c, p(0.5 * Math.cos((i * Math.PI) / 12), 0.5 * Math.sin((i * Math.PI) / 12)))), 'mark', true);
-      poly([add(c, p(-0.75, 0)), add(c, p(0.75, 0))], 'mark');
-      poly([add(c, p(0, -0.75)), add(c, p(0, 0.75))], 'mark');
+      const [ring, across, down] = bullseyes[k];
+      poly(ring, 'mark', true);
+      poly(across, 'mark');
+      poly(down, 'mark');
       lab(text(add(c, p(0, f.above ? -1.55 : 1.35)), f.title, MARK_TEXT, 0, 'middle', { face: 'label', tracking: 0.12 }), 2, 0.12);
       lab(text(add(c, p(0, f.above ? -0.9 : 2.0)), f.note, 0.36, 0, 'middle', { face: 'label', tracking: 0.12, grey: 0.35 }), 2, 0.12);
     });
@@ -777,7 +786,7 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
             return (
               (within({ ...bx, hw: bx.hw - 0.15, hh: bx.hh - 0.15 }, stitch) ? 0 : 1e4) +
               obstacles.filter((o) => overlaps(o, bx)).length * 100 +
-              marks.filter((ln) => crossesLine(bx, ln)).length * 50
+              blockMarks.filter((ln) => crossesLine(bx, ln)).length * 50
             );
           };
           shift = p(0, 0);
