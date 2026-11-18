@@ -229,6 +229,24 @@ section[aria-label='Preview'] > .preview .all-round-feel-step[aria-pressed='true
   cursor: pointer;
 }
 
+/* A tester's own look, offered on its plain garment: a soft line with the same gold link (testers, Nov 18). */
+.style-layout > .tester-look {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font: 14px/1.4 var(--sans);
+}
+.style-layout > .tester-look > button {
+  min-height: 32px;
+  padding: 4px 0;
+  border: none;
+  background: none;
+  color: var(--gild);
+  font: var(--w-body) var(--caps-size)/1.2 var(--mono);
+  letter-spacing: var(--caps-track);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
 /* The length label on the drawing, tapped to type a length (testers, Nov 17). */
 .len-type {
   cursor: text;
