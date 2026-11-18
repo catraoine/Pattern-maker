@@ -1,10 +1,11 @@
 /* One fill (the design review's gaps 4 and 5, Cat's P1 + S1, 2026-10-31).
    S1 Heavy Outline: champagne fill is kept for the one main button. A picked choice is shown by a heavier champagne
    outline and bright words, and the choices not picked go quiet, so a state never looks like an action. The
-   switches already underlined (the drawing's views, the form's sides) stay as they are. */
+   switches already underlined (the drawing's views, the form's sides) stay as they are.
+   Except What would you like to make?: there the garments are the only buttons, so the one tapped fills champagne
+   (06-measuring.css), and the pick reads as deliberate (Cat, Nov 17). */
 .chip.on,
 .seg:not(.style-pin .seg, .form-sides .seg) button.on,
-.make-grid button.on,
 .unit-switch button.on,
 .fabtabs button.on,
 .lookboxes button.on,
