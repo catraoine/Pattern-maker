@@ -959,7 +959,9 @@ function buildDraped(
         // out through the stand, and from beside the neck the collar read as crumpled, Nov 8. Its edges keep their rim.)
         // (A front with a lapel: the lapel at its full thickness, the front below it half that, as a plain front's. At the
         // lapel's thickness all down the front, its edge's rim read from the side as a ragged band standing off the jacket.)
-        for (const tg of thickened(g, idx, cm * unit, (i) => onSeam.has(p.base + i) || !onEdge.has(p.base + i), !(p.collar && !kn.__collarBack), p.collar || !p.turned ? undefined : (i) => (p.turned![i] ? 1 : 0.5))) add(tg, mat, 1, p.role === 'sleeve' ? 'sleeve' : 'cloth', p.role === 'sleeve' ? e : 0);
+        // (Nor beneath a cuff, banded or turned back: folded in half, both its layers are drawn already, and the face a
+        // thickness in from each stood through the other, so on light cloth the cuff showed grey shards, the eye check, Nov 18.)
+        for (const tg of thickened(g, idx, cm * unit, (i) => onSeam.has(p.base + i) || !onEdge.has(p.base + i), !(p.collar && !kn.__collarBack) && !p.folded, p.collar || !p.turned ? undefined : (i) => (p.turned![i] ? 1 : 0.5))) add(tg, mat, 1, p.role === 'sleeve' ? 'sleeve' : 'cloth', p.role === 'sleeve' ? e : 0);
       }
     }
   }
