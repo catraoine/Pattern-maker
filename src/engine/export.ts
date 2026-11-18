@@ -135,7 +135,7 @@ export function leaving(pts: P[], from: P[]): P[][] {
   return runs.sort((u, v) => length(v) - length(u));
 }
 
-const TITLE_W = 46; // cm, the title block beside the test square
+const TITLE_W = 28; // cm, the title card beside the test square
 
 /** Turn a vector by `deg` degrees clockwise (the way SVG and the labels rotate). */
 const turn = (v: P, deg: number): P => {
@@ -426,7 +426,16 @@ interface Packed {
 export const turnedInBox = (q: P, [x0, y0, x1, y1]: [number, number, number, number]): P => p(x0 + x1 - q.x, y0 + y1 - q.y);
 
 /** The title block's footprint, from the sheet's margin: the test square and the card beside it. */
-const TITLE_BLOCK = { w: 10 + TITLE_W, h: 10 };
+// The tester email says the pattern code is at the top of page 1 and the test square on page 2 (46 testers had it,
+// Nov 17; Cat: no correction email), so the sheet opens with a small card holding the code, inside the first page on
+// A4 and Letter, then the square, wholly inside the second page, then a narrower title card. The three take the same
+// 56 cm as the square and the 46 cm card did before, so every piece prints exactly where it did and on as many pages.
+const CODE_W = 15.5; // cm: x 3 to 18.5, inside page 1 (A4 prints to 19, Letter to 19.59)
+const SQUARE_AT = 17; // cm from the margin: x 20 to 30, inside page 2 (A4 from 18, Letter from 18.59) and clear of page 1
+/** The test square's left edge on the sheet, cm; the print check measures it on page A2. */
+export const TEST_SQUARE_X = MARGIN + SQUARE_AT;
+const TITLE_AT = 28; // cm from the margin: the title card starts after the square and ends at 56, as before
+const TITLE_BLOCK = { w: TITLE_AT + TITLE_W, h: 10 };
 
 /** The vertical span of an outline in each column across it, from its box's top left. */
 interface ColumnSpans {
@@ -550,7 +559,7 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
     return pr;
   };
 
-  // Title block: the 10 cm test square at top left, title and notes beside it. The pieces are nested
+  // Title block: the code card, the 10 cm test square and the title card across the top. The pieces are nested
   // by their cutting lines beside and below it, the way they are drawn.
   const boxes = pieces.map((pc) => bounds(pc));
   const packed = pack(pieces.map((pc) => cutLine(pc)), boxes, opts.paper);
@@ -850,41 +859,67 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
     order = {};
   });
 
+  // The code card, on page 1: who and what the pattern is for, its code, and where the square is.
+  const cc = p(MARGIN, MARGIN);
+  poly([cc, add(cc, p(CODE_W, 0)), add(cc, p(CODE_W, 10)), add(cc, p(0, 10))], 'mark', true);
+  text(add(cc, p(1, 1.5)), 'MAISON TRACÉ', 0.5, 0, 'start', { face: 'label', tracking: 0.3, grey: 0.35 });
+  // The same short name as the title card's heading, at most two lines, the second ending in "…" if cut.
+  const short = shortTitle(title.replace(/^Maison Tracé:\s*/, ''), info?.name);
+  const nameSize = [1.0, 0.8, 0.65].find((sz) => textWidth(short, sz) <= CODE_W - 2) ?? 0.65;
+  const wrapped = wrapWords(short, nameSize, 0, CODE_W - 2);
+  const nameLines = wrapped.length > 2 ? [wrapped[0], `${wrapped[1].replace(/[ ,]+\S*$/, '')}…`] : wrapped;
+  nameLines.forEach((ln, i) => text(add(cc, p(1, 2.9 + i * nameSize * 1.15)), ln, nameSize, 0, 'start', { face: 'bodyMedium' }));
+  // Who and when, made smaller to stay on the card (and on page 1); a name too long even then keeps only itself.
+  const whoParts = info ? [info.madeFor && `MADE FOR ${info.madeFor}`, info.date].filter(Boolean).map((w) => String(w).toUpperCase()) : [];
+  const whoFits = (t: string) => [0.4, 0.33, 0.28].find((sz) => textWidth(t, sz, 0.2) <= CODE_W - 2);
+  const who = whoParts.join('   ·   ');
+  const whoShown = whoFits(who) ? who : whoParts[0] ?? '';
+  if (whoShown) text(add(cc, p(1, 5.3)), whoShown, whoFits(whoShown) ?? 0.28, 0, 'start', { face: 'label', tracking: 0.2, grey: 0.35 });
+  if (info?.code) text(add(cc, p(1, 6.9)), `CODE ${info.code}`, 0.6, 0, 'start', { face: 'label', tracking: 0.1 });
+  // No size in the words: in inches they would turn 10 cm into 3⅞ in, where the square itself says 3.94 in.
+  text(add(cc, p(1, 8.9)), 'CHECK THE TEST SQUARE FIRST  →', 0.4, 0, 'start', { face: 'label', tracking: 0.2, grey: 0.35 });
+
   // 10 cm test square so a printed copy can be checked for scale. It sits in the title block
   // rather than under the pieces, which would often add a whole extra row of pages.
-  const sq = p(MARGIN, MARGIN);
+  const sq = p(MARGIN + SQUARE_AT, MARGIN);
   poly([sq, add(sq, p(10, 0)), add(sq, p(10, 10)), add(sq, p(0, 10))], 'stitchSolid', true);
   text(add(sq, p(5, 4.9)), '10 CM', 0.8, 0, 'middle', { face: 'label', tracking: 0.25 });
   text(add(sq, p(5, 5.9)), 'TEST SQUARE', 0.45, 0, 'middle', { face: 'label', tracking: 0.25, grey: 0.35 });
-  // The code again inside the square: the title line runs on across the sheets and its end, with the code, printed on
-  // page 2, while the tester email said to find it at the top of page 1, where the square is (pretend-tester walk, Nov 17).
-  if (info?.code) text(add(sq, p(5, 7.6)), `CODE ${info.code}`, 0.4, 0, 'middle', { face: 'label', tracking: 0.1, grey: 0.35 });
 
   // The title block, framed like an atelier's pattern card.
-  const tx = MARGIN + 10;
+  const tx = MARGIN + TITLE_AT;
   poly([p(tx, MARGIN), p(tx + TITLE_W, MARGIN), p(tx + TITLE_W, MARGIN + 10), p(tx, MARGIN + 10)], 'mark', true);
   poly([p(tx, MARGIN + 4.4), p(tx + TITLE_W, MARGIN + 4.4)], 'fine');
-  const who = info ? [info.madeFor && `MADE FOR ${info.madeFor}`, info.date, info.edition, info.code && `CODE ${info.code}`].filter(Boolean) : [];
-  text(p(tx + 1.2, MARGIN + 1.5), ['MAISON TRACÉ', ...who].join('   ·   ').toUpperCase(), 0.5, 0, 'start', { face: 'label', tracking: 0.3, grey: 0.35 });
+  // Who it is for and the code are on the code card; the title card names the edition.
+  text(p(tx + 1.2, MARGIN + 1.5), ['MAISON TRACÉ', info?.edition].filter(Boolean).join('   ·   ').toUpperCase(), 0.5, 0, 'start', { face: 'label', tracking: 0.3, grey: 0.35 });
   for (const t of titleCard(title.replace(/^Maison Tracé:\s*/, ''), info?.name)) text(p(tx + 1.2, MARGIN + t.y), t.text, t.size, 0, 'start', t.grey ? { face: 'body', grey: t.grey } : { face: 'bodyMedium' });
-  [...(info?.credit ? [info.credit] : []), ...notes].forEach((line, i) => text(p(tx + 1.2, MARGIN + 5.6 + i * 1.0), line, 0.6, 0, 'start', { face: 'body' }));
+  // The notes wrap inside the card: unwrapped, a long one ran on past its edge, over the sheet where pieces lie. They
+  // take the largest size whose lines all end above the card's foot.
+  const allNotes = [...(info?.credit ? [info.credit] : []), ...notes];
+  const noteAt = (sz: number) => ({ sz, lines: allNotes.flatMap((line) => wrapWords(line, sz, 0, TITLE_W - 2.4)), lead: sz * 1.22 });
+  const fitsCard = (n: { lines: string[]; lead: number }) => 5.4 + (n.lines.length - 1) * n.lead <= 9.7;
+  const noteSet = [0.45, 0.38, 0.32].map(noteAt).find(fitsCard) ?? noteAt(0.32);
+  noteSet.lines.forEach((line, i) => text(p(tx + 1.2, MARGIN + 5.4 + i * noteSet.lead), line, noteSet.sz, 0, 'start', { face: 'body' }));
 
   return { prims, width: Math.max(packed.width, TITLE_BLOCK.w) + 2 * MARGIN, height: Math.max(packed.height, TITLE_BLOCK.h) + 2 * MARGIN };
 }
 
 const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
 
+/** A pattern's short name: the look's, or its description up to the first " with ". */
+const shortTitle = (description: string, name?: string) => cap(name ?? description.split(' with ')[0]);
+
 /**
  * The title card's heading, as lines (y from the sheet's margin). A long built-up description ran out of the
- * 46 cm card over the next piece (Cat's leopard shirt dress, Nov 12), so it never prints wider than the card:
+ * title card over the next piece (Cat's leopard shirt dress, Nov 12), so it never prints wider than the card:
  * the description alone when it fits, else a short name (the look's, or the description up to its first
  * "with") and the whole description wrapped small and grey beneath it.
  */
 export function titleCard(description: string, name?: string): { text: string; size: number; y: number; grey?: number }[] {
   const room = TITLE_W - 2.4;
   if (!name && textWidth(cap(description), 1.3) <= room) return [{ text: cap(description), size: 1.3, y: 3.3 }];
-  const [head, ...tail] = description.split(' with ');
-  const short = cap(name ?? head);
+  const tail = description.split(' with ').slice(1);
+  const short = shortTitle(description, name);
   // Under a look's name, the whole description; under its own first words, only the rest of it.
   const full = name || !tail.length ? cap(description) : `With ${tail.join(' with ')}`;
   const size = [1.3, 1.1, 0.9].find((s) => textWidth(short, s) <= room) ?? 0.9;

@@ -20,7 +20,7 @@ test('help: answers, then a note with a screenshot reaches the server', async ({
   await main(page).getByRole('button', { name: 'Help & feedback' }).click();
   await expect(main(page).getByRole('heading', { name: 'Help & feedback' })).toBeVisible();
   // The first answer is open; the others open on a tap.
-  await expect(main(page).getByText(/Measure the 10 cm test square on page A1/)).toBeVisible();
+  await expect(main(page).getByText(/Measure the 10 cm test square on page A2/)).toBeVisible();
   await main(page).getByText('Letter or A4?').click();
   await expect(main(page).getByText(/Letter in North America/)).toBeVisible();
 
