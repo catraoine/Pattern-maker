@@ -506,13 +506,13 @@ export function checkMeasurements(v: MeasurementValues, unit: Unit, garment: Gar
   const asked = new Set(FIELDS[garment].map((f) => f.id));
   for (const c of weightChecks(v, body.weight, body.form ?? form)) if (asked.has(c.id) && !out.some((o) => o.id === c.id)) out.push(c);
   // Measurements checked against each other, after each has passed on its own.
-  // A cross-check names what to look at, so it replaces the plain "is unusual" on the same measurement.
+  // A cross-check names what to look at, so it replaces the plain "just checking" note on the same measurement.
   const crossed = () => {
     for (const c of crossChecks(v)) {
       if (!asked.has(c.id) || !asked.has(c.with)) continue;
       const at = out.findIndex((o) => o.id === c.id);
       if (at < 0) out.push({ id: c.id, level: 'warning', message: c.message });
-      else if (out[at].level === 'warning' && out[at].message.startsWith('Just checking your ') && out[at].message.endsWith(JUST_CHECKING_END)) out[at] = { id: c.id, level: 'warning', message: c.message };
+      else if (out[at].level === 'warning' && out[at].message.endsWith(JUST_CHECKING_END)) out[at] = { id: c.id, level: 'warning', message: c.message };
     }
   };
   // A T-shirt (and a hoodie, built on it) hangs from the shoulders and is cut from the bust down, so only the top's
@@ -627,13 +627,13 @@ function proportions(v: MeasurementValues, mode: 'out' | 'near'): CrossCheck[] {
     if (soft) out.push({ id: a, with: b, message: soft });
   };
   ratio('armscye', 'full_bust', 0.34, 0.55,
-    'Just checking your armhole against your bust. If both are right, carry on; if not, round the top of your arm through the armpit, the tape snug but not tight.',
+    'Just checking your armhole against your bust. If both are right, carry on; if not, measure round the top of your arm through the armpit, the tape snug but not tight.',
     'Just checking your armhole against your bust. If both are right, carry on; if not, keep the tape close up in the armpit and snug, not loose over the shoulder.');
   // Up to 0.47: the size tables' smallest sizes run a 35 to 36 cm neck on an 80 cm bust (0.44 to 0.45), so 0.45 called a
   // real neck large (found with the neck estimate, Nov 10 2026).
   ratio('neck', 'full_bust', 0.22, 0.47,
-    'Just checking your neck against your bust. If both are right, carry on; if not, round the base of the neck, where a necklace sits, not round the throat.',
-    'Just checking your neck against your bust. If both are right, carry on; if not, round the base of the neck with the tape flat, not over a collar.');
+    'Just checking your neck against your bust. If both are right, carry on; if not, measure round the base of the neck, where a necklace sits, not round the throat.',
+    'Just checking your neck against your bust. If both are right, carry on; if not, measure round the base of the neck with the tape flat, not over a collar.');
   ratio('apex_separation', 'full_bust', 0.11, 0.26,
     'Bust point to bust point looks narrow for your bust. Measure straight across between the fullest points, in the bra you will wear.',
     'Bust point to bust point looks wide for your bust. Measure straight across between the fullest points, not round the curve.');
@@ -673,7 +673,7 @@ function proportions(v: MeasurementValues, mode: 'out' | 'near'): CrossCheck[] {
     'Shoulder width looks narrow next to your height. Measure across the back from one shoulder point to the other.',
     'Shoulder width looks wide next to your height. Measure between the shoulder points, not round the arms.');
   ratio('full_hip', 'full_bust', 0.8, 1.4,
-    'Just checking your hip against your bust. If both are right, carry on; if not, round the fullest part of the seat, usually about 20 cm below the waist.',
+    'Just checking your hip against your bust. If both are right, carry on; if not, measure round the fullest part of the seat, usually about 20 cm below the waist.',
     'Just checking your hip against your bust. If both are right, carry on; if not, keep the tape level all the way round, at the fullest part of the seat.');
   // The base girths against each other, as they come in (measuring accuracy, 2026-10-21): bodies vary a lot here,
   // so only a gap few bodies have is said, and it names the tape most often taken wrong (a waist pulled in, a bust
@@ -720,6 +720,9 @@ function proportions(v: MeasurementValues, mode: 'out' | 'near'): CrossCheck[] {
 
 /** A cross-check's "looks short" said as "is on the short side", and offered as one more look rather than a mistake. */
 function gently(message: string): string | undefined {
+  // The girths against each other are said about the tape, never the body (Nov 18): offered once more, the same way.
+  const pair = /^Just checking (.*?)\. If both are right, carry on; if not, (.*)$/.exec(message);
+  if (pair) return `Just checking ${pair[1]} once more: it's often just right, so if it is, carry on. If not, ${pair[2]}`;
   const m = /^(.*?) looks (short|long|small|large|narrow|wide) (.*?\.) (.*)$/.exec(message);
   if (!m) return undefined;
   return `${m[1]} is on the ${m[2]} side ${m[3]} That's often just right, but it's worth one more look. ${m[4]}`;

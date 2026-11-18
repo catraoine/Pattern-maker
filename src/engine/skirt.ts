@@ -1048,7 +1048,7 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
   const circleSkirt = (share: number, cutWaist = finishedWaist): SkirtDraft => {
     const r = cutWaist / (2 * Math.PI * share);
     if (2 * Math.PI * share * (r + hipDepth) < finishedHip - 0.01) {
-      throw new DraftError('A circle skirt’s waist can’t open wide enough to pass over the hip with these two measurements. Another skirt shape will work.');
+      throw new DraftError('A circle skirt’s waist can’t open wide enough to pass over the hip with these measurements. Another skirt shape drafts with them.');
     }
     // A circle cut bigger than the waist takes the difference in darts, like the darted skirt.
     const intake = (cutWaist - finishedWaist) / 4;
