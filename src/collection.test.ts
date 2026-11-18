@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import type { PatternChoices } from './garments';
 import { COLLECTION, TESTER_LOOK, lookChoices, lookPatchKeeping, lookFabric, lookFlat, lookNameOf, lookPatch, lookResized, lookValues } from './collection';
 import { randomBody, rng } from './engine/randomBodies';
 import { EXAMPLE_BODY, EXAMPLE_VALUES, isComplete } from './measurements';
-import { DEFAULT_BODICE, DEFAULT_JACKET_CHOICES, DEFAULT_TROUSERS_CHOICES } from './garments';
+import { DEFAULT_BODICE, DEFAULT_JACKET_CHOICES, DEFAULT_TROUSERS_CHOICES, type PatternChoices } from './garments';
 
 describe('the Maison collection', () => {
   it('numbers its looks in order, with unique names', () => {

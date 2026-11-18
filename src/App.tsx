@@ -786,7 +786,9 @@ export default function App() {
   // measurements first.
   const makeLook = (look: HouseLook, keep = freshStart, ownLength = false) => {
     const sized = lookValues(look, values).values;
-    const { garment: g, ...next } = ownLength && look.garment === garment ? lookPatchKeeping(look, sized, current, GARMENT_DRAFTING[garment].choices({ ...saved, ...firstVisit(garment) })) : lookPatch(look, sized);
+    // A dress never styled on its own is only drawn from the skirt and bodice: no length of its own to keep.
+    const keepOwn = ownLength && look.garment === garment && !(garment === 'dress' && !saved.dress);
+    const { garment: g, ...next } = keepOwn ? lookPatchKeeping(look, sized, current, GARMENT_DRAFTING[garment].choices({ ...saved, ...firstVisit(garment) })) : lookPatch(look, sized);
     if (keep) {
       const kept = keepThenFresh(g);
       setFreshStart(false);
@@ -1197,7 +1199,7 @@ export default function App() {
               sleeve={result.sleeve}
               error={styleError}
               onEditMeasurements={() => setStep('measure')}
-              onAddHip={() => openSteps({ kind: 'for', garment, also: (['full_hip', 'waist_to_hip'] as const).filter((id) => measured[id] === undefined) })}
+              onAddHip={() => openSteps({ kind: 'for', garment, also: ['full_hip', 'waist_to_hip'] })}
               onNext={() => setStep('export')}
               saveState={saveState}
               onSave={() => setAccount(savePattern(account, current, describePattern(current), person.id))}

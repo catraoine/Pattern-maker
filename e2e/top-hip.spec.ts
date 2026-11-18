@@ -29,12 +29,7 @@ test('Add them under a top\'s length asks for the hip measurements and opens the
   await add.first().click();
   await expect(main(page).getByRole('textbox')).toBeVisible();
   // Asked one at a time, the waist to hip among them.
-  const asked: string[] = [];
-  for (let i = 0; i < 4 && (await main(page).getByRole('textbox').count()); i++) {
-    asked.push(((await main(page).getByRole('heading').first().innerText()) + ' ' + ((await main(page).getByRole('textbox').first().getAttribute('aria-label')) ?? '')).toLowerCase());
-    break;
-  }
-  expect(asked.join(' ')).toMatch(/hip/);
+  await expect(main(page).getByRole('heading', { name: /waist to hip/i })).toBeVisible();
   await fillStepPages(page);
   await expectStyle(page, 'Bodice');
   await expect(main(page).getByText(/For hip lengths, add your full hip/)).toHaveCount(0);

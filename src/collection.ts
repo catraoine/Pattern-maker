@@ -288,7 +288,9 @@ export function lookPatchKeeping(look: HouseLook, m: MeasurementValues, own: Pat
   if (!keys.length || JSON.stringify(pick(own)) === JSON.stringify(pick(plain))) return choicesPatch(g, made);
   const rest = Object.fromEntries(Object.entries(hemOf(made)).filter(([k]) => !keys.includes(k)));
   const hem = { ...rest, ...pick(own) };
-  return choicesPatch(g, (g === 'dress' && isDress(made) ? { ...made, skirt: hem } : hem) as unknown as PatternChoices);
+  const kept = (g === 'dress' && isDress(made) ? { ...made, skirt: hem } : hem) as unknown as PatternChoices;
+  // A dress goes through lookChoices again, so a named mini still stops clear of the crotch on a long rise.
+  return choicesPatch(g, g === 'dress' ? lookChoices({ choices: kept }, m) : kept);
 }
 
 /** Where a garment's choices are kept in the saved work. */
