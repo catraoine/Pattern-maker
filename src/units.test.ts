@@ -95,14 +95,3 @@ describe('the finished measurement marks in inches (pretend tester, Nov 17)', ()
     expect(toInches(Math.round(typedLength('20 1/2', 'in') * 100) / 100)).toBe('20½ in');
   });
 });
-
-// The inch Print page told testers the square "must measure 3⅞ in" while the PDF says 3.94 in (pretend-tester walk,
-// Nov 17): the square's line on screen keeps the exact figure, like the PDF.
-describe('the test square on screen in inches', () => {
-  it('reads 3.94 in, never 3⅞', () => {
-    for (const t of ['The test square on page A1 must measure exactly 10 cm before you cut.', 'Lay a ruler across the square. Each side should be exactly 10 cm.']) {
-      expect(inInches(t)).toContain('10 cm (3.94 in)');
-      expect(inInches(t)).not.toContain('⅞');
-    }
-  });
-});

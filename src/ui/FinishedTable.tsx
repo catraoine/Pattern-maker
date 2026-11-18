@@ -1,9 +1,7 @@
-import { useContext, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import type { SpecRow } from '../engine/techpack';
 import { easeLevel } from '../engine/easeMap';
 import { isWaistRow } from '../engine/spec';
-import { toInches } from '../units';
-import { UnitNow } from './LengthEntry';
 
 // The finished measurements up front (F1 Table Up Front, Cat, 2026-10-28): size charts hide the ease, so
 // every garment shows what the pattern measures against you, the ease between, and a plain fit word.
@@ -49,17 +47,12 @@ export function finishedLines(rows: SpecRow[], opts: { knit?: boolean; elasticCm
 /** The table's plainer names for two rows; the printed spec sheet keeps the pattern cutter's words. */
 const PLAIN: Record<string, string> = { 'Hem circumference': 'Hem, all the way round', 'Length, nape to hem': 'Length, back of neck to hem' };
 
-// The numbers carry no unit of their own, so the page's inch rewrite (units.ts) passed them by and an inch tester read
-// centimetres under an "All in cm" note (pretend-tester walk, Nov 17): they are written in the sewist's unit here,
-// inches to the nearest eighth like the rest of the app.
-const fmtIn = (unit: 'cm' | 'in') => (v: number) => (unit === 'cm' ? `${Math.round(v * 10) / 10}` : toInches(v).replace(/ in$/, ''));
+const fmt = (v: number) => `${Math.round(v * 10) / 10}`;
+const signed = (v: number) => (v > 0 ? `+${fmt(v)}` : v < 0 ? `−${fmt(-v)}` : '0');
 
 /** The finished measurements table: You, the garment, and the ease with its fit word. */
 export function FinishedTable({ lines, noun, children }: { lines: FinishedLine[]; noun: string; children?: ReactNode }) {
-  const unit = useContext(UnitNow);
   if (!lines.length) return null;
-  const fmt = fmtIn(unit);
-  const signed = (v: number) => (fmt(v) === '0' || fmt(-v) === '0' ? '0' : v > 0 ? `+${fmt(v)}` : `−${fmt(-v)}`);
   return (
     <section className="finished" aria-labelledby="finished-h">
       <p className="eyebrow" id="finished-h">
@@ -90,7 +83,7 @@ export function FinishedTable({ lines, noun, children }: { lines: FinishedLine[]
           ))}
         </tbody>
       </table>
-      <p className="muted small">All in {unit === 'cm' ? 'cm' : 'inches'}. Ease is the room the pattern adds over your body.</p>
+      <p className="muted small">All in cm. Ease is the room the pattern adds over your body.</p>
       {children}
     </section>
   );
