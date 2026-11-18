@@ -371,7 +371,9 @@ let noTop, onlyNumber;
     }
     tmark(`type-${n}`);
     await input.pressSequentially(v, { delay: 170 });
-    await wait(650);
+    // The first number is held in the take itself, so the film shows it in without a slowed or cut-in hold (Cat,
+    // Nov 18: a jarring skip as it was typed in).
+    await wait(n === 0 ? 1900 : 650);
     tmark(`next-${n}`);
     await press(main.locator('button.step-next').first(), 300);
     // The next page comes in and its tape plays round (or down) the body.
@@ -400,7 +402,9 @@ await main.getByRole('heading', { name: 'What would you like to make?' }).waitFo
 // down the same as the collection after it (Cat, 2026-10-30).
 // The line naming the garments still in testing is left out of the film too (Cat, 2026-11-07).
 const captionRoom = 'main .testing-tag, main .testing-note, .topbar { display: none !important; } main { padding-top: ' + (WIDE ? 110 : 96) + 'px !important; }';
-const chooseOnly = await p.addStyleTag({ content: captionRoom });
+// The page's own question left out too, so the grid sits right under the film's line, and the buttons' outlines a
+// little heavier to read on film (Cat, Nov 18: the page looked empty under the line).
+const chooseOnly = await p.addStyleTag({ content: captionRoom + ' main #stitle, main .measure-step .eyebrow { display: none !important; } main .make-grid button { border-width: 2px !important; }' });
 await wait(900);
 await start();
 await wait(900);
@@ -418,6 +422,28 @@ await chooseOnly.evaluate((el) => el.remove());
 await wait(800);
 await fillAll();
 await intoStyle();
+await wait(1500);
+
+// list: every measurement the dress is drafted from, on the app's own Your measurements page, a slow glide down the
+// list (Cat, Nov 18: show more measures than the first five). The page's header, name and title are left out under
+// the film's line. Taken once the dress has all its numbers, then back to Style.
+await p.locator('nav[aria-label="Steps"] button', { hasText: /^Measure$/i }).first().click();
+await main.locator('.measure-list .check-list').waitFor({ timeout: 20000 });
+const listOnly = await p.addStyleTag({ content: '.topbar, main .measure-list .garment-eyebrow, main .measure-list #mtitle, main .measure-list .msg { display: none !important; } main { padding-top: ' + (WIDE ? 110 : 96) + 'px !important; }' });
+await p.evaluate(() => window.scrollTo(0, 0));
+await wait(1200);
+{
+  const listEnd = await main.locator('.measure-list .check-list li').last().evaluate((el) => el.getBoundingClientRect().bottom + scrollY - innerHeight + 40);
+  await start();
+  await wait(1000);
+  if (listEnd > 0) await glide(listEnd, WIDE ? 3500 : 5000);
+  await wait(1200);
+  await stop('list');
+}
+await listOnly.evaluate((el) => el.remove());
+await p.evaluate(() => window.scrollTo(0, 0));
+await p.locator('nav[aria-label="Steps"] button', { hasText: /^Style$/i }).first().click();
+await main.getByRole('heading', { level: 1, name: /^Style your/ }).first().waitFor({ timeout: 20000 });
 await wait(1500);
 
 // collection: the Maison collection's looks, a slow scroll down through them from just under the drop alert, for
@@ -614,7 +640,8 @@ await addPen();
 // The film leaves off In testing tags on the Style page and drawing tool, as it does on projector mode (Cat, 2026-10-29).
 // and without the hem's drag handle, its length name and the hint to drag it: the film lengthens the hem by drawing, and the name read as
 // app text under the dress (Cat, Nov 17).
-await p.addStyleTag({ content: 'main .testing-tag, main svg .handle, main .length-hint { display: none !important; }' });
+// The collection link above the drawing is hidden too (Cat, Nov 18: clutter in the film); its room is kept.
+await p.addStyleTag({ content: 'main .testing-tag, main svg .handle, main .length-hint { display: none !important; } main .collection-go { visibility: hidden !important; }' });
 await p.evaluate(() => window.scrollTo(0, 0));
 await wait(1500);
 const choose = (sel, name) => p.evaluate(([sel, name]) => [...document.querySelectorAll(sel)].find((el) => el.getAttribute('aria-label') === name || el.textContent.trim().startsWith(name))?.click(), [sel, name]);
