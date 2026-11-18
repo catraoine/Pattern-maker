@@ -66,27 +66,36 @@ interface NeckLift {
   top: number;
 }
 /** The form is seen a touch from above, as its hems are, and the chest under the neck slopes away from the eye, so
- *  the cloth just under the neck is drawn a little raised: a crew cut 8 cm below the neck point reads round at the
+ *  the cloth just under the neck is drawn a little raised: a crew cut 9 cm below the neck point reads round at the
  *  neck base rather than as a deep scoop under a slim neck (the python shift, Nov 17). The raise belongs to the
  *  place on the body, not to the garment, so every neckline goes through the same and a line drawn there reads back
  *  where it was drawn. It is NECK_LIFT of the drop, at most NECK_LIFT_CAP cm, and fades out between NECK_LIFT_FULL
- *  and NECK_LIFT_END cm below the neck point and over 3 cm beyond the neck's sides, so a V or scoop cut lower still
+ *  and NECK_LIFT_END cm below the neck point and over NECK_LIFT_SIDE cm beyond the neck's sides, so a V or scoop cut lower still
  *  shows where it lands. None on a form without a neck (a skirt's). */
 export function neckLift(body: FormBody): NeckLift | undefined {
   return body.neckY === undefined ? undefined : { x: body.width(body.neckY), top: body.neckY };
 }
-const NECK_LIFT = 0.3;
-const NECK_LIFT_CAP = 2.5;
+// A crew is the block's neck plus 1 cm, about 9 cm below the neck point on most bodies. Raised by a third (2.5 cm at
+// most) it still read as a U as deep as it was wide in the Draw tool's enlarged view (the film, Nov 17); raised by
+// 0.6 it sits at the neck base, about 3.6 cm down, as a crew does on the real dress in the film. The bodice's scoop
+// and square (about 18 cm) and V (22 cm) are cut past where the raise ends, so still show where they land; a tee's
+// scoop (about 15 cm) is raised a little under 1 cm. Between 9 and 17 cm the cloth is drawn up to twice as tall, to
+// get back to true depth.
+const NECK_LIFT = 0.6;
 const NECK_LIFT_FULL = 9;
-const NECK_LIFT_END = 14;
+const NECK_LIFT_CAP = NECK_LIFT * NECK_LIFT_FULL;
+const NECK_LIFT_END = 17;
+/** How far beyond the neck's sides the raise fades out, in cm: wide enough that a boat neck, wider than the neck and
+ *  shallow, rises smoothly toward its middle rather than in a step. */
+const NECK_LIFT_SIDE = 6;
 /** How far a point is raised, in cm (neckLift). */
 function raiseAt(lift: NeckLift | undefined, x: number, y: number): number {
   if (!lift) return 0;
   const d = y - lift.top;
   const a = Math.abs(x);
-  if (d <= 0 || d >= NECK_LIFT_END || a >= lift.x + 3) return 0;
+  if (d <= 0 || d >= NECK_LIFT_END || a >= lift.x + NECK_LIFT_SIDE) return 0;
   const ease = (t: number) => t * t * (3 - 2 * t);
-  const w = a <= lift.x ? 1 : ease(1 - (a - lift.x) / 3);
+  const w = a <= lift.x ? 1 : ease(1 - (a - lift.x) / NECK_LIFT_SIDE);
   const s = d <= NECK_LIFT_FULL ? 1 : ease(1 - (d - NECK_LIFT_FULL) / (NECK_LIFT_END - NECK_LIFT_FULL));
   return Math.min(NECK_LIFT_CAP, NECK_LIFT * d) * w * s;
 }
@@ -100,25 +109,20 @@ export function toDrawing(body: FormBody, lift: NeckLift | undefined, cx: number
 }
 /** Back from a point as drawn to the pattern's own cm: the inverse of drawnPoint, for lines drawn on the form. */
 export function drawnPointBack(body: FormBody, lift: NeckLift | undefined, p: P): P {
-  let y = p.y;
-  let x = unsqueezeX(body, p.x, y);
+  const x0 = unsqueezeX(body, p.x, p.y);
   // Out of reach of the raise, nothing more to undo.
-  if (!lift || p.y <= lift.top || p.y >= lift.top + NECK_LIFT_END || Math.abs(x) >= lift.x + 3 + 1) return { x, y };
-  for (let k = 0; k < 8; k++) {
-    // A point is only ever raised, by at most NECK_LIFT_CAP, and the drawn height rises steadily with y: halve.
-    let lo = p.y;
-    let hi = p.y + NECK_LIFT_CAP + 0.01;
-    for (let i = 0; i < 30; i++) {
-      const mid = (lo + hi) / 2;
-      if (mid - raiseAt(lift, x, mid) < p.y) lo = mid;
-      else hi = mid;
-    }
-    y = (lo + hi) / 2;
-    const nx = unsqueezeX(body, p.x, y);
-    if (Math.abs(nx - x) < 1e-6) break;
-    x = nx;
+  if (!lift || p.y <= lift.top || p.y >= lift.top + NECK_LIFT_END || Math.abs(x0) >= lift.x + NECK_LIFT_SIDE + 1) return { x: x0, y: p.y };
+  // A point is only ever raised, by at most NECK_LIFT_CAP, and its drawn height rises steadily with its true height
+  // (its true x read at that height): halve on the true height alone.
+  let lo = p.y;
+  let hi = p.y + NECK_LIFT_CAP + 0.01;
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2;
+    if (mid - raiseAt(lift, unsqueezeX(body, p.x, mid), mid) < p.y) lo = mid;
+    else hi = mid;
   }
-  return { x, y };
+  const y = (lo + hi) / 2;
+  return { x: unsqueezeX(body, p.x, y), y };
 }
 /** How far up the neck, from the neck point, the drawing takes to narrow back to the neck's own width, in cm. */
 const NECK_EASE = 5;
@@ -1121,6 +1125,40 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
           {pieces.map((d, i) => piece(d, i, `c${i}`))}
         </g>
       )}
+      {overSleeves.length > 0 && arms && (
+        // Between the shoulder and the underarm the sleeve meets the body at the armhole seam. On a print the two ran
+        // together there (the film's python dress, Nov 17), so the body's edge throws a soft shadow onto the sleeve,
+        // only outside the body and only above the underarm, where the second sleeve pass takes over.
+        <g mask={`url(#armholefade${uid})`}>
+          <defs>
+            <clipPath id={`onsleeves${uid}`}>
+              {pieces.slice(0, overSleeves.length).map((d, i) => (
+                <path key={i} d={d} />
+              ))}
+            </clipPath>
+            <filter id={`armholeedge${uid}`} x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur in="SourceAlpha" stdDeviation="0.6" result="blur" />
+              <feFlood floodColor={SHADOW} floodOpacity={crisp ? 0.4 : 0.85} />
+              <feComposite in2="blur" operator="in" result="shadow" />
+              <feComposite in="shadow" in2="SourceAlpha" operator="out" />
+            </filter>
+            <linearGradient id={`armholefadeg${uid}`} gradientUnits="userSpaceOnUse" x1="0" x2="0" y1={f(arms.under.y + 0.5)} y2={f(arms.under.y + 2.5)}>
+              <stop offset="0" stopColor="#fff" stopOpacity="1" />
+              <stop offset="1" stopColor="#fff" stopOpacity="0" />
+            </linearGradient>
+            <mask id={`armholefade${uid}`} maskUnits="userSpaceOnUse" x={f(-cx)} y={f(top ?? body.top - 10)} width={f(4 * cx)} height={f(arms.under.y + 3 - (top ?? body.top - 10))}>
+              <rect x={f(-cx)} y={f(top ?? body.top - 10)} width={f(4 * cx)} height={f(arms.under.y + 3 - (top ?? body.top - 10))} fill={`url(#armholefadeg${uid})`} />
+            </mask>
+          </defs>
+          <g clipPath={`url(#onsleeves${uid})`}>
+            <g filter={`url(#armholeedge${uid})`}>
+              {pieces.slice(overSleeves.length).map((d, i) => (
+                <path key={i} d={d} fill="#000" />
+              ))}
+            </g>
+          </g>
+        </g>
+      )}
       {cloth && arms && !sleeve && (
         <g mask={top !== undefined ? `url(#${neck})` : undefined}>
           <SatinDefs id={`armsatin${uid}`} cx={cx} arms={arms} body={body} />
@@ -1159,8 +1197,8 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
         <g mask={`url(#sleevein${uid})`}>
           <defs>
             <clipPath id={`sleeveonbody${uid}`}>
-              {(worn ?? []).map((w, i) => (
-                <path key={i} d={`${at(w)} Z`} />
+              {pieces.slice(overSleeves.length).map((d, i) => (
+                <path key={i} d={d} />
               ))}
             </clipPath>
             <linearGradient id={`sleeveinfade${uid}`} gradientUnits="userSpaceOnUse" x1="0" x2="0" y1={f(arms.under.y + 0.5)} y2={f(arms.under.y + 4)}>

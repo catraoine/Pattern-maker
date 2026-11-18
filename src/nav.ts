@@ -156,15 +156,18 @@ export function useViewHistory<V extends string>(start: V, onPop: (view: V) => V
  * Pages inside one screen, each its own history entry, so back steps through them one at a time.
  * `isPage` tells this screen's pages from other entries on the same screen, such as an open drawing.
  */
-export function usePageHistory<P>(initial: () => P, isPage: (sub: unknown) => boolean = () => true) {
+export function usePageHistory<P>(initial: () => P, isPage: (sub: unknown) => boolean = () => true, fresh = false) {
+  // `fresh`: opened for something new, so the page this entry remembers from an earlier visit gives way. Measuring
+  // for a collection look opened on the entry left at "What would you like to make?", and stayed there, with the
+  // look never made (testers' Blush Shift route, Nov 18).
   const [page, setPage] = useState<P>(() => {
     const sub = current()?.sub;
-    return sub !== undefined && isPage(sub) ? (sub as P) : initial();
+    return !fresh && sub !== undefined && isPage(sub) ? (sub as P) : initial();
   });
   useEffect(() => {
     // Mark where this screen opened, so coming back to it lands on the same page.
     const now = current();
-    if (now && now.sub === undefined) window.history.replaceState({ ...now, sub: page } satisfies NavState, '');
+    if (now && (now.sub === undefined || fresh)) window.history.replaceState({ ...now, sub: page } satisfies NavState, '');
     const on = (e: PopStateEvent) => {
       if (ours.has(e)) return;
       const s = e.state as NavState | null;
