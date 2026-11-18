@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { FilmBar, useFilm } from './FilmControls';
-import { openingAt, paintOpening } from './filmOpening';
+import { openingAt, paintOpening, paintTitle } from './filmOpening';
 
 // The tour: the walkthrough video, full screen, opened from the play button on the welcome's dress form.
 // Skip tour is always showing; the bar along the bottom marks Measure, Choose, Style and Print as the video reaches them.
@@ -156,6 +156,7 @@ export function TourPlayer({ onClose, from }: { onClose: () => void; from?: HTML
         g.clearRect(0, 0, c.width, c.height);
         g.setTransform(dpr * fit.k, 0, 0, dpr * fit.k, dpr * (fit.x - box.left), dpr * (fit.y - box.top));
         paintOpening(g, f.r, f.vw, f.vh, shown);
+        paintTitle(g, f.vw, f.vh, shown, shape === 'wide' ? 62 : 52);
         lay(c, shown);
       }
       const moving = handed.current ? lay(v, v.currentTime) : (lay(v, t), true);
