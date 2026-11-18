@@ -10,7 +10,9 @@ type WeightUnit = 'kg' | 'lb';
 export const weightUnitOf = (unit: Unit): WeightUnit => (unit === 'cm' ? 'kg' : 'lb');
 const LB = 0.45359237;
 export const fromKg = (kg: number, u: WeightUnit) => (u === 'kg' ? Math.round(kg * 10) / 10 : Math.round((kg / LB) * 10) / 10);
-const toKg = (x: number, u: WeightUnit) => Math.round((u === 'kg' ? x : x * LB) * 10) / 10;
+// Kept to the gram: a tenth of a kilo is a fifth of a pound, so 150 lb rounded to 68.0 kg came back as 149.9 lb on the
+// review page (a fit tester, Nov 17).
+const toKg = (x: number, u: WeightUnit) => Math.round((u === 'kg' ? x : x * LB) * 1000) / 1000;
 
 /** Weights that can't be right, in kg: outside this it is nearly always the other unit or a slipped digit. */
 export const WEIGHT_HARD: [number, number] = [25, 350];

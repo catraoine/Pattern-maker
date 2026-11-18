@@ -8,6 +8,7 @@ import type { Choices } from '../savedWork';
 import { skirtFlat, wornLines, wornShapes } from '../engine/flat';
 import type { P } from '../engine/geometry';
 import { HEM_SAMPLES, HemShape, flatHem, isShaped, offsetAt } from '../engine/hem';
+import { LengthTap } from './LengthEntry';
 import { LENGTHS, Length, Silhouette, SkirtDraft, SkirtMeasurements, flareRange, isCircle, draftedMeasures, lengthRange, presetFlare } from '../engine/skirt';
 import { GROUPS } from '../skirtChoices';
 import { skirtForm } from './DrawOnForm';
@@ -274,6 +275,24 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
         >
           {(kind === 'hem' ? `↕ Length · ${text}` : `↔ Width · ${text}`).toUpperCase()}
         </text>
+        {/* Tapped, the length's words open a box to type it (testers, Nov 17). Under the disc's own hit area, so a drag
+            still starts wherever it did. */}
+        {kind === 'hem' && !drawing && (
+          <LengthTap
+            x={at.x - r - 3.2 * k - `↕ Length · ${text}`.length * 2.6 * k * 0.85}
+            y={at.y - 3 * k}
+            width={`↕ Length · ${text}`.length * 2.6 * k * 0.85}
+            height={5 * k}
+            ask={{
+              name: 'Skirt length',
+              from: choices.rise === 'low' ? 'from the top of the skirt' : 'from the waist',
+              cm: draft.lengthCm,
+              min: lengthRange(dm).min,
+              max: lengthRange(dm).max,
+              onCm: (cm) => onDone(choices, dragLength(dm, unpin(choices, draft), cm, 0)),
+            }}
+          />
+        )}
         <circle
           cx={at.x}
           cy={at.y}

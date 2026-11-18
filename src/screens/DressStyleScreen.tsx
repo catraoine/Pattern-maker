@@ -329,11 +329,19 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       onChoices({ ...choices, skirt: { ...choices.skirt, slit: opt as SlitPlace, slitCm: undefined } });
       return;
     }
-    if (id === 'silhouette' || id === 'length' || id === 'asymHem' || id === 'pockets') {
+    if (id === 'length') {
+      // A length, from the hem dot on the drawing or its arrow keys, changes the length and nothing else: rebuilt like
+      // the chips below, the Blush Shift lost its cut and flare and became a waist-seam dress (testers, Nov 17).
+      const { lengthCm: _c, kneeShare: _k, floorClear: _f, ...skirt } = choices.skirt;
+      onChoices({ ...choices, skirt: validCut({ ...skirt, length: opt as Length }) });
+      return;
+    }
+    if (id === 'silhouette' || id === 'asymHem' || id === 'pockets') {
       // The dress skirt is styled by its chips: no era look, photo shape or hand-drawn changes.
-      // Pleats, godets or a flounce stay; one the new shape, length or hem doesn't take falls back to none.
-      const { fit, silhouette, length, asymHem, pleats, godets, flounce, pockets, slit, slitCm, belt, gathers } = choices.skirt;
-      onChoices({ ...choices, skirt: validCut({ fit, silhouette, length, ...(asymHem ? { asymHem } : {}), ...(pockets ? { pockets } : {}), ...(belt ? { belt } : {}), ...(slit ? { slit } : {}), ...(slitCm !== undefined ? { slitCm } : {}), ...(gathers ? { gathers } : {}), pleats, godets, flounce, [id]: opt }) });
+      // Pleats, godets or a flounce stay; one the new shape, length or hem doesn't take falls back to none. The cut
+      // (a waist seam, sheath, shift or bias slip) is its own question, so it stays too.
+      const { fit, silhouette, length, asymHem, pleats, godets, flounce, pockets, slit, slitCm, belt, gathers, noSeam: cut } = choices.skirt;
+      onChoices({ ...choices, skirt: validCut({ fit, silhouette, length, ...(cut ? { noSeam: cut } : {}), ...(asymHem ? { asymHem } : {}), ...(pockets ? { pockets } : {}), ...(belt ? { belt } : {}), ...(slit ? { slit } : {}), ...(slitCm !== undefined ? { slitCm } : {}), ...(gathers ? { gathers } : {}), pleats, godets, flounce, [id]: opt }) });
       return;
     }
     if (id === 'belt') {
@@ -376,6 +384,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       min: lengthRange(mv).min - (draft?.seamDrop ?? 0),
       max: lengthRange(mv).max - (draft?.seamDrop ?? 0),
       cm: choices.skirt.lengthCm,
+      from: draft?.seamDrop ? 'from the waist seam' : 'from the waist',
       onCm: (cm: number) => onChoices({ ...choices, skirt: { ...choices.skirt, lengthCm: cm } }),
     },
   };

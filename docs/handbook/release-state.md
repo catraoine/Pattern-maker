@@ -2,7 +2,28 @@
 
 _Update this page whenever a release ships or a PR is queued._
 
-## Now (Nov 10, 2026): direct to Netlify while GitHub is suspended
+## Now (Nov 17, 2026): how a ship works
+
+Live: **release CW** cc8aa08 (Nov 17, 6:25 pm Cat clock): form drawings with sleeves over printed cloth and a crew neck at
+the neck base, on top of the day's tester fixes (inch PDFs, Blush Shift hem, collection link and typed length, laptop
+layout, review fixes, Dec 7 rehearsal fixes). Rollback = release CV. Every release's deploy id and rollback is in project
+memory (pattern-maker-releases-nov14).
+
+The ship rule (Cat, Nov 17, 7:47 pm):
+1. Cat writes just "ship" in the Releases thread. Only a "ship" written there counts: no long line to copy, and a "ship"
+   quoted from another thread does not.
+2. Every thread reports a fix that is ready (green checks, on the latest main) to Releases in one plain line: what it
+   changes, the PR and its head. Releases keeps the running list in `/mnt/project-files/releases/ready-to-ship.md`.
+   Threads never give Cat text to copy.
+3. On "ship", Releases first re-checks every thread for anything else ready, then deploys all of it together.
+4. Releases replies with exactly what went live and anything held back, and why (for example still running checks, or a
+   pattern change under the Nov 16 to Dec 6 freeze).
+5. A fix that lands after a ship goes on the list for the next one.
+
+Each release still runs the full checks on the joined code, checks the live site after, pushes main to match live and
+saves a bundle to code-backup/.
+
+## Nov 10, 2026: direct to Netlify while GitHub is suspended
 
 Live: **release AB** b1c52c2 (Nov 10, 9:32 am Vancouver, Cat's "ship all except the lapel fix"): skirts and dresses for a
 waist bigger than the hip; app journey fixes (Back returns where you came from, reload keeps your place, home-screen
@@ -147,6 +168,8 @@ get in with their tester link.
 
 ## Queued for "ship" (as of Nov 6, after Release 72)
 
+- #368 (weekly code review, Nov 16): the sign-in question is not asked again once joined work is on the device; a
+  founding place needs a confirmed email; Email me the PDF rate limit. Waits on green checks and Cat's "ship".
 - #259: bias slip side slit up to the hip with the zip in the right seam (needed for the fit testers' black slit
   slip skirt, fit check Nov 11), plus bias mini, open polo collar and ruffled trouser hem, all In testing. Main merged
   in Nov 6; waits on "ship".

@@ -38,6 +38,8 @@ interface Props {
   /** Where to open. By default the start (or the check, once the base set is in). "choose" opens the list of what
    * to make; a garment opens on the first measurement it still needs; "redo" opens one measurement and comes back. */
   start?: StepsStart;
+  /** Opened just now by App for `start`, rather than stepped back into with the browser's back. */
+  opening?: boolean;
   /** Measuring someone else: their name, given on the first page, before any measurement is taken, with the form picked for them. */
   onSomeoneElse?: (name: string, form: FormKind) => void;
   /** The measurements in use are someone else's, so every page is worded for the person holding the tape. */
@@ -106,8 +108,11 @@ const aOrAn = (name: string) => (/(s|wear|lingerie)$/i.test(name) && !/dress$/i.
 // There is no first page (Fable's concept A, Cat's apply, Nov 15): Begin opens on the waist. Who you are designing
 // for, and the form, sit in one quiet line above the first measurement, with Change for the few who need it;
 // "Someone else" words every page for the person holding the tape and asks their name before any number is taken.
-export function MeasureStepsScreen({ testerCode, garment: current, unit, values, onUnit, onValues, helped = [], weight, onWeight, onDone, start, onSomeoneElse, theirs, theirName, onSkip, onLater, form = 'womenswear', onForm, onIdea, onPhoto, onLooks, onMade, onNews, unused = () => [], named = (g) => GARMENT_NAME[g] }: Props) {
+export function MeasureStepsScreen({ testerCode, garment: current, unit, values, onUnit, onValues, helped = [], weight, onWeight, onDone, start, opening, onSomeoneElse, theirs, theirName, onSkip, onLater, form = 'womenswear', onForm, onIdea, onPhoto, onLooks, onMade, onNews, unused = () => [], named = (g) => GARMENT_NAME[g] }: Props) {
   const aimed = start?.kind === 'for' ? start.garment : undefined;
+  // Opened afresh for a garment, a redo, the form or the garments (not a reload, and not stepped back into): its own
+  // first page, not the one this history entry remembers from before.
+  const [newOpening] = useState(() => !!opening && !!start && start.kind !== 'resume');
   // Each page is a history entry, so the header's back and the phone's back go one page back.
   const [page, setPage] = usePageHistory<Page>(() => {
     if (start?.kind === 'redo') return { kind: 'extra', garment: start.garment, ids: start.ids, at: 0, redo: true };
@@ -129,7 +134,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     // A remembered first page (from before Nov 15, when there was one) opens as if afresh. So does a remembered base
     // page once the base measurements are in (back from the collection, Nov 11): this screen's first entry is the
     // waist, and coming back to it opens on the list or the check instead. Mending one from the check is kept.
-  }, (s) => typeof s === 'object' && s !== null && 'kind' in s && (s as { kind: string }).kind !== 'intro' && !((s as Page).kind === 'base' && !(s as { back?: string }).back && baseDone(values)));
+  }, (s) => typeof s === 'object' && s !== null && 'kind' in s && (s as { kind: string }).kind !== 'intro' && !((s as Page).kind === 'base' && !(s as { back?: string }).back && baseDone(values)), newOpening);
   // Opened on the check because the measurements were taken on an earlier visit: say so.
   // Not when stepping back into it during this visit: only on opening it afresh.
   const [returning] = useState(() => !start && baseDone(values) && (window.history.state as { sub?: unknown } | null)?.sub === undefined);
@@ -831,6 +836,14 @@ export function MeasurePage({
     const before = new Set(warnings(without).map((c) => `${c.id} ${c.message}`));
     return now.find((c) => c.id === id) ?? now.find((c) => !before.has(`${c.id} ${c.message}`));
   })();
+  // Measuring starts in cm, so a number taken in inches without tapping IN is turned away as out of range (a fit tester,
+  // Nov 17). When the same number fits the range read as inches, the message offers that switch in one tap.
+  const asInches = (() => {
+    if (!shownError || unit !== 'cm' || value === undefined) return undefined;
+    const f = FIELDS[checkAs].find((x) => x.id === id);
+    const cm = Math.round(value * 2.54 * 10) / 10;
+    return f && value < f.hard[0] && cm >= f.hard[0] && cm <= f.hard[1] ? cm : undefined;
+  })();
   const note = shownError ?? (tried && value === undefined ? { level: 'error', message: `Enter ${helper ? 'their' : 'your'} ${fieldLabel.toLowerCase()} to carry on.` } : undefined);
 
   const feetInches = id === 'height' && unit === 'in';
@@ -842,7 +855,9 @@ export function MeasurePage({
     const f = parseFloat(ft.replace(',', '.')), i = parseFloat(inch.replace(',', '.'));
     const v = { ...values };
     if (Number.isNaN(f) && Number.isNaN(i)) delete v[id];
-    else v[id] = Math.round(((Number.isNaN(f) ? 0 : f) * 12 + (Number.isNaN(i) ? 0 : i)) * 2.54 * 10) / 10;
+    // Nobody is 9 feet tall: a number that big in the feet box is the whole height in inches. "64" there was kept as
+    // 64 feet, and the list showed a height of 768 in (pretend tester, Nov 17).
+    else v[id] = Math.round(((Number.isNaN(f) ? 0 : f > 8 ? f / 12 : f) * 12 + (Number.isNaN(i) ? 0 : i)) * 2.54 * 10) / 10;
     onValues(v);
   };
   const type = (t: string) => {
@@ -985,6 +1000,24 @@ export function MeasurePage({
         {note && (
           <p id="step-msg" className="msg error">
             {note.message}
+            {asInches !== undefined && (
+              <>
+                {' '}
+                <button
+                  type="button"
+                  className="later go switch-unit"
+                  onClick={() => {
+                    setText(null);
+                    setFtIn(null);
+                    setTried(false);
+                    onValues({ ...values, [id]: asInches });
+                    onUnit('in');
+                  }}
+                >
+                  Switch to inches <span aria-hidden="true">›</span>
+                </button>
+              </>
+            )}
           </p>
         )}
         {doubt && (

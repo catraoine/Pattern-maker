@@ -66,6 +66,7 @@ import { ImportedPattern, importedGuide } from './engine/importDxf';
 import { lookArmsMissing, lookFabric, lookHipMissing, lookNameOf, lookPatch, lookResized, lookValues } from './collection';
 import { archiveCut } from './archive';
 import { CollectionLink, ExampleTag, GarmentPick, LookName } from './ui/GarmentSwitch';
+import { UnitNow } from './ui/LengthEntry';
 import { LoadingScreen } from './ui/LoadingScreen';
 import type { FormStart } from './ui/ContourForm';
 import type { Piece } from './engine/piece';
@@ -618,6 +619,11 @@ export default function App() {
   const [lookFrom, setLookFrom] = useState<'style' | 'steps'>('style');
   // A reload while measuring opens on the page still to take (tester journey, Nov 11).
   const [stepsStart, setStepsStart] = useState<{ at: number; start?: StepsStart }>(() => ({ at: 0, start: restore === 'steps' ? { kind: 'resume' } : undefined }));
+  // The opening of the guided pages last shown: one shown before is being stepped back into, and keeps its page.
+  const stepsShown = useRef(-1);
+  useEffect(() => {
+    if (step === 'steps') stepsShown.current = stepsStart.at;
+  }, [step, stepsStart.at]);
   const openSteps = (start?: StepsStart) => {
     setStepsStart({ at: stepsStart.at + 1, start });
     // Opened again from one of its own pages (a described idea, say): a fresh start on top, so back returns to that page.
@@ -684,6 +690,17 @@ export default function App() {
     if (step !== 'measure') setMeasureNote(undefined);
     if (step !== 'steps') setStepsNote(undefined);
   }, [step]);
+
+  // A top or dress with sleeves prints them only once the arms are measured. Measuring left with Finish later and
+  // carried on from Welcome back printed the Ice Peplum without its sleeves, under a title still naming them (pretend
+  // tester, Nov 17). So Print, however it is reached, asks for the arms first.
+  const armsToAsk = lookArmsMissing({ choices: current }, measured);
+  useEffect(() => {
+    if (step !== 'export' || !armsToAsk.length) return;
+    openSteps({ kind: 'for', garment, also: armsToAsk });
+    setStepsNote('Your sleeves are drafted from your arms: add them to print.');
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- asks once each time Print is opened without the arms
+  }, [step, armsToAsk.length]);
 
   /** Switch whose measurements are in use, going back to measuring when theirs aren't done for this garment. */
   const switchPerson = (id: string, to: View = step) => {
@@ -926,6 +943,7 @@ export default function App() {
           {step === 'steps' && (
             <MeasureStepsScreen
               key={stepsStart.at}
+              opening={stepsStart.at !== stepsShown.current}
               unused={(g) => skipFor(g, saved)}
               named={(g) => (vestOf(g, saved) ? 'vest' : GARMENT_NAME[g])}
               testerCode={account.testerCode}
@@ -1099,12 +1117,15 @@ export default function App() {
                 // It opens on itself, ready to print; Change a detail goes on to the questions.
                 openLookNext();
                 switchGarment(g, { ...next, archive: archiveCut(look.id)?.id, finish: withCloth, house: look.finish && { garment: g, finish: look.finish } } as Partial<Saved>, 'style', measured, [...lookHipMissing(look, measured), ...lookArmsMissing(look, measured)]);
-                window.scrollTo(0, 0);
+                // To the top once the look's page is up: scrolled at once, the collection's own top flashed up while
+                // the look was drafted (testers' laptop walk, Nov 17).
+                requestAnimationFrame(() => window.scrollTo(0, 0));
               }}
             />
           )}
           {/* On Style it sits under the garment's name (Cat's K3, 2026-10-28), so StyleLayout draws it. */}
           {step === 'export' && exampleTag}
+          <UnitNow.Provider value={saved.unit}>
           <ExampleTag.Provider value={step === 'style' ? exampleTag : undefined}>
           <LookName.Provider value={step === 'style' ? lookName : undefined}>
           <CollectionLink.Provider value={step === 'style' ? () => { setLookFrom('style'); setStep('collection'); window.scrollTo(0, 0); } : undefined}>
@@ -1309,6 +1330,7 @@ export default function App() {
           </CollectionLink.Provider>
           </LookName.Provider>
           </ExampleTag.Provider>
+          </UnitNow.Provider>
           {step === 'export' && !hasGarment(account, garment) && <UnlockGarment garment={garment} onPlans={openPlans} onBack={() => setStep('style')} />}
           {step === 'export' && hasGarment(account, garment) && (
             <ExportScreen
@@ -1327,6 +1349,7 @@ export default function App() {
               onKeep={saveState === 'can' ? () => setAccount(savePattern(account, current, describePattern(current), person.id)) : undefined}
               onFitNotes={saveState === 'full' && !savedNow ? undefined : openFitNotes}
               tester={!!account.testerCode}
+              emailTo={{ signedIn: cloud.user?.email, testerCode: account.testerCode }}
               fitNote={savedNow?.fit ? fitSummary(savedNow.fit, savedNow.choices) : undefined}
               garment={garment}
               profile={profile}
