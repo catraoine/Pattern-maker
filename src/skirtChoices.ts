@@ -178,7 +178,7 @@ export function describe(c: Choices) {
   const withTail = parts.length ? ` with ${andList(parts)}` : '';
   if (look) return `${look.name}${withTail}`;
   if (c.shape) return `Skirt matched to a photo${withTail.replace(' with', ', with')}`;
-  const len = c.lengthCm !== undefined ? `${Math.round(c.lengthCm)} cm` : GROUPS[2].options.find((o) => o[0] === v.length)![1];
+  const len = c.lengthCm !== undefined ? `${Math.round(c.lengthCm * 10) / 10} cm` : GROUPS[2].options.find((o) => o[0] === v.length)![1];
   const sil = v.silhouette === 'slip' ? 'Bias-cut slip' : GROUPS[1].options.find((o) => o[0] === v.silhouette)![1];
   return `${len} ${detailOf(v, 'waist') === 'high' ? 'high-waisted ' : c.rise === 'low' ? 'low-rise ' : ''}${sil === 'A-line' ? sil : sil.toLowerCase()} ${c.wrap && wrapSkirtAllowed(v) ? 'wrap ' : ''}skirt${withTail}`;
 }

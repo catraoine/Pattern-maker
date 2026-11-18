@@ -41,6 +41,17 @@ describe('envelope cover', () => {
     expect(booklet.getPage(0).getSize()).toEqual(all.getPage(0).getSize());
   });
 
+  // Pretend tester, Nov 18: only page 1 of the pattern said the look's name, and an inch file's title said "cm".
+  it('names a collection look in the file title, in the sewist\'s unit', async () => {
+    const draft = draftSkirt(m);
+    const sheet = layout(draft.pieces, 'Knee a-line skirt', []);
+    const extras = { title: '91.4 cm a-line skirt with box pleats', name: 'Black Pleated Skirt', summary: { rows: [], checks: [], madeFor: 'Me', flat: skirtFlat(draft) } };
+    const booklet = await PDFDocument.load(await toTiledPdf(sheet, 'letter', { ...extras, part: 'booklet' }));
+    expect(booklet.getTitle()).toBe('Maison Tracé: Black Pleated Skirt (instructions)');
+    const inches = await PDFDocument.load(await toTiledPdf(sheet, 'letter', { title: '91.4 cm a-line skirt', unit: 'in', part: 'pattern' }));
+    expect(inches.getTitle()).toBe('Maison Tracé: 36 in a-line skirt');
+  });
+
   // Fit tester walk, Nov 14: the Ice Peplum's long name ran off the cover in one line.
   it('wraps a long name onto as many lines as it needs, each inside the frame', () => {
     const widthOf = (l: string, size: number) => l.length * size * 0.6;

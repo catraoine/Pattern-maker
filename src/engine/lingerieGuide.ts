@@ -2,6 +2,7 @@
 // overlocker. Plain ASCII only: the PDF's standard font has no curly quotes.
 import type { SewingGuide, SewStep } from './instructions';
 import { HOOK_TAPE, LINGERIE_SEAM, LOOP_OVERLAP, LingerieDraft, SNAP_OVERLAP, isSwim } from './lingerie';
+import { PRINT_FIRST } from './printFirst';
 
 const cm = (v: number) => `${Math.round(v * 10) / 10} cm`;
 
@@ -43,7 +44,7 @@ export function lingerieGuide(d: LingerieDraft, fabricM: number, finish: { width
   const steps: SewStep[] = [
     {
       title: 'Print and check the size',
-      text: 'Print the pattern at 100% (actual size). Measure the test square: it should be exactly 10 cm. Trim each page along the dashed line, then tape the pages together, matching the row letters and column numbers.',
+      text: PRINT_FIRST + ' Trim each page along the dashed line, then tape the pages together, matching the row letters and column numbers.',
     },
     {
       title: 'Cut out',

@@ -28,6 +28,7 @@ import { SLIP_LEVEL } from './slip';
 import { wholeGuide } from './wholeGuide';
 import { skirtWaistSteps } from './skirtWaistGuide';
 import { slitHem, slitLining, slitStop, toHem, walkingSlit } from './slit';
+import { PRINT_FIRST } from './printFirst';
 
 // Widest strip that fits across 140 cm fabric, leaving room for the selvedges.
 export const BAND_ACROSS_MAX = 135;
@@ -124,7 +125,7 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
   const steps: SewStep[] = [
     {
       title: 'Print and check the size',
-      text: 'Print the pattern at 100% (actual size). Measure the test square: it should be exactly 10 cm. Trim each page along the dashed line, then tape the pages together, matching the row letters and column numbers.',
+      text: PRINT_FIRST + ' Trim each page along the dashed line, then tape the pages together, matching the row letters and column numbers.',
     },
     {
       title: 'Cut out',
@@ -527,7 +528,7 @@ function bodiceSteps(draft: BodiceDraft, _style: { length: BodiceLength }, fabri
   const steps: SewStep[] = [
     {
       title: 'Print and check the size',
-      text: 'Print the pattern at 100% (actual size). Measure the test square: it should be exactly 10 cm. Trim each page along the dashed line, then tape the pages together, matching the row letters and column numbers.',
+      text: PRINT_FIRST + ' Trim each page along the dashed line, then tape the pages together, matching the row letters and column numbers.',
     },
     {
       title: 'Cut out',

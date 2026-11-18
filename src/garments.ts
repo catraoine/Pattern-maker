@@ -223,7 +223,9 @@ export function validTrousers(c: TrousersChoices): TrousersChoices {
 /** A plain name, such as "Ankle-length wide-leg trousers with a side zip and in-seam pockets". */
 export function describeTrousers(c: TrousersChoices) {
   const shorts = c.leg !== 'culotte' && c.length === 'shorts';
-  const drawn = c.leg !== 'culotte' && c.lengthCm !== undefined && !shorts ? `${Math.round(c.lengthCm)} cm ` : undefined;
+  // Lengths to the millimetre, not the whole cm: a length typed in inches came back rounded in the name, 40 in as 40⅛
+  // (pretend tester, Nov 18). The same in every garment's name.
+  const drawn = c.leg !== 'culotte' && c.lengthCm !== undefined && !shorts ? `${Math.round(c.lengthCm * 10) / 10} cm ` : undefined;
   const rise = { low: 'low-rise ', mid: '', high: 'high-rise ' }[riseOf(c)];
   const length = (drawn ?? (c.leg === 'culotte' || shorts ? '' : { full: '', ankle: 'Ankle-length ', cropped: 'Cropped ', capri: 'Capri ', knee: 'Knee-length ', shorts: '' }[c.length])) + rise;
   const pockets = c.pockets === 'slant' ? 'slant pockets' : c.pockets === 'inseam' ? 'in-seam pockets' : '';
@@ -274,7 +276,7 @@ const TEE_LENGTH_WORDS: Record<TeeLength, string> = { cropped: 'Cropped ', hip: 
 export function describeTee(c: TeeChoices) {
   const boxy = c.shoulder === 'dropped' && c.sleeve !== 'none';
   const fit = boxy ? 'boxy ' : c.fit === 'regular' ? '' : `${c.fit} `;
-  const lead = `${c.lengthCm !== undefined ? `${Math.round(c.lengthCm)} cm ` : TEE_LENGTH_WORDS[c.length]}${fit}${TEE_NECK_WORDS[c.neckline]}`;
+  const lead = `${c.lengthCm !== undefined ? `${Math.round(c.lengthCm * 10) / 10} cm ` : TEE_LENGTH_WORDS[c.length]}${fit}${TEE_NECK_WORDS[c.neckline]}`;
   const words = c.sleeve === 'none' ? `${lead} tank` : `${lead} T-shirt with ${boxy ? 'dropped shoulders and ' : ''}${TEE_SLEEVE_WORDS[c.sleeve]}`;
   return words[0].toUpperCase() + words.slice(1);
 }
@@ -841,5 +843,5 @@ export function describeBodice(c: BodiceChoices) {
   const shapedHem = isShaped(c.hem) && (c.length !== 'waist' || dropped) ? ', with a shaped hem' : '';
   // Oversized is a cut of its own, so it is named; the other fits are read off the drawing.
   const big = v.fit === 'oversized' ? 'oversized ' : '';
-  return `${lengthWords}${big}${neck}${princess}${seam} top${sleeve}${dropped ? `, ${Math.round(c.dropCm!)} cm below the waist` : ''}${shapedHem}`;
+  return `${lengthWords}${big}${neck}${princess}${seam} top${sleeve}${dropped ? `, ${Math.round(c.dropCm! * 10) / 10} cm below the waist` : ''}${shapedHem}`;
 }

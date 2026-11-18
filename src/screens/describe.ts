@@ -14,7 +14,7 @@ export function describePattern(c: PatternChoices) {
     const belted = c.bodice.closure === 'wrap' ? '' : beltWords(c.skirt.belt ?? 'none');
     // Cut in one from shoulder to hem: "Knee sheath dress with a boat neck and short sleeves".
     if (c.skirt.noSeam && noSeamAllowed(c.bodice)) {
-      const len = c.skirt.lengthCm !== undefined ? `${Math.round(c.skirt.lengthCm)} cm` : GROUPS[2].options.find((o) => o[0] === c.skirt.length)![1];
+      const len = c.skirt.lengthCm !== undefined ? `${Math.round(c.skirt.lengthCm * 10) / 10} cm` : GROUPS[2].options.find((o) => o[0] === c.skirt.length)![1];
       return `${len} ${c.fit === 'boxy' ? 'boxy ' : ''}${c.skirt.noSeam === 'bias' ? 'bias slip' : c.skirt.noSeam} dress with ${bodiceDetails(c.bodice)}${belted ? `, and ${belted}` : ''}`;
     }
     // "Knee A-line dress with knife pleats, a scoop neck and short sleeves". A hem named on the skirt
