@@ -1,25 +1,31 @@
 import type { Page } from '@playwright/test';
-import { expect, openAccount, startWithExample, test } from './fixtures';
+import { expect, startWithExample, test } from './fixtures';
 
 // A tester opened her tester link on her computer to print, as the emails say, and found an empty app: her measurements
 // were on her phone (testers, Nov 18). On a computer with nothing here yet, a tester is pointed to Send to my computer.
 const main = (page: Page) => page.getByRole('main');
 
-test('a tester on a computer with nothing here brings her work across from her phone', async ({ page, browser }, info) => {
+test('a tester on a computer with nothing here brings her work across from her phone', async ({ browser }, info) => {
   test.skip(info.project.name !== 'desktop', 'the phone makes the link once');
   test.setTimeout(3 * 60_000);
-  // Her phone's work, packed into a link as Send to my computer does (the share sheet caught to read it).
-  await startWithExample(page);
-  await page.evaluate(() => {
+  // Her phone: measured (the example body), then Print, Other ways, Send to my computer, as the steps say.
+  const phoneCtx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, baseURL: info.project.use.baseURL });
+  const phone = await phoneCtx.newPage();
+  await phone.addInitScript(() => {
+    localStorage.setItem('maison-trace-access', 'tester');
+    // As the test pages have it: Style opens on its questions.
+    localStorage.setItem('maison-trace-steady', '1');
+    localStorage.setItem('maison-trace-style-intro', '1');
     (navigator as unknown as { share: (d: { url: string }) => Promise<void> }).share = async (d) => {
       (window as unknown as { shared: string }).shared = d.url;
     };
   });
-  await openAccount(page);
-  await main(page).getByRole('region', { name: /Your data/ }).locator('summary').first().click();
-  await main(page).getByRole('button', { name: 'Send to another device' }).click();
-  await expect.poll(() => page.evaluate(() => (window as unknown as { shared?: string }).shared ?? '')).toContain('#move=');
-  const link = await page.evaluate(() => (window as unknown as { shared: string }).shared);
+  await startWithExample(phone);
+  await phone.getByRole('navigation').getByRole('button', { name: 'Print' }).click();
+  await main(phone).getByRole('button', { name: 'Send to my computer' }).click();
+  await expect.poll(() => phone.evaluate(() => (window as unknown as { shared?: string }).shared ?? '')).toContain('#move=');
+  const link = await phone.evaluate(() => (window as unknown as { shared: string }).shared);
+  await phoneCtx.close();
 
   // Her computer: the tester link, nothing measured.
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, baseURL: info.project.use.baseURL });

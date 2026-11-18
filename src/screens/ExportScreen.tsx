@@ -43,6 +43,7 @@ import { isWaistRow } from '../engine/spec';
 import { cloud } from '../cloud/api';
 import { testerHeaders } from '../ui/TesterCode';
 import { inInches } from '../units';
+import { onPhone } from '../ui/device';
 
 /** What to print: the drafted pieces of either garment, with its notes and sewing steps. */
 export interface Printable {
@@ -116,9 +117,6 @@ interface Props {
   edition?: string;
   credit?: string;
 }
-
-/** A touch screen with no mouse: a phone or tablet, where sending the work to a computer helps. */
-const onPhone = () => typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches && !window.matchMedia('(any-pointer: fine)').matches;
 
 const NONE: Alteration[] = [];
 

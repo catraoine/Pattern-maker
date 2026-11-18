@@ -8,6 +8,7 @@ import { Title } from '../ui/Title';
 import { filmTape } from '../ui/filmTape';
 import { WaitlistForm, type FoundingSignIn } from '../ui/Waitlist';
 import { FOUNDING_LINE } from '../founding';
+import { onPhone } from '../ui/device';
 
 interface Props {
   onFinish: () => void;
@@ -25,7 +26,7 @@ interface Props {
    *  device" link, since the home-screen app keeps its own storage (journey review, Nov 10). False when the link
    *  isn't one. */
   onBringLink?: (link: string) => Promise<boolean>;
-  /** A fit tester: on a computer with nothing here yet, they are pointed to the work on their phone rather than starting
+  /** A fit tester with nothing here yet: on a computer they are pointed to the work on their phone rather than starting
    *  again (testers, Nov 18: the emails say print from a computer, and the tester link opened an empty app there). */
   tester?: boolean;
 }
@@ -58,8 +59,6 @@ const CURTAIN_MS = 1100;
 const SIDE_BY_SIDE = '(min-width: 960px) and (min-aspect-ratio: 1/1)';
 
 const standalone = typeof window !== 'undefined' && !!window.matchMedia?.('(display-mode: standalone)').matches;
-/** A computer: a mouse or trackpad, as Print's "Send to my computer" (offered only on a phone) reads it the other way. */
-const computer = typeof window !== 'undefined' && !!window.matchMedia?.('(any-pointer: fine)').matches;
 
 /** The steps to move work across, by where it is: in the browser on the same phone, or on the tester's phone. */
 const BRING = {
@@ -73,17 +72,23 @@ const BRING = {
   phone: {
     ask: 'Measured on your phone? Bring your work here',
     lead: 'Your measurements stay on the phone you took them on. To print from this computer:',
-    steps: ['On your phone, open your tester link and tap Print.', 'Under Other ways, tap Send to my computer.', 'Send the link to yourself, by email or message.', 'Open it on this computer, or paste it below.'],
+    steps: [
+      'On your phone, open your tester link and tap Print.',
+      'Under Other ways, tap Send to my computer. (Not at Print yet? Tap the person icon, then Your data, then Send to another device.)',
+      'Send the link to yourself, by email or message.',
+      'Open it on this computer, or paste it below.',
+    ],
     wrong: "That isn't a Send to my computer link. Send it again from your phone.",
     field: 'Link you sent yourself',
   },
 };
 
-/** "Started in your browser?": on the app added to the home screen only, which keeps its own copy of everything, apart
- *  from the browser's (an iPhone does this whatever the browser), so work begun in the browser isn't there. A quiet link
- *  opens the steps to move it across in a sheet over the page: opened in place, it squashed the form to half its size
- *  and named only Safari in one long sentence (Cat, Nov 15). */
-function BringFromBrowser({ onBring, from = 'browser' }: { onBring: (link: string) => Promise<boolean>; from?: keyof typeof BRING }) {
+/** Bringing work kept on another copy of the app, in a sheet over the page: opened in place, it squashed the form to half
+ *  its size and named only Safari in one long sentence (Cat, Nov 15).
+ *  `browser`: "Started in your browser?", on the app added to the home screen only, which keeps its own copy of
+ *  everything, apart from the browser's (an iPhone does this whatever the browser).
+ *  `phone`: "Measured on your phone?", for a tester on a computer with nothing here yet. */
+function BringWork({ onBring, from = 'browser' }: { onBring: (link: string) => Promise<boolean>; from?: keyof typeof BRING }) {
   const say = BRING[from];
   const [open, setOpen] = useState(false);
   const [link, setLink] = useState('');
@@ -314,8 +319,8 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
             <button type="button" className="primary" onClick={begin}>
               Begin
             </button>
-            {onBringLink && standalone && <BringFromBrowser onBring={onBringLink} />}
-            {onBringLink && !standalone && tester && computer && <BringFromBrowser onBring={onBringLink} from="phone" />}
+            {onBringLink && standalone && <BringWork onBring={onBringLink} />}
+            {onBringLink && !standalone && tester && !onPhone() && <BringWork onBring={onBringLink} from="phone" />}
           </div>
         )}
         {/* The agreement shows once, hushed, on a first visit; coming back you've already agreed, and the links
