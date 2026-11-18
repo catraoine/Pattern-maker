@@ -339,15 +339,17 @@ const canon = (v: unknown): unknown =>
   Array.isArray(v) ? v.map(canon) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).filter(([, x]) => x !== undefined).sort(([a], [b]) => (a < b ? -1 : 1)).map(([k, x]) => [k, canon(x)])) : v;
 
 /** The choices without what the hem handle on the drawing sets: a skirt's, a dress's or trousers' length, and a top's
- *  length below the waist. Testers are asked to set their own length that way, so it is the maker's, not the look's. */
+ *  length below the waist, and a jacket's or coat's length. Testers are asked to set their own length that way, so it is the maker's, not the look's. */
 function lengthless(garment: Garment, c: PatternChoices): unknown {
   const hem = (s: object) => {
     const { length: _l, lengthCm: _c, kneeShare: _k, floorClear: _f, ...rest } = s as Record<string, unknown>;
     return rest;
   };
   if (garment === 'dress' && isDress(c)) return { ...c, skirt: hem(c.skirt) };
-  if (garment === 'bodice') {
-    const { length: _l, dropCm: _d, ...rest } = c as unknown as Record<string, unknown>;
+  // A jacket's length pick sets its length and lets go of the hem a look set below the waist (the Black Vest's 30 cm);
+  // the Black Vest turned into "Your vest" on a length pick (pretend-tester walk, Nov 18).
+  if (garment === 'bodice' || garment === 'jacket' || garment === 'coat') {
+    const { length: _l, dropCm: _d, lengthCm: _c, ...rest } = c as unknown as Record<string, unknown>;
     return rest;
   }
   return garment === 'skirt' || garment === 'trousers' ? hem(c) : c;
