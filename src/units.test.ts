@@ -51,6 +51,15 @@ describe('heights in feet and inches', () => {
     expect(fmtMeasure('height', 165, 'cm')).toBe('165 cm');
     expect(fmtMeasure('waist', 76, 'in')).toBe('29.9 in');
   });
+
+  it('gives back a tape\'s quarter inches as typed, though kept to a tenth of a cm', () => {
+    // As stored from 37.75, 15.25 and 30.5 in typed; and 37.3 and 37.4 typed stay tenths.
+    expect(fmtMeasure('full_bust', 95.9, 'in')).toBe('37.75 in');
+    expect(fmtMeasure('upper_arm', 38.7, 'in')).toBe('15.25 in');
+    expect(fmtMeasure('waist', 77.5, 'in')).toBe('30.5 in');
+    expect(fmtMeasure('waist', 94.7, 'in')).toBe('37.3 in');
+    expect(fmtMeasure('waist', 95, 'in')).toBe('37.4 in');
+  });
 });
 
 // Pasted or typed lengths (bug hunt's paste check, Nov 15): the unit written wins, and a tape's fractions count.

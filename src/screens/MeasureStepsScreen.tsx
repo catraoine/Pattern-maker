@@ -15,7 +15,7 @@ import { isSwimIntimates } from '../photo/swim';
 import { InterestCard } from '../ui/InterestCard';
 import { MAX_IDEA_CHARS, type IdeaReading, type IdeaResponse, type PhotoError } from '../photo/types';
 import { testerHeaders } from '../ui/TesterCode';
-import { typedLength } from '../units';
+import { measureInches, typedLength } from '../units';
 
 interface Props {
   /** Opens the Maison collection from "What would you like to make?": the fit testers sew a house look (Nov 11). */
@@ -91,7 +91,7 @@ const IDEA_ERROR: Partial<Record<PhotoError, string>> = {
 type Pick = Garment | 'other';
 
 const toDisplay = (cm: number | undefined, unit: Unit) =>
-  cm === undefined ? '' : String(unit === 'cm' ? cm : Math.round((cm / 2.54) * 10) / 10);
+  cm === undefined ? '' : String(unit === 'cm' ? cm : measureInches(cm));
 /** A height in feet and inches, for the two boxes. */
 const ftOf = (cm: number) => String(Math.floor(Math.round((cm / 2.54) * 10) / 10 / 12));
 const inOf = (cm: number) => String(Math.round(((cm / 2.54) % 12) * 10) / 10 % 12);
