@@ -619,6 +619,11 @@ export default function App() {
   const [lookFrom, setLookFrom] = useState<'style' | 'steps'>('style');
   // A reload while measuring opens on the page still to take (tester journey, Nov 11).
   const [stepsStart, setStepsStart] = useState<{ at: number; start?: StepsStart }>(() => ({ at: 0, start: restore === 'steps' ? { kind: 'resume' } : undefined }));
+  // The opening of the guided pages last shown: one shown before is being stepped back into, and keeps its page.
+  const stepsShown = useRef(-1);
+  useEffect(() => {
+    if (step === 'steps') stepsShown.current = stepsStart.at;
+  }, [step, stepsStart.at]);
   const openSteps = (start?: StepsStart) => {
     setStepsStart({ at: stepsStart.at + 1, start });
     // Opened again from one of its own pages (a described idea, say): a fresh start on top, so back returns to that page.
@@ -938,6 +943,7 @@ export default function App() {
           {step === 'steps' && (
             <MeasureStepsScreen
               key={stepsStart.at}
+              opening={stepsStart.at !== stepsShown.current}
               unused={(g) => skipFor(g, saved)}
               named={(g) => (vestOf(g, saved) ? 'vest' : GARMENT_NAME[g])}
               testerCode={account.testerCode}
