@@ -56,7 +56,7 @@ describe('heights in feet and inches', () => {
     // As stored from 37.75, 15.25 and 30.5 in typed; and 37.3 and 37.4 typed stay tenths.
     expect(fmtMeasure('full_bust', 95.9, 'in')).toBe('37¾ in');
     expect(fmtMeasure('upper_arm', 38.7, 'in')).toBe('15¼ in');
-    expect(fmtMeasure('waist', 77.5, 'in')).toBe('30.5 in');
+    expect(fmtMeasure('waist', 77.5, 'in')).toBe('30½ in');
     expect(fmtMeasure('waist', 94.7, 'in')).toBe('37.3 in');
     expect(fmtMeasure('waist', 95, 'in')).toBe('37.4 in');
     // Written as a fraction, as the pages and files write it, not "7.75" (pretend tester, Nov 18).

@@ -49,11 +49,11 @@ export function measureInches(cm: number): number {
   return back(tenth) || !back(quarter) ? tenth : quarter;
 }
 
-/** Inches as read back on screen: a quarter inch the way it is written elsewhere, "7¾" (a typed 7 3/4 showed as "7.75"
- *  in the step list while every page and file said ¾, pretend tester, Nov 18); a tenth stays a decimal, "7.6". */
+/** Inches as read back on screen: a quarter or half inch the way every page writes it, "7¾", "30½" (a typed 7 3/4
+ *  showed as "7.75" in the step list while the pages said ¾, pretend tester, Nov 18); any other tenth stays a decimal. */
 export function inchWords(inches: number): string {
   const quarters = Math.round(inches * 4);
-  if (Math.abs(inches * 4 - quarters) > 1e-9 || quarters % 2 === 0) return String(inches);
+  if (Math.abs(inches * 4 - quarters) > 1e-9 || quarters % 4 === 0) return String(inches);
   return `${Math.floor(quarters / 4) || ''}${EIGHTHS[(quarters % 4) * 2]}`;
 }
 

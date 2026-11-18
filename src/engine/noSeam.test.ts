@@ -71,5 +71,8 @@ describe('sheath and shift dresses', () => {
     const name = describePattern({ garment: 'dress', fit: 'regular', bodice: DEFAULT_BODICE, skirt: { fit: 'regular', silhouette: 'straight', length: 'mini', noSeam: 'shift', lengthCm: 37 } } as never);
     expect(name).toMatch(/^Shift dress with .*, its hem 37 cm below the waist$/);
     expect(name).not.toMatch(/^37 cm/);
+    // A dress with a waist seam: the skirt's own length, at the end.
+    const seamed = describePattern({ garment: 'dress', fit: 'regular', bodice: DEFAULT_BODICE, skirt: { fit: 'regular', silhouette: 'a_line', length: 'knee', lengthCm: 55 } } as never);
+    expect(seamed).toMatch(/^A-line dress with .*, its skirt 55 cm long$/);
   });
 });
