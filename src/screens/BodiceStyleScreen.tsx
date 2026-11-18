@@ -32,7 +32,7 @@ import { DrawMenu } from '../ui/DrawMenu';
 import type { Finish } from '../savedWork';
 import { MyFabric, bodiceFabrics, fabricEase } from '../engine/fabrics';
 import { FabricCard, FabricSummary } from '../ui/FabricCard';
-import { isDraped, zipSide } from '../engine/drape';
+import { isDraped, peplumLengthOk, zipSide } from '../engine/drape';
 import { DrawOnForm, armFor, formWidth } from '../ui/DrawOnForm';
 import { orSeam, readSeamLine } from '../ui/formSeams';
 import { bodiceHemLine, orNeckline, readBodiceHemShape, readUnevenNeckline, unevenNecklineLines } from '../ui/formBodice';
@@ -193,12 +193,15 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
     !(boned && id === 'princess') &&
     !(draped && (id === 'princess' || id === 'bustDart' || id === 'closure' || id === 'collar' || id === 'back' || id === 'structure'));
 
+  // With a peplum on, the lengths it can't hang from step aside: picking one took the peplum off without a word, so the
+  // Ice Peplum Top turned into a plain top (pretend-tester walk, Nov 18).
+  const peplumLengthFits = (length: BodiceChoices['length']) => detail.peplum === 'none' || peplumLengthOk({ ...choices, length, dropCm: undefined });
   const allowed = (id: string, opt: string) => topAllowed(choices, id, opt) && baseAllowed(id, opt);
   const baseAllowed = (id: string, opt: string) =>
     id === 'darts'
       ? DARTS_FOR_FIT[choices.fit].includes(opt as BodiceChoices['darts'])
       : id === 'length'
-        ? hip || !needsHip(opt as BodiceChoices['length'])
+        ? (hip || !needsHip(opt as BodiceChoices['length'])) && peplumLengthFits(opt as BodiceChoices['length'])
         : id === 'sleeve'
           ? (opt === 'none' || arms) && detailAllowed(choices, 'sleeve', opt)
           : id === 'sleeveShape'
@@ -378,7 +381,8 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
                   {label}
                   {optionInTesting(g.id, id) && <TestingTag tool="new_details" />}
                   {oversizedInTesting(g.id, id) && <TestingTag tool="oversized" />}
-                  {g.id === 'peplum' && id !== 'none' && hemDrop(m, choices) > 0 && <TestingTag tool="low_peplum" />}
+                  {/* One In testing tag: the balloon carries its own. */}
+                  {g.id === 'peplum' && id !== 'none' && id !== 'balloon' && hemDrop(m, choices) > 0 && <TestingTag tool="low_peplum" />}
                   {g.id === 'neckline' && id === 'plunge' && <TestingTag tool="plunge" />}
                   {g.id === 'collar' && id === 'polo' && <TestingTag tool="polo_collar" />}
                   {g.id === 'peplumHem' && id === 'high_low' && <TestingTag tool="high_low_peplum" />}
@@ -399,6 +403,9 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
                   Use the {NECK_NAMES[choices.neckline]} instead
                 </button>
               </p>
+            )}
+            {g.id === 'length' && detail.peplum !== 'none' && BODICE_GROUPS.find((x) => x.id === 'length')!.options.some(([l]) => !peplumLengthFits(l)) && (
+              <p className="muted small">A peplum hangs from the waist, so the longer lengths step aside. Take the peplum off for a longer top.</p>
             )}
             {g.id === 'length' && !hip && (
               <p className="muted small">

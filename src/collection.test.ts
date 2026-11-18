@@ -96,6 +96,7 @@ describe('the Maison collection', () => {
       skirt: (c) => ({ ...c, length: 'midi', kneeShare: undefined, lengthCm: 70 }),
       trousers: (c) => ({ ...c, length: 'cropped', lengthCm: 80 }),
       bodice: (c) => ({ ...c, dropCm: 12 }),
+      jacket: (c) => ({ ...c, length: 'hip', dropCm: undefined }),
     };
     for (const look of COLLECTION.filter((l) => lengths[l.garment])) {
       const c = lookChoices(look, EXAMPLE_VALUES) as unknown as Record<string, unknown>;

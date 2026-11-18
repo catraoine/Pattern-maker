@@ -14,7 +14,7 @@ interface Props {
 
 /** Short answers to what testers trip on first (the handbook's testers page lists them). */
 const ANSWERS: [string, string][] = [
-  ['My printed pattern is the wrong size', 'Measure the 10 cm test square on page A1. If it isn’t 10 cm, print again at 100% or “Actual size”, never “Fit to page”.'],
+  ['My printed pattern is the wrong size', 'Measure the 10 cm test square on page A2 (near the top left on a copy-shop sheet). If it isn’t 10 cm, print again at 100% or “Actual size”, never “Fit to page”.'],
   ['Letter or A4?', 'Pick the paper on Print: Letter in North America, A4 almost everywhere else. A large pattern prints best as one A0 sheet at a copy shop.'],
   [
     'Getting my pattern to a computer',

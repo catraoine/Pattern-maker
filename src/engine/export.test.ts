@@ -119,11 +119,12 @@ describe('packing the sheet', () => {
     const name = 'Oversized button-front shirt-collar back-yoke bodice with elbow-length sleeves with turned-back cuffs, 47 cm below the waist, with a shaped hem';
     const sheet = layout(outer('jacket'), name, [], INFO);
     // Cat's pick, Nov 12: a short name heads the card and the whole description runs small beneath it.
-    const lines = sheet.prims.filter((pr) => pr.kind === 'text' && pr.face !== 'label' && pr.at.y < 3 + 4.4);
+    // The title card's lines above its rule (the code card on page 1 names the pattern too, left of x = 31).
+    const lines = sheet.prims.filter((pr) => pr.kind === 'text' && pr.face !== 'label' && pr.at.y < 3 + 4.4 && pr.at.x > 31);
     const texts = lines.map((pr) => (pr.kind === 'text' ? pr.text : ''));
     expect(texts[0]).toBe('Oversized button-front shirt-collar back-yoke bodice');
     expect(`${texts[0]} ${texts.slice(1).join(' ').replace(/^W/, 'w')}`).toBe(name);
-    // The card runs from x = 13 to 59 (the sheet's 3 cm margin, the 10 cm square, then 46 cm).
+    // The card runs from x = 31 to 59 (the sheet's 3 cm margin, the code card, the 10 cm square, then 28 cm).
     for (const pr of lines) if (pr.kind === 'text') expect(pr.at.x + textWidth(pr.text, pr.size), pr.text).toBeLessThanOrEqual(59);
   });
 
@@ -131,7 +132,8 @@ describe('packing the sheet', () => {
     const pieces = outer('jacket');
     const sheet = layout(pieces, 'Jacket', [], INFO);
     const square = sheet.prims.find((pr) => pr.kind === 'text' && pr.text === '10 CM')!;
-    expect(square.kind === 'text' && square.at.x).toBeCloseTo(8, 1);
+    // The square's middle: 3 cm margin, 17 cm to the square (past page 1 on A4 and Letter), half its 10 cm.
+    expect(square.kind === 'text' && square.at.x).toBeCloseTo(25, 1);
     // No cutting line reaches into the 10 cm square or the card beside it.
     for (const pr of sheet.prims) {
       if (pr.kind !== 'poly' || pr.style !== 'cut') continue;
