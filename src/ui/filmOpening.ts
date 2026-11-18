@@ -2,11 +2,11 @@ import { FADE_FROM, paintFigure } from './ContourForm';
 
 /** The How it works film's opening, O1 Gentle Glide (Cat, 2026-11-08: the old one sat still while the film loaded,
  *  then jumped forward and turned, "creepy"; she wants it "sexy and seductive"). From the tap, the welcome's form
- *  glides in, 1.35 times over 5 s, softly in and out, while it turns from a standstill, easing up to 8 degrees a
+ *  glides in, 1.15 times over 3.5 s (less far and quicker since Cat's Nov 18 notes: the form got too big), softly in and out, while it turns from a standstill, easing up to 8 degrees a
  *  second over 1.5 s. One move, starting at once. The film's welcome take is drawn from this (record-tour-shots.mjs,
  *  TOUR_WELCOME=1), and the player draws the same frames itself until the film is ready (TourPlayer), so nothing
  *  waits on the film loading. */
-const OPENING = { push: 0.35, pushS: 5, turnDeg: 8, rampS: 1.5, wordsS: 0.4 };
+const OPENING = { push: 0.15, pushS: 3.5, turnDeg: 8, rampS: 1.5, wordsS: 0.4 };
 
 const sine = (x: number) => 0.5 - 0.5 * Math.cos(Math.PI * Math.max(0, Math.min(1, x)));
 

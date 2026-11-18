@@ -1,6 +1,6 @@
-import { createContext, useEffect, useRef, useState, type FormEvent } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type FormEvent } from 'react';
 import type { Unit } from '../measurements';
-import { fmtLength, toInches, typedLength } from '../units';
+import { fmtLength, inInches, toInches, typedLength } from '../units';
 
 // A length typed instead of dragged. Testers tried to type their length into the label beside the hem dot, and
 // nothing happened (testers, Nov 17; Cat applied "drag the dot, or tap the length to type it"). Tapping that label now
@@ -23,6 +23,13 @@ export const TypeLength = createContext<((ask: LengthAsk) => void) | undefined>(
 
 /** The sewist's unit, given by the app: the box takes and shows lengths in it. */
 export const UnitNow = createContext<Unit>('cm');
+
+/** A drawing's spoken value in the sewist's unit. The words on screen are rewritten into inches, but a handle's spoken
+ *  value is not on screen, so it still said "92 cm" to an inch tester (pretend tester, Nov 18). */
+export function useSaid() {
+  const unit = useContext(UnitNow);
+  return (text: string) => (unit === 'in' ? inInches(text) : text);
+}
 
 const half = (v: number) => Math.round(v * 2) / 2;
 /** In the sewist's unit, as she would type it: cm to the half, inches to the eighth ("20⅞"). */

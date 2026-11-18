@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import type { PatternChoices } from './garments';
-import { COLLECTION, TESTER_LOOK, lookChoices, lookFabric, lookFlat, lookNameOf, lookPatch, lookResized, lookValues } from './collection';
+import { COLLECTION, TESTER_LOOK, lookChoices, lookPatchKeeping, lookFabric, lookFlat, lookNameOf, lookPatch, lookResized, lookValues } from './collection';
 import { randomBody, rng } from './engine/randomBodies';
 import { EXAMPLE_BODY, EXAMPLE_VALUES, isComplete } from './measurements';
+import { DEFAULT_BODICE, DEFAULT_JACKET_CHOICES, DEFAULT_TROUSERS_CHOICES, type PatternChoices } from './garments';
 
 describe('the Maison collection', () => {
   it('numbers its looks in order, with unique names', () => {
@@ -115,5 +115,24 @@ describe('the fit testers\' looks', () => {
   it('are the five tester pieces, each a look made from its own garment', () => {
     expect(Object.values(TESTER_LOOK).sort()).toEqual(['black-pleated-skirt', 'black-vest', 'blush-shift', 'chocolate-barrel', 'ice-peplum']);
     for (const [garment, id] of Object.entries(TESTER_LOOK)) expect(COLLECTION.find((l) => l.id === id)?.garment, id).toBe(garment);
+  });
+});
+
+// Pretend tester, Nov 18: opening the tester's look from the plain garment dropped the length she had set on it.
+describe('a look opened from the plain garment', () => {
+  const look = (id: string) => COLLECTION.find((l) => l.id === id)!;
+  it('keeps a length the maker set, and the look\'s own when none was set', () => {
+    const trousers = lookPatchKeeping(look('chocolate-barrel'), EXAMPLE_VALUES, { ...DEFAULT_TROUSERS_CHOICES, lengthCm: 94 }, DEFAULT_TROUSERS_CHOICES).trousers as { lengthCm?: number; leg: string };
+    expect(trousers.lengthCm).toBe(94);
+    expect(trousers.leg).toBe((lookChoices(look('chocolate-barrel'), EXAMPLE_VALUES) as { leg?: string }).leg);
+    expect(lookPatchKeeping(look('chocolate-barrel'), EXAMPLE_VALUES, DEFAULT_TROUSERS_CHOICES, DEFAULT_TROUSERS_CHOICES)).toEqual(lookPatch(look('chocolate-barrel'), EXAMPLE_VALUES));
+    const vest = lookPatchKeeping(look('black-vest'), EXAMPLE_VALUES, { ...DEFAULT_JACKET_CHOICES, length: 'cropped' }, DEFAULT_JACKET_CHOICES).jacket as { length: string; dropCm?: number };
+    expect(vest).toMatchObject({ length: 'cropped' });
+    expect(vest.dropCm).toBeUndefined();
+    // Still the look, by its name.
+    expect(lookNameOf('trousers', trousers as never, EXAMPLE_VALUES)).toBe('Chocolate Barrel Trouser');
+  });
+  it('leaves a top\'s length to the look, so its peplum can hang', () => {
+    expect(lookPatchKeeping(look('ice-peplum'), EXAMPLE_VALUES, { ...DEFAULT_BODICE, length: 'long' }, DEFAULT_BODICE)).toEqual(lookPatch(look('ice-peplum'), EXAMPLE_VALUES));
   });
 });

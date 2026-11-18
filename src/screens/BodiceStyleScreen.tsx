@@ -68,6 +68,9 @@ interface Props {
   sleeve?: SleeveDraft;
   error?: string;
   onEditMeasurements: () => void;
+  /** Asks for the full hip and waist to hip, one page each: a top's own measurement list has no waist to hip, so "Add
+   *  them" under Length opened a list without the one it needed (pretend tester, Nov 18). */
+  onAddHip?: () => void;
   onNext: () => void;
   saveState: 'can' | 'saved' | 'full';
   onSave: () => void;
@@ -123,7 +126,7 @@ const handShaped = (c: BodiceChoices, id: string) => (REPLACES[id] ?? []).some((
 
 type View = 'sketch' | 'round' | 'flat' | 'pattern';
 
-export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChooseGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric, mode = 'all', onMode }: Props) {
+export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChooseGarment, values, draft, sleeve, error, onEditMeasurements, onAddHip = onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric, mode = 'all', onMode }: Props) {
   const can = (t: ProTool) => shows(mode, t);
   const [view, setView] = useState<View>('sketch');
   const [fit, setFit] = useState(false);
@@ -410,7 +413,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
             {g.id === 'length' && !hip && (
               <p className="muted small">
                 For hip lengths, add your full hip and waist to hip.{' '}
-                <button type="button" className="link inline-link" onClick={onEditMeasurements}>
+                <button type="button" className="link inline-link" onClick={onAddHip}>
                   Add them
                 </button>
               </p>

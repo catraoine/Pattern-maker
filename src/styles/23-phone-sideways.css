@@ -26,10 +26,11 @@
     background: #14120e; border-top: 1px solid rgb(217 196 155 / 0.45);
   }
   .style-edit > .style-bar::before {
-    content: 'Turn upright to change it'; margin-right: auto;
+    content: 'Turn upright to change it'; margin-right: auto; white-space: nowrap; flex: none;
     font: 400 11px/1 var(--mono); letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted);
   }
-  .style-edit > .style-bar .primary { flex: none; padding: 0 22px; }
+  /* The button as wide as its words, so the note beside it stays on one line, not one word a line (pretend tester, Nov 18). */
+  .style-edit > .style-bar .primary { flex: 0 1 auto; width: auto; padding: 0 22px; }
 
   /* Print (S2) */
   .card.print-top {

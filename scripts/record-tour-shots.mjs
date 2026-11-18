@@ -26,7 +26,10 @@ const wait = (ms) => p.waitForTimeout(ms);
 
 // The photo the film starts from (a dress on a hanger), read as the app would read it. The reading is stubbed, so
 // nothing is sent anywhere and the film doesn't use up the tester allowance (as record-demos.mjs does for its clip).
-const PHOTO_FILE = resolve('scripts/tour/photo-dress.jpg');
+// Cat's own python silk dress (Nov 17: the film's dress is drawn from it), and a close photo of its cloth, which goes in
+// as the fabric through the app's own Your photo, so the print on the form is hers.
+const PHOTO_FILE = resolve('scripts/tour/photo-python-dress.jpg');
+const FABRIC_FILE = resolve('scripts/tour/fabric-python.jpg');
 const PHOTO_READING = {
   garment: 'dress', worn: false, details: '',
   pieces: [{ garment: 'dress', x: 0.5, y: 0.5 }],
@@ -35,9 +38,9 @@ const PHOTO_READING = {
   fit: { value: 'regular', confidence: 'medium' },
   shape: { hemAt: 0.6, hemFullness: 1.05, flareAt: null, confidence: 'medium' },
   extras: { volume: 'none', asymHem: 'none', pockets: false, elasticWaist: false, slit: 'none' },
-  top: { fit: { value: 'regular', confidence: 'medium' }, neckline: 'boat', sleeve: 'short', sleeveShape: 'straight', length: 'waist', seams: 'darts', opening: 'back', collar: 'none', sleeveCut: 'set_in', cuff: 'none', dressCut: 'seam', peplum: 'none', boned: false, knit: false, waistSeam: true, waistSeamAt: 'dropped', belt: 'loops' },
+  top: { fit: { value: 'regular', confidence: 'medium' }, neckline: 'crew', sleeve: 'long', sleeveShape: 'straight', length: 'waist', seams: 'darts', opening: 'back', collar: 'none', sleeveCut: 'set_in', cuff: 'none', dressCut: 'shift', peplum: 'none', boned: false, knit: false, waistSeam: false, waistSeamAt: 'none', belt: 'none' },
   trousers: null, outer: null,
-  fabric: { type: 'plain', colour: 'yellow', print: 'checks', sheer: false },
+  fabric: { type: 'plain', colour: 'ivory', print: 'animal', sheer: false },
   missing: [], unsure: null,
 };
 await ctx.route('**/.netlify/functions/analyze-photo', async (route) => {
@@ -329,11 +332,14 @@ await stop('form');
 // typed in with the pen dot pressing Next, the form taking the body's shape page by page, to "Do these look right?".
 // The app's header is left out, as on the Choose and Style shots. Each page's time is kept in tape-marks.json.
 const tapeMarks = {};
-let noTop;
+let noTop, onlyNumber;
 {
   // The app's header is hidden for this take only: the film opens on the page, not the app's chrome (Cat, Nov 16), and
   // the page is set down, as on the Choose shot, to leave the film's line of words room above the form.
   noTop = await p.addStyleTag({ content: '.topbar { display: none !important; } main { padding-top: ' + (WIDE ? 110 : 96) + 'px !important; }' });
+  // Just the form and the number going in under it (Cat, Nov 18: show the numbers being entered): the page's other
+  // words and buttons are left out, so the number sits right under the tape for the film's close-up.
+  onlyNumber = await p.addStyleTag({ content: '.measure-step .who-line, .measure-step .step-words > .eyebrow, .measure-step .step-words h1, .measure-step .step-words h2, .measure-step .step-tip, .measure-step .friend-nudge, .measure-step .how-row, .measure-step .later, .measure-step .measure-entry .step-next, .measure-step .estimate-link, .measure-step .msg { visibility: hidden !important; } .measure-step .who-line, .measure-step .step-words > .eyebrow, .measure-step .step-tip, .measure-step .friend-nudge, .measure-step .how-row { display: none !important; }' });
   await addPen();
   await dip(1, 30);
   await wait(450);
@@ -345,7 +351,7 @@ let noTop;
   };
   await wait(300);
   await main.getByRole('button', { name: 'Begin' }).click();
-  await main.getByRole('heading', { name: /Your waist/i }).waitFor();
+  await main.getByRole('heading', { name: /Your waist/i, includeHidden: true }).waitFor({ state: 'attached' });
   await wait(250);
   await dip(0, 30);
   tmark('waist');
@@ -358,15 +364,18 @@ let noTop;
     // Weight is optional and the example body has none: the pen skips it, as most people will.
     if (!v) {
       tmark(`skip-${n}`);
-      await press(main.getByRole('button', { name: 'Skip this step' }), 300);
+      // By its words: hidden from the film, it is out of the accessibility tree.
+      await press(main.locator('button', { hasText: 'Skip this step' }).first(), 300);
       await wait(1500);
       break;
     }
     tmark(`type-${n}`);
     await input.pressSequentially(v, { delay: 170 });
-    await wait(650);
+    // The first number is held in the take itself, so the film shows it in without a slowed or cut-in hold (Cat,
+    // Nov 18: a jarring skip as it was typed in).
+    await wait(n === 0 ? 1900 : 650);
     tmark(`next-${n}`);
-    await press(main.getByRole('button', { name: /^(Next|Done|Save)\b/ }).first(), 300);
+    await press(main.locator('button.step-next').first(), 300);
     // The next page comes in and its tape plays round (or down) the body.
     await wait(2700);
     tmark(`page-${n + 1}`);
@@ -378,6 +387,7 @@ let noTop;
 }
 await stop('tape');
 await noTop.evaluate((el) => el.remove());
+await onlyNumber.evaluate((el) => el.remove());
 // TOUR_TAPE_ONLY=1 records just the tape shot, to check the measuring pages without the rest.
 if (process.env.TOUR_TAPE_ONLY) {
   await b.close();
@@ -392,18 +402,48 @@ await main.getByRole('heading', { name: 'What would you like to make?' }).waitFo
 // down the same as the collection after it (Cat, 2026-10-30).
 // The line naming the garments still in testing is left out of the film too (Cat, 2026-11-07).
 const captionRoom = 'main .testing-tag, main .testing-note, .topbar { display: none !important; } main { padding-top: ' + (WIDE ? 110 : 96) + 'px !important; }';
-const chooseOnly = await p.addStyleTag({ content: captionRoom });
+// The page's own question left out too, so the grid sits right under the film's line, and the buttons' outlines a
+// little heavier to read on film (Cat, Nov 18: the page looked empty under the line).
+const chooseOnly = await p.addStyleTag({ content: captionRoom + ' main #stitle, main .measure-step .eyebrow { display: none !important; } main .make-grid button { border-width: 2px !important; }' });
 await wait(900);
 await start();
-await wait(1600);
-// Clicked straight on the button: Playwright's click waits for the screen to settle, and the form never stops moving.
-await main.getByRole('group', { name: 'What would you like to make?' }).getByRole('button', { name: /^Dress\b/ }).evaluate((el) => el.click());
-await wait(1800);
+await wait(900);
+// The pen presses Dress early, so the choice is seen to land before the film moves on (the critic's review, Nov 16:
+// Dress lit up only as the screen faded). press() clicks straight on the button: the form never stops moving.
+await press(main.getByRole('group', { name: 'What would you like to make?' }).getByRole('button', { name: /^Dress\b/ }), 0);
+await wait(2000);
 await stop('choose');
+// TOUR_CHOOSE_ONLY=1 records the tape and choose shots and stops, to take the garment pick again on its own.
+if (process.env.TOUR_CHOOSE_ONLY) {
+  await b.close();
+  process.exit(0);
+}
 await chooseOnly.evaluate((el) => el.remove());
 await wait(800);
 await fillAll();
 await intoStyle();
+await wait(1500);
+
+// list: every measurement the dress is drafted from, on the app's own Your measurements page, a slow glide down the
+// list (Cat, Nov 18: show more measures than the first five). The page's header, name and title are left out under
+// the film's line. Taken once the dress has all its numbers, then back to Style.
+await p.locator('nav[aria-label="Steps"] button', { hasText: /^Measure$/i }).first().click();
+await main.locator('.measure-list .check-list').waitFor({ timeout: 20000 });
+const listOnly = await p.addStyleTag({ content: '.topbar, main .measure-list .garment-eyebrow, main .measure-list #mtitle, main .measure-list .msg { display: none !important; } main { padding-top: ' + (WIDE ? 110 : 96) + 'px !important; }' });
+await p.evaluate(() => window.scrollTo(0, 0));
+await wait(1200);
+{
+  const listEnd = await main.locator('.measure-list .check-list li').last().evaluate((el) => el.getBoundingClientRect().bottom + scrollY - innerHeight + 40);
+  await start();
+  await wait(1000);
+  if (listEnd > 0) await glide(listEnd, WIDE ? 3500 : 5000);
+  await wait(1200);
+  await stop('list');
+}
+await listOnly.evaluate((el) => el.remove());
+await p.evaluate(() => window.scrollTo(0, 0));
+await p.locator('nav[aria-label="Steps"] button', { hasText: /^Style$/i }).first().click();
+await main.getByRole('heading', { level: 1, name: /^Style your/ }).first().waitFor({ timeout: 20000 });
 await wait(1500);
 
 // collection: the Maison collection's looks, a slow scroll down through them from just under the drop alert, for
@@ -443,6 +483,9 @@ function addPen() { return p.evaluate(() => {
   const d = document.createElement('div');
   d.id = 'pen';
   Object.assign(d.style, { position: 'fixed', width: '8px', height: '8px', margin: '-4px 0 0 -4px', borderRadius: '50%', background: '#f2ece0', opacity: 0, zIndex: 99998, pointerEvents: 'none', transition: 'opacity .25s' });
+  // Never shown now (Cat, Nov 18: the dot for a tap "isn't helping anything", take it out throughout); kept as the
+  // place the takes time their taps from. TOUR_PEN=1 shows it again.
+  if (!window.__tourPen) d.style.display = 'none';
   document.body.appendChild(d);
 }); }
 await addPen();
@@ -500,8 +543,6 @@ const mark = (what) => {
 const LINES = {
   photo: [[0.13, 0.639], [0.5, 0.652], [0.87, 0.639]],
   hem: WIDE ? [[0.104, 0.975], [0.5, 0.99], [0.896, 0.975]] : [[0.104, 0.99], [0.5, 1.0], [0.896, 0.99]],
-  // From the knee to just above it, on the straight shift (measured on the phone's picture, 2026-11-08).
-  hemUp: [[0.06, 0.83], [0.5, 0.84], [0.94, 0.83]],
   // From the knee down to mid-calf, on the A-line (Cat's H, Nov 15).
   hemDown: [[0.04, 0.925], [0.5, 0.935], [0.96, 0.925]],
   // Further down, to a true midi: at hemDown the skirt was 67.5 cm, just under the knee, and read as a knee shift
@@ -570,20 +611,24 @@ if (process.env.TOUR_OPENER) {
   process.exit(0);
 }
 // The film's dress (Cat, 2026-11-08: start in calico, then build the dress; Nov 15 she picked H, an A-line midi with
-// long sleeves, as the shift looked bad on the form): it opens in calico as a shift with long sleeves, the cut (a
-// waist seam), darts and neckline (scoop) are answered one question at a time on camera, then the cloth drops in,
-// the jade python, and the hem is drawn down from the knee to mid-calf.
-await p.evaluate(() => {
+// long sleeves, as the shift looked bad on the form; Nov 17 a python dress of her own is the film's dress): it opens
+// in calico as a shift with long sleeves, the cut (a waist seam), darts and neckline (crew) are answered one question
+// at a time on camera, then her own cloth drops in from her photo, and the hem is drawn down from the knee to mid-calf.
+await p.evaluate(([H, LEN]) => {
   const k = 'pattern-maker:skirt';
   const saved = JSON.parse(localStorage.getItem(k) ?? '{}');
   saved.dress = {
-    garment: 'dress', fit: 'regular',
-    bodice: { garment: 'bodice', fit: 'regular', neckline: 'crew', length: 'waist', darts: 'bust', bustDart: 'french', sleeve: 'long', sleeveShape: 'straight', closure: 'back_zip' },
-    skirt: { fit: 'regular', silhouette: 'a_line', length: 'knee', flareCm: 6, noSeam: 'shift' }, // 6 cm, not 3: at 3 the A-line read as a straight shift all round (Fable, Nov 15)
+    // Her dress's long sleeves and round neck on the A-line of Nov 15: drawn on the form, a shift of any fit read as
+    // a coat (probes, Nov 17), as Cat found on Nov 15. TOUR_LOOK=shift keeps the fitted shift.
+    garment: 'dress', fit: H ? 'regular' : 'fitted',
+    bodice: { garment: 'bodice', fit: H ? 'regular' : 'fitted', neckline: H ? 'scoop' : 'crew', length: 'waist', darts: H ? 'bust' : 'bust_waist', bustDart: 'french', sleeve: 'long', sleeveShape: 'straight', closure: 'back_zip' },
+    // The calico starts as the shift her photo reads as (on the fitted shift with her crew neck already, so no frame shows another neck), and the questions on camera answer Waist seam,
+    // Bust and waist, Crew (her dress's round neck). TOUR_LEN sets the fitted shift's length.
+    skirt: H ? { fit: 'regular', silhouette: 'a_line', length: 'knee', flareCm: 6, noSeam: 'shift' } : { fit: 'fitted', silhouette: 'straight', length: LEN },
   };
   if (saved.finish) { delete saved.finish.fabric; delete saved.finish.cloth; }
   localStorage.setItem(k, JSON.stringify(saved));
-});
+}, [process.env.TOUR_LOOK !== 'shift', process.env.TOUR_LEN ?? 'mini']);
 await p.reload();
 await wait(1500);
 {
@@ -593,7 +638,10 @@ await wait(1500);
 await main.getByRole('heading', { level: 1, name: /^Style your/ }).waitFor();
 await addPen();
 // The film leaves off In testing tags on the Style page and drawing tool, as it does on projector mode (Cat, 2026-10-29).
-await p.addStyleTag({ content: 'main .testing-tag { display: none !important; }' });
+// and without the hem's drag handle, its length name and the hint to drag it: the film lengthens the hem by drawing, and the name read as
+// app text under the dress (Cat, Nov 17).
+// The collection link above the drawing is hidden too (Cat, Nov 18: clutter in the film); its room is kept.
+await p.addStyleTag({ content: 'main .testing-tag, main svg .handle, main .length-hint { display: none !important; } main .collection-go { visibility: hidden !important; }' });
 await p.evaluate(() => window.scrollTo(0, 0));
 await wait(1500);
 const choose = (sel, name) => p.evaluate(([sel, name]) => [...document.querySelectorAll(sel)].find((el) => el.getAttribute('aria-label') === name || el.textContent.trim().startsWith(name))?.click(), [sel, name]);
@@ -601,6 +649,9 @@ const choose = (sel, name) => p.evaluate(([sel, name]) => [...document.querySele
 const chip = (name) => main.locator(WIDE ? 'button' : 'button[aria-pressed]').filter({ hasText: new RegExp(`^\\s*${name}(?![a-z])`) }).filter({ visible: true }).first();
 const next = () => main.locator('button.primary', { hasText: /^Next/ }).first();
 const PHONE_QS = !WIDE && (await next().count()) > 0;
+const H = process.env.TOUR_LOOK !== 'shift';
+const JADE = process.env.TOUR_CLOTH === 'jade'; // the jade python print of Nov 15, in place of her own cloth
+const [CUT, DARTS, NECK] = H ? ['Waist seam', 'Bust and waist', 'Crew'] : ['Shift', 'Bust only', 'Crew'];
 await start();
 t0 = Date.now();
 await wait(1600);
@@ -609,13 +660,13 @@ const QUICK = !WIDE && process.env.TOUR_QUICK !== '0'; // A computer keeps the e
 if (PHONE_QS) {
   // One question at a time (Cat's B + K, live Nov 8): Cut, then the darts, then the neckline.
   await press(next(), 700);
-  await press(chip('Waist seam'), 1300);
+  await press(chip(CUT), 1300);
   // Waist height is held a full 2 s, long enough to read (Fable's review, Nov 15).
   const asked = () => main.locator('main h2, h2').filter({ visible: true }).allTextContents().then((t) => t.join('|'));
   for (let i = 0; i < 3 && !/Darts/.test(await asked()); i++) { await press(next(), 600); if (/Waist height/.test(await asked())) await wait(1400); }
-  await press(chip('Bust and waist'), 1200);
+  await press(chip(DARTS), 1200);
   await press(next(), 700);
-  await press(chip('Scoop'), 1500);
+  await press(chip(NECK), 1500);
   mark('questions done');
   // On to the fabric through a short dip to black: the questions between (collar, back, sleeves, skirt) stay as
   // they are, and stepping through them would only be app text.
@@ -633,25 +684,40 @@ if (PHONE_QS) {
   const row = (name) => main.locator('button').filter({ hasText: new RegExp(`^\\s*${name}`) }).filter({ visible: true }).first();
   await wait(600);
   await press(row('Cut'), 700);
-  await press(chip('Waist seam'), 1300);
+  await press(chip(CUT), 1300);
   await press(row('Darts'), 700);
-  await press(chip('Bust and waist'), 1200);
+  await press(chip(DARTS), 1200);
   await press(main.locator('button', { hasText: /^\s*Next/ }).filter({ visible: true }).first(), 900);
   await press(row('Neckline'), 700);
-  await press(chip('Scoop'), 1500);
+  await press(chip(NECK), 1500);
   mark('questions done');
   await press(main.getByRole('tab', { name: /Fabric/ }).first(), 900);
 }
-// Then the cloth: silk, printed one way, the jade python, landing as one change.
+// Then the cloth: silk, then her own python from her photo (TOUR_CLOTH=jade: the jade print, one way), as one change.
 // The calico dress is held a beat first, then each choice is pressed with the pen dot, so the cloth is seen being
 // chosen and the dress seen changing (Fable's review, Nov 15).
 mark('cloth');
 await wait(900);
 const swatch = (label, name) => p.evaluateHandle(([label, name]) => [...document.querySelectorAll(`[role=radiogroup][aria-label="${label}"] [role=radio], [role=radiogroup][aria-label="${label}"] button[aria-pressed]`)].find((el) => (el.getAttribute('aria-label') || el.textContent.trim()).startsWith(name)), [label, name]).then((h) => h.asElement());
-for (const [label, name, ms] of [['Fabric for the sketch', 'Silk', 900], ["What's printed on your fabric", 'One-way', 2600]]) {
+for (const [label, name, ms] of [['Fabric for the sketch', 'Silk', 900], ...(JADE ? [["What's printed on your fabric", 'One-way', 2600]] : [])]) {
   const el = await swatch(label, name);
   if (el) await press(el, ms);
   else console.log(`  no ${name} in ${label}`);
+}
+// Her own cloth, through Your photo: the pen presses the tile, and the photo goes in as if picked from the phone.
+if (!JADE) {
+  const yours = main.getByRole('button', { name: /^Your photo/ }).filter({ visible: true }).first();
+  // No tile (the Fabric step changed): say so and carry on in silk, as the swatches above do, not stop the take.
+  if (!(await yours.count())) console.log('  no Your photo tile');
+  else {
+    const yb = await yours.boundingBox();
+    if (yb) { await pen(yb.x + yb.width / 2, yb.y + yb.height / 2, 1); await wait(380); }
+    await yours.locator('xpath=following-sibling::input[@type="file"]').first().setInputFiles(FABRIC_FILE);
+    await wait(220);
+    await p.evaluate(() => { document.getElementById('pen').style.opacity = 0; });
+    await main.getByRole('button', { name: 'Your photo: take or pick another' }).first().waitFor({ timeout: 15000 }).catch(() => console.log('  fabric photo not taken'));
+    await wait(2400);
+  }
 }
 console.log('  dress', await p.evaluate(() => { const d = JSON.parse(localStorage.getItem('pattern-maker:skirt')); return JSON.stringify({ dress: d.dress, fabric: d.finish?.fabric }); }));
 if (process.env.TOUR_PROBE_STYLE) {
@@ -659,77 +725,86 @@ if (process.env.TOUR_PROBE_STYLE) {
   console.log('LS', await p.evaluate(() => localStorage.getItem('pattern-maker:skirt')));
   process.exit(0);
 }
-// Enlarged, the preview fills the screen with its tools (Cat, 2026-10-24: use the tools while it's enlarged), and
-// drawing on the form from there opens the drawing tool enlarged too, the place where room matters most.
-mark('enlarge');
-if (!QUICK) await press(main.getByRole('button', { name: /^Enlarge the drawing/ }), 1300);
-mark('draw');
+// No drawing on the form (Cat, Nov 18: the draw tool came out as a hem tool and wasn't compelling): the style take
+// ends on the dress in her cloth, and the pattern tools follow in their own take. TOUR_DRAW=1 draws the hem as before.
+const DRAW = process.env.TOUR_DRAW === '1';
+const DRAW_FOCUS = DRAW && process.env.TOUR_DRAW_FOCUS !== '0';
 // By class, so it is still found with the rest of the screen hidden (out of the accessibility tree).
 const form = p.locator('main svg.form-svg').first();
-const kinds = main.getByRole('group', { name: 'What you are drawing' });
-// The drawing tool takes the dress from as short as the photo's, so the hem drawn to the knee is seen to lengthen it
-// (Cat, 2026-10-26: the hem edit should go from a mini, as in the photo, to longer, not start where the dress already
-// is). The dress is at the knee until then, so the flat drawing reads as a dress; from the tap on Draw on your form
-// until the tool is open on the shorter dress is cut out of the shot.
-const drawOn = main.getByRole('button', { name: 'Draw on your form' }).first();
-const db = await drawOn.boundingBox();
-await pen(db.x + db.width - 3, db.y + db.height - 3, 1); // the button's corner, not its letters (Fable, Nov 15)
-await wait(380);
-// Into just the form through a short dip to black, so the cut from the whole screen to the form isn't a jump.
-if (process.env.TOUR_DRAW_FOCUS !== '0') { await p.evaluate(() => { document.getElementById('pen').style.opacity = 0; }); await dip(1); await wait(450); }
-cut(true);
-await drawOn.evaluate((el) => el.click());
-await p.evaluate(() => { const d = document.getElementById('pen'); d.style.opacity = 0; d.style.visibility = 'hidden'; });
-await wait(900);
-const roomy = main.getByRole('button', { name: 'Enlarge', exact: true });
-if (!QUICK && (await roomy.count())) await tap(roomy, 900);
-await tap(kinds.getByRole('button', { name: 'Hem', exact: true }), 300);
-// The dress already opens at the photo's length (TOUR_START_MINI); drawn again only when it doesn't.
-if (process.env.TOUR_START_MINI === '0') await draw(form, LINES.photo, 600);
-await tap(kinds.getByRole('button', { name: 'Neckline', exact: true }), 600);
-// Just the form, as in the Draw Watch demo (Cat, 2026-11-07: "less cluttered"): the rest of the screen hidden, the
-// form drawn large in the middle of the frame, only the pen moving on it. TOUR_DRAW_FOCUS=0 shows the whole screen.
-const DRAW_FOCUS = process.env.TOUR_DRAW_FOCUS !== '0';
-if (DRAW_FOCUS) {
-  await form.evaluate((svg) => {
-    const st = document.createElement('style');
-    st.id = 'draw-focus';
-    st.textContent = 'body{background:#000000!important} body *{visibility:hidden!important} #pen,#dip,svg.form-svg,svg.form-svg *,defs,defs *,pattern,pattern *,mask,mask *,clipPath,clipPath *{visibility:visible!important} svg.form-svg .hem-ghost text,svg.form-svg text.hint{visibility:hidden!important}';
-    document.head.appendChild(st);
-    const h = innerHeight * (innerHeight > innerWidth ? 0.8 : 0.86);
-    const b = svg.getBoundingClientRect();
-    const w = (b.width / b.height) * h;
-    Object.assign(svg.style, { position: 'fixed', zIndex: 9990, left: `${innerWidth / 2 - w / 2}px`, top: `${innerHeight / 2 - h / 2 + (innerHeight > innerWidth ? 34 : 0)}px`, width: `${w}px`, height: `${h}px`, maxWidth: 'none', maxHeight: 'none' });
-  });
-  await wait(600);
-}
-const pickKind = (name, ms) => (DRAW_FOCUS ? p.locator('main .form-kinds button', { hasText: new RegExp(`^${name}$`) }).first().dispatchEvent('click').then(() => wait(ms)) : tap(kinds.getByRole('button', { name, exact: true }), ms));
-await p.evaluate(() => { document.getElementById('pen').style.visibility = ''; });
-cut(false);
-if (DRAW_FOCUS) { await dip(0); await wait(450); }
-await wait(1100);
-const before = await viewBox(form);
-if (process.env.TOUR_PROBE2) {
-  const bb = await form.boundingBox();
-  console.log('FORM', JSON.stringify(bb), JSON.stringify(before));
-  await p.screenshot({ path: `${OUT}/probe2.png` });
-  process.exit(0);
-}
-// The hem drawn down from the knee to mid-calf (Cat's H, Nov 15), to 74 cm (hemMidi); TOUR_HEM=hemDown draws the
-// shorter 67.5 cm, TOUR_HEM=hemUp the shift's shorter hem.
-// The side stays straight. TOUR_FLARE=1 draws the side out as the earlier films did.
-mark('hem');
-await pickKind('Hem', 500);
-await draw(form, process.env.TOUR_FLARE ? LINES.hem : LINES[process.env.TOUR_HEM ?? 'hemMidi'], process.env.TOUR_FLARE ? 3000 : 3600);
-if (process.env.TOUR_PROBE3) { await p.screenshot({ path: `${OUT}/probe3a.png` }); console.log('HEM', JSON.stringify(before), JSON.stringify(await viewBox(form)), JSON.stringify(await form.boundingBox())); }
-if (process.env.TOUR_FLARE) {
-  mark('side');
-  await pickKind('Side', 500);
-  await draw(form, LINES.side, 1800, before);
-} else mark('side');
-if (process.env.TOUR_PROBE3) {
-  await p.screenshot({ path: `${OUT}/probe3.png` });
-  process.exit(0);
+if (DRAW) {
+  // Enlarged, the preview fills the screen with its tools (Cat, 2026-10-24: use the tools while it's enlarged), and
+  // drawing on the form from there opens the drawing tool enlarged too, the place where room matters most.
+  mark('enlarge');
+  if (!QUICK) await press(main.getByRole('button', { name: /^Enlarge the drawing/ }), 1300);
+  mark('draw');
+  const kinds = main.getByRole('group', { name: 'What you are drawing' });
+  // The drawing tool takes the dress from as short as the photo's, so the hem drawn to the knee is seen to lengthen it
+  // (Cat, 2026-10-26: the hem edit should go from a mini, as in the photo, to longer, not start where the dress already
+  // is). The dress is at the knee until then, so the flat drawing reads as a dress; from the tap on Draw on your form
+  // until the tool is open on the shorter dress is cut out of the shot.
+  const drawOn = main.getByRole('button', { name: 'Draw on your form' }).first();
+  const db = await drawOn.boundingBox();
+  await pen(db.x + db.width - 3, db.y + db.height - 3, 1); // the button's corner, not its letters (Fable, Nov 15)
+  await wait(380);
+  // Into just the form through a short dip to black, so the cut from the whole screen to the form isn't a jump.
+  if (process.env.TOUR_DRAW_FOCUS !== '0') { await p.evaluate(() => { document.getElementById('pen').style.opacity = 0; }); await dip(1); await wait(450); }
+  cut(true);
+  await drawOn.evaluate((el) => el.click());
+  await p.evaluate(() => { const d = document.getElementById('pen'); d.style.opacity = 0; d.style.visibility = 'hidden'; });
+  await wait(900);
+  const roomy = main.getByRole('button', { name: 'Enlarge', exact: true });
+  if (!QUICK && (await roomy.count())) await tap(roomy, 900);
+  await tap(kinds.getByRole('button', { name: 'Hem', exact: true }), 300);
+  // The dress already opens at the photo's length (TOUR_START_MINI); drawn again only when it doesn't.
+  if (process.env.TOUR_START_MINI === '0') await draw(form, LINES.photo, 600);
+  await tap(kinds.getByRole('button', { name: 'Neckline', exact: true }), 600);
+  // Just the form, as in the Draw Watch demo (Cat, 2026-11-07: "less cluttered"): the rest of the screen hidden, the
+  // form drawn large in the middle of the frame, only the pen moving on it. TOUR_DRAW_FOCUS=0 shows the whole screen.
+  if (DRAW_FOCUS) {
+    await form.evaluate((svg) => {
+      const st = document.createElement('style');
+      st.id = 'draw-focus';
+      st.textContent = 'body{background:#000000!important} body *{visibility:hidden!important} #pen,#dip,svg.form-svg,svg.form-svg *,defs,defs *,pattern,pattern *,mask,mask *,clipPath,clipPath *{visibility:visible!important} svg.form-svg .hem-ghost text,svg.form-svg text.hint{visibility:hidden!important}';
+      document.head.appendChild(st);
+      const h = innerHeight * (innerHeight > innerWidth ? 0.8 : 0.86);
+      const b = svg.getBoundingClientRect();
+      const w = (b.width / b.height) * h;
+      Object.assign(svg.style, { position: 'fixed', zIndex: 9990, left: `${innerWidth / 2 - w / 2}px`, top: `${innerHeight / 2 - h / 2 + (innerHeight > innerWidth ? 34 : 0)}px`, width: `${w}px`, height: `${h}px`, maxWidth: 'none', maxHeight: 'none' });
+    });
+    await wait(600);
+  }
+  const pickKind = (name, ms) => (DRAW_FOCUS ? p.locator('main .form-kinds button', { hasText: new RegExp(`^${name}$`) }).first().dispatchEvent('click').then(() => wait(ms)) : tap(kinds.getByRole('button', { name, exact: true }), ms));
+  await p.evaluate(() => { document.getElementById('pen').style.visibility = ''; });
+  cut(false);
+  if (DRAW_FOCUS) { await dip(0); await wait(450); }
+  await wait(1100);
+  const before = await viewBox(form);
+  if (process.env.TOUR_PROBE2) {
+    const bb = await form.boundingBox();
+    console.log('FORM', JSON.stringify(bb), JSON.stringify(before));
+    await p.screenshot({ path: `${OUT}/probe2.png` });
+    process.exit(0);
+  }
+  // The hem drawn down from the knee to mid-calf (Cat's H, Nov 15), to 74 cm (hemMidi); TOUR_HEM=hemDown draws the
+  // shorter 67.5 cm; the fitted shift (TOUR_LOOK=shift) draws its mini down to the knee.
+  // The side stays straight. TOUR_FLARE=1 draws the side out as the earlier films did.
+  mark('hem');
+  await pickKind('Hem', 500);
+  if (process.env.TOUR_PROBE3) await p.screenshot({ path: `${OUT}/probe3b.png` });
+  await draw(form, process.env.TOUR_FLARE ? LINES.hem : LINES[process.env.TOUR_HEM ?? (H ? 'hemMidi' : 'hem')], process.env.TOUR_FLARE ? 3000 : 3600);
+  if (process.env.TOUR_PROBE3) { await p.screenshot({ path: `${OUT}/probe3a.png` }); console.log('HEM', JSON.stringify(before), JSON.stringify(await viewBox(form)), JSON.stringify(await form.boundingBox())); }
+  if (process.env.TOUR_FLARE) {
+    mark('side');
+    await pickKind('Side', 500);
+    await draw(form, LINES.side, 1800, before);
+  } else mark('side');
+  if (process.env.TOUR_PROBE3) {
+    await p.screenshot({ path: `${OUT}/probe3.png` });
+    process.exit(0);
+  }
+} else {
+  for (const m of ['enlarge', 'draw', 'hem', 'side']) mark(m);
+  await wait(1800);
 }
 // TOUR_STATE=<file> saves the dress as drawn (the saved design after the hem is drawn) and stops, so All round can
 // be checked on the exact garment the film shows.
@@ -740,7 +815,8 @@ if (process.env.TOUR_STATE) {
 // Done lands on the pattern sheet, and the film stays there (Cat, 2026-10-24: no flash back to the dress).
 mark('done');
 if (DRAW_FOCUS) await form.evaluate((svg) => { document.getElementById('draw-focus')?.remove(); svg.removeAttribute('style'); });
-if (WIDE) {
+if (!DRAW) await wait(200);
+else if (WIDE) {
   // On a computer Done now leaves the page scrolled to the summary: back up to the pattern straight away.
   await press(main.getByRole('button', { name: 'Done', exact: true }), 0);
   await p.evaluate(() => window.scrollTo(0, 0));
@@ -748,14 +824,99 @@ if (WIDE) {
 } else await press(main.getByRole('button', { name: 'Done', exact: true }), 1200);
 await stop('style');
 
-// pattern: the pieces you cut
-await start();
-await wait(500);
+// pattern: the pattern tools on her pieces (Cat, Nov 18: "show a tool work on the actual pattern pieces instead, like
+// dragging darts and cutting pieces off"; "or design straight from your pattern"). Move points is opened off camera
+// and the pieces alone are shown large on the app's chalk, nothing else on screen: the bust dart is drawn from its
+// point up to the shoulder and moved there, then a line across the back cuts a yoke off as a new piece. The choices
+// the app asks are pressed off screen (the line's own answer shows on the pieces). Each moment's time is kept in
+// pattern-marks.json for edit-tour.mjs. TOUR_DRAW=1 keeps the old shot of the pattern view.
+// The words an edited piece carries ("EDITED BY YOU · IN TESTING") are drawn as text inside the pieces, so no class
+// can hide them: each such text is hidden as it appears, here and on the print and projector takes after.
+await p.addStyleTag({ content: '[data-tour-hide] { display: none !important; }' });
+await p.evaluate((words) => {
+  const hide = () => document.querySelectorAll('text').forEach((t) => { if (t.textContent?.trim() === words) t.setAttribute('data-tour-hide', ''); });
+  hide();
+  new MutationObserver(hide).observe(document.body, { childList: true, subtree: true, characterData: true });
+}, 'EDITED BY YOU · IN TESTING');
 const patternView = main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Pattern/ });
-await tap(patternView, 0);
-await main.getByRole('button', { name: 'Move points' }).waitFor({ timeout: 20000 });
-await wait(3000);
-await stop('pattern');
+if (DRAW) {
+  await start();
+  await wait(500);
+  await tap(patternView, 0);
+  await main.getByRole('button', { name: 'Move points' }).waitFor({ timeout: 20000 });
+  await wait(3000);
+  await stop('pattern');
+} else {
+  await tap(patternView, 0);
+  await main.getByRole('button', { name: 'Move points' }).waitFor({ timeout: 20000 });
+  await tap(main.getByRole('button', { name: 'Move points' }), 1200);
+  await p.locator('main svg.point-svg').waitFor({ timeout: 20000 });
+  // The paper behind the pieces, as the app draws it.
+  const paper = await p.locator('main svg.point-svg').evaluate((el) => { for (let e = el; e; e = e.parentElement) { const c = getComputedStyle(e).backgroundColor; if (c && c !== 'transparent' && !c.endsWith(', 0)')) return c; } return '#ddd5c6'; });
+  const focusPieces = () => p.evaluate(([paper, wide]) => {
+    const svg = document.querySelector('main svg.point-svg');
+    let st = document.getElementById('pieces-focus');
+    if (!st) {
+      st = document.createElement('style');
+      st.id = 'pieces-focus';
+      st.textContent = 'body{background:#000000!important} body *{visibility:hidden!important} svg.point-svg,svg.point-svg *{visibility:visible!important} main *:has(svg.point-svg){clip-path:none!important}';
+      document.head.appendChild(st);
+    }
+    // Under the film's line at the top: the paper fills the rest of a phone, and a tall panel in the middle of a computer.
+    const [x0, y0, x1, y1] = wide ? [0.31, 0.17, 0.69, 0.95] : [0.04, 0.19, 0.96, 0.96];
+    // The picture fills the panel, the pieces centred in it on the paper (the picture's own background).
+    // Set over the app's own sizes for the pinned drawing. No padding: the app finds where a finger is on the pieces
+    // from the picture's own box.
+    const set = { position: 'fixed', 'z-index': '9990', left: `${x0 * innerWidth}px`, top: `${y0 * innerHeight}px`, width: `${(x1 - x0) * innerWidth}px`, height: `${(y1 - y0) * innerHeight}px`, 'max-width': 'none', 'max-height': 'none', 'min-height': '0', 'aspect-ratio': 'auto', margin: '0', padding: '0', transform: 'none', overflow: 'hidden', background: paper };
+    for (const [k, v] of Object.entries(set)) svg.style.setProperty(k, v, 'important');
+  }, [paper, WIDE]);
+  await focusPieces();
+  await wait(900);
+  const pm = {};
+  const pt0 = Date.now();
+  const pmark = (what) => { pm[what] = Number(((Date.now() - pt0) / 1000).toFixed(2)); writeFileSync(join(OUT, 'pattern-marks.json'), JSON.stringify(pm)); };
+  const box = (name) => p.locator(`path.pe-piece[data-piece="${name}"]`).boundingBox();
+  const line = async (a, z, steps = 26) => {
+    await p.mouse.move(a.x, a.y);
+    await p.mouse.down();
+    for (let k = 1; k <= steps; k++) { const t = k / steps; const e = t * t * (3 - 2 * t); await p.mouse.move(a.x + (z.x - a.x) * e, a.y + (z.y - a.y) * e); await wait(30); }
+    await p.mouse.up();
+  };
+  const hidden = (loc, ms) => loc.evaluate((el) => el.click()).then(() => wait(ms));
+  await start();
+  await wait(1600);
+  // The bust dart, from its point up to the middle of the shoulder: the dart moves there, as a cutter pivots it.
+  const dartAt = await p.locator('circle.pe-point.dart').first().evaluate((el) => { const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2, piece: el.dataset.piece }; });
+  const fb = await box(dartAt.piece);
+  pmark('dart');
+  // The middle of the shoulder: between the piece's two highest points (the neck and the shoulder's tip), just inside.
+  const top2 = (await p.locator(`circle.pe-point[data-piece="${dartAt.piece}"]`).evaluateAll((es) => es.map((el) => { const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; }))).sort((a, c) => a.y - c.y).slice(0, 2);
+  await line(dartAt, { x: (top2[0].x + top2[1].x) / 2, y: (top2[0].y + top2[1].y) / 2 + 3 });
+  // By their words: hidden, they are out of the accessibility tree.
+  const toDart = p.locator('.pe-sheet button', { hasText: 'Move the dart here' });
+  if (await toDart.count()) await hidden(toDart, 400);
+  const moved = p.locator('.pe-sheet[aria-label="Dart moved"]');
+  if (await moved.count()) { pmark('dart moved'); await hidden(moved.locator('.pe-done'), 300); } else console.log('  the dart did not move');
+  await focusPieces();
+  await wait(2200);
+  // A yoke across the back, a fifth of the way down, cut off as a new piece.
+  const back = (await p.locator('path.pe-piece').evaluateAll((es) => es.map((e) => e.dataset.piece))).find((n) => /back/i.test(n));
+  const bb = await box(back);
+  pmark('cut');
+  await line({ x: bb.x + 2, y: bb.y + bb.height * 0.2 }, { x: bb.x + bb.width - 2, y: bb.y + bb.height * 0.2 });
+  const newPiece = p.locator('.pe-sheet button', { hasText: 'Make a new piece' });
+  if (await newPiece.count()) { await hidden(newPiece, 500); pmark('new piece'); await hidden(p.locator('.pe-done').first(), 300); } else console.log('  no new piece');
+  await focusPieces();
+  await wait(2800);
+  pmark('end');
+  await stop('pattern');
+  await p.evaluate(() => { document.getElementById('pieces-focus')?.remove(); document.querySelector('main svg.point-svg')?.removeAttribute('style'); });
+  await tap(main.getByRole('button', { name: 'Done moving points' }), 1200);
+}
+// The pattern's own drawing, kept for the film's Print climax, where edit-tour.mjs draws it line by line from her
+// numbers (the critic's review, Nov 16: show the pattern being drafted from her body).
+writeFileSync(join(OUT, 'draft.svg'), await main.locator('svg.preview-svg').first().evaluate((el) => el.outerHTML));
+if (process.env.TOUR_PROBE) process.exit(0);
 await tap(main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: /^Front/ }).first(), 800);
 
 // round: turning all round on the form, filling the screen and drawing closer as it turns (Cat, 2026-10-22: start

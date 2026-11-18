@@ -28,14 +28,15 @@ await page.goto(APP);
 await page.waitForTimeout(1500);
 const CSS = `
   html,body{margin:0;background:transparent!important;width:${VW}px;height:${VH}px;overflow:hidden}
-  .f{position:fixed;inset:0;color:#efe4cc;font-family:'Space Grotesk',sans-serif}
+  .f{position:fixed;inset:0;color:#efe4cc;font-family:'Instrument Sans',sans-serif}
   .k{font:400 10px/1 'Chakra Petch',monospace;letter-spacing:.34em;text-transform:uppercase;color:#d9c49b}
   .r{width:96px;height:1px;background:#d9c49b;margin:18px 0}
   /* The film's words are champagne, its own voice apart from the app's cream (Cat, 2026-10-31: the gold looked bad). */
   .t{color:#d9c49b;font-family:'Archivo Variable',sans-serif;font-stretch:87%;font-weight:600;text-transform:uppercase;line-height:.9;letter-spacing:.005em;margin:0}
-  /* The captions over the app (Cat's V5, 2026-11-06): Space Grotesk medium in sentence case, one line, champagne, big
-     enough to be read at once, so the viewer knows where to look. */
-  .n{color:#d9c49b;font-family:'Space Grotesk',sans-serif;font-weight:500;text-transform:none;font-stretch:100%;line-height:1.1;letter-spacing:-0.005em;white-space:nowrap;margin:0}
+  /* The captions over the app (Cat's V5, 2026-11-06): sentence case, one line, big enough to be read at once, so the
+     viewer knows where to look. Blush and bolder in the app's own font (Cat, Nov 18: more prominent; the film still
+     asked for Space Grotesk, which the app no longer loads, so the words had fallen back to a plain font). */
+  .n{color:#f2c2b8;font-family:'Instrument Sans',sans-serif;font-weight:600;text-transform:none;font-stretch:100%;line-height:1.1;letter-spacing:-0.005em;white-space:nowrap;margin:0}
   .l{color:#d9c49b;font-weight:300;font-size:17px;line-height:1.45;margin:0}
   .mid{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
   .mid .r{margin:20px auto}`;
@@ -62,29 +63,40 @@ const endCard = () => {
 // One size for every title card, How it works included, small enough that HOW IT WORKS sits on one line on a phone
 // (Cat, 2026-11-06: "on one line and smaller", and the same size as Measure, Choose, Style and Print).
 const HEAD = WIDE ? 62 : 52;
-const card = (kicker, title, line = '', size = HEAD) => words(`<div class="f mid">${kicker ? `<div class="k">${kicker}</div><div class="r"></div>` : ''}<h1 class="t" style="font-size:${size}px">${title}</h1>${line ? `<p class="l" style="margin-top:18px">${line}</p>` : ''}</div>`, { solid: true });
+// A chapter's number and line are blush, the narration's colour, its title champagne (Cat, Nov 18).
+const card = (kicker, title, line = '', size = HEAD) => words(`<div class="f mid">${kicker ? `<div class="k" style="color:#f2c2b8">${kicker}</div><div class="r" style="background:#f2c2b8"></div>` : ''}<h1 class="t" style="font-size:${size}px">${title}</h1>${line ? `<p class="l" style="margin-top:18px">${line}</p>` : ''}</div>`, { solid: true });
 
+// The next step under the ending's title, in the narration's blush (Cat, Nov 18): the title is copied in unseen above
+// it, so the line sits just under the card's own title wherever that lands.
+const readyToSew = () => words(`<div class="f mid"><h1 class="t" style="font-size:${HEAD}px;visibility:hidden">Drafted<br>to your body</h1><p class="n" style="font-size:${WIDE ? 37 : 32}px;margin-top:${WIDE ? 30 : 24}px">Your pattern, ready to sew.</p></div>`);
+
+// A film file's length, in seconds.
+const length = (f) => Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', f]).toString());
 // Two pieces as one, the first dissolving into the second over d seconds, for a move with no dip to black.
 async function dissolve(a, b2, d) {
   const out = join(work, `p${String(k++).padStart(3, '0')}.mp4`);
-  const len = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', a]).toString());
+  const len = length(a);
   execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', a, '-i', b2, '-filter_complex', `[0:v][1:v]xfade=transition=fade:duration=${d}:offset=${(len - d).toFixed(3)},format=yuv420p[v]`, '-map', '[v]', '-c:v', 'libx264', '-crf', '18', '-preset', 'medium', '-r', String(FPS), out]);
   return out;
 }
 // A black frame round a drawing, so a zoomed-in moment shows the drawing alone, not cut-off words around it.
 // top and bottom (and left and right, if given): where the picture shows, as fractions of the frame; it fades in
-// over the 3% outside them, or over soft at the top (a crisp top reads as the paper's own edge, not a blur).
+// over the 3% outside them, or over soft at the top (a crisp top reads as the paper's own edge, not a blur) and
+// softEnd at the bottom (a long fade both ways makes a cut-off slice of the form read as a close-up of it).
 const masks = {};
-async function mask([top, bottom, left = -1, right = 2, soft = 0.03]) {
-  const key = `${top}-${bottom}-${left}-${right}-${soft}`;
-  const band = (dir, a, b, sa = 0.03) => `linear-gradient(${dir},#000000 0,#000000 ${(a - sa) * 100}%,rgba(0,0,0,0) ${a * 100}%,rgba(0,0,0,0) ${b * 100}%,#000000 ${(b + 0.03) * 100}%,#000000 100%)`;
-  masks[key] ??= await words(`<div class="f" style="background:${band('to bottom', top, bottom, soft)},${band('to right', left, right)}"></div>`);
+async function mask([top, bottom, left = -1, right = 2, soft = 0.03, softEnd = 0.03]) {
+  const key = `${top}-${bottom}-${left}-${right}-${soft}-${softEnd}`;
+  const band = (dir, a, b, sa = 0.03, sb = 0.03) => `linear-gradient(${dir},#000000 0,#000000 ${(a - sa) * 100}%,rgba(0,0,0,0) ${a * 100}%,rgba(0,0,0,0) ${b * 100}%,#000000 ${(b + sb) * 100}%,#000000 100%)`;
+  masks[key] ??= await words(`<div class="f" style="background:${band('to bottom', top, bottom, soft, softEnd)},${band('to right', left, right)}"></div>`);
   return masks[key];
 }
 
 // A piece of the film: part of a shot (or a still picture), eased in by a zoom, faded or cut, words laid over it.
 // zoom: [from, to] scale; at: [x, y] the point zoomed into, as fractions of the frame.
 let k = 0;
+// Where the music moves: the pieces the sound follows, found by their place in the cut (the critic's review, Nov 17:
+// the track sat level from start to end, through the turn and the last line).
+const beats = {};
 // overs: more words, each [picture, when it fades in], laid over one after another.
 // reverse: play the moment backwards (a push-in becomes a pull-back).
 // cam: a camera that moves, as [time in the piece, zoom, x, y] stops, eased from one to the next, in place of zoom and at.
@@ -189,7 +201,7 @@ const MARKS = existsSync(join(SHOTS, 'marks.json')) ? JSON.parse(readFileSync(jo
 // On a phone the take opens on the Fit step, already answered, which only flashed past before Cut (Fable's review,
 // Nov 15), so the phone's journey starts on Cut.
 const JOURNEY_FROM = WIDE ? Number(process.env.JOURNEY_FROM ?? 2.4) /* opens as the Cut row opens, not on the Shape summary (Fable, Nov 15) */ : Number(process.env.JOURNEY_FROM ?? 2.1);
-const JOURNEY = { from: JOURNEY_FROM, to: MARKS.done - 0.2, dur: Math.round(((MARKS.done + 0.9 - JOURNEY_FROM) / 1.4) * 10) / 10 };
+const JOURNEY = { from: JOURNEY_FROM, to: MARKS.done - 0.2, dur: Math.round(((MARKS.done + 0.9 - JOURNEY_FROM) / 1.9) * 10) / 10 }; // quicker through the steps (Cat, Nov 18)
 const atOut = (t) => ((t - JOURNEY.from) * JOURNEY.dur) / (JOURNEY.to - JOURNEY.from);
 // [shot time, zoom, x, y]: on a computer, the whole page, then in on the enlarged form to draw, and back as the
 // pattern comes up. A phone shows the whole screen throughout. Both end framed as the pattern shot opens, so the
@@ -227,18 +239,23 @@ const DIP_AT = WIDE ? 0 : Number(process.env.DIP_AT ?? firstBlack(MARKS.calico +
 const DRAW_DIP = WIDE ? 0 : firstBlack(DIP_AT ? DIP_AT + 0.5 : MARKS.cloth) || MARKS.draw + 0.5;
 // On a computer there is no dip between them, so one dark band lies under both lines the whole way (an entry with no
 // words) and the lines themselves hand over: the app's own header never shows through between.
+// One line over the whole journey now (Cat, Nov 18: "Select style details to make it your own" as it clicks through
+// neckline, fabric and the rest), on its dark band, so the app's own header never shows through.
+const STYLE_LINE = 'Select your style details,'; // shorter (Cat, Nov 18)
 const STYLE_NOTES = WIDE
-  ? [['', JOURNEY.from, MARKS.enlarge, 'low', true], ['Choose each detail. Watch it change.', JOURNEY.from, MARKS.cloth + 0.3, 'low', false], ['Then the cloth.', MARKS.cloth + 0.3, MARKS.enlarge - 0.4, 'low', false]]
-  // On a phone too, one dark band lies under both lines the whole way and the lines hand over at the take's dip, so
-  // the app's own header never shows through between them (Fable's review, Nov 15).
-  : [['', JOURNEY.from, DRAW_DIP + 0.6, 'low', true], ['Choose each detail.', JOURNEY.from, DIP_AT ? DIP_AT - 0.3 : MARKS.questions - 0.1, 'low', false], ['Then the cloth.', DIP_AT ? DIP_AT + 0.1 : MARKS.cloth + 0.3, DRAW_DIP - 0.2, 'low', false]];
+  ? [[STYLE_LINE, JOURNEY.from, MARKS.done + 2, 'low', true]]
+  // On a phone too, one dark band lies under the line the whole way (Fable's review, Nov 15).
+  : [[STYLE_LINE, JOURNEY.from, MARKS.done + 2, 'low', true]];
 // On a phone the words go a beat sooner: as the dress lengthens the view lifts, and the form's head rose into them
 // (Fable's review, Nov 15). On a computer they sit to the left of the form.
 const DRAW_OFF = WIDE ? 0 : 1.4;
-const DRAW_NOTES = [[['Draw on your form.'], MARKS.draw + 0.9, MARKS.done - 1.6 - DRAW_OFF], [['Draw on your form.', 'The pattern follows.'], MARKS.hem + (WIDE ? 0.8 : 0.5), MARKS.done - 1.2 - DRAW_OFF]];
+// One line held through the hem, now the pattern says its own words (the second line was 'The pattern follows.').
+// Says what the pen is doing, so the drawing reads (Cat, Nov 17: it wasn't clear what it showed).
+// No drawing on the form now (Cat, Nov 18), so no line for it unless the take has one (TOUR_DRAW=1).
+const DRAW_NOTES = MARKS.draw < MARKS.done - 1 ? [[['Draw a longer hem', 'on your form.'], MARKS.draw + 0.9, MARKS.done - 1.2 - DRAW_OFF]] : [];
 const note2 = (lines) => words(WIDE
-  ? `<div class="f" style="padding:44px 0 0 96px"><h1 class="n" style="font-size:34px">${lines.join('<br>')}</h1></div>`
-  : `<div class="f" style="padding:38px 0 0 22px"><h1 class="n" style="font-size:29px">${lines.join('<br>')}</h1></div>`);
+  ? `<div class="f" style="padding:44px 0 0 96px"><h1 class="n" style="font-size:37px">${lines.join('<br>')}</h1></div>`
+  : `<div class="f" style="padding:38px 0 0 22px"><h1 class="n" style="font-size:32px">${lines.join('<br>')}</h1></div>`);
 // D1 One Palette Card (Cat, 2026-11-02): as the dress takes the new cloth, one tall swatch card of it, the app's cream
 // label strip under it, glides in beside the form and holds still, gone before the drawing tool opens. Its swatch is
 // cut from the dress itself once the cloth is on, so it is the very cloth on the form. CARD_AT: shot time the cloth
@@ -274,7 +291,8 @@ function styleGaps() {
 const styleJourney = async () => {
   // One at a time: the words are all drawn on the one page.
   const notes = [];
-  for (const [line, on, off, where, shade = true] of STYLE_NOTES) notes.push([await note(line, where, shade), on, off, !line]);
+  // Held up across the take's cuts like the band under it, so the one line stays put the whole way (Cat, Nov 18).
+  for (const [line, on, off, where, shade = true] of STYLE_NOTES) notes.push([await note(line, where, shade), on, off, true]);
   if (process.env.TOUR_DRAW_FOCUS !== '0') for (const [lines, on, off] of DRAW_NOTES) notes.push([await note2(lines), on, off]);
   // The app now draws its own palette card beside the form (Release 53), so the film's card is off unless CARD=1.
   const cards = process.env.CARD !== '1' ? [] : [[await clothCard(), CARD.at, CARD_OFF]];
@@ -315,12 +333,12 @@ const styleJourney = async () => {
 // On a phone the sheet rises the last part of the journey, to sit just under 'Your pattern, in seconds.'
 const LIFT = WIDE ? 0 : 0.065;
 const PATTERN = WIDE
-  ? { from: 1.1, dur: 3.0, speed: 0.8, zoom: [1.33, 1.37], at: [0.37, 0.545], frame: [0.125, 0.885, 0.075, 0.9, 0.002] }
+  ? { from: 1.1, dur: 3.0, speed: 0.8, zoom: [1.6, 1.64], at: [0.36, 0.555], frame: [0.14, 1.1, -0.1, 1.1, 0.002] }
   // Drawn in close so the pieces fill the screen, the steps under the sheet masked off (Cat, 2026-10-29), right up to
   // the sheet's foot, so no view switch or step bar shows under it (Cat, 2026-11-08: cut-off app text).
   // The sheet is chalk now (Nov 14), so it is shown as the app draws it, not toned down, and masked just above the
   // view switches, which sit closer under it.
-  : { from: 1.1, dur: 3.2, speed: 0.75, zoom: [1.42, 1.46], at: [0.5, 0.473], frame: [0.215, 0.675, -1, 2, 0.002] };
+  : { from: 1.1, dur: 3.2, speed: 0.75, zoom: [2.5, 2.56], at: [0.5, 0.425], frame: [0.12, 0.98, -1, 2, 0.002] };
 // On a phone the whole sheet of pages shows, opened under See the pages, the words round it in black (Cat, 2026-10-24:
 // 1.6 was too close).
 // On a phone the sheet of pages is thin champagne lines on black; lifted so they read (walkthrough, 2026-10-24).
@@ -335,12 +353,13 @@ const SHEET = join(SHOTS, 'print-sheet.png');
 function sheetPan(dur) {
   const out = join(work, 'sheet-pan.mp4');
   const u = `(0.5-0.5*cos(PI*min(1,t/${dur})))`;
-  const th = Math.round(H * 0.92 / 2) * 2;
+  // On a phone the sheet sits under the line over it (Cat, Nov 18: "Print your pattern," above the pages).
+  const th = Math.round(H * (WIDE ? 0.92 : 0.76) / 2) * 2;
   const m = Math.round(W * 0.04);
   const tw = Math.round(W * 0.84 / 2) * 2;
   const [fit, x, y] = WIDE
     ? [`scale=${tw}:-2:flags=lanczos`, String((W - tw) / 2), `if(gt(overlay_h+${2 * m},${H}),${m}-(overlay_h+${2 * m}-${H})*${u},(${H}-overlay_h)/2)`]
-    : [`scale=-2:${th}:flags=lanczos`, `${m}-(overlay_w+${2 * m}-${W})*${u}`, String((H - th) / 2)];
+    : [`scale=-2:${th}:flags=lanczos`, `${m}-(overlay_w+${2 * m}-${W})*${u}`, String(Math.round(H * 0.2))];
   execFileSync('ffmpeg', ['-v', 'error', '-y', '-f', 'lavfi', '-i', `color=black:s=${W}x${H}:d=${dur + 0.5}:r=${FPS}`, '-loop', '1', '-framerate', String(FPS), '-t', String(dur + 0.5), '-i', SHEET,
     '-filter_complex', `[1:v]erosion,${fit}[s];[0:v][s]overlay=x='${x}':y='${y}':shortest=1,format=yuv420p[v]`,
     '-map', '[v]', '-c:v', 'libx264', '-crf', '14', '-preset', 'medium', out]);
@@ -348,7 +367,63 @@ function sheetPan(dur) {
 }
 // The sheet is shown in the app's own chalk, not lifted to white, and its lines thickened so they read at film size
 // (Cat, Nov 15: a little darker, like the All round's chalk, and clearer lines).
-const pages = (dur, fades) => (existsSync(SHEET) ? piece({ src: sheetPan(dur), dur, ...fades }) : piece({ ...PAGES, dur, ...fades }));
+// On a computer the sheet drifts up under a black band, so it never runs under the line over it (Nov 18).
+const pages = (dur, fades) => (existsSync(SHEET) ? piece({ src: sheetPan(dur), dur, ...(WIDE && fades.notes ? { frame: [0.17, 1.1, -1, 2, 0.02] } : {}), ...fades }) : piece({ ...PAGES, dur, ...fades }));
+// The Print climax (the critic's review, Nov 16: show the pattern being drafted from her body): her numbers come
+// up, then the pattern's own pieces, as the app drew them for her (draft.svg, kept by record-tour-shots.mjs), are drawn
+// line by line in the film's champagne on black, outlines first, then the inner lines, the piece names last.
+// Rendered frame by frame, so every line is sharp and the timing exact.
+const DRAFT = join(SHOTS, 'draft.svg');
+const NUMBERS = [['Waist', 62], ['Bust', 82], ['Hips', 90], ['Length', 112], ['Height', 176]];
+async function draftFilm(dur) {
+  const svg = readFileSync(DRAFT, 'utf8');
+  const frames = Math.round(dur * FPS);
+  const dir = mkdtempSync(join(work, 'draft-'));
+  const nums = NUMBERS.map(([l, v], i) => `<div class="dn" data-i="${i}"><span class="k">${l}</span><b>${v}</b></div>`).join('');
+  await page.evaluate(([css, h]) => {
+    document.head.querySelectorAll('style[data-edit]').forEach((x) => x.remove());
+    const st = document.createElement('style'); st.dataset.edit = '1'; st.textContent = css; document.head.appendChild(st);
+    document.body.innerHTML = h;
+  }, [CSS + `html,body{background:#000!important}
+    .dr{position:fixed;inset:0;display:flex;${WIDE ? 'flex-direction:row;align-items:center;justify-content:center;gap:56px' : 'flex-direction:column;align-items:center;justify-content:center;gap:20px;padding-top:40px'}}
+    .dr svg{${WIDE ? 'height:700px;width:auto' : 'width:410px;height:auto'};--paper:transparent;--ink:#d9c49b;overflow:visible}
+    .dr svg polygon{stroke-width:${WIDE ? 0.32 : 0.42}px}.dr svg polyline{stroke-width:${WIDE ? 0.2 : 0.26}px}
+    .dr svg text{fill:#d9c49b!important;stroke:none!important;opacity:0}
+    .dns{display:flex;${WIDE ? 'flex-direction:column;gap:22px;width:200px' : 'flex-direction:row;gap:16px'}}
+    .dn{display:flex;flex-direction:column;gap:6px;opacity:0;${WIDE ? '' : 'align-items:center'}}
+    .dn b{font:500 ${WIDE ? 40 : 22}px/1 'Instrument Sans',sans-serif;color:#efe4cc}
+    .dn .k{font-size:${WIDE ? 11 : 8}px}`, `<div class="dr"><div class="dns">${nums}</div>${svg}</div>`]);
+  await page.evaluate(() => document.fonts.ready);
+  // Each line's length, so it can be drawn from its start; the outlines (polygons) first, then the inner lines.
+  await page.evaluate(() => {
+    const els = [...document.querySelectorAll('.dr svg polygon'), ...document.querySelectorAll('.dr svg polyline')];
+    els.forEach((el, i) => { const len = el.getTotalLength(); el.dataset.len = String(len); el.dataset.i = String(i); el.style.strokeDasharray = `${len} ${len}`; el.style.strokeDashoffset = String(len); el.style.fillOpacity = '0'; });
+    window.__draftCount = els.length;
+  });
+  for (let f = 0; f < frames; f++) {
+    const t = f / FPS;
+    await page.evaluate(([t, dur]) => {
+      const ease = (x) => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x));
+      // The numbers come up one by one over the first second.
+      document.querySelectorAll('.dn').forEach((d) => { d.style.opacity = String(ease((t - 0.15 - Number(d.dataset.i) * 0.18) / 0.35)); });
+      // The lines draw from 1.1 s to 1.4 s before the end, each starting a little after the one before.
+      const a = 1.1, z = dur - 1.4, n = window.__draftCount;
+      document.querySelectorAll('.dr svg polygon, .dr svg polyline').forEach((el) => {
+        const i = Number(el.dataset.i), len = Number(el.dataset.len);
+        const start = a + ((z - a) * 0.55 * i) / n, p = ease((t - start) / ((z - a) * 0.45));
+        el.style.strokeDashoffset = String(len * (1 - p));
+      });
+      document.querySelectorAll('.dr svg text').forEach((el) => { el.style.opacity = String(ease((t - z + 0.2) / 0.6)); });
+    }, [t, dur]);
+    await page.screenshot({ path: join(dir, `f${String(f).padStart(4, '0')}.png`) });
+  }
+  const out = join(work, `draft-${k}.mp4`);
+  execFileSync('ffmpeg', ['-v', 'error', '-y', '-framerate', String(FPS), '-i', join(dir, 'f%04d.png'), '-vf', `scale=${W}:${H},format=yuv420p`, '-c:v', 'libx264', '-crf', '16', '-preset', 'medium', '-r', String(FPS), out]);
+  rmSync(dir, { recursive: true, force: true });
+  return out;
+}
+const DRAFT_DUR = 5.4;
+const draftMoment = async () => piece({ src: await draftFilm(DRAFT_DUR + 0.5), dur: DRAFT_DUR, fadeIn: 0.4, fadeOut: 0.5, notes: [[await note(WIDE ? 'Your numbers become your pattern.' : 'Your numbers,<br>your pattern.', 'low', false), 0.3, DRAFT_DUR - 0.2]] });
 // Cat's B Three Checks (2026-10-22): what All round is for, a line at a time over the turning form. On a phone under
 // the hem; on a computer to the left of the form. All round is filmed on black (Cat, Nov 15), so the words are the
 // film's own gold. Each line is its own picture, all laid out together so they stack in place.
@@ -360,7 +435,7 @@ async function threeChecks() {
     const h = lines.map((l, j) => `<h1 class="t" style="font-size:${size}px;margin:0 0 10px;opacity:${j === i ? 1 : 0}">${l}</h1>`).join('');
     pics.push(await words(WIDE
       ? `<div class="f" style="display:flex;flex-direction:column;justify-content:center;padding-left:96px"><div>${h}</div></div>`
-      : `<div class="f" style="display:flex;flex-direction:column;justify-content:flex-end;align-items:center;text-align:center;padding:0 28px 46px"><div>${h}</div></div>`));
+      : `<div class="f" style="display:flex;flex-direction:column;justify-content:flex-end;align-items:center;text-align:center;padding:0 28px 86px"><div>${h}</div></div>`)); // a little closer under the dress (Cat, Nov 18)
   }
   return pics;
 }
@@ -373,19 +448,25 @@ async function threeChecks() {
 // The film's words are gold (.t), so they read apart from the app's cream headings; on a phone they are 40px, the longer
 // lines breaking in two (Cat, 2026-10-30: T1 C; 32px read too small next to the app's bigger headings).
 // The shade is near solid down past the words, so a page scrolling under them never shows through (Cat, 2026-10-30).
-// V5 (Cat, 2026-11-06): one line of Space Grotesk medium, 72px on the 1080-wide phone film (29px here), 34px on the
+// V5 (Cat, 2026-11-06), blush and bolder since Nov 18: 32px here on a phone (80px on the 1080-wide film), 37px on the
 // computer's; the two-line phone captions are joined into one.
+// A phone line too long for one line keeps its break, rather than run off the screen (Nov 18: Cat's longer lines).
 const note = (line0, where, shade = true) => {
-  const line = line0.replace(/<br>/g, ' ');
+  const one = line0.replace(/<br>/g, ' ');
+  const line = WIDE || one.length <= 28 ? one : line0;
   return words(WIDE && where === 'side'
-  ? `<div class="f" style="display:flex;flex-direction:column;justify-content:center;padding-left:96px;background:linear-gradient(to right,rgba(0,0,0,.85) 0,rgba(0,0,0,.6) 30%,rgba(0,0,0,0) 42%)"><h1 class="n" style="font-size:34px">${line}</h1></div>`
+  ? `<div class="f" style="display:flex;flex-direction:column;justify-content:center;padding-left:96px;background:linear-gradient(to right,rgba(0,0,0,.85) 0,rgba(0,0,0,.6) 30%,rgba(0,0,0,0) 42%)"><h1 class="n" style="font-size:37px">${line}</h1></div>`
   : WIDE
-  ? `<div class="f" style="${shade ? 'background:linear-gradient(to bottom,#000000 0,#000000 15.5%,rgba(0,0,0,0) 21%);' : ''}padding:${where === 'low' ? 54 : 44}px 0 0 96px"><h1 class="n" style="font-size:34px">${line}</h1></div>`
-  : `<div class="f" style="${shade ? 'background:linear-gradient(to bottom,#000000 0,#000000 14.5%,rgba(0,0,0,0) 19%);' : ''}padding:${where === 'low' ? 44 : 38}px 0 0 22px"><h1 class="n" style="font-size:29px">${line}</h1></div>`);
+  ? `<div class="f" style="${shade ? 'background:linear-gradient(to bottom,#000000 0,#000000 15.5%,rgba(0,0,0,0) 21%);' : ''}padding:${where === 'low' ? 54 : 44}px 0 0 96px"><h1 class="n" style="font-size:37px">${line}</h1></div>`
+  : `<div class="f" style="${shade ? 'background:linear-gradient(to bottom,#000000 0,#000000 14.5%,rgba(0,0,0,0) 19%);' : ''}padding:${where === 'low' ? 44 : 38}px 0 0 22px"><h1 class="n" style="font-size:32px">${line}</h1></div>`);
 };
 // The scroll down the collection's looks, the way down to Print my pattern, and projector mode, as recorded
 // (record-tour-shots.mjs: the phone's scrolls are longer).
-const COLLECTION = WIDE ? { from: 0.8, dur: 8.5, speed: 1.45 } : { from: 1.6, dur: 7.9, speed: 1.75, drop: 0.05, frame: [0.21, 1.1] }; // on a phone the band above the look is kept black, so Make this look never shows behind the words as the page scrolls (Fable, Nov 15)
+const COLLECTION = WIDE ? { from: 4.7, dur: 3.2, speed: 0.65, zoom: [1, 1.03], at: [0.5, 0.5] } : { from: 4.6, dur: 4.4, speed: 0.85, drop: 0.05, frame: [0.21, 1.1] }; // shorter at the same slow speed (Cat, Nov 18) // slower again (Cat, Nov 18: the scroll through the collection went too fast) // from the first look, past the page's own title and words (Cat, Nov 17: the line and the app's headings competed) // drawn in on a computer (the critics' reviews, Nov 16: 8 s was long, half the frame empty); slower, so two or three looks can be seen (critic, Nov 17) // on a phone the band above the look is kept black, so Make this look never shows behind the words as the page scrolls (Fable, Nov 15)
+// The garment grid drawn in a little and sitting right under its line, the page's question left out in the take
+// (Cat, Nov 18: bigger, less empty black); then the Style page's drawing window alone, for the dress the pick opens.
+const CHOOSE_IN = WIDE ? { zoom: [1.12, 1.12], at: [0.5, 0.462], frame: [0.18, 1.1, -1, 2, 0.02, 0.03] } : { zoom: [1.08, 1.08], at: [0.5, 0.463], frame: [0.17, 1.1, -1, 2, 0.02, 0.03] };
+const DRESS_WINDOW = WIDE ? [0.22, 0.9, 0.05, 0.665, 0.02, 0.02] : [0.205, 0.655, -1, 2, 0.02, 0.02];
 // A computer has no Review page to scroll (Print my pattern sits beside the drawing), so its projector runs longer.
 // Print opens straight on the pattern pieces' sideways scroll, no Review page first (Cat, 2026-11-06), so on a phone
 // too there is nothing here; REVIEW=1 brings the scroll down the Review page back.
@@ -399,19 +480,17 @@ const REVIEW = WIDE || process.env.REVIEW !== '1' ? undefined : { from: 0.4, dur
 // On a computer, the whole piece too, beside the line (Fable, Nov 15: it was cut off at the foot).
 // The computer's piece sits at the right of the screen: drawn in on it, past the toolbar and the corner ring; the
 // phone's ring at the right edge is masked (Fable's review, Nov 15).
-const PROJECTOR = WIDE ? { from: Number(process.env.PJ_FROM ?? 10.0), dur: 4.2, zoom: [1.08, 1.1], at: [0.85, 0.5], frame: [0.075, 0.935, -1, 2, 0.015] } : { from: Number(process.env.PJ_FROM ?? 11.1), dur: 4, zoom: [1.6, 1.63], at: [0.43, 0.49], frame: [-0.1, 1.1, -0.1, 0.95] };
+const PROJECTOR = WIDE ? { from: Number(process.env.PJ_FROM ?? 10.0), dur: 4.2, zoom: [1.08, 1.1], at: [0.85, 0.5], frame: [0.075, 0.935, -1, 2, 0.015] } : { from: Number(process.env.PJ_FROM ?? 11.1), dur: 4, zoom: [1.3, 1.32], at: [0.43, 0.36], frame: [-0.1, 1.1, -0.1, 0.95] }; // smaller on a phone, its top clear of the words (Cat, Nov 18: it got covered by the narration)
 // Phone: drawn in a little less and set lower, so the piece sits whole under its two lines of words (Cat, 2026-11-06:
 // cut off by the words at the top).
-// The photo is in about 0.9 s into the take; the reading is up by about 2.9 s.
-// From the moment the photo is up: the Snap page before it flashed past unread (Fable's review, Nov 15).
-const PHOTO_FROM = Number(process.env.PHOTO_FROM ?? 1.45);
-async function photoMoment(line = 'Start from a photo.') {
-  // The app's own Start from a photo screen (Cat, Nov 14: all literal matches): the photo goes in, the app scans it
-  // and says what it sees. Recorded by record-tour-shots.mjs (photo.mp4).
-  // On a computer the photo page is a column in the middle of the window: drawn in on it.
-  // Just the photo going in and the line scanning it (Cat, Nov 15: skip what the app reads; the words under the photo
-  // are too much clutter here): masked off under the photo's card, and over before the reading comes up.
-  return piece({ shot: 'photo', from: PHOTO_FROM, dur: 3.6, speed: 0.5, ...(WIDE ? { zoom: [1.35, 1.35], at: [0.5, 0.47], frame: [0.15, 0.895] } : { frame: [0.135, 0.71] }), fadeIn: 0.5, fadeOut: 0.5, notes: [[await note(line, 'low'), 0.2, 3.3]] });
+async function photoMoment(line = 'Start from a photo.', lineEnd = 3.3) {
+  // Her own dress's photo in the champagne Polaroid, 'That dress' on its strip (Cat's P2, 2026-10-30, back on Nov 17).
+  // Nothing blurred over it, no scanning line and no words under it (Cat, Nov 17); centred in the screen (Cat, Nov 18:
+  // set lower to clear the line, it sat too low).
+  const photo = readFileSync(resolve('scripts/tour/photo-python-dress.jpg')).toString('base64');
+  const k = WIDE ? 1.15 : 1;
+  const pic = await words(`<div class="f" style="display:flex;align-items:center;justify-content:center"><div style="background:#efe4cc;padding:${16 * k}px ${16 * k}px ${64 * k}px;box-shadow:0 12px 28px rgba(0,0,0,.6);position:relative"><img src="data:image/jpeg;base64,${photo}" style="display:block;width:${300 * k}px;height:${400 * k}px;object-fit:cover"><div style="position:absolute;left:0;right:0;bottom:${24 * k}px;text-align:center;font:400 ${12 * k}px/1 'Chakra Petch',monospace;letter-spacing:.3em;text-transform:uppercase;color:#6b5a3a">That dress</div></div></div>`, { solid: true });
+  return piece({ still: pic, dur: 3.6, zoom: [1, 1.03], fadeIn: 0.5, fadeOut: 0.5, notes: [[await note(line, 'low'), 0.2, lineEnd]] });
 }
 async function shopMoment() {
   // The Fabric step's own partner-shop list for the silk picked, gliding down through the swatches (Cat, Nov 14: all
@@ -441,7 +520,7 @@ const INTROS = {
   // size, so a hairline loses its champagne), which showed as the film took over from the page (Cat, 2026-11-07: "too
   // white"). Measured on an iPhone: the page's lines against the film's, channel by channel. A computer's browser
   // shows the film a little darker than an iPhone does, so the computer film is taken down only half as far.
-  W: async () => [await piece({ shot: 'welcome', from: 0, dur: 5.1, fadeOut: 0.6, tint: WIDE ? [0.94, 0.9, 0.8] : [0.87, 0.835, 0.75], over: await title(), overAt: 2.1, overIn: 0.8 })],
+  W: async () => [await piece({ shot: 'welcome', from: 0, dur: 3.9, fadeOut: 0.6, tint: WIDE ? [0.94, 0.9, 0.8] : [0.87, 0.835, 0.75], over: await title(), overAt: 0.9, overIn: 0.8 })], // the title sooner and the whole opening quicker (Cat, Nov 18)
   // A Title Card: the words alone, then straight on.
   A: async () => [await piece({ still: await card('', 'How it works'), dur: 2.8, fadeIn: 0.8, fadeOut: 0.5 })],
   // B Straight In: no title at all; the film opens on 01 Measure.
@@ -469,14 +548,7 @@ const CUTS = {
   // round on you, drawing closer as it turns (the recorder fills the screen with it; Cat, 2026-10-22).
   words: async () => {
     const f = 0.5;
-    // On a phone the page is drawn in just enough to fill the frame, and a touch left of centre so the tape's brass tip
-    // stays on screen the whole way (Cat, 2026-10-24: the end of the tape must stay the same).
-    // On a computer the measuring pages are a column in the middle of the window: drawn in on it (Nov 14).
-    // The measuring pages hold still: a drift in made the tape grow, and the tape must stay one size (Cat, Nov 15).
-    const TAPE_VIEW = WIDE ? { zoom: [1.15, 1.15], at: [0.5, 0.53] } : { zoom: [1.08, 1.08], at: [0.49, 0.545] };
-    // Chapter 1 shows the measuring itself (Cat, Nov 16: "There is no chapter 1"; it had shrunk to one idle page): the
-    // waist with its number typed in, the bust and hips with the form taking the body's shape, the length and height
-    // quicker, and the check page that keeps them, each with a line of words. The times come from the take's
+    // Chapter 1 shows the measuring itself (Cat, Nov 16: "There is no chapter 1"). The times come from the take's
     // tape-marks.json (record-tour-shots.mjs).
     // OPENER_FILM=<walkthrough.mp4> keeps a released film's opening shot and Measure card frame for frame (Cat,
     // 2026-10-24: "go back to that other version exactly"): its first 5.6 s, fades and title already in them.
@@ -484,79 +556,160 @@ const CUTS = {
     const marksFile = join(SHOTS, 'tape-marks.json');
     if (!existsSync(marksFile)) throw new Error(`${marksFile} is missing: record the tape shot again (record-tour-shots.mjs writes it)`);
     const T = JSON.parse(readFileSync(marksFile, 'utf8'));
-    const lost = ['waist', 'next-0', 'next-2', 'next-4'].filter((m) => typeof T[m] !== 'number');
-    if (lost.length || (T['skip-5'] ?? T['page-5']) === undefined) throw new Error(`the tape take stopped early: no ${lost.join(', ') || 'page-5'} in ${marksFile}`);
-    const checkAt = (T['skip-5'] ?? T['page-5']) + 1.1; // once the pen dot from Skip has faded
+    // Only the marks the cut uses: the waist and the Next past the hips page.
+    const lost = ['waist', 'next-2'].filter((m) => typeof T[m] !== 'number');
+    if (lost.length) throw new Error(`the tape take stopped early: no ${lost.join(', ')} in ${marksFile}`);
     const span = (from, to, speed) => ({ from, dur: Math.round(((to - from) / speed) * 10) / 10, speed });
     // Each part ends as its last Next is pressed and the page turns, so a line never sits over the next page (the
     // critic's review, Nov 16); the optional weight page is left out.
     const turn = (n) => T[`next-${n}`] + 0.45;
-    const WAIST = span(T.waist - 0.05, turn(0), 1);
-    const ROUND = span(turn(0), turn(2), 1.6);
-    const LONG = span(turn(2), turn(4), 2.4);
-    const CHECK = { from: checkAt, dur: 3, speed: 1 };
-    const tape = (s, more) => piece({ shot: 'tape', ...s, ...(WIDE ? {} : TAPE_VIEW), ...more });
-    const waist = await tape(WAIST, { fadeIn: 0.5, notes: [[await note('A soft tape, round the waist.', 'low'), 0.9, WAIST.dur + 0.45]] });
+    // Just the form taking the body's shape, the tape round the waist, bust and hips in one run, with the app's own
+    // words, numbers and buttons masked off, and one line over it (Cat, Nov 17: "we don't need to show all the
+    // measurements going in"; the narration competed with the app text). The length, height and check pages are left out.
+    // The waist close-up Cat liked (Nov 18), its number typed in under the tape (the recorder leaves the page's other
+    // words out), with a line over it; then the app's own Do these look right? page, every number together, its
+    // heading and Weight row masked, under the second line (Cat, Nov 18: "Measure section does need narration").
+    const WAIST_IN = WIDE ? { zoom: [1, 1.03], at: [0.5, 0.5], frame: [0.18, 1.1, -0.1, 1.1, 0.04, 0.03] } : { zoom: [1.2, 1.23], at: [0.46, 0.45], frame: [0.16, 0.9, -1, 0.94, 0.04, 0.04] }; // the cm/in switch cut at the right edge masked; on a phone drawn in closer, nearer the size of the opening's form, as far as the typed number allows (Cat, Nov 18: no jarring jump)
+    // From the tape round the waist to the number in, ending just before Next is pressed: the recorder holds the
+    // number in the take itself, so there is no slowed hold to cut to (Cat, Nov 18: a jarring skip as it went in).
+    const WAIST = span(T.waist + 0.5, T['next-0'] - 0.15, 1);
+    const said = await note(WIDE ? 'Enter your measurements, just once.' : 'Enter your measurements,<br>just once.', 'low');
+    const shaping = await piece({ shot: 'tape', ...WAIST, ...WAIST_IN, fadeIn: 0.5, notes: [[said, 0.3, WAIST.dur + 1]] });
+    const CHECK_IN = WIDE ? { zoom: [1.6, 1.63], at: [0.5, 0.5], frame: [0.17, 0.7, 0.18, 0.82, 0.03, 0.02] } : { zoom: [1.12, 1.14], at: [0.5, 0.5], frame: [0.3, 0.705, -1, 2, 0.03, 0.02] };
+    const CHECK = { from: (T.check ?? T.end - 2.6) + 0.9, dur: 3.4, speed: 0.6 };
+    const drafted = await note(WIDE ? 'Every pattern is drafted from your numbers.' : 'Every pattern is drafted<br>from your numbers.', 'low');
+    // Every measurement the dress is drafted from, the app's Your measurements page gliding down (Cat, Nov 18: show
+    // more than the first five); the Do these look right? page when the take has no list.
+    const LIST = join(SHOTS, 'list.mp4');
+    // The whole list fits a screen, so the take is a short still: slowed to be read, drawn in under the line, and the
+    // row offering more measurements masked (no count of measurements anywhere, Cat, Nov 17).
+    const LIST_IN = WIDE ? { zoom: [1.2, 1.22], at: [0.5, 0.425], frame: [0.18, 0.915, -1, 2, 0.02, 0.02] } : { zoom: [1, 1.02], at: [0.5, 0.45], drop: 0.05, frame: [0.18, 0.84, -1, 2, 0.02, 0.015] };
+    const listDur = existsSync(LIST) ? 3.4 : 0;
+    const checked = listDur
+      ? await piece({ shot: 'list', from: 0.5, dur: listDur, speed: Math.min(1, (length(LIST) - 0.6) / listDur), ...LIST_IN, fadeOut: f, notes: [[drafted, 0.3, listDur - 0.3]] })
+      : await piece({ shot: 'tape', ...CHECK, ...CHECK_IN, fadeOut: f, notes: [[drafted, 0.3, CHECK.dur - 0.3]] });
     const measuring = [
-      // A released opening (OPENER_FILM) already ends on its own Measure card.
-      released ? waist : await dissolve(await piece({ still: await card('01', 'Measure', 'Five numbers, once.'), dur: 2.2, fadeIn: f, fadeOut: 0.5 }), waist, 0.04),
-      await tape(ROUND, { notes: [[await note('The form takes your shape.', 'low'), 0.3, ROUND.dur + 0.45]] }),
-      await tape(LONG, { fadeOut: 0.3, notes: [[await note('Then your length.', 'low'), 0.3, LONG.dur - 0.1]] }),
-      await tape(CHECK, { fadeIn: 0.3, fadeOut: f, notes: [[await note(WIDE ? 'Measured once. Kept for every pattern.' : 'Kept for every pattern.', 'low'), 0.3, CHECK.dur - 0.2]] }),
+      // A released opening (OPENER_FILM) already ends on its own Measure card. No count of measurements: it can be
+      // many more than five (Cat, Nov 17).
+      released ? shaping : await dissolve(await dissolve(await piece({ still: await card('01', 'Measure'), dur: 2.2, fadeIn: f, fadeOut: 0.5 }), shaping, 0.04), checked, 0.5),
     ];
-    // What the app does, said plainly before chapter 1 (Cat, Nov 16: "it doesn't even say how it works"; "Patterns draft
-    // to your body"): why it's different from a shop pattern, and the four steps the chapters follow.
-    const overview = await piece({ still: await card('', 'Patterns drafted<br>to your body', 'Not a standard size: your own measurements.<br>Measure. Choose. Style. Print.'), dur: 3.8, fadeIn: 0.6, fadeOut: f });
+    // No title card before chapter 1 (Cat, Nov 17: take out this screen): How it works goes straight to Measure.
     const opening = [
-      ...(released ? [await piece({ shot: 'round', src: released, from: 0, dur: 5.6 })] : [...(await INTROS[INTRO]()), overview]),
+      ...(released ? [await piece({ shot: 'round', src: released, from: 0, dur: 5.6 })] : await INTROS[INTRO]()),
       ...measuring,
     ];
     // TOUR_PREVIEW=1 stops after the opening and the tape, to try an opening without cutting the whole film.
     if (process.env.TOUR_PREVIEW) return opening;
     return [
       ...opening,
-      await piece({ still: await card('02', 'Choose', 'Then what to make.'), dur: 2.4, fadeIn: f, fadeOut: f }),
-      // Three ways in (Cat, 2026-11-08): a photo first, then a look, then design your own, which taps Dress and
-      // carries on into Style in calico.
-      await photoMoment('Start from a photo.'),
-      await piece({ shot: 'collection', ...COLLECTION, fadeIn: f, fadeOut: f, notes: [[await note('Or a look.', 'low'), 0, COLLECTION.dur - 0.3]] }),
-      // Ends just after Dress is tapped (about 1.65 s into the take), before the dress's own extra measurements come
-      // up; slowed a touch so the line has time to be read.
-      // Ends a frame before the take moves on to the dress's first measuring page, which showed through the fade.
-      await piece({ shot: 'choose', from: 0.1, dur: 2.5, speed: 0.66, fadeIn: f, fadeOut: 0.4, notes: [[await note(WIDE ? 'Or design your own.' : 'Or design<br>your own.', 'low'), 0.2, 2.3]] }),
-      await piece({ still: await card('03', 'Style', 'Make it yours.'), dur: 2.4, fadeIn: f, fadeOut: f }),
+      await piece({ still: await card('02', 'Choose'), dur: 2.4, fadeIn: f, fadeOut: f }),
+      // Three ways in, in the order Cat set (Nov 18): design your own, a collection, then a photo, the way the film's
+      // own journey goes, so the photo leads straight into Style. One sentence across the three lines, each word
+      // after the first in lower case. No close-up of the dress on the form after the photo (Cat, Nov 18: take it out).
+      // The garment screen up to the pen's tap on Dress, then the moment Dress fills champagne held a beat: the app
+      // moves on in a fifth of a second, too quick to see the pick (Cat, Nov 17: show the selection intentionally).
+      // CHOOSE_PICK: shot time Dress fills (found in the take).
+      ...await (async () => {
+        const pick = Number(process.env.CHOOSE_PICK ?? (WIDE ? 1.36 : 1.34));
+        const said = await note(WIDE ? 'Design your own garment,' : 'Design your own<br>garment,', 'low');
+        // The page's question is left out in the take, so the grid sits right under the line (Cat, Nov 18).
+        const look = CHOOSE_IN;
+        const run = span(0.3, pick, 0.6);
+        // Then a slow dissolve from the picked Dress into the dress drawing it opens on Style (Cat, Nov 18: "make the
+        // fade nice and slow and smooth"), just the drawing window, the line staying up across it.
+        const hold = await piece({ shot: 'choose', from: pick + 0.02, dur: 2.6, speed: 0.05, ...look, notes: [[said, -1, 2.6]] });
+        const drawing = await piece({ shot: 'style', from: 0.2, dur: 3.0, speed: 0.4, frame: DRESS_WINDOW, fadeOut: 0.7, notes: [[said, -1, 2.3]] });
+        return [
+          await piece({ shot: 'choose', ...run, ...look, fadeIn: f, notes: [[said, 0.2, run.dur + 1]] }),
+          await dissolve(hold, drawing, 1.8),
+        ];
+      })(),
+      await piece({ shot: 'collection', ...COLLECTION, fadeIn: f, fadeOut: f, notes: [[await note(WIDE ? 'choose from a collection,' : 'choose from<br>a collection,', 'low'), 0, COLLECTION.dur - 0.3]] }),
+      await photoMoment('or start with a photo.'),
+      await piece({ still: await card('03', 'Style'), dur: 2.4, fadeIn: f, fadeOut: f }),
       // Done lands on the pattern sheet, so the pattern follows straight on, then the dress all round (Cat,
       // 2026-10-24: no flash back to the dress between them), each dissolving into the next.
       // Shop the fabric sits with Style, straight after the dress is styled (Cat, 2026-11-02: not after the
       // pattern and All round, next to Print).
       // No pattern sheet after the shop (Cat, Nov 15: cut it, the print pages show the pattern).
-      await dissolve(await styleJourney(), await shopMoment(), 0.6),
+      // The drawn hem, then the pattern it redrew (the critic's review, Nov 16: "the pattern follows" was said, not shown).
+      // Shop the fabric is left out (Cat, Nov 17: cut it; the cloth is chosen by then and it broke the build to the
+      // dress all round), the pattern going straight on to the dress turning. TOUR_SHOP=1 puts it back.
+      // No fade in on the pattern (nor out, when the shop follows): a fade inside a dissolve dips it to black.
+      existsSync(PIECES_MARKS) ? await dissolve(await styleJourney(), await piecesMoment(), 0.6) : process.env.TOUR_SHOP !== '1' ? await dissolve(await styleJourney(), await patternMoment({ dur: 2.6, fadeIn: 0, line: 'The pattern follows.' }), 0.4) : await dissolve(await dissolve(await styleJourney(), await patternMoment({ dur: 2.4, fadeIn: 0, fadeOut: 0, line: 'The pattern follows.' }), 0.4), await shopMoment(), 0.6),
       // The All round comes up from black after the pattern, so the turning dress never shows through the sheet.
       // On black (Cat, Nov 15: keep All round on a black background); on a phone lifted in the cut, so its legs clear
       // the three lines under it.
-      await piece({ shot: 'round', from: 0.3, dur: 8.6, fadeIn: 0.6, fadeOut: f, ...(!WIDE && { lift: [0.1, -1, 0.001] }), overs: (await threeChecks()).map((p, i) => [p, 0.9 + i * 1.8]) }),
-      await piece({ still: await card('04', 'Print', 'At home, or full size.'), dur: 2.4, fadeIn: f, fadeOut: f }),
-      // Down to Print my pattern, the pages, then projector mode (Cat, 2026-10-29: the scroll to print and the
-      // projector back in).
+      // Drawn in closer on her dress so the print and cut fill the screen (Nov 17: the teal python follows a dress of Cat's own; the critic saw it small).
+      // The whole turn, at the speed it was recorded (Cat, Nov 18: slow down the spin), so it ends facing front as the
+      // real dress does; held whole in frame, hem and
+      // all, with the words beside it on a computer and under its hem on a phone (the critic's review, Nov 17).
+      beats.turn = await piece({ shot: 'round', from: 0.3, dur: 8.8, speed: 1, fadeIn: 0.6, fadeOut: f, ...(WIDE ? { zoom: [1.12, 1.12], at: [0.38, 0.5] /* set right of the words: Before you cut. touched the sleeve (Nov 18) */ } : { zoom: [1, 1.03], at: [0.5, 0.45], lift: [0.12, -1, 0.001] }), overs: (await threeChecks()).map((p, i) => [p, 1 + i * 2.2]) }),
+      // Print and the ending as in the Nov 15 film Cat liked (Cat, Nov 17: start from it, change only what she asked).
+      await piece({ still: await card('04', 'Print'), dur: 2.4, fadeIn: f, fadeOut: f }),
       ...(REVIEW ? [await piece({ shot: 'review', ...REVIEW, fadeIn: f })] : []),
-      await pages(4.4, { fadeIn: f, fadeOut: f, notes: [[await note('Print at home, page by page.', 'low'), 0.3, 4.2]] }),
-      await piece({ shot: 'projector', ...PROJECTOR, fadeIn: f, fadeOut: f, notes: [[await note(WIDE ? 'Or project it onto your cloth.' : 'Or project it<br>onto your cloth.', 'low', !WIDE), 0.3, PROJECTOR.dur - 0.3]] /* on a computer no dark band, which hid the piece's shoulder */ }),
-      await piece({ still: await card('', 'Drafted<br>to your body', 'Begin with five measurements.'), dur: 4.5, fadeIn: 0.8, fadeOut: 1.2 }),
+      await pages(4.4, { fadeIn: f, fadeOut: f, notes: [[await note('Print your pattern,', 'low'), 0.3, 4.1]] }),
+      await piece({ shot: 'projector', ...PROJECTOR, fadeIn: f, fadeOut: f, notes: [[await note(WIDE ? 'or project it, true size.' : 'or project it,<br>true size.', 'low', !WIDE), 0.3, PROJECTOR.dur - 0.3]] /* on a computer no dark band, which hid the piece's shoulder */ }),
+      // REAL_END=1 closes on her real dress instead (the dress turning dissolving into it), once the shoot's clip is in.
+      ...(process.env.REAL_END === '1'
+        ? [beats.end = await dissolve(await piece({ shot: 'round', from: 9.6, dur: 3.4, speed: 0.6, fadeIn: 0.8, ...(WIDE ? { zoom: [1.05, 1.08], at: [0.62, 0.5] } : { zoom: [1.12, 1.16], at: [0.5, 0.38] }) }), await realDress(), 1.4)]
+        : [await piece({ still: await card('', 'Drafted<br>to your body'), dur: 4.5, fadeIn: 0.8, fadeOut: 1.2, over: await readyToSew(), overAt: 1.3, overIn: 0.8 })]),
       await piece({ still: await endCard(), dur: 4, fadeIn: 0.8, fadeOut: 0.8 }), // a second longer, so the ending lands (Fable's review, Nov 15)
     ];
   },
 };
 
+// The real dress: Cat's own clip (scripts/tour/dress-real.mp4) if there is one, else her photo
+// (scripts/tour/photo-python-dress.jpg) drifting slowly closer, framed on its own wall softened and darkened, with the
+// last words beside it on a computer and under it on a phone.
+const REAL_CLIP = resolve('scripts/tour/dress-real.mp4');
+const REAL_PHOTO = resolve('scripts/tour/photo-python-dress.jpg');
+async function realDress(dur = 5.2) {
+  const framed = join(work, 'real-dress.png');
+  // On a computer the dress sits left of centre, the words to its right; on a phone it fills the width above them.
+  const fit = WIDE ? `scale=-2:${H}` : `scale=${W}:-2`;
+  const place = WIDE ? `overlay=x=${Math.round(W * 0.34)}-w/2:y=0` : 'overlay=x=0:y=(H-h)/2-140';
+  // The clip is framed the same way as the photo: piece() stretches whatever it is given to the film's shape, so a
+  // phone clip on the wide film (or a wide one on the tall film) would be squashed.
+  const clip = existsSync(REAL_CLIP);
+  const framedClip = join(work, 'real-dress.mp4');
+  const frameIt = `[0:v]split[a][b];[a]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},boxblur=24:2,eq=brightness=-0.32:saturation=0.6[bg];[b]${fit}[fg];[bg][fg]${place}`;
+  execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', clip ? REAL_CLIP : REAL_PHOTO, '-filter_complex', frameIt, ...(clip ? ['-an', '-t', String(dur + 0.5), framedClip] : ['-frames:v', '1', framed])]);
+  const words2 = await words(`<div class="f mid" style="display:flex;${WIDE ? 'padding-left:48%;background:linear-gradient(to right,rgba(0,0,0,0) 30%,rgba(0,0,0,.6) 60%)' : 'justify-content:flex-end;padding-bottom:70px;background:linear-gradient(to top,rgba(0,0,0,.92) 0,rgba(0,0,0,.85) 24%,rgba(0,0,0,0) 42%)'}"><h1 class="t" style="font-size:${HEAD}px">Drafted<br>to your body</h1><p class="l" style="margin-top:18px">Begin with your measurements.</p></div>`);
+  return clip
+    ? piece({ src: framedClip, dur, fadeOut: 1.2, over: words2, overAt: 0.9, overIn: 0.8 })
+    : piece({ still: framed, dur, zoom: [1, 1.05], at: WIDE ? [0.34, 0.45] : [0.5, 0.4], fadeOut: 1.2, over: words2, overAt: 0.9, overIn: 0.8 });
+}
+
 // ONLY=shop cuts just the Shop the fabric moment, for checking it on its own; ONLY=pattern, the pattern moment.
 // The take is 3.6 s; each PATTERN dur ends just inside it, so the fade out is seen.
-const patternMoment = async (more = {}) => piece({ shot: 'pattern', ...PATTERN, ...more, notes: [[await note(WIDE ? 'Your pattern, in seconds.' : 'Your pattern,<br>in seconds.', 'low', false), 0.5, PATTERN.dur - 0.2]] });
-const pieces = process.env.ONLY === 'shop' ? [await shopMoment()] : process.env.ONLY === 'pattern' ? [await patternMoment()] : await CUTS.words();
+// The pattern tools on her pieces (Cat, Nov 18: "or design straight from your pattern"): the bust dart moved to the
+// shoulder, then a yoke cut off the back, from the recorder's pattern-marks.json.
+const PIECES_MARKS = join(SHOTS, 'pattern-marks.json');
+const piecesMoment = async () => {
+  const M = JSON.parse(readFileSync(PIECES_MARKS, 'utf8'));
+  // The finished pieces are held a little less than the take's end (Cat, Nov 18: hold here slightly less).
+  const run = { from: 0.4, dur: Math.round((M.end - 1.9) * 10) / 10, speed: 1 };
+  // No shade under this line: the pieces sit below it on black, and a shade dulled the top of the paper.
+  return piece({ shot: 'pattern', ...run, fadeIn: 0.5, fadeOut: f0, notes: [[await note(WIDE ? 'or design straight from your pattern.' : 'or design straight<br>from your pattern.', 'low', false), 0.3, run.dur - 0.3]] });
+};
+const f0 = 0.5;
+const patternMoment = async ({ line = WIDE ? 'Your pattern, in seconds.' : 'Your pattern,<br>in seconds.', ...more } = {}) => piece({ shot: 'pattern', ...PATTERN, fadeIn: 0.4, fadeOut: 0.4, ...more, notes: [[await note(line, 'low', false), 0.3, (more.dur ?? PATTERN.dur) - 0.2]] });
+const pieces = process.env.ONLY === 'real' ? [await realDress()] : process.env.ONLY === 'shop' ? [await shopMoment()] : process.env.ONLY === 'pattern' ? [await patternMoment()] : process.env.ONLY === 'draft' ? [await draftMoment()] : await CUTS.words();
 await b.close();
 writeFileSync(join(work, 'list.txt'), pieces.map((p) => `file '${p}'`).join('\n'));
 const film = join(work, 'film.mp4');
 execFileSync('ffmpeg', ['-v', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', join(work, 'list.txt'), '-c', 'copy', film]);
-const secs = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', film]).toString());
-execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', film, '-i', MUSIC, '-map', '0:v', '-map', '1:a', '-c:v', 'libx264', '-crf', '23', '-preset', 'slow', '-af', `afade=t=in:d=0.4,afade=t=out:st=${(secs - 3).toFixed(2)}:d=3`, '-c:a', 'aac', '-b:a', '128k', '-shortest', '-movflags', '+faststart', OUT]);
+const secs = length(film);
+// Each piece's start in the film: the pieces before it, end to end (each measured once).
+const lengths = pieces.map(length);
+const startOf = (f) => { const i = pieces.indexOf(f); return i < 0 ? undefined : lengths.slice(0, i).reduce((a, n) => a + n, 0); };
+const [turnAt, endAt] = [startOf(beats.turn), startOf(beats.end)];
+// The music lifts a little into the dress turning all round, settles after it, and drops back under the last line,
+// then fades right out to silence with the name (the critic's review, Nov 17).
+const lift = turnAt === undefined ? '0' : `0.3*clip((t-${turnAt.toFixed(2)})/1.5,0,1)*(1-clip((t-${(turnAt + lengths[pieces.indexOf(beats.turn)] - 1).toFixed(2)})/1.5,0,1))`;
+const hush = endAt === undefined ? '0' : `0.35*clip((t-${(endAt + 2.5).toFixed(2)})/2,0,1)`;
+execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', film, '-i', MUSIC, '-map', '0:v', '-map', '1:a', '-c:v', 'libx264', '-crf', '23', '-preset', 'slow', '-af', `volume='1+${lift}-${hush}':eval=frame,afade=t=in:d=0.4,afade=t=out:st=${(secs - 3.6).toFixed(2)}:d=3.4`, '-c:a', 'aac', '-b:a', '128k', '-shortest', '-movflags', '+faststart', OUT]);
 // A WebM copy beside it, for browsers without H.264.
 execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', OUT, '-c:v', 'libvpx-vp9', '-crf', '38', '-b:v', '0', '-row-mt', '1', '-deadline', 'good', '-c:a', 'libopus', '-b:a', '96k', OUT.replace(/\.mp4$/, '.webm')]);
 rmSync(work, { recursive: true, force: true });

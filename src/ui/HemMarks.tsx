@@ -4,7 +4,7 @@
 // dress, T-shirt and trousers: the dot's own name says it, with less clutter (Cat, 2026-11-06).
 import { PointerEvent, RefObject, useState } from 'react';
 import type { P } from '../engine/geometry';
-import { LengthTap } from './LengthEntry';
+import { LengthTap, useSaid } from './LengthEntry';
 
 export interface HemChoice {
   /** What the dot sets, read out, such as "Dress length". */
@@ -44,6 +44,7 @@ export const MARGIN = 19;
 const nearest = (marks: HemChoice['marks'], y: number) => marks.reduce((a, b) => (Math.abs(b.y - y) < Math.abs(a.y - y) ? b : a));
 
 export function HemMarks({ name, marks, value, onPick, svg, cx, k, hemAt, bare, free }: Props) {
+  const said = useSaid();
   // While dragging, the dot glides (or, without `free`, rides the marks), and catches on each named length it passes,
   // its name popping up on the handle; the garment is redrafted once, where it is let go.
   const [held, setHeld] = useState<{ y: number; on?: string }>();
@@ -57,7 +58,8 @@ export function HemMarks({ name, marks, value, onPick, svg, cx, k, hemAt, bare, 
   // A length set between the named ones reads as set: the dot sits on the hem as drawn, which on a shift's curved hem
   // fell a cm or two lower, so the label said 52 cm for a typed 50 (pretend tester, Nov 17).
   const setAt = held ? y : between ?? named.y;
-  const label = at ? at.label : `${Math.round(cmAt(setAt))} cm`;
+  // Set, to the millimetre as typed: rounded to the half cm and then the cm, a typed 36 in read 36¼ (pretend tester, Nov 18).
+  const label = at ? at.label : `${held ? cmAt(setAt) : Math.round((setAt - free!.zero) * 10) / 10} cm`;
   const toY = (e: PointerEvent) => new DOMPoint(e.clientX, e.clientY).matrixTransform(svg.current!.getScreenCTM()!.inverse()).y;
   const follow = (yy: number) => {
     const near = nearest(marks, yy);
@@ -108,7 +110,7 @@ export function HemMarks({ name, marks, value, onPick, svg, cx, k, hemAt, bare, 
           className="hit"
           role="slider"
           aria-label={name}
-          aria-valuetext={label}
+          aria-valuetext={said(label)}
           aria-valuemin={1}
           aria-valuemax={marks.length}
           aria-valuenow={at ? marks.indexOf(at) + 1 : marks.indexOf(nearest(marks, y)) + 1}
