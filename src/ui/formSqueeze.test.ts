@@ -33,16 +33,20 @@ describe('the form drawn at true width at the neck and shoulders', () => {
 // The cloth under the neck is drawn a touch raised, seen from a little above (Nov 17: a crew read as a deep scoop).
 describe('the cloth under the neck drawn a touch foreshortened', () => {
   const lift = neckLift(body);
-  it('raises a crew at the centre front by under a third of its drop, and leaves the neck point and the bust alone', () => {
-    const front = drawnPoint(body, lift, { x: 0, y: 6.2 }).y;
-    expect(front).toBeLessThan(6.2 - 2);
-    expect(front).toBeGreaterThan(6.2 - 0.31 * 8.2);
+  // A crew is the block's neck plus 1 cm, about 9 cm down: it should read at the neck base, not as a U as deep as
+  // it is wide (the film's Draw view, Nov 17).
+  it('draws a crew at the neck base, and leaves the neck point and the bust alone', () => {
+    // This form's neck point is 2 cm above y = 0.
+    const front = drawnPoint(body, lift, { x: 0, y: -2 + 9 }).y;
+    expect(front).toBeGreaterThan(-2 + 3);
+    expect(front).toBeLessThan(-2 + 4.5);
     expect(drawnPoint(body, lift, { x: 6.2, y: -2 }).y).toBeCloseTo(-2);
     expect(drawnPoint(body, lift, { x: 4, y: 22 }).y).toBeCloseTo(22);
     expect(drawnPoint(body, lift, { x: 15, y: 4 }).y).toBeCloseTo(4);
   });
-  it('leaves a deep V where it is cut', () => {
-    expect(drawnPoint(body, lift, { x: 0, y: 16 }).y).toBeCloseTo(16);
+  it('leaves a scoop, a square and a V where they are cut', () => {
+    expect(drawnPoint(body, lift, { x: 0, y: -2 + 18 }).y).toBeCloseTo(-2 + 18);
+    expect(drawnPoint(body, lift, { x: 0, y: -2 + 22 }).y).toBeCloseTo(-2 + 22);
   });
   it('draws deeper cuts deeper, with no jump anywhere down the centre front', () => {
     let was = -Infinity;
@@ -53,8 +57,16 @@ describe('the cloth under the neck drawn a touch foreshortened', () => {
       was = at;
     }
   });
+  it('rises smoothly across a wide, shallow neckline such as a boat neck, with no step at the sides of the neck', () => {
+    let was = drawnPoint(body, lift, { x: 0, y: -2 + 10 }).y;
+    for (let x = 0.1; x < 20; x += 0.1) {
+      const at = drawnPoint(body, lift, { x, y: -2 + 10 }).y;
+      expect(Math.abs(at - was)).toBeLessThan(0.2);
+      was = at;
+    }
+  });
   it('reads a line drawn on it back to the same cm, so a neckline lands where it was drawn', () => {
-    for (const y of [-2, 0, 2, 4, 6, 8, 10, 12, 14]) for (const x of [-8, -3, 0, 2, 6, 9]) {
+    for (const y of [-2, 0, 2, 4, 6, 7, 8, 10, 12, 14, 16]) for (const x of [-12, -8, -3, 0, 2, 6, 9, 11]) {
       const back = drawnPointBack(body, lift, drawnPoint(body, lift, { x, y }));
       expect(back.x).toBeCloseTo(x, 3);
       expect(back.y).toBeCloseTo(y, 3);
