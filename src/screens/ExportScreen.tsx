@@ -478,7 +478,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
                   <b>Print at 100%</b> (actual size), never “fit to page”.
                 </p>
                 <p>
-                  <b>Check the size.</b> The test square on page A1 must measure exactly 10 cm before you cut.
+                  <b>Check the size.</b> The test square on page A2 must measure exactly 10 cm before you cut.
                 </p>
                 {pages < grid.rows * grid.cols && (
                   <p>

@@ -46,6 +46,14 @@ paid sewists as the backstop if fewer than 16 good applicants by Nov 8.
 - A paid pattern-cutter review (a Vancouver studio) checks the drafting itself; due first week of
   November, balance paid after.
 
+## Fewest tester emails (Nov 18)
+
+Cat: "We want to minimize the emails to testers." When the app and an email already sent disagree, fix the app
+to match the email, never send a correction. If testers do need a note, fold it into the next planned email
+(Dec 14) and send it only to the testers it affects. No new group email unless a tester can't carry on. For
+example, the pattern PDF was changed to match the "You're in" email (pattern code at the top of page 1, test
+square on page 2) instead of emailing every tester.
+
 ## What testers are expected to trip on (Oct 30)
 
 Wrong print scale (measure the 10 cm square), Letter vs A4, phone-only testers (use Send link and a
