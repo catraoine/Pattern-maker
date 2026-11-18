@@ -28,7 +28,7 @@ const PARTS: FilmPart[] = [
   { name: 'Style', from: 30.8, says: 'Make it yours: its shape, details and your own cloth, step by step on the drawing, then draw a longer hem on the form. Your pattern is drafted as you go, and All round turns the dress to check the seams meet and the hem sits level before you cut.' },
   { name: 'Print', from: 60.0, says: 'Print it at home on ordinary paper, full size at a copy shop, or project it true size onto your fabric. Drafted to your body.' },
 ];
-export const TOUR_LABEL = '1:19';
+export const TOUR_LABEL = '1:20';
 
 export type FilmPart = { name: string; from: number; says: string };
 
