@@ -503,7 +503,7 @@ function addSummaryPage(
   s: Summary,
   [stepX, stepY]: [number, number],
 ) {
-  const { st, write, wrap, label, room, left, width } = flow(doc, paper, fonts);
+  const { st, write, wrap, label, room, left, width, ph } = flow(doc, paper, fonts);
   drawText(st.page, ['MAISON TRACÉ', s.madeFor && `MADE FOR ${s.madeFor}`, s.date, s.edition, s.code && `CODE ${s.code}`].filter(Boolean).join('   ·   ').toUpperCase(), {
     x: left,
     y: st.y,
@@ -547,28 +547,37 @@ function addSummaryPage(
   }
 
   const passed = s.checks.filter((c) => c.ok).length;
-  label('SEAM CHECK');
-  write(
+  const intro =
     passed === s.checks.length
       ? `All ${passed} checks pass. Every pair of seams that sew together is walked to within 1 mm, curves blend across the seams within 2°, centre lines are square within 1° and dart legs are trued.`
-      : `${passed} of ${s.checks.length} checks pass. Please look at the ones marked CHECK before cutting.`,
-    9.5,
-    fonts.body,
-    0,
-    10,
-  );
+      : `${passed} of ${s.checks.length} checks pass. Please look at the ones marked CHECK before cutting.`;
   // A long check name ran on under its own figures ("...blends across the shoulder" over "front 90.1°", Nov 17), so
   // each column wraps within its own width and the row takes as many lines as the longer one needs.
   const detailAt = 0.48 * width;
-  for (const c of s.checks) {
+  const rows = s.checks.map((c) => {
     const names = wrap(c.label, 9, fonts.body, detailAt - 46 - 10);
     const details = wrap(c.detail, 8.5, fonts.body, width - detailAt);
-    const extra = (Math.max(names.length, details.length) - 1) * 11;
-    room(14 + extra);
+    return { c, names, details, lines: Math.max(names.length, details.length) };
+  });
+  // The list was split with a few checks left over on a page of their own (pretend-tester walk, Nov 17). When it runs
+  // over by a little, its rows close up a touch to stay on this page (never closer than a wrapped line's own 11 pt);
+  // when it can't, the whole check starts on the next page, kept together.
+  const wraps = rows.reduce((a, r) => a + (r.lines - 1) * 11, 0);
+  const head = 30 + wrap(intro, 9.5, fonts.body).length * 9.5 * 1.35 + 10;
+  const room0 = st.y - 2 * CM - head;
+  const closeUp = rows.length > 0 && 14 * rows.length + wraps > room0 && (room0 - wraps) / rows.length >= 11;
+  const whole = head + 14 * rows.length + wraps;
+  if (!closeUp && whole <= (ph - 4) * CM) room(whole);
+  label('SEAM CHECK');
+  write(intro, 9.5, fonts.body, 0, 10);
+  const base = closeUp ? (st.y - 2 * CM - wraps) / rows.length : 14;
+  for (const { c, names, details, lines } of rows) {
+    const step = base + (lines - 1) * 11;
+    room(step - 0.01);
     drawText(st.page, c.ok ? 'OK' : 'CHECK', { x: left, y: st.y, size: 7, font: fonts.label, tracking: 0.2, grey: c.ok ? 0.4 : 0 });
     names.forEach((l, i) => drawText(st.page, l, { x: left + 46, y: st.y - i * 11, size: 9, font: fonts.body, worded: true }));
     details.forEach((l, i) => drawText(st.page, l, { x: left + detailAt, y: st.y - i * 11, size: 8.5, font: fonts.body, grey: 0.4, worded: true }));
-    st.y -= 14 + extra;
+    st.y -= step;
   }
   st.y -= 16;
 
@@ -800,7 +809,7 @@ function wrapText(text: string, size: number, f: PDFFont, w: number) {
 
 /** Sewing steps after the pattern pages, so the tiled pages keep their numbers. */
 function addSewingPages(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', title: string, guide: SewingGuide) {
-  const { write, label, st, room } = flow(doc, paper, fonts);
+  const { write, wrap, label, st, room } = flow(doc, paper, fonts);
   drawText(st.page, 'MAISON TRACÉ', { x: 2 * CM, y: st.y, size: 7.5, font: fonts.label, tracking: 0.3, grey: 0.4 });
   st.y -= 26;
   write(`How to sew your ${title}`, 20, fonts.bodyMedium, 0, 18);
@@ -814,6 +823,9 @@ function addSewingPages(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', 
   st.y -= 14;
   label('STEPS');
   guide.steps.forEach((s, i) => {
+    // A step's heading was left alone at the foot of a page (pretend-tester walk, Nov 17): its words, which never split,
+    // had gone over to the next. The heading goes over with them.
+    room(11 * 1.35 + 2 + wrap(s.text, 10, fonts.body).length * 10 * 1.35);
     write(`${i + 1}. ${s.title}`, 11, fonts.bodyMedium, 0, 2);
     write(s.text, 10, fonts.body, 18, 8);
     if (s.diagram) drawDiagram(s.diagram);
