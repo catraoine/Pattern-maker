@@ -42,7 +42,7 @@ function useNow(ticking: boolean): Date {
 
 function Flat({ look, values }: { look: HouseLook; values: MeasurementValues }) {
   const flat = useMemo(() => lookFlat(look, lookValues(look, values).values), [look, values]);
-  return flat ? <GarmentFabric fabric={lookFabric(look.fabric)}><TechFlatView flat={flat} title={describePattern(look.choices).toLowerCase()} /></GarmentFabric> : <p className="muted small">This look can&rsquo;t be drafted to these measurements.</p>;
+  return flat ? <GarmentFabric fabric={lookFabric(look.fabric)}><TechFlatView flat={flat} title={describePattern(look.choices).toLowerCase()} /></GarmentFabric> : <p className="muted small">The drawing for this look isn&rsquo;t showing just now.</p>;
 }
 
 /**
@@ -225,7 +225,7 @@ export function CollectionScreen({ values, onMake, onBack, backLabel = 'Back to 
                       return (
                       <div key={piece.id} className="set-piece">
                         {/* Drawn on a chalk sheet with the cloth pinned under it (the H8 Atelier Sheet, Nov 14); a dark cloth keeps pale lines. */}
-                        <div className={darkCloth(cloth) ? 'house-flat dark-cloth' : 'house-flat'}>{flat ? <GarmentFabric fabric={cloth}><HouseFlat flat={flat} title={describePattern(piece.choices).toLowerCase()} widest={widest} /><ClothSwatch name={piece.fabric} /></GarmentFabric> : <p className="muted small">This look can&rsquo;t be drafted to these measurements.</p>}</div>
+                        <div className={darkCloth(cloth) ? 'house-flat dark-cloth' : 'house-flat'}>{flat ? <GarmentFabric fabric={cloth}><HouseFlat flat={flat} title={describePattern(piece.choices).toLowerCase()} widest={widest} /><ClothSwatch name={piece.fabric} /></GarmentFabric> : <p className="muted small">The drawing for this look isn&rsquo;t showing just now.</p>}</div>
                         {set ? <h3>{piece.name}</h3> : <h2>{piece.name}</h2>}
                         <p className="muted">{piece.line}</p>
                         <p className="muted small">Cut in {piece.fabric[0].toLowerCase() + piece.fabric.slice(1)}.</p>

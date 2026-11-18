@@ -556,7 +556,7 @@ export function draftTrousers(body: TrousersMeasurements, style: Partial<Trouser
   // A pull-on waist is cut to pass the hips, with no darts, and gathered onto elastic.
   const elastic = s.waist === 'elastic';
   const W = elastic ? Math.max(H, m.full_hip + PULL_ON_EASE) : m.waist + ease.waist + (fit.waistEase ?? 0);
-  if (W > H + 4) throw new DraftError('Your waist is larger than your hip, so trousers can’t be drafted from this block yet.');
+  if (W > H + 4) throw new DraftError('Your waist measures more than your hip, and our trouser draft can’t follow that shape yet. We’re working on it. A skirt or dress drafts from your waist down meanwhile.');
   const cd = m.crotch_depth + ease.depth;
   const hd = Math.min(m.waist_to_hip, cd - 5);
   if (cd > m.waist_to_knee - 12) throw new DraftError('Your crotch depth looks long next to your waist to knee. Measure it seated, from the waist down the side to the chair.');

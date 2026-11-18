@@ -41,7 +41,7 @@ export function EraShelf({ values, onMake }: Props) {
         {pieces.map(({ look, flat }) => (
           <li key={look.id} className="house-look">
             <p className="eyebrow">{era.name}</p>
-            <div className="house-flat">{flat ? <GarmentFabric fabric={lookFabric(look.fabric)}><TechFlatView flat={flat} title={describePattern(look.choices).toLowerCase()} /></GarmentFabric> : <p className="muted small">This look can&rsquo;t be drafted to these measurements.</p>}</div>
+            <div className="house-flat">{flat ? <GarmentFabric fabric={lookFabric(look.fabric)}><TechFlatView flat={flat} title={describePattern(look.choices).toLowerCase()} /></GarmentFabric> : <p className="muted small">The drawing for this look isn&rsquo;t showing just now.</p>}</div>
             <h2>{look.name}</h2>
             <p className="muted">{look.line}</p>
             <p className="muted small">Try: {look.fabric[0].toLowerCase() + look.fabric.slice(1)}.</p>

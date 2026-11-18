@@ -136,3 +136,17 @@ describe('a look opened from the plain garment', () => {
     expect(lookPatchKeeping(look('ice-peplum'), EXAMPLE_VALUES, { ...DEFAULT_BODICE, length: 'long' }, DEFAULT_BODICE)).toEqual(lookPatch(look('ice-peplum'), EXAMPLE_VALUES));
   });
 });
+
+// A peplum tester with a top's measurements but no waist to hip saw "This look can't be drafted to these measurements"
+// on the Ice Peplum's card, and read it as being told she was too big for it (tester, Nov 18). Every look draws.
+describe('a look card always has a drawing', () => {
+  const IN = 2.54;
+  const look = (id: string) => COLLECTION.find((l) => l.id === id)!;
+  const topOnly = { height: 66 * IN, full_bust: 44 * IN, high_bust: 41 * IN, waist: 42 * IN, shoulder_width: 17 * IN, nape_to_waist: 18 * IN, front_hps_to_waist: 22.5 * IN, bust_depth: 14.5 * IN, full_hip: 43 * IN };
+  it('draws every look to these measurements, or to the sample while one is still to take', () => {
+    for (const l of COLLECTION) expect(lookFlat(l, lookValues(l, topOnly).values), l.id).toBeDefined();
+    expect(lookValues(look('ice-peplum'), topOnly).own).toBe(false);
+    expect(lookValues(look('ice-peplum'), { ...topOnly, waist_to_hip: 21 }).own).toBe(true);
+    expect(lookFlat(look('ice-peplum'), { ...topOnly, waist_to_hip: 21 })).toBeDefined();
+  });
+});
