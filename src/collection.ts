@@ -298,8 +298,9 @@ export function lookPatchKeeping(look: HouseLook, m: MeasurementValues, own: Pat
  *  hem. It stays behind, and the tester is told so rather than finding it gone (pretend-tester walk, Nov 18). */
 export function lookDropsLength(look: HouseLook, own: PatternChoices, plain: PatternChoices): boolean {
   if (look.garment !== 'bodice') return false;
-  const pick = (c: PatternChoices) => ['length', 'dropCm', 'lengthCm'].map((k) => (c as unknown as Record<string, unknown>)[k]);
-  return JSON.stringify(pick(own)) !== JSON.stringify(pick(plain));
+  const pick = (c: PatternChoices) => JSON.stringify(['length', 'dropCm', 'lengthCm'].map((k) => (c as unknown as Record<string, unknown>)[k]));
+  // Set to the look's own length, nothing is left behind.
+  return pick(own) !== pick(plain) && pick(own) !== pick(look.choices);
 }
 
 /** Where a garment's choices are kept in the saved work. */

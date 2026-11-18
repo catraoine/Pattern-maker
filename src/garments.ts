@@ -395,6 +395,7 @@ type OuterGroupId = 'fit' | 'length' | 'shaping' | 'front' | 'collar' | 'lapel' 
 
 /** The style groups for a jacket or a coat: a coat has its own lengths and a flare below the hip. */
 export function outerGroups(kind: OuterKind, c?: Pick<OuterChoices, 'sleeve'>): { id: OuterGroupId; label: string; options: [string, string][] }[] {
+  const sleeveless = c?.sleeve === 'none';
   return [
     { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed'], ['oversized', 'Oversized']] },
     {
@@ -416,7 +417,7 @@ export function outerGroups(kind: OuterKind, c?: Pick<OuterChoices, 'sleeve'>): 
     { id: 'chest', label: 'Chest pocket', options: [['none', 'None'], ['welt', 'Welt']] },
     { id: 'vent', label: 'Back vent', options: [['centre', 'Centre vent'], ['none', 'None']] },
     // A vest has no cuffs: its rib band goes round the hem only (pretend-tester walk, Nov 18).
-    { id: 'trim', label: c?.sleeve === 'none' ? 'Hem' : 'Hem and cuffs', options: [['none', c?.sleeve === 'none' ? 'Plain hem' : 'Plain hems'], ['rib', c?.sleeve === 'none' ? 'Rib band' : 'Rib bands']] },
+    sleeveless ? { id: 'trim', label: 'Hem', options: [['none', 'Plain hem'], ['rib', 'Rib band']] } : { id: 'trim', label: 'Hem and cuffs', options: [['none', 'Plain hems'], ['rib', 'Rib bands']] },
     // Flared (In testing): out from the waist like a basque, on a jacket or a coat.
     kind === 'coat'
       ? { id: 'flare' as const, label: 'Below the hip', options: [['straight', 'Straight'], ['a_line', 'A-line'], ['flared', 'Flared']] as [string, string][] }

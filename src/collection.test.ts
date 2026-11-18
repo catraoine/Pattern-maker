@@ -139,6 +139,7 @@ describe('a look opened from the plain garment', () => {
   it('says when a top\'s length is left behind, and only then', () => {
     expect(lookDropsLength(look('ice-peplum'), { ...DEFAULT_BODICE, length: 'high_hip', dropCm: 9 }, DEFAULT_BODICE)).toBe(true);
     expect(lookDropsLength(look('ice-peplum'), DEFAULT_BODICE, DEFAULT_BODICE)).toBe(false);
+    expect(lookDropsLength(look('ice-peplum'), { ...DEFAULT_BODICE, length: 'waist', dropCm: 6 }, DEFAULT_BODICE)).toBe(false);
     // Every other tester look carries the length across, so has nothing to say.
     expect(lookDropsLength(look('chocolate-barrel'), { ...DEFAULT_TROUSERS_CHOICES, lengthCm: 94 }, DEFAULT_TROUSERS_CHOICES)).toBe(false);
   });

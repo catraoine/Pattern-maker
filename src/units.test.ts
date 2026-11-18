@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fmtLength, fmtMeasure, inInches, toFeetInches, toInches, toYards, typedLength } from './units';
+import { fmtLength, fmtMeasure, inInches, measureInches, toFeetInches, toInches, toYards, typedLength } from './units';
 
 describe('inches', () => {
   it('rounds to the nearest eighth', () => {
@@ -59,6 +59,12 @@ describe('heights in feet and inches', () => {
     expect(fmtMeasure('waist', 77.5, 'in')).toBe('30.5 in');
     expect(fmtMeasure('waist', 94.7, 'in')).toBe('37.3 in');
     expect(fmtMeasure('waist', 95, 'in')).toBe('37.4 in');
+  });
+
+  it('gives back every typed tenth as typed, and a cm entry as a tenth', () => {
+    // Typed in inches, kept to a tenth of a cm as the measuring pages keep it.
+    for (let t = 100; t <= 800; t++) expect(measureInches(Math.round((t / 10) * 2.54 * 10) / 10)).toBe(t / 10);
+    expect(fmtMeasure('waist', 95.6, 'in')).toBe('37.6 in');
   });
 });
 
