@@ -155,3 +155,43 @@ describe('the Blush Shift front side seam above the French dart on measured bodi
     });
   }
 });
+
+// Faired to match the side back, the side front's seam ended at the waist along its line in, and on a top that runs on
+// below the waist that left a point where the seam turns out for the hip: up to 80 degrees on a full bust, a tight spot
+// at the side waist in CLO (Nov 17). The curve now runs on round the turn. Read every 0.5 cm, the seam from the underarm
+// to the hem turns no more than 15 degrees at a step, as the seam before the fairing did.
+describe('the Ice Peplum side front at the side waist on full busts', () => {
+  const look = COLLECTION.find((l) => l.name === 'Ice Peplum Top')!;
+  const bodies = [
+    'height=178 full_bust=98 high_bust=96 waist=92 full_hip=123 waist_to_hip=25 nape_to_waist=39 front_hps_to_waist=49 bust_depth=21',
+    'height=157 full_bust=128 high_bust=112 waist=81 full_hip=134 waist_to_hip=21 nape_to_waist=37 front_hps_to_waist=45 bust_depth=33',
+    'height=157 full_bust=136 high_bust=120 waist=86 full_hip=134 waist_to_hip=17 nape_to_waist=37 front_hps_to_waist=45 bust_depth=33',
+    'height=185 full_bust=128 high_bust=112 waist=81 full_hip=125 waist_to_hip=21 nape_to_waist=37 front_hps_to_waist=45 bust_depth=33',
+  ];
+  for (const body of bodies) {
+    it(`${body.split(' ').slice(1, 4).join(' ')}: no point at the side waist`, () => {
+      const values = withEstimates(Object.fromEntries(body.split(' ').map((kv) => { const [k, x] = kv.split('='); return [k, Number(x)]; })) as unknown as MeasurementValues);
+      const { garment, ...saved } = lookPatch(look, values);
+      const side = printedPattern({ garment, saved: saved as never }, values).made.pieces.find((pc) => pc.name === 'Bodice side front')!;
+      const { pts, tags } = side.outline.taggedPoints();
+      const run = pts.filter((_, i) => tags[i] === 'side' || tags[i - 1] === 'side');
+      const even = [run[0]];
+      let carry = 0;
+      for (let i = 1; i < run.length; i++) {
+        const [a, b] = [run[i - 1], run[i]];
+        const l = Math.hypot(b.x - a.x, b.y - a.y);
+        if (l < 1e-9) continue;
+        let t = 0.5 - carry;
+        for (; t <= l; t += 0.5) even.push({ x: a.x + ((b.x - a.x) * t) / l, y: a.y + ((b.y - a.y) * t) / l });
+        carry = l - (t - 0.5);
+      }
+      let worst = 0;
+      for (let i = 2; i < even.length; i++) {
+        let d = Math.abs(Math.atan2(even[i].y - even[i - 1].y, even[i].x - even[i - 1].x) - Math.atan2(even[i - 1].y - even[i - 2].y, even[i - 1].x - even[i - 2].x)) * (180 / Math.PI);
+        if (d > 180) d = 360 - d;
+        worst = Math.max(worst, d);
+      }
+      expect(worst).toBeLessThan(15);
+    });
+  }
+});

@@ -233,6 +233,9 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                       // An oversized cut goes boxy, with no pads and a plain sleeve.
                       let next = { ...choices, [g.id]: id } as OuterChoices;
                       if (g.id === 'fit') next = oversizeOuter(next);
+                      // A hem measured off a photo or set by a look (the Black Vest's 30 cm below the waist) held over a
+                      // length picked here: Cropped and Hip changed the name but not the vest (pretend-tester walk, Nov 17).
+                      if (g.id === 'length') delete next.dropCm;
                       // Without sleeves there is no sleeve head for a pad to hold out.
                       if (next.sleeve === 'none') next.pads = 'none';
                       // A fitted cut keeps its waist darts.
