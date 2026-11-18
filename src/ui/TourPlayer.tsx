@@ -23,12 +23,12 @@ const WIDE_SCREEN = '(min-width: 900px) and (min-aspect-ratio: 1/1)';
 /** Where each part starts in the video, in seconds, and how long it runs. Update with the video. */
 /** says: what the part shows, in words, for anyone who can't see the film (the accessibility review, 2026-10-30). */
 const PARTS: FilmPart[] = [
-  { name: 'Measure', from: 0, says: 'Not a standard size: your own measurements, taken once with a soft tape, and every pattern is drafted from them.' },
-  { name: 'Choose', from: 15.0, says: 'Then what to make: start from a photo of a piece you love, which becomes your dress, pick a look from the collection, or choose a garment.' },
-  { name: 'Style', from: 30.8, says: 'Make it yours: its shape, details and your own cloth, step by step on the drawing, then draw a longer hem on the form. Your pattern is drafted as you go, and All round turns the dress to check the seams meet and the hem sits level before you cut.' },
-  { name: 'Print', from: 60.0, says: 'Print it at home on ordinary paper, full size at a copy shop, or project it true size onto your fabric. Drafted to your body.' },
+  { name: 'Measure', from: 0, says: 'Enter your measurements just once, taken with a soft tape: every pattern is drafted from your numbers.' },
+  { name: 'Choose', from: 15.2, says: 'Then what to make: design your own garment, choose from a collection, or start with a photo of a piece you love.' },
+  { name: 'Style', from: 30.6, says: 'Select style details to make it your own: its cut, darts, neckline and your own cloth, step by step on the drawing. Or design straight from your pattern, moving a dart or cutting off a new piece. All round turns the dress to check the seams meet and the hem sits level before you cut.' },
+  { name: 'Print', from: 63.0, says: 'Print your pattern at home on ordinary paper or full size at a copy shop, or project it true size onto your fabric. Drafted to your body.' },
 ];
-export const TOUR_LABEL = '1:20';
+export const TOUR_LABEL = '1:22';
 
 export type FilmPart = { name: string; from: number; says: string };
 
