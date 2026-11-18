@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fmtLength, fmtMeasure, inInches, toFeetInches, toInches, toYards, typedLength } from './units';
+import { fmtLength, fmtMeasure, inInches, measureInches, toFeetInches, toInches, toYards, typedLength } from './units';
 
 describe('inches', () => {
   it('rounds to the nearest eighth', () => {
@@ -50,6 +50,21 @@ describe('heights in feet and inches', () => {
     expect(fmtMeasure('height', 165, 'in')).toBe('5 ft 5 in');
     expect(fmtMeasure('height', 165, 'cm')).toBe('165 cm');
     expect(fmtMeasure('waist', 76, 'in')).toBe('29.9 in');
+  });
+
+  it('gives back a tape\'s quarter inches as typed, though kept to a tenth of a cm', () => {
+    // As stored from 37.75, 15.25 and 30.5 in typed; and 37.3 and 37.4 typed stay tenths.
+    expect(fmtMeasure('full_bust', 95.9, 'in')).toBe('37.75 in');
+    expect(fmtMeasure('upper_arm', 38.7, 'in')).toBe('15.25 in');
+    expect(fmtMeasure('waist', 77.5, 'in')).toBe('30.5 in');
+    expect(fmtMeasure('waist', 94.7, 'in')).toBe('37.3 in');
+    expect(fmtMeasure('waist', 95, 'in')).toBe('37.4 in');
+  });
+
+  it('gives back every typed tenth as typed, and a cm entry as a tenth', () => {
+    // Typed in inches, kept to a tenth of a cm as the measuring pages keep it.
+    for (let t = 100; t <= 800; t++) expect(measureInches(Math.round((t / 10) * 2.54 * 10) / 10)).toBe(t / 10);
+    expect(fmtMeasure('waist', 95.6, 'in')).toBe('37.6 in');
   });
 });
 

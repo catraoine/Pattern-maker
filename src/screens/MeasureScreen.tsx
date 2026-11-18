@@ -24,6 +24,10 @@ interface Props {
   notice?: string;
   /** Opens the choice of form to draft on (womenswear or menswear). */
   onChangeForm?: () => void;
+  /** What the piece is called when its style makes it something narrower: a sleeveless jacket is a vest. */
+  name?: string;
+  /** Measurements this piece's style doesn't use (a vest has no sleeves, so no arms), left off the list. */
+  unused?: MeasurementId[];
 }
 
 const show = (id: string, cm: number, unit: Unit) => fmtMeasure(id, cm, unit);
@@ -31,9 +35,10 @@ const show = (id: string, cm: number, unit: Unit) => fmtMeasure(id, cm, unit);
 // The Measure step once measuring is done: just this garment's measurements, like the check page, and a
 // tap on one opens its own page with the drawing and how-to. One button goes on; the garment sits in a small
 // label above the title with a quiet way to make something else, and a closer fit is the list's last row.
-export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, garment, onChooseGarment, unit, values, checks, canContinue, onNext, onMeasure, notice, onChangeForm }: Props) {
+export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, garment, onChooseGarment, unit, values, checks, canContinue, onNext, onMeasure, notice, onChangeForm, name = GARMENT_NAME[garment], unused = [] }: Props) {
   const form = formOf(account.people.find((p) => p.id === account.active)!);
-  const fields = fieldsFor(garment, form);
+  // A Black Vest tester was sent to measure her arms, and the list was headed Jacket (pretend-tester walk, Nov 18).
+  const fields = fieldsFor(garment, form).filter((f) => !unused.includes(f.id));
   // The height always has a row (Add, until it is taken), but a draft doesn't wait for it: older profiles have none.
   const rows = fields.filter((f) => f.id === 'height' || !f.optional || values[f.id] !== undefined);
   const extra = fields.filter((f) => f.id !== 'height' && f.optional && values[f.id] === undefined);
@@ -55,7 +60,7 @@ export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, g
           </p>
         )}
         <p className="garment-eyebrow">
-          <span>{GARMENT_NAME[garment]}</span>
+          <span>{name}</span>
           <GarmentSwitch onChoose={onChooseGarment} label="Make something else" />
         </p>
         <h1 id="mtitle">{account.active === ME ? 'Your' : `${profile}'s`} measurements</h1>
@@ -113,7 +118,7 @@ export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, g
           </button>
         ) : (
           <button type="button" className="primary" disabled={!canContinue} onClick={onNext}>
-            Style your {GARMENT_NAME[garment]}
+            Style your {name}
           </button>
         )}
       </section>

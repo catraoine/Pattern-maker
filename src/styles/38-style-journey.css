@@ -235,6 +235,10 @@ section[aria-label='Preview'] > .preview .all-round-feel-step[aria-pressed='true
   color: var(--muted);
   font: 14px/1.4 var(--sans);
 }
+.style-layout > .tester-look > .tester-look-note {
+  display: block;
+  font-size: 13px;
+}
 .style-layout > .tester-look > button {
   min-height: 32px;
   padding: 4px 0;

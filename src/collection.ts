@@ -293,6 +293,16 @@ export function lookPatchKeeping(look: HouseLook, m: MeasurementValues, own: Pat
   return choicesPatch(g, g === 'dress' ? lookChoices({ choices: kept }, m) : kept);
 }
 
+/** Whether opening a top's tester look leaves behind the length set on the plain top. A top's length is where its hem
+ *  sits, but on the Ice Peplum it's where the peplum is sewn on, so carrying it across would move the seam, not the
+ *  hem. It stays behind, and the tester is told so rather than finding it gone (pretend-tester walk, Nov 18). */
+export function lookDropsLength(look: HouseLook, own: PatternChoices, plain: PatternChoices): boolean {
+  if (look.garment !== 'bodice') return false;
+  const pick = (c: PatternChoices) => JSON.stringify(['length', 'dropCm', 'lengthCm'].map((k) => (c as unknown as Record<string, unknown>)[k]));
+  // Set to the look's own length, nothing is left behind.
+  return pick(own) !== pick(plain) && pick(own) !== pick(look.choices);
+}
+
 /** Where a garment's choices are kept in the saved work. */
 function choicesPatch(garment: Garment, choices: PatternChoices): { garment: Garment } & Record<string, unknown> {
   if (isDress(choices)) return { garment, dress: choices };
