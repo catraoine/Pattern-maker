@@ -781,6 +781,15 @@ export default function App() {
             ? { garment, piece: lingerieChoices.piece, stretch: lingerieChoices.stretch }
           : { garment: 'skirt', silhouette: saved.choices.silhouette, length: saved.choices.length, asymHem: saved.choices.asymHem, pleats: saved.choices.pleats, godets: saved.choices.godets, flounce: saved.choices.flounce };
 
+  // A fit tester's own look keeps its style: the "You're in" email says the style is set and only the length is theirs.
+  // A peplum tester changed the neckline and sleeves and took the peplum off, still believing she was sewing the Ice
+  // Peplum Top (testers, Nov 18). So a change that would make it another piece is asked about first; a length isn't.
+  const [lookLeave, setLookLeave] = useState<Saved>();
+  const ownLook = !!account.testerCode && step === 'style' && !!lookName && COLLECTION.find((l) => l.id === TESTER_LOOK[garment])?.name === lookName;
+  const styleTo = (next: Saved) => {
+    if (ownLook && lookNameOf(garment, GARMENT_DRAFTING[garment].choices(next), values) !== lookName) setLookLeave(next);
+    else setSaved(next);
+  };
   // Makes a collection look: from the collection, and from a tester's link on Style to the look they sew. `keep`: the
   // garment's own work so far is kept in Saved patterns before the look takes its place. False when it went to take
   // measurements first.
@@ -1125,6 +1134,9 @@ export default function App() {
               onNext={() => {
                 countStep('measured', garment);
                 setAccount(updatePerson(account, person.id, recordMeasurements(person, new Date().toISOString().slice(0, 10))));
+                // Back to a collection look's own page, ready to print, not its questions from the start: after Edit
+                // measurements, a tester read "Style your top" as starting over (testers, Nov 18).
+                if (lookName) openLookNext();
                 setStep('style');
               }}
             />
@@ -1139,6 +1151,27 @@ export default function App() {
           )}
           {/* On Style it sits under the garment's name (Cat's K3, 2026-10-28), so StyleLayout draws it. */}
           {step === 'export' && exampleTag}
+          {lookLeave && lookName && (
+            <div className="form-leave" role="dialog" aria-modal="true" aria-labelledby="look-leave-title">
+              <div className="form-leave-box">
+                <h2 id="look-leave-title">Change the {lookName}?</h2>
+                <p>For fit testing, the style is set and only the length is yours. This change makes it a different {GARMENT_NAME[garment]}, so it would no longer be the {lookName} you're testing.</p>
+                <button type="button" className="primary done" onClick={() => setLookLeave(undefined)} autoFocus>
+                  Keep the {lookName}
+                </button>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => {
+                    setSaved(lookLeave);
+                    setLookLeave(undefined);
+                  }}
+                >
+                  Change it anyway
+                </button>
+              </div>
+            </div>
+          )}
           <UnitNow.Provider value={saved.unit}>
           <ExampleTag.Provider value={step === 'style' ? exampleTag : undefined}>
           <LookName.Provider value={step === 'style' ? lookName : undefined}>
@@ -1161,7 +1194,7 @@ export default function App() {
               onMode={setMode}
               easeMap={ease}
               choices={saved.choices}
-              onChoices={(choices) => setSaved({ ...saved, choices })}
+              onChoices={(choices) => styleTo({ ...saved, choices })}
               fabric={fabric}
               onChooseGarment={chooseGarment}
               values={values}
@@ -1188,7 +1221,7 @@ export default function App() {
               onFinish={setFinish}
               easeMap={ease}
               choices={saved.bodice}
-              onChoices={(bodice) => setSaved({ ...saved, bodice })}
+              onChoices={(bodice) => styleTo({ ...saved, bodice })}
               fabric={fabric}
               onChooseGarment={chooseGarment}
               values={values}
@@ -1212,7 +1245,7 @@ export default function App() {
               onFinish={setFinish}
               easeMap={ease}
               choices={dress}
-              onChoices={(d) => setSaved({ ...saved, dress: d })}
+              onChoices={(d) => styleTo({ ...saved, dress: d })}
               fabric={fabric}
               onChooseGarment={chooseGarment}
               values={values}
@@ -1236,7 +1269,7 @@ export default function App() {
               onFinish={setFinish}
               easeMap={ease}
               choices={trousersChoices}
-              onChoices={(t) => setSaved({ ...saved, trousers: t })}
+              onChoices={(t) => styleTo({ ...saved, trousers: t })}
               fabric={fabric}
               onChooseGarment={chooseGarment}
               values={values}
@@ -1256,7 +1289,7 @@ export default function App() {
               mode={mode}
               onMode={setMode}
               choices={teeChoices}
-              onChoices={(t) => setSaved({ ...saved, tee: t })}
+              onChoices={(t) => styleTo({ ...saved, tee: t })}
               finish={finish}
               onFinish={setFinish}
               fabric={fabric}
@@ -1280,7 +1313,7 @@ export default function App() {
               mode={mode}
               onMode={setMode}
               choices={rangeChoices}
-              onChoices={(c) => setSaved({ ...saved, [rangeSlot(garment)]: c })}
+              onChoices={(c) => styleTo({ ...saved, [rangeSlot(garment)]: c })}
               finish={finish}
               onFinish={setFinish}
               fabric={fabric}
@@ -1303,7 +1336,7 @@ export default function App() {
               mode={mode}
               onMode={setMode}
               choices={lingerieChoices}
-              onChoices={(l) => setSaved({ ...saved, lingerie: l })}
+              onChoices={(l) => styleTo({ ...saved, lingerie: l })}
               fabric={fabric}
               onFabric={(f) => setFinish({ ...finish, fabric: f, cloth: clothFor(f, finish.cloth) })}
               onChooseGarment={chooseGarment}
@@ -1328,7 +1361,7 @@ export default function App() {
               onFinish={(f) => setSaved({ ...saved, finish: f })}
               easeMap={ease}
               choices={outerChoices}
-              onChoices={(c) => setSaved({ ...saved, [garment]: c })}
+              onChoices={(c) => styleTo({ ...saved, [garment]: c })}
               fabric={fabric}
               onChooseGarment={chooseGarment}
               values={values}
