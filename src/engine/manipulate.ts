@@ -405,13 +405,18 @@ function bezier(a: P, c1: P, c2: P, b: P, steps: number): P[] {
   return out;
 }
 
+/** The sharpest turn at the end of the faired run that the curve may simply meet; past it the curve runs on round it. */
+const END_TURN = 15;
+
 /** How far the princess side seam holds the underarm's square line before it runs on to the waist, in cm. */
 const UNDERARM_HOLD = 1;
 
 /** The most the underarm is raised to keep the side seams matching, in cm; beyond it the seam is left as fairSideOnce
- *  drew it. A princess side seam needs no more than UNDERARM_RAISE_MAX; above a French dart on a full bust the old seam's
- *  in-and-out held up to 1 cm more than a fair line (the bug hunt's sweep, Nov 16), so it may raise that far. */
-const UNDERARM_RAISE_MAX = 0.6;
+ *  drew it, in and out. A princess side seam on a full bust with a low bust point, or a front much longer than the back,
+ *  needed up to 1.5 cm (0.6 left the Ice Peplum's side front waving and 1 to 2 cm longer than the back on those bodies,
+ *  tester sweep Nov 16). Above a French dart the old seam's in-and-out held up to 1 cm more than a fair line (the bug
+ *  hunt's sweep, Nov 16), so it may raise that far. */
+const UNDERARM_RAISE_MAX = 1.5;
 const UNDERARM_RAISE_DART = 1;
 
 /**
@@ -447,9 +452,25 @@ function fairRun(pts: P[], tags: string[], a: number, j: number, raiseMax: numbe
   let a1 = a + 1;
   while (a1 < j && len(sub(pts[a1], pts[a])) < 1e-6) a1++;
   let A = pts[a];
-  const B = pts[j + 1];
+  // Where the seam turns hard at the end of its line (the waist of a top that runs on below it, whose seam turns out
+  // there for the hip), the curve runs on past the turn, up to 3 cm down the seam, and meets it along its line there:
+  // ending at the turn left a point on the seam, up to 80 degrees on a full bust (CLO, Nov 17).
+  let e = j + 1;
+  const turnAt = (i: number) => {
+    const u = unit(sub(pts[i], pts[i - 1]));
+    const v = unit(sub(pts[i + 1], pts[i]));
+    return (Math.acos(Math.max(-1, Math.min(1, u.x * v.x + u.y * v.y))) * 180) / Math.PI;
+  };
+  if (e + 1 < pts.length && tags[e] === 'side' && turnAt(e) > END_TURN) {
+    let run = 0;
+    while (e + 2 < pts.length && tags[e] === 'side' && tags[e + 1] === 'side' && run < 3) {
+      run += len(sub(pts[e + 1], pts[e]));
+      e++;
+    }
+  }
+  const B = pts[e];
   let dA = unit(sub(pts[a1], A));
-  const dB = unit(sub(B, pts[j]));
+  const dB = e === j + 1 ? unit(sub(B, pts[j])) : unit(sub(pts[e + 1], B));
   // Closing the dart tips the underarm with the seam above it, so the seam can leave the arm leaning the other way from
   // the line to the waist: in under the arm, then out. Then the seam leaves along that line instead, and the armhole's
   // last ARMHOLE_RETRUE cm are redrawn to meet it square, as a pattern cutter re-trues an underarm.
@@ -458,7 +479,7 @@ function fairRun(pts: P[], tags: string[], a: number, j: number, raiseMax: numbe
   const turn = across(dA) * across(dB) > 0;
   if (turn) dA = chordDir;
   let was = 0;
-  for (let i = a; i <= j; i++) was += len(sub(pts[i + 1], pts[i]));
+  for (let i = a; i < e; i++) was += len(sub(pts[i + 1], pts[i]));
   let chord = len(sub(B, A));
   // The points between the underarm and the waist (both kept as they are).
   const curveFor = (h: number): P[] => bezier(A, add(A, mul(dA, Math.min(chord / 3, Math.max(UNDERARM_HOLD, h)))), sub(B, mul(dB, h)), B, 40).slice(0, -1);
@@ -488,8 +509,8 @@ function fairRun(pts: P[], tags: string[], a: number, j: number, raiseMax: numbe
   const k = turn || raise ? retrueFrom(pts, tags, a) : undefined;
   if ((turn || raise) && k === undefined) return false;
   pts[a] = A;
-  pts.splice(a + 1, j - a, ...curve);
-  tags.splice(a + 1, j - a, ...curve.map(() => 'side'));
+  pts.splice(a + 1, e - 1 - a, ...curve);
+  tags.splice(a + 1, e - 1 - a, ...curve.map(() => 'side'));
   if (k !== undefined) retrueArmhole(pts, tags, k, a, dA);
   return true;
 }

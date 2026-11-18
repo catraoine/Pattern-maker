@@ -240,11 +240,13 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
     if (!sidePc) continue;
     const a = taggedLength(c.outline, 'princess');
     const b = taggedLength(sidePc.outline, 'princess');
+    // The side's ease over the bust, marked by its notch below the bust (see shaping.ts panels): the rest must match.
+    const ease = (sidePc.meta.princessEase as number | undefined) ?? 0;
     checks.push({
       group: 'Seams',
       label: `${cap(c.name.replace(/^Bodice centre /i, ''))} princess seams`,
-      detail: `centre ${cm(a)}, side ${cm(b)}, ${Math.abs(a - b) < 0.05 ? 'identical' : `${cm(Math.abs(a - b))} apart`}`,
-      ok: Math.abs(a - b) <= SEAM_TOLERANCE,
+      detail: `centre ${cm(a)}, side ${cm(b)}, ${ease ? `the side ${cm(ease)} longer, eased in over the bust between the notches` : Math.abs(a - b) < 0.05 ? 'identical' : `${cm(Math.abs(a - b))} apart`}`,
+      ok: Math.abs(b - a - ease) <= SEAM_TOLERANCE,
     });
   }
 

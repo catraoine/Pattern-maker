@@ -504,6 +504,10 @@ const HEM_FALL = 0.13;
 const HELD_EASE = 0.3;
 /** How far below the form's foot the fitted hug above it lets go, so the side runs on without a step. */
 const SETTLE = 8;
+/** The longest a peplum is, seam to hem, in cm: a piece hung from a seam and longer than this is a skirt. */
+const PEPLUM_LONGEST = 30;
+/** How deep a hem's own waves can be, in cm, and still be moved as one hem. */
+const HEM_WAVE = 3;
 /** How far below a seam a gathered or eased piece takes to bell out to its own width. */
 const BELL = 14;
 
@@ -606,6 +610,13 @@ function pieceOnForm(s: P[], body: FormBody, underarmY: number, sewnHalf?: numbe
     // gathers and all, and bells out below it.
     const topY = Math.min(...s.map((q) => q.y));
     const seamTop = topY > underarmY + 2 ? topY : undefined;
+    // A peplum: a short piece hung from a seam, which flares from that seam (the Ice Peplum's, Nov 17).
+    const peplum = seamTop !== undefined && hemY - seamTop < PEPLUM_LONGEST;
+    // The top of a peplum's rippling hem: the whole hem is moved as one from there down. Moved point by point, its high
+    // points were drawn in toward the seam and its low ones fell and stayed out, so the Ice Peplum's hem showed on the
+    // form as a star of long spikes (pretend tester walk, Nov 17). (A peplum's only: a dress's hem with vents, read as
+    // waves, fell over its last few cm and drew folds that aren't there.)
+    const hemTop = peplum ? Math.min(hemY, ...s.filter((q) => q.y > hemY - HEM_WAVE && Math.abs(q.x) < hemHalf * 0.9).map((q) => q.y)) : hemY;
     // True waist (Cat's D1, 2026-10-26): a piece is judged fitted where it is held, just under the armhole (or at the
     // seam it hangs from): its darts close the rest on the body, so its flat width at the waist is not ease to show. A
     // bodice fitted at the bust follows the form in to the waist; only a cut that is loose at the top hangs straight.
@@ -629,7 +640,9 @@ function pieceOnForm(s: P[], body: FormBody, underarmY: number, sewnHalf?: numbe
         const fitted = Math.min(1, Math.max(0, (VOLUME_FROM - over) / (VOLUME_FROM - FITTED_UP_TO)));
         const hug = Math.sign(q.x) * (w + Math.min(over, FITTED_UP_TO) * WORN_EASE);
         x = hug * fitted + x * (1 - fitted);
-        if (heldHalf && q.y > heldY - 1) {
+        // (Not a peplum: it flares from its seam, and held in to the body its sides were drawn in while its corners stayed
+        // out, as horns.)
+        if (heldHalf && q.y > heldY - 1 && !peplum) {
           // Held fitted above: close in to the body plus the ease it showed there, down to the hip, letting go over the
           // last stretch above the hip so a flare from the hip still flares.
           const carried = fittedHeld * Math.min(1, Math.max(0, (hipY - q.y) / 8));
@@ -639,7 +652,7 @@ function pieceOnForm(s: P[], body: FormBody, underarmY: number, sewnHalf?: numbe
       }
       // Just under the form's foot the hug above lets go over a few centimetres instead of all at once, so a skirt that
       // flares from the hip runs on smoothly rather than jutting out in a step at the hip (Cat, 2026-11-02).
-      if (below > 0 && below < SETTLE && q.y > underarmY) {
+      if (below > 0 && below < SETTLE && q.y > underarmY && !peplum) {
         const wFoot = body.width(body.bottom);
         const overFoot = Math.abs(q.x) - wFoot;
         if (overFoot > 0) {
@@ -668,13 +681,13 @@ function pieceOnForm(s: P[], body: FormBody, underarmY: number, sewnHalf?: numbe
       if (floor !== undefined && Math.abs(x) < Math.min(floor, Math.abs(q.x))) x = Math.sign(q.x) * Math.min(floor, Math.abs(q.x));
       // Sewn to the piece above at the seam, then out to its own width: the floor joins in over the same stretch.
       if (seamTop !== undefined && q.y < seamTop + BELL && Math.abs(q.x) > w) {
-        const t = Math.min(1, (q.y - seamTop) / BELL);
+        const t = Math.min(1, (Math.min(q.y, hemTop) - seamTop) / BELL);
         const ease = t * t * (3 - 2 * t);
         const sewn = Math.sign(q.x) * (sewnHalf ?? w + Math.min(Math.abs(q.x) - w, FITTED_UP_TO) * WORN_EASE);
         x = sewn * (1 - ease) + x * ease;
       }
       // The hem falls at its centre, seen a little from above.
-      const y = q.y > hemY - 0.8 && q.y > underarmY + 4 ? q.y + HEM_FALL * hemHalf * (1 - Math.min(1, (q.x / hemHalf) ** 2)) : q.y;
+      const y = q.y > hemTop - 0.8 && q.y > underarmY + 4 ? q.y + HEM_FALL * hemHalf * (1 - Math.min(1, (q.x / hemHalf) ** 2)) : q.y;
       return { x, y };
     };
   }

@@ -836,6 +836,14 @@ export function MeasurePage({
     const before = new Set(warnings(without).map((c) => `${c.id} ${c.message}`));
     return now.find((c) => c.id === id) ?? now.find((c) => !before.has(`${c.id} ${c.message}`));
   })();
+  // Measuring starts in cm, so a number taken in inches without tapping IN is turned away as out of range (a fit tester,
+  // Nov 17). When the same number fits the range read as inches, the message offers that switch in one tap.
+  const asInches = (() => {
+    if (!shownError || unit !== 'cm' || value === undefined) return undefined;
+    const f = FIELDS[checkAs].find((x) => x.id === id);
+    const cm = Math.round(value * 2.54 * 10) / 10;
+    return f && value < f.hard[0] && cm >= f.hard[0] && cm <= f.hard[1] ? cm : undefined;
+  })();
   const note = shownError ?? (tried && value === undefined ? { level: 'error', message: `Enter ${helper ? 'their' : 'your'} ${fieldLabel.toLowerCase()} to carry on.` } : undefined);
 
   const feetInches = id === 'height' && unit === 'in';
@@ -992,6 +1000,24 @@ export function MeasurePage({
         {note && (
           <p id="step-msg" className="msg error">
             {note.message}
+            {asInches !== undefined && (
+              <>
+                {' '}
+                <button
+                  type="button"
+                  className="later go switch-unit"
+                  onClick={() => {
+                    setText(null);
+                    setFtIn(null);
+                    setTried(false);
+                    onValues({ ...values, [id]: asInches });
+                    onUnit('in');
+                  }}
+                >
+                  Switch to inches <span aria-hidden="true">›</span>
+                </button>
+              </>
+            )}
           </p>
         )}
         {doubt && (

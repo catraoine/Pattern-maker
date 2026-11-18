@@ -136,6 +136,10 @@ interface Split {
   top: P;
 }
 
+/** The most a princess side panel is eased into its centre panel over the bust, in cm: up to a centimetre eases in
+ *  smoothly over a full bust; more would gather. */
+const PRINCESS_EASE_MAX = 1;
+
 /** Cut a piece along a princess line into its centre and side panels. */
 export function panels(pc: Piece, s: Split, names: [string, string], cuts: [string, string], meta: Record<string, unknown>): { centre: Piece; side: Piece; line: P[] } {
   const r = s.ring;
@@ -179,8 +183,14 @@ export function panels(pc: Piece, s: Split, names: [string, string], cuts: [stri
   const top = len(sub(cs[0], s.pivot));
   const at = [top * 0.5, top + (L - top) * 0.45];
   const outward = (pts: P[]) => ([q, d]: [P, P]): [P, P] => (insidePolygon(add(q, mul(d, 0.3)), pts) ? [q, mul(d, -1)] : [q, d]);
+  // On a full bust the side's seam can come out a few millimetres longer than the centre's however its blend is set
+  // (the dart opened into the line leaves its two sides unequal). A pattern cutter keeps that as ease over the bust: the
+  // notch below the bust moves down by it on the side, so the seams meet above and below and the side is eased in
+  // between (Cat's pick, tester sweep Nov 16: on a quarter of measured bodies it showed as a seam to CHECK).
+  const ease = polyLen(ss) - L;
+  const eased = ease > 0.05 && ease <= PRINCESS_EASE_MAX;
   const cNotches = marksAlong(cs, at).map(outward(cPts));
-  const sNotches = marksAlong(ss, at).map(outward(sPts));
+  const sNotches = marksAlong(ss, eased ? [at[0], at[1] + ease] : at).map(outward(sPts));
   const own = (pts: P[]) => (q: P) => pts.some((x) => len(sub(x, q)) < 0.8) || insidePolygon(q, pts);
   const old = pc.notches.map(moveNotch(s.move));
   const cOwn = own(cPts);
@@ -224,7 +234,7 @@ export function panels(pc: Piece, s: Split, names: [string, string], cuts: [stri
     cut: cuts[1],
     alternate: undefined,
     draft: pc.draft ? { frame: pc.draft.frame, points: points((q) => sOwn(q) && !cOwn(q)) } : undefined,
-    meta: { ...meta },
+    meta: { ...meta, ...(eased ? { princessEase: ease } : {}) },
   };
   delete side.meta.pointedAtCentre;
   // The seam on the garment as sewn: from the top, through the pivot, down the closed waist dart.
