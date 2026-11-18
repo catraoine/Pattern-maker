@@ -40,3 +40,19 @@ test('someone who is not a tester sees no tester offer', async ({ page }) => {
   await expect(main(page).getByRole('button', { name: /The collection/ })).toBeVisible();
   await expect(offer(page)).toHaveCount(0);
 });
+
+// Pretend tester, Nov 18: the length she had set on the plain skirt was dropped for the look's own, with no word.
+test('a length set on the plain garment comes across to the look', async ({ page }) => {
+  test.setTimeout(3 * 60_000);
+  await openAsTester(page);
+  const handle = main(page).getByRole('slider', { name: /length/i }).first();
+  await handle.focus();
+  for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowDown');
+  await page.waitForTimeout(800);
+  const set = await handle.getAttribute('aria-valuetext');
+  expect(set).toMatch(/cm/);
+  await offer(page).getByRole('button', { name: /Open it/ }).click();
+  await expect(main(page).getByRole('heading', { name: /Black Pleated Skirt/ })).toBeVisible({ timeout: 30_000 });
+  await main(page).getByRole('button', { name: 'Change a detail' }).click();
+  await expect(main(page).getByRole('slider', { name: /length/i }).first()).toHaveAttribute('aria-valuetext', set!);
+});

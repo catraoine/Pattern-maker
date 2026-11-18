@@ -260,7 +260,7 @@ export function readBodiceHem(stroke: P[], draft: BodiceDraft, m: BodiceMeasurem
   const next = dragDrop(m, c, median(ys) - landmarks(draft).waistY);
   const curved = Math.max(...ys) - Math.min(...ys) > 4 ? ' A bodice hem stays level; it is set at the middle of your line.' : '';
   const said =
-    next.dropCm !== undefined ? `Hem ${Math.round(next.dropCm * 10) / 10} cm below the waist.` : next.length === 'waist' ? 'Hem at the waist.' : next.length === 'hip' ? 'Hem at the hip.' : 'Hem at the high hip.';
+    next.dropCm !== undefined ? `Hem ${Math.round(next.dropCm)} cm below the waist.` : next.length === 'waist' ? 'Hem at the waist.' : next.length === 'hip' ? 'Hem at the hip.' : 'Hem at the high hip.';
   return { choices: next, said: said + curved };
 }
 
@@ -312,7 +312,7 @@ export function readSkirtHem(stroke: P[], waistY: number, draft: Pick<SkirtDraft
     // On a dress the length is the dress's, not a skirt's (Cat, 2026-10-27: "Mini skirt." on a dress confused).
     const words = LENGTH_WORDS[next.length];
     const named = garment === 'dress' ? (next.length === 'knee' ? `${words}.` : `${words} length.`) : `${words} skirt.`;
-    return { choices: next, said: next.lengthCm !== undefined ? `${garment === 'dress' ? 'Hem' : 'Skirt'} ${Math.round(next.lengthCm * 10) / 10} cm ${garment === 'dress' ? 'below the waist seam' : 'long'}.` : named };
+    return { choices: next, said: next.lengthCm !== undefined ? `${garment === 'dress' ? 'Hem' : 'Skirt'} ${Math.round(next.lengthCm)} cm ${garment === 'dress' ? 'below the waist seam' : 'long'}.` : named };
   }
   // Pleats, godets and flounces are drafted on a level hem, as on the sketch.
   if (volumeOf(skirt) !== 'none') return { said: 'Pleats, godets and flounces need a level hem. Draw it straight across to set the length.' };

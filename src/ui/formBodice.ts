@@ -95,7 +95,7 @@ export function readBodiceHemShape(stroke: P[], draft: BodiceDraft, m: BodiceMea
   // A peplum can be lowered with the hem (In testing), a little way and on a level hem; past that it goes.
   const had = !!c.peplum && c.peplum !== 'none';
   const peplum = had && next.peplum === 'none' ? ` The peplum goes: lowered, it sews to a level hem at most ${PEPLUM_SEAM_MAX} cm below the waist.` : had ? ' The peplum is lowered with it, sewn to the hem.' : '';
-  const length = next.dropCm !== undefined ? `Hem ${Math.round(next.dropCm * 10) / 10} cm below the waist` : next.length === 'hip' ? 'Hem at the hip' : 'Hem at the high hip';
+  const length = next.dropCm !== undefined ? `Hem ${Math.round(next.dropCm)} cm below the waist` : next.length === 'hip' ? 'Hem at the hip' : 'Hem at the high hip';
   const shape = hem ? `, ${hemWords(hem)}.` : ', level all round.';
   return { choices: next, said: `${length}${hem ? ' at the side seams' : ''}${shape}${peplum}` };
 }

@@ -274,6 +274,23 @@ export function lookPatch(look: HouseLook, m?: MeasurementValues): { garment: Ga
   return choicesPatch(look.garment, m ? lookChoices(look, m) : look.choices);
 }
 
+/** A look made from the garment being styled, keeping the length the maker set on it: the hem is the maker's, not the
+ *  look's (see lengthless). A tester who set 55 cm on the plain skirt and then opened the Black Pleated Skirt got the
+ *  look's own 49.3 cm, with no word (pretend tester, Nov 18). `own` is what was styled, `plain` the garment untouched:
+ *  a length never moved from where the garment starts is not a pick, so the look keeps its own. Not a top: a peplum
+ *  hangs only from some lengths. */
+export function lookPatchKeeping(look: HouseLook, m: MeasurementValues, own: PatternChoices, plain: PatternChoices): { garment: Garment } & Record<string, unknown> {
+  const made = lookChoices(look, m);
+  const g = look.garment;
+  const keys = g === 'jacket' || g === 'coat' ? ['length', 'dropCm', 'lengthCm'] : g === 'skirt' || g === 'trousers' || g === 'dress' ? ['length', 'lengthCm', 'kneeShare', 'floorClear'] : [];
+  const hemOf = (c: PatternChoices) => (g === 'dress' && isDress(c) ? c.skirt : c) as unknown as Record<string, unknown>;
+  const pick = (c: PatternChoices) => Object.fromEntries(keys.filter((k) => hemOf(c)[k] !== undefined).map((k) => [k, hemOf(c)[k]]));
+  if (!keys.length || JSON.stringify(pick(own)) === JSON.stringify(pick(plain))) return choicesPatch(g, made);
+  const rest = Object.fromEntries(Object.entries(hemOf(made)).filter(([k]) => !keys.includes(k)));
+  const hem = { ...rest, ...pick(own) };
+  return choicesPatch(g, (g === 'dress' && isDress(made) ? { ...made, skirt: hem } : hem) as unknown as PatternChoices);
+}
+
 /** Where a garment's choices are kept in the saved work. */
 function choicesPatch(garment: Garment, choices: PatternChoices): { garment: Garment } & Record<string, unknown> {
   if (isDress(choices)) return { garment, dress: choices };
