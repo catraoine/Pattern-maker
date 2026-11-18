@@ -149,6 +149,7 @@ describe('the tester pattern pages keep their footer clear', () => {
         const under: string[] = [];
         for (const list of events.values()) {
           const foot = list.findIndex((e) => e.kind === 'text' && e.text.startsWith('PAGE '));
+          expect(foot, 'a pattern page with no footer').toBeGreaterThan(0);
           const fy = (list[foot] as { y: number }).y;
           const clear = list.find((e) => e.kind === 'clear') as { x1: number; y1: number } | undefined;
           const line = list[foot + 1] as { x1: number };

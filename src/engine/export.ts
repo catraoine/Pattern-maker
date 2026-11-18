@@ -1014,9 +1014,6 @@ function inked(sheet: Sheet, x: number, y: number, w: number, h: number): boolea
   });
 }
 
-/** Whether anything is drawn in a region of the sheet (cm, from its top left): the page footer asks before it covers it. */
-export const inkedAt = (sheet: Sheet, x: number, y: number, w: number, h: number) => inked(sheet, x, y, w, h);
-
 /** Whether the segment a-b passes through the rectangle (x, y, w, h): Liang-Barsky clipping. */
 function throughRect(a: P, b: P, x: number, y: number, w: number, h: number): boolean {
   const dx = b.x - a.x;
