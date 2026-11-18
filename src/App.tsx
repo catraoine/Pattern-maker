@@ -64,7 +64,7 @@ import { coverGuide, coverMissing, coverPieces, padMap } from './engine/formCove
 import { labelCode, savedCopy } from './labels';
 import { fitSummary } from './fit';
 import { ImportedPattern, importedGuide } from './engine/importDxf';
-import { COLLECTION, HouseLook, TESTER_LOOK, lookArmsMissing, lookPatchKeeping, lookFabric, lookHipMissing, lookNameOf, lookPatch, lookResized, lookValues } from './collection';
+import { COLLECTION, HouseLook, TESTER_LOOK, lookArmsMissing, lookDropsLength, lookPatchKeeping, lookFabric, lookHipMissing, lookNameOf, lookPatch, lookResized, lookValues } from './collection';
 import { archiveCut } from './archive';
 import { CollectionLink, ExampleTag, GarmentPick, LookName, TesterLook } from './ui/GarmentSwitch';
 import { UnitNow } from './ui/LengthEntry';
@@ -790,6 +790,20 @@ export default function App() {
             ? { garment, piece: lingerieChoices.piece, stretch: lingerieChoices.stretch }
           : { garment: 'skirt', silhouette: saved.choices.silhouette, length: saved.choices.length, asymHem: saved.choices.asymHem, pleats: saved.choices.pleats, godets: saved.choices.godets, flounce: saved.choices.flounce };
 
+  // A fit tester's own look keeps its style: the "You're in" email says the style is set and only the length is theirs.
+  // A peplum tester changed the neckline and sleeves and took the peplum off, still believing she was sewing the Ice
+  // Peplum Top (testers, Nov 18). So a change that would make it another piece is asked about first; a length isn't.
+  // Every change of choices on Style comes through here, as the part of the saved work it changes. Kept as that part, so
+  // "Change it anyway" applies it to the work as it is then, not to a copy from when it was asked.
+  const [lookLeave, setLookLeave] = useState<Partial<Saved>>();
+  const testerOwnLook = COLLECTION.find((l) => l.id === TESTER_LOOK[garment]);
+  const onOwnLook = !!account.testerCode && !!lookName && testerOwnLook?.name === lookName;
+  const styleTo = (patch: Partial<Saved>) => {
+    if (onOwnLook && step === 'style' && lookNameOf(garment, GARMENT_DRAFTING[garment].choices({ ...saved, ...patch }), values) !== lookName) setLookLeave(patch);
+    else setSaved({ ...saved, ...patch });
+  };
+  // Asked about on Style only: leaving it (Back, another garment) lets the question go.
+  useEffect(() => setLookLeave(undefined), [step, garment]);
   // Makes a collection look: from the collection, and from a tester's link on Style to the look they sew. `keep`: the
   // garment's own work so far is kept in Saved patterns before the look takes its place. False when it went to take
   // measurements first.
@@ -818,8 +832,7 @@ export default function App() {
   };
   // A tester on the plain garment their look is made from, offered the look itself (testers, Nov 18).
   // Whatever was styled here is kept in Saved patterns first, so a tap never loses work (code review, Nov 18).
-  const testerLookId = account.testerCode && step === 'style' && !lookName ? TESTER_LOOK[garment] : undefined;
-  const testerLook = COLLECTION.find((l) => l.id === testerLookId);
+  const testerLook = account.testerCode && step === 'style' && !lookName ? testerOwnLook : undefined;
 
   return (
     <>
@@ -1137,11 +1150,16 @@ export default function App() {
               checks={checks}
               canContinue={canLeaveMeasure}
               notice={measureNote}
+              name={vestOf(garment, saved) ? 'vest' : undefined}
+              unused={skipFor(garment, saved)}
               onMeasure={(ids) => openSteps({ kind: 'redo', garment, ids })}
               onChangeForm={() => openSteps({ kind: 'form' })}
               onNext={() => {
                 countStep('measured', garment);
                 setAccount(updatePerson(account, person.id, recordMeasurements(person, new Date().toISOString().slice(0, 10))));
+                // Back to a tester's own look's page, ready to print, not its questions from the start: after Edit
+                // measurements, a tester read "Style your top" as starting over (testers, Nov 18).
+                if (onOwnLook) openLookNext();
                 setStep('style');
               }}
             />
@@ -1156,10 +1174,31 @@ export default function App() {
           )}
           {/* On Style it sits under the garment's name (Cat's K3, 2026-10-28), so StyleLayout draws it. */}
           {step === 'export' && exampleTag}
+          {lookLeave && lookName && step === 'style' && (
+            <div className="form-leave" role="dialog" aria-modal="true" aria-labelledby="look-leave-title" onKeyDown={(e) => e.key === 'Escape' && setLookLeave(undefined)}>
+              <div className="form-leave-box">
+                <h2 id="look-leave-title">Change the {lookName}?</h2>
+                <p>For fit testing, the style is set and only the length is yours. This change makes it a different {GARMENT_NAME[garment]}, so it would no longer be the {lookName} you're testing.</p>
+                <button type="button" className="primary done" onClick={() => setLookLeave(undefined)} autoFocus>
+                  Keep the {lookName}
+                </button>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => {
+                    setSaved({ ...saved, ...lookLeave });
+                    setLookLeave(undefined);
+                  }}
+                >
+                  Change it anyway
+                </button>
+              </div>
+            </div>
+          )}
           <UnitNow.Provider value={saved.unit}>
           <ExampleTag.Provider value={step === 'style' ? exampleTag : undefined}>
           <LookName.Provider value={step === 'style' ? lookName : undefined}>
-          <TesterLook.Provider value={testerLook && { name: testerLook.name, open: () => makeLook(testerLook, true, true) }}>
+          <TesterLook.Provider value={testerLook && { name: testerLook.name, open: () => makeLook(testerLook, true, true), lengthStays: lookDropsLength(testerLook, current, GARMENT_DRAFTING[garment].choices({ ...saved, ...firstVisit(garment) })) }}>
           <CollectionLink.Provider value={step === 'style' ? () => { setLookFrom('style'); setStep('collection'); window.scrollTo(0, 0); } : undefined}>
           {/* Switched in place from the title's drop-down: no new step in history, so ← still leaves the style screen. */}
           <GarmentPick.Provider value={step === 'style' ? { garment, onNew: startNew, onSaved: () => setStep('account') } : undefined}>
@@ -1169,7 +1208,7 @@ export default function App() {
               current={current}
               body={values as PhotoBody}
               headers={testerHeaders(account.testerCode)}
-              onChoices={(c) => setSaved({ ...saved, ...choicesPatch(c)[1] })}
+              onChoices={(c) => styleTo(choicesPatch(c)[1])}
             />
           )}
           {step === 'style' && garment === 'skirt' && (
@@ -1178,7 +1217,7 @@ export default function App() {
               onMode={setMode}
               easeMap={ease}
               choices={saved.choices}
-              onChoices={(choices) => setSaved({ ...saved, choices })}
+              onChoices={(choices) => styleTo({ choices })}
               fabric={fabric}
               onChooseGarment={chooseGarment}
               values={values}
@@ -1205,7 +1244,7 @@ export default function App() {
               onFinish={setFinish}
               easeMap={ease}
               choices={saved.bodice}
-              onChoices={(bodice) => setSaved({ ...saved, bodice })}
+              onChoices={(bodice) => styleTo({ bodice })}
               fabric={fabric}
               onChooseGarment={chooseGarment}
               values={values}
@@ -1230,7 +1269,7 @@ export default function App() {
               onFinish={setFinish}
               easeMap={ease}
               choices={dress}
-              onChoices={(d) => setSaved({ ...saved, dress: d })}
+              onChoices={(d) => styleTo({ dress: d })}
               fabric={fabric}
               onChooseGarment={chooseGarment}
               values={values}
@@ -1254,7 +1293,7 @@ export default function App() {
               onFinish={setFinish}
               easeMap={ease}
               choices={trousersChoices}
-              onChoices={(t) => setSaved({ ...saved, trousers: t })}
+              onChoices={(t) => styleTo({ trousers: t })}
               fabric={fabric}
               onChooseGarment={chooseGarment}
               values={values}
@@ -1274,7 +1313,7 @@ export default function App() {
               mode={mode}
               onMode={setMode}
               choices={teeChoices}
-              onChoices={(t) => setSaved({ ...saved, tee: t })}
+              onChoices={(t) => styleTo({ tee: t })}
               finish={finish}
               onFinish={setFinish}
               fabric={fabric}
@@ -1298,7 +1337,7 @@ export default function App() {
               mode={mode}
               onMode={setMode}
               choices={rangeChoices}
-              onChoices={(c) => setSaved({ ...saved, [rangeSlot(garment)]: c })}
+              onChoices={(c) => styleTo({ [rangeSlot(garment)]: c })}
               finish={finish}
               onFinish={setFinish}
               fabric={fabric}
@@ -1321,7 +1360,7 @@ export default function App() {
               mode={mode}
               onMode={setMode}
               choices={lingerieChoices}
-              onChoices={(l) => setSaved({ ...saved, lingerie: l })}
+              onChoices={(l) => styleTo({ lingerie: l })}
               fabric={fabric}
               onFabric={(f) => setFinish({ ...finish, fabric: f, cloth: clothFor(f, finish.cloth) })}
               onChooseGarment={chooseGarment}
@@ -1346,7 +1385,7 @@ export default function App() {
               onFinish={(f) => setSaved({ ...saved, finish: f })}
               easeMap={ease}
               choices={outerChoices}
-              onChoices={(c) => setSaved({ ...saved, [garment]: c })}
+              onChoices={(c) => styleTo({ [garment]: c })}
               fabric={fabric}
               onChooseGarment={chooseGarment}
               values={values}

@@ -63,7 +63,7 @@ describe('jumpsuit', () => {
         d = draftJumpsuit(m, looks[seed % looks.length]);
       } catch (e) {
         // The trouser block's own limit (a waist over the hip): the jumpsuit says the same, nothing more.
-        expect(String(e)).toMatch(/waist is larger than your hip|crotch depth/);
+        expect(String(e)).toMatch(/waist measures more than your hip|crotch depth/);
         continue;
       }
       expect(checkPattern(d.pieces).filter((c) => !c.ok), `seed ${seed}`).toEqual([]);

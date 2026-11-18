@@ -82,7 +82,7 @@ test('a wrong measurement is explained, not looped', async ({ page }) => {
   await next();
   await box.fill('9');
   await next();
-  await expect(main.getByText(/Full bust should be between/)).toBeVisible();
+  await expect(main.getByText(/Full bust can be from/)).toBeVisible();
   for (const v of ['92', '102', '72', '165']) {
     await box.fill(v);
     await next();

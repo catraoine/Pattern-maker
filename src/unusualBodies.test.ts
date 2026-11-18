@@ -72,7 +72,8 @@ describe('unusual bodies', () => {
       all.filter((_, j) => j % step === i % step).map((d) => {
         const r = walkDesign(d, v);
         // A body the app turns away for this design, with its message, is not a fault of the pattern.
-        const refused = r.error && /can.t be drafted|can’t be drafted|will work/i.test(r.error);
+        // The same refusals, reworded Nov 18 so they speak of the draft, never the body.
+        const refused = r.error && /can.t be drafted|can’t be drafted|can’t follow that|will work/i.test(r.error);
         return { ...r, error: refused ? undefined : r.error, key: `${d.key} (${name})` };
       }),
     );

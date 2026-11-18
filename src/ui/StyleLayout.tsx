@@ -945,6 +945,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           <button type="button" onClick={() => testerLook.open() && lookNext && lookReview()}>
             Open it ›
           </button>
+          {testerLook.lengthStays && <span className="tester-look-note">It has its own length, so the length you set here won't come across. You can change it there.</span>}
         </p>
       )}
       <div className="style-edit">

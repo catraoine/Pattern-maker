@@ -65,7 +65,7 @@ export function WeightEntry({ unit, helper, weight, onWeight, note = true }: { u
       </div>
       {wrong && (
         <p className="msg error" role="alert">
-          Weight should be between {fromKg(WEIGHT_HARD[0], wu)} and {fromKg(WEIGHT_HARD[1], wu)} {wu}. Is the unit right?
+          Weight can be from {fromKg(WEIGHT_HARD[0], wu)} to {fromKg(WEIGHT_HARD[1], wu)} {wu} here. Is the unit right? It&rsquo;s optional, so you can skip it.
         </p>
       )}
       {note && (

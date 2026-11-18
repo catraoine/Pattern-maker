@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { COLLECTION, TESTER_LOOK, lookChoices, lookPatchKeeping, lookFabric, lookFlat, lookNameOf, lookPatch, lookResized, lookValues } from './collection';
+import { COLLECTION, TESTER_LOOK, lookChoices, lookDropsLength, lookPatchKeeping, lookFabric, lookFlat, lookNameOf, lookPatch, lookResized, lookValues } from './collection';
 import { randomBody, rng } from './engine/randomBodies';
 import { EXAMPLE_BODY, EXAMPLE_VALUES, isComplete } from './measurements';
 import { DEFAULT_BODICE, DEFAULT_JACKET_CHOICES, DEFAULT_TROUSERS_CHOICES, type PatternChoices } from './garments';
@@ -134,5 +134,27 @@ describe('a look opened from the plain garment', () => {
   });
   it('leaves a top\'s length to the look, so its peplum can hang', () => {
     expect(lookPatchKeeping(look('ice-peplum'), EXAMPLE_VALUES, { ...DEFAULT_BODICE, length: 'long' }, DEFAULT_BODICE)).toEqual(lookPatch(look('ice-peplum'), EXAMPLE_VALUES));
+  });
+
+  it('says when a top\'s length is left behind, and only then', () => {
+    expect(lookDropsLength(look('ice-peplum'), { ...DEFAULT_BODICE, length: 'high_hip', dropCm: 9 }, DEFAULT_BODICE)).toBe(true);
+    expect(lookDropsLength(look('ice-peplum'), DEFAULT_BODICE, DEFAULT_BODICE)).toBe(false);
+    expect(lookDropsLength(look('ice-peplum'), { ...DEFAULT_BODICE, length: 'waist', dropCm: 6 }, DEFAULT_BODICE)).toBe(false);
+    // Every other tester look carries the length across, so has nothing to say.
+    expect(lookDropsLength(look('chocolate-barrel'), { ...DEFAULT_TROUSERS_CHOICES, lengthCm: 94 }, DEFAULT_TROUSERS_CHOICES)).toBe(false);
+  });
+});
+
+// A peplum tester with a top's measurements but no waist to hip saw "This look can't be drafted to these measurements"
+// on the Ice Peplum's card, and read it as being told she was too big for it (tester, Nov 18). Every look draws.
+describe('a look card always has a drawing', () => {
+  const IN = 2.54;
+  const look = (id: string) => COLLECTION.find((l) => l.id === id)!;
+  const topOnly = { height: 66 * IN, full_bust: 44 * IN, high_bust: 41 * IN, waist: 42 * IN, shoulder_width: 17 * IN, nape_to_waist: 18 * IN, front_hps_to_waist: 22.5 * IN, bust_depth: 14.5 * IN, full_hip: 43 * IN };
+  it('draws every look to these measurements, or to the sample while one is still to take', () => {
+    for (const l of COLLECTION) expect(lookFlat(l, lookValues(l, topOnly).values), l.id).toBeDefined();
+    expect(lookValues(look('ice-peplum'), topOnly).own).toBe(false);
+    expect(lookValues(look('ice-peplum'), { ...topOnly, waist_to_hip: 21 }).own).toBe(true);
+    expect(lookFlat(look('ice-peplum'), { ...topOnly, waist_to_hip: 21 })).toBeDefined();
   });
 });

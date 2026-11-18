@@ -35,7 +35,18 @@ export function toFeetInches(cm: number): string {
 export function fmtMeasure(id: string, cm: number, unit: Unit): string {
   if (unit === 'cm') return `${cm} cm`;
   if (id === 'height') return toFeetInches(cm);
-  return `${Math.round((cm / 2.54) * 10) / 10} in`;
+  return `${measureInches(cm)} in`;
+}
+
+/** A measurement in inches as it was typed. It's kept to a tenth of a centimetre, so a tape's 37.75 came back as 37.8
+ *  and 15.25 as 15.2 (pretend-tester walk, Nov 18). The tenth of an inch is shown when it gives back the same tenth of a
+ *  cm; failing that the quarter inch, a tape's own mark, when that does; otherwise the tenth (entered in cm, say). */
+export function measureInches(cm: number): number {
+  const inches = cm / 2.54;
+  const back = (n: number) => Math.round(n * 25.4) / 10 === cm;
+  const tenth = Math.round(inches * 10) / 10;
+  const quarter = Math.round(inches * 4) / 4;
+  return back(tenth) || !back(quarter) ? tenth : quarter;
 }
 
 /** A length in the sewist's unit: "12 cm" or "4¾ in". */

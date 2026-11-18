@@ -118,3 +118,46 @@ describe('the tester booklets keep things together', () => {
       }
     });
 });
+
+// Piece labels printed through the page footer ("PAGE A2 ... PRINT AT 100%") on 9 of 10 tester pattern files (pretend-
+// tester walk, Nov 18). The footer sits in the strip the page below repeats, so that strip is cleared under it first.
+describe('the tester pattern pages keep their footer clear', () => {
+  afterEach(() => vi.restoreAllMocks());
+  const CM = 72 / 2.54;
+  for (const id of IDS)
+    it(`${id}: no piece words under the page footer`, async () => {
+      const { look, print } = made(id, EXAMPLE_BODY);
+      const sheet = layout(print.pieces, `Maison Tracé: ${look.name}`, print.notes, { pattern: look.name, madeFor: 'Tester' });
+      for (const paper of ['letter', 'a4'] as const) {
+        const events = new Map<PDFPage, ({ kind: 'text'; text: string; x: number; x1: number; y: number } | { kind: 'clear'; x1: number; y1: number })[]>();
+        const add = (p: PDFPage, e: never) => (events.get(p) ?? events.set(p, []).get(p)!).push(e);
+        const realText = PDFPage.prototype.drawText;
+        const realRect = PDFPage.prototype.drawRectangle;
+        vi.spyOn(PDFPage.prototype, 'drawText').mockImplementation(function (this: PDFPage, text: string, o?: { x?: number; y?: number; size?: number; font?: PDFFont }) {
+          const x = o?.x ?? 0;
+          const font = o?.font;
+          const size = o?.size ?? 0;
+          add(this, { kind: 'text', text, x, x1: x + (font ? font.widthOfTextAtSize(text, size) : 0), y: o?.y ?? 0 } as never);
+          return realText.call(this, text, o as never);
+        });
+        vi.spyOn(PDFPage.prototype, 'drawRectangle').mockImplementation(function (this: PDFPage, o?: { x?: number; y?: number; width?: number; height?: number; color?: unknown }) {
+          if (o && (o.color as { red?: number } | undefined)?.red === 1) add(this, { kind: 'clear', x1: (o.x ?? 0) + (o.width ?? 0), y1: (o.y ?? 0) + (o.height ?? 0) } as never);
+          return realRect.call(this, o as never);
+        });
+        await toTiledPdf(sheet, paper, { title: look.name, unit: 'cm', part: 'pattern' });
+        vi.restoreAllMocks();
+        const under: string[] = [];
+        for (const list of events.values()) {
+          const foot = list.findIndex((e) => e.kind === 'text' && e.text.startsWith('PAGE '));
+          expect(foot, 'a pattern page with no footer').toBeGreaterThan(0);
+          const fy = (list[foot] as { y: number }).y;
+          const clear = list.find((e) => e.kind === 'clear') as { x1: number; y1: number } | undefined;
+          const line = list[foot + 1] as { x1: number };
+          // Words drawn on the footer's line before it, unless a cleared band went down between.
+          for (const e of list.slice(0, foot))
+            if (e.kind === 'text' && e.y > fy - 0.1 * CM && e.y < fy + 0.25 * CM && e.x < line.x1 + 0.3 * CM && e.x1 > 0.9 * CM && !(clear && list.indexOf(clear as never) > list.indexOf(e) && e.y < clear.y1 && e.x < clear.x1)) under.push(`"${e.text}"`);
+        }
+        expect(under, paper).toEqual([]);
+      }
+    });
+});

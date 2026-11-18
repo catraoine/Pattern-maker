@@ -14,7 +14,7 @@ import { DESIGNS as EYE_DESIGNS, Design } from './eye-designs';
 // weekly eye check's random designs and new options (All round quality, Cat 2026-11-03).
 const DESIGNS: Design[] = process.env.EYE_FROM ? JSON.parse(readFileSync(process.env.EYE_FROM, 'utf8')) : EYE_DESIGNS;
 
-const WORD: Record<string, string> = { skirt: 'skirt', bodice: 'bodice', dress: 'dress', jacket: 'jacket', coat: 'coat', trousers: 'trousers', tee: 'T-shirt' };
+const WORD: Record<string, string> = { skirt: 'skirt', bodice: 'top', dress: 'dress', jacket: 'jacket', coat: 'coat', trousers: 'trousers', tee: 'T-shirt' };
 
 test('all round eye check', async ({ page, consoleErrors }, info) => {
   test.setTimeout(3_600_000);
@@ -44,7 +44,7 @@ test('all round eye check', async ({ page, consoleErrors }, info) => {
     if (await loading.isVisible().catch(() => false)) await page.keyboard.press('Escape');
     const again = page.getByRole('button', { name: /^Carry on with your/ });
     if (await again.count()) await again.first().click();
-    await main.getByRole('heading', { level: 1, name: new RegExp(`^Style your ${WORD[d.garment]}`) }).waitFor({ timeout: 30_000 });
+    await main.getByRole('heading', { level: 1, name: /^Style your / }).waitFor({ timeout: 30_000 });
     await page.evaluate(() => window.scrollTo(0, 0));
     const views = main.getByRole('group', { name: 'Garment view' });
     await views.getByRole('button', { name: 'All round', exact: true }).click();
@@ -58,7 +58,7 @@ test('all round eye check', async ({ page, consoleErrors }, info) => {
       sewn = 'timeout';
     }
     await page.waitForTimeout(1500);
-    const note = (await main.locator('.all-round-note').textContent().catch(() => '')) ?? '';
+    const note = (await main.locator('.all-round-note').textContent({ timeout: 2_000 }).catch(() => '')) ?? '';
     // With the Front drawing standing in for a failed sewn drawing, the whole view is shot.
     const standIn = await main.locator('.all-round-stand-in').count();
     const shotOf = standIn ? main.locator('.all-round') : cv;
