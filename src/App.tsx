@@ -63,9 +63,9 @@ import { coverGuide, coverMissing, coverPieces, padMap } from './engine/formCove
 import { labelCode, savedCopy } from './labels';
 import { fitSummary } from './fit';
 import { ImportedPattern, importedGuide } from './engine/importDxf';
-import { lookArmsMissing, lookFabric, lookHipMissing, lookNameOf, lookPatch, lookResized, lookValues } from './collection';
+import { COLLECTION, HouseLook, TESTER_LOOK, lookArmsMissing, lookFabric, lookHipMissing, lookNameOf, lookPatch, lookResized, lookValues } from './collection';
 import { archiveCut } from './archive';
-import { CollectionLink, ExampleTag, GarmentPick, LookName } from './ui/GarmentSwitch';
+import { CollectionLink, ExampleTag, GarmentPick, LookName, TesterLook } from './ui/GarmentSwitch';
 import { UnitNow } from './ui/LengthEntry';
 import { LoadingScreen } from './ui/LoadingScreen';
 import type { FormStart } from './ui/ContourForm';
@@ -653,12 +653,17 @@ export default function App() {
   const chooseGarment = () => openSteps({ kind: 'choose' });
 
   /** Switch garment, going straight to the measurements the new one still needs, one page each. */
-  const switchGarment = (g: Garment, next: Partial<Saved> = {}, to: View = step, using: MeasurementValues = measured, also: MeasurementId[] = []) => {
+  /** Opens garment `g` on `to`; false when it went to take measurements first. */
+  const switchGarment = (g: Garment, next: Partial<Saved> = {}, to: View = step, using: MeasurementValues = measured, also: MeasurementId[] = []): boolean => {
     const after = { ...saved, ...plainCloth(g), ...next, garment: g };
     setSaved(after);
     const stays = to === 'style' || to === 'export';
-    if (stays && (!ready(using, saved.unit, g, form, skipFor(g, after)) || also.length)) measureFor(g, using, form, also, after);
-    else setStep(to);
+    if (stays && (!ready(using, saved.unit, g, form, skipFor(g, after)) || also.length)) {
+      measureFor(g, using, form, also, after);
+      return false;
+    }
+    setStep(to);
+    return true;
   };
 
   /**
@@ -775,6 +780,34 @@ export default function App() {
           : garment === 'lingerie'
             ? { garment, piece: lingerieChoices.piece, stretch: lingerieChoices.stretch }
           : { garment: 'skirt', silhouette: saved.choices.silhouette, length: saved.choices.length, asymHem: saved.choices.asymHem, pleats: saved.choices.pleats, godets: saved.choices.godets, flounce: saved.choices.flounce };
+
+  // Makes a collection look: from the collection, and from a tester's link on Style to the look they sew. `keep`: the
+  // garment's own work so far is kept in Saved patterns before the look takes its place. False when it went to take
+  // measurements first.
+  const makeLook = (look: HouseLook, keep = freshStart) => {
+    const { garment: g, ...next } = lookPatch(look, lookValues(look, values).values);
+    if (keep) {
+      const kept = keepThenFresh(g);
+      setFreshStart(false);
+      if (kept.account !== account) setAccount(kept.account);
+    }
+    // The look comes in the cloth it's named for, so the drawing and the Fabric step open in it.
+    const cloth = lookFabric(look.fabric);
+    const withCloth = keepFinish(storedFinish, { ...finish, ...look.finish, fabric: cloth, cloth: clothFor(cloth, finish.cloth) }, mode);
+    // A look with sleeves asks for the arms first, or its pattern would print without them (bug hunt, Nov 12),
+    // and a top below the waist the hip first, or Style can't draft it (testers, Nov 12).
+    // It opens on itself, ready to print; Change a detail goes on to the questions.
+    openLookNext();
+    const here = switchGarment(g, { ...next, archive: archiveCut(look.id)?.id, finish: withCloth, house: look.finish && { garment: g, finish: look.finish } } as Partial<Saved>, 'style', measured, [...lookHipMissing(look, measured), ...lookArmsMissing(look, measured)]);
+    // To the top once the look's page is up: scrolled at once, the collection's own top flashed up while
+    // the look was drafted (testers' laptop walk, Nov 17).
+    requestAnimationFrame(() => window.scrollTo(0, 0));
+    return here;
+  };
+  // A tester on the plain garment their look is made from, offered the look itself (testers, Nov 18).
+  // Whatever was styled here is kept in Saved patterns first, so a tap never loses work (code review, Nov 18).
+  const testerLookId = account.testerCode && step === 'style' && !lookName ? TESTER_LOOK[garment] : undefined;
+  const testerLook = COLLECTION.find((l) => l.id === testerLookId);
 
   return (
     <>
@@ -1101,26 +1134,7 @@ export default function App() {
               values={values}
               onBack={lookFrom === 'steps' ? back : () => setStep('style')}
               backLabel={lookFrom === 'steps' ? 'Back' : undefined}
-              onMake={(look) => {
-                const { garment: g, ...next } = lookPatch(look, lookValues(look, values).values);
-                // Started something new: the garment's own work so far is kept before the look takes its place.
-                if (freshStart) {
-                  const kept = keepThenFresh(g);
-                  setFreshStart(false);
-                  if (kept.account !== account) setAccount(kept.account);
-                }
-                // The look comes in the cloth it's named for, so the drawing and the Fabric step open in it.
-                const cloth = lookFabric(look.fabric);
-                const withCloth = keepFinish(storedFinish, { ...finish, ...look.finish, fabric: cloth, cloth: clothFor(cloth, finish.cloth) }, mode);
-                // A look with sleeves asks for the arms first, or its pattern would print without them (bug hunt, Nov 12),
-                // and a top below the waist the hip first, or Style can't draft it (testers, Nov 12).
-                // It opens on itself, ready to print; Change a detail goes on to the questions.
-                openLookNext();
-                switchGarment(g, { ...next, archive: archiveCut(look.id)?.id, finish: withCloth, house: look.finish && { garment: g, finish: look.finish } } as Partial<Saved>, 'style', measured, [...lookHipMissing(look, measured), ...lookArmsMissing(look, measured)]);
-                // To the top once the look's page is up: scrolled at once, the collection's own top flashed up while
-                // the look was drafted (testers' laptop walk, Nov 17).
-                requestAnimationFrame(() => window.scrollTo(0, 0));
-              }}
+              onMake={(look) => makeLook(look)}
             />
           )}
           {/* On Style it sits under the garment's name (Cat's K3, 2026-10-28), so StyleLayout draws it. */}
@@ -1128,6 +1142,7 @@ export default function App() {
           <UnitNow.Provider value={saved.unit}>
           <ExampleTag.Provider value={step === 'style' ? exampleTag : undefined}>
           <LookName.Provider value={step === 'style' ? lookName : undefined}>
+          <TesterLook.Provider value={testerLook && { name: testerLook.name, open: () => makeLook(testerLook, true) }}>
           <CollectionLink.Provider value={step === 'style' ? () => { setLookFrom('style'); setStep('collection'); window.scrollTo(0, 0); } : undefined}>
           {/* Switched in place from the title's drop-down: no new step in history, so ← still leaves the style screen. */}
           <GarmentPick.Provider value={step === 'style' ? { garment, onNew: startNew, onSaved: () => setStep('account') } : undefined}>
@@ -1328,6 +1343,7 @@ export default function App() {
           )}
           </GarmentPick.Provider>
           </CollectionLink.Provider>
+          </TesterLook.Provider>
           </LookName.Provider>
           </ExampleTag.Provider>
           </UnitNow.Provider>

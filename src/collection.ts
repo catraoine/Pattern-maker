@@ -355,6 +355,11 @@ function lengthless(garment: Garment, c: PatternChoices): unknown {
   return garment === 'skirt' || garment === 'trousers' ? hem(c) : c;
 }
 
+/** The look each fit tester sews, by its garment: one per garment. A tester who picked "Top" from the garment list
+ *  rather than the Ice Peplum Top from the collection drafted a plain top, with no peplum to pick and the plain top's
+ *  questions (testers, Nov 18), so Style points a tester on the plain garment to the look itself. */
+export const TESTER_LOOK: Partial<Record<Garment, string>> = { dress: 'blush-shift', bodice: 'ice-peplum', skirt: 'black-pleated-skirt', trousers: 'chocolate-barrel', jacket: 'black-vest' };
+
 /** The collection look these choices still are, for the print's title card ("Leopard Shirt Dress" over the long
  *  description; Cat, Nov 12). Undefined once any option is changed, but not the length: a Blush Shift tester who
  *  dragged her hem to above the knee saw "Your dress" where "Blush Shift" had been (testers, Nov 17). */
