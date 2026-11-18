@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ShareLink } from '../ui/ShareLink';
+import { OWNER } from '../legal';
 import { ContourForm, type FormStart } from '../ui/ContourForm';
 import type { FormKind } from '../measurements';
 import { TOUR_LABEL, TourPlayer } from '../ui/TourPlayer';
@@ -257,6 +258,10 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
               {/* What joining gets them, said once more now they are on the list (Cat, Nov 16 2026). */}
               <p className="waitlist-line">{FOUNDING_LINE}</p>
               <ShareLink />
+              {/* Nothing else is open to someone on the waitlist yet, so one way to ask (Cat's A, Nov 17 2026). */}
+              <p className="waitlist-tester">
+                Questions? <a href={`mailto:${OWNER.email}`}>{OWNER.email}</a>
+              </p>
             </div>
           ) : waitlist.checking ? (
             <div className="stack waitlist">

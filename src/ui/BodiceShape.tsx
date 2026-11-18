@@ -26,8 +26,9 @@ import { COWL_DEPTH, PEPLUM_SEAM_MAX, peplumLengthOk } from '../engine/drape';
 import { hemOffsetAt } from '../engine/bodiceHem';
 import { unevenEdge } from '../engine/uneven';
 import type { Side } from './ShapeSketch';
+import { LengthTap } from './LengthEntry';
 import { FormArm, formWidth } from './DrawOnForm';
-import { FormLayers, SQUEEZE, clothReach, formFrame, wornCloth, wornFolds, wornMapper } from './FormSketch';
+import { FormLayers, SQUEEZE, clothReach, drawnPointBack, formFrame, neckLift, squeezeX, wornCloth, wornFolds, wornMapper } from './FormSketch';
 import { landmarks } from './formLines';
 
 interface Worn {
@@ -177,6 +178,14 @@ export function dragDrop(m: BodiceMeasurements, c: BodiceChoices, cm: number): B
   return { ...rest, length: PEPLUM_SEAM_MAX < WH * 0.75 ? 'high_hip' : 'hip', dropCm: PEPLUM_SEAM_MAX };
 }
 
+/** How far below the waist a top's length can be typed: from the waist (a peplum's seam from its least drop) to the
+ *  longest a drag reaches. A peplum's seam stops at PEPLUM_SEAM_MAX, as its drag does: the box offered up to 25 cm and
+ *  then quietly kept 12 (pretend tester, Nov 17). */
+const dropLimits = (m: BodiceMeasurements, c: BodiceChoices) => {
+  const max = dropRange(m, c.length, c.shirtCut).max;
+  return (c.peplum ?? 'none') === 'none' ? { min: 0, max } : { min: DROP_MIN, max: Math.min(max, PEPLUM_SEAM_MAX) };
+};
+
 function dropAt(m: BodiceMeasurements, c: BodiceChoices, cm: number): BodiceChoices {
   const { dropCm: _d, ...rest } = c;
   if (cm < DROP_MIN / 2) return { ...rest, length: 'waist' };
@@ -309,7 +318,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
   // just enough to keep it on the ground.
   const easeWords = choices.bustEase !== undefined ? `${choices.bustEase} cm ease` : fitName(choices.fit);
   const longest = Math.max(...easeWords.split(' ').length > 1 ? [easeWords.slice(0, easeWords.lastIndexOf(' ')).length, easeWords.slice(easeWords.lastIndexOf(' ') + 1).length] : [easeWords.length]);
-  const cx = Math.max(frame.half, SQUEEZE * widest.x + 2.4 * k + 3.2 * k + longest * 2.6 * k * 0.85 + 1.5 * k);
+  const cx = Math.max(frame.half, squeezeX(body, widest.x, widest.y) + 2.4 * k + 3.2 * k + longest * 2.6 * k * 0.85 + 1.5 * k);
 
   const toSvg = (e: PointerEvent): P => {
     const ctm = svg.current!.getScreenCTM()!.inverse();
@@ -331,7 +340,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
       const next =
         drag.kind === 'hem'
           ? dragDrop(m, drag.before, drag.drop + at.y - drag.start.y)
-          : dragEase(drag.before, drag.ease + (4 * (at.x - drag.start.x) * (drag.start.x >= cx ? 1 : -1)) / SQUEEZE);
+          : dragEase(drag.before, drag.ease + (4 * (at.x - drag.start.x) * (drag.start.x >= cx ? 1 : -1)) / (squeezeX(body, widest.x + 1, widest.y) - squeezeX(body, widest.x, widest.y)));
       onLive(next);
     } else if (stroke) {
       setStroke([...stroke, toSvg(e)]);
@@ -343,7 +352,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
       onDone(drag.before, live.current);
       setDrag(undefined);
     } else if (stroke) {
-      const neck = stroke.length > 2 ? strokeToNeck(stroke.map((q) => ({ x: (q.x - cx) / SQUEEZE, y: q.y })), side, draft, currentNeck(choices)) : undefined;
+      const neck = stroke.length > 2 ? strokeToNeck(stroke.map((q) => drawnPointBack(body, neckLift(body), { x: q.x - cx, y: q.y })), side, draft, currentNeck(choices)) : undefined;
       if (neck) onDone(choices, { ...choices, neck });
       setStroke(undefined);
     }
@@ -372,7 +381,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
     // The hem's word starts past the garment at its height, out on the ground: on a peplum and its sleeves each word sat
     // on its own chalk patch (the Ice Peplum, Nov 13). On one line if it fits there, else on two; with no room past the
     // garment at all, it stays beside the disc.
-    const past = kind === 'hem' ? cx + SQUEEZE * Math.max(...[-1.8, 0, 1.8].map((d) => clothReach(at.y + d * k, body, cloth, arms, sleeve))) + 1.6 * k : 0;
+    const past = kind === 'hem' ? cx + Math.max(...[-1.8, 0, 1.8].map((d) => squeezeX(body, clothReach(at.y + d * k, body, cloth, arms, sleeve), at.y + d * k))) + 1.6 * k : 0;
     const fitsPast = (t: string) => past + t.length * 2.6 * k * 0.85 < 2 * cx - k;
     const out = kind === 'hem' && past > at.x + r + 3.2 * k && (fitsPast(text) || (!!halves && halves.every(fitsPast)));
     const x = out ? past : at.x + r + 3.2 * k;
@@ -403,6 +412,17 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
               ))
             : text.toUpperCase()}
         </text>
+        {/* Tapped, the length's words open a box to type it (testers, Nov 17). Under the disc's own hit area, so a drag
+            still starts wherever it did. */}
+        {kind === 'hem' && !drawing && (
+          <LengthTap
+            x={x}
+            y={at.y - (two ? 4.4 : 3) * k}
+            width={Math.max(...(two ?? [text]).map((t) => t.length)) * 2.6 * k * 0.85}
+            height={(two ? 8 : 5) * k}
+            ask={{ name: 'Top length', from: 'below the waist', cm: draft.drop, ...dropLimits(m, choices), onCm: (cm) => onDone(choices, dragDrop(m, choices, cm)) }}
+          />
+        )}
         <circle
           cx={at.x}
           cy={at.y}
@@ -446,8 +466,8 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
       <FormLayers body={body} m={m} legs={false} cx={cx} top={frame.top} bottom={frame.bottom} arms={arms} lines={lines} worn={cloth} folds={folds} sleeve={arms ? sleeve : undefined} />
       {guide(waistY, 'WAIST')}
       {hip && guide(waistY + m.waist_to_hip!, 'HIP')}
-      {!drawing && hip && handle({ x: cx + SQUEEZE * hemCentre.x, y: hemCentre.y }, 'hem', lengthLabel)}
-      {!drawing && handle({ x: cx + SQUEEZE * widest.x, y: widest.y }, 'side', easeLabel)}
+      {!drawing && hip && handle({ x: cx + squeezeX(body, hemCentre.x, hemCentre.y), y: hemCentre.y }, 'hem', lengthLabel)}
+      {!drawing && handle({ x: cx + squeezeX(body, widest.x, widest.y), y: widest.y }, 'side', easeLabel)}
       {drawing && !stroke && (
         <text x={cx} y={frame.bottom - 3 * k} fontSize={2.1 * k} textAnchor="middle" className="hint">
           {side === 'front' ? 'DRAW THE NECKLINE YOU WANT' : 'DRAW THE BACK NECKLINE'}
