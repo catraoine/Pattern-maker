@@ -28,14 +28,15 @@ await page.goto(APP);
 await page.waitForTimeout(1500);
 const CSS = `
   html,body{margin:0;background:transparent!important;width:${VW}px;height:${VH}px;overflow:hidden}
-  .f{position:fixed;inset:0;color:#efe4cc;font-family:'Space Grotesk',sans-serif}
+  .f{position:fixed;inset:0;color:#efe4cc;font-family:'Instrument Sans',sans-serif}
   .k{font:400 10px/1 'Chakra Petch',monospace;letter-spacing:.34em;text-transform:uppercase;color:#d9c49b}
   .r{width:96px;height:1px;background:#d9c49b;margin:18px 0}
   /* The film's words are champagne, its own voice apart from the app's cream (Cat, 2026-10-31: the gold looked bad). */
   .t{color:#d9c49b;font-family:'Archivo Variable',sans-serif;font-stretch:87%;font-weight:600;text-transform:uppercase;line-height:.9;letter-spacing:.005em;margin:0}
-  /* The captions over the app (Cat's V5, 2026-11-06): Space Grotesk medium in sentence case, one line, champagne, big
-     enough to be read at once, so the viewer knows where to look. */
-  .n{color:#d9c49b;font-family:'Space Grotesk',sans-serif;font-weight:500;text-transform:none;font-stretch:100%;line-height:1.1;letter-spacing:-0.005em;white-space:nowrap;margin:0}
+  /* The captions over the app (Cat's V5, 2026-11-06): sentence case, one line, big enough to be read at once, so the
+     viewer knows where to look. Blush and bolder in the app's own font (Cat, Nov 18: more prominent; the film still
+     asked for Space Grotesk, which the app no longer loads, so the words had fallen back to a plain font). */
+  .n{color:#f2c2b8;font-family:'Instrument Sans',sans-serif;font-weight:600;text-transform:none;font-stretch:100%;line-height:1.1;letter-spacing:-0.005em;white-space:nowrap;margin:0}
   .l{color:#d9c49b;font-weight:300;font-size:17px;line-height:1.45;margin:0}
   .mid{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
   .mid .r{margin:20px auto}`;
@@ -62,7 +63,8 @@ const endCard = () => {
 // One size for every title card, How it works included, small enough that HOW IT WORKS sits on one line on a phone
 // (Cat, 2026-11-06: "on one line and smaller", and the same size as Measure, Choose, Style and Print).
 const HEAD = WIDE ? 62 : 52;
-const card = (kicker, title, line = '', size = HEAD) => words(`<div class="f mid">${kicker ? `<div class="k">${kicker}</div><div class="r"></div>` : ''}<h1 class="t" style="font-size:${size}px">${title}</h1>${line ? `<p class="l" style="margin-top:18px">${line}</p>` : ''}</div>`, { solid: true });
+// A chapter's number and line are blush, the narration's colour, its title champagne (Cat, Nov 18).
+const card = (kicker, title, line = '', size = HEAD) => words(`<div class="f mid">${kicker ? `<div class="k" style="color:#f2c2b8">${kicker}</div><div class="r" style="background:#f2c2b8"></div>` : ''}<h1 class="t" style="font-size:${size}px">${title}</h1>${line ? `<p class="l" style="margin-top:18px">${line}</p>` : ''}</div>`, { solid: true });
 
 // A film file's length, in seconds.
 const length = (f) => Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', f]).toString());
@@ -248,8 +250,8 @@ const DRAW_OFF = WIDE ? 0 : 1.4;
 // No drawing on the form now (Cat, Nov 18), so no line for it unless the take has one (TOUR_DRAW=1).
 const DRAW_NOTES = MARKS.draw < MARKS.done - 1 ? [[['Draw a longer hem', 'on your form.'], MARKS.draw + 0.9, MARKS.done - 1.2 - DRAW_OFF]] : [];
 const note2 = (lines) => words(WIDE
-  ? `<div class="f" style="padding:44px 0 0 96px"><h1 class="n" style="font-size:34px">${lines.join('<br>')}</h1></div>`
-  : `<div class="f" style="padding:38px 0 0 22px"><h1 class="n" style="font-size:29px">${lines.join('<br>')}</h1></div>`);
+  ? `<div class="f" style="padding:44px 0 0 96px"><h1 class="n" style="font-size:37px">${lines.join('<br>')}</h1></div>`
+  : `<div class="f" style="padding:38px 0 0 22px"><h1 class="n" style="font-size:32px">${lines.join('<br>')}</h1></div>`);
 // D1 One Palette Card (Cat, 2026-11-02): as the dress takes the new cloth, one tall swatch card of it, the app's cream
 // label strip under it, glides in beside the form and holds still, gone before the drawing tool opens. Its swatch is
 // cut from the dress itself once the cloth is on, so it is the very cloth on the form. CARD_AT: shot time the cloth
@@ -385,7 +387,7 @@ async function draftFilm(dur) {
     .dr svg text{fill:#d9c49b!important;stroke:none!important;opacity:0}
     .dns{display:flex;${WIDE ? 'flex-direction:column;gap:22px;width:200px' : 'flex-direction:row;gap:16px'}}
     .dn{display:flex;flex-direction:column;gap:6px;opacity:0;${WIDE ? '' : 'align-items:center'}}
-    .dn b{font:500 ${WIDE ? 40 : 22}px/1 'Space Grotesk',sans-serif;color:#efe4cc}
+    .dn b{font:500 ${WIDE ? 40 : 22}px/1 'Instrument Sans',sans-serif;color:#efe4cc}
     .dn .k{font-size:${WIDE ? 11 : 8}px}`, `<div class="dr"><div class="dns">${nums}</div>${svg}</div>`]);
   await page.evaluate(() => document.fonts.ready);
   // Each line's length, so it can be drawn from its start; the outlines (polygons) first, then the inner lines.
@@ -442,21 +444,21 @@ async function threeChecks() {
 // The film's words are gold (.t), so they read apart from the app's cream headings; on a phone they are 40px, the longer
 // lines breaking in two (Cat, 2026-10-30: T1 C; 32px read too small next to the app's bigger headings).
 // The shade is near solid down past the words, so a page scrolling under them never shows through (Cat, 2026-10-30).
-// V5 (Cat, 2026-11-06): one line of Space Grotesk medium, 72px on the 1080-wide phone film (29px here), 34px on the
+// V5 (Cat, 2026-11-06), blush and bolder since Nov 18: 32px here on a phone (80px on the 1080-wide film), 37px on the
 // computer's; the two-line phone captions are joined into one.
 // A phone line too long for one line keeps its break, rather than run off the screen (Nov 18: Cat's longer lines).
 const note = (line0, where, shade = true) => {
   const one = line0.replace(/<br>/g, ' ');
   const line = WIDE || one.length <= 28 ? one : line0;
   return words(WIDE && where === 'side'
-  ? `<div class="f" style="display:flex;flex-direction:column;justify-content:center;padding-left:96px;background:linear-gradient(to right,rgba(0,0,0,.85) 0,rgba(0,0,0,.6) 30%,rgba(0,0,0,0) 42%)"><h1 class="n" style="font-size:34px">${line}</h1></div>`
+  ? `<div class="f" style="display:flex;flex-direction:column;justify-content:center;padding-left:96px;background:linear-gradient(to right,rgba(0,0,0,.85) 0,rgba(0,0,0,.6) 30%,rgba(0,0,0,0) 42%)"><h1 class="n" style="font-size:37px">${line}</h1></div>`
   : WIDE
-  ? `<div class="f" style="${shade ? 'background:linear-gradient(to bottom,#000000 0,#000000 15.5%,rgba(0,0,0,0) 21%);' : ''}padding:${where === 'low' ? 54 : 44}px 0 0 96px"><h1 class="n" style="font-size:34px">${line}</h1></div>`
-  : `<div class="f" style="${shade ? 'background:linear-gradient(to bottom,#000000 0,#000000 14.5%,rgba(0,0,0,0) 19%);' : ''}padding:${where === 'low' ? 44 : 38}px 0 0 22px"><h1 class="n" style="font-size:29px">${line}</h1></div>`);
+  ? `<div class="f" style="${shade ? 'background:linear-gradient(to bottom,#000000 0,#000000 15.5%,rgba(0,0,0,0) 21%);' : ''}padding:${where === 'low' ? 54 : 44}px 0 0 96px"><h1 class="n" style="font-size:37px">${line}</h1></div>`
+  : `<div class="f" style="${shade ? 'background:linear-gradient(to bottom,#000000 0,#000000 14.5%,rgba(0,0,0,0) 19%);' : ''}padding:${where === 'low' ? 44 : 38}px 0 0 22px"><h1 class="n" style="font-size:32px">${line}</h1></div>`);
 };
 // The scroll down the collection's looks, the way down to Print my pattern, and projector mode, as recorded
 // (record-tour-shots.mjs: the phone's scrolls are longer).
-const COLLECTION = WIDE ? { from: 4.7, dur: 4.4, speed: 0.65, zoom: [1, 1.03], at: [0.5, 0.5] } : { from: 4.6, dur: 6.4, speed: 0.85, drop: 0.05, frame: [0.21, 1.1] }; // slower again (Cat, Nov 18: the scroll through the collection went too fast) // from the first look, past the page's own title and words (Cat, Nov 17: the line and the app's headings competed) // drawn in on a computer (the critics' reviews, Nov 16: 8 s was long, half the frame empty); slower, so two or three looks can be seen (critic, Nov 17) // on a phone the band above the look is kept black, so Make this look never shows behind the words as the page scrolls (Fable, Nov 15)
+const COLLECTION = WIDE ? { from: 4.7, dur: 3.2, speed: 0.65, zoom: [1, 1.03], at: [0.5, 0.5] } : { from: 4.6, dur: 4.4, speed: 0.85, drop: 0.05, frame: [0.21, 1.1] }; // shorter at the same slow speed (Cat, Nov 18) // slower again (Cat, Nov 18: the scroll through the collection went too fast) // from the first look, past the page's own title and words (Cat, Nov 17: the line and the app's headings competed) // drawn in on a computer (the critics' reviews, Nov 16: 8 s was long, half the frame empty); slower, so two or three looks can be seen (critic, Nov 17) // on a phone the band above the look is kept black, so Make this look never shows behind the words as the page scrolls (Fable, Nov 15)
 // A computer has no Review page to scroll (Print my pattern sits beside the drawing), so its projector runs longer.
 // Print opens straight on the pattern pieces' sideways scroll, no Review page first (Cat, 2026-11-06), so on a phone
 // too there is nothing here; REVIEW=1 brings the scroll down the Review page back.
@@ -470,7 +472,7 @@ const REVIEW = WIDE || process.env.REVIEW !== '1' ? undefined : { from: 0.4, dur
 // On a computer, the whole piece too, beside the line (Fable, Nov 15: it was cut off at the foot).
 // The computer's piece sits at the right of the screen: drawn in on it, past the toolbar and the corner ring; the
 // phone's ring at the right edge is masked (Fable's review, Nov 15).
-const PROJECTOR = WIDE ? { from: Number(process.env.PJ_FROM ?? 10.0), dur: 4.2, zoom: [1.08, 1.1], at: [0.85, 0.5], frame: [0.075, 0.935, -1, 2, 0.015] } : { from: Number(process.env.PJ_FROM ?? 11.1), dur: 4, zoom: [1.6, 1.63], at: [0.43, 0.4], frame: [-0.1, 1.1, -0.1, 0.95] };
+const PROJECTOR = WIDE ? { from: Number(process.env.PJ_FROM ?? 10.0), dur: 4.2, zoom: [1.08, 1.1], at: [0.85, 0.5], frame: [0.075, 0.935, -1, 2, 0.015] } : { from: Number(process.env.PJ_FROM ?? 11.1), dur: 4, zoom: [1.3, 1.32], at: [0.43, 0.36], frame: [-0.1, 1.1, -0.1, 0.95] }; // smaller on a phone, its top clear of the words (Cat, Nov 18: it got covered by the narration)
 // Phone: drawn in a little less and set lower, so the piece sits whole under its two lines of words (Cat, 2026-11-06:
 // cut off by the words at the top).
 async function photoMoment(line = 'Start from a photo.', lineEnd = 3.3) {
@@ -618,9 +620,10 @@ const CUTS = {
       // On black (Cat, Nov 15: keep All round on a black background); on a phone lifted in the cut, so its legs clear
       // the three lines under it.
       // Drawn in closer on her dress so the print and cut fill the screen (Nov 17: the teal python follows a dress of Cat's own; the critic saw it small).
-      // The whole turn, a touch quicker, so it ends facing front as the real dress does; held whole in frame, hem and
+      // The whole turn, at the speed it was recorded (Cat, Nov 18: slow down the spin), so it ends facing front as the
+      // real dress does; held whole in frame, hem and
       // all, with the words beside it on a computer and under its hem on a phone (the critic's review, Nov 17).
-      beats.turn = await piece({ shot: 'round', from: 0.3, dur: 8.8, speed: 1.3, fadeIn: 0.6, fadeOut: f, ...(WIDE ? { zoom: [1.12, 1.12], at: [0.38, 0.5] /* set right of the words: Before you cut. touched the sleeve (Nov 18) */ } : { zoom: [1, 1.03], at: [0.5, 0.45], lift: [0.12, -1, 0.001] }), overs: (await threeChecks()).map((p, i) => [p, 0.9 + i * 1.8]) }),
+      beats.turn = await piece({ shot: 'round', from: 0.3, dur: 8.8, speed: 1, fadeIn: 0.6, fadeOut: f, ...(WIDE ? { zoom: [1.12, 1.12], at: [0.38, 0.5] /* set right of the words: Before you cut. touched the sleeve (Nov 18) */ } : { zoom: [1, 1.03], at: [0.5, 0.45], lift: [0.12, -1, 0.001] }), overs: (await threeChecks()).map((p, i) => [p, 1 + i * 2.2]) }),
       // Print and the ending as in the Nov 15 film Cat liked (Cat, Nov 17: start from it, change only what she asked).
       await piece({ still: await card('04', 'Print'), dur: 2.4, fadeIn: f, fadeOut: f }),
       ...(REVIEW ? [await piece({ shot: 'review', ...REVIEW, fadeIn: f })] : []),
@@ -664,7 +667,8 @@ async function realDress(dur = 5.2) {
 const PIECES_MARKS = join(SHOTS, 'pattern-marks.json');
 const piecesMoment = async () => {
   const M = JSON.parse(readFileSync(PIECES_MARKS, 'utf8'));
-  const run = { from: 0.4, dur: Math.round((M.end - 0.4) * 10) / 10, speed: 1 };
+  // The finished pieces are held a little less than the take's end (Cat, Nov 18: hold here slightly less).
+  const run = { from: 0.4, dur: Math.round((M.end - 1.9) * 10) / 10, speed: 1 };
   // No shade under this line: the pieces sit below it on black, and a shade dulled the top of the paper.
   return piece({ shot: 'pattern', ...run, fadeIn: 0.5, fadeOut: f0, notes: [[await note(WIDE ? 'or design straight from your pattern.' : 'or design straight<br>from your pattern.', 'low', false), 0.3, run.dur - 0.3]] });
 };
