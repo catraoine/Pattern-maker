@@ -26,6 +26,7 @@ import { COWL_DEPTH, PEPLUM_SEAM_MAX, peplumLengthOk } from '../engine/drape';
 import { hemOffsetAt } from '../engine/bodiceHem';
 import { unevenEdge } from '../engine/uneven';
 import type { Side } from './ShapeSketch';
+import { LengthTap } from './LengthEntry';
 import { FormArm, formWidth } from './DrawOnForm';
 import { FormLayers, SQUEEZE, clothReach, formFrame, squeezeX, unsqueezeX, wornCloth, wornFolds, wornMapper } from './FormSketch';
 import { landmarks } from './formLines';
@@ -176,6 +177,14 @@ export function dragDrop(m: BodiceMeasurements, c: BodiceChoices, cm: number): B
   const WH = m.waist_to_hip ?? 0;
   return { ...rest, length: PEPLUM_SEAM_MAX < WH * 0.75 ? 'high_hip' : 'hip', dropCm: PEPLUM_SEAM_MAX };
 }
+
+/** How far below the waist a top's length can be typed: from the waist (a peplum's seam from its least drop) to the
+ *  longest a drag reaches. A peplum's seam stops at PEPLUM_SEAM_MAX, as its drag does: the box offered up to 25 cm and
+ *  then quietly kept 12 (pretend tester, Nov 17). */
+const dropLimits = (m: BodiceMeasurements, c: BodiceChoices) => {
+  const max = dropRange(m, c.length, c.shirtCut).max;
+  return (c.peplum ?? 'none') === 'none' ? { min: 0, max } : { min: DROP_MIN, max: Math.min(max, PEPLUM_SEAM_MAX) };
+};
 
 function dropAt(m: BodiceMeasurements, c: BodiceChoices, cm: number): BodiceChoices {
   const { dropCm: _d, ...rest } = c;
@@ -403,6 +412,17 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
               ))
             : text.toUpperCase()}
         </text>
+        {/* Tapped, the length's words open a box to type it (testers, Nov 17). Under the disc's own hit area, so a drag
+            still starts wherever it did. */}
+        {kind === 'hem' && !drawing && (
+          <LengthTap
+            x={x}
+            y={at.y - (two ? 4.4 : 3) * k}
+            width={Math.max(...(two ?? [text]).map((t) => t.length)) * 2.6 * k * 0.85}
+            height={(two ? 8 : 5) * k}
+            ask={{ name: 'Top length', from: 'below the waist', cm: draft.drop, ...dropLimits(m, choices), onCm: (cm) => onDone(choices, dragDrop(m, choices, cm)) }}
+          />
+        )}
         <circle
           cx={at.x}
           cy={at.y}

@@ -9,7 +9,7 @@ import { randomUUID } from 'node:crypto';
 import { getStore } from '@netlify/blobs';
 import { shotBytes, type StoredNote } from '../../src/server/notes';
 import { addBeacon, checkBeacon, byLanguage, funnel, keyMatches, lastDays, updateDay, type DayStore, type DayTotals, type StoredCrash } from '../../src/server/reports';
-import { referrers } from '../../src/server/referral';
+import { confirmedAccounts, referrers } from '../../src/server/referral';
 
 // Provided by the Netlify runtime.
 declare const Netlify: { env: { get(name: string): string | undefined } };
@@ -99,7 +99,8 @@ async function readOut(url: URL, headers: Headers) {
       // Which language waitlist sign-ups sew in, so the first translation follows them.
       newsByLanguage: byLanguage(news),
       // Who brought friends through their own link, most first: two or more get their Founding invite first (Dec 7).
-      referrers: referrers(news),
+      // Only friends who have since signed in with that email count towards the free year (a made-up address can't sign in).
+      referrers: referrers(news, await confirmedAccounts(Netlify.env.get('SUPABASE_URL') ?? Netlify.env.get('VITE_SUPABASE_URL'), Netlify.env.get('SUPABASE_SERVICE_ROLE_KEY'))),
       signups: { testers, news, interest },
       fitReports,
     },

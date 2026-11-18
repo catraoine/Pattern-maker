@@ -85,3 +85,13 @@ describe('typedLength', () => {
     expect(typedLength('84 about', 'cm')).toBe(84);
   });
 });
+
+describe('the finished measurement marks in inches (pretend tester, Nov 17)', () => {
+  it('rewrites the note under each mark, not only its title', () => {
+    expect(inInches('YOU 99.1 CM · EASE +2.5 CM')).toBe('YOU 39 IN · EASE +1 IN');
+  });
+  it('keeps a typed inch length when it is kept to the hundredth of a cm', () => {
+    expect(toInches(Math.round(typedLength('20', 'in') * 100) / 100)).toBe('20 in');
+    expect(toInches(Math.round(typedLength('20 1/2', 'in') * 100) / 100)).toBe('20½ in');
+  });
+});

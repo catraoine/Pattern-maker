@@ -19,6 +19,7 @@ test('a stranger gets the waitlist where Begin was, and joining counts against t
   await main.getByLabel('Your email').fill('ada@example.com');
   await main.getByRole('button', { name: 'Join the waitlist' }).click();
   await expect(main.getByRole('heading', { level: 1, name: /You're on the list/ })).toBeVisible();
+  await expect(main.getByRole('link', { name: 'hello@maisontrace.co' })).toHaveAttribute('href', 'mailto:hello@maisontrace.co');
   expect(sent).toMatchObject({ kind: 'news', email: 'ada@example.com', src: 'ig' });
   // Their own link to bring sewing friends (Cat's "apply", Nov 11 2026).
   await expect(main.getByText(/Bring three sewing friends and your first year of Premium is free/)).toBeVisible();

@@ -384,6 +384,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       min: lengthRange(mv).min - (draft?.seamDrop ?? 0),
       max: lengthRange(mv).max - (draft?.seamDrop ?? 0),
       cm: choices.skirt.lengthCm,
+      from: draft?.seamDrop ? 'from the waist seam' : 'from the waist',
       onCm: (cm: number) => onChoices({ ...choices, skirt: { ...choices.skirt, lengthCm: cm } }),
     },
   };

@@ -193,3 +193,28 @@ test('"Delete everything", then signing in again, brings the account\'s work bac
   const store = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)!), FAKE);
   expect(store.users['first@example.com'].backup.account.patterns).toHaveLength(1);
 });
+
+test('the emailed code can be typed whole, and the code box is still there after a reload', async ({ page }) => {
+  await startWithExample(page);
+  await page.evaluate((k) => localStorage.setItem(k, '{}'), FAKE);
+  await accountAt(page, '/?signin=preview');
+  const main = page.getByRole('main');
+  let data = await openFold(page, 'Your data');
+  await data.getByLabel('Email').fill('sewist@example.com');
+  await data.getByRole('button', { name: 'Email me a sign-in link' }).click();
+  // The account service sends an 8-digit code; the box used to stop at 6 (the Dec 7 rehearsal, Nov 16).
+  const box = data.getByLabel('Code from the email');
+  await box.fill('12345678');
+  await expect(box).toHaveValue('12345678');
+  await expect(data.getByRole('button', { name: 'Sign in' })).toBeEnabled();
+  // A phone often reloads the page while its owner fetches the code from the mail app.
+  await page.reload();
+  await skipLoading(page);
+  // A reload opens where they were, on Your account (the journey review, Nov 10).
+  await expect(main.getByRole('heading', { name: 'Saved patterns' })).toBeVisible();
+  data = await openFold(page, 'Your data');
+  await expect(data).toContainText('We sent a link to sewist@example.com');
+  await data.getByLabel('Code from the email').fill('123456');
+  await data.getByRole('button', { name: 'Sign in' }).click();
+  await expect(data).toContainText('Signed in as sewist@example.com');
+});

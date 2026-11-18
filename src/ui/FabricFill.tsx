@@ -254,7 +254,12 @@ export function GarmentFabric({ fabric, children }: { fabric: MyFabric | undefin
           </>
         )
       ) : href ? (
-        <image href={href} width={size} height={size} preserveAspectRatio="none" filter={table ? `url(#${tint})` : undefined} />
+        <>
+          {/* The cloth's own colour under its photo, so a drawing is in colour from the first frame, not pale until
+              the tile arrives (the collection on a laptop, Nov 17). */}
+          <rect width={size} height={size} fill={paint.plain} />
+          <image href={href} width={size} height={size} preserveAspectRatio="none" filter={table ? `url(#${tint})` : undefined} />
+        </>
       ) : (
         <rect width={size} height={size} fill={paint.plain} />
       )}

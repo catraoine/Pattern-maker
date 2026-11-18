@@ -151,6 +151,9 @@ export function useCloud<S>(backup: Backup<S>, apply: (b: Backup<S>) => void, en
       return running.current;
     }
     setStatus('syncing');
+    // Whether this round has already put joined work on the device. Once it has, an answer is spent: asking again
+    // would join the device with itself (weekly review, Nov 16: a second "add" copied the owner into a new person).
+    let changedHere = false;
     running.current = (async () => {
       try {
         const api = await cloud();
@@ -169,6 +172,7 @@ export function useCloud<S>(backup: Backup<S>, apply: (b: Backup<S>) => void, en
           (b) => {
             // Taking in the joined work isn't a change made on this device. Anything typed while the account was being
             // read is joined in again (against what the device held), never replaced; the next round saves it.
+            changedHere = true;
             firstKey.current = contentKey(b);
             const now = { ...latest.current, savedAt: changedAt() };
             const key = contentKey(now);
@@ -194,7 +198,7 @@ export function useCloud<S>(backup: Backup<S>, apply: (b: Backup<S>) => void, en
         // service paused) would otherwise stop the work reaching the account without anyone knowing: report it.
         const offline = isOffline(e);
         if (!offline) reportCrash(syncFault(e), 'sync');
-        if (answer) {
+        if (answer && !changedHere) {
           // The question stays until an answer goes through; nothing on this device has changed.
           again.current = false;
           setStatus('ask');
