@@ -111,7 +111,7 @@ const eased = (stops, i) => {
   return e;
 };
 // notes: captions, each [picture, when it fades in, when it fades out], so a first-time viewer knows what each tap does.
-async function piece({ shot, src, slide = 0, still, from = 0, dur, speed = 1, zoom = [1, 1], at = [0.5, 0.5], cam, frame, tint, fadeIn = 0, fadeOut = 0, over, overIn = 0.4, overAt = 0, overs = [], notes = [], cards = [], strip, reverse = false, lift, drop, darken, bold }) {
+async function piece({ shot, src, slide = 0, still, from = 0, dur, speed = 1, zoom = [1, 1], at = [0.5, 0.5], cam, frame, tint, fadeIn = 0, fadeOut = 0, over, overIn = 0.4, overAt = 0, overs = [], notes = [], cards = [], strip, reverse = false, lift, drop, pan, darken, bold }) {
   const edge = frame ? await mask(frame) : undefined;
   const out = join(work, `p${String(k++).padStart(3, '0')}.mp4`);
   const frames = Math.round(dur * FPS);
@@ -144,6 +144,9 @@ async function piece({ shot, src, slide = 0, still, from = 0, dur, speed = 1, zo
     v += `,pad=iw:ih+${px}:0:0:${fill},crop=${W}:${H}:0:'${px}*clip((t-${a})/${d},0,1)'`;
   }
   // drop: how far, of the frame height, the picture sits lower, to leave room for two lines of words above it.
+  // pan: how far, of the frame width, the picture moves left, black coming in on the right (a piece that sits at the
+  // screen's right edge brought to the middle).
+  if (pan) v += `,pad=iw+${Math.round(pan * W)}:ih:0:0:0x000000,crop=${W}:${H}:${Math.round(pan * W)}:0`;
   if (drop) v += `,pad=iw:ih+${Math.round(drop * H)}:0:${Math.round(drop * H)}:0x000000,crop=${W}:${H}:0:0`;
   if (slide) v += `,pad=iw*2:ih:iw:0:0x000000,crop=${W}:${H}:x='${W}*(0.3*min(1,t/${slide})+0.7*pow(min(1,t/${slide}),2))':y=0`;
   // tint: [r, g, b] multipliers, e.g. to take the cream pattern paper down to a deeper champagne.
@@ -209,7 +212,7 @@ const atOut = (t) => ((t - JOURNEY.from) * JOURNEY.dur) / (JOURNEY.to - JOURNEY.
 // With the drawing shown as just the form (Cat, 2026-11-07), the computer's film stays on the whole frame too.
 const STYLE_CAM = (WIDE
   ? [[0.6, 1, 0.5, 0.5], [JOURNEY.to, 1.03, 0.5, 0.5]] // a slow drift in, so the panels don't sit still (Fable, Nov 15)
-  : [[0.6, 1, 0.5, 0.5], [JOURNEY.to, 1.05, 0.5, 0.47]]).map(([t, ...r]) => [atOut(t), ...r]);
+  : [[0.6, 1, 0.5, 0.5], [JOURNEY.to, 1.02, 0.5, 0.51]]).map(([t, ...r]) => [atOut(t), ...r]);
 // No step words over the Style journey: what each move does is left to show itself (Cat, 2026-10-24: "take out
 // these headings, just leave it implied"), nor over the pattern: after the photo's own line, the next words are
 // "Drafted to your body".
@@ -331,7 +334,7 @@ const styleJourney = async () => {
 // Cat (2026-10-22): the cream pattern paper was too bright after the black pages; a deeper champagne here.
 // Wide: from the moment the pattern is up, slowed a touch to fill its time (Cat, 2026-10-22: the drawing flashed before it).
 // On a phone the sheet rises the last part of the journey, to sit just under 'Your pattern, in seconds.'
-const LIFT = WIDE ? 0 : 0.065;
+const LIFT = 0; // no lift on a phone either now the pattern sheet dissolves in: it cut the Fabric step's swatches and Review button in half (Nov 18 walk)
 const PATTERN = WIDE
   ? { from: 1.1, dur: 3.0, speed: 0.8, zoom: [1.6, 1.64], at: [0.36, 0.555], frame: [0.14, 1.1, -0.1, 1.1, 0.002] }
   // Drawn in close so the pieces fill the screen, the steps under the sheet masked off (Cat, 2026-10-29), right up to
@@ -480,7 +483,7 @@ const REVIEW = WIDE || process.env.REVIEW !== '1' ? undefined : { from: 0.4, dur
 // On a computer, the whole piece too, beside the line (Fable, Nov 15: it was cut off at the foot).
 // The computer's piece sits at the right of the screen: drawn in on it, past the toolbar and the corner ring; the
 // phone's ring at the right edge is masked (Fable's review, Nov 15).
-const PROJECTOR = WIDE ? { from: Number(process.env.PJ_FROM ?? 10.0), dur: 4.2, zoom: [1.08, 1.1], at: [0.85, 0.5], frame: [0.075, 0.935, -1, 2, 0.015] } : { from: Number(process.env.PJ_FROM ?? 11.1), dur: 4, zoom: [1.3, 1.32], at: [0.43, 0.36], frame: [-0.1, 1.1, -0.1, 0.95] }; // smaller on a phone, its top clear of the words (Cat, Nov 18: it got covered by the narration)
+const PROJECTOR = WIDE ? { from: Number(process.env.PJ_FROM ?? 10.0), dur: 4.2, zoom: [1, 1.02], at: [0.5, 0.35], pan: 0.33, frame: [-0.1, 0.86, -1, 2, 0.03, 0.08] } /* the piece brought to the middle, the bottom fading out above the tools (Nov 18 walk: it sat at the right edge, cut off) */ : { from: Number(process.env.PJ_FROM ?? 11.1), dur: 4, zoom: [1.3, 1.32], at: [0.43, 0.36], frame: [-0.1, 1.1, -0.1, 0.95] }; // smaller on a phone, its top clear of the words (Cat, Nov 18: it got covered by the narration)
 // Phone: drawn in a little less and set lower, so the piece sits whole under its two lines of words (Cat, 2026-11-06:
 // cut off by the words at the top).
 async function photoMoment(line = 'Start from a photo.', lineEnd = 3.3) {
