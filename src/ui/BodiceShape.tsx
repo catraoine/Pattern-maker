@@ -28,7 +28,7 @@ import { unevenEdge } from '../engine/uneven';
 import type { Side } from './ShapeSketch';
 import { LengthTap } from './LengthEntry';
 import { FormArm, formWidth } from './DrawOnForm';
-import { FormLayers, SQUEEZE, clothReach, formFrame, squeezeX, unsqueezeX, wornCloth, wornFolds, wornMapper } from './FormSketch';
+import { FormLayers, SQUEEZE, clothReach, drawnPointBack, formFrame, neckLift, squeezeX, wornCloth, wornFolds, wornMapper } from './FormSketch';
 import { landmarks } from './formLines';
 
 interface Worn {
@@ -352,7 +352,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
       onDone(drag.before, live.current);
       setDrag(undefined);
     } else if (stroke) {
-      const neck = stroke.length > 2 ? strokeToNeck(stroke.map((q) => ({ x: unsqueezeX(body, q.x - cx, q.y), y: q.y })), side, draft, currentNeck(choices)) : undefined;
+      const neck = stroke.length > 2 ? strokeToNeck(stroke.map((q) => drawnPointBack(body, neckLift(body), { x: q.x - cx, y: q.y })), side, draft, currentNeck(choices)) : undefined;
       if (neck) onDone(choices, { ...choices, neck });
       setStroke(undefined);
     }

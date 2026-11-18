@@ -60,6 +60,66 @@ function widenAt(body: FormBody, y: number): number {
   const e = Math.min(1, Math.max(0, t));
   return 1 + (1 / SQUEEZE - 1) * e * e * (3 - 2 * e);
 }
+/** Where the drawing foreshortens the cloth under the neck: the neck's half-width and the neck point's height. */
+interface NeckLift {
+  x: number;
+  top: number;
+}
+/** The form is seen a touch from above, as its hems are, and the chest under the neck slopes away from the eye, so
+ *  the cloth just under the neck is drawn a little raised: a crew cut 8 cm below the neck point reads round at the
+ *  neck base rather than as a deep scoop under a slim neck (the python shift, Nov 17). The raise belongs to the
+ *  place on the body, not to the garment, so every neckline goes through the same and a line drawn there reads back
+ *  where it was drawn. It is NECK_LIFT of the drop, at most NECK_LIFT_CAP cm, and fades out between NECK_LIFT_FULL
+ *  and NECK_LIFT_END cm below the neck point and over 3 cm beyond the neck's sides, so a V or scoop cut lower still
+ *  shows where it lands. None on a form without a neck (a skirt's). */
+export function neckLift(body: FormBody): NeckLift | undefined {
+  return body.neckY === undefined ? undefined : { x: body.width(body.neckY), top: body.neckY };
+}
+const NECK_LIFT = 0.3;
+const NECK_LIFT_CAP = 2.5;
+const NECK_LIFT_FULL = 9;
+const NECK_LIFT_END = 14;
+/** How far a point is raised, in cm (neckLift). */
+function raiseAt(lift: NeckLift | undefined, x: number, y: number): number {
+  if (!lift) return 0;
+  const d = y - lift.top;
+  const a = Math.abs(x);
+  if (d <= 0 || d >= NECK_LIFT_END || a >= lift.x + 3) return 0;
+  const ease = (t: number) => t * t * (3 - 2 * t);
+  const w = a <= lift.x ? 1 : ease(1 - (a - lift.x) / 3);
+  const s = d <= NECK_LIFT_FULL ? 1 : ease(1 - (d - NECK_LIFT_FULL) / (NECK_LIFT_END - NECK_LIFT_FULL));
+  return Math.min(NECK_LIFT_CAP, NECK_LIFT * d) * w * s;
+}
+/** A point of the form or the garment as drawn, centre line at x = 0. */
+export function drawnPoint(body: FormBody, lift: NeckLift | undefined, q: P): P {
+  return { x: squeezeX(body, q.x, q.y), y: q.y - raiseAt(lift, q.x, q.y) };
+}
+/** The points of a line as drawn, in the drawing whose centre line is at `cx`. */
+export function toDrawing(body: FormBody, lift: NeckLift | undefined, cx: number, pts: P[]): P[] {
+  return pts.map((q) => ({ x: cx + squeezeX(body, q.x, q.y), y: q.y - raiseAt(lift, q.x, q.y) }));
+}
+/** Back from a point as drawn to the pattern's own cm: the inverse of drawnPoint, for lines drawn on the form. */
+export function drawnPointBack(body: FormBody, lift: NeckLift | undefined, p: P): P {
+  let y = p.y;
+  let x = unsqueezeX(body, p.x, y);
+  // Out of reach of the raise, nothing more to undo.
+  if (!lift || p.y <= lift.top || p.y >= lift.top + NECK_LIFT_END || Math.abs(x) >= lift.x + 3 + 1) return { x, y };
+  for (let k = 0; k < 8; k++) {
+    // A point is only ever raised, by at most NECK_LIFT_CAP, and the drawn height rises steadily with y: halve.
+    let lo = p.y;
+    let hi = p.y + NECK_LIFT_CAP + 0.01;
+    for (let i = 0; i < 30; i++) {
+      const mid = (lo + hi) / 2;
+      if (mid - raiseAt(lift, x, mid) < p.y) lo = mid;
+      else hi = mid;
+    }
+    y = (lo + hi) / 2;
+    const nx = unsqueezeX(body, p.x, y);
+    if (Math.abs(nx - x) < 1e-6) break;
+    x = nx;
+  }
+  return { x, y };
+}
 /** How far up the neck, from the neck point, the drawing takes to narrow back to the neck's own width, in cm. */
 const NECK_EASE = 5;
 const formPath = (pts: P[]) => pts.map((q, i) => `${i ? 'L' : 'M'}${f(q.x)} ${f(q.y)}`).join(' ');
@@ -889,7 +949,8 @@ interface LayerProps extends Omit<Props, 'cloth' | 'underarmY' | 'label' | 'outl
 export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outline = [], worn, folds = [], sleeve, sleevesOver }: LayerProps) {
   const head = useMemo(() => formHead(body, cx), [body, cx]);
   const armLines = useMemo(() => formArmLines(arms, cx, body), [arms, cx, body]);
-  const at = (pts: P[]) => formPath(pts.map((q) => ({ x: cx + squeezeX(body, q.x, q.y), y: q.y })));
+  const lift = useMemo(() => neckLift(body), [body]);
+  const at = (pts: P[]) => formPath(toDrawing(body, lift, cx, pts));
   const showLegs = legs && m.full_hip && m.waist_to_hip && m.waist_to_knee && m.waist_to_floor;
   const cloth = !!worn;
   // The cloth: sleeves first, then the body over their heads, then collars and lapels over that. Each piece is
@@ -914,6 +975,42 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
   /** How far below that the form's lines take to come in fully. */
   const FADE_CM = 5;
   const drawn = cloth ? Object.fromEntries(Object.entries(lines).filter(([id]) => !CLOTH_EDGES.includes(id as FormLine))) : lines;
+  /** One piece of cloth: the fabric, its light and shade, the edge turning away and its fine edge line. */
+  const piece = (d: string, i: number, key: string) => (
+    <g key={key}>
+      <path d={d} className="cloth-fill" strokeWidth={0.3} strokeLinejoin="round" fillOpacity={throughOpacity(look)} />
+      <ClothOverlay d={d} uid={uid} k={key} look={look} hemY={hems[i]} />
+      <path d={d} fill={`url(#${shade})`} stroke="none" opacity={look?.faint ? 0.9 : look?.sheer ? 0.6 : undefined} />
+      <path d={d} fill={`url(#down${uid})`} stroke="none" />
+      {body.head && (
+        <>
+          <path d={d} fill={`url(#bust${uid})`} stroke="none" />
+          <path d={d} fill={`url(#underbust${uid})`} stroke="none" />
+        </>
+      )}
+      {!crisp && <path d={d} fill={`url(#bands${uid})`} stroke="none" mask={`url(#bandmask${uid})`} />}
+      <g clipPath={`url(#${clip})`}>
+        {crisp ? (
+          <path d={d} className="cloth-turn" fill="none" strokeWidth={0.45} opacity={0.5} />
+        ) : (
+          <path d={d} className="cloth-turn" fill="none" strokeWidth={1.3} filter={`url(#${soft})`} />
+        )}
+      </g>
+      <path d={d} className="cloth-edge" fill="none" strokeWidth={crisp ? 0.09 : 0.07} strokeLinejoin="round" opacity={crisp ? 0.8 : 0.45} />
+    </g>
+  );
+  // Below the underarm a hanging sleeve is in front of the body's sides, as an arm is: on a loose dress the body's cloth
+  // ran over the sleeves' inner half and, in a print, the sleeves vanished into it (the python shift, Nov 17). Drawn
+  // again over the body there, faded in under the arm, with their own cast shadow and roundness, they read as sleeves.
+  const overSleeves = useMemo(() => (worn && arms && sleeve && !sleevesOver ? sleeves : []), [worn, arms, sleeve, sleevesOver, sleeves]);
+  const sleeveRound = useMemo(
+    () =>
+      overSleeves.map((sl) => {
+        const xs = toDrawing(body, lift, cx, sl).map((q) => q.x);
+        return { left: Math.min(...xs), right: Math.max(...xs) };
+      }),
+    [overSleeves, body, lift, cx],
+  );
   return (
     <>
       {top !== undefined && (
@@ -1021,29 +1118,7 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
       {head && <FormHead head={head} cx={cx} />}
       {cloth && (
         <g className="cloth" filter={`url(#${cast})`}>
-          {pieces.map((d, i) => (
-            <g key={`c${i}`}>
-              <path d={d} className="cloth-fill" strokeWidth={0.3} strokeLinejoin="round" fillOpacity={throughOpacity(look)} />
-              <ClothOverlay d={d} uid={uid} k={`p${i}`} look={look} hemY={hems[i]} />
-              <path d={d} fill={`url(#${shade})`} stroke="none" opacity={look?.faint ? 0.9 : look?.sheer ? 0.6 : undefined} />
-              <path d={d} fill={`url(#down${uid})`} stroke="none" />
-              {body.head && (
-                <>
-                  <path d={d} fill={`url(#bust${uid})`} stroke="none" />
-                  <path d={d} fill={`url(#underbust${uid})`} stroke="none" />
-                </>
-              )}
-              {!crisp && <path d={d} fill={`url(#bands${uid})`} stroke="none" mask={`url(#bandmask${uid})`} />}
-              <g clipPath={`url(#${clip})`}>
-                {crisp ? (
-                  <path d={d} className="cloth-turn" fill="none" strokeWidth={0.45} opacity={0.5} />
-                ) : (
-                  <path d={d} className="cloth-turn" fill="none" strokeWidth={1.3} filter={`url(#${soft})`} />
-                )}
-              </g>
-              <path d={d} className="cloth-edge" fill="none" strokeWidth={crisp ? 0.09 : 0.07} strokeLinejoin="round" opacity={crisp ? 0.8 : 0.45} />
-            </g>
-          ))}
+          {pieces.map((d, i) => piece(d, i, `c${i}`))}
         </g>
       )}
       {cloth && arms && !sleeve && (
@@ -1078,6 +1153,54 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
           )),
         )}
       </g>
+      {overSleeves.length > 0 && arms && (
+        // Only where the sleeves lie over the body: outside it the first pass already shows them, and drawn twice a sheer
+        // sleeve came out twice as solid.
+        <g mask={`url(#sleevein${uid})`}>
+          <defs>
+            <clipPath id={`sleeveonbody${uid}`}>
+              {(worn ?? []).map((w, i) => (
+                <path key={i} d={`${at(w)} Z`} />
+              ))}
+            </clipPath>
+            <linearGradient id={`sleeveinfade${uid}`} gradientUnits="userSpaceOnUse" x1="0" x2="0" y1={f(arms.under.y + 0.5)} y2={f(arms.under.y + 4)}>
+              <stop offset="0" stopColor="#fff" stopOpacity="0" />
+              <stop offset="1" stopColor="#fff" stopOpacity="1" />
+            </linearGradient>
+            <mask id={`sleevein${uid}`} maskUnits="userSpaceOnUse" x={f(-cx)} y={f(arms.under.y)} width={f(4 * cx)} height={f(bottom - arms.under.y + 2)}>
+              <rect x={f(-cx)} y={f(arms.under.y)} width={f(4 * cx)} height={f(bottom - arms.under.y + 2)} fill={`url(#sleeveinfade${uid})`} />
+            </mask>
+            {/* Each sleeve's shadow falls in toward the body, the side the light (from the left) doesn't reach. */}
+            {[1, -1].map((side) => (
+              <filter key={side} id={`sleevecast${uid}${side > 0 ? 'r' : 'l'}`} x="-40%" y="-10%" width="180%" height="120%">
+                <feDropShadow dx={-0.9 * side} dy="0.3" stdDeviation="0.8" floodColor={SHADOW} floodOpacity="0.9" />
+              </filter>
+            ))}
+            {sleeveRound.map((r, i) => (
+              <linearGradient key={i} id={`sleeveround${uid}${i}`} gradientUnits="userSpaceOnUse" x1={f(r.left)} x2={f(r.right)} y1="0" y2="0">
+                {/* Lighter on plain cloth, where the sleeve's edge already shows; deeper on a print, where it doesn't. */}
+                <stop offset="0" stopColor={SHADOW} stopOpacity={crisp ? 0.2 : 0.42} />
+                <stop offset="0.35" stopColor={SHADOW} stopOpacity="0" />
+                <stop offset="0.6" stopColor={SHADOW} stopOpacity="0" />
+                <stop offset="1" stopColor={SHADOW} stopOpacity={crisp ? 0.22 : 0.46} />
+              </linearGradient>
+            ))}
+          </defs>
+          <g clipPath={`url(#sleeveonbody${uid})`}>
+            {overSleeves.map((sl, i) => (
+              <g key={`over${i}`} className="cloth" filter={`url(#sleevecast${uid}${sl.reduce((t, q) => t + q.x, 0) > 0 ? 'r' : 'l'})`}>
+                {piece(`${at(sl)} Z`, i, `overpiece${i}`)}
+              </g>
+            ))}
+            {marks.map((pts, i) => (
+              <path key={`overmark${i}`} d={at(pts)} className="cloth-fold" fill="none" strokeWidth={0.16} strokeLinecap="round" />
+            ))}
+          </g>
+          {overSleeves.map((sl, i) => (
+            <path key={`round${i}`} d={`${at(sl)} Z`} fill={`url(#sleeveround${uid}${i})`} stroke="none" />
+          ))}
+        </g>
+      )}
     </>
   );
 }

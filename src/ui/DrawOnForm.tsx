@@ -13,7 +13,7 @@ import { legsFor } from '../engine/form';
 import { bodyHalf } from '../engine/body';
 
 import { FormLine, FormSide, Reading, landmarks } from './formLines';
-import { BELOW_HEM, CLOTH_EDGES, FormHead, FormLayers, FormSatin, HEAD_CM, SQUEEZE, SewnLevel, WornSleeve, formHalf, formHead, squeezeX, unsqueezeX, wornCloth, wornFolds, wornMapper } from './FormSketch';
+import { BELOW_HEM, CLOTH_EDGES, FormHead, FormLayers, FormSatin, HEAD_CM, SQUEEZE, SewnLevel, WornSleeve, drawnPointBack, formHalf, formHead, neckLift, squeezeX, toDrawing, wornCloth, wornFolds, wornMapper } from './FormSketch';
 import { TestingTag } from './TestingTag';
 import { DemoButton } from './DemoButton';
 import { AllRound, RoundPick } from './AllRound';
@@ -380,14 +380,16 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
   }, [big, worn, cx, frame, body]);
 
   const current = lines(side);
-  const at = (pts: P[]) => path(pts.map((q) => ({ x: cx + squeezeX(body, q.x, q.y), y: q.y })));
+  // The garment's high neckline is drawn a touch foreshortened (neckLift), so lines drawn here go through the same.
+  const lift = useMemo(() => neckLift(body), [body]);
+  const at = (pts: P[]) => path(toDrawing(body, lift, cx, pts));
 
   const toSvg = (e: PointerEvent): P => {
     const pt = new DOMPoint(e.clientX, e.clientY).matrixTransform(svg.current!.getScreenCTM()!.inverse());
     return { x: pt.x, y: pt.y };
   };
   // Drawn where the finger went, read in the pattern's own cm: the form is drawn narrower than that.
-  const centred = (s: P[]) => s.map((q) => ({ x: unsqueezeX(body, q.x - cx, q.y), y: q.y }));
+  const centred = (s: P[]) => s.map((q) => drawnPointBack(body, lift, { x: q.x - cx, y: q.y }));
   const move = (e: PointerEvent) => {
     if (!stroke) return;
     const next = [...stroke, toSvg(e)];
