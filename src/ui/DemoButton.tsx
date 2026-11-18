@@ -78,7 +78,7 @@ const DEMOS = {
     base: '/demos/projector',
     parts: [
       { name: 'Line up', from: 0, says: 'Point your projector at your cutting mat. Drag each corner onto a corner of the mat’s grid.' },
-      { name: 'Check', from: 16.4, says: 'Lay a ruler across the square. Each side should be 10 cm.' },
+      { name: 'Check', from: 16.4, says: 'Lay a ruler across the square. Each side should be exactly 10 cm.' },
       { name: 'Project', from: 22.4, says: 'Each piece shows at its real size. Drag it into place on your fabric.' },
       { name: 'Turn', from: 28.9, says: 'Turn or flip it to fit your fabric.' },
       { name: 'Pieces', from: 33.9, says: 'Cut it out, then tap Next piece.' },

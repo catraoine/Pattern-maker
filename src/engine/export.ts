@@ -847,6 +847,9 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
   poly([sq, add(sq, p(10, 0)), add(sq, p(10, 10)), add(sq, p(0, 10))], 'stitchSolid', true);
   text(add(sq, p(5, 4.9)), '10 CM', 0.8, 0, 'middle', { face: 'label', tracking: 0.25 });
   text(add(sq, p(5, 5.9)), 'TEST SQUARE', 0.45, 0, 'middle', { face: 'label', tracking: 0.25, grey: 0.35 });
+  // The code again inside the square: the title line runs on across the sheets and its end, with the code, printed on
+  // page 2, while the tester email said to find it at the top of page 1, where the square is (pretend-tester walk, Nov 17).
+  if (info?.code) text(add(sq, p(5, 7.6)), `CODE ${info.code}`, 0.4, 0, 'middle', { face: 'label', tracking: 0.1, grey: 0.35 });
 
   // The title block, framed like an atelier's pattern card.
   const tx = MARGIN + 10;
