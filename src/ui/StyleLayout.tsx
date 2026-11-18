@@ -8,7 +8,7 @@ import { DemoButton } from './DemoButton';
 import { EnlargeSketch, useEnlarged } from './EnlargeSketch';
 import { Envelope } from './Envelope';
 import { GarmentFabric } from './FabricFill';
-import { CollectionLink, ExampleTag, GarmentDrop, LookName } from './GarmentSwitch';
+import { CollectionLink, ExampleTag, GarmentDrop, LookName, TesterLook } from './GarmentSwitch';
 import { LengthAsk, LengthBox, TypeLength, UnitNow } from './LengthEntry';
 import { ModeLink } from './ModeLink';
 import { PhotoEntry } from './PhotoEntry';
@@ -517,6 +517,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   const wide = useWide();
   const exampleTag = useContext(ExampleTag);
   const openCollection = useContext(CollectionLink);
+  const testerLook = useContext(TesterLook);
   const unit = useContext(UnitNow);
   // A length typed instead of dragged: the drawing's length label opens the box under it (testers, Nov 17).
   const [asking, setAsking] = useState<LengthAsk>();
@@ -931,6 +932,17 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
         </button>
       )}
       {exampleTag}
+      {/* A tester on the plain garment their look is made from is one tap from the look itself: picked from the
+          garment list, the plain top had no peplum to choose (testers, Nov 18). After the example note, which on a
+          phone lifts itself onto the line above. */}
+      {testerLook && (
+        <p className="tester-look">
+          Fit testing the {testerLook.name}?{' '}
+          <button type="button" onClick={testerLook.open}>
+            Open it ›
+          </button>
+        </p>
+      )}
       <div className="style-edit">
         <div className={['style-pin', tall && 'tall'].filter(Boolean).join(' ')} ref={pin}>
           {/* The drawing knows which step is open: on the length step it reaches down to the longest length. */}

@@ -16,6 +16,10 @@ export const ExampleTag = createContext<ReactNode>(undefined);
  *  know their piece by the look's name, so the title says it rather than "your bodice" or "your jacket" (Cat, Nov 13). */
 export const LookName = createContext<string | undefined>(undefined);
 
+/** A fit tester's own look, offered on Style while they are on the plain garment it is made from ("Fit testing the
+ *  Ice Peplum Top?"), with the tap that makes it. Given by the app to testers only. */
+export const TesterLook = createContext<{ name: string; open: () => void } | undefined>(undefined);
+
 /** You stay in what you picked to make; this quiet link opens the list to pick something else. */
 export function GarmentSwitch({ onChoose, label = 'Choose another garment' }: { onChoose: () => void; label?: string }) {
   return (
