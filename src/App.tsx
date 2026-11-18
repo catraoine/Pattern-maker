@@ -63,7 +63,7 @@ import { coverGuide, coverMissing, coverPieces, padMap } from './engine/formCove
 import { labelCode, savedCopy } from './labels';
 import { fitSummary } from './fit';
 import { ImportedPattern, importedGuide } from './engine/importDxf';
-import { COLLECTION, HouseLook, TESTER_LOOK, lookArmsMissing, lookPatchKeeping, lookFabric, lookHipMissing, lookNameOf, lookPatch, lookResized, lookValues } from './collection';
+import { COLLECTION, HouseLook, TESTER_LOOK, lookArmsMissing, lookDropsLength, lookPatchKeeping, lookFabric, lookHipMissing, lookNameOf, lookPatch, lookResized, lookValues } from './collection';
 import { archiveCut } from './archive';
 import { CollectionLink, ExampleTag, GarmentPick, LookName, TesterLook } from './ui/GarmentSwitch';
 import { UnitNow } from './ui/LengthEntry';
@@ -1146,7 +1146,7 @@ export default function App() {
           <UnitNow.Provider value={saved.unit}>
           <ExampleTag.Provider value={step === 'style' ? exampleTag : undefined}>
           <LookName.Provider value={step === 'style' ? lookName : undefined}>
-          <TesterLook.Provider value={testerLook && { name: testerLook.name, open: () => makeLook(testerLook, true, true) }}>
+          <TesterLook.Provider value={testerLook && { name: testerLook.name, open: () => makeLook(testerLook, true, true), lengthStays: lookDropsLength(testerLook, current, GARMENT_DRAFTING[garment].choices({ ...saved, ...firstVisit(garment) })) }}>
           <CollectionLink.Provider value={step === 'style' ? () => { setLookFrom('style'); setStep('collection'); window.scrollTo(0, 0); } : undefined}>
           {/* Switched in place from the title's drop-down: no new step in history, so ← still leaves the style screen. */}
           <GarmentPick.Provider value={step === 'style' ? { garment, onNew: startNew, onSaved: () => setStep('account') } : undefined}>

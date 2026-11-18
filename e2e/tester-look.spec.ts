@@ -56,3 +56,19 @@ test('a length set on the plain garment comes across to the look', async ({ page
   await main(page).getByRole('button', { name: 'Change a detail' }).click();
   await expect(main(page).getByRole('slider', { name: /length/i }).first()).toHaveAttribute('aria-valuetext', set!);
 });
+
+// Pretend tester, Nov 18: a top's length is where its hem sits, but on the Ice Peplum it's where the peplum is sewn on,
+// so it stays behind. A typed length went with no word; now the offer says so before the tap.
+test('a top\'s own length is said to stay behind before the peplum opens', async ({ page }) => {
+  test.setTimeout(3 * 60_000);
+  await openAsTester(page);
+  await switchGarment(page, 'Bodice');
+  const note = offer(page).locator('.tester-look-note');
+  await expect(note).toHaveCount(0);
+  // As the walk did: 9 cm below the waist, typed.
+  await main(page).getByRole('button', { name: /^Type the .*length$/ }).first().click();
+  await page.getByRole('form').getByRole('textbox').fill('9');
+  await page.getByRole('form').getByRole('button', { name: 'Set' }).click();
+  await expect(note).toContainText('won\'t come across');
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/top-length-note-${test.info().project.name}.png` });
+});

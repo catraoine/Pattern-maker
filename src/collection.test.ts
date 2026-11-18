@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { COLLECTION, TESTER_LOOK, lookChoices, lookPatchKeeping, lookFabric, lookFlat, lookNameOf, lookPatch, lookResized, lookValues } from './collection';
+import { COLLECTION, TESTER_LOOK, lookChoices, lookDropsLength, lookPatchKeeping, lookFabric, lookFlat, lookNameOf, lookPatch, lookResized, lookValues } from './collection';
 import { randomBody, rng } from './engine/randomBodies';
 import { EXAMPLE_BODY, EXAMPLE_VALUES, isComplete } from './measurements';
 import { DEFAULT_BODICE, DEFAULT_JACKET_CHOICES, DEFAULT_TROUSERS_CHOICES, type PatternChoices } from './garments';
@@ -134,5 +134,12 @@ describe('a look opened from the plain garment', () => {
   });
   it('leaves a top\'s length to the look, so its peplum can hang', () => {
     expect(lookPatchKeeping(look('ice-peplum'), EXAMPLE_VALUES, { ...DEFAULT_BODICE, length: 'long' }, DEFAULT_BODICE)).toEqual(lookPatch(look('ice-peplum'), EXAMPLE_VALUES));
+  });
+
+  it('says when a top\'s length is left behind, and only then', () => {
+    expect(lookDropsLength(look('ice-peplum'), { ...DEFAULT_BODICE, length: 'high_hip', dropCm: 9 }, DEFAULT_BODICE)).toBe(true);
+    expect(lookDropsLength(look('ice-peplum'), DEFAULT_BODICE, DEFAULT_BODICE)).toBe(false);
+    // Every other tester look carries the length across, so has nothing to say.
+    expect(lookDropsLength(look('chocolate-barrel'), { ...DEFAULT_TROUSERS_CHOICES, lengthCm: 94 }, DEFAULT_TROUSERS_CHOICES)).toBe(false);
   });
 });
