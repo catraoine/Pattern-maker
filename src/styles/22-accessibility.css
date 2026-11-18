@@ -43,14 +43,17 @@
     position: static;
   }
   .style-pin,
-  .style-pin > section,
-  .style-pin > section > .preview,
-  .style-pin > section:not(.live-big) > :is(.row.between.wrap, .lookboxes),
   .style-tabs {
     position: static !important;
   }
-  .style-pin > section:not(.live-big) > .lookboxes {
+  /* Relative, not static: unpinned all the same, but still the frames the drawing's corner words and the view bar's
+     dark track are placed in. Static, they were placed on the page, the words over the title and the track across
+     the drawing (bug hunt, Nov 18, a phone turned sideways). */
+  .style-pin > section,
+  .style-pin > section > .preview,
+  .style-pin > section:not(.live-big) > :is(.row.between.wrap, .lookboxes) {
     position: relative !important;
+    top: auto !important;
   }
 }
 
