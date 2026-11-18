@@ -46,8 +46,13 @@ export function usePersistent<T>(key: string, initial: T): [T, (v: T) => void] {
         return raw ? fillMissing(initial, JSON.parse(raw)) : initial;
       } catch {
         // Saved work this version can't read is put aside before the app starts afresh and saves over it, so it can
-        // still be recovered (testers' measurements must never be lost, Nov 18).
-        if (raw) localStorage.setItem(`pattern-maker-unread:${key}:${Date.now()}`, raw);
+        // still be recovered by hand (testers' measurements must never be lost, Nov 18). One copy per kind of work; a
+        // ?fresh link or Delete everything clears it with the rest.
+        try {
+          if (raw) localStorage.setItem(`pattern-maker:unread-${key}`, raw);
+        } catch {
+          // No room for the copy: the app still starts.
+        }
         return initial;
       }
     } catch {

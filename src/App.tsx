@@ -738,6 +738,14 @@ export default function App() {
     cloud.forget();
     setSaved(INITIAL);
     setAccount(NEW_ACCOUNT);
+    // And any copy of saved work an older version couldn't read (store.ts).
+    try {
+      Object.keys(localStorage)
+        .filter((k) => k.startsWith('pattern-maker:unread-'))
+        .forEach((k) => localStorage.removeItem(k));
+    } catch {
+      // Storage blocked: nothing was kept.
+    }
     setStep('welcome');
   };
 
@@ -929,16 +937,17 @@ export default function App() {
             <MoveArrivalScreen
               backup={moving}
               here={account}
-              hereMeasured={Object.keys(measured).length}
+              hereMeasured={Object.keys(measured).filter((k) => !person.example?.includes(k as MeasurementId)).length}
               onBring={(b) => {
                 // Brought in, so a reload shouldn't offer it again.
                 dropHash();
                 // Joined with what's here, never replacing it: a link sent from a device with nothing on it, brought onto a
-                // phone that held a tester's measurements, emptied the phone (tester, Nov 18). Nothing from either side is
-                // dropped; the newer side's work in progress opens. Not changed here: the next join with the account
-                // keeps everything from both.
+                // phone that held a tester's measurements, emptied the phone (tester, Nov 18). No measurement, person or
+                // pattern from either side is dropped. Not changed here: the next join with the account keeps everything.
                 cloud.forget();
-                applyBackup(mergeBackups(makeBackup(saved, account, pointEdits), b as Backup<Saved>, null));
+                // Sent on purpose from her other device, it counts as the newer side wherever both hold the same thing,
+                // and it's the same person's work, never someone else's to keep apart.
+                applyBackup(mergeBackups({ ...makeBackup(saved, account, pointEdits), savedAt: new Date(0).toISOString() }, b as Backup<Saved>, null, { sameOwner: true }));
               }}
               onCarryOn={() => setStep(canLeaveMeasure ? 'export' : 'measure')}
               onNotNow={() => {
