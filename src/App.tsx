@@ -48,6 +48,7 @@ import { FABRIC, StartOver, openLookNext, openTabNext } from './ui/StyleLayout';
 import { KeptCount } from './ui/SaveControl';
 import { GARMENT_NAME } from './measureFlow';
 import type { StepsStart } from './screens/MeasureStepsScreen';
+import { mergeBackups } from './cloud/merge';
 import { useCloud } from './cloud/useCloud';
 import { useFounding } from './cloud/useFounding';
 import { EARLY_ACCESS_FROM, earlyAccessOpen } from './founding';
@@ -932,9 +933,12 @@ export default function App() {
               onBring={(b) => {
                 // Brought in, so a reload shouldn't offer it again.
                 dropHash();
-                // Replaced from the other device, not changed here: the next join with the account keeps everything from both.
+                // Joined with what's here, never replacing it: a link sent from a device with nothing on it, brought onto a
+                // phone that held a tester's measurements, emptied the phone (tester, Nov 18). Nothing from either side is
+                // dropped; the newer side's work in progress opens. Not changed here: the next join with the account
+                // keeps everything from both.
                 cloud.forget();
-                applyBackup(b as Backup<Saved>);
+                applyBackup(mergeBackups(makeBackup(saved, account, pointEdits), b as Backup<Saved>, null));
               }}
               onCarryOn={() => setStep(canLeaveMeasure ? 'export' : 'measure')}
               onNotNow={() => {

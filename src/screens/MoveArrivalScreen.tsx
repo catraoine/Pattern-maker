@@ -4,10 +4,10 @@ import { Title } from '../ui/Title';
 
 interface Props<S> {
   backup: Backup<S> | 'broken';
-  /** What's on this device now, to warn before it's replaced. */
+  /** What's on this device now, to say it's kept. */
   here: Account;
   hereMeasured: number;
-  /** Put the backup on this device. */
+  /** Put the backup on this device, joined with what's here. */
   onBring: (backup: Backup<S>) => void;
   /** Carry on: the print screen when the measurements are there, else measuring. */
   onCarryOn: () => void;
@@ -61,7 +61,7 @@ export function MoveArrivalScreen<S>({ backup, here, hereMeasured, onBring, onCa
               </li>
               {sent && <li>Sent {sent}</li>}
             </ul>
-            {hasHere && <p className="msg small">This replaces the measurements and patterns already on this device.</p>}
+            {hasHere && <p className="msg small">What&rsquo;s already on this device is kept too: the two are put together, and nothing is lost.</p>}
             <button
               type="button"
               className="primary"
