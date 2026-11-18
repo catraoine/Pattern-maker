@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PatternChoices } from './garments';
-import { COLLECTION, lookChoices, lookFabric, lookFlat, lookNameOf, lookPatch, lookResized, lookValues } from './collection';
+import { COLLECTION, TESTER_LOOK, lookChoices, lookFabric, lookFlat, lookNameOf, lookPatch, lookResized, lookValues } from './collection';
 import { randomBody, rng } from './engine/randomBodies';
 import { EXAMPLE_BODY, EXAMPLE_VALUES, isComplete } from './measurements';
 
@@ -105,5 +105,14 @@ describe('the Maison collection', () => {
     // No two looks are the same garment but for their length, so a length never turns one look into another.
     const same = COLLECTION.filter((a) => lengths[a.garment] && COLLECTION.some((b) => b !== a && b.garment === a.garment && lookNameOf(b.garment, lengths[b.garment](lookChoices(a, EXAMPLE_VALUES) as never) as never, EXAMPLE_VALUES) === b.name));
     expect(same.map((l) => l.name)).toEqual([]);
+  });
+});
+
+// Style offers a tester on a plain garment the look they sew (testers, Nov 18): each one has to be a look in the
+// collection, made from that garment, or the offer quietly stops showing.
+describe('the fit testers\' looks', () => {
+  it('are the five tester pieces, each a look made from its own garment', () => {
+    expect(Object.values(TESTER_LOOK).sort()).toEqual(['black-pleated-skirt', 'black-vest', 'blush-shift', 'chocolate-barrel', 'ice-peplum']);
+    for (const [garment, id] of Object.entries(TESTER_LOOK)) expect(COLLECTION.find((l) => l.id === id)?.garment, id).toBe(garment);
   });
 });

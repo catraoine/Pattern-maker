@@ -494,12 +494,14 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   }, []);
   // A look just made goes on to its Review as a page of its own, before anything is painted: the questions stay behind it,
   // so Change a detail (or Back) returns to them, and the screen's own entry keeps the questions for a garment switched in place.
-  useLayoutEffect(() => {
-    if (!lookNext) return;
+  const lookReview = () => {
     lookNext = false;
     // The questions' own entry is marked first, so going back to it opens them.
     if (window.history.state) window.history.replaceState({ ...window.history.state, sub: 'edit' }, '');
     setPage('review');
+  };
+  useLayoutEffect(() => {
+    if (lookNext) lookReview();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only on opening
   }, []);
   const [intro, setIntro] = useState(() => !introSeen());
@@ -938,7 +940,9 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
       {testerLook && (
         <p className="tester-look">
           Fit testing the {testerLook.name}?{' '}
-          <button type="button" onClick={testerLook.open}>
+          {/* Made on the same garment, Style stays open rather than opening afresh, so the look's Review is opened here;
+              sent to measure first, Style opens afresh afterwards and does it itself. */}
+          <button type="button" onClick={() => testerLook.open() && lookNext && lookReview()}>
             Open it ›
           </button>
         </p>

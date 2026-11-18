@@ -25,9 +25,10 @@ test('a tester on a plain garment is offered the look they sew, for every tester
     await expect(offer(page)).toContainText(`Fit testing the ${look}?`);
   }
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/tester-look-${test.info().project.name}.png` });
-  // Anne's top: one tap makes the Ice Peplum Top, with its peplum, and the offer steps aside.
+  // The peplum tester's top: one tap makes the Ice Peplum Top on its Review, and the offer steps aside.
   await offer(page).getByRole('button', { name: /Open it/ }).click();
   await expect(main(page).getByRole('heading', { name: /Ice Peplum Top/ })).toBeVisible({ timeout: 30_000 });
+  await expect(main(page).getByRole('button', { name: 'Change a detail' })).toBeVisible();
   await expect(offer(page)).toHaveCount(0);
 });
 
