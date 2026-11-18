@@ -103,16 +103,17 @@
 .style-layout .style-pin > section:not(.live-big) > .preview:has(> .pattern-pane, > .paper-sheet, > .easerows) > .preview-corner > :is([aria-label='Draw on your form'], .drawmenu) {
   display: none;
 }
-/* The paper sits under the corner's words, as Flat's drawings do, and the open tool's how-to line starts after Enlarge. */
+/* The paper sits under the corner's words, as Flat's drawings do, and the open tool's how-to line starts after Enlarge.
+   The room is measured (useCornerRoom in PointEditor.tsx); these are its first guess. */
 @media (max-width: 760px) {
   .style-layout .style-pin > section:not(.live-big) > .preview > .pattern-pane {
-    padding-top: 76px;
+    padding-top: var(--corner-room, 76px);
     box-sizing: border-box;
   }
 }
 @media (min-width: 761px) {
   .style-layout .style-pin > section:not(.live-big) > .preview > .pattern-pane {
-    padding-top: 56px;
+    padding-top: var(--corner-room, 56px);
     box-sizing: border-box;
   }
 }

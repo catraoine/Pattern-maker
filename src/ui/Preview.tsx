@@ -1,6 +1,6 @@
 import { CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
 import { P } from '../engine/geometry';
-import { DraftStep, Sheet } from '../engine/export';
+import { DraftStep, Sheet, textWidth } from '../engine/export';
 
 const STEPS: DraftStep[] = ['outline', 'darts', 'grain', 'allowance', 'labels'];
 const STEP_MS = 1100;
@@ -50,6 +50,31 @@ function Pencil({ at, size }: { at: P; size: number }) {
       <rect x={-w / 2} y={-1} width={w} height={0.78} className="pencil-body" />
     </g>
   );
+}
+
+/** A label's two ends along its line, and a size's height above it: where its words reach on the sheet. */
+function textEnds(pr: Extract<Sheet['prims'][number], { kind: 'text' }>): P[] {
+  const w = textWidth(pr.text, pr.size, pr.tracking ?? 0);
+  const [from, to] = pr.anchor === 'middle' ? [-w / 2, w / 2] : [0, w];
+  const r = ((pr.rotate ?? 0) * Math.PI) / 180;
+  const along = (d: number, up: number) => ({ x: pr.at.x + d * Math.cos(r) + up * Math.sin(r), y: pr.at.y + d * Math.sin(r) - up * Math.cos(r) });
+  return [along(from, 0), along(to, 0), along(from, pr.size), along(to, pr.size)];
+}
+
+/** The pieces' extent on a sheet, with a 1 cm border: everything drawn for a piece, its labels included. */
+function piecesBox(sheet: Sheet): { x: number; y: number; w: number; h: number } | undefined {
+  let [x0, y0, x1, y1] = [Infinity, Infinity, -Infinity, -Infinity];
+  for (const pr of sheet.prims) {
+    if (pr.piece === undefined) continue;
+    for (const q of pr.kind === 'poly' ? pr.pts : textEnds(pr)) {
+      x0 = Math.min(x0, q.x);
+      y0 = Math.min(y0, q.y);
+      x1 = Math.max(x1, q.x);
+      y1 = Math.max(y1, q.y);
+    }
+  }
+  if (x0 > x1) return undefined;
+  return { x: x0 - 1, y: y0 - 1, w: x1 - x0 + 2, h: y1 - y0 + 2 };
 }
 
 /**
@@ -113,9 +138,14 @@ export function PatternPreview({ sheet, label, play = 0, names = [], paper = fal
     return { className: pr.kind === 'poly' && pr.style !== 'stitch' ? 'drawn' : 'faded', style: { animationDelay: `${k * STEP_MS}ms` } };
   };
   const current = now !== undefined && now < steps.length ? steps[now] : undefined;
+  // On paper (the style screens) the drawing is cropped to the pieces: the print sheet's corner holds the test square
+  // and the title card, empty here, and with its margins took a fifth of the box, so the pieces sat small in the middle
+  // (Cat's film notes, Nov 18).
+  const box = useMemo(() => (paper ? piecesBox(sheet) : undefined), [paper, sheet]);
+  const viewBox = box ? `${box.x} ${box.y} ${box.w} ${box.h}` : `0 0 ${sheet.width} ${sheet.height}`;
 
   const drawing = (
-      <svg key={playing ? `play-${play}` : 'still'} viewBox={`0 0 ${sheet.width} ${sheet.height}`} role="img" aria-label={label} className="preview-svg">
+      <svg key={playing ? `play-${play}` : 'still'} viewBox={viewBox} role="img" aria-label={label} className="preview-svg">
         {sheet.prims.map((pr, i) => {
           const a = anim(pr);
           if (pr.kind === 'poly') {
