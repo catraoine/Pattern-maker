@@ -84,6 +84,8 @@ describe('the tester pieces print cleanly', () => {
               expect(drawn.replace(square, ''), where).not.toMatch(/\d\s*(cm|CM|mm|m|M)\b/);
               expect(drawn, where).not.toMatch(/\d \d\/\d| in in\b/);
               expect(drawn, where).toMatch(/\d-\d\/[248] (in|yd)/);
+              // One way of writing a fraction on every page: "21-7/8 in" sat beside "¾ in" and "2⅜ yd" (pretend tester, Nov 18).
+              expect(drawn, where).not.toMatch(/[⅛¼⅜½⅝¾⅞]/);
             } else expect(drawn.replace(square, ''), where).not.toMatch(/\d(\/\d+)?\s*(in|yd|IN|YD)\b(?! (from|the|a|an|and|to|place)\b)/);
           }
       });

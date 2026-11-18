@@ -92,3 +92,27 @@ test('the shift says the length typed', async ({ page }) => {
   await main.getByRole('button', { name: 'Type the dress length' }).click();
   await expect(page.getByRole('form').getByRole('textbox')).toHaveValue('50');
 });
+
+// The pretend tester's walk (Nov 18): a typed 21 3/4 in came back as 21⅞ on the skirt alone, rounded to the half cm
+// on its way in; the shift, trousers and peplum kept it.
+test('the skirt keeps a typed quarter inch as typed', async ({ page }) => {
+  const main = page.getByRole('main');
+  await startWithExample(page);
+  await openAccount(page);
+  await openFold(page, 'Settings');
+  await main.getByRole('group', { name: 'Units' }).getByRole('button', { name: 'Inches' }).click();
+  await page.getByRole('banner').getByRole('button', { name: 'Back', exact: true }).click();
+  await stepButton(page, 'Style').click().catch(() => {});
+  await openCollection(page);
+  await main.getByRole('listitem').filter({ hasText: 'Black Pleated Skirt' }).first().getByRole('button', { name: /^Make the skirt/i }).click();
+  const change = main.getByRole('button', { name: 'Change a detail' });
+  if (await change.count()) await change.click();
+  await main.getByRole('button', { name: 'Type the skirt length' }).click();
+  const input = page.getByRole('form').getByRole('textbox');
+  const whole = Math.round(parseFloat(await input.inputValue())) - 1;
+  await input.fill(`${whole} 3/4`);
+  await page.getByRole('form').getByRole('button', { name: 'Set' }).click();
+  await expect(page.getByRole('form')).toBeHidden();
+  await main.getByRole('button', { name: 'Type the skirt length' }).click();
+  await expect(page.getByRole('form').getByRole('textbox')).toHaveValue(`${whole}¾`);
+});

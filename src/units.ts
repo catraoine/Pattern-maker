@@ -35,7 +35,7 @@ export function toFeetInches(cm: number): string {
 export function fmtMeasure(id: string, cm: number, unit: Unit): string {
   if (unit === 'cm') return `${cm} cm`;
   if (id === 'height') return toFeetInches(cm);
-  return `${measureInches(cm)} in`;
+  return `${inchWords(measureInches(cm))} in`;
 }
 
 /** A measurement in inches as it was typed. It's kept to a tenth of a centimetre, so a tape's 37.75 came back as 37.8
@@ -47,6 +47,14 @@ export function measureInches(cm: number): number {
   const tenth = Math.round(inches * 10) / 10;
   const quarter = Math.round(inches * 4) / 4;
   return back(tenth) || !back(quarter) ? tenth : quarter;
+}
+
+/** Inches as read back on screen: a quarter or half inch the way every page writes it, "7¾", "30½" (a typed 7 3/4
+ *  showed as "7.75" in the step list while the pages said ¾, pretend tester, Nov 18); any other tenth stays a decimal. */
+export function inchWords(inches: number): string {
+  const quarters = Math.round(inches * 4);
+  if (Math.abs(inches * 4 - quarters) > 1e-9 || quarters % 4 === 0) return String(inches);
+  return `${Math.floor(quarters / 4) || ''}${EIGHTHS[(quarters % 4) * 2]}`;
 }
 
 /** A length in the sewist's unit: "12 cm" or "4¾ in". */

@@ -70,6 +70,9 @@ describe('checking your fabric', () => {
   it('calls a suggested fabric a good match', () => {
     const notes = checkFabric({ garment: 'skirt', silhouette: 'a_line', length: 'midi' }, { weight: 'medium', drape: 'crisp', fibre: 'linen' });
     expect(notes[0]).toEqual({ level: 'ok', text: 'Good match for a midi A-line.' });
+    // A length typed or dragged by hand isn't named by the nearest one: the look's words may differ (pretend tester, Nov 18).
+    const own = checkFabric({ garment: 'skirt', silhouette: 'a_line', length: 'knee', lengthCm: 55.2 }, { weight: 'medium', drape: 'crisp', fibre: 'linen' });
+    expect(own[0]).toEqual({ level: 'ok', text: 'Good match for an A-line.' });
     expect(notes[1].text).toMatch(/twice/);
   });
 
