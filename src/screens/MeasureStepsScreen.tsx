@@ -15,7 +15,7 @@ import { isSwimIntimates } from '../photo/swim';
 import { InterestCard } from '../ui/InterestCard';
 import { MAX_IDEA_CHARS, type IdeaReading, type IdeaResponse, type PhotoError } from '../photo/types';
 import { testerHeaders } from '../ui/TesterCode';
-import { measureInches, typedLength } from '../units';
+import { inchWords, measureInches, typedLength } from '../units';
 
 interface Props {
   /** Opens the Maison collection from "What would you like to make?": the fit testers sew a house look (Nov 11). */
@@ -95,7 +95,7 @@ const toDisplay = (cm: number | undefined, unit: Unit) =>
 /** A height in feet and inches, for the two boxes. */
 const ftOf = (cm: number) => String(Math.floor(Math.round((cm / 2.54) * 10) / 10 / 12));
 const inOf = (cm: number) => String(Math.round(((cm / 2.54) % 12) * 10) / 10 % 12);
-const shown = (cm: number | undefined, unit: Unit) => (cm === undefined ? '' : `${toDisplay(cm, unit)} ${unit}`);
+const shown = (cm: number | undefined, unit: Unit) => (cm === undefined ? '' : `${unit === 'in' ? inchWords(measureInches(cm)) : cm} ${unit}`);
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 /** "a slip dress", "an evening coat"; plurals ("wide-leg trousers", "shorts") take no article. */
 const aOrAn = (name: string) => (/(s|wear|lingerie)$/i.test(name) && !/dress$/i.test(name) ? name : `${/^[aeiou]/i.test(name) ? 'an' : 'a'} ${name}`);

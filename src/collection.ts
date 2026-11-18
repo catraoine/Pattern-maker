@@ -112,7 +112,8 @@ export const COLLECTION: HouseLook[] = [
     id: 'blush-shift',
     number: 1,
     name: 'Blush Shift',
-    line: 'A sleeveless shift above the knee, with a little room at the bust and a hem that flares just enough.',
+    // Mini, as the length dot names it: "above the knee" read as the Above knee length, a step longer (pretend tester, Nov 18).
+    line: 'A sleeveless mini shift, with a little room at the bust and a hem that flares just enough.',
     fabric: 'Blush wool crepe',
     garment: 'dress',
     choices: dress('regular', { neckline: 'crew', sleeve: 'none', darts: 'bust', bustDart: 'french', bustEase: 5, shiftBack: 'shaped' }, { silhouette: 'straight', length: 'mini', noSeam: 'shift', flareCm: 4 }),

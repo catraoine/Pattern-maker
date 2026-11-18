@@ -240,9 +240,16 @@ const RUCHED = {
 const SKIRT_LINING = pick('Lining: Bemberg (cupro) or acetate', ['light'], 'fluid', 'Slides over tights and breathes.');
 const BODICE_LINING = pick('Lining: cotton lawn or Bemberg (cupro)', ['light'], 'soft', 'Breathes and slides on easily.');
 
+/** "a midi A-line", or for a length of the sewist's own, just "an A-line": a typed 55 cm skirt was called knee-length,
+ *  the nearest named length, on Print, while the look said just above the knee (pretend tester, Nov 18). */
+function skirtStyleWords(style: { silhouette: Silhouette; length: Length; lengthCm?: number }): string {
+  const words = `${style.lengthCm === undefined ? `${LENGTH_WORDS[style.length]} ` : ''}${SILHOUETTE_WORDS[style.silhouette]}`;
+  return `${/^[aeiou]/i.test(words) ? 'an' : 'a'} ${words}`;
+}
+
 /** Fabrics for a skirt style. */
-export function skirtFabrics(style: { fit?: Fit; silhouette: Silhouette; length: Length; asymHem?: AsymHem; ruched?: boolean } & Partial<VolumeStyle>): FabricAdvice {
-  if (style.ruched && rucheAllowed(style)) return { ...RUCHED, style: `a ${LENGTH_WORDS[style.length]} ${SILHOUETTE_WORDS[style.silhouette]} with ruched sides`.replace('a above', 'an above'), lining: SKIRT_LINING };
+export function skirtFabrics(style: { fit?: Fit; silhouette: Silhouette; length: Length; lengthCm?: number; asymHem?: AsymHem; ruched?: boolean } & Partial<VolumeStyle>): FabricAdvice {
+  if (style.ruched && rucheAllowed(style)) return { ...RUCHED, style: `${skirtStyleWords(style)} with ruched sides`, lining: SKIRT_LINING };
   const base = SKIRT[style.silhouette];
   const full = style.silhouette === 'half_circle' || style.silhouette === 'circle';
   const note =
@@ -259,7 +266,7 @@ export function skirtFabrics(style: { fit?: Fit; silhouette: Silhouette; length:
           : undefined;
   // Pleats, godets, a flounce or tiers ask for their own kind of cloth.
   return volumeFabrics(style, {
-    style: `a ${LENGTH_WORDS[style.length]} ${SILHOUETTE_WORDS[style.silhouette]}`.replace('a above', 'an above'),
+    style: skirtStyleWords(style),
     picks: base.picks,
     avoid: `${base.avoid} ${STRETCH}`,
     note,
@@ -492,7 +499,7 @@ export function outerFabrics(style: { garment: 'jacket' | 'coat'; fit: BodiceFit
 }
 
 /** Fabrics for a dress: the skirt's suggestions that also suit the bodice come first. */
-export function dressFabrics(style: { fit: BodiceFit; neckline: Neckline; silhouette: Silhouette; length: Length; structure?: Structure } & Partial<VolumeStyle>): FabricAdvice {
+export function dressFabrics(style: { fit: BodiceFit; neckline: Neckline; silhouette: Silhouette; length: Length; lengthCm?: number; structure?: Structure } & Partial<VolumeStyle>): FabricAdvice {
   const skirt = skirtFabrics({ ...style, fit: skirtFitOf(style.fit) });
   const bodice = bodiceFabrics({ fit: style.fit, neckline: style.neckline, structure: style.structure });
   // The boned bodice sets the cloth: the skirt is cut from the same firm fabric.
@@ -543,9 +550,9 @@ interface FabricNote {
 }
 
 export type FabricStyle =
-  | ({ garment: 'skirt'; silhouette: Silhouette; length: Length; asymHem?: AsymHem } & Partial<VolumeStyle>)
+  | ({ garment: 'skirt'; silhouette: Silhouette; length: Length; lengthCm?: number; asymHem?: AsymHem } & Partial<VolumeStyle>)
   | { garment: 'bodice'; fit: BodiceFit; neckline: Neckline; structure?: Structure }
-  | ({ garment: 'dress'; fit: BodiceFit; neckline: Neckline; silhouette: Silhouette; length: Length; structure?: Structure } & Partial<VolumeStyle>)
+  | ({ garment: 'dress'; fit: BodiceFit; neckline: Neckline; silhouette: Silhouette; length: Length; lengthCm?: number; structure?: Structure } & Partial<VolumeStyle>)
   | { garment: 'trousers'; fit: Fit; leg: Leg }
   | TeeFabricStyle
   | LingerieFabricStyle

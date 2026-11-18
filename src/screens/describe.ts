@@ -14,8 +14,12 @@ export function describePattern(c: PatternChoices) {
     const belted = c.bodice.closure === 'wrap' ? '' : beltWords(c.skirt.belt ?? 'none');
     // Cut in one from shoulder to hem: "Knee sheath dress with a boat neck and short sleeves".
     if (c.skirt.noSeam && noSeamAllowed(c.bodice)) {
-      const len = c.skirt.lengthCm !== undefined ? `${Math.round(c.skirt.lengthCm * 10) / 10} cm` : GROUPS[2].options.find((o) => o[0] === c.skirt.length)![1];
-      return `${len} ${c.fit === 'boxy' ? 'boxy ' : ''}${c.skirt.noSeam === 'bias' ? 'bias slip' : c.skirt.noSeam} dress with ${bodiceDetails(c.bodice)}${belted ? `, and ${belted}` : ''}`;
+      // A length set by hand is measured from the waist, so it is said as where the hem falls: "37 cm shift dress" read
+      // as a dress 37 cm long (pretend tester, Nov 18).
+      const own = c.skirt.lengthCm !== undefined ? `, its hem ${Math.round(c.skirt.lengthCm * 10) / 10} cm below the waist` : '';
+      const kind = `${c.fit === 'boxy' ? 'boxy ' : ''}${c.skirt.noSeam === 'bias' ? 'bias slip' : c.skirt.noSeam} dress`;
+      const lead = own ? kind[0].toUpperCase() + kind.slice(1) : `${GROUPS[2].options.find((o) => o[0] === c.skirt.length)![1]} ${kind}`;
+      return `${lead} with ${bodiceDetails(c.bodice)}${belted ? `, and ${belted}` : ''}${own}`;
     }
     // "Knee A-line dress with knife pleats, a scoop neck and short sleeves". A hem named on the skirt
     // ("with a high-low hem") goes last: "... dress with a crew neck, and a high-low hem". The dress's

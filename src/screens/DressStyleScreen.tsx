@@ -711,7 +711,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
             {draft ? (
               <FabricCard
             metres={dressFabricMetres([...pieces, ...(draft ? layoutExtras(draft.skirt) : [])])}
-            advice={dressFabrics({ fit: choices.fit, neckline: choices.bodice.neckline, silhouette: choices.skirt.silhouette, length: choices.skirt.length, structure: valid.structure, asymHem: choices.skirt.asymHem, pleats: choices.skirt.pleats, godets: choices.skirt.godets, flounce: choices.skirt.flounce })}
+            advice={dressFabrics({ fit: choices.fit, neckline: choices.bodice.neckline, silhouette: choices.skirt.silhouette, length: choices.skirt.length, lengthCm: choices.skirt.lengthCm, structure: valid.structure, asymHem: choices.skirt.asymHem, pleats: choices.skirt.pleats, godets: choices.skirt.godets, flounce: choices.skirt.flounce })}
             fabric={fabric}>
                 {flat && <FabricSwatches finish={finish} onFinish={onFinish} garment="dress" details />}
               </FabricCard>

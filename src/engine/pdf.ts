@@ -60,15 +60,13 @@ let inchMode = false;
 const worded = (text: string) => (inchMode ? inInches(text) : text);
 
 // Instrument Sans (the text face) has no fraction characters, so inch lengths like "21⅝ in" printed as "21[] in" in
-// every inch tester's PDF (Nov 17). Where a face lacks one, write it the way pattern envelopes do: "21-5/8 in". With a
-// space, this face sets "1 1/4 yd" so tight it reads as "11/4 yd"; the hyphen also keeps the two on one line.
+// every inch tester's PDF (Nov 17). Write them the way pattern envelopes do: "21-5/8 in". With a space, this face sets
+// "1 1/4 yd" so tight it reads as "11/4 yd"; the hyphen also keeps the two on one line. Every face is written this way,
+// not only the one lacking the characters: "21-7/8 in" in a step sat beside "¾ in" and "2⅜ yd" in the labels' face,
+// two ways of writing an inch on one page (pretend tester, Nov 18).
 const FRACTIONS: Record<string, string> = { '⅛': '1/8', '¼': '1/4', '⅜': '3/8', '½': '1/2', '⅝': '5/8', '¾': '3/4', '⅞': '7/8' };
-const glyphs = new WeakMap<PDFFont, Set<number>>();
-function printable(text: string, font: PDFFont): string {
-  let has = glyphs.get(font);
-  if (!has) glyphs.set(font, (has = new Set(font.getCharacterSet())));
-  const set = has;
-  return text.replace(/(\d?)([⅛¼⅜½⅝¾⅞])/g, (m, d: string, f: string) => (set.has(f.codePointAt(0)!) ? m : `${d}${d ? '-' : ''}${FRACTIONS[f]}`));
+function printable(text: string): string {
+  return text.replace(/(\d?)([⅛¼⅜½⅝¾⅞])/g, (_m, d: string, f: string) => `${d}${d ? '-' : ''}${FRACTIONS[f]}`);
 }
 
 /** Text with letter spacing. `x` is the left edge, or the centre when `centre` is set. */
@@ -79,7 +77,7 @@ function drawText(
 ) {
   // Wrapped lines come already in the sewist's unit: rewriting them again turned "exactly 10 cm (3.94 in)" into
   // "exactly 10 cm (3.94 in) (3.94 in)" in the inch booklet.
-  text = printable(o.worded ? text : worded(text), o.font);
+  text = printable(o.worded ? text : worded(text));
   const cs = (o.tracking ?? 0) * o.size;
   const width = o.font.widthOfTextAtSize(text, o.size) + cs * Math.max(0, text.length - 1);
   const shift = o.centre ? width / 2 : 0;
@@ -135,7 +133,7 @@ function drawSheet(
       // left off one page and printed on the next, so the words were cut where the two pages overlap.
       const font = fonts[pr.face ?? 'body'];
       const size = pr.size * CM * 0.85;
-      const shown = printable(worded(pr.text), font);
+      const shown = printable(worded(pr.text));
       const width = (font.widthOfTextAtSize(shown, size) + (pr.tracking ?? 0) * size * Math.max(0, shown.length - 1)) / CM;
       const rad = (pr.rotate * Math.PI) / 180;
       const u = { x: Math.cos(rad), y: Math.sin(rad) };
@@ -482,7 +480,7 @@ function flow(doc: PDFDocument, paper: 'a4' | 'letter', fonts: Fonts) {
     }
   };
   const wrap = (text: string, size: number, f: PDFFont, w = width - 18) => {
-    text = printable(worded(text), f);
+    text = printable(worded(text));
     const lines: string[] = [];
     let line = '';
     for (const word of text.split(' ')) {
@@ -820,7 +818,7 @@ function addHandPages(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', ti
 }
 
 function wrapText(text: string, size: number, f: PDFFont, w: number) {
-  text = printable(worded(text), f);
+  text = printable(worded(text));
   const lines: string[] = [];
   let line = '';
   for (const word of text.split(' ')) {

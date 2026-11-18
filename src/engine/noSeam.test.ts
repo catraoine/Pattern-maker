@@ -65,4 +65,11 @@ describe('sheath and shift dresses', () => {
       expect(describePattern({ garment: 'dress', fit: 'regular', bodice: DEFAULT_BODICE, skirt: { fit: 'regular', ...style } } as never)).toMatch(new RegExp(`^Knee ${noSeam} dress with `));
     }
   });
+
+  // "37 cm shift dress" read as a dress 37 cm long; the length is from the waist (pretend tester, Nov 18).
+  it('names a length set by hand by where its hem falls below the waist', () => {
+    const name = describePattern({ garment: 'dress', fit: 'regular', bodice: DEFAULT_BODICE, skirt: { fit: 'regular', silhouette: 'straight', length: 'mini', noSeam: 'shift', lengthCm: 37 } } as never);
+    expect(name).toMatch(/^Shift dress with .*, its hem 37 cm below the waist$/);
+    expect(name).not.toMatch(/^37 cm/);
+  });
 });

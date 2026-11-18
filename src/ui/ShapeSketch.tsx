@@ -76,12 +76,13 @@ const LENGTH_IDS = Object.keys(LENGTHS) as Length[];
 const lengthName = (id: Length) => GROUPS[2].options.find((o) => o[0] === id)![1];
 const silName = (id: Silhouette) => GROUPS[1].options.find((o) => o[0] === id)![1];
 
-/** A dragged length: snaps to a named length within 1.5 cm, otherwise kept to the half centimetre. */
-export function dragLength(m: SkirtMeasurements, c: Choices, cm: number, catchCm = 1.5): Choices {
+/** A dragged (or typed) length. A drag is kept to the half cm; a typed length passes `exact`, so it is kept as typed:
+ *  rounded to the half cm, a typed 21 3/4 in came back as 21⅞ on the skirt alone (pretend tester, Nov 18). */
+export function dragLength(m: SkirtMeasurements, c: Choices, cm: number, catchCm = 1.5, exact = false): Choices {
   const v = lengthRange(m).clamp(cm);
   const named = LENGTH_IDS.map((id) => ({ id, at: LENGTHS[id](m) })).sort((a, b) => Math.abs(a.at - v) - Math.abs(b.at - v))[0];
   const { look: _look, lengthCm: _l, kneeShare: _k, floorClear: _f, ...rest } = c;
-  return Math.abs(named.at - v) < catchCm ? { ...rest, length: named.id } : { ...rest, length: named.id, lengthCm: Math.round(v * 2) / 2 };
+  return Math.abs(named.at - v) < catchCm ? { ...rest, length: named.id } : { ...rest, length: named.id, lengthCm: exact ? Math.round(v * 100) / 100 : Math.round(v * 2) / 2 };
 }
 
 /** A dragged flare: moves between pencil, straight and A-line, snapping to each one's own shape. */
@@ -290,7 +291,7 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
               cm: draft.lengthCm,
               min: lengthRange(dm).min,
               max: lengthRange(dm).max,
-              onCm: (cm) => onDone(choices, dragLength(dm, unpin(choices, draft), cm, 0)),
+              onCm: (cm) => onDone(choices, dragLength(dm, unpin(choices, draft), cm, 0, true)),
             }}
           />
         )}

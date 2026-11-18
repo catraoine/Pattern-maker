@@ -768,7 +768,7 @@ export default function App() {
       : garment === 'bodice'
       ? { garment, fit: saved.bodice.fit, neckline: saved.bodice.neckline, structure: validDetails(saved.bodice).structure }
       : garment === 'dress'
-        ? { garment, fit: dress.fit, neckline: dress.bodice.neckline, silhouette: dress.skirt.silhouette, length: dress.skirt.length, structure: validDetails(dress.bodice).structure, asymHem: dress.skirt.asymHem, pleats: dress.skirt.pleats, godets: dress.skirt.godets, flounce: dress.skirt.flounce }
+        ? { garment, fit: dress.fit, neckline: dress.bodice.neckline, silhouette: dress.skirt.silhouette, length: dress.skirt.length, lengthCm: dress.skirt.lengthCm, structure: validDetails(dress.bodice).structure, asymHem: dress.skirt.asymHem, pleats: dress.skirt.pleats, godets: dress.skirt.godets, flounce: dress.skirt.flounce }
         : garment === 'trousers'
           ? { garment, fit: trousersChoices.fit, leg: trousersChoices.leg }
           : garment === 'tee'
@@ -779,7 +779,7 @@ export default function App() {
             ? { garment: 'trousers', fit: rangeChoices.legFit, leg: rangeChoices.leg }
           : garment === 'lingerie'
             ? { garment, piece: lingerieChoices.piece, stretch: lingerieChoices.stretch }
-          : { garment: 'skirt', silhouette: saved.choices.silhouette, length: saved.choices.length, asymHem: saved.choices.asymHem, pleats: saved.choices.pleats, godets: saved.choices.godets, flounce: saved.choices.flounce };
+          : { garment: 'skirt', silhouette: saved.choices.silhouette, length: saved.choices.length, lengthCm: saved.choices.lengthCm, asymHem: saved.choices.asymHem, pleats: saved.choices.pleats, godets: saved.choices.godets, flounce: saved.choices.flounce };
 
   // A fit tester's own look keeps its style: the "You're in" email says the style is set and only the length is theirs.
   // A peplum tester changed the neckline and sleeves and took the peplum off, still believing she was sewing the Ice
