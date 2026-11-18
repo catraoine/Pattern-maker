@@ -844,6 +844,14 @@ export function MeasurePage({
     const cm = Math.round(value * 2.54 * 10) / 10;
     return f && value < f.hard[0] && cm >= f.hard[0] && cm <= f.hard[1] ? cm : undefined;
   })();
+  // And the other way: a number taken in cm while the app is in inches is too big, and fits read as cm (the pretend
+  // tester's inch walk, Nov 18, where only the cm pages offered the switch).
+  const asCm = (() => {
+    if (!shownError || unit !== 'in' || value === undefined) return undefined;
+    const f = FIELDS[checkAs].find((x) => x.id === id);
+    const cm = Math.round((value / 2.54) * 10) / 10;
+    return f && value > f.hard[1] && cm >= f.hard[0] && cm <= f.hard[1] ? cm : undefined;
+  })();
   const note = shownError ?? (tried && value === undefined ? { level: 'error', message: `Enter ${helper ? 'their' : 'your'} ${fieldLabel.toLowerCase()} to carry on.` } : undefined);
 
   const feetInches = id === 'height' && unit === 'in';
@@ -1015,6 +1023,24 @@ export function MeasurePage({
                   }}
                 >
                   Switch to inches <span aria-hidden="true">›</span>
+                </button>
+              </>
+            )}
+            {asCm !== undefined && (
+              <>
+                {' '}
+                <button
+                  type="button"
+                  className="later go switch-unit"
+                  onClick={() => {
+                    setText(null);
+                    setFtIn(null);
+                    setTried(false);
+                    onValues({ ...values, [id]: asCm });
+                    onUnit('cm');
+                  }}
+                >
+                  Switch to cm <span aria-hidden="true">›</span>
                 </button>
               </>
             )}

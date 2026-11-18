@@ -105,9 +105,9 @@ function notSameOwner(l: Person, la: Account, r: Person, ra: Account): boolean {
  * The owner's measurements on this device moved to a person of their own, with the patterns saved for them, so they are
  * kept beside the account owner's rather than joined into them.
  */
-function ownerApart(a: Account & { people: Person[]; active: string }): Account & { people: Person[]; active: string } {
+function ownerApart(a: Account & { people: Person[]; active: string }, name = a.name.trim() || 'From this device'): Account & { people: Person[]; active: string } {
   const id = newId();
-  const people = a.people.map((p) => (p.id === ME ? { ...p, id, name: a.name.trim() || 'From this device', named: true } : p));
+  const people = a.people.map((p) => (p.id === ME ? { ...p, id, name, named: true } : p));
   const patterns = a.patterns.map((p) => (p.personId === ME ? { ...p, personId: id } : p));
   return { ...a, people, patterns, active: a.active === ME ? id : a.active };
 }
@@ -154,7 +154,7 @@ export interface JoinOptions {
    *  the owner's measurements here are kept as a person of their own, and the account's own settings stay as they are. */
   fromAnotherAccount?: boolean;
   /** Both sides are known to be the same person's (a link sent from their own other device): their measurements are
-   *  joined, never kept apart as two people. */
+   *  joined, unless both were measured and disagree, when this device's are kept beside the link's, not mixed in. */
   sameOwner?: boolean;
 }
 
@@ -179,9 +179,12 @@ export function mergeBackups<S>(local: Backup<S>, remote: Backup<S> | null, base
     // Only the people and patterns come over; the name, tester code, studio and other settings are the account's own.
     const apart = lMe && taken(lMe) > 0 ? ownerApart(la) : la;
     la = { ...ra, people: apart.people.filter((p) => p.id !== ME), patterns: apart.patterns, active: ra.active };
-  } else if (!opts.sameOwner && lMe && rMe && taken(lMe) > 0 && taken(rMe) > 0 && !hasBase && notSameOwner(lMe, la, rMe, ra)) {
+  } else if (lMe && rMe && taken(lMe) > 0 && taken(rMe) > 0 && !hasBase && notSameOwner(lMe, la, rMe, ra)) {
     // The account's owner keeps their own name; this device's owner is now one of their people, under theirs.
-    la = { ...ownerApart(la), name: ra.name };
+    // Brought from one's own other device too, two measuring sessions that disagree are not mixed into one body: the
+    // phone's waist, bust and hip with this computer's high bust and shoulder made a high bust larger than the bust
+    // (pretend tester, Nov 18). The link's are used, and this device's are kept beside them, not lost.
+    la = opts.sameOwner ? ownerApart(la, 'Measured on this device') : { ...ownerApart(la), name: ra.name };
   }
   const newer = workFromRemote ? ra : la;
   const older = workFromRemote ? la : ra;

@@ -37,6 +37,8 @@ describe('inches', () => {
     expect(inInches('a casing 1.5 cm in from the seam line')).toBe('a casing ⅝ in from the seam line');
     expect(inInches('stay-stitch 1 cm in as soon as they are cut')).toBe('stay-stitch ⅜ in from the edge as soon as they are cut');
     expect(inInches('trim to 1 cm in length')).toBe('trim to ⅜ in in length');
+    // An iron's heat in Fahrenheit, to the nearest 10 (pretend tester, Nov 18).
+    expect(inInches('Wool setting (about 150 C) with steam.')).toBe('Wool setting (about 300 F) with steam.');
     expect(inInches('10 cm (3.94 in) test square')).toBe('10 cm (3.94 in) test square');
     expect(inInches('cm or in')).toBe('cm or in');
     expect(inInches('Page 2 of 4')).toBe('Page 2 of 4');
