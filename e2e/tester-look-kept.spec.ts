@@ -36,6 +36,7 @@ test('a tester changing her look\'s style is asked first, and can keep it', asyn
   await main(page).getByRole('button', { name: 'Change a detail' }).click();
   await pick(page, /^Neckline\b/, /^V-neck/);
   await expect(dialog(page)).toBeVisible();
+  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/look-kept-${test.info().project.name}.png` });
   await dialog(page).getByRole('button', { name: 'Keep the Ice Peplum Top' }).click();
   await expect(dialog(page)).toHaveCount(0);
   await expect(main(page).getByRole('heading', { name: /Ice Peplum Top/ })).toBeVisible();
