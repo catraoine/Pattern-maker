@@ -345,8 +345,12 @@ export function lookHipMissing(look: Pick<HouseLook, 'choices'>, measured: Measu
 
 /** The measurements a look is drawn to: the sewist's own when the garment has all it needs, or the sample set. */
 export function lookValues(look: HouseLook, values: MeasurementValues): { values: MeasurementValues; own: boolean } {
-  // A vest is drawn without the arms (a jacket's arms are only for its sleeves).
-  return isComplete(values, look.garment, undefined, unusedFor(look.choices)) ? { values, own: true } : { values: EXAMPLE_BODY, own: false };
+  // A vest is drawn without the arms (a jacket's arms are only for its sleeves). A top that goes below the waist (the Ice
+  // Peplum) needs the hip too: drawn to a top's measurements without it, its card said "This look can't be drafted to
+  // these measurements", which a tester read as being told she was too big for it (Nov 18). Until then it's drawn to
+  // the sample, like any look still missing a measurement, and making it asks for the hip first.
+  const own = isComplete(values, look.garment, undefined, unusedFor(look.choices)) && !lookHipMissing(look, values).length;
+  return own ? { values, own: true } : { values: EXAMPLE_BODY, own: false };
 }
 
 /** A look made before its garment's measurements were all in is sized to the sample body (its mini's least length,

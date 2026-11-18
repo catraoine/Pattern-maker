@@ -10,15 +10,15 @@ test('a number taken in inches gets a one-tap switch, and a weight in pounds rea
   const box = main.locator('#step-value');
   await box.fill('28');
   await box.blur();
-  await expect(main.getByText(/Waist should be between/)).toBeVisible();
+  await expect(main.getByText(/Waist can be from/)).toBeVisible();
   await main.getByRole('button', { name: /Switch to inches/ }).click();
   await expect(main.getByRole('button', { name: 'Inches' })).toHaveAttribute('aria-pressed', 'true');
   await expect(box).toHaveValue('28');
-  await expect(main.getByText(/should be between/)).toHaveCount(0);
+  await expect(main.getByText(/can be from/)).toHaveCount(0);
   // Far too small in either unit: no switch is offered.
   await box.fill('3');
   await box.blur();
-  await expect(main.getByText(/Waist should be between/)).toBeVisible();
+  await expect(main.getByText(/Waist can be from/)).toBeVisible();
   await expect(main.getByRole('button', { name: /Switch to inches/ })).toHaveCount(0);
   await box.fill('28');
   for (const n of ['36', '38', '58']) {

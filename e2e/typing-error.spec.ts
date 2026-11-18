@@ -8,17 +8,17 @@ test('the range error waits for the whole number', async ({ page }) => {
   await main.getByRole('button', { name: 'Begin' }).click();
   const box = main.getByRole('textbox');
   await box.pressSequentially('6');
-  await expect(main.getByText(/should be between/)).toHaveCount(0);
+  await expect(main.getByText(/can be from/)).toHaveCount(0);
   await box.pressSequentially('2');
-  await expect(main.getByText(/should be between/)).toHaveCount(0);
+  await expect(main.getByText(/can be from/)).toHaveCount(0);
   await box.fill('6');
   await box.blur();
-  await expect(main.getByText(/Waist should be between/)).toBeVisible();
+  await expect(main.getByText(/Waist can be from/)).toBeVisible();
   await box.fill('620');
-  await expect(main.getByText(/Waist should be between/)).toBeVisible();
+  await expect(main.getByText(/Waist can be from/)).toBeVisible();
   await box.fill('6');
-  await expect(main.getByText(/should be between/)).toHaveCount(0);
+  await expect(main.getByText(/can be from/)).toHaveCount(0);
   // Enter tries Next without leaving the box, so this is Next's own check, not the box being left.
   await box.press('Enter');
-  await expect(main.getByText(/Waist should be between/)).toBeVisible();
+  await expect(main.getByText(/Waist can be from/)).toBeVisible();
 });

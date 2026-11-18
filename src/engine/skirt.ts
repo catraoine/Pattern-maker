@@ -1048,7 +1048,7 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
   const circleSkirt = (share: number, cutWaist = finishedWaist): SkirtDraft => {
     const r = cutWaist / (2 * Math.PI * share);
     if (2 * Math.PI * share * (r + hipDepth) < finishedHip - 0.01) {
-      throw new DraftError('Your hip is too much bigger than your waist for a circle skirt to fit over it.');
+      throw new DraftError('A circle skirt’s waist can’t open wide enough to pass over the hip with these two measurements. Another skirt shape will work.');
     }
     // A circle cut bigger than the waist takes the difference in darts, like the darted skirt.
     const intake = (cutWaist - finishedWaist) / 4;
@@ -1099,7 +1099,7 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
   }
 
   if (waistQ > hipQ) {
-    throw new DraftError('Your waist is larger than your hip, so this shape can’t be drafted for you yet. A circle skirt will work.');
+    throw new DraftError('Your waist measures more than your hip, and this skirt shape can’t follow that yet. A circle skirt will work.');
   }
 
   // Trumpet skirts flare from a little above the knee; the hem is never shorter than the flare.
