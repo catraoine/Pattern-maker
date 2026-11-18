@@ -153,6 +153,9 @@ export interface JoinOptions {
   /** This device was last signed in to another account, and the person signing in chose to add its work to theirs:
    *  the owner's measurements here are kept as a person of their own, and the account's own settings stay as they are. */
   fromAnotherAccount?: boolean;
+  /** Both sides are known to be the same person's (a link sent from their own other device): their measurements are
+   *  joined, never kept apart as two people. */
+  sameOwner?: boolean;
 }
 
 export function mergeBackups<S>(local: Backup<S>, remote: Backup<S> | null, base?: Backup<S> | null, opts: JoinOptions = {}): Backup<S> {
@@ -176,7 +179,7 @@ export function mergeBackups<S>(local: Backup<S>, remote: Backup<S> | null, base
     // Only the people and patterns come over; the name, tester code, studio and other settings are the account's own.
     const apart = lMe && taken(lMe) > 0 ? ownerApart(la) : la;
     la = { ...ra, people: apart.people.filter((p) => p.id !== ME), patterns: apart.patterns, active: ra.active };
-  } else if (lMe && rMe && taken(lMe) > 0 && taken(rMe) > 0 && !hasBase && notSameOwner(lMe, la, rMe, ra)) {
+  } else if (!opts.sameOwner && lMe && rMe && taken(lMe) > 0 && taken(rMe) > 0 && !hasBase && notSameOwner(lMe, la, rMe, ra)) {
     // The account's owner keeps their own name; this device's owner is now one of their people, under theirs.
     la = { ...ownerApart(la), name: ra.name };
   }
