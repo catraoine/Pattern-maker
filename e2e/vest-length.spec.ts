@@ -31,4 +31,6 @@ test('a length picked for the Black Vest sets its hem', async ({ page }, info) =
   await cropped.first().click();
   const short = await back();
   expect(short).toBeLessThan(long - 10);
+  // It is still the Black Vest, only shorter: a length is the maker's own (pretend-tester walk, Nov 18, it read "Your vest").
+  await expect(page.getByRole('heading', { level: 1, name: /Black Vest/i })).toBeVisible();
 });
