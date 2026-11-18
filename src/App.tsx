@@ -1124,6 +1124,8 @@ export default function App() {
               checks={checks}
               canContinue={canLeaveMeasure}
               notice={measureNote}
+              name={vestOf(garment, saved) ? 'vest' : undefined}
+              unused={skipFor(garment, saved)}
               onMeasure={(ids) => openSteps({ kind: 'redo', garment, ids })}
               onChangeForm={() => openSteps({ kind: 'form' })}
               onNext={() => {

@@ -207,7 +207,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       }
     >
       <section className="card numbered" aria-labelledby="opts">
-        {outerGroups(kind)
+        {outerGroups(kind, choices)
           .filter((g) => g.id !== 'lapel' || lapelled(choices.collar))
           .map((g) => (
           <Group key={g.id} label={g.label}>

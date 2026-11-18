@@ -584,14 +584,14 @@ const SHORT: Record<string, string> = {
   'pads.soft': 'Thin pads that smooth the shoulder.',
   'pads.structured': 'Firm pads for a sharp shoulder.',
   'vent.centre': 'A back opening, to move and sit.',
-  'trim.none': 'Plain hems at bottom and cuffs.',
+  'trim.none': 'Plain hems at the bottom, and at the cuffs when it has sleeves.',
   'tiers.stacked': 'Two or three tiers, each fuller.',
   'tiers.drop_yoke': 'Fitted over the hip, full below.',
   'rise.natural': 'At your natural waist.',
   'rise.low': 'Low on the hip.',
   'rise.mid': 'At your natural waist.',
   'rise.high': 'Above the waist, long legged.',
-  'trim.rib': 'Rib bands at hem and cuffs.',
+  'trim.rib': 'A rib band at the hem, and at the cuffs when it has sleeves.',
   'flare.flared': 'Cinched, then flaring over the hips.',
 };
 
