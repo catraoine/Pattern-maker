@@ -26,6 +26,8 @@ const SAFARI_GATE = [
   'body-scan.spec.ts',
   'fabric-photo.spec.ts',
   'shop-catalogue.spec.ts',
+  // The five tester pieces, each made from the collection and printed on Letter and A4 (Nov 17).
+  'tester-pieces.spec.ts',
 ];
 
 // Walks left out of the Safari check because the test machine's Safari (WebKit on Linux, not an iPhone) crashes
