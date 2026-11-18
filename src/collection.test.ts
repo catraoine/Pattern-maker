@@ -78,12 +78,32 @@ describe('the Maison collection', () => {
     const made = lookPatch(shift, lookValues(shift, basics).values) as unknown as { dress: PatternChoices };
     const all = { ...basics, high_bust: 78, shoulder_width: 35, nape_to_waist: 37, waist_to_hip: 20.5, waist_to_knee: 52 };
     expect(lookValues(shift, all).own).toBe(true);
-    expect(lookNameOf('dress', made.dress, all)).toBeUndefined();
+    // Its name holds either way: only the length differs (testers, Nov 17).
+    expect(lookNameOf('dress', made.dress, all)).toBe('Blush Shift');
     const again = lookResized('dress', made.dress, all) as unknown as { dress: PatternChoices & { skirt: { lengthCm?: number } } };
     expect(again.dress.skirt.lengthCm).toBeDefined();
     expect(lookNameOf('dress', again.dress, all)).toBe('Blush Shift');
     // Sized once, or changed by the maker, it is left alone.
     expect(lookResized('dress', again.dress, all)).toBeUndefined();
     expect(lookResized('dress', { ...made.dress, fit: 'relaxed' } as PatternChoices, all)).toBeUndefined();
+  });
+
+  // Testers, Nov 17: dragging the Blush Shift's hem on the drawing lost its name (and, on a named length, its cut).
+  // A tester's own length keeps the look's name on Style and on the print; any other change still drops it.
+  it("keeps a look's name when only its length is changed", () => {
+    const lengths: Record<string, (c: Record<string, unknown>) => Record<string, unknown>> = {
+      dress: (c) => ({ ...c, skirt: { ...(c.skirt as object), length: 'maxi', lengthCm: 90 } }),
+      skirt: (c) => ({ ...c, length: 'midi', kneeShare: undefined, lengthCm: 70 }),
+      trousers: (c) => ({ ...c, length: 'cropped', lengthCm: 80 }),
+      bodice: (c) => ({ ...c, dropCm: 12 }),
+    };
+    for (const look of COLLECTION.filter((l) => lengths[l.garment])) {
+      const c = lookChoices(look, EXAMPLE_VALUES) as unknown as Record<string, unknown>;
+      expect(lookNameOf(look.garment, lengths[look.garment](c) as unknown as PatternChoices, EXAMPLE_VALUES), look.name).toBe(look.name);
+      expect(lookNameOf(look.garment, { ...c, fit: c.fit === 'relaxed' ? 'fitted' : 'relaxed' } as unknown as PatternChoices, EXAMPLE_VALUES), look.name).toBeUndefined();
+    }
+    // No two looks are the same garment but for their length, so a length never turns one look into another.
+    const same = COLLECTION.filter((a) => lengths[a.garment] && COLLECTION.some((b) => b !== a && b.garment === a.garment && lookNameOf(b.garment, lengths[b.garment](lookChoices(a, EXAMPLE_VALUES) as never) as never, EXAMPLE_VALUES) === b.name));
+    expect(same.map((l) => l.name)).toEqual([]);
   });
 });

@@ -51,7 +51,7 @@ test('the tour carries its words for screen readers, has its own controls, and s
   const tour = page.getByRole('dialog', { name: 'How it works' });
   // No Read it switch any more (Cat, 2026-11-06): the words stay in the page, hidden from view, tied to the film.
   await expect(tour.getByRole('button', { name: 'Read it' })).toHaveCount(0);
-  await expect(tour.locator('#tour-words')).toContainText(/Just a few measurements, taken once/);
+  await expect(tour.locator('#tour-words')).toContainText(/Five of them, taken once with a soft tape/);
   await expect(tour.locator('video')).toHaveAttribute('aria-describedby', 'tour-words');
   // The phone's own player controls are off; ours sit under the film.
   await expect(tour.locator('video')).not.toHaveAttribute('controls', /.*/);

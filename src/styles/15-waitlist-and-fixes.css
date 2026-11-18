@@ -33,6 +33,11 @@
   text-underline-offset: 2px;
   cursor: pointer;
 }
+/* The "Questions?" email on the joined page: the page's own quiet colour, not the browser's blue. */
+.waitlist-tester a {
+  color: inherit;
+  text-decoration: underline;
+}
 .waitlist-code {
   display: grid;
   grid-template-columns: 1fr auto;

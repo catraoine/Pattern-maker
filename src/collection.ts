@@ -338,11 +338,27 @@ export function lookResized(garment: Garment, current: PatternChoices, values: M
 const canon = (v: unknown): unknown =>
   Array.isArray(v) ? v.map(canon) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).filter(([, x]) => x !== undefined).sort(([a], [b]) => (a < b ? -1 : 1)).map(([k, x]) => [k, canon(x)])) : v;
 
-/** The collection look these choices still are, unchanged since it was made, for the print's title card
- *  ("Leopard Shirt Dress" over the long description; Cat, Nov 12). Undefined once any option is changed. */
+/** The choices without what the hem handle on the drawing sets: a skirt's, a dress's or trousers' length, and a top's
+ *  length below the waist. Testers are asked to set their own length that way, so it is the maker's, not the look's. */
+function lengthless(garment: Garment, c: PatternChoices): unknown {
+  const hem = (s: object) => {
+    const { length: _l, lengthCm: _c, kneeShare: _k, floorClear: _f, ...rest } = s as Record<string, unknown>;
+    return rest;
+  };
+  if (garment === 'dress' && isDress(c)) return { ...c, skirt: hem(c.skirt) };
+  if (garment === 'bodice') {
+    const { length: _l, dropCm: _d, ...rest } = c as unknown as Record<string, unknown>;
+    return rest;
+  }
+  return garment === 'skirt' || garment === 'trousers' ? hem(c) : c;
+}
+
+/** The collection look these choices still are, for the print's title card ("Leopard Shirt Dress" over the long
+ *  description; Cat, Nov 12). Undefined once any option is changed, but not the length: a Blush Shift tester who
+ *  dragged her hem to above the knee saw "Your dress" where "Blush Shift" had been (testers, Nov 17). */
 export function lookNameOf(garment: Garment, current: PatternChoices, values: MeasurementValues): string | undefined {
-  const want = JSON.stringify(canon(current));
-  return COLLECTION.find((look) => look.garment === garment && JSON.stringify(canon(lookChoices(look, lookValues(look, values).values))) === want)?.name;
+  const want = JSON.stringify(canon(lengthless(garment, current)));
+  return COLLECTION.find((look) => look.garment === garment && JSON.stringify(canon(lengthless(garment, lookChoices(look, lookValues(look, values).values)))) === want)?.name;
 }
 
 /** The look's technical flat, drafted to the given measurements; undefined if it can't be drafted for them. */

@@ -1,4 +1,4 @@
-// Every hour: sends Kit the waitlist sign-ups it didn't take at the time (kept by signup.mts in the "kit-retry"
+// Every ten minutes: sends Kit the waitlist sign-ups it didn't take at the time (kept by signup.mts in the "kit-retry"
 // store), at most 50 a run so the catch-up stays under Kit's rate limit. Nothing to do on a normal day.
 import { getStore } from '@netlify/blobs';
 import { retryKit, type KitRetry, type RetryStore } from '../../src/server/kit';
@@ -18,4 +18,6 @@ export default async () => {
   if (sent) console.log(`kit catch-up sent ${sent}`);
 };
 
-export const config = { schedule: '@hourly' };
+// Ten minutes, not an hour (the Dec 7 rehearsal, Nov 16): after a rush, 50 an hour left people waiting hours for the
+// confirm email. 50 a run is still under Kit's rate limit.
+export const config = { schedule: '*/10 * * * *' };

@@ -163,6 +163,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
               min: m.nape_to_waist + 1 - TEE_NECKS[choices.neckline].backDepth,
               max: m.nape_to_waist + m.waist_to_hip + 25 - TEE_NECKS[choices.neckline].backDepth,
               cm: choices.lengthCm,
+              from: 'down the centre back',
               onCm: (cm) => {
                 const y = TEE_NECKS[choices.neckline].backDepth + (draft.hemShape?.back ?? 0) + cm;
                 const length = (['cropped', 'hip', 'tunic'] as const).reduce((a, b) => (Math.abs(form.hems[b] - y) < Math.abs(form.hems[a] - y) ? b : a));

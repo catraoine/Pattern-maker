@@ -45,7 +45,7 @@ export default async (req: Request, context: { ip?: string }) => {
   if (signup.kind === 'news') {
     const kit = await addToKit(signup.email, signup.src, { apiKey: Netlify.env.get('KIT_API_KEY'), formId: Netlify.env.get('KIT_FORM_ID') }, new URL(req.url).origin);
     if (kit === 'failed') {
-      // Kept for the hourly catch-up (kit-catch-up.mts), so a rush past Kit's rate limit still gets the welcome email.
+      // Kept for the catch-up every ten minutes (kit-catch-up.mts), so a rush past Kit's rate limit still gets the welcome email.
       try {
         await getStore({ name: 'kit-retry', consistency: 'strong' }).setJSON(hash(signup.email, 16), { email: signup.email, src: signup.src, tries: 0 });
       } catch (e) {
