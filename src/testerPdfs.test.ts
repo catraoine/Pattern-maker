@@ -88,3 +88,33 @@ describe('the tester pieces print cleanly', () => {
           }
       });
 });
+
+// The booklet split its seam check, leaving two checks alone on a page, and left step headings at a page's foot with
+// their words over the page (pretend-tester walk, Nov 17).
+describe('the tester booklets keep things together', () => {
+  afterEach(() => vi.restoreAllMocks());
+  for (const id of IDS)
+    it(`${id}: the seam check on one page, and no heading alone at a page foot`, async () => {
+      const { look, print } = made(id, EXAMPLE_BODY);
+      const checks = checkPattern(print.pieces.filter((pc) => !pc.kind || pc.kind === 'collar' || pc.kind === 'pocket'));
+      const summary = { rows: print.spec.filter((r) => typeof r.finished === 'number'), checks, flat: print.flat, fabric: print.guide.fabric, lays: print.lays, madeFor: 'Tester' };
+      const sheet = layout(print.pieces, `Maison Tracé: ${look.name}`, print.notes, { pattern: look.name, madeFor: 'Tester' });
+      for (const paper of ['letter', 'a4'] as const) {
+        const pages = new Map<PDFPage, { y: number; text: string; size: number }[]>();
+        const real = PDFPage.prototype.drawText;
+        vi.spyOn(PDFPage.prototype, 'drawText').mockImplementation(function (this: PDFPage, text: string, o?: { y?: number; size?: number }) {
+          if (!pages.has(this)) pages.set(this, []);
+          pages.get(this)!.push({ y: o?.y ?? 0, text, size: o?.size ?? 0 });
+          return real.call(this, text, o as never);
+        });
+        await toTiledPdf(sheet, paper, { title: look.name, guide: print.guide, summary, unit: 'cm', part: 'booklet' });
+        vi.restoreAllMocks();
+        const withOk = [...pages.values()].filter((t) => t.some((l) => l.text === 'OK' || l.text === 'CHECK'));
+        expect(withOk.length, paper).toBe(1);
+        for (const t of pages.values()) {
+          const lowest = t.filter((l) => l.size >= 9).sort((a, b) => a.y - b.y)[0];
+          expect(lowest && /^\d+\. /.test(lowest.text) && lowest.size === 11 ? lowest.text : '', paper).toBe('');
+        }
+      }
+    });
+});
