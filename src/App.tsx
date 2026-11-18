@@ -950,6 +950,7 @@ export default function App() {
                 setAccount({ ...account, onboarded: true, mode });
                 setStep('steps');
               }}
+              tester={!!account.testerCode}
               onBringLink={async (link) => {
                 // The link may come with words around it (a message pasted whole): take the #move= part wherever it is.
                 // Only the link's own characters (z. or p., then URL-safe base64), so a full stop or bracket after it in a
