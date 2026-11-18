@@ -536,17 +536,19 @@ export function checkMeasurements(v: MeasurementValues, unit: Unit, garment: Gar
     if (waist_to_hip && waist_to_knee && waist_to_hip >= waist_to_knee) {
       out.push({ id: 'waist_to_hip', level: 'error', message: 'Waist to hip should be shorter than waist to knee.' });
     }
-    // The centre measurements usually sit within a few cm of the side; beyond 4 cm the draft stops
-    // following them, so say so.
+    // The centre measurements usually sit within a few cm of the side; beyond 4 cm the draft stops following them, so
+    // say so, as what the pattern does with a real shape, not as a number to redo (a tester rounder in front, Nov 18).
     for (const id of ['front_waist_to_hip', 'back_waist_to_hip'] as const) {
       const c = v[id];
       if (c && waist_to_hip && Math.abs(c - waist_to_hip) > 4) {
-        out.push({ id, level: 'warning', message: `This is more than 4 cm from your waist to hip at the side. Please check both; the pattern adjusts by 4 cm at most.` });
+        out.push({ id, level: 'warning', message: `This is more than 4 cm from your waist to hip at the side. That can be your shape; the pattern follows up to 4 cm of difference, and your toile shows the rest. If you're sure of both, carry on.` });
       }
     }
     const { crotch_depth } = v;
-    if (crotch_depth && waist_to_hip && crotch_depth <= waist_to_hip) {
-      out.push({ id: 'crotch_depth', level: 'warning', message: 'Crotch depth is usually a few cm longer than waist to hip. Measure it seated, from the waist down to the chair.' });
+    // A seat whose fullness sits low brings the two close: said only when the crotch depth is clearly the shorter
+    // (a tester's real shape was flagged, Nov 18), and with a way to be sure.
+    if (crotch_depth && waist_to_hip && crotch_depth < waist_to_hip - 1) {
+      out.push({ id: 'crotch_depth', level: 'warning', message: "Just checking your crotch depth against your waist to hip. If both are right, carry on; if not, measure it seated, from the side waist straight down to the chair." });
     }
     if (crotch_depth && waist_to_knee && crotch_depth >= waist_to_knee - 12) {
       out.push({ id: 'crotch_depth', level: 'error', message: 'Crotch depth looks long next to waist to knee. Measure it seated, from the waist down to the chair.' });
@@ -713,8 +715,10 @@ function proportions(v: MeasurementValues, mode: 'out' | 'near'): CrossCheck[] {
   else if (front_hps_to_waist && nape_to_waist && front_hps_to_waist > nape_to_waist + 14)
     out.push({ id: 'front_hps_to_waist', with: 'nape_to_waist', message: 'Front length looks long next to your back length. Tie a ribbon round your waist and measure to its top edge on both.' });
   if (mode === 'near') return out;
-  if (high_hip && waist && full_hip && (high_hip < waist - 2 || high_hip > full_hip + 1))
-    out.push({ id: 'high_hip', with: 'full_hip', message: 'High hip usually comes between your waist and your full hip. Measure about 10 cm below the waist, round the top of the hip bones.' });
+  // A rounder front or straighter hips can make the high hip as large as the full hip, or a little larger (a tester, Nov
+  // 18): only a gap few bodies have is said.
+  if (high_hip && waist && full_hip && (high_hip < waist - 2 || high_hip > full_hip + 4))
+    out.push({ id: 'high_hip', with: 'full_hip', message: 'Just checking your high hip against your waist and full hip. If all three are right, carry on; if not, measure about 10 cm below the waist, round the top of the hip bones.' });
   return out;
 }
 
@@ -734,12 +738,14 @@ export function secondLooks(v: MeasurementValues, garment: Garment = 'skirt', fo
   const asked = new Set(fieldsFor(garment, form).map((f) => f.id));
   const out = proportions(v, 'near');
   const { front_waist_to_hip, back_waist_to_hip } = v;
-  // The waist dips at the back, so the back waist to hip is usually the same as the front or longer.
+  // The waist dips at the back, so the back waist to hip is often the same as the front or longer. A rounder front or
+  // a flatter seat turns that round, and a tester shaped that way was asked again and again to redo them (Nov 18): said
+  // as a shape the pattern follows, with how to be sure, never as a mistake.
   if (front_waist_to_hip && back_waist_to_hip && front_waist_to_hip > back_waist_to_hip + 0.5)
     out.push({
       id: 'front_waist_to_hip',
       with: 'back_waist_to_hip',
-      message: "Front waist to hip is longer than the back, which is the less usual way round. That can be right, but it's worth one more look: measure both straight down from the waist ribbon, keeping the tape level with the fullest part of your seat.",
+      message: "Your front waist to hip is longer than the back. That's common with a rounder front or a flatter seat, and the pattern follows it. If you measured both straight down from the waist ribbon to the level of the fullest part of your seat, they're right as they are.",
     });
   return out.filter((c) => asked.has(c.id) && asked.has(c.with)).map((c) => ({ ...c, message: worded(c.message, form) }));
 }
