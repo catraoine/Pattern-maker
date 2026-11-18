@@ -27,6 +27,10 @@ import { Face, OVERLAP, PAGE_MARGIN, Paper, STYLES, Sheet, pageName, pageSize, t
 // The page footer sits inside the 1 cm margin: closer to the edge most home printers cannot print, and some
 // drivers then offer to shrink the page, which breaks the scale.
 const FOOTER_Y = 1.05;
+// How far above the page margin the footer's cleared band reaches: the 7 pt capitals and a little air. The print
+// check leaves the last 3.5 mm of each page out when it matches a page with its neighbour (FOOT in printCheck.ts), so
+// the band stays a little inside that.
+const FOOTER_H = 0.32;
 import type { SewingGuide } from './instructions';
 import type { Check, FinishedRow } from './qc';
 import type { DraftPoint } from './piece';
@@ -363,6 +367,16 @@ export async function toTiledPdf(sheet: Sheet, paper: Paper, extras?: PdfExtras)
       drawSheet(page, sheet, fonts, { ox, oy, w: tw, h: th, left: PAGE_MARGIN, top: PAGE_MARGIN, ph });
       page.pushOperators(popGraphicsState());
 
+      // The footer sits in the tile's last few millimetres, and piece labels printed through it (pretend-tester walk,
+      // Nov 18). Where a page below repeats that strip in full (it's taped under that page) a band is cleared for the
+      // footer, so nothing is lost. On a last-row page the strip may be the only copy of what's drawn there, so it's
+      // left alone.
+      const footerLine = `${number} OF ${total}   ·   ROW ${String.fromCharCode(65 + r)}, COLUMN ${c + 1}   ·   PRINT AT 100% / ACTUAL SIZE`;
+      if (has(r + 1, c)) {
+        const footerW = 2.2 * CM + fonts.label.widthOfTextAtSize(footerLine, 7) + 0.15 * 7 * (footerLine.length - 1);
+        page.drawRectangle({ x: PAGE_MARGIN * CM, y: PAGE_MARGIN * CM, width: footerW + 0.15 * CM, height: FOOTER_H * CM, color: rgb(1, 1, 1) });
+      }
+
       // Trim guides: trim the left and top edges along the dashed line and lay the page over its neighbour.
       const guide = { borderColor: grey, borderWidth: 0.5, borderDashArray: [2, 2] };
       page.drawRectangle({ x: PAGE_MARGIN * CM, y: PAGE_MARGIN * CM, width: tw * CM, height: th * CM, ...guide });
@@ -381,7 +395,7 @@ export async function toTiledPdf(sheet: Sheet, paper: Paper, extras?: PdfExtras)
         if (has(r + 1, c)) diamond(page, x, bottom, pageName(r + 1, c), 'above', fonts.label);
       }
       drawText(page, `PAGE ${name}`, { x: PAGE_MARGIN * CM, y: FOOTER_Y * CM, size: 7, font: fonts.label, tracking: 0.2 });
-      drawText(page, `${number} OF ${total}   ·   ROW ${String.fromCharCode(65 + r)}, COLUMN ${c + 1}   ·   PRINT AT 100% / ACTUAL SIZE`, {
+      drawText(page, footerLine, {
         x: (PAGE_MARGIN + 2.2) * CM,
         y: FOOTER_Y * CM,
         size: 7,
