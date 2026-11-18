@@ -75,12 +75,13 @@ async function dissolve(a, b2, d) {
 }
 // A black frame round a drawing, so a zoomed-in moment shows the drawing alone, not cut-off words around it.
 // top and bottom (and left and right, if given): where the picture shows, as fractions of the frame; it fades in
-// over the 3% outside them, or over soft at the top (a crisp top reads as the paper's own edge, not a blur).
+// over the 3% outside them, or over soft at the top (a crisp top reads as the paper's own edge, not a blur) and
+// softEnd at the bottom (a long fade both ways makes a cut-off slice of the form read as a close-up of it).
 const masks = {};
-async function mask([top, bottom, left = -1, right = 2, soft = 0.03]) {
-  const key = `${top}-${bottom}-${left}-${right}-${soft}`;
-  const band = (dir, a, b, sa = 0.03) => `linear-gradient(${dir},#000000 0,#000000 ${(a - sa) * 100}%,rgba(0,0,0,0) ${a * 100}%,rgba(0,0,0,0) ${b * 100}%,#000000 ${(b + 0.03) * 100}%,#000000 100%)`;
-  masks[key] ??= await words(`<div class="f" style="background:${band('to bottom', top, bottom, soft)},${band('to right', left, right)}"></div>`);
+async function mask([top, bottom, left = -1, right = 2, soft = 0.03, softEnd = 0.03]) {
+  const key = `${top}-${bottom}-${left}-${right}-${soft}-${softEnd}`;
+  const band = (dir, a, b, sa = 0.03, sb = 0.03) => `linear-gradient(${dir},#000000 0,#000000 ${(a - sa) * 100}%,rgba(0,0,0,0) ${a * 100}%,rgba(0,0,0,0) ${b * 100}%,#000000 ${(b + sb) * 100}%,#000000 100%)`;
+  masks[key] ??= await words(`<div class="f" style="background:${band('to bottom', top, bottom, soft, softEnd)},${band('to right', left, right)}"></div>`);
   return masks[key];
 }
 
@@ -546,7 +547,7 @@ const CUTS = {
     // Just the form taking the body's shape, the tape round the waist, bust and hips in one run, with the app's own
     // words, numbers and buttons masked off, and one line over it (Cat, Nov 17: "we don't need to show all the
     // measurements going in"; the narration competed with the app text). The length, height and check pages are left out.
-    const FORM_ONLY = WIDE ? { zoom: [1.4, 1.45], at: [0.27, 0.5], frame: [0.035, 1.1, 0.33, 0.74, 0.04] } : { zoom: [1.6, 1.66], at: [0.5, 0.27], frame: [-0.1, 0.565, -1, 2, 0.03] };
+    const FORM_ONLY = WIDE ? { zoom: [1.4, 1.45], at: [0.27, 0.5], frame: [0.035, 1.1, 0.33, 0.74, 0.04] } : { zoom: [2, 2.08], at: [0.5, 0.25], frame: [0.4, 0.62, -1, 2, 0.12, 0.1] };
     const BODY = span(T.waist - 0.05, turn(2), 1.7);
     const shaping = await piece({ shot: 'tape', ...BODY, ...FORM_ONLY, fadeIn: 0.5, fadeOut: f, notes: [] }); // no words: the Measure card already says it (Cat, Nov 17)
     const measuring = [
