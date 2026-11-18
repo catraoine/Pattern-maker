@@ -587,8 +587,8 @@ await p.evaluate(([H, LEN]) => {
     // Her dress's long sleeves and round neck on the A-line of Nov 15: drawn on the form, a shift of any fit read as
     // a coat (probes, Nov 17), as Cat found on Nov 15. TOUR_LOOK=shift keeps the fitted shift.
     garment: 'dress', fit: H ? 'regular' : 'fitted',
-    bodice: { garment: 'bodice', fit: H ? 'regular' : 'fitted', neckline: 'scoop', length: 'waist', darts: H ? 'bust' : 'bust_waist', bustDart: 'french', sleeve: 'long', sleeveShape: 'straight', closure: 'back_zip' },
-    // The calico starts as the shift her photo reads as, with a scoop, and the questions on camera answer Waist seam,
+    bodice: { garment: 'bodice', fit: H ? 'regular' : 'fitted', neckline: H ? 'scoop' : 'crew', length: 'waist', darts: H ? 'bust' : 'bust_waist', bustDart: 'french', sleeve: 'long', sleeveShape: 'straight', closure: 'back_zip' },
+    // The calico starts as the shift her photo reads as (on the fitted shift with her crew neck already, so no frame shows another neck), and the questions on camera answer Waist seam,
     // Bust and waist, Crew (her dress's round neck). TOUR_LEN sets the fitted shift's length.
     skirt: H ? { fit: 'regular', silhouette: 'a_line', length: 'knee', flareCm: 6, noSeam: 'shift' } : { fit: 'fitted', silhouette: 'straight', length: LEN },
   };

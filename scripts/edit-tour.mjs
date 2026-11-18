@@ -322,7 +322,7 @@ const styleJourney = async () => {
 // On a phone the sheet rises the last part of the journey, to sit just under 'Your pattern, in seconds.'
 const LIFT = WIDE ? 0 : 0.065;
 const PATTERN = WIDE
-  ? { from: 1.1, dur: 3.0, speed: 0.8, zoom: [1.33, 1.37], at: [0.37, 0.545], frame: [0.125, 0.885, 0.075, 0.9, 0.002] }
+  ? { from: 1.1, dur: 3.0, speed: 0.8, zoom: [1.6, 1.64], at: [0.36, 0.555], frame: [0.14, 1.1, -0.1, 1.1, 0.002] }
   // Drawn in close so the pieces fill the screen, the steps under the sheet masked off (Cat, 2026-10-29), right up to
   // the sheet's foot, so no view switch or step bar shows under it (Cat, 2026-11-08: cut-off app text).
   // The sheet is chalk now (Nov 14), so it is shown as the app draws it, not toned down, and masked just above the
@@ -447,7 +447,7 @@ const note = (line0, where, shade = true) => {
 };
 // The scroll down the collection's looks, the way down to Print my pattern, and projector mode, as recorded
 // (record-tour-shots.mjs: the phone's scrolls are longer).
-const COLLECTION = WIDE ? { from: 4.6, dur: 5.6, speed: 1.3, zoom: [1.3, 1.3], at: [0.42, 0.42] } : { from: 4.6, dur: 5.4, speed: 1.4, drop: 0.05, frame: [0.21, 1.1] }; // from the first look, past the page's own title and words (Cat, Nov 17: the line and the app's headings competed) // drawn in on a computer (the critics' reviews, Nov 16: 8 s was long, half the frame empty); slower, so two or three looks can be seen (critic, Nov 17) // on a phone the band above the look is kept black, so Make this look never shows behind the words as the page scrolls (Fable, Nov 15)
+const COLLECTION = WIDE ? { from: 4.7, dur: 3.4, speed: 0.9, zoom: [1, 1.03], at: [0.5, 0.5] } : { from: 4.6, dur: 5.4, speed: 1.4, drop: 0.05, frame: [0.21, 1.1] }; // from the first look, past the page's own title and words (Cat, Nov 17: the line and the app's headings competed) // drawn in on a computer (the critics' reviews, Nov 16: 8 s was long, half the frame empty); slower, so two or three looks can be seen (critic, Nov 17) // on a phone the band above the look is kept black, so Make this look never shows behind the words as the page scrolls (Fable, Nov 15)
 // A computer has no Review page to scroll (Print my pattern sits beside the drawing), so its projector runs longer.
 // Print opens straight on the pattern pieces' sideways scroll, no Review page first (Cat, 2026-11-06), so on a phone
 // too there is nothing here; REVIEW=1 brings the scroll down the Review page back.
@@ -568,7 +568,7 @@ const CUTS = {
       // carries on into Style in calico.
       // The photo finishes its thought: it dissolves into the dress the app drafts from it, the calico the Style
       // chapter opens on (the critic's review, Nov 17: the photo was scanned and nothing came of it).
-      await dissolve(await photoMoment('Start from a photo.', 2.4 /* out before the dress's line comes in (critic, Nov 17) */), await piece({ shot: 'style', from: WIDE ? MARKS.questions + 0.1 : DIP_AT - 0.75, dur: 2.8, speed: 0.25, fadeOut: f, /* the calico once its questions are answered: the dress the app reads from her photo (Cat, Nov 17: it looked nothing like the photo) */ ...(WIDE ? { zoom: [1.55, 1.6], at: [0.35, 0.49] } : { zoom: [2, 2.04], at: [0.5, 0.37] }), notes: [[await note('It becomes your dress.', 'low'), 0, 3.3]] }), 1.1),
+      await dissolve(await photoMoment('Start from a photo.', 2.4 /* out before the dress's line comes in (critic, Nov 17) */), await piece({ shot: 'style', from: WIDE ? MARKS.questions + 0.1 : DIP_AT - 0.75, dur: 2.8, speed: 0.25, fadeOut: f, /* the calico once its questions are answered: the dress the app reads from her photo (Cat, Nov 17: it looked nothing like the photo) */ ...(WIDE ? { zoom: [1.55, 1.6], at: [0.35, 0.49], frame: [-0.1, 1.1, 0.19, 0.83, 0.04] } : { zoom: [2.1, 2.14], at: [0.5, 0.415] }), notes: [[await note('It becomes your dress.', 'low'), 0, 3.3]] }), 1.1),
       await piece({ shot: 'collection', ...COLLECTION, fadeIn: f, fadeOut: f, notes: [[await note('Or a look.', 'low'), 0, COLLECTION.dur - 0.3]] }),
       // Ends just after Dress is tapped (about 1.65 s into the take), before the dress's own extra measurements come
       // up; slowed a touch so the line has time to be read.
@@ -577,7 +577,7 @@ const CUTS = {
       // moves on in a fifth of a second, too quick to see the pick (Cat, Nov 17: show the selection intentionally).
       // CHOOSE_PICK: shot time Dress fills (found in the take).
       ...await (async () => {
-        const pick = Number(process.env.CHOOSE_PICK ?? (WIDE ? 1.34 : 1.34));
+        const pick = Number(process.env.CHOOSE_PICK ?? (WIDE ? 1.29 : 1.34));
         const said = await note(WIDE ? 'Or design your own.' : 'Or design<br>your own.', 'low');
         const frame = WIDE ? [0.285, 1.1] : [0.29, 1.1]; // the page's own question masked, so the line doesn't compete with it (Cat, Nov 17)
         const run = span(0.3, pick, 0.6);
