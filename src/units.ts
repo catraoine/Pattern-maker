@@ -89,18 +89,17 @@ const SQUARE = /10 cm test square|exactly 10 cm/g;
 const SQUARE_LABEL = /^10 CM$/;
 
 const num = (s: string) => parseFloat(s.replace(',', '.'));
+// An iron's heat, "about 150 C": an inch sewist reads Fahrenheit, to the nearest 10 like the dial (pretend tester, Nov 18).
+const IRON_C = /\b(about) (\d+) C\b/gi;
 
 /**
  * Rewrite every centimetre and metre length in a piece of text as inches and yards. The 10 cm test square
  * keeps both, because a printed copy is checked against it and 3.94 in is the exact figure.
  */
-// An iron's heat, "about 150 C": an inch sewist reads Fahrenheit, to the nearest 10 like the dial (pretend tester, Nov 18).
-const IRON_C = /\babout (\d+) C\b/g;
-
 export function inInches(text: string): string {
   if (SQUARE_LABEL.test(text)) return '10 CM · 3.94 IN';
   return text
-    .replace(IRON_C, (_, c) => `about ${Math.round((Number(c) * 9) / 5 / 10 + 3.2) * 10} F`)
+    .replace(IRON_C, (_, about, c) => `${about} ${Math.round((Number(c) * 9) / 5 / 10 + 3.2) * 10} F`)
     .replace(SQUARE, (m) => (m.startsWith('exactly') ? 'exactly 10 cm (3.94 in)' : '10 cm (3.94 in) test square'))
     .replace(PAIR_CM, (_, a, sep, b) => `${toInches(num(a)).replace(/ in$/, '')} ${sep} ${toInches(num(b))}`)
     .replace(ONE_CM, (_, a) => toInches(num(a)))

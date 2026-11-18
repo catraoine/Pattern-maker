@@ -89,10 +89,10 @@ function mergePerson(l: Person, r: Person, b: Person | undefined, remoteNewer: b
  * measurement taken on both sides that differs by more than a retake would (3 cm, or 4% of a long one). Only asked
  * at a first join, where nothing says whose work is on this device (a shared computer used without signing in).
  */
-function notSameOwner(l: Person, la: Account, r: Person, ra: Account): boolean {
+function notSameOwner(l: Person, la: Account, r: Person, ra: Account, byName = true): boolean {
   const ln = la.name.trim().toLowerCase();
   const rn = ra.name.trim().toLowerCase();
-  if (ln && rn && ln !== rn) return true;
+  if (byName && ln && rn && ln !== rn) return true;
   return (Object.keys(l.values) as MeasurementId[]).some((k) => {
     const a = l.values[k];
     const c = r.values[k];
@@ -179,7 +179,7 @@ export function mergeBackups<S>(local: Backup<S>, remote: Backup<S> | null, base
     // Only the people and patterns come over; the name, tester code, studio and other settings are the account's own.
     const apart = lMe && taken(lMe) > 0 ? ownerApart(la) : la;
     la = { ...ra, people: apart.people.filter((p) => p.id !== ME), patterns: apart.patterns, active: ra.active };
-  } else if (lMe && rMe && taken(lMe) > 0 && taken(rMe) > 0 && !hasBase && notSameOwner(lMe, la, rMe, ra)) {
+  } else if (lMe && rMe && taken(lMe) > 0 && taken(rMe) > 0 && !hasBase && notSameOwner(lMe, la, rMe, ra, !opts.sameOwner)) {
     // The account's owner keeps their own name; this device's owner is now one of their people, under theirs.
     // Brought from one's own other device too, two measuring sessions that disagree are not mixed into one body: the
     // phone's waist, bust and hip with this computer's high bust and shoulder made a high bust larger than the bust

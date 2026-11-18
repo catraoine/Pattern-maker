@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ME, personName, withPeople, type Account, type Backup } from '../account';
 import { Title } from '../ui/Title';
+import { isEmpty } from '../cloud/merge';
 
 interface Props<S> {
   backup: Backup<S> | 'broken';
@@ -65,7 +66,9 @@ export function MoveArrivalScreen<S>({ backup, here, hereMeasured, onBring, onCa
                 (pretend tester, Nov 18: "nothing is lost", and an unsaved Blush Shift was). */}
             {hasHere && (
               <p className="msg small">
-                Everything saved on this device is kept too, measurements included. The piece open here is swapped for the one you&rsquo;re bringing, so save it first if you want to keep it.
+                Everything saved on this device is kept too, measurements included.
+                {/* Only a link that carries work takes over the open piece (see mergeBackups' workFromRemote). */}
+                {!isEmpty(acc) && <> The piece open here is swapped for the one you&rsquo;re bringing, so save it first if you want to keep it.</>}
               </p>
             )}
             <button

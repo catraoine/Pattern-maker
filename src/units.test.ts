@@ -39,6 +39,7 @@ describe('inches', () => {
     expect(inInches('trim to 1 cm in length')).toBe('trim to ⅜ in in length');
     // An iron's heat in Fahrenheit, to the nearest 10 (pretend tester, Nov 18).
     expect(inInches('Wool setting (about 150 C) with steam.')).toBe('Wool setting (about 300 F) with steam.');
+    expect(inInches('About 150 C with a little steam.')).toBe('About 300 F with a little steam.');
     expect(inInches('10 cm (3.94 in) test square')).toBe('10 cm (3.94 in) test square');
     expect(inInches('cm or in')).toBe('cm or in');
     expect(inInches('Page 2 of 4')).toBe('Page 2 of 4');

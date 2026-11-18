@@ -84,10 +84,8 @@ export function HemMarks({ name, marks, value, onPick, svg, cx, k, hemAt, bare, 
   const dot: P = { x: cx, y };
   // A bare name ends a clear gap left of the disc, or of the cloth there if it reaches further out.
   const edge = bare ? clearLeft?.(y) : undefined;
-  // Never off the drawing's left edge, though: a wide leg keeps the name beside the disc.
-  const beside = dot.x - r - 3.2 * k;
-  const clear = edge === undefined ? beside : Math.min(beside, edge - 1.5 * k);
-  const nameEnd = clear - label.length * 2.6 * k * 0.85 >= 0 ? clear : beside;
+  // (The drawing shows past its own frame either side, where the name then sits.)
+  const nameEnd = Math.min(dot.x - r - 3.2 * k, edge === undefined ? Infinity : edge - 1.5 * k);
   return (
     <g className="hem-marks">
       <g className={held ? 'handle on' : 'handle'}>
