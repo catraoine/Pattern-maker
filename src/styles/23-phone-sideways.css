@@ -12,6 +12,12 @@
   .style-edit > .style-side { display: none; }
   .style-pin > section { position: static; }
   .style-pin > section:not(.live-big) > .preview { height: calc(100svh - 112px); min-height: 0; max-height: none; }
+  /* The drawing's corner as on the phone upright (38-style-journey.css): Enlarge and Draw in a row, Demo across from
+     them. Wider than the phone's 760px, the corner fell back to the computer's column, and the phone's Demo, placed for
+     a row, sat on Draw (bug hunt, Nov 18). */
+  .style-layout .preview-corner { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 0 14px; top: 2px; right: 14px; max-width: none; pointer-events: none; }
+  .style-layout .preview-corner > * { pointer-events: auto; }
+  .style-layout .preview-corner > .demo-play { position: static; order: 9; flex-basis: auto; margin: 0 0 0 auto; min-height: 32px; display: flex; align-items: center; padding: 0 4px; border: 0; }
   .main:has(.style-layout) .style-layout > .example-tag { margin-left: 64px; max-width: calc(100% - 64px); }
   .style-edit > .style-bar {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;

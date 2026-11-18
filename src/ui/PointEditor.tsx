@@ -55,6 +55,29 @@ function WatchDraft({ onPlay }: { onPlay: () => void }) {
   );
 }
 
+/** The room the corner's tool words take above the paper, measured, as --corner-room on the pane. A fixed band was
+ *  sized for the words in two rows, so where they sit in one row (a phone, a wide laptop) an empty strip showed
+ *  between them and the paper (Cat's film notes, Nov 18). */
+function useCornerRoom(shown: boolean) {
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const pane = ref.current;
+    const corner = pane?.closest('.style-pin')?.querySelector<HTMLElement>('.preview-corner');
+    if (!pane || !corner) return;
+    const fit = () => {
+      const bottom = corner.getBoundingClientRect().bottom;
+      if (!corner.childElementCount || !bottom) return pane.style.removeProperty('--corner-room');
+      pane.style.setProperty('--corner-room', `${Math.max(0, Math.ceil(bottom - pane.getBoundingClientRect().top + 8))}px`);
+    };
+    fit();
+    const watch = new ResizeObserver(fit);
+    watch.observe(corner);
+    watch.observe(pane);
+    return () => watch.disconnect();
+  }, [shown]);
+  return ref;
+}
+
 /** The pattern view with a Move points switch: the pattern preview, or the editor in its place. */
 export function PatternPane({ children, onPlay }: { children: ReactNode; onPlay?: () => void }) {
   const ctx = useContext(PointEditContext);
@@ -63,6 +86,8 @@ export function PatternPane({ children, onPlay }: { children: ReactNode; onPlay?
   // here"); Back to drafted too. Kept while the pattern shows, so closing and opening Move points keeps it.
   const history = useUndo<PatternEdit[]>(ctx?.edits ?? [], (e) => ctx?.setEdits(e));
   const watch = onPlay && !on && <WatchDraft onPlay={onPlay} />;
+  // The pane is drawn only once there are pieces, so it is measured again when they arrive.
+  const pane = useCornerRoom(!!ctx?.base.length);
   if (!ctx || !ctx.base.length)
     return (
       <>
@@ -73,7 +98,7 @@ export function PatternPane({ children, onPlay }: { children: ReactNode; onPlay?
   // Move points is one of the drawing's corner tools, a plain word like Enlarge (Cat, Nov 8: the Draw word, the long
   // how-to line and the boxed button were confusing together). Its how-to line shows once it is open.
   return (
-    <div className="pattern-pane">
+    <div className="pattern-pane" ref={pane}>
       {on ? (
         <InCorner>
           {/* "Done", not "Back to pieces": that read as a step back somewhere (Cat, Nov 12, "add"). */}

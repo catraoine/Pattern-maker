@@ -57,8 +57,8 @@ export function emailFor(r: EmailRequest) {
       `Here is your ${name} pattern, drafted to you.`,
       '',
       r.booklet && r.bookletName
-        ? 'Print the pattern at 100% (actual size) and measure the 10 cm test square on page A1 before you cut. The instructions, with the cutting layout and sewing steps, are in the second file.'
-        : 'Print it at 100% (actual size) and measure the 10 cm test square on page A1 before you cut.',
+        ? 'Print the pattern at 100% (actual size) and measure the 10 cm test square (page A2 on home paper) before you cut. The instructions, with the cutting layout and sewing steps, are in the second file.'
+        : 'Print it at 100% (actual size) and measure the 10 cm test square (page A2 on home paper) before you cut.',
       '',
       'Maison Tracé',
       'You asked for this email on the Print screen. We used your address only to send it.',

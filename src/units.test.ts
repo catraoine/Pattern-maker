@@ -22,7 +22,7 @@ describe('inches', () => {
   it('rewrites prose, pairs and metres', () => {
     expect(inInches('Press a 1.5 cm hem, then cut a 30 × 20 cm pocket bag from 1.6 m of cloth.')).toBe('Press a ⅝ in hem, then cut a 11¾ × 7⅞ in pocket bag from 1¾ yd of cloth.');
     expect(inInches('Measure the test square: it should be exactly 10 cm.')).toBe('Measure the test square: it should be exactly 10 cm (3.94 in).');
-    expect(inInches('measure the 10 cm test square on page A1')).toBe('measure the 10 cm (3.94 in) test square on page A1');
+    expect(inInches('measure the 10 cm test square on page A2')).toBe('measure the 10 cm (3.94 in) test square on page A2');
     expect(inInches('10 CM')).toBe('10 CM · 3.94 IN');
     // Seam labels on the pieces are in capitals (Nov 17: they stayed in cm in an inch PDF).
     expect(inInches('SHOULDER · 1.5 CM ALLOWANCE')).toBe('SHOULDER · ⅝ IN ALLOWANCE');
@@ -93,5 +93,16 @@ describe('the finished measurement marks in inches (pretend tester, Nov 17)', ()
   it('keeps a typed inch length when it is kept to the hundredth of a cm', () => {
     expect(toInches(Math.round(typedLength('20', 'in') * 100) / 100)).toBe('20 in');
     expect(toInches(Math.round(typedLength('20 1/2', 'in') * 100) / 100)).toBe('20½ in');
+  });
+});
+
+// The inch Print page told testers the square "must measure 3⅞ in" while the PDF says 3.94 in (pretend-tester walk,
+// Nov 17): the square's line on screen keeps the exact figure, like the PDF.
+describe('the test square on screen in inches', () => {
+  it('reads 3.94 in, never 3⅞', () => {
+    for (const t of ['The test square on page A2 must measure exactly 10 cm before you cut.', 'Lay a ruler across the square. Each side should be exactly 10 cm.']) {
+      expect(inInches(t)).toContain('10 cm (3.94 in)');
+      expect(inInches(t)).not.toContain('⅞');
+    }
   });
 });
