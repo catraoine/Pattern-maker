@@ -604,9 +604,9 @@ await wait(1500);
 await main.getByRole('heading', { level: 1, name: /^Style your/ }).waitFor();
 await addPen();
 // The film leaves off In testing tags on the Style page and drawing tool, as it does on projector mode (Cat, 2026-10-29).
-// and without the hem's drag handle and its length name: the film lengthens the hem by drawing, and the name read as
+// and without the hem's drag handle, its length name and the hint to drag it: the film lengthens the hem by drawing, and the name read as
 // app text under the dress (Cat, Nov 17).
-await p.addStyleTag({ content: 'main .testing-tag, main svg .handle { display: none !important; }' });
+await p.addStyleTag({ content: 'main .testing-tag, main svg .handle, main .length-hint { display: none !important; }' });
 await p.evaluate(() => window.scrollTo(0, 0));
 await wait(1500);
 const choose = (sel, name) => p.evaluate(([sel, name]) => [...document.querySelectorAll(sel)].find((el) => el.getAttribute('aria-label') === name || el.textContent.trim().startsWith(name))?.click(), [sel, name]);

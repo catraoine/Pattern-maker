@@ -577,7 +577,7 @@ const CUTS = {
       // moves on in a fifth of a second, too quick to see the pick (Cat, Nov 17: show the selection intentionally).
       // CHOOSE_PICK: shot time Dress fills (found in the take).
       ...await (async () => {
-        const pick = Number(process.env.CHOOSE_PICK ?? (WIDE ? 1.36 : 1.31));
+        const pick = Number(process.env.CHOOSE_PICK ?? (WIDE ? 1.34 : 1.34));
         const said = await note(WIDE ? 'Or design your own.' : 'Or design<br>your own.', 'low');
         const frame = WIDE ? [0.285, 1.1] : [0.29, 1.1]; // the page's own question masked, so the line doesn't compete with it (Cat, Nov 17)
         const run = span(0.3, pick, 0.6);
