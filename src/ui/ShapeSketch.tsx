@@ -8,7 +8,7 @@ import type { Choices } from '../savedWork';
 import { skirtFlat, wornLines, wornShapes } from '../engine/flat';
 import type { P } from '../engine/geometry';
 import { HEM_SAMPLES, HemShape, flatHem, isShaped, offsetAt } from '../engine/hem';
-import { LengthTap } from './LengthEntry';
+import { LengthTap, useSaid } from './LengthEntry';
 import { LENGTHS, Length, Silhouette, SkirtDraft, SkirtMeasurements, flareRange, isCircle, draftedMeasures, lengthRange, presetFlare } from '../engine/skirt';
 import { GROUPS } from '../skirtChoices';
 import { skirtForm } from './DrawOnForm';
@@ -140,6 +140,7 @@ function unpin(c: Choices, draft: SkirtDraft): Choices {
 }
 
 export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, onDone }: Props) {
+  const said = useSaid();
   const svg = useRef<SVGSVGElement>(null);
   const [drag, setDrag] = useState<Drag>();
   const [stroke, setStroke] = useState<P[]>();
@@ -238,7 +239,7 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
     }
   };
 
-  const lengthLabel = choices.lengthCm || choices.kneeShare || choices.floorClear ? `${Math.round(draft.lengthCm)} cm` : lengthName(choices.length);
+  const lengthLabel = choices.lengthCm || choices.kneeShare || choices.floorClear ? `${Math.round(draft.lengthCm * 10) / 10} cm` : lengthName(choices.length);
   const flareLabel = choices.flareCm !== undefined ? `${choices.flareCm > 0 ? '+' : ''}${choices.flareCm} cm` : silName(choices.silhouette);
   const guide = (y: number, text: string) => (
     <g className="guide">
@@ -300,7 +301,7 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
           className="hit"
           role="slider"
           aria-label={kind === 'hem' ? 'Skirt length' : 'Flare at the hem'}
-          aria-valuetext={text}
+          aria-valuetext={said(text)}
           aria-valuenow={kind === 'hem' ? draft.lengthCm : draft.flareCm ?? 0}
           tabIndex={0}
           onPointerDown={startDrag(kind)}

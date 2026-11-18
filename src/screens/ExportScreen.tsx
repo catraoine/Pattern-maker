@@ -228,8 +228,8 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
     import('../engine/pdf')
       .then(async ({ toTiledPdf, toProjectorPdf, pdfPageCount }) => {
         const [bytes, book] = await Promise.all([
-          isProjector(paper) ? toProjectorPdf(sheet, { dark: paper === 'projectorDark', title }) : toTiledPdf(sheet, paper, { title, unit, part: 'pattern' }),
-          toTiledPdf(sheet, isProjector(paper) ? (unit === 'in' ? 'letter' : 'a4') : paper, { title, guide, summary, unit, part: 'booklet' }),
+          isProjector(paper) ? toProjectorPdf(sheet, { dark: paper === 'projectorDark', title: lookName ?? (unit === 'in' ? inInches(title) : title) }) : toTiledPdf(sheet, paper, { title, name: lookName, unit, part: 'pattern' }),
+          toTiledPdf(sheet, isProjector(paper) ? (unit === 'in' ? 'letter' : 'a4') : paper, { title, name: lookName, guide, summary, unit, part: 'booklet' }),
         ]);
         const pages = await pdfPageCount(book);
         // A booklet with nothing in it isn't offered.
@@ -240,7 +240,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
     return () => {
       live = false;
     };
-  }, [sheet, paper, title, guide, summary, unit]);
+  }, [sheet, paper, title, lookName, guide, summary, unit]);
 
   // These hooks sit above the early return below so every render calls them in the same order.
   // Once the pattern has left the app (downloaded, shared or opened to print), the fit question comes up.
@@ -270,7 +270,10 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
   const passed = checks.filter((c) => c.ok).length;
   // Named in the sewist's unit: an inch pattern downloaded as "56-cm-…" (pretend tester, Nov 17). Fractions are spelt
   // out, "20⅛ in" as "20-1-8-in".
-  const fileBase = (unit === 'in' ? inInches(title).replace(/[⅛¼⅜½⅝¾⅞]/g, (f) => ` ${FRACTION_WORDS[f]} `) : title).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  // A collection look is named for itself ("black-pleated-skirt-letter.pdf"), as testers know it (pretend tester, Nov 18).
+  const named = lookName ?? title;
+  // In cm a name's length goes to the whole cm, as file names always had it: "63.5 cm" made "63-5-cm", which reads as a range.
+  const fileBase = (unit === 'in' ? inInches(named).replace(/[⅛¼⅜½⅝¾⅞]/g, (f) => ` ${FRACTION_WORDS[f]} `) : named.replace(/(\d+\.\d+)(?= cm)/g, (n) => `${Math.round(Number(n))}`)).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
   const fileName = `${fileBase}-${paper === 'projectorDark' ? 'projector-black' : paper}.pdf`;
   const ready = pdf?.paper === paper ? pdf.bytes : null;
@@ -339,7 +342,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
             )}
           </div>
           <div className="print-cover">
-            <Envelope house={false} name={title[0].toUpperCase() + title.slice(1)} flat={made.flat} mark={edition} foot={imported || example ? undefined : `Drafted to ${profile === 'Me' ? 'you' : profile}`} />
+            <Envelope house={false} name={lookName ?? title[0].toUpperCase() + title.slice(1)} flat={made.flat} mark={edition} foot={imported || example ? undefined : `Drafted to ${profile === 'Me' ? 'you' : profile}`} />
             <p className="eyebrow">Pieces</p>
             <ul className="pieces">
               {made.pieces.map((pc, i) => (

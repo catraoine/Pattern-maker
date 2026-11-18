@@ -26,7 +26,7 @@ import { COWL_DEPTH, PEPLUM_SEAM_MAX, peplumLengthOk } from '../engine/drape';
 import { hemOffsetAt } from '../engine/bodiceHem';
 import { unevenEdge } from '../engine/uneven';
 import type { Side } from './ShapeSketch';
-import { LengthTap } from './LengthEntry';
+import { LengthTap, useSaid } from './LengthEntry';
 import { FormArm, formWidth } from './DrawOnForm';
 import { FormLayers, SQUEEZE, clothReach, drawnPointBack, formFrame, neckLift, squeezeX, wornCloth, wornFolds, wornMapper } from './FormSketch';
 import { landmarks } from './formLines';
@@ -170,8 +170,8 @@ const withDarts = (c: BodiceChoices): BodiceChoices => (DARTS_FOR_FIT[c.fit].inc
  * the half centimetre. A top with a peplum stops where its peplum can still hang (PEPLUM_SEAM_MAX below the waist):
  * dragged past it, the peplum fell off the drawing and the pattern, and the Ice Peplum read as a plain hip-length
  * top (demo film sweep, Nov 14). */
-export function dragDrop(m: BodiceMeasurements, c: BodiceChoices, cm: number): BodiceChoices {
-  const out = dropAt(m, c, cm);
+export function dragDrop(m: BodiceMeasurements, c: BodiceChoices, cm: number, typed = false): BodiceChoices {
+  const out = dropAt(m, c, cm, typed);
   if ((c.peplum ?? 'none') === 'none' || peplumLengthOk(out) || !peplumLengthOk(c)) return out;
   const { dropCm: _d, ...rest } = c;
   const WH = m.waist_to_hip ?? 0;
@@ -186,16 +186,18 @@ const dropLimits = (m: BodiceMeasurements, c: BodiceChoices) => {
   return (c.peplum ?? 'none') === 'none' ? { min: 0, max } : { min: DROP_MIN, max: Math.min(max, PEPLUM_SEAM_MAX) };
 };
 
-function dropAt(m: BodiceMeasurements, c: BodiceChoices, cm: number): BodiceChoices {
+// `typed`: a length typed in the box is kept as typed. A drag catches on a named length within 1.5 cm, but a typed 9 cm
+// peplum seam became "High hip" at 10 cm, and the 9 was shown nowhere (pretend tester, Nov 18).
+function dropAt(m: BodiceMeasurements, c: BodiceChoices, cm: number, typed = false): BodiceChoices {
   const { dropCm: _d, ...rest } = c;
   if (cm < DROP_MIN / 2) return { ...rest, length: 'waist' };
   const range = dropRange(m, c.length, c.shirtCut);
   const v = Math.min(range.max, Math.max(range.min, cm));
   const WH = m.waist_to_hip ?? 0;
-  if (Math.abs(v - WH / 2) < 1.5) return { ...rest, length: 'high_hip' };
-  if (Math.abs(v - WH) < 1.5) return { ...rest, length: 'hip' };
-  if (Math.abs(v - WH - LONG_BELOW_HIP) < 1.5) return { ...rest, length: 'long' };
-  return { ...rest, length: v < WH * 0.75 ? 'high_hip' : v < WH + LONG_BELOW_HIP / 2 ? 'hip' : 'long', dropCm: Math.round(v * 2) / 2 };
+  if (!typed && Math.abs(v - WH / 2) < 1.5) return { ...rest, length: 'high_hip' };
+  if (!typed && Math.abs(v - WH) < 1.5) return { ...rest, length: 'hip' };
+  if (!typed && Math.abs(v - WH - LONG_BELOW_HIP) < 1.5) return { ...rest, length: 'long' };
+  return { ...rest, length: v < WH * 0.75 ? 'high_hip' : v < WH + LONG_BELOW_HIP / 2 ? 'hip' : 'long', dropCm: typed ? Math.round(v * 100) / 100 : Math.round(v * 2) / 2 };
 }
 
 /** A dragged fit: bust ease moves between the fits, snapping to each one's own ease within 1 cm. */
@@ -270,6 +272,7 @@ interface Props {
 type Drag = { kind: 'hem' | 'side'; start: P; before: BodiceChoices; drop: number; ease: number };
 
 export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, arms, onLive, onDone }: Props) {
+  const said = useSaid();
   const svg = useRef<SVGSVGElement>(null);
   const [drag, setDrag] = useState<Drag>();
   const [stroke, setStroke] = useState<P[]>();
@@ -358,7 +361,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
     }
   };
 
-  const lengthLabel = choices.dropCm !== undefined ? `${Math.round(draft.drop)} cm below` : lengthName(choices.length);
+  const lengthLabel = choices.dropCm !== undefined ? `${Math.round(draft.drop * 10) / 10} cm below` : lengthName(choices.length);
   const easeLabel = easeWords;
   const guide = (y: number, text: string) => (
     <g className="guide">
@@ -420,7 +423,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
             y={at.y - (two ? 4.4 : 3) * k}
             width={Math.max(...(two ?? [text]).map((t) => t.length)) * 2.6 * k * 0.85}
             height={(two ? 8 : 5) * k}
-            ask={{ name: 'Top length', from: 'below the waist', cm: draft.drop, ...dropLimits(m, choices), onCm: (cm) => onDone(choices, dragDrop(m, choices, cm)) }}
+            ask={{ name: 'Top length', from: 'below the waist', cm: draft.drop, ...dropLimits(m, choices), onCm: (cm) => onDone(choices, dragDrop(m, choices, cm, true)) }}
           />
         )}
         <circle
@@ -430,7 +433,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
           className="hit"
           role="slider"
           aria-label={kind === 'hem' ? 'Bodice length below the waist' : 'Ease at the bust'}
-          aria-valuetext={text}
+          aria-valuetext={said(text)}
           aria-valuenow={kind === 'hem' ? draft.drop : bodiceEase(choices).bust}
           tabIndex={0}
           onPointerDown={startDrag(kind)}

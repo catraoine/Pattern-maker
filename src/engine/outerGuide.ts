@@ -4,6 +4,7 @@
 import { SEAM_WIDTHS, SeamWidths } from './allowances';
 import type { SewingGuide, SewStep } from './instructions';
 import type { OuterDraft } from './outerwear';
+import { PRINT_FIRST } from './printFirst';
 
 const n1 = (v: number) => `${v} cm`;
 const tailoredWord = (names: string[]) => (names.includes('Top sleeve') ? 'top and under sleeves' : 'sleeves');
@@ -73,7 +74,7 @@ export function outerGuide(
   const steps: SewStep[] = [
     {
       title: 'Print and check the size',
-      text: 'Print the pattern at 100% (actual size). Measure the test square: it should be exactly 10 cm. Trim each page along the dashed line, then tape the pages together, matching the row letters and column numbers.',
+      text: PRINT_FIRST + ' Trim each page along the dashed line, then tape the pages together, matching the row letters and column numbers.',
     },
     {
       title: 'Cut the fabric',

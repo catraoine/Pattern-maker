@@ -6,6 +6,7 @@ import type { SewingGuide, SewStep } from './instructions';
 import type { TrouserLength, TrousersDraft } from './trousers';
 import { PLEAT_STITCH_CM } from './trouserPleats';
 import { longBandInterfacing } from './finishing';
+import { PRINT_FIRST } from './printFirst';
 
 const n1 = (v: number) => `${v} cm`;
 
@@ -62,7 +63,7 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
   const steps: SewStep[] = [
     {
       title: 'Print and check the size',
-      text: 'Print the pattern at 100% (actual size). Measure the test square: it should be exactly 10 cm. Trim each page along the dashed line, then tape the pages together, matching the row letters and column numbers.',
+      text: PRINT_FIRST + ' Trim each page along the dashed line, then tape the pages together, matching the row letters and column numbers.',
     },
     {
       title: 'Cut out',

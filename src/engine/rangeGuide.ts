@@ -8,6 +8,7 @@ import type { KnitDressDraft } from './knitDress';
 import type { HoodieDraft } from './hoodie';
 import type { JumpsuitDraft } from './jumpsuit';
 import { SEAM_WIDTHS, type SeamWidths } from './allowances';
+import { PRINT_FIRST } from './printFirst';
 
 const n1 = (v: number) => `${v} cm`;
 const seam = n1(KNIT_SEAM);
@@ -185,7 +186,7 @@ export function jumpsuitGuide(d: JumpsuitDraft, fabricM: number, finish: { width
   const steps: SewStep[] = [
     {
       title: 'Print and check the size',
-      text: 'Print the pattern at 100% (actual size). Measure the test square: it should be exactly 10 cm. Trim each page along the dashed line, then tape the pages together, matching the row letters and column numbers.',
+      text: PRINT_FIRST + ' Trim each page along the dashed line, then tape the pages together, matching the row letters and column numbers.',
     },
     {
       title: 'Make a toile first',

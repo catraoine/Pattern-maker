@@ -209,7 +209,7 @@ export function coverTitle(title: string, width: number, widthOf: (line: string,
  * The envelope cover, page 1 (Cat's pick with D1, 2026-10-18): the house name, the flat large, and the
  * garment's name set big at the foot, framed like the front of a designer's pattern envelope.
  */
-function addCoverPage(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', title: string, s: Summary & { flat: Flat }) {
+function addCoverPage(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', title: string, s: Summary & { flat: Flat }, name?: string) {
   const [pw, ph] = (paper === 'a4' ? [21.0, 29.7] : [21.59, 27.94]).map((v) => v * CM);
   const page = doc.insertPage(0, [pw, ph]);
   const m = 1.5 * CM;
@@ -227,7 +227,7 @@ function addCoverPage(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', ti
   }
 
   // The name at the foot, as large as fits the frame.
-  const { size, lines } = coverTitle(title, width, (l, sz) => fonts.bodyMedium.widthOfTextAtSize(l, sz));
+  const { size, lines } = coverTitle(name ?? title, width, (l, sz) => fonts.bodyMedium.widthOfTextAtSize(l, sz));
   const foot = m + pad + 8;
   const who = [s.madeFor && `DRAFTED TO ${s.madeFor === 'Me' ? 'YOU' : s.madeFor.toUpperCase()}`, s.lays?.[0] && !s.lays[0].hide ? `${s.lays[0].metres} M OF ${s.lays[0].width} CM FABRIC` : undefined]
     .filter(Boolean)
@@ -237,6 +237,11 @@ function addCoverPage(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', ti
   for (const l of [...lines].reverse()) {
     drawText(page, l, { x: left, y, size, font: fonts.bodyMedium, tracking: -0.01 });
     y += size * 0.98;
+  }
+  // A look's description goes over its name, small, so what was picked is still said.
+  if (name) {
+    drawText(page, title[0].toUpperCase() + title.slice(1), { x: left, y: y + 4, size: 9, font: fonts.body, grey: 0.35 });
+    y += 14;
   }
   if (s.credit) drawText(page, s.credit, { x: left, y: y + 4, size: 9, font: fonts.body, grey: 0.35 });
 
@@ -253,6 +258,10 @@ function addCoverPage(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', ti
 /** Everything printed after the pattern pages. */
 interface PdfExtras {
   title: string;
+  /** The collection look's name while the pattern is still that look ("Black Pleated Skirt"): the cover and the summary
+   *  lead with it, the description under it. Only page 1 of the pattern said it, and testers know their piece by it
+   *  (pretend tester, Nov 18). */
+  name?: string;
   /** The sewist's unit: with `in`, every length in the PDF's text is written in inches. */
   unit?: Unit;
   guide?: SewingGuide;
@@ -323,7 +332,9 @@ export async function toTiledPdf(sheet: Sheet, paper: Paper, extras?: PdfExtras)
   inchMode = extras?.unit === 'in';
   const doc = await PDFDocument.create();
   const fonts = await embedFonts(doc);
-  doc.setTitle(extras ? `Maison Tracé: ${extras.title}${extras.part === 'booklet' ? ' (instructions)' : ''}` : 'Maison Tracé pattern');
+  // In the sewist's unit, like everything else in the file: an inch file's title said "91 cm" (pretend tester, Nov 18).
+  const docTitle = extras && `Maison Tracé: ${extras.name ?? extras.title}${extras.part === 'booklet' ? ' (instructions)' : ''}`;
+  doc.setTitle(docTitle ? (inchMode ? inInches(docTitle) : docTitle) : 'Maison Tracé pattern');
   const tiles = extras?.part !== 'booklet';
   const book = extras?.part !== 'pattern';
   const grey = rgb(0.6, 0.6, 0.6);
@@ -381,13 +392,13 @@ export async function toTiledPdf(sheet: Sheet, paper: Paper, extras?: PdfExtras)
     }
   }
   if (!book) return doc.save();
-  if (extras?.summary) addSummaryPage(doc, fonts, sheet, paper === 'a0' ? 'a4' : paper, used, total, extras.title, extras.summary, [stepX, stepY]);
+  if (extras?.summary) addSummaryPage(doc, fonts, sheet, paper === 'a0' ? 'a4' : paper, used, total, extras.title, extras.summary, [stepX, stepY], extras.name);
   if (extras?.summary?.lays?.length) addLayPages(doc, fonts, paper === 'a0' ? 'a4' : paper, extras.summary.lays);
   if (extras?.summary?.byHand?.length) addHandPages(doc, fonts, paper === 'a0' ? 'a4' : paper, extras.title, extras.summary.byHand);
   if (extras?.summary?.drafting?.length) addDraftingPages(doc, fonts, paper === 'a0' ? 'a4' : paper, extras.title, extras.summary.drafting);
   if (extras?.guide) addSewingPages(doc, fonts, paper === 'a0' ? 'a4' : paper, extras.title, extras.guide);
   const cover = extras?.summary;
-  if (cover?.flat) addCoverPage(doc, fonts, paper === 'a0' ? 'a4' : paper, extras!.title, { ...cover, flat: cover.flat });
+  if (cover?.flat) addCoverPage(doc, fonts, paper === 'a0' ? 'a4' : paper, extras!.title, { ...cover, flat: cover.flat }, extras!.name);
   return doc.save();
 }
 
@@ -502,6 +513,7 @@ function addSummaryPage(
   title: string,
   s: Summary,
   [stepX, stepY]: [number, number],
+  name?: string,
 ) {
   const { st, write, wrap, label, room, left, width, ph } = flow(doc, paper, fonts);
   drawText(st.page, ['MAISON TRACÉ', s.madeFor && `MADE FOR ${s.madeFor}`, s.date, s.edition, s.code && `CODE ${s.code}`].filter(Boolean).join('   ·   ').toUpperCase(), {
@@ -513,7 +525,8 @@ function addSummaryPage(
     grey: 0.4,
   });
   st.y -= 26;
-  write(title[0].toUpperCase() + title.slice(1), 20, fonts.bodyMedium, 0, s.credit ? 6 : 18);
+  write(name ?? title[0].toUpperCase() + title.slice(1), 20, fonts.bodyMedium, 0, name || s.credit ? 6 : 18);
+  if (name) write(title[0].toUpperCase() + title.slice(1), 9.5, fonts.body, 0, s.credit ? 6 : 18, 0.35);
   if (s.credit) write(s.credit, 9.5, fonts.body, 0, 18, 0.35);
 
   if (s.flat) {
@@ -591,7 +604,7 @@ function addMapPage(doc: PDFDocument, fonts: Fonts, sheet: Sheet, paper: 'a4' | 
   const { st, write, label, left, width } = flow(doc, paper, fonts);
   label('PAGE LAYOUT');
   write(
-    `Print the ${total} pattern pages (page A1 onward) at 100% (actual size) and measure the 10 cm test square on page A2 (page A1 has your pattern code). Trim each page along its dashed line on the left and top, then lay it over the page before it so the half diamonds make whole ones, and tape.${used.flat().some((u) => !u) ? " Pages with nothing on them aren't printed, so there are gaps in the numbers: leave a gap where a page is missing, as on the map below." : ''}`,
+    `Print page A2 first, at 100% (actual size), and measure its 10 cm test square; then print the other ${total - 1} pattern ${total === 2 ? 'page' : 'pages'} (page A1 has your pattern code). Trim each page along its dashed line on the left and top, then lay it over the page before it so the half diamonds make whole ones, and tape.${used.flat().some((u) => !u) ? " Pages with nothing on them aren't printed, so there are gaps in the numbers: leave a gap where a page is missing, as on the map below." : ''}`,
     9.5,
     fonts.body,
     0,

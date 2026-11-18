@@ -63,7 +63,7 @@ import { coverGuide, coverMissing, coverPieces, padMap } from './engine/formCove
 import { labelCode, savedCopy } from './labels';
 import { fitSummary } from './fit';
 import { ImportedPattern, importedGuide } from './engine/importDxf';
-import { COLLECTION, HouseLook, TESTER_LOOK, lookArmsMissing, lookFabric, lookHipMissing, lookNameOf, lookPatch, lookResized, lookValues } from './collection';
+import { COLLECTION, HouseLook, TESTER_LOOK, lookArmsMissing, lookPatchKeeping, lookFabric, lookHipMissing, lookNameOf, lookPatch, lookResized, lookValues } from './collection';
 import { archiveCut } from './archive';
 import { CollectionLink, ExampleTag, GarmentPick, LookName, TesterLook } from './ui/GarmentSwitch';
 import { UnitNow } from './ui/LengthEntry';
@@ -784,8 +784,11 @@ export default function App() {
   // Makes a collection look: from the collection, and from a tester's link on Style to the look they sew. `keep`: the
   // garment's own work so far is kept in Saved patterns before the look takes its place. False when it went to take
   // measurements first.
-  const makeLook = (look: HouseLook, keep = freshStart) => {
-    const { garment: g, ...next } = lookPatch(look, lookValues(look, values).values);
+  const makeLook = (look: HouseLook, keep = freshStart, ownLength = false) => {
+    const sized = lookValues(look, values).values;
+    // A dress never styled on its own is only drawn from the skirt and bodice: no length of its own to keep.
+    const keepOwn = ownLength && look.garment === garment && !(garment === 'dress' && !saved.dress);
+    const { garment: g, ...next } = keepOwn ? lookPatchKeeping(look, sized, current, GARMENT_DRAFTING[garment].choices({ ...saved, ...firstVisit(garment) })) : lookPatch(look, sized);
     if (keep) {
       const kept = keepThenFresh(g);
       setFreshStart(false);
@@ -1142,7 +1145,7 @@ export default function App() {
           <UnitNow.Provider value={saved.unit}>
           <ExampleTag.Provider value={step === 'style' ? exampleTag : undefined}>
           <LookName.Provider value={step === 'style' ? lookName : undefined}>
-          <TesterLook.Provider value={testerLook && { name: testerLook.name, open: () => makeLook(testerLook, true) }}>
+          <TesterLook.Provider value={testerLook && { name: testerLook.name, open: () => makeLook(testerLook, true, true) }}>
           <CollectionLink.Provider value={step === 'style' ? () => { setLookFrom('style'); setStep('collection'); window.scrollTo(0, 0); } : undefined}>
           {/* Switched in place from the title's drop-down: no new step in history, so ← still leaves the style screen. */}
           <GarmentPick.Provider value={step === 'style' ? { garment, onNew: startNew, onSaved: () => setStep('account') } : undefined}>
@@ -1196,6 +1199,7 @@ export default function App() {
               sleeve={result.sleeve}
               error={styleError}
               onEditMeasurements={() => setStep('measure')}
+              onAddHip={() => openSteps({ kind: 'for', garment, also: ['full_hip', 'waist_to_hip'] })}
               onNext={() => setStep('export')}
               saveState={saveState}
               onSave={() => setAccount(savePattern(account, current, describePattern(current), person.id))}

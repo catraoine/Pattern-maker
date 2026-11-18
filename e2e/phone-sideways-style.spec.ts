@@ -34,5 +34,9 @@ test('turned sideways, the corner words and the view bar stay with the drawing',
     });
     expect(track.rowTop).toBeGreaterThanOrEqual(box.y + box.height - 1);
     expect(track.pos).not.toBe('static');
+    // "Turn upright to change it" on one line beside the button, not one word a line (pretend tester, Nov 18).
+    const bar = (await page.locator('.style-edit > .style-bar').boundingBox())!;
+    expect(bar.height).toBeLessThan(80);
+    if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/sideways-${view}.png` });
   }
 });
