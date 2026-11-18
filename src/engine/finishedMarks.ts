@@ -50,6 +50,8 @@ function across(pc: Piece, y: number, band: [number, number]): { x: number; w: n
   return best;
 }
 
+// The note under each mark says its unit, so an inch pattern rewrites it too: "YOU 99.1 · EASE +2.5" stayed in cm
+// beside "FINISHED WAIST 40 IN" (pretend tester, Nov 17).
 const fmt = (v: number) => `${Math.round(v * 10) / 10}`;
 const signed = (v: number) => (v > 0 ? `+${fmt(v)}` : v < 0 ? `-${fmt(-v)}` : '0');
 
@@ -65,7 +67,7 @@ export function withFinishedMarks(pieces: Piece[], spec: SpecRow[]): Piece[] {
     const spots = tries.map((dy) => ({ y: y + dy, at: across(pc, y + dy, above ? [-2.4, 0.8] : [-0.8, 2.6]) }));
     const spot = spots.find((s) => s.at && s.at.w >= need) ?? spots.find((s) => s.at && s.at.w >= 4);
     if (!spot?.at) return;
-    const mark = { at: p(spot.at.x, spot.y), title, note: `YOU ${fmt(r.body!)} · EASE ${signed(r.ease!)}` };
+    const mark = { at: p(spot.at.x, spot.y), title, note: `YOU ${fmt(r.body!)} CM · EASE ${signed(r.ease!)} CM` };
     marks.set(pc, [...(marks.get(pc) ?? []), above ? { ...mark, above } : mark]);
   };
 

@@ -842,7 +842,9 @@ export function MeasurePage({
     const f = parseFloat(ft.replace(',', '.')), i = parseFloat(inch.replace(',', '.'));
     const v = { ...values };
     if (Number.isNaN(f) && Number.isNaN(i)) delete v[id];
-    else v[id] = Math.round(((Number.isNaN(f) ? 0 : f) * 12 + (Number.isNaN(i) ? 0 : i)) * 2.54 * 10) / 10;
+    // Nobody is 9 feet tall: a number that big in the feet box is the whole height in inches. "64" there was kept as
+    // 64 feet, and the list showed a height of 768 in (pretend tester, Nov 17).
+    else v[id] = Math.round(((Number.isNaN(f) ? 0 : f > 8 ? f / 12 : f) * 12 + (Number.isNaN(i) ? 0 : i)) * 2.54 * 10) / 10;
     onValues(v);
   };
   const type = (t: string) => {

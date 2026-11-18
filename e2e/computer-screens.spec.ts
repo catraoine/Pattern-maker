@@ -30,6 +30,9 @@ for (const [w, h] of [[1280, 800], [1366, 768], [1440, 900], [1920, 1080]])
     expect(first.reduce((s, l) => s + l.w, 0), 'the first row is full').toBeGreaterThan(row * 0.85);
     for (const l of looks) expect(l.w, 'no look wider than half the row').toBeLessThanOrEqual(row / 2 + 1);
     for (let i = 1; i < looks.length; i++) expect(looks[i].y > looks[i - 1].y || looks[i].x > looks[i - 1].x, 'looks run in order').toBe(true);
+    // Each row's drawings start level: a set's name sat over its drawings and pushed them 35 px lower (Nov 17).
+    const flats = await page.locator('.lookbook > li').evaluateAll((els) => els.map((e) => ({ y: Math.round(e.getBoundingClientRect().top), flat: Math.round(e.querySelector('.house-flat')!.getBoundingClientRect().top) })));
+    for (const f of flats) expect(Math.abs(f.flat - flats.find((g) => g.y === f.y)!.flat), 'drawings start level across a row').toBeLessThanOrEqual(2);
 
     await main(page).getByRole('listitem').filter({ has: page.getByRole('heading', { name: 'Blush Shift', exact: true }) }).getByRole('button', { name: 'Make this look' }).click();
     for (let i = 0; i < 6 && !(await main(page).getByRole('button', { name: 'Change a detail' }).isVisible()); i++) {

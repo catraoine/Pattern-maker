@@ -35,4 +35,25 @@
   .collection .set-piece h3 {
     font-size: 20px;
   }
+  /* The set's name rides on its look-number line, in the same small capitals, so its drawings start level with the
+     looks either side (they sat 35 px lower under a heading of their own; testers' laptop walk, Nov 17). */
+  .collection .house-set {
+    flex-flow: row wrap;
+    align-items: baseline;
+    /* (Held to the top: a set beside a taller look was stretched, and its drawings dropped by the difference.) */
+    align-content: flex-start;
+    column-gap: 0.6em;
+  }
+  .collection .house-set > h2 {
+    margin: 0;
+    font-size: var(--caps-size);
+    line-height: 1;
+    color: var(--ink);
+  }
+  .collection .house-set > .eyebrow::after {
+    content: ' ·';
+  }
+  .collection .house-set > .set-pieces {
+    flex-basis: 100%;
+  }
 }

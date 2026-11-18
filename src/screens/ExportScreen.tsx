@@ -42,6 +42,7 @@ import { isKnit, isLowerBody } from '../measurements';
 import { isWaistRow } from '../engine/spec';
 import { cloud } from '../cloud/api';
 import { testerHeaders } from '../ui/TesterCode';
+import { inInches } from '../units';
 
 /** What to print: the drafted pieces of either garment, with its notes and sewing steps. */
 export interface Printable {
@@ -145,6 +146,8 @@ const ProjectorMode = lazy(() => import('../ui/ProjectorMode').then((m) => ({ de
 const printedDate = () => new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
 
+
+const FRACTION_WORDS: Record<string, string> = { '⅛': '1-8', '¼': '1-4', '⅜': '3-8', '½': '1-2', '⅝': '5-8', '¾': '3-4', '⅞': '7-8' };
 
 export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPaper, onPaper, sendLink, profile, title, lookName, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, onFitNotes, tester, emailTo, fitNote, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label }: Props) {
   const can = (t: ProTool) => shows(mode, t);
@@ -265,7 +268,9 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
   const grid = projector ? { rows: 1, cols: 1 } : tileGrid(sheet, paper);
   const pages = projector ? 1 : pageCount(sheet, paper);
   const passed = checks.filter((c) => c.ok).length;
-  const fileBase = title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  // Named in the sewist's unit: an inch pattern downloaded as "56-cm-…" (pretend tester, Nov 17). Fractions are spelt
+  // out, "20⅛ in" as "20-1-8-in".
+  const fileBase = (unit === 'in' ? inInches(title).replace(/[⅛¼⅜½⅝¾⅞]/g, (f) => ` ${FRACTION_WORDS[f]} `) : title).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
   const fileName = `${fileBase}-${paper === 'projectorDark' ? 'projector-black' : paper}.pdf`;
   const ready = pdf?.paper === paper ? pdf.bytes : null;
