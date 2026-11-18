@@ -604,7 +604,7 @@ function addMapPage(doc: PDFDocument, fonts: Fonts, sheet: Sheet, paper: 'a4' | 
   const { st, write, label, left, width } = flow(doc, paper, fonts);
   label('PAGE LAYOUT');
   write(
-    `Print page A2 first, at 100% (actual size), and measure its 10 cm test square; then print the rest of the ${total} pattern pages (page A1, with your pattern code, onward). Trim each page along its dashed line on the left and top, then lay it over the page before it so the half diamonds make whole ones, and tape.${used.flat().some((u) => !u) ? " Pages with nothing on them aren't printed, so there are gaps in the numbers: leave a gap where a page is missing, as on the map below." : ''}`,
+    `Print page A2 first, at 100% (actual size), and measure its 10 cm test square; then print the other ${total - 1} pattern ${total === 2 ? 'page' : 'pages'} (page A1 has your pattern code). Trim each page along its dashed line on the left and top, then lay it over the page before it so the half diamonds make whole ones, and tape.${used.flat().some((u) => !u) ? " Pages with nothing on them aren't printed, so there are gaps in the numbers: leave a gap where a page is missing, as on the map below." : ''}`,
     9.5,
     fonts.body,
     0,

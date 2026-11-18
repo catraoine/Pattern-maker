@@ -228,7 +228,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
     import('../engine/pdf')
       .then(async ({ toTiledPdf, toProjectorPdf, pdfPageCount }) => {
         const [bytes, book] = await Promise.all([
-          isProjector(paper) ? toProjectorPdf(sheet, { dark: paper === 'projectorDark', title: lookName ?? title }) : toTiledPdf(sheet, paper, { title, name: lookName, unit, part: 'pattern' }),
+          isProjector(paper) ? toProjectorPdf(sheet, { dark: paper === 'projectorDark', title: lookName ?? (unit === 'in' ? inInches(title) : title) }) : toTiledPdf(sheet, paper, { title, name: lookName, unit, part: 'pattern' }),
           toTiledPdf(sheet, isProjector(paper) ? (unit === 'in' ? 'letter' : 'a4') : paper, { title, name: lookName, guide, summary, unit, part: 'booklet' }),
         ]);
         const pages = await pdfPageCount(book);
@@ -272,7 +272,8 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
   // out, "20⅛ in" as "20-1-8-in".
   // A collection look is named for itself ("black-pleated-skirt-letter.pdf"), as testers know it (pretend tester, Nov 18).
   const named = lookName ?? title;
-  const fileBase = (unit === 'in' ? inInches(named).replace(/[⅛¼⅜½⅝¾⅞]/g, (f) => ` ${FRACTION_WORDS[f]} `) : named).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  // In cm a name's length goes to the whole cm, as file names always had it: "63.5 cm" made "63-5-cm", which reads as a range.
+  const fileBase = (unit === 'in' ? inInches(named).replace(/[⅛¼⅜½⅝¾⅞]/g, (f) => ` ${FRACTION_WORDS[f]} `) : named.replace(/(\d+\.\d+)(?= cm)/g, (n) => `${Math.round(Number(n))}`)).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
   const fileName = `${fileBase}-${paper === 'projectorDark' ? 'projector-black' : paper}.pdf`;
   const ready = pdf?.paper === paper ? pdf.bytes : null;
