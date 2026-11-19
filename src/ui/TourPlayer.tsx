@@ -89,14 +89,18 @@ export function TourPlayer({ onClose, from }: { onClose: () => void; from?: HTML
   useEffect(() => {
     const v = video.current;
     if (!v) return;
-    const on = () => setWaiting(false);
-    v.addEventListener('playing', on);
-    return () => v.removeEventListener('playing', on);
+    // Shown once it is truly playing (a seek on the black may end without a fresh 'playing').
+    const on = () => {
+      if (!v.paused && v.readyState >= 3) setWaiting(false);
+    };
+    const events = ['playing', 'seeked', 'timeupdate'];
+    events.forEach((e) => v.addEventListener(e, on));
+    return () => events.forEach((e) => v.removeEventListener(e, on));
   }, []);
 
-  // The opening, drawn from the tap on the stand-in canvas, on a clock started by the tap, until the film is playing
-  // (then it fades away over it); the film, when it comes, is sent to the same moment. Both are laid over the page on
-  // their own clocks: the film's form on the page's form, easing back to the full frame as the push comes in.
+  // The opening, drawn from the tap on the stand-in canvas, on a clock started by the tap, to its fade to black; the
+  // film then comes in over it from that moment. Both are laid over the page: the film's form on the page's form,
+  // easing back to the full frame as the push comes in.
   useLayoutEffect(() => {
     const v = video.current;
     const c = standIn.current;
@@ -133,44 +137,23 @@ export function TourPlayer({ onClose, from }: { onClose: () => void; from?: HTML
     c.height = Math.round(box.height * dpr);
     const g = c.getContext('2d');
     let raf = 0;
-    // The stand-in's own clock: real time from the tap, nudged (a touch faster or slower, never seen) onto the film's
-    // once the film is playing, so the film takes over on the very frame the stand-in shows.
+    // The stand-in draws the whole opening on its own clock, real time from the tap, never nudged: the film plays
+    // from the tap too (its music with it) but stays out of sight until the opening has faded to black, then comes
+    // in on the black, sent to that moment if it has fallen behind or run ahead. Nothing is matched frame to frame,
+    // so nothing jumps or speeds up and slows down to catch up (Cat, Nov 18: the start was still choppy on her
+    // phone, where the film's clock is too coarse to match against).
     let t = 0;
-    let last = performance.now();
     let gone = Infinity;
-    let sent = false;
-    let caught = 0;
     const step = () => {
-      const at = performance.now();
-      const dt = Math.min(0.1, (at - last) / 1000);
-      last = at;
-      const ready = !v.paused && !v.seeking && v.readyState >= 3;
-      if (!handed.current && ready && !sent && v.currentTime < t - 0.25) {
-        // Sent on once, to just ahead of now (a seek takes a moment).
-        sent = true;
-        v.currentTime = t + 0.2;
-      }
-      const err = !handed.current && ready ? v.currentTime - t : 0;
-      t += dt * (1 + Math.max(-0.3, Math.min(0.3, 2 * err)));
-      if (!handed.current && !ready && t > OPENING_END) {
-        // The opening has run out and the film still can't play: the player comes in on black, with its controls
-        // and the loading ring, and the film starts from the Measure card when it can.
+      t = now();
+      if (!handed.current && t >= OPENING_END) {
         handed.current = true;
         gone = now() + 0.5;
+        if (Math.abs(v.currentTime - OPENING_END) > 0.5) v.currentTime = OPENING_END;
+        if (v.paused || v.readyState < 3) setWaiting(true);
         setArriving(false);
-        setWaiting(true);
-        if (v.currentTime < OPENING_END) v.currentTime = OPENING_END;
       }
-      if (!handed.current && ready) {
-        // In step for a few frames running, or still apart after a good while: the film takes over.
-        caught = Math.abs(v.currentTime - t) < 0.03 ? caught + 1 : 0;
-        if (caught >= 3 || now() > 9) {
-          handed.current = true;
-          gone = now() + 0.5;
-          setArriving(false);
-        }
-      }
-      const shown = handed.current && ready ? v.currentTime : t;
+      const shown = t;
       if (g && now() < gone) {
         g.setTransform(1, 0, 0, 1, 0, 0);
         g.clearRect(0, 0, c.width, c.height);
@@ -179,23 +162,14 @@ export function TourPlayer({ onClose, from }: { onClose: () => void; from?: HTML
         paintTitle(g, f.vw, f.vh, shown, shape === 'wide' ? 62 : 52);
         lay(c, shown);
       }
-      const moving = handed.current ? lay(v, v.currentTime) : (lay(v, t), true);
-      if (moving || now() < gone) raf = requestAnimationFrame(step);
+      lay(v, t);
+      if (!handed.current || now() < gone) raf = requestAnimationFrame(step);
     };
     step();
-    // Never left on the stand-in: if the film can't start (say it is blocked), the player comes in anyway.
-    const late = setTimeout(() => {
-      if (handed.current) return;
-      handed.current = true;
-      gone = now() + 0.5;
-      setArriving(false);
-      if (v.paused || v.readyState < 3) setWaiting(true);
-    }, 10000);
     return () => {
       cancelAnimationFrame(raf);
       v.style.transform = '';
       from.style.visibility = formWas;
-      clearTimeout(late);
     };
   }, [from, shape]);
 
