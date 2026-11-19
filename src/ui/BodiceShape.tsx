@@ -424,7 +424,9 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
             y={at.y - (two ? 4.4 : 3) * k}
             width={Math.max(...(two ?? [text]).map((t) => t.length)) * 2.6 * k * 0.85}
             height={(two ? 8 : 5) * k}
-            ask={{ name: 'Top length', from: 'below the waist', cm: draft.drop, ...dropLimits(m, choices), onCm: (cm) => onDone(choices, dragDrop(m, choices, cm, true)) }}
+            // On a peplum top the dot is the peplum's seam, not its hem: a tester typed her real length, 20 cm, and was told
+            // "This one goes 6 cm to 12 cm" (pretend tester, Nov 18). So it's asked as the seam, with the peplum's own depth.
+            ask={{ name: draft.peplum ? 'Peplum seam' : 'Top length', from: 'below the waist', cm: draft.drop, ...dropLimits(m, choices), onCm: (cm) => onDone(choices, dragDrop(m, choices, cm, true)), ...(draft.peplum ? { below: { what: 'The peplum', cm: draft.peplum.depthCm } } : {}) }}
           />
         )}
         <circle

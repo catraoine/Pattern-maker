@@ -369,10 +369,22 @@ export async function toTiledPdf(sheet: Sheet, paper: Paper, extras?: PdfExtras)
       // Nov 18). Where a page below repeats that strip in full (it's taped under that page) a band is cleared for the
       // footer, so nothing is lost. On a last-row page the strip may be the only copy of what's drawn there, so it's
       // left alone.
-      const footerLine = `${number} OF ${total}   ·   ROW ${String.fromCharCode(65 + r)}, COLUMN ${c + 1}   ·   PRINT AT 100% / ACTUAL SIZE`;
+      const footWidth = (t: string) => fonts.label.widthOfTextAtSize(t, 7) + 0.15 * 7 * (t.length - 1);
+      let footerLine = `${number} OF ${total}   ·   ROW ${String.fromCharCode(65 + r)}, COLUMN ${c + 1}   ·   PRINT AT 100% / ACTUAL SIZE`;
+      let footerX = (PAGE_MARGIN + 2.2) * CM;
       if (has(r + 1, c)) {
-        const footerW = 2.2 * CM + fonts.label.widthOfTextAtSize(footerLine, 7) + 0.15 * 7 * (footerLine.length - 1);
-        page.drawRectangle({ x: PAGE_MARGIN * CM, y: PAGE_MARGIN * CM, width: footerW + 0.15 * CM, height: FOOTER_H * CM, color: rgb(1, 1, 1) });
+        // The join's diamonds sit on the bottom edge, and the first printed over "ROW A, COLUMN 1" (pretend tester,
+        // Nov 18): the line goes in the gap between the two diamonds instead, shorter where it must be (the page's name
+        // already says its row and column).
+        const clear = 0.65 * CM;
+        const first = (PAGE_MARGIN + tw * 0.3) * CM;
+        const second = (PAGE_MARGIN + tw * 0.7) * CM;
+        if (footerX + footWidth(footerLine) > first - clear) {
+          footerX = first + clear;
+          const shorter = [`${number} OF ${total}   ·   PRINT AT 100% / ACTUAL SIZE`, `${number} OF ${total}   ·   PRINT AT 100%`];
+          footerLine = shorter.find((t) => footerX + footWidth(t) < second - clear) ?? `${number} OF ${total}`;
+        }
+        page.drawRectangle({ x: PAGE_MARGIN * CM, y: PAGE_MARGIN * CM, width: footerX - PAGE_MARGIN * CM + footWidth(footerLine) + 0.15 * CM, height: FOOTER_H * CM, color: rgb(1, 1, 1) });
       }
 
       // Trim guides: trim the left and top edges along the dashed line and lay the page over its neighbour.
@@ -394,7 +406,7 @@ export async function toTiledPdf(sheet: Sheet, paper: Paper, extras?: PdfExtras)
       }
       drawText(page, `PAGE ${name}`, { x: PAGE_MARGIN * CM, y: FOOTER_Y * CM, size: 7, font: fonts.label, tracking: 0.2 });
       drawText(page, footerLine, {
-        x: (PAGE_MARGIN + 2.2) * CM,
+        x: footerX,
         y: FOOTER_Y * CM,
         size: 7,
         font: fonts.label,

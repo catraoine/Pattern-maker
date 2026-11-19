@@ -38,8 +38,9 @@ describe('inches', () => {
     expect(inInches('stay-stitch 1 cm in as soon as they are cut')).toBe('stay-stitch ⅜ in from the edge as soon as they are cut');
     expect(inInches('trim to 1 cm in length')).toBe('trim to ⅜ in in length');
     // An iron's heat in Fahrenheit, to the nearest 10 (pretend tester, Nov 18).
-    expect(inInches('Wool setting (about 150 C) with steam.')).toBe('Wool setting (about 300 F) with steam.');
-    expect(inInches('About 150 C with a little steam.')).toBe('About 300 F with a little steam.');
+    expect(inInches('Wool setting (about 150°C) with steam.')).toBe('Wool setting (about 300°F) with steam.');
+    expect(inInches('About 150 C with a little steam.')).toBe('About 300°F with a little steam.');
+    expect(inInches('Set the iron to wool (about 150°C) with steam.')).toBe('Set the iron to wool (about 300°F) with steam.');
     expect(inInches('10 cm (3.94 in) test square')).toBe('10 cm (3.94 in) test square');
     expect(inInches('cm or in')).toBe('cm or in');
     expect(inInches('Page 2 of 4')).toBe('Page 2 of 4');
@@ -50,6 +51,7 @@ describe('heights in feet and inches', () => {
   it('reads a height back the way people know it', () => {
     expect(toFeetInches(165)).toBe('5 ft 5 in');
     expect(toFeetInches(182.9)).toBe('6 ft 0 in');
+    expect(toFeetInches(66.25 * 2.54)).toBe('5 ft 6¼ in');
     expect(fmtMeasure('height', 165, 'in')).toBe('5 ft 5 in');
     expect(fmtMeasure('height', 165, 'cm')).toBe('165 cm');
     expect(fmtMeasure('waist', 76, 'in')).toBe('29.9 in');

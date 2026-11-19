@@ -198,7 +198,9 @@ export function trousersSpec(m: TrousersMeasurements, d: TrousersDraft): SpecRow
     low ? row('Crotch depth, from where they sit', low.crotch_depth, low.crotch_depth + TROUSER_EASE[d.fit].depth) : row('Crotch depth', m.crotch_depth, m.crotch_depth + TROUSER_EASE[d.fit].depth),
     low ? row('Crotch length, from where they sit', low.crotch_length, d.crotch.front + d.crotch.back) : row('Crotch length', m.crotch_length, d.crotch.front + d.crotch.back),
     { label: 'Crotch curve, front / back', finished: `${d.crotch.front} / ${d.crotch.back}` },
-    row('Outside leg, waist to hem', undefined, d.lengthCm),
+    // Still from your own waist when the band sits lower or higher, and said so ("your"): the low-rise skirt is measured from its
+    // top, and a tester couldn't tell which the trousers meant (pretend tester, Nov 18).
+    row(d.riseCm ? 'Outside leg, your waist to hem' : 'Outside leg, waist to hem', undefined, d.lengthCm),
     ...(d.shorts ? [] : [row('Knee, round', undefined, d.kneeCm)]),
     row('Hem, round', undefined, d.hemCm),
     ...(d.pockets !== 'none' ? [{ label: d.pockets === 'slant' ? 'Slant pockets' : d.pocketSides === 'right' ? 'In-seam pocket, right side' : 'In-seam pockets', finished: d.pockets === 'slant' ? `opening ${SLANT.in} in, ${SLANT.down} down` : `opening ${INSEAM.opening}` }] : []),

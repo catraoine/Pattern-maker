@@ -273,13 +273,15 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
   // In cm a name's length goes to the whole cm, as file names always had it: "63.5 cm" made "63-5-cm", which reads as a range.
   const fileBase = (unit === 'in' ? inInches(named).replace(/[⅛¼⅜½⅝¾⅞]/g, (f) => ` ${FRACTION_WORDS[f]} `) : named.replace(/(\d+\.\d+)(?= cm)/g, (n) => `${Math.round(Number(n))}`)).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
-  const fileName = `${fileBase}-${paper === 'projectorDark' ? 'projector-black' : paper}.pdf`;
+  // An inch file says so: the cm and inch files had one name, so the second came down as "(1)" (pretend tester, Nov 18).
+  const inchPart = unit === 'in' ? '-inches' : '';
+  const fileName = `${fileBase}-${paper === 'projectorDark' ? 'projector-black' : paper}${inchPart}.pdf`;
   const ready = pdf?.paper === paper ? pdf.bytes : null;
   const booklet = pdf?.paper === paper ? pdf.booklet : null;
   // Named for its paper too: the Letter and A4 booklets shared one name, so the second overwrote the first or came down
   // as "(1)" (pretend tester, Nov 18).
   // The paper it's laid out on, which for A0 and a projector is A4 or Letter (see the booklet's toTiledPdf above).
-  const bookletName = `${fileBase}-${isProjector(paper) ? (unit === 'in' ? 'letter' : 'a4') : paper === 'a0' ? 'a4' : paper}-instructions.pdf`;
+  const bookletName = `${fileBase}-${isProjector(paper) ? (unit === 'in' ? 'letter' : 'a4') : paper === 'a0' ? 'a4' : paper}${inchPart}-instructions.pdf`;
   // Both files together, for sharing and emailing.
   const files = () => [new File([ready!], fileName, { type: 'application/pdf' }), ...(booklet ? [new File([booklet.bytes], bookletName, { type: 'application/pdf' })] : [])];
 
@@ -399,6 +401,13 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
                 <button type="button" className="secondary" onClick={checked(downloadBooklet)}>
                   {`Download instructions (${booklet.pages} ${booklet.pages === 1 ? 'page' : 'pages'})`}
                 </button>
+              )}
+              {/* Said here too, not only in the small page preview: nothing on Print said there was a code, or that the
+                  tester form asks for it (pretend tester, Nov 18). */}
+              {tester && !imported && code && (
+                <p className="small muted">
+                  Your pattern code is <span data-keep-cm>{code}</span>. It&rsquo;s at the top of the first page of your pattern, and the tester form asks for it.
+                </p>
               )}
               {pdfFailed && (
                 <p className="msg error" role="alert">

@@ -241,11 +241,12 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
     const a = taggedLength(c.outline, 'princess');
     const b = taggedLength(sidePc.outline, 'princess');
     // The side's ease over the bust, marked by its notch below the bust (see shaping.ts panels): the rest must match.
+    // Under an eighth of an inch it's "a touch": in inches it read "the side 0 in longer" (pretend tester, Nov 18).
     const ease = (sidePc.meta.princessEase as number | undefined) ?? 0;
     checks.push({
       group: 'Seams',
       label: `${cap(c.name.replace(/^Bodice centre /i, ''))} princess seams`,
-      detail: `centre ${cm(a)}, side ${cm(b)}, ${ease ? `the side ${cm(ease)} longer, eased in over the bust between the notches` : Math.abs(a - b) < 0.05 ? 'identical' : `${cm(Math.abs(a - b))} apart`}`,
+      detail: `centre ${cm(a)}, side ${cm(b)}, ${ease ? `the side ${ease < 0.16 ? 'a touch' : cm(ease)} longer, eased in over the bust between the notches` : Math.abs(a - b) < 0.05 ? 'identical' : `${cm(Math.abs(a - b))} apart`}`,
       ok: Math.abs(b - a - ease) <= SEAM_TOLERANCE,
     });
   }

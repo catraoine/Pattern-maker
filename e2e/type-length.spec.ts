@@ -28,7 +28,7 @@ for (const unit of ['cm', 'in'] as const)
       await expect(main.getByText('Drag the dot, or tap the length to type it.')).toBeVisible({ timeout: 30_000 });
       const slider = main.getByRole('slider', { name: /length/i }).first();
       const was = await slider.getAttribute('aria-valuetext');
-      await main.getByRole('button', { name: /^Type the .*length$/ }).first().click();
+      await main.getByRole('button', { name: /^Type the .*(length|peplum seam)$/ }).first().click();
       const box = page.getByRole('form');
       await expect(box).toBeVisible();
       const input = box.getByRole('textbox');
@@ -71,7 +71,7 @@ test('the peplum offers only the lengths its seam can take', async ({ page }) =>
   await main.getByRole('listitem').filter({ hasText: 'Ice Peplum Top' }).first().getByRole('button', { name: /^Make/ }).first().click();
   const change = main.getByRole('button', { name: 'Change a detail' });
   if (await change.count()) await change.click();
-  await main.getByRole('button', { name: /^Type the .*length$/ }).first().click();
+  await main.getByRole('button', { name: /^Type the .*(length|peplum seam)$/ }).first().click();
   await expect(page.getByRole('form')).toContainText('6 cm to 12 cm');
   await page.getByRole('form').getByRole('textbox').fill('20');
   await page.getByRole('form').getByRole('button', { name: 'Set' }).click();

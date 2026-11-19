@@ -25,6 +25,8 @@ const when = (iso: string) => {
 /** A "Send to my computer" link opened on the other device: what it holds, then bring it here. */
 export function MoveArrivalScreen<S>({ backup, here, hereMeasured, opened, onBring, onCarryOn, onNotNow }: Props<S>) {
   const [done, setDone] = useState(false);
+  // Whether this device held anything before the work was brought: after, `here` is already the joined account.
+  const [hadHere] = useState(() => here.patterns.length > 0 || hereMeasured > 0);
   if (backup === 'broken')
     return (
       <div className="stack wide arrival">
@@ -47,10 +49,15 @@ export function MoveArrivalScreen<S>({ backup, here, hereMeasured, opened, onBri
     <div className="stack wide arrival">
       <section className="card" aria-labelledby="mvtitle">
         <p className="eyebrow">From your other device</p>
-        <Title id="mvtitle" big={done ? 'Here' : 'Your work'} label={done ? 'on this device' : 'arrived'} />
+        {/* "Your work", both before and after: "HERE" alone read as a fault (pretend tester, Nov 18). */}
+        <Title id="mvtitle" big="Your work" label={done ? 'is on this device' : 'arrived'} />
         {done ? (
           <>
-            <p>Your measurements and patterns are on this device now. Anything you change here stays here, so send it back the same way if you need to.</p>
+            <p>
+              Your measurements and patterns are on this device now
+              {/* Joined without a word, a tester found ten measurements where the phone had seven (pretend tester, Nov 18). */}
+              {hadHere ? ', together with what was already here. Where both devices had measurements that didn\u2019t agree, the ones you brought are used and this device\u2019s are kept apart, under \u201cMeasured on this device\u201d.' : '.'} Anything you change here stays here, so send it back the same way if you need to.
+            </p>
             <button type="button" className="primary" onClick={onCarryOn}>
               Carry on
             </button>
@@ -66,6 +73,9 @@ export function MoveArrivalScreen<S>({ backup, here, hereMeasured, opened, onBri
                   then opened a piece and switched to inches (pretend tester, Nov 18). Only a link that carries work brings
                   them when this device has its own (see mergeBackups' workFromRemote). */}
               {(!isEmpty(acc) || isEmpty(here)) && <li>{opened(backup)}</li>}
+              {/* The phone's tester code comes too, and lets this device in: the tester email warns a computer without it
+                  shows the waitlist (pretend tester, Nov 18). */}
+              {acc.testerCode && <li>Your tester code, which lets this device into the app</li>}
               {sent && <li>Sent {sent}</li>}
             </ul>
             {/* Said as it is: saved work and measurements are kept, but the piece open here gives way to the one brought

@@ -16,6 +16,8 @@ export interface LengthAsk {
   min: number;
   max: number;
   onCm: (cm: number) => void;
+  /** What hangs on below the length typed, and how far: a peplum below its seam. */
+  below?: { what: string; cm: number };
 }
 
 /** Opens the box; given by the Style layout, so every drawing's length label can offer it. */
@@ -116,6 +118,7 @@ export function LengthBox({ ask, unit, onClose }: { ask: LengthAsk; unit: Unit; 
       </div>
       <p id="length-box-note" className={wrong ? 'length-box-note wrong' : 'length-box-note'} role={wrong ? 'alert' : undefined}>
         {wrong ?? `Any length ${range}.`}
+        {ask.below && ` ${ask.below.what} hangs about ${fmtLength(half(ask.below.cm), unit)} below it.`}
       </p>
     </form>
   );
