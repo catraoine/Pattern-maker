@@ -13,6 +13,8 @@ const OPENING = { push: 0.15, pushS: 3.5, turnDeg: 8, rampS: 1.5, wordsS: 0.4 };
  *  last 0.6 s). The stand-in draws them too, so the title is there however late the film takes over (Cat, Nov 18:
  *  on her phone the film came in after the title and the start looked choppy). */
 const OPENING_TITLE = { at: 0.9, inS: 0.8, outAt: 3.3, outS: 0.6, text: 'How it works' };
+/** When the opening has faded to black: the film's Measure card starts here. */
+export const OPENING_END = OPENING_TITLE.outAt + OPENING_TITLE.outS;
 
 const sine = (x: number) => 0.5 - 0.5 * Math.cos(Math.PI * Math.max(0, Math.min(1, x)));
 

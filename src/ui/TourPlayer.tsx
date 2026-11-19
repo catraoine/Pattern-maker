@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { FilmBar, useFilm } from './FilmControls';
-import { openingAt, paintOpening, paintTitle } from './filmOpening';
+import { OPENING_END, openingAt, paintOpening, paintTitle } from './filmOpening';
 
 // The tour: the walkthrough video, full screen, opened from the play button on the welcome's dress form.
 // Skip tour is always showing; the bar along the bottom marks Measure, Choose, Style and Print as the video reaches them.
@@ -82,6 +82,17 @@ export function TourPlayer({ onClose, from }: { onClose: () => void; from?: HTML
   // Read once: the film's frame keeps easing back after the player is in (arriving is false by then).
   const laying = useRef(arriving);
   const handed = useRef(false);
+  // The film handed over before it could play (a slow connection): kept out of sight until it plays, so its first
+  // frame (the welcome page) never shows, with the controls and the loading ring up meanwhile (the release walk,
+  // Nov 18: eight seconds of black with no controls, then what looked like the page again).
+  const [waiting, setWaiting] = useState(false);
+  useEffect(() => {
+    const v = video.current;
+    if (!v) return;
+    const on = () => setWaiting(false);
+    v.addEventListener('playing', on);
+    return () => v.removeEventListener('playing', on);
+  }, []);
 
   // The opening, drawn from the tap on the stand-in canvas, on a clock started by the tap, until the film is playing
   // (then it fades away over it); the film, when it comes, is sent to the same moment. Both are laid over the page on
@@ -141,6 +152,15 @@ export function TourPlayer({ onClose, from }: { onClose: () => void; from?: HTML
       }
       const err = !handed.current && ready ? v.currentTime - t : 0;
       t += dt * (1 + Math.max(-0.3, Math.min(0.3, 2 * err)));
+      if (!handed.current && !ready && t > OPENING_END) {
+        // The opening has run out and the film still can't play: the player comes in on black, with its controls
+        // and the loading ring, and the film starts from the Measure card when it can.
+        handed.current = true;
+        gone = now() + 0.5;
+        setArriving(false);
+        setWaiting(true);
+        if (v.currentTime < OPENING_END) v.currentTime = OPENING_END;
+      }
       if (!handed.current && ready) {
         // In step for a few frames running, or still apart after a good while: the film takes over.
         caught = Math.abs(v.currentTime - t) < 0.03 ? caught + 1 : 0;
@@ -169,6 +189,7 @@ export function TourPlayer({ onClose, from }: { onClose: () => void; from?: HTML
       handed.current = true;
       gone = now() + 0.5;
       setArriving(false);
+      if (v.paused || v.readyState < 3) setWaiting(true);
     }, 10000);
     return () => {
       cancelAnimationFrame(raf);
@@ -218,7 +239,7 @@ export function TourPlayer({ onClose, from }: { onClose: () => void; from?: HTML
       </div>
       <video
         ref={video}
-        className="tour-video"
+        className={waiting ? 'tour-video tour-video-waiting' : 'tour-video'}
         playsInline
         preload="auto"
         aria-describedby="tour-words"
@@ -232,7 +253,7 @@ export function TourPlayer({ onClose, from }: { onClose: () => void; from?: HTML
           <source key={v.src} src={v.src} type={v.type} />
         ))}
       </video>
-      <FilmBar film={film} />
+      <FilmBar film={waiting ? { ...film, loading: true } : film} />
       <FilmWords id="tour-words" parts={PARTS} />
     </div>
   );
