@@ -22,7 +22,7 @@ import { type Lay, hideSqFt, layWords } from './layplan';
 import type { Flat } from './flat';
 import { DIAGRAMS, DiagramId } from './diagrams';
 import { P } from './geometry';
-import { Face, OVERLAP, PAGE_MARGIN, Paper, STYLES, Sheet, pageName, pageSize, tileGrid, usedTiles } from './export';
+import { Face, OVERLAP, PAGE_MARGIN, Paper, STYLES, Sheet, joinMarks, pageName, pageSize, tileGrid, usedTiles } from './export';
 
 // The page footer sits inside the 1 cm margin: closer to the edge most home printers cannot print, and some
 // drivers then offer to shrink the page, which breaks the scale.
@@ -377,8 +377,7 @@ export async function toTiledPdf(sheet: Sheet, paper: Paper, extras?: PdfExtras)
         // Nov 18): the line goes in the gap between the two diamonds instead, shorter where it must be (the page's name
         // already says its row and column).
         const clear = 0.65 * CM;
-        const first = (PAGE_MARGIN + tw * 0.3) * CM;
-        const second = (PAGE_MARGIN + tw * 0.7) * CM;
+        const [first, second] = joinMarks('below', r).map((f) => (PAGE_MARGIN + tw * f) * CM);
         if (footerX + footWidth(footerLine) > first - clear) {
           footerX = first + clear;
           const shorter = [`${number} OF ${total}   ·   PRINT AT 100% / ACTUAL SIZE`, `${number} OF ${total}   ·   PRINT AT 100%`];
@@ -396,14 +395,14 @@ export async function toTiledPdf(sheet: Sheet, paper: Paper, extras?: PdfExtras)
       const bottom = (PAGE_MARGIN + trim) * CM;
       if (c > 0) page.drawLine({ start: { x: left, y: PAGE_MARGIN * CM }, end: { x: left, y: (ph - PAGE_MARGIN) * CM }, thickness: 0.5, color: grey, dashArray: [4, 2] });
       if (r > 0) page.drawLine({ start: { x: PAGE_MARGIN * CM, y: top }, end: { x: (pw - PAGE_MARGIN) * CM, y: top }, thickness: 0.5, color: grey, dashArray: [4, 2] });
-      for (const f of [0.3, 0.7]) {
+      for (const f of joinMarks('right', r)) {
         const y = (PAGE_MARGIN + th * (1 - f)) * CM;
-        const x = (PAGE_MARGIN + tw * f) * CM;
         if (has(r, c - 1)) diamond(page, left, y, pageName(r, c - 1), 'right', fonts.label);
         if (has(r, c + 1)) diamond(page, right, y, pageName(r, c + 1), 'left', fonts.label);
-        if (has(r - 1, c)) diamond(page, x, top, pageName(r - 1, c), 'below', fonts.label);
-        if (has(r + 1, c)) diamond(page, x, bottom, pageName(r + 1, c), 'above', fonts.label);
       }
+      // A join's diamonds are placed by the upper page's row, on both its pages (as printCheck reads them).
+      if (has(r - 1, c)) for (const f of joinMarks('below', r - 1)) diamond(page, (PAGE_MARGIN + tw * f) * CM, top, pageName(r - 1, c), 'below', fonts.label);
+      if (has(r + 1, c)) for (const f of joinMarks('below', r)) diamond(page, (PAGE_MARGIN + tw * f) * CM, bottom, pageName(r + 1, c), 'above', fonts.label);
       drawText(page, `PAGE ${name}`, { x: PAGE_MARGIN * CM, y: FOOTER_Y * CM, size: 7, font: fonts.label, tracking: 0.2 });
       drawText(page, footerLine, {
         x: footerX,

@@ -45,10 +45,12 @@ export function LengthTap({ x, y, width, height, ask }: { x: number; y: number; 
       {(open) =>
         open && (
           <rect
-            x={x}
-            y={y}
-            width={width}
-            height={height}
+            // A little bigger than the words, for a finger: the target was about 74 by 9 px on a phone (pretend
+            // tester, Nov 18). The dot's own hit area is drawn over it, so a drag still starts on the dot.
+            x={x - height * 0.4}
+            y={y - height * 0.4}
+            width={width + height * 0.8}
+            height={height * 1.8}
             className="len-type"
             fill="transparent"
             role="button"

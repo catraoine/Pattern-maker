@@ -7,7 +7,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { OVERLAP, PAGE_MARGIN, Paper, TEST_SQUARE_X, Sheet, layout, pageName, pageSize, tileGrid, usedTiles } from './engine/export';
+import { OVERLAP, PAGE_MARGIN, Paper, TEST_SQUARE_X, Sheet, joinMarks, layout, pageName, pageSize, tileGrid, usedTiles } from './engine/export';
 import { toTiledPdf } from './engine/pdf';
 import { PatternDesign, printedPattern } from './patternSweep';
 import { DEFAULT_COAT_CHOICES, DEFAULT_TEE_CHOICES, DEFAULT_TROUSERS_CHOICES } from './garments';
@@ -131,7 +131,7 @@ function testSquare(page: Gray, dpi: number, at: number): { across?: number; dow
 
 /** Where two neighbouring pages' shared strip differs: dark pixels on one with nothing dark within 2 px on the other.
  *  The joining diamonds and the trim lines are page furniture, not the pattern, so their bands are left out. */
-function stripMismatch(a: Gray, b: Gray, dpi: number, join: 'right' | 'below', pw: number, ph: number): { ink: number; off: number } {
+function stripMismatch(a: Gray, b: Gray, dpi: number, join: 'right' | 'below', pw: number, ph: number, row: number): { ink: number; off: number } {
   const px = dpi / 2.54;
   const tw = pw - 2 * PAGE_MARGIN;
   const th = ph - 2 * PAGE_MARGIN;
@@ -142,7 +142,7 @@ function stripMismatch(a: Gray, b: Gray, dpi: number, join: 'right' | 'below', p
   // The page's footer ("PAGE A2 ...") is printed over the last 3 mm of the tile, at the bottom of a right join's strip
   // and across the whole of a lower join's strip on the page above.
   const FOOT = 0.35;
-  const furniture = (t: number) => [0.3, 0.7].some((f) => Math.abs(t / px - (join === 'right' ? th * f : tw * f)) < 1.3) || (join === 'right' && t / px > th - FOOT);
+  const furniture = (t: number) => joinMarks(join, row).some((f) => Math.abs(t / px - (join === 'right' ? th * f : tw * f)) < 1.3) || (join === 'right' && t / px > th - FOOT);
   let ink = 0;
   let off = 0;
   // A dark pixel is matched by any ink within 2 px on the other page, not only a dark pixel: a thin grey dashed line
@@ -203,7 +203,7 @@ export async function printProblems(d: PatternDesign, paper: Paper, dpi = 150): 
     for (const [dr, dc, join] of [[0, 1, 'right'], [1, 0, 'below']] as const) {
       const j = index.get(`${r + dr},${c + dc}`);
       if (j === undefined) continue;
-      const m = stripMismatch(pages[index.get(`${r},${c}`)!], pages[j], dpi, join, pw, ph);
+      const m = stripMismatch(pages[index.get(`${r},${c}`)!], pages[j], dpi, join, pw, ph, r);
       // A few pixels of a line's anti-aliasing can fall either side; a line out of place is hundreds.
       if (m.off > Math.max(30, m.ink * 0.03)) out.push(`pages ${pageName(r, c)} and ${pageName(r + dr, c + dc)} differ where they overlap: ${m.off} of ${m.ink} inked pixels on one page have nothing under them on the other (a line or words missing or moved)`);
     }

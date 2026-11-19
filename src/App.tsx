@@ -1020,7 +1020,17 @@ export default function App() {
               }}
               resume={
                 account.onboarded && canLeaveMeasure
-                  ? { garment: vestOf(garment, saved) ? 'vest' : GARMENT_NAME[garment], onResume: () => setStep('style'), onSaved: () => setStep('account'), onNew: startNew }
+                  ? // Called by its look's name, and opened on the look, as when it was made: "Carry on with your skirt" led to
+                    // the first question, not the Black Pleated Skirt (pretend tester, Nov 18).
+                    {
+                      garment: lookName ?? (vestOf(garment, saved) ? 'vest' : GARMENT_NAME[garment]),
+                      onResume: () => {
+                        if (lookName) openLookNext();
+                        setStep('style');
+                      },
+                      onSaved: () => setStep('account'),
+                      onNew: startNew,
+                    }
                   : undefined
               }
             />

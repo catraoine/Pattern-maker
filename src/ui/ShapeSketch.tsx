@@ -13,7 +13,7 @@ import { LENGTHS, Length, Silhouette, SkirtDraft, SkirtMeasurements, flareRange,
 import { GROUPS } from '../skirtChoices';
 import { skirtForm } from './DrawOnForm';
 import { FormLayers, SQUEEZE, formFrame, hemCorner, wornCloth, wornFolds, wornMapper } from './FormSketch';
-import { CATCH, CATCH_SHARE, MARGIN } from './HemMarks';
+import { CATCH, CATCH_SHARE, MARGIN, fingerTravel } from './HemMarks';
 
 export type Side = 'front' | 'back';
 
@@ -130,7 +130,7 @@ interface Props {
   onDone: (before: Choices, after: Choices) => void;
 }
 
-type Drag = { kind: 'hem' | 'side'; start: P; before: Choices; base: Choices; length: number; flare: number };
+type Drag = { kind: 'hem' | 'side'; start: P; before: Choices; base: Choices; length: number; flare: number; touch: boolean };
 
 /** A shape matched from a photo is pinned to proportions; dragging lets go of it, keeping the length
  * and flare it had so the skirt doesn't jump. */
@@ -207,7 +207,7 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
     if (drawing) return;
     e.stopPropagation();
     (e.target as Element).setPointerCapture(e.pointerId);
-    setDrag({ kind, start: toSvg(e), before: choices, base: unpin(choices, draft), length: draft.lengthCm, flare: draft.flareCm ?? 0 });
+    setDrag({ kind, start: toSvg(e), before: choices, base: unpin(choices, draft), length: draft.lengthCm, flare: draft.flareCm ?? 0, touch: e.pointerType === 'touch' });
   };
 
   const move = (e: PointerEvent) => {
@@ -215,7 +215,8 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
       const at = toSvg(e);
       const next =
         drag.kind === 'hem'
-          ? dragLength(dm, drag.base, drag.length + at.y - drag.start.y, catchCm)
+          ? // Finer for a finger, as on the other drawings (see fingerTravel).
+            dragLength(dm, drag.base, drag.length + fingerTravel(at.y - drag.start.y, drag.touch, svg.current), catchCm)
           : dragFlare(dm, drag.base, draft.lengthCm, drag.flare + ((at.x - drag.start.x) * (drag.start.x >= cx ? 1 : -1)) / SQUEEZE);
       onLive(next);
     } else if (stroke) {

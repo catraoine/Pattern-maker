@@ -27,6 +27,7 @@ import { hemOffsetAt } from '../engine/bodiceHem';
 import { unevenEdge } from '../engine/uneven';
 import type { Side } from './ShapeSketch';
 import { LengthTap, useSaid } from './LengthEntry';
+import { fingerTravel } from './HemMarks';
 import { FormArm, formWidth } from './DrawOnForm';
 import { FormLayers, SQUEEZE, clothReach, drawnPointBack, formFrame, neckLift, squeezeX, wornCloth, wornFolds, wornMapper } from './FormSketch';
 import { landmarks } from './formLines';
@@ -269,7 +270,7 @@ interface Props {
   onDone: (before: BodiceChoices, after: BodiceChoices) => void;
 }
 
-type Drag = { kind: 'hem' | 'side'; start: P; before: BodiceChoices; drop: number; ease: number };
+type Drag = { kind: 'hem' | 'side'; start: P; before: BodiceChoices; drop: number; ease: number; touch: boolean };
 
 export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, arms, onLive, onDone }: Props) {
   const said = useSaid();
@@ -333,7 +334,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
     if (drawing) return;
     e.stopPropagation();
     (e.target as Element).setPointerCapture(e.pointerId);
-    setDrag({ kind, start: toSvg(e), before: choices, drop: draft.drop, ease: bodiceEase(choices).bust });
+    setDrag({ kind, start: toSvg(e), before: choices, drop: draft.drop, ease: bodiceEase(choices).bust, touch: e.pointerType === 'touch' });
   };
 
   const move = (e: PointerEvent) => {
@@ -342,7 +343,8 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
       // Moving one side out by a centimetre widens all four quarters of the bodice by as much.
       const next =
         drag.kind === 'hem'
-          ? dragDrop(m, drag.before, drag.drop + at.y - drag.start.y)
+          ? // Finer for a finger, as on the other drawings (see fingerTravel).
+            dragDrop(m, drag.before, drag.drop + fingerTravel(at.y - drag.start.y, drag.touch, svg.current))
           : dragEase(drag.before, drag.ease + (4 * (at.x - drag.start.x) * (drag.start.x >= cx ? 1 : -1)) / (squeezeX(body, widest.x + 1, widest.y) - squeezeX(body, widest.x, widest.y)));
       onLive(next);
     } else if (stroke) {
