@@ -914,11 +914,30 @@ export function FormSketch({ body, m, legs, bottom, arms, lines, outline = [], c
   // A little room either side for the dot's handle. Only the dot shows the length, so the form keeps its width on
   // every step (Cat, 2026-11-06: the named lengths beside it were too much clutter).
   const side = hem ? 3 * k : 0;
+  // The cloth's left edge near a height: a dot's name off the length step starts left of it, not over a trouser leg.
+  // Only between legs: the cloth at the centre (the crotch) ends well above the length picked. A skirt's or dress's hem,
+  // which the dot sits on, leaves it be. Read where each outline crosses the dot's height, not off its corners.
+  const crotch = (worn ?? []).flat().filter((q) => Math.abs(q.x) < 1);
+  const betweenLegs = !!crotch.length && picked !== undefined && Math.max(...crotch.map((q) => q.y)) < picked - 6;
+  const clearLeft = useMemo(() => {
+    if (!betweenLegs) return undefined;
+    const runs = worn ?? [];
+    return (y: number) => {
+      const xs: number[] = [];
+      for (const run of runs)
+        run.forEach((a, i) => {
+          const b = run[(i + 1) % run.length];
+          if ((a.y - y) * (b.y - y) <= 0 && a.y !== b.y) xs.push(a.x + ((y - a.y) / (b.y - a.y)) * (b.x - a.x));
+        });
+      const left = xs.filter((x) => x < 0);
+      return left.length ? cx + Math.min(...left) : undefined;
+    };
+  }, [betweenLegs, worn, cx]);
   return (
     // With a hem dot it is a group, not an image: an image hides the dot inside it from screen readers.
     <svg ref={svg} viewBox={`${f(-side)} ${f(view.top)} ${f(2 * cx + 2 * side)} ${f(view.bottom - view.top)}`} role={hem ? 'group' : 'img'} aria-label={label} className="preview-svg sketch shape form-still">
       <FormLayers body={body} m={m} legs={legs} cx={cx} top={big ? frame.top : top} bottom={big ? frame.bottom : cropped} arms={arms} lines={onCloth} outline={outline} worn={worn} folds={folds} sleeve={sleeve} sleevesOver={sleevesOver} />
-      {hem && <HemMarks {...hem} svg={svg} cx={cx} k={k} hemAt={hemAt} bare={!ladder} />}
+      {hem && <HemMarks {...hem} svg={svg} cx={cx} k={k} hemAt={hemAt} bare={!ladder} clearLeft={clearLeft} />}
     </svg>
   );
 }

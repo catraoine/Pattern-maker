@@ -43,7 +43,9 @@ export function skirtSpec(m: SkirtMeasurements, d: SkirtDraft): SpecRow[] {
     // Posture, when measured: the centre waist is raised or lowered to match.
     ...(m.front_waist_to_hip !== undefined ? [{ label: 'Waist to hip, centre front', body: r1(m.front_waist_to_hip), finished: '' }] : []),
     ...(m.back_waist_to_hip !== undefined ? [{ label: 'Waist to hip, centre back', body: r1(m.back_waist_to_hip), finished: '' }] : []),
-    row('Length, waist to hem', undefined, d.lengthCm),
+    // A low-rise skirt's length counts from its own top, as the length box says: called waist to hem here, a tester
+    // measuring from the waist would have cut it about 5 cm short (pretend tester, Nov 18).
+    row(d.lowRise ? 'Length, top of skirt to hem' : 'Length, waist to hem', undefined, d.lengthCm),
     row('Hem circumference', undefined, d.hemCm),
     ...(d.asym ? [{ label: `Hem ${d.asym.kind === 'diagonal' ? 'left to right' : 'front to back'}, shortest to longest`, finished: `${r1(d.lengthCm + d.asym.shift - d.asym.amp)} to ${r1(d.lengthCm + d.asym.shift + d.asym.amp)}` }] : []),
     // Pleats, godets, a flounce or tiers: how they are made.

@@ -958,8 +958,9 @@ export default function App() {
                 // phone that held a tester's measurements, emptied the phone (tester, Nov 18). No measurement, person or
                 // pattern from either side is dropped. Not changed here: the next join with the account keeps everything.
                 cloud.forget();
-                // Sent on purpose from her other device, it counts as the newer side wherever both hold the same thing,
-                // and it's the same person's work, never someone else's to keep apart.
+                // Sent on purpose from one's own other device, it counts as the newer side wherever both hold the same
+                // thing, and it's the same person's work: joined, unless both were measured and disagree, when this
+                // device's measurements are kept beside the link's under their own name rather than mixed in.
                 applyBackup(mergeBackups({ ...makeBackup(saved, account, pointEdits), savedAt: new Date(0).toISOString() }, b as Backup<Saved>, null, { sameOwner: true }));
               }}
               onCarryOn={() => setStep(canLeaveMeasure ? 'export' : 'measure')}

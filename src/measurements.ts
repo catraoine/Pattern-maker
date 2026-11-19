@@ -1,5 +1,6 @@
 // Body measurements for each garment, with ranges from the measurements spec (measurements/measurements.json).
 import type { SkirtMeasurements } from './engine/skirt';
+import { inchWords } from './units';
 import type { BodiceMeasurements } from './engine/bodice';
 import type { SleeveMeasurements } from './engine/sleeve';
 import type { TrousersMeasurements } from './engine/trousers';
@@ -472,7 +473,9 @@ export interface Check {
   message: string;
 }
 
-const fmt = (cm: number, unit: Unit) => (unit === 'cm' ? `${cm} cm` : `${Math.round((cm / 2.54) * 10) / 10} in`);
+// A range's ends in inches to the nearest quarter, as a tape marks them, not "9.8 in to 23.6 in" (pretend tester, Nov 18).
+// Rounded inward, so a number typed at the end said is taken.
+const fmt = (cm: number, unit: Unit, round: (n: number) => number = Math.round) => (unit === 'cm' ? `${cm} cm` : `${inchWords(round((cm / 2.54) * 4) / 4)} in`);
 
 const has = (v: MeasurementValues, id: MeasurementId) => typeof v[id] === 'number' && !Number.isNaN(v[id]);
 
@@ -496,7 +499,7 @@ export function checkMeasurements(v: MeasurementValues, unit: Unit, garment: Gar
         id: f.id,
         level: 'error',
         // Said about the number and the tape, never the body (a tester read a range note as "too fat", Nov 18).
-        message: `${f.label} can be from ${fmt(f.hard[0], unit)} to ${fmt(f.hard[1], unit)} here. Is the unit right?`,
+        message: `${f.label} can be from ${fmt(f.hard[0], unit, Math.ceil)} to ${fmt(f.hard[1], unit, Math.floor)} here. Is the unit right?`,
       });
     } else if (x < f.typical[0] || x > f.typical[1]) {
       out.push({ id: f.id, level: 'warning', message: justChecking(f.label) });

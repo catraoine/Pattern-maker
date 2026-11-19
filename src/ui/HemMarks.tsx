@@ -35,6 +35,9 @@ interface Props extends HemChoice {
   hemAt?: number;
   /** Framed close to the garment (off the length step, or enlarged): the dot's name goes under it, not beside it. */
   bare?: boolean;
+  /** Where the cloth's left edge is at a height, so a bare name starts clear of it: between trouser legs, the name
+   *  printed over the left leg (pretend tester, Nov 18). */
+  clearLeft?: (y: number) => number | undefined;
 }
 
 /** Room beside the skirt's drawing for its handles' names, in handle sizes, on each side so it stays centred. */
@@ -43,7 +46,7 @@ export const MARGIN = 19;
 /** The mark nearest a height on the drawing. */
 const nearest = (marks: HemChoice['marks'], y: number) => marks.reduce((a, b) => (Math.abs(b.y - y) < Math.abs(a.y - y) ? b : a));
 
-export function HemMarks({ name, marks, value, onPick, svg, cx, k, hemAt, bare, free }: Props) {
+export function HemMarks({ name, marks, value, onPick, svg, cx, k, hemAt, bare, free, clearLeft }: Props) {
   const said = useSaid();
   // While dragging, the dot glides (or, without `free`, rides the marks), and catches on each named length it passes,
   // its name popping up on the handle; the garment is redrafted once, where it is let go.
@@ -79,6 +82,10 @@ export function HemMarks({ name, marks, value, onPick, svg, cx, k, hemAt, bare, 
   const tip = r + 1.2 * k;
   const arrows = `M${cx - c} ${y - tip + c} L${cx} ${y - tip} L${cx + c} ${y - tip + c} M${cx - c} ${y + tip - c} L${cx} ${y + tip} L${cx + c} ${y + tip - c}`;
   const dot: P = { x: cx, y };
+  // A bare name ends a clear gap left of the disc, or of the cloth there if it reaches further out.
+  const edge = bare ? clearLeft?.(y) : undefined;
+  // (The drawing shows past its own frame either side, where the name then sits.)
+  const nameEnd = Math.min(dot.x - r - 3.2 * k, edge === undefined ? Infinity : edge - 1.5 * k);
   return (
     <g className="hem-marks">
       <g className={held ? 'handle on' : 'handle'}>
@@ -89,14 +96,14 @@ export function HemMarks({ name, marks, value, onPick, svg, cx, k, hemAt, bare, 
             it across the legs (Cat, Nov 11: "move words"). */}
         {/* Caught on a named length, its name pops (a new key starts the pop again for each one). A clear gap from the
             disc so it never sits on a letter (Cat, Nov 11 sweep: "NEE", "FULL LENG"). */}
-        <text key={held?.on ?? ''} className={held?.on ? 'caught' : undefined} x={bare ? dot.x - r - 3.2 * k : dot.x + r + 3.2 * k} y={dot.y + 0.9 * k} fontSize={2.6 * k} textAnchor={bare ? 'end' : undefined}>
+        <text key={held?.on ?? ''} className={held?.on ? 'caught' : undefined} x={bare ? nameEnd : dot.x + r + 3.2 * k} y={dot.y + 0.9 * k} fontSize={2.6 * k} textAnchor={bare ? 'end' : undefined}>
           {label.toUpperCase()}
         </text>
         {/* Tapped, the length's name opens a box to type it (testers, Nov 17). Under the disc's own hit area, so a drag
             still starts wherever it did. */}
         {free && (
           <LengthTap
-            x={bare ? dot.x - r - 3.2 * k - label.length * 2.6 * k * 0.85 : dot.x + r + 3.2 * k}
+            x={bare ? nameEnd - label.length * 2.6 * k * 0.85 : dot.x + r + 3.2 * k}
             y={dot.y - 3 * k}
             width={label.length * 2.6 * k * 0.85}
             height={5 * k}
