@@ -407,6 +407,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
           y={kind === 'hem' || roomRight ? at.y + 0.9 * k : at.y + r + 4.6 * k}
           fontSize={2.6 * k}
           textAnchor={kind === 'hem' || roomRight ? 'start' : 'end'}
+          className={kind === 'hem' && !drawing ? 'typeable' : undefined}
         >
           {two ? two.map((line, i) => (
                 <tspan key={line} x={x} dy={i ? 3.1 * k : -1.4 * k}>

@@ -268,7 +268,7 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
         {/* Caught on a named length while dragging (dragLength holds it there), its name pops, as on every garment. */}
         <text
           key={active && kind === 'hem' && !choices.lengthCm ? choices.length : ''}
-          className={active && kind === 'hem' && !choices.lengthCm ? 'caught' : undefined}
+          className={[active && kind === 'hem' && !choices.lengthCm ? 'caught' : '', kind === 'hem' && !drawing ? 'typeable' : ''].filter(Boolean).join(' ') || undefined}
           // A clear gap from the disc (Cat, Nov 11 sweep: the disc sat on the last letter, "KNE").
           x={kind === 'hem' ? at.x - r - 3.2 * k : at.x + r + 3.2 * k}
           y={at.y + 0.9 * k}

@@ -256,6 +256,13 @@ section[aria-label='Preview'] > .preview .all-round-feel-step[aria-pressed='true
   cursor: text;
   pointer-events: all;
 }
+/* Underlined, so the length's words read as something to tap: on their own they didn't look tappable (pretend tester,
+   Nov 18). */
+.typeable {
+  text-decoration: underline;
+  text-decoration-thickness: 0.06em;
+  text-underline-offset: 0.18em;
+}
 /* The hint, over the step under the drawing (on the drawing it ran over the trousers: screen check, Nov 17). */
 .length-hint {
   margin: 8px 0 0;

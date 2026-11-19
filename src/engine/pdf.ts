@@ -512,7 +512,8 @@ function flow(doc: PDFDocument, paper: 'a4' | 'letter', fonts: Fonts) {
   return { st, write, wrap, label, room, left, width, pw, ph };
 }
 
-const fmt = (v: number) => (Math.round(v * 10) / 10).toFixed(1);
+// "51 cm" as the screen says it, not "51.0 cm" (pretend tester, Nov 18).
+const fmt = (v: number) => String(Math.round(v * 10) / 10);
 
 /** The pattern summary: finished measurements, the seam check and a map of how the pages join. */
 function addSummaryPage(
@@ -574,8 +575,9 @@ function addSummaryPage(
   const passed = s.checks.filter((c) => c.ok).length;
   const intro =
     passed === s.checks.length
-      ? `All ${passed} checks pass. Every pair of seams that sew together is walked to within 1 mm, curves blend across the seams within 2°, centre lines are square within 1° and dart legs are trued.`
-      : `${passed} of ${s.checks.length} checks pass. Please look at the ones marked CHECK before cutting.`;
+      ? `Before printing, the app checked your pattern the way a pattern cutter would: seams that sew together are the same length (within 1 mm), curves meet smoothly across them (within 2°), centre lines are square and darts close neatly.${passed ? ` All ${passed} checks passed, so there's nothing for you to do here. The list is for reference only.` : ''}`
+      : `Before printing, the app checked your pattern the way a pattern cutter would. ${passed} of ${s.checks.length} checks passed: please look at the ones marked CHECK before you cut.`;
+  // Said in plain words first: a tester read the list alone as engineer's ticks (pretend tester, Nov 18).
   // A long check name ran on under its own figures ("...blends across the shoulder" over "front 90.1°", Nov 17), so
   // each column wraps within its own width and the row takes as many lines as the longer one needs.
   const detailAt = 0.48 * width;
@@ -837,7 +839,9 @@ function addSewingPages(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', 
   const { write, wrap, label, st, room } = flow(doc, paper, fonts);
   drawText(st.page, 'MAISON TRACÉ', { x: 2 * CM, y: st.y, size: 7.5, font: fonts.label, tracking: 0.3, grey: 0.4 });
   st.y -= 26;
-  write(`How to sew your ${title}`, 20, fonts.bodyMedium, 0, 18);
+  // Mid-sentence, the description's capital goes: "How to sew your Hip-length vest" (pretend tester, Nov 18).
+  // Only a plain first word is lowered, so a name stays a name ("Peter Pan-collar top", "Bermuda Shorts").
+  write(`How to sew your ${/^[A-Z][a-z-]*(?=[ ,][a-z]|$)/.test(title) ? title[0].toLowerCase() + title.slice(1) : title}`, 20, fonts.bodyMedium, 0, 18);
   if (guide.fabric?.length) {
     label('YOUR FABRIC');
     guide.fabric.forEach((l) => write(l, 10, fonts.body, 0, 1));

@@ -55,7 +55,7 @@ import { EARLY_ACCESS_FROM, earlyAccessOpen } from './founding';
 import { signinShown } from './cloud/flag';
 import { LegalScreen } from './screens/LegalScreen';
 import { PhotoAllowance, UnlockGarment } from './ui/PlanPrompts';
-import { BILLING_ON, canPhotoDraft, countPhotoDraft, hasGarment, plansShown, savedLimit } from './plans';
+import { BILLING_ON, GARMENT_NAMES, canPhotoDraft, countPhotoDraft, hasGarment, plansShown, savedLimit } from './plans';
 import { countStep, reportCrash, setReportView } from './report/report';
 import { PRIVACY, TERMS, legalPath } from './legal';
 import { readLink, type MeasureReply } from './measureLink';
@@ -950,6 +950,10 @@ export default function App() {
             <MoveArrivalScreen
               backup={moving}
               here={account}
+              opened={(b) => {
+                const s = b.skirt as Partial<Saved>;
+                return `The ${GARMENT_NAMES[s.garment ?? 'skirt'] ?? 'piece'} you had open, in ${s.unit === 'in' ? 'inches' : 'centimetres'}`;
+              }}
               hereMeasured={Object.keys(measured).filter((k) => !person.example?.includes(k as MeasurementId)).length}
               onBring={(b) => {
                 // Brought in, so a reload shouldn't offer it again.
