@@ -130,7 +130,7 @@ interface Props {
   onDone: (before: Choices, after: Choices) => void;
 }
 
-type Drag = { kind: 'hem' | 'side'; start: P; before: Choices; base: Choices; length: number; flare: number; touch: boolean };
+type Drag = { kind: 'hem' | 'side'; start: P; before: Choices; base: Choices; length: number; flare: number; touch: boolean; loose?: number };
 
 /** A shape matched from a photo is pinned to proportions; dragging lets go of it, keeping the length
  * and flare it had so the skirt doesn't jump. */
@@ -207,16 +207,22 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
     if (drawing) return;
     e.stopPropagation();
     (e.target as Element).setPointerCapture(e.pointerId);
-    setDrag({ kind, start: toSvg(e), before: choices, base: unpin(choices, draft), length: draft.lengthCm, flare: draft.flareCm ?? 0, touch: e.pointerType === 'touch' });
+    // A length set close to a named one, not on it, doesn't catch on it until the drag has left it: a typed 49.3 cm
+    // jumped to the knee's 53 cm at a 6 px nudge (pretend tester DJ walk, Nov 19). `loose` is that named length.
+    const near = marksAt.reduce((a, b) => (Math.abs(b - draft.lengthCm) < Math.abs(a - draft.lengthCm) ? b : a));
+    const loose = kind === 'hem' && (choices.lengthCm || choices.kneeShare || choices.floorClear) && Math.abs(near - draft.lengthCm) < catchCm ? near : undefined;
+    setDrag({ kind, start: toSvg(e), before: choices, base: unpin(choices, draft), length: draft.lengthCm, flare: draft.flareCm ?? 0, touch: e.pointerType === 'touch', loose });
   };
 
   const move = (e: PointerEvent) => {
     if (drag) {
       const at = toSvg(e);
+      const cm = drag.length + fingerTravel(at.y - drag.start.y, drag.touch, svg.current);
+      if (drag.loose !== undefined && Math.abs(cm - drag.loose) >= catchCm) drag.loose = undefined;
       const next =
         drag.kind === 'hem'
           ? // Finer for a finger, as on the other drawings (see fingerTravel).
-            dragLength(dm, drag.base, drag.length + fingerTravel(at.y - drag.start.y, drag.touch, svg.current), catchCm)
+            dragLength(dm, drag.base, cm, drag.loose === undefined ? catchCm : 0)
           : dragFlare(dm, drag.base, draft.lengthCm, drag.flare + ((at.x - drag.start.x) * (drag.start.x >= cx ? 1 : -1)) / SQUEEZE);
       onLive(next);
     } else if (stroke) {

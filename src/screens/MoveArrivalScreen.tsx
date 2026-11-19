@@ -56,7 +56,7 @@ export function MoveArrivalScreen<S>({ backup, here, hereMeasured, opened, onBri
             <p>
               Your measurements and patterns are on this device now
               {/* Joined without a word, a tester found ten measurements where the phone had seven (pretend tester, Nov 18). */}
-              {hadHere ? ', together with what was already here. Where this device\u2019s measurements differ from the ones you brought, or add to them, the ones you brought are used as they came and this device\u2019s are kept apart, under \u201cMeasured on this device\u201d.' : '.'} Anything you change here stays here, so send it back the same way if you need to.
+              {hadHere ? ', together with what was already here. Where this device\u2019s measurements differ from the ones you brought, or add to them, the ones you brought are used as they came and the ones this device already had are kept apart, under \u201cMeasured here before\u201d.' : '.'} Anything you change here stays here, so send it back the same way if you need to.
             </p>
             <button type="button" className="primary" onClick={onCarryOn}>
               Carry on

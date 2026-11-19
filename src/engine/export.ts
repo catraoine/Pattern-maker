@@ -335,6 +335,19 @@ export function labelCollisions(sheet: Sheet): [string, string][] {
   return out;
 }
 
+/** The piece labels that a joining diamond on A4 or Letter pages would print over: the check a layout is held to. */
+export function diamondCollisions(sheet: Sheet): { piece: number; text: string }[] {
+  const out: { piece: number; text: string }[] = [];
+  for (const pr of sheet.prims) {
+    if (pr.kind !== 'text' || pr.piece === undefined) continue;
+    const box = textBox(pr.at, pr.text, pr.size, pr.rotate, pr.tracking ?? 0, 0);
+    // The diamond itself, without the room kept round it.
+    const corners = [-1, 1].flatMap((a) => [-1, 1].map((b) => add(box.c, add(mul(box.u, a * box.hw), mul(box.n, b * box.hh)))));
+    if (joinDiamonds(corners).some((d) => overlaps(box, { ...d, hw: 0.4, hh: 0.4 }))) out.push({ piece: pr.piece, text: pr.text });
+  }
+  return out;
+}
+
 /** Shorter words for an information line that will not fit its piece. */
 const ABBREVIATIONS: [RegExp, string][] = [
   [/ \(1 PAIR\)/, ''],
@@ -650,6 +663,9 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
       lab(text(add(c, p(0, f.above ? -1.55 : 1.35)), f.title, MARK_TEXT, 0, 'middle', { face: 'label', tracking: 0.12 }), 2, 0.12);
       lab(text(add(c, p(0, f.above ? -0.9 : 2.0)), f.note, 0.36, 0, 'middle', { face: 'label', tracking: 0.12, grey: 0.35 }), 2, 0.12);
     });
+    // The pages' joining diamonds are printed over the sheet, and one sat on "WAIST · 5/8 IN ALLOWANCE" (pretend tester
+    // DJ walk, Nov 19): where home paper (A4 or Letter, the same sheet for both) puts one, the labels keep off it.
+    const diamonds = opts.paper === 'a0' ? [] : joinDiamonds(stitch);
     // The grain arrow and the fold bracket: labels keep off them.
     const fixtures: Box[] = [];
     if (pc.grain) {
@@ -742,7 +758,7 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
             : [info.pattern.toUpperCase(), [info.madeFor && `MADE FOR ${info.madeFor}`, info.date, info.edition].filter(Boolean).join(' · ').toUpperCase()]),
         ].filter(Boolean);
         const trace = pc.meta.threadTrace ? 'THREAD-TRACE THE STITCHING LINE' : '';
-        const obstacles = [...fixtures, ...labs.filter((x) => x.rank !== 2).map((x) => x.box)];
+        const obstacles = [...fixtures, ...diamonds, ...labs.filter((x) => x.rank !== 2).map((x) => x.box)];
         let lines: string[] = [];
         let row = '';
         let nameAt = at0;
@@ -857,6 +873,9 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
       const l = pc.labels[0];
       if (l) lab(text(t(add(l.at, turn(p(0, -l.size * 1.2), l.rotate ?? 0))), 'THREAD-TRACE THE STITCHING LINE', 0.45, l.rotate ?? 0, 'middle', { face: 'label', tracking: 0.15, grey: 0.35 }), 2, 0.15);
     }
+    // The other labels give way to the diamonds as to a label that can't move.
+    const furniture: Lab[] = diamonds.map((box) => ({ prim: { kind: 'text', at: box.c, text: '', size: 0, rotate: 0, anchor: 'middle' }, box, rank: 0 }));
+    labs.push(...furniture);
     settle(labs, stitch, marks);
     // A seam name left with no room is left off: the notches and the garment's own labels say it.
     for (const l of [...labs].reverse()) {
@@ -864,6 +883,7 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
       labs.splice(labs.indexOf(l), 1);
       prims.splice(prims.indexOf(l.prim), 1);
     }
+    labs.splice(0, labs.length, ...labs.filter((l) => !furniture.includes(l)));
     order = {};
   });
 
@@ -992,6 +1012,34 @@ export const PAGE_MARGIN = 1; // printer-safe margin, cm
  *  (pretend tester, Nov 18). Both pages of a join are on the same row, so their halves still meet. */
 // (0.62, not 0.5: halfway down a Letter page fell on the cards' bottom corners, DI walk, Nov 19.)
 export const joinMarks = (join: 'right' | 'below', row: number): number[] => (join === 'right' && row === 0 ? [0.62, 0.85] : [0.3, 0.7]);
+
+/** Room kept round each joining diamond, its page name beside it, in cm either way from its centre. */
+const DIAMOND_ROOM = 0.8;
+
+/**
+ * Where the joining diamonds of A4 and of Letter pages fall on the sheet near these points (a piece's stitching
+ * line), as boxes for the labels to keep off. The tiles start at the sheet's corner, a step apart, and the diamonds
+ * sit on the trim line, halfway across each overlap (as toTiledPdf draws them).
+ */
+function joinDiamonds(near: P[]): Box[] {
+  const xs = near.map((q) => q.x);
+  const ys = near.map((q) => q.y);
+  const [x0, x1, y0, y1] = [Math.min(...xs) - 1, Math.max(...xs) + 1, Math.min(...ys) - 1, Math.max(...ys) + 1];
+  const out: Box[] = [];
+  const add = (x: number, y: number) => {
+    if (x >= x0 && x <= x1 && y >= y0 && y <= y1) out.push({ c: p(x, y), u: p(1, 0), n: p(0, 1), hw: DIAMOND_ROOM, hh: DIAMOND_ROOM });
+  };
+  for (const paper of ['a4', 'letter'] as const) {
+    const [tw, th] = PAPER_CM[paper].map((v) => v - 2 * PAGE_MARGIN);
+    const [sx, sy] = [tw - OVERLAP, th - OVERLAP];
+    for (let r = Math.max(0, Math.floor(y0 / sy) - 1); r * sy <= y1; r++)
+      for (let c = Math.max(0, Math.floor(x0 / sx) - 1); c * sx <= x1; c++) {
+        for (const f of joinMarks('right', r)) add(c * sx + tw - OVERLAP / 2, r * sy + th * f);
+        for (const f of joinMarks('below', r)) add(c * sx + tw * f, r * sy + th - OVERLAP / 2);
+      }
+  }
+  return out;
+}
 export const OVERLAP = 1; // cm shared by neighbouring pages for taping
 
 /** Page size for a sheet: home paper is always portrait; a copy-shop A0 turns sideways when that takes fewer sheets. */
