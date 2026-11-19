@@ -60,9 +60,13 @@ export function HemMarks({ name, marks, value, onPick, svg, cx, k, hemAt, bare, 
   const said = useSaid();
   // While dragging, the dot glides (or, without `free`, rides the marks), and catches on each named length it passes,
   // its name popping up on the handle; the garment is redrafted once, where it is let go.
-  const [held, setHeld] = useState<{ y: number; on?: string }>();
-  // Where a drag began, finger and dot, and whether it is a finger (see fingerTravel).
-  const grip = useRef<{ from: number; dot: number; touch: boolean }>();
+  // `end` says the drag has reached the shortest or the longest length: dragged on past it, the trouser dot just stopped,
+  // with nothing to say why (pretend tester DJ walk, Nov 19).
+  const [held, setHeld] = useState<{ y: number; on?: string; end?: 'Shortest' | 'Longest' }>();
+  // Where a drag began, finger and dot, and whether it is a finger (see fingerTravel). `loose` names a length the drag
+  // began close to but not on: it doesn't catch until the dot has left it, or a typed 49.3 cm jumped to the knee's
+  // 53 cm at a 6 px nudge (pretend tester DJ walk, Nov 19).
+  const grip = useRef<{ from: number; dot: number; touch: boolean; loose?: string }>();
   const named = marks.find((m) => m.id === value) ?? marks[marks.length - 1];
   if (!named) return null;
   const between = free?.cm !== undefined ? free.zero + free.cm : undefined;
@@ -77,14 +81,17 @@ export function HemMarks({ name, marks, value, onPick, svg, cx, k, hemAt, bare, 
   // A named length says how long it is too, so the number is there before any drag: the shift read just "MINI" (pretend
   // tester, Nov 18). Caught while dragging, the name pops on its own. Spoken, it's one line: "Mini · 41 cm".
   const cmNow = free ? `${held ? cmAt(setAt) : Math.round((setAt - free.zero) * 10) / 10} cm` : '';
-  const spoken = at ? (free && !held ? `${at.label} · ${cmNow}` : at.label) : cmNow;
+  const spoken = `${at ? (free && !held ? `${at.label} · ${cmNow}` : at.label) : cmNow}${held?.end ? ` · ${held.end}` : ''}`;
   const toY = (e: PointerEvent) => new DOMPoint(e.clientX, e.clientY).matrixTransform(svg.current!.getScreenCTM()!.inverse()).y;
   const follow = (yy: number) => {
     const near = nearest(marks, yy);
     if (!free) return setHeld({ y: near.y, on: near.id });
     const v = Math.min(free.zero + free.max, Math.max(free.zero + free.min, yy));
-    const gap = Math.min(...marks.filter((m) => m !== near).map((m) => Math.abs(m.y - near.y)), Infinity);
-    setHeld(Math.abs(near.y - v) < Math.min(CATCH * k, CATCH_SHARE * gap) ? { y: near.y, on: near.id } : { y: v });
+    const end = yy > free.zero + free.max ? 'Longest' : yy < free.zero + free.min ? 'Shortest' : undefined;
+    const catches = (m: HemChoice['marks'][number]) => Math.abs(m.y - v) < Math.min(CATCH * k, CATCH_SHARE * Math.min(...marks.filter((o) => o !== m).map((o) => Math.abs(o.y - m.y)), Infinity));
+    if (grip.current?.loose === near.id && catches(near)) return setHeld({ y: v, end });
+    if (grip.current) grip.current.loose = undefined;
+    setHeld(catches(near) ? { y: near.y, on: near.id, end } : { y: v, end });
   };
   const end = () => {
     if (held?.on) {
@@ -103,7 +110,7 @@ export function HemMarks({ name, marks, value, onPick, svg, cx, k, hemAt, bare, 
   const nameEnd = Math.min(dot.x - r - 3.2 * k, edge === undefined ? Infinity : edge - 1.5 * k);
   // A named length says how long it is on a second line, so the number is there before any drag (see `spoken`).
   const label = at ? at.label : cmNow;
-  const under = at && free && !held ? cmNow : undefined;
+  const under = held?.end ?? (at && free && !held ? cmNow : undefined);
   const wordsW = Math.max(label.length, under ? under.length * 0.8 : 0) * 2.6 * k * 0.85;
   return (
     <g className="hem-marks">
@@ -151,7 +158,7 @@ export function HemMarks({ name, marks, value, onPick, svg, cx, k, hemAt, bare, 
             (e.target as Element).setPointerCapture?.(e.pointerId);
             // From the length as set, not the drawn hem below it, so a tap without a drag leaves the length alone.
             setHeld({ y: setAt, on });
-            grip.current = { from: toY(e), dot: setAt, touch: e.pointerType === 'touch' };
+            grip.current = { from: toY(e), dot: setAt, touch: e.pointerType === 'touch', loose: on ? undefined : nearest(marks, setAt).id };
           }}
           onPointerMove={(e) => held && grip.current && follow(grip.current.dot + fingerTravel(toY(e) - grip.current.from, grip.current.touch, svg.current))}
           onPointerUp={end}

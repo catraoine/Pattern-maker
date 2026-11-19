@@ -52,7 +52,7 @@ describe('mergeBackups', () => {
     const people = m.account.people ?? [];
     expect(people.find((p) => p.id === ME)?.values).toEqual({ waist: 74, full_bust: 94, full_hip: 101 });
     const kept = people.find((p) => p.id !== ME)!;
-    expect(kept.name).toBe('Measured on this device');
+    expect(kept.name).toBe('Measured here before');
     expect(kept.values).toEqual({ waist: 98, full_bust: 106, full_hip: 104, high_bust: 106, shoulder_width: 40 });
     expect(m.account.patterns.map((p) => p.id).sort()).toEqual(['here', 'there']);
     // The same person measured alike on both is joined, as before.
@@ -68,7 +68,7 @@ describe('mergeBackups', () => {
     const remote = at('2026-11-12T10:00:00Z', {}, { ...NEW_ACCOUNT, people: [me({ waist: 74, full_bust: 94, full_hip: 101 })], patterns: [] });
     const people = mergeBackups(local, remote, null, { sameOwner: true }).account.people ?? [];
     expect(people.find((p) => p.id === ME)?.values).toEqual({ waist: 74, full_bust: 94, full_hip: 101 });
-    expect(people.find((p) => p.id !== ME)).toMatchObject({ name: 'Measured on this device', values: { waist: 75, high_bust: 87 } });
+    expect(people.find((p) => p.id !== ME)).toMatchObject({ name: 'Measured here before', values: { waist: 75, high_bust: 87 } });
   });
 
   it('with nothing in the account yet, keeps this device as it is', () => {

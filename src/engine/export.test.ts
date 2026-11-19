@@ -200,7 +200,8 @@ describe('labels on small pieces', () => {
 
   it('names the collar as it is cut, on the fold in self', () => {
     const t = texts(cases[0][1], 'Collar');
-    expect(t.some((x) => x.includes('UPPER AND UNDER COLLAR IN SELF'))).toBe(true);
+    // (Read across its lines: kept clear of a page-join diamond, the block may wrap tighter.)
+    expect(t.join(' ')).toContain('UPPER AND UNDER COLLAR IN SELF');
     expect(t.some((x) => /BIAS/.test(x))).toBe(false);
   });
 

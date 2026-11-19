@@ -189,7 +189,7 @@ export function mergeBackups<S>(local: Backup<S>, remote: Backup<S> | null, base
     // Brought from one's own other device too, two measuring sessions that disagree are not mixed into one body: the
     // phone's waist, bust and hip with this computer's high bust and shoulder made a high bust larger than the bust
     // (pretend tester, Nov 18). The link's are used, and this device's are kept beside them, not lost.
-    la = opts.sameOwner ? ownerApart(la, 'Measured on this device') : { ...ownerApart(la), name: ra.name };
+    la = opts.sameOwner ? ownerApart(la, 'Measured here before') : { ...ownerApart(la), name: ra.name };
   }
   const newer = workFromRemote ? ra : la;
   const older = workFromRemote ? la : ra;

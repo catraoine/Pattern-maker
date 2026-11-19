@@ -9,6 +9,7 @@ import { withEstimates } from './estimate';
 import { taggedLength } from './engine/geometry';
 import type { MeasurementValues } from './measurements';
 import type { Piece } from './engine/piece';
+import { diamondCollisions, layout } from './engine/export';
 
 // The five pieces the fit testers sew (Blush Shift, Ice Peplum Top, Black Pleated Skirt, Chocolate Barrel Trouser and the
 // Black Vest), made the way the app makes a look, in its own cloth, on a small, a middle and a large body, and read as a
@@ -149,4 +150,17 @@ describe.each(Object.entries(BODIES))('the other tester pieces on a %s body', (_
     expect(all(print({ ...noArms, arm_length: 50, upper_arm: 36 }))).toBe(without);
     expect(all(print({ ...noArms, arm_length: 64, upper_arm: 26 }))).toBe(without);
   });
+});
+
+// A joining diamond printed over "WAIST · 5/8 IN ALLOWANCE" on the skirt's first Letter page (pretend tester DJ walk,
+// Nov 19): on every tester piece, on every body, the labels keep off the diamonds of both home papers. A waistband is
+// the one exception: a long, narrow band laid along a page join has a diamond every few cm, with no gap for its name.
+describe('the joining diamonds', () => {
+  for (const id of ['blush-shift', 'ice-peplum', 'black-pleated-skirt', 'chocolate-barrel', 'black-vest'])
+    for (const [body, values] of Object.entries(BODIES))
+      it(`print over no label on ${id}, ${body} body`, () => {
+        const print = made(id, values);
+        const hit = diamondCollisions(layout(print.pieces, `Maison Tracé: ${id}`, print.notes, { pattern: id }));
+        expect(hit.filter((h) => print.pieces[h.piece].kind !== 'waistband' || /ALLOWANCE/.test(h.text))).toEqual([]);
+      });
 });
