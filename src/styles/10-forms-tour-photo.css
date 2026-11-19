@@ -168,6 +168,26 @@ body:has(.welcome.pulling) .topbar {
   border-left: 3px solid var(--gild);
   border-right: 3px solid var(--gild);
 }
+.film-loading {
+  display: block;
+  box-sizing: border-box;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid color-mix(in srgb, var(--gild) 30%, transparent);
+  border-top-color: var(--gild);
+  border-radius: 50%;
+  animation: film-loading 0.9s linear infinite;
+}
+@keyframes film-loading {
+  to {
+    transform: rotate(1turn);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .film-loading {
+    animation-duration: 2.4s;
+  }
+}
 .film-line {
   position: relative;
   flex: 1;
