@@ -276,7 +276,10 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
   const fileName = `${fileBase}-${paper === 'projectorDark' ? 'projector-black' : paper}.pdf`;
   const ready = pdf?.paper === paper ? pdf.bytes : null;
   const booklet = pdf?.paper === paper ? pdf.booklet : null;
-  const bookletName = `${fileBase}-instructions.pdf`;
+  // Named for its paper too: the Letter and A4 booklets shared one name, so the second overwrote the first or came down
+  // as "(1)" (pretend tester, Nov 18).
+  // The paper it's laid out on, which for A0 and a projector is A4 or Letter (see the booklet's toTiledPdf above).
+  const bookletName = `${fileBase}-${isProjector(paper) ? (unit === 'in' ? 'letter' : 'a4') : paper === 'a0' ? 'a4' : paper}-instructions.pdf`;
   // Both files together, for sharing and emailing.
   const files = () => [new File([ready!], fileName, { type: 'application/pdf' }), ...(booklet ? [new File([booklet.bytes], bookletName, { type: 'application/pdf' })] : [])];
 

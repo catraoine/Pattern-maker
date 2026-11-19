@@ -176,7 +176,8 @@ export function dressSpec(m: DressMeasurements, d: DressDraft, sleeve?: SleeveDr
     // only for its length gave the table 2 cm more hip than the pieces and the first page's note; tester pattern review, Nov 13.)
     ...skirtSpec(m, d.skirt)
       .filter((r) => r.label !== 'Waist' && !zip.test(r.label) && !/Waistband/.test(r.label))
-      .map((r) => (r.label === 'Hip' ? row('Hip', m.full_hip, d.finishedHip) : r)),
+      // On a dress with its seam off the waist the skirt's length runs from that seam, as the length box asks it.
+      .map((r) => (r.label === 'Hip' ? row('Hip', m.full_hip, d.finishedHip) : d.seamDrop && r.label === 'Length, waist to hem' ? { ...r, label: 'Length, waist seam to hem' } : r)),
     ...(d.seamCm ? [row(d.seamDrop > 0 ? `Waist seam, ${d.seamDrop} cm below the waist` : `Waist seam, ${-d.seamDrop} cm above the waist`, fromSeam(m, d.seamDrop).waist, d.seamCm)] : []),
     row('Length, nape to hem', undefined, d.lengthCm),
     ...(sleeve ? sleeveSpec(m, sleeve) : []),

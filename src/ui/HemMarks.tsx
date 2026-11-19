@@ -96,7 +96,7 @@ export function HemMarks({ name, marks, value, onPick, svg, cx, k, hemAt, bare, 
             it across the legs (Cat, Nov 11: "move words"). */}
         {/* Caught on a named length, its name pops (a new key starts the pop again for each one). A clear gap from the
             disc so it never sits on a letter (Cat, Nov 11 sweep: "NEE", "FULL LENG"). */}
-        <text key={held?.on ?? ''} className={held?.on ? 'caught' : undefined} x={bare ? nameEnd : dot.x + r + 3.2 * k} y={dot.y + 0.9 * k} fontSize={2.6 * k} textAnchor={bare ? 'end' : undefined}>
+        <text key={held?.on ?? ''} className={[held?.on ? 'caught' : '', free ? 'typeable' : ''].filter(Boolean).join(' ') || undefined} x={bare ? nameEnd : dot.x + r + 3.2 * k} y={dot.y + 0.9 * k} fontSize={2.6 * k} textAnchor={bare ? 'end' : undefined}>
           {label.toUpperCase()}
         </text>
         {/* Tapped, the length's name opens a box to type it (testers, Nov 17). Under the disc's own hit area, so a drag

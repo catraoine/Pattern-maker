@@ -147,6 +147,9 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
   const boned = valid.structure === 'boned';
   const extra = fabricEase(fabric, 'bodice');
   const title = describeBodice(choices);
+  // A length dragged or typed below the waist is said as where it sits on the Length row: a peplum set 10 cm below read
+  // "Waist", the named length it starts from (pretend tester, Nov 18). Said as the draft makes it, not as typed.
+  const setDrop = choices.dropCm !== undefined ? hemDrop(m, choices) : 0;
   // The house shirt can be let down to the longest top's hem and past it to a mini (the Leopard Shirt Dress), so the
   // title calls it what it is then, rather than "Your bodice" over a dress (Cat, Nov 12).
   const dressLength = choices.shirtCut === 'house' && hemDrop(m, choices) >= dropRange(m, choices.length).max;
@@ -360,7 +363,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
     >
       <section className="card numbered" aria-labelledby="opts">
         {BODICE_GROUPS.filter((g) => shown(g.id)).map((g) => (
-          <Group key={g.id} label={g.label} tab={PRO_GROUPS.includes(g.id) ? PRO : undefined} shaped={handShaped(choices, g.id) ? g.options.find(([id]) => id === valueOf(g.id))?.[1] : undefined}>
+          <Group key={g.id} label={g.label} tab={PRO_GROUPS.includes(g.id) ? PRO : undefined} shaped={g.id === 'length' && setDrop > 0 ? `${Math.round(setDrop * 10) / 10} cm below the waist` : handShaped(choices, g.id) ? g.options.find(([id]) => id === valueOf(g.id))?.[1] : undefined}>
             {/* Above the pictures, not under them: greyed sleeves read as locked until the reason is seen (cold read, Nov 14). */}
             {g.id === 'sleeve' && !arms && (
               <p className="muted small sleeve-why">
