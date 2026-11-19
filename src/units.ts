@@ -100,8 +100,20 @@ const IRON_C = /\b(about) (\d+) ?°?C\b/gi;
  * Rewrite every centimetre and metre length in a piece of text as inches and yards. The 10 cm test square
  * keeps both, because a printed copy is checked against it and 3.94 in is the exact figure.
  */
+/** "a" or "an" as a number is said before it: "an 18 cm zip", "an 8 in zip", "a 7 in zip". The cm amounts in the
+ *  sewing text are filled in, so "a 18 cm invisible zip" reached the cm files, and turning cm into inches changes the
+ *  number after it too (pretend tester DI walk, Nov 19). */
+export function articles(text: string): string {
+  // A capital "A" only where a sentence starts: elsewhere it names a piece or a view ("Piece A 8 cm").
+  return text.replace(/(^|[.!?]\s+|\b(?=a))(a|A)n? (\d+)(?=[\d.,]*[\s⅛¼⅜½⅝¾⅞-])/g, (_, lead: string, a: string, n: string) => `${lead}${a}${n.startsWith('8') || n === '11' || n === '18' ? 'n' : ''} ${n}`);
+}
+
 export function inInches(text: string): string {
   if (SQUARE_LABEL.test(text)) return '10 CM · 3.94 IN';
+  return articles(inInchesOnly(text));
+}
+
+function inInchesOnly(text: string): string {
   return text
     .replace(IRON_C, (_, about, c) => `${about} ${Math.round((Number(c) * 9) / 5 / 10 + 3.2) * 10}°F`)
     .replace(SQUARE, (m) => (m.startsWith('exactly') ? 'exactly 10 cm (3.94 in)' : '10 cm (3.94 in) test square'))

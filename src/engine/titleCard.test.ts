@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { textWidth, titleCard } from './export';
 
-const ROOM = 46 - 2.4;
+// The card is 15.5 cm wide, whole on page 3 (DI walk, Nov 19), with 1.2 cm inside each edge.
+const ROOM = 15.5 - 2.4;
 const LONG = 'oversized button-front shirt-collar back-yoke bodice with elbow-length sleeves with turned-back cuffs, 47 cm below the waist, with a shaped hem';
 
 describe('title card', () => {
@@ -14,12 +15,16 @@ describe('title card', () => {
   });
   it('heads a long description with the look name, the description small beneath', () => {
     const [head, ...rest] = titleCard(LONG, 'Leopard Shirt Dress');
-    expect(head).toMatchObject({ text: 'Leopard Shirt Dress', size: 1.3 });
+    expect(head).toMatchObject({ text: 'Leopard Shirt Dress' });
+    expect(head.size).toBeGreaterThanOrEqual(0.9);
     expect(rest.length).toBeGreaterThan(0);
     expect(rest.length).toBeLessThanOrEqual(2);
     expect(rest.every((l) => l.y < 4.4)).toBe(true);
   });
   it('without a look, heads it with the description up to its first "with"', () => {
-    expect(titleCard(LONG)[0].text).toBe('Oversized button-front shirt-collar back-yoke bodice');
+    // Too long for one line on the card, the short name takes two, still above the rule.
+    const heads = titleCard(LONG).filter((l) => !l.grey);
+    expect(heads.map((l) => l.text).join(' ')).toBe('Oversized button-front shirt-collar back-yoke bodice');
+    expect(titleCard(LONG).every((l) => l.y < 4.4)).toBe(true);
   });
 });

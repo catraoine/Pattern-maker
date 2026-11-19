@@ -171,7 +171,8 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
     return {
       pieces,
       notes: [
-        `Finished bust ${outer.finishedBust} cm, waist ${outer.finishedWaist} cm, hem ${outer.finishedHem} cm, back length ${outer.lengthCm} cm.`,
+        // "Round the hem": "hem 129.1 cm" on the Black Vest read like a length (pretend tester DI walk, Nov 19).
+        `Finished bust ${outer.finishedBust} cm, waist ${outer.finishedWaist} cm, round the hem ${outer.finishedHem} cm, back length ${outer.lengthCm} cm.`,
         couture
           ? `Couture allowances: ${fmtCm(seams.seam)} at the seams, ${fmtCm(seams.curve)} at the neck and armholes, ${fmtCm(hem)} at the hem. Thread-trace the solid stitching line.`
           : `Seam allowance ${fmtCm(seams.seam)} included, 1 cm at the neck, armholes, collar and front edges, ${fmtCm(hem)} at the hem. Dashed line = stitching line.`,
@@ -202,7 +203,7 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
     return {
       pieces,
       notes: [
-        `Finished waist ${trousers.finishedWaist} cm, hip ${trousers.finishedHip} cm, outside leg ${trousers.lengthCm} cm, crotch seam ${Math.round((trousers.crotch.front + trousers.crotch.back) * 10) / 10} cm.`,
+        `Finished waist ${trousers.finishedWaist} cm, hip ${trousers.finishedHip} cm, outside leg ${trousers.lengthCm} cm from your waist, crotch seam ${Math.round((trousers.crotch.front + trousers.crotch.back) * 10) / 10} cm.`,
         couture
           ? `Couture allowances: ${fmtCm(seams.seam)} at the seams, ${fmtCm(seams.waist)} at the waist, 1 cm on the crotch curve, ${fmtCm(hem)} at the hem. Thread-trace the solid stitching line.`
           : `Seam allowance ${fmtCm(seams.seam)} included, 1 cm on the crotch curve, ${fmtCm(hem)} at the hem. Dashed line = stitching line.`,
@@ -248,7 +249,7 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
     return {
       pieces,
       notes: [
-        `Finished waist ${Math.round(skirt.finishedWaist * 10) / 10} cm${skirt.elastic ? `, gathered onto ${skirt.elastic.finishedCm} cm of elastic` : ''}, hip ${skirt.finishedHip} cm, length ${skirt.lengthCm} cm.`,
+        `Finished waist ${Math.round(skirt.finishedWaist * 10) / 10} cm${skirt.elastic ? `, gathered onto ${skirt.elastic.finishedCm} cm of elastic` : ''}, hip ${skirt.finishedHip} cm, length ${skirt.lengthCm} cm ${skirt.lowRise ? 'from the top of the skirt' : 'from the waist'}.`,
         couture
           ? `Couture allowances: ${fmtCm(seams.seam)} at the seams, ${fmtCm(seams.waist)} at the waist, ${fmtCm(hem)} at the hem. Thread-trace the solid stitching line.`
           : `Seam allowance ${fmtCm(seams.seam)} included, ${fmtCm(hem)} at the hem. Dashed line = stitching line.`,
@@ -402,7 +403,7 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
     return {
       pieces,
       notes: [
-        `Finished bust ${bodice.finishedBust} cm, waist ${bodice.finishedWaist} cm${below ? `, hem ${bodice.finishedHem} cm` : ''}, back length ${bodice.backLength} cm.`,
+        `Finished bust ${bodice.finishedBust} cm, waist ${bodice.finishedWaist} cm${below ? `, round the hem ${bodice.finishedHem} cm` : ''}, back length ${bodice.backLength} cm.`,
         couture
           ? `Couture allowances: ${fmtCm(seams.seam)} at the seams, ${fmtCm(seams.curve)} at the neck and armholes. Thread-trace the solid stitching line.`
           : `Seam allowance ${fmtCm(seams.seam)} included, ${fmtCm(seams.curve)} at the neck and armholes${hemCut !== undefined ? `, ${fmtCm(hemCut)} at the hem` : ''}. Dashed line = stitching line.`,

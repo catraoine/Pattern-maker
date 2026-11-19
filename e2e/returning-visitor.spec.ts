@@ -35,11 +35,14 @@ test('returning visitor: a reload keeps the measurements and the saved pattern',
   await expect(page.locator('.tape-tip, .tape-band')).toHaveCount(0);
   // The agreement line is for first visits only: coming back, the welcome stays clear (Cat's L5).
   await expect(main.getByText('By continuing you agree')).toHaveCount(0);
+  // A saved pattern carries on to Print, ready to download (DI walk, Nov 19).
   await main.getByRole('button', { name: 'Carry on with your skirt' }).click();
-  await expectStyle(page, 'Skirt');
+  await expect(main.getByRole('heading', { level: 1, name: 'Your summary' })).toBeVisible();
 
-  // The style chosen and the pattern saved are still there.
-  await expect(lengthDot(page)).toHaveAttribute('aria-valuetext', 'Midi');
+  // The style chosen is still there.
+  await page.getByRole('navigation', { name: 'Steps' }).getByRole('button', { name: 'Style' }).click();
+  await expectStyle(page, 'Skirt');
+  await expect(lengthDot(page)).toHaveAttribute('aria-valuetext', /^Midi · [\d.]+ cm$/);
   await openReview(page);
   await expect(main.getByRole('status').filter({ hasText: 'Saved in' })).toBeVisible();
 

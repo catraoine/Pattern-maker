@@ -120,12 +120,15 @@ describe('packing the sheet', () => {
     const sheet = layout(outer('jacket'), name, [], INFO);
     // Cat's pick, Nov 12: a short name heads the card and the whole description runs small beneath it.
     // The title card's lines above its rule (the code card on page 1 names the pattern too, left of x = 31).
-    const lines = sheet.prims.filter((pr) => pr.kind === 'text' && pr.face !== 'label' && pr.at.y < 3 + 4.4 && pr.at.x > 31);
+    const lines = sheet.prims.filter((pr) => pr.kind === 'text' && pr.face !== 'label' && pr.at.y < 3 + 4.4 && pr.at.x > 38);
     const texts = lines.map((pr) => (pr.kind === 'text' ? pr.text : ''));
-    expect(texts[0]).toBe('Oversized button-front shirt-collar back-yoke bodice');
-    expect(`${texts[0]} ${texts.slice(1).join(' ').replace(/^W/, 'w')}`).toBe(name);
-    // The card runs from x = 31 to 59 (the sheet's 3 cm margin, the code card, the 10 cm square, then 28 cm).
-    for (const pr of lines) if (pr.kind === 'text') expect(pr.at.x + textWidth(pr.text, pr.size), pr.text).toBeLessThanOrEqual(59);
+    // Too long for one line on the card, the short name takes two, then the rest of the description.
+    expect(`${texts[0]} ${texts[1]}`).toBe('Oversized button-front shirt-collar back-yoke bodice');
+    // (Past two small lines the description ends in "…": the notes below say the rest.)
+    const joined = `${texts[0]} ${texts[1]} ${texts.slice(2).join(' ').replace(/^W/, 'w')}`.replace(/…$/, '');
+    expect(name.startsWith(joined), joined).toBe(true);
+    // The card runs from x = 38.4 to 53.9, whole on page 3 on A4 and Letter (DI walk, Nov 19: at 28 cm it was cut in two).
+    for (const pr of lines) if (pr.kind === 'text') expect(pr.at.x + textWidth(pr.text, pr.size), pr.text).toBeLessThanOrEqual(53.9);
   });
 
   it('leaves the title block its corner', () => {
