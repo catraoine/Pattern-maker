@@ -110,6 +110,10 @@
 .tour.tour-arriving > :not(.tour-standin) {
   opacity: 0;
 }
+/* The film kept out of sight until it can play (TourPlayer: handed over on a slow connection). */
+.tour-video.tour-video-waiting {
+  opacity: 0;
+}
 .tour-standin {
   position: absolute;
   pointer-events: none;
