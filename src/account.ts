@@ -185,8 +185,12 @@ export function sameChoices(a: PatternChoices, b: PatternChoices): boolean {
 export const isSavedFor = (account: Account, choices: PatternChoices, personId?: string) =>
   account.patterns.some((p) => sameChoices(p.choices, choices) && (p.personId ?? ME) === (personId ?? ME));
 
+/** How many patterns can be kept: no limit on a paid plan, or for a fit tester, who prints all five tester pieces and
+ *  more (Nov 19 bug hunt: the fourth and fifth weren't kept, and nothing said so). Everyone else: the free limit. */
+export const savedLimitOf = (account: Account): number => ((account.plan && account.plan !== 'free') || account.testerCode ? Infinity : FREE_SAVED_LIMIT);
+
 export function savePattern(account: Account, choices: PatternChoices, name: string, personId?: string): Account {
-  const limit = account.plan && account.plan !== 'free' ? Infinity : FREE_SAVED_LIMIT;
+  const limit = savedLimitOf(account);
   if (account.patterns.length >= limit || isSavedFor(account, choices, personId)) return account;
   return { ...account, patterns: [{ id: newId(), name, choices, savedAt: new Date().toISOString(), personId }, ...account.patterns] };
 }

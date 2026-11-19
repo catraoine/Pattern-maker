@@ -33,7 +33,7 @@ export function SaveControl({ state, disabled, onSave, onAccount }: { state: 'ca
       </button>
       {count && (
         <p className="muted small keep-note">
-          Find it later in your account. {count.kept} of {count.limit} saved{count.limit === FREE_SAVED_LIMIT ? ' on the free plan' : ''}.
+          Find it later in your account.{count.limit === Infinity ? '' : ` ${count.kept} of ${count.limit} saved${count.limit === FREE_SAVED_LIMIT ? ' on the free plan' : ''}.`}
         </p>
       )}
     </>

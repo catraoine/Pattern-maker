@@ -84,6 +84,8 @@ interface Props {
   onEditFabric?: () => void;
   /** Keeps the pattern in your patterns, for the label card's code; the button itself is on Review. */
   onKeep?: () => void;
+  /** Saved patterns is full, so printing can't keep this one: Print says so instead of keeping quiet. */
+  full?: boolean;
   /** After printing: "How did it fit?" opens the fit notes for this pattern (saving it first if need be). */
   onFitNotes?: () => void;
   /** A fit tester's device: after printing, the tester form instead of the app's own fit notes. */
@@ -147,7 +149,7 @@ const printedDate = () => new Date().toLocaleDateString('en-GB', { day: 'numeric
 
 const FRACTION_WORDS: Record<string, string> = { '⅛': '1-8', '¼': '1-4', '⅜': '3-8', '½': '1-2', '⅝': '5-8', '¾': '3-4', '⅞': '7-8' };
 
-export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPaper, onPaper, sendLink, profile, title, lookName, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, onFitNotes, tester, emailTo, fitNote, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label }: Props) {
+export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPaper, onPaper, sendLink, profile, title, lookName, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, onFitNotes, tester, emailTo, fitNote, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label, full }: Props) {
   const can = (t: ProTool) => shows(mode, t);
   /** Knits fit by their stretch: tested in a spare knit, not a calico toile. */
   const knit = isKnit(garment);
@@ -452,6 +454,13 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
               {kept && (
                 <p className="small muted" role="status">
                   Saved in Your account, under Saved patterns.
+                </p>
+              )}
+              {/* Printed with Saved patterns full: it isn't kept, and the person should know (Nov 19 bug hunt: the
+                  fourth print went nowhere without a word). */}
+              {printed && !kept && full && !example && !imported && (
+                <p className="small muted" role="status">
+                  Not kept in Saved patterns, which is full. Delete one in Your account to keep this one.
                 </p>
               )}
             </div>
