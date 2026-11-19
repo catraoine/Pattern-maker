@@ -62,7 +62,8 @@ links go out through the app's own email service instead (`netlify/functions/tes
 hello@maisontrace.co, with the links exactly as written. Each email goes to one tester only, links may point only to
 maisontrace.co and our Google forms, every email is copied to Cat's inbox and replies go to her, and a reply carries the
 tester's Message-ID so it stays in her conversation. Up to 25 a day. It needs a key that lives only in Netlify and with
-the Community Lead thread, never in the repo. Emails without links can still go from Gmail. The send word rules don't
+the Community Lead thread, never in the repo. Tester emails link to the fit form as maisontrace.co/fit-form: emails
+carrying the Google Form's own address never reached Gmail (Nov 19 tests), while maisontrace.co links arrived. Emails without links can still go from Gmail. The send word rules don't
 change: nothing goes to a tester without Cat's OK on the exact text.
 
 

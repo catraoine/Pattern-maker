@@ -5,6 +5,15 @@
 [build.environment]
   NODE_VERSION = "22"
 
+# A short address for the tester fit form (Nov 19). Emails carrying the Google Form's own address were dropped before
+# reaching Gmail, while emails linking only to maisontrace.co arrived, so tester emails link here instead. Same form as
+# TESTER_REPORT_URL in src/testerReport.ts; 302 so it can point elsewhere later. Must sit above the catch-all below.
+[[redirects]]
+  from = "/fit-form"
+  to = "https://docs.google.com/forms/d/e/1FAIpQLSc6w2rDT6gdVGvigrGZZlQ6ihAgx5E2qVhsZHGx3rlsfTlfzA/viewform"
+  status = 302
+  force = true
+
 # Single-page app: send every path to index.html.
 [[redirects]]
   from = "/*"
