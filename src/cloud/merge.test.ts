@@ -56,9 +56,19 @@ describe('mergeBackups', () => {
     expect(kept.values).toEqual({ waist: 98, full_bust: 106, full_hip: 104, high_bust: 106, shoulder_width: 40 });
     expect(m.account.patterns.map((p) => p.id).sort()).toEqual(['here', 'there']);
     // The same person measured alike on both is joined, as before.
-    const alike = mergeBackups({ ...local, account: { ...local.account, people: [me({ waist: 75, high_bust: 90 })] } }, remote, null, { sameOwner: true });
+    const alike = mergeBackups({ ...local, account: { ...local.account, people: [me({ waist: 75, full_hip: 101 })] } }, remote, null, { sameOwner: true });
     expect(alike.account.people?.map((p) => p.id)).toEqual([ME]);
-    expect(alike.account.people?.[0].values).toEqual({ waist: 74, full_bust: 94, full_hip: 101, high_bust: 90 });
+    expect(alike.account.people?.[0].values).toEqual({ waist: 74, full_bust: 94, full_hip: 101 });
+  });
+
+  // DI walk (Nov 19): alike where both measured, but the computer also had a high bust the phone didn't. Joined in, it
+  // changed the brought skirt's pattern and its code. The brought set stays as it came; this device's is kept beside it.
+  it('brought from your own other device, a measurement only this device has is kept apart, not added in', () => {
+    const local = { ...at('2026-11-10T10:00:00Z', {}, { ...NEW_ACCOUNT, people: [me({ waist: 75, high_bust: 87 })], patterns: [] }), savedAt: new Date(0).toISOString() };
+    const remote = at('2026-11-12T10:00:00Z', {}, { ...NEW_ACCOUNT, people: [me({ waist: 74, full_bust: 94, full_hip: 101 })], patterns: [] });
+    const people = mergeBackups(local, remote, null, { sameOwner: true }).account.people ?? [];
+    expect(people.find((p) => p.id === ME)?.values).toEqual({ waist: 74, full_bust: 94, full_hip: 101 });
+    expect(people.find((p) => p.id !== ME)).toMatchObject({ name: 'Measured on this device', values: { waist: 75, high_bust: 87 } });
   });
 
   it('with nothing in the account yet, keeps this device as it is', () => {

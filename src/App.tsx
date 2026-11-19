@@ -1027,6 +1027,9 @@ export default function App() {
                     {
                       garment: lookName ?? (vestOf(garment, saved) ? 'vest' : GARMENT_NAME[garment]),
                       onResume: () => {
+                        // A saved pattern (printing keeps one too) is finished, so it opens on Print, ready to download:
+                        // reopening the tester link after printing led back to the look (pretend tester DI walk, Nov 19).
+                        if (isSaved) return setStep('export');
                         if (lookName) openLookNext();
                         setStep('style');
                       },

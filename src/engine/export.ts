@@ -135,7 +135,10 @@ export function leaving(pts: P[], from: P[]): P[][] {
   return runs.sort((u, v) => length(v) - length(u));
 }
 
-const TITLE_W = 28; // cm, the title card beside the test square
+// cm, the title card beside the test square: narrow enough to sit whole on page 3, the way the code card sits on page 1
+// and the square on page 2. At 28 cm it ran across the join of pages 2 and 3 and printed cut in two, "Black Pleate|ated
+// Skirt" (pretend tester DI walk, Nov 19).
+const TITLE_W = 15.5;
 
 /** Turn a vector by `deg` degrees clockwise (the way SVG and the labels rotate). */
 const turn = (v: P, deg: number): P => {
@@ -394,7 +397,11 @@ export function fitRow(line: string, size: number, tracking: number, avail: numb
 /** A line of plain words broken at its spaces into lines of at most `free` cm. */
 function wrapWords(line: string, size: number, tracking: number, free: number): string[] {
   const out: string[] = [];
-  for (const word of line.split(' ')) {
+  // A number stays on the line with its unit ("127 cm", "30 × 20 cm"): each printed line is turned into inches on its
+  // own, so "127" left at a line's end and "cm." at the next's start stayed in cm in an inch file (DI walk, Nov 19).
+  const GLUE = '\u00a0';
+  const glued = line.replace(/ × /g, `${GLUE}×${GLUE}`).replace(/(\d) (?=(cm|mm|m|in|yd)\b)/g, `$1${GLUE}`);
+  for (const word of glued.split(' ').map((w) => w.split(GLUE).join(' '))) {
     const last = out[out.length - 1];
     if (last !== undefined && textWidth(`${last} ${word}`, size, tracking) <= free) out[out.length - 1] = `${last} ${word}`;
     else out.push(word);
@@ -434,8 +441,9 @@ const CODE_W = 15.5; // cm: x 3 to 18.5, inside page 1 (A4 prints to 19, Letter 
 const SQUARE_AT = 17; // cm from the margin: x 20 to 30, inside page 2 (A4 from 18, Letter from 18.59) and clear of page 1
 /** The test square's left edge on the sheet, cm; the print check measures it on page A2. */
 export const TEST_SQUARE_X = MARGIN + SQUARE_AT;
-const TITLE_AT = 28; // cm from the margin: the title card starts after the square and ends at 56, as before
-const TITLE_BLOCK = { w: TITLE_AT + TITLE_W, h: 10 };
+const TITLE_AT = 35.4; // cm from the margin: x 38.4 to 53.9, inside page 3 (A4 37 to 54, Letter 38.18 to 55.77)
+// The block keeps the 56 cm it always took, so every piece prints exactly where it did and on as many pages.
+const TITLE_BLOCK = { w: 56, h: 10 };
 
 /** The vertical span of an outline in each column across it, from its box's top left. */
 interface ColumnSpans {
@@ -922,13 +930,19 @@ export function titleCard(description: string, name?: string): { text: string; s
   const short = shortTitle(description, name);
   // Under a look's name, the whole description; under its own first words, only the rest of it.
   const full = name || !tail.length ? cap(description) : `With ${tail.join(' with ')}`;
-  const size = [1.3, 1.1, 0.9].find((s) => textWidth(short, s) <= room) ?? 0.9;
+  const cut = (lines: string[]) => (lines.length > 2 ? [lines[0], `${lines[1].replace(/[ ,]+\S*$/, '')}…`] : lines);
+  const size = [1.3, 1.1, 0.9].find((s) => textWidth(short, s) <= room);
+  // A short name too long for the card even at 0.9 (it is 15.5 cm wide since Nov 19, to sit whole on page 3) takes two
+  // smaller lines instead of running out past its edge.
+  const heads = size ? [short] : cut(wrapWords(short, 0.7, 0, room));
+  const headY = heads.length > 1 ? [2.2, 2.95] : [2.75];
   // One line as large as the notes when it fits, else two small lines, both above the rule at 4.4 cm; past that the
   // second ends in "…" (the notes below say the rest).
   const small = textWidth(full, 0.6) <= room ? 0.6 : 0.45;
-  const lines = wrapWords(full, small, 0, room);
-  const shown = lines.length > 2 ? [lines[0], `${lines[1].replace(/[ ,]+\S*$/, '')}…`] : lines;
-  return [{ text: short, size, y: 2.75 }, ...shown.map((text, i) => ({ text, size: small, y: 3.55 + i * 0.55, grey: 0.35 }))];
+  const shown = cut(wrapWords(full, small, 0, room));
+  const top = heads.length > 1 ? 3.62 : 3.55;
+  const lead = heads.length > 1 ? 0.5 : 0.55;
+  return [...heads.map((text, i) => ({ text, size: size ?? 0.7, y: headY[i] })), ...shown.map((text, i) => ({ text, size: small, y: top + i * lead, grey: 0.35 }))];
 }
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
@@ -976,7 +990,8 @@ export const PAGE_MARGIN = 1; // printer-safe margin, cm
 /** Where the joining diamonds sit along a page's edge, as shares of it from the top or left. Down a side join on the
  *  first row they sit lower, under the title block: at 0.3 the A3 diamond printed over the title card's words
  *  (pretend tester, Nov 18). Both pages of a join are on the same row, so their halves still meet. */
-export const joinMarks = (join: 'right' | 'below', row: number): number[] => (join === 'right' && row === 0 ? [0.5, 0.8] : [0.3, 0.7]);
+// (0.62, not 0.5: halfway down a Letter page fell on the cards' bottom corners, DI walk, Nov 19.)
+export const joinMarks = (join: 'right' | 'below', row: number): number[] => (join === 'right' && row === 0 ? [0.62, 0.85] : [0.3, 0.7]);
 export const OVERLAP = 1; // cm shared by neighbouring pages for taping
 
 /** Page size for a sheet: home paper is always portrait; a copy-shop A0 turns sideways when that takes fewer sheets. */

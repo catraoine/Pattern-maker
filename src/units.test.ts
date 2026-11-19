@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fmtLength, fmtMeasure, inInches, measureInches, toFeetInches, toInches, toYards, typedLength } from './units';
+import { articles, fmtLength, fmtMeasure, inInches, measureInches, toFeetInches, toInches, toYards, typedLength } from './units';
 
 describe('inches', () => {
   it('rounds to the nearest eighth', () => {
@@ -19,8 +19,17 @@ describe('inches', () => {
     expect(fmtLength(12, 'cm')).toBe('12 cm');
     expect(fmtLength(12, 'in')).toBe('4¾ in');
   });
+  // "a" or "an" follows the number said after it, in cm and in inches (DI walk, Nov 19: "a 18 cm invisible zip").
+  it('says "an" before eight, eleven and eighteen', () => {
+    expect(articles('Sew a 18 cm invisible zip. A 18 cm fly zip, a 1.5 cm strip, a 80 cm band.')).toBe('Sew an 18 cm invisible zip. An 18 cm fly zip, a 1.5 cm strip, an 80 cm band.');
+    expect(inInches('Sew a 18 cm invisible zip.')).toBe('Sew a 7⅛ in invisible zip.');
+    expect(inInches('Sew a 20.3 cm invisible zip.')).toBe('Sew an 8 in invisible zip.');
+    // A capital A inside a sentence names a piece, not "a".
+    expect(articles('Cut Piece A 8 cm from the edge.')).toBe('Cut Piece A 8 cm from the edge.');
+  });
+
   it('rewrites prose, pairs and metres', () => {
-    expect(inInches('Press a 1.5 cm hem, then cut a 30 × 20 cm pocket bag from 1.6 m of cloth.')).toBe('Press a ⅝ in hem, then cut a 11¾ × 7⅞ in pocket bag from 1¾ yd of cloth.');
+    expect(inInches('Press a 1.5 cm hem, then cut a 30 × 20 cm pocket bag from 1.6 m of cloth.')).toBe('Press a ⅝ in hem, then cut an 11¾ × 7⅞ in pocket bag from 1¾ yd of cloth.');
     expect(inInches('Measure the test square: it should be exactly 10 cm.')).toBe('Measure the test square: it should be exactly 10 cm (3.94 in).');
     expect(inInches('measure the 10 cm test square on page A2')).toBe('measure the 10 cm (3.94 in) test square on page A2');
     expect(inInches('10 CM')).toBe('10 CM · 3.94 IN');

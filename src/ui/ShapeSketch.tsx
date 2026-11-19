@@ -241,7 +241,9 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
     }
   };
 
-  const lengthLabel = choices.lengthCm || choices.kneeShare || choices.floorClear ? `${Math.round(draft.lengthCm * 10) / 10} cm` : lengthName(choices.length);
+  // A named length says its length too, as the dress's and trousers' do ("Knee · 59 cm"): the skirt's "Knee" alone
+  // read as a 9 cm jump with no number to check it by (pretend tester DI walk, Nov 19).
+  const lengthLabel = choices.lengthCm || choices.kneeShare || choices.floorClear ? `${Math.round(draft.lengthCm * 10) / 10} cm` : `${lengthName(choices.length)} · ${Math.round(draft.lengthCm * 10) / 10} cm`;
   const flareLabel = choices.flareCm !== undefined ? `${choices.flareCm > 0 ? '+' : ''}${choices.flareCm} cm` : silName(choices.silhouette);
   const guide = (y: number, text: string) => (
     <g className="guide">
@@ -259,6 +261,8 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
         ? `M${at.x - c} ${at.y - r - 1.2 * k + c} L${at.x} ${at.y - r - 1.2 * k} L${at.x + c} ${at.y - r - 1.2 * k + c} M${at.x - c} ${at.y + r + 1.2 * k - c} L${at.x} ${at.y + r + 1.2 * k} L${at.x + c} ${at.y + r + 1.2 * k - c}`
         : `M${at.x + r + 1.2 * k - c} ${at.y - c} L${at.x + r + 1.2 * k} ${at.y} L${at.x + r + 1.2 * k - c} ${at.y + c} M${at.x - r - 1.2 * k + c} ${at.y - c} L${at.x - r - 1.2 * k} ${at.y} L${at.x - r - 1.2 * k + c} ${at.y + c}`;
     const active = drag?.kind === kind;
+    // A named length is its own word for what the dot sets ("↕ Knee · 56.6 cm"), and short enough on a phone.
+    const words = kind === 'hem' ? (text.includes(' · ') ? `↕ ${text}` : `↕ Length · ${text}`) : `↔ Width · ${text}`;
     return (
       <g className={active ? 'handle on' : 'handle'}>
         <circle cx={at.x} cy={at.y} r={r} strokeWidth={0.22} />
@@ -276,15 +280,15 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
           fontSize={2.6 * k}
           textAnchor={kind === 'hem' ? 'end' : 'start'}
         >
-          {(kind === 'hem' ? `↕ Length · ${text}` : `↔ Width · ${text}`).toUpperCase()}
+          {words.toUpperCase()}
         </text>
         {/* Tapped, the length's words open a box to type it (testers, Nov 17). Under the disc's own hit area, so a drag
             still starts wherever it did. */}
         {kind === 'hem' && !drawing && (
           <LengthTap
-            x={at.x - r - 3.2 * k - `↕ Length · ${text}`.length * 2.6 * k * 0.85}
+            x={at.x - r - 3.2 * k - words.length * 2.6 * k * 0.85}
             y={at.y - 3 * k}
-            width={`↕ Length · ${text}`.length * 2.6 * k * 0.85}
+            width={words.length * 2.6 * k * 0.85}
             height={5 * k}
             ask={{
               name: 'Skirt length',

@@ -17,7 +17,7 @@ import {
 import fontkit from '@pdf-lib/fontkit';
 import * as fontData from './fontData';
 import type { Unit } from '../measurements';
-import { inInches } from '../units';
+import { articles, inInches } from '../units';
 import { type Lay, hideSqFt, layWords } from './layplan';
 import type { Flat } from './flat';
 import { DIAGRAMS, DiagramId } from './diagrams';
@@ -57,7 +57,7 @@ async function embedFonts(doc: PDFDocument): Promise<Fonts> {
 
 // Set for the document being written when the sewist works in inches; every string drawn is rewritten on its way out.
 let inchMode = false;
-const worded = (text: string) => (inchMode ? inInches(text) : text);
+const worded = (text: string) => (inchMode ? inInches(text) : articles(text));
 
 // Instrument Sans (the text face) has no fraction characters, so inch lengths like "21⅝ in" printed as "21[] in" in
 // every inch tester's PDF (Nov 17). Write them the way pattern envelopes do: "21-5/8 in". With a space, this face sets

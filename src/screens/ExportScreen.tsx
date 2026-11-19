@@ -42,7 +42,7 @@ import { isKnit, isLowerBody } from '../measurements';
 import { isWaistRow } from '../engine/spec';
 import { cloud } from '../cloud/api';
 import { testerHeaders } from '../ui/TesterCode';
-import { inInches } from '../units';
+import { articles, inInches } from '../units';
 import { onPhone } from '../ui/device';
 
 /** What to print: the drafted pieces of either garment, with its notes and sewing steps. */
@@ -796,7 +796,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
             {guide.steps.map((st) => (
               <li key={st.title}>
                 <strong>{st.title}</strong>
-                <p>{st.text}</p>
+                <p>{articles(st.text)}</p>
                 {st.diagram && <StepDiagram id={st.diagram} />}
               </li>
             ))}

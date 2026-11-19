@@ -101,6 +101,11 @@ function notSameOwner(l: Person, la: Account, r: Person, ra: Account, byName = t
   });
 }
 
+/** This device has a measurement the brought ones lack. Joined in, it would change the pattern that was brought: the
+ *  computer's own high bust went into the phone's skirt and changed its pattern code, which the tester form asks for
+ *  (pretend tester DI walk, Nov 19). So brought work stays as it came, and this device's set is kept beside it. */
+const addsTo = (l: Person, r: Person): boolean => (Object.keys(l.values) as MeasurementId[]).some((k) => l.values[k] !== undefined && r.values[k] === undefined && !l.example?.includes(k));
+
 /**
  * The owner's measurements on this device moved to a person of their own, with the patterns saved for them, so they are
  * kept beside the account owner's rather than joined into them.
@@ -179,7 +184,7 @@ export function mergeBackups<S>(local: Backup<S>, remote: Backup<S> | null, base
     // Only the people and patterns come over; the name, tester code, studio and other settings are the account's own.
     const apart = lMe && taken(lMe) > 0 ? ownerApart(la) : la;
     la = { ...ra, people: apart.people.filter((p) => p.id !== ME), patterns: apart.patterns, active: ra.active };
-  } else if (lMe && rMe && taken(lMe) > 0 && taken(rMe) > 0 && !hasBase && notSameOwner(lMe, la, rMe, ra, !opts.sameOwner)) {
+  } else if (lMe && rMe && taken(lMe) > 0 && taken(rMe) > 0 && !hasBase && (notSameOwner(lMe, la, rMe, ra, !opts.sameOwner) || (opts.sameOwner && addsTo(lMe, rMe)))) {
     // The account's owner keeps their own name; this device's owner is now one of their people, under theirs.
     // Brought from one's own other device too, two measuring sessions that disagree are not mixed into one body: the
     // phone's waist, bust and hip with this computer's high bust and shoulder made a high bust larger than the bust

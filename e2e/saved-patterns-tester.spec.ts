@@ -64,3 +64,16 @@ test('with Saved patterns full, Print says the pattern is not kept', async ({ pa
   await openAccount(page);
   await expect(main(page).getByRole('region', { name: 'Saved patterns' }).getByRole('listitem')).toHaveCount(3);
 });
+
+// Reopening after printing (DI walk, Nov 19): Carry on led back to the look, not to Print where it was left.
+test('carrying on with a printed look opens on Print', async ({ page }, info) => {
+  test.skip(info.project.name !== 'phone', 'one screen size is enough');
+  test.setTimeout(3 * 60_000);
+  await measuredWith(page, { onboarded: false, name: '', patterns: [], testerCode: 'EXAMPLE-CODE' });
+  await makeAndPrint(page, 'Blush Shift', info);
+  await page.goto('/');
+  await skipLoading(page);
+  await main(page).getByRole('button', { name: 'Carry on with your Blush Shift' }).click();
+  await expect(main(page).getByRole('heading', { name: 'Your summary' })).toBeVisible();
+  await expect(main(page).getByRole('button', { name: /^Download pattern \(\d+ pages?\)$/ })).toBeVisible();
+});
