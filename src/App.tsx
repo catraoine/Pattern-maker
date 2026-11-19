@@ -611,13 +611,15 @@ export default function App() {
     // (A dress never styled on its own is only drawn from the skirt and bodice: nothing of its own to keep.)
     const untouched = (g === 'dress' && !saved.dress) || JSON.stringify(drafting.choices({ ...saved, ...firstVisit(g) })) === JSON.stringify(now);
     if (untouched) return { account: acc, patch: {} };
-    const kept = savePattern(acc, now, describePattern(now), person.id);
+    // A collection look is kept under its own name, as testers know it (Nov 19 bug hunt: Blush Shift was saved as
+    // "Mini shift dress with a crew neck").
+    const kept = savePattern(acc, now, lookNameOf(g, now, values) ?? describePattern(now), person.id);
     return isSavedFor(kept, now, person.id) ? { account: kept, patch: firstVisit(g) } : { account: acc, patch: {} };
   };
   // "How did it fit?" from the print screen: the pattern is kept (if it can be) and its fit notes open on Your account.
   const [fitFocus, setFitFocus] = useState<string>();
   const openFitNotes = () => {
-    const next = saveState === 'can' ? savePattern(account, current, describePattern(current), person.id) : account;
+    const next = saveState === 'can' ? savePattern(account, current, lookName ?? describePattern(current), person.id) : account;
     const kept = savedNow ?? (saveState === 'can' ? next.patterns[0] : undefined);
     if (!kept) return;
     if (next !== account) setAccount(next);
@@ -1263,7 +1265,7 @@ export default function App() {
               onEditMeasurements={() => setStep('measure')}
               onNext={() => setStep('export')}
               saveState={saveState}
-              onSave={() => setAccount(savePattern(account, current, describePattern(current), person.id))}
+              onSave={() => setAccount(savePattern(account, current, lookName ?? describePattern(current), person.id))}
               onAccount={() => setStep('account')}
               finish={finish}
               onFinish={setFinish}
@@ -1292,7 +1294,7 @@ export default function App() {
               onAddHip={() => openSteps({ kind: 'for', garment, also: ['full_hip', 'waist_to_hip'] })}
               onNext={() => setStep('export')}
               saveState={saveState}
-              onSave={() => setAccount(savePattern(account, current, describePattern(current), person.id))}
+              onSave={() => setAccount(savePattern(account, current, lookName ?? describePattern(current), person.id))}
               onAccount={() => setStep('account')}
             />
           )}
@@ -1316,7 +1318,7 @@ export default function App() {
               onEditMeasurements={() => setStep('measure')}
               onNext={() => setStep('export')}
               saveState={saveState}
-              onSave={() => setAccount(savePattern(account, current, describePattern(current), person.id))}
+              onSave={() => setAccount(savePattern(account, current, lookName ?? describePattern(current), person.id))}
               onAccount={() => setStep('account')}
             />
           )}
@@ -1339,7 +1341,7 @@ export default function App() {
               onEditMeasurements={() => setStep('measure')}
               onNext={() => setStep('export')}
               saveState={saveState}
-              onSave={() => setAccount(savePattern(account, current, describePattern(current), person.id))}
+              onSave={() => setAccount(savePattern(account, current, lookName ?? describePattern(current), person.id))}
               onAccount={() => setStep('account')}
             />
           )}
@@ -1362,7 +1364,7 @@ export default function App() {
               onEditMeasurements={() => setStep('measure')}
               onNext={() => setStep('export')}
               saveState={saveState}
-              onSave={() => setAccount(savePattern(account, current, describePattern(current), person.id))}
+              onSave={() => setAccount(savePattern(account, current, lookName ?? describePattern(current), person.id))}
               onAccount={() => setStep('account')}
             />
           )}
@@ -1386,7 +1388,7 @@ export default function App() {
               onEditMeasurements={() => setStep('measure')}
               onNext={() => setStep('export')}
               saveState={saveState}
-              onSave={() => setAccount(savePattern(account, current, describePattern(current), person.id))}
+              onSave={() => setAccount(savePattern(account, current, lookName ?? describePattern(current), person.id))}
               onAccount={() => setStep('account')}
             />
           )}
@@ -1407,7 +1409,7 @@ export default function App() {
               onEditMeasurements={() => setStep('measure')}
               onNext={() => setStep('export')}
               saveState={saveState}
-              onSave={() => setAccount(savePattern(account, current, describePattern(current), person.id))}
+              onSave={() => setAccount(savePattern(account, current, lookName ?? describePattern(current), person.id))}
               onAccount={() => setStep('account')}
             />
           )}
@@ -1431,7 +1433,7 @@ export default function App() {
               onEditMeasurements={() => setStep('measure')}
               onNext={() => setStep('export')}
               saveState={saveState}
-              onSave={() => setAccount(savePattern(account, current, describePattern(current), person.id))}
+              onSave={() => setAccount(savePattern(account, current, lookName ?? describePattern(current), person.id))}
               onAccount={() => setStep('account')}
             />
           )}
@@ -1456,8 +1458,9 @@ export default function App() {
                 openTabNext(FABRIC);
                 setStep('style');
               }}
-              onKeep={saveState === 'can' ? () => setAccount(savePattern(account, current, describePattern(current), person.id)) : undefined}
+              onKeep={saveState === 'can' ? () => setAccount(savePattern(account, current, lookName ?? describePattern(current), person.id)) : undefined}
               onFitNotes={saveState === 'full' && !savedNow ? undefined : openFitNotes}
+              full={saveState === 'full'}
               tester={!!account.testerCode}
               emailTo={{ signedIn: cloud.user?.email, testerCode: account.testerCode }}
               fitNote={savedNow?.fit ? fitSummary(savedNow.fit, savedNow.choices) : undefined}
