@@ -40,6 +40,8 @@ test('Look 02, the Black Vest Set: both pieces in one look, each made on its own
   // The vest: a sleeveless jacket with the high lapel and the chest seam.
   await page.goto('/');
   await page.getByRole('button', { name: /^Carry on with your/ }).first().click();
+  // Carrying on with a look opens on the look itself; its questions, with the garment menu, are one tap behind it.
+  await expectLook(page, 'Black Pleated Skirt');
   await openCollection(page);
   await main.getByRole('button', { name: 'Make the vest' }).click();
   await expectLook(page, 'Black Vest');
