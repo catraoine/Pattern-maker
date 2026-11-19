@@ -66,9 +66,13 @@ export function MoveArrivalScreen<S>({ backup, here, hereMeasured, opened, onBri
           <>
             <ul className="arrival-list">
               <li>{people.length === 1 && people[0] === 'you' ? 'Your measurements' : people.length ? `Measurements for ${people.join(', ')}` : 'No measurements yet'}</li>
-              <li>
-                {patterns} saved {patterns === 1 ? 'pattern' : 'patterns'}
-              </li>
+              {/* None saved, the line is left off: "0 saved patterns" beside the skirt being brought read as if it were
+                  lost (pretend tester DK walk, Nov 19). */}
+              {patterns > 0 && (
+                <li>
+                  {patterns} saved {patterns === 1 ? 'pattern' : 'patterns'}
+                </li>
+              )}
               {/* The open piece and its unit come too, so they're listed: the list said "0 saved patterns" and the screen
                   then opened a piece and switched to inches (pretend tester, Nov 18). Only a link that carries work brings
                   them when this device has its own (see mergeBackups' workFromRemote). */}

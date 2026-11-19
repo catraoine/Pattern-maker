@@ -84,6 +84,9 @@ export function LengthBox({ ask, unit, onClose }: { ask: LengthAsk; unit: Unit; 
   const range = `${fmtLength(half(ask.min), unit)} to ${fmtLength(half(ask.max), unit)} ${ask.from}`;
   const set = (e: FormEvent) => {
     e.preventDefault();
+    // Set with the number as it opened leaves the length alone: the box opens rounded (49 for 49.1, 23⅝ for a knee at
+    // 23½), and Set alone moved it (pretend tester DK walk, Nov 19).
+    if (text === shown(ask.cm, unit)) return onClose();
     const cm = typedLength(text, unit);
     if (!Number.isFinite(cm) || cm <= 0) return setWrong(`Type a number, ${range}.`);
     if (cm < ask.min - 0.25 || cm > ask.max + 0.25) return setWrong(`This one goes ${range}.`);
