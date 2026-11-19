@@ -6,7 +6,7 @@ export function TesterReport({ lead = 'Fit tester?' }: { lead?: string }) {
     <div className="stack tester-report">
       <p className="tester-report-label">Fit testers</p>
       <p className="small">
-        {lead} Your report goes on the tester form. Have the pattern code from the cover of your instructions ready.
+        {lead} Your report goes on the tester form. Have your pattern code ready: it&rsquo;s at the top of page A1, the first page of your pattern.
       </p>
       <a className="link" href={TESTER_REPORT_URL} target="_blank" rel="noopener noreferrer">
         Open the tester form ›

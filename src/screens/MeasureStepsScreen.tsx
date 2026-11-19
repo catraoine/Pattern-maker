@@ -860,7 +860,8 @@ export function MeasurePage({
   const inchText = ftIn?.[1] ?? (value === undefined ? '' : inOf(value));
   const typeFtIn = (ft: string, inch: string) => {
     setFtIn([ft, inch]);
-    const f = parseFloat(ft.replace(',', '.')), i = parseFloat(inch.replace(',', '.'));
+    // Fractions as typed in the inches box: "66 1/4" was read as 66, and the quarter dropped (pretend tester, Nov 18).
+    const f = parseFloat(ft.replace(',', '.')), i = typedLength(inch, 'in') / 2.54;
     const v = { ...values };
     if (Number.isNaN(f) && Number.isNaN(i)) delete v[id];
     // Nobody is 9 feet tall: a number that big in the feet box is the whole height in inches. "64" there was kept as

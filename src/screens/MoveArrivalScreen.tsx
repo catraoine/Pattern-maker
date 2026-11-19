@@ -8,6 +8,8 @@ interface Props<S> {
   /** What's on this device now, to say it's kept. */
   here: Account;
   hereMeasured: number;
+  /** The piece open on the other device and its unit, in words: it comes along with the link. */
+  opened: (backup: Backup<S>) => string;
   /** Put the backup on this device, joined with what's here. */
   onBring: (backup: Backup<S>) => void;
   /** Carry on: the print screen when the measurements are there, else measuring. */
@@ -21,7 +23,7 @@ const when = (iso: string) => {
 };
 
 /** A "Send to my computer" link opened on the other device: what it holds, then bring it here. */
-export function MoveArrivalScreen<S>({ backup, here, hereMeasured, onBring, onCarryOn, onNotNow }: Props<S>) {
+export function MoveArrivalScreen<S>({ backup, here, hereMeasured, opened, onBring, onCarryOn, onNotNow }: Props<S>) {
   const [done, setDone] = useState(false);
   if (backup === 'broken')
     return (
@@ -60,6 +62,10 @@ export function MoveArrivalScreen<S>({ backup, here, hereMeasured, onBring, onCa
               <li>
                 {patterns} saved {patterns === 1 ? 'pattern' : 'patterns'}
               </li>
+              {/* The open piece and its unit come too, so they're listed: the list said "0 saved patterns" and the screen
+                  then opened a piece and switched to inches (pretend tester, Nov 18). Only a link that carries work brings
+                  them when this device has its own (see mergeBackups' workFromRemote). */}
+              {(!isEmpty(acc) || isEmpty(here)) && <li>{opened(backup)}</li>}
               {sent && <li>Sent {sent}</li>}
             </ul>
             {/* Said as it is: saved work and measurements are kept, but the piece open here gives way to the one brought

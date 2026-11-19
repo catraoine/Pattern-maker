@@ -42,7 +42,9 @@ export function finishedLines(rows: SpecRow[], opts: { knit?: boolean; elasticCm
   }
   // The girths first, then the lengths; a dress is read nape to hem, not by its bodice and skirt apart.
   const whole = out.some((l) => l.label === 'Length, nape to hem');
-  const shown = whole ? out.filter((l) => l.label !== 'Centre back length' && l.label !== 'Length, waist to hem' && l.label !== 'Length, top of skirt to hem') : out;
+  // The waist to hem stays beside it: a dress's length is typed from the waist, and a tester checking a typed 57.5 found only
+  // the 98.5 from the neck (pretend tester, Nov 18).
+  const shown = whole ? out.filter((l) => l.label !== 'Centre back length') : out;
   return [...shown.filter((l) => l.body !== undefined), ...shown.filter((l) => l.body === undefined)];
 }
 

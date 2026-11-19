@@ -27,6 +27,8 @@ test('send to another device: a link from one browser brings measurements and pa
   const arrived = there.getByRole('main');
   await expect(arrived.getByRole('heading', { name: /Your work/ })).toBeVisible();
   await expect(arrived).toContainText('1 saved pattern');
+  // The open piece and its unit come too, so they're listed (pretend tester, Nov 18).
+  await expect(arrived).toContainText(/The \w+ you had open, in centimetres/);
   if (SHOTS) await there.screenshot({ path: `${SHOTS}/arrive-${info.project.name}.png` });
   await arrived.getByRole('button', { name: 'Bring it here' }).click();
   await arrived.getByRole('button', { name: 'Carry on' }).click();
