@@ -27,8 +27,11 @@ export function toYards(m: number): string {
 
 /** A height in feet and inches, the way most people know it: 165 cm → "5 ft 5 in". */
 export function toFeetInches(cm: number): string {
-  const inches = Math.round(cm / 2.54);
-  return `${Math.floor(inches / 12)} ft ${inches % 12} in`;
+  // To the quarter inch, as it can be typed: a typed 66 1/4 in read back as "5 ft 6 in" (pretend tester, Nov 18).
+  const quarters = Math.round((cm / 2.54) * 4);
+  const ft = Math.floor(quarters / 48);
+  const rest = quarters - ft * 48;
+  return `${ft} ft ${Math.floor(rest / 4)}${EIGHTHS[(rest % 4) * 2]} in`;
 }
 
 /** A measurement as the sewist reads it back: centimetres, inches to a tenth, or feet and inches for a height. */
@@ -89,8 +92,9 @@ const SQUARE = /10 cm test square|exactly 10 cm/g;
 const SQUARE_LABEL = /^10 CM$/;
 
 const num = (s: string) => parseFloat(s.replace(',', '.'));
-// An iron's heat, "about 150 C": an inch sewist reads Fahrenheit, to the nearest 10 like the dial (pretend tester, Nov 18).
-const IRON_C = /\b(about) (\d+) C\b/gi;
+// An iron's heat, "about 150°C": an inch sewist reads Fahrenheit, to the nearest 10 like the dial (pretend tester, Nov 18).
+// Written with the degree sign: "about 300 F" read oddly (pretend tester, Nov 18).
+const IRON_C = /\b(about) (\d+) ?°?C\b/gi;
 
 /**
  * Rewrite every centimetre and metre length in a piece of text as inches and yards. The 10 cm test square
@@ -99,7 +103,7 @@ const IRON_C = /\b(about) (\d+) C\b/gi;
 export function inInches(text: string): string {
   if (SQUARE_LABEL.test(text)) return '10 CM · 3.94 IN';
   return text
-    .replace(IRON_C, (_, about, c) => `${about} ${Math.round((Number(c) * 9) / 5 / 10 + 3.2) * 10} F`)
+    .replace(IRON_C, (_, about, c) => `${about} ${Math.round((Number(c) * 9) / 5 / 10 + 3.2) * 10}°F`)
     .replace(SQUARE, (m) => (m.startsWith('exactly') ? 'exactly 10 cm (3.94 in)' : '10 cm (3.94 in) test square'))
     .replace(PAIR_CM, (_, a, sep, b) => `${toInches(num(a)).replace(/ in$/, '')} ${sep} ${toInches(num(b))}`)
     .replace(ONE_CM, (_, a) => toInches(num(a)))
@@ -109,6 +113,10 @@ export function inInches(text: string): string {
     .replace(ONE_MM, (_, a) => mmToInches(num(a)))
     .replace(IN_IN, (_, len, from) => (from ? `${len} from` : `${len} from the edge`));
 }
+
+/** The attributes a screen reader speaks, rewritten into inches with the text. */
+const SPOKEN = ['aria-label', 'aria-valuetext', 'title', 'alt'];
+const SPOKEN_SELECTOR = SPOKEN.map((a) => `[${a}]`).join(',');
 
 /**
  * Show a page in inches: every length in its text is rewritten as it appears, and again whenever the page
@@ -145,23 +153,49 @@ export function showInInches(root: Node): () => void {
     if (changed === whole) run.forEach((n, i) => put(n, originals[i]));
     else run.forEach((n, i) => put(n, i ? '' : changed));
   };
+  // What a screen reader says is rewritten too: the words on screen were in inches and the spoken names still said
+  // "hem 47 cm below the waist" (pretend tester, Nov 18). Each attribute's own words are kept, as for the text.
+  const attrWritten = new WeakMap<Element, Map<string, string>>();
+  const attrSource = new WeakMap<Element, Map<string, string>>();
+  const fixAttrs = (el: Element) => {
+    if (el.closest('[data-keep-cm]')) return;
+    const wrote = attrWritten.get(el) ?? attrWritten.set(el, new Map()).get(el)!;
+    const src = attrSource.get(el) ?? attrSource.set(el, new Map()).get(el)!;
+    for (const a of SPOKEN) {
+      const v = el.getAttribute(a);
+      if (v === null) continue;
+      if (wrote.get(a) !== v) src.set(a, v);
+      const next = inInches(src.get(a) ?? v);
+      if (next !== v) el.setAttribute(a, next);
+      wrote.set(a, next);
+    }
+  };
   const fix = (node: Node) => {
     if (isText(node)) return fixRun(node);
     const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
     const texts: Text[] = [];
     for (let n = walker.nextNode(); n; n = walker.nextNode()) texts.push(n as Text);
     texts.forEach(fixRun);
+    if (node instanceof Element) [node, ...node.querySelectorAll(SPOKEN_SELECTOR)].forEach((el) => SPOKEN.some((a) => el.hasAttribute(a)) && fixAttrs(el));
   };
   fix(root);
   const observer = new MutationObserver((records) => {
     for (const r of records) {
       if (r.type === 'characterData') fix(r.target);
+      else if (r.type === 'attributes') fixAttrs(r.target as Element);
       else r.addedNodes.forEach(fix);
     }
   });
-  observer.observe(root, { subtree: true, childList: true, characterData: true });
+  observer.observe(root, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: SPOKEN });
   return () => {
     observer.disconnect();
+    // Put the page's own spoken words back.
+    if (root instanceof Element)
+      for (const el of [root, ...root.querySelectorAll(SPOKEN_SELECTOR)])
+        for (const a of SPOKEN) {
+          const was = attrSource.get(el)?.get(a);
+          if (was !== undefined && el.getAttribute(a) === attrWritten.get(el)?.get(a)) el.setAttribute(a, was);
+        }
     // Put the page's own words back.
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     for (let n = walker.nextNode(); n; n = walker.nextNode()) {

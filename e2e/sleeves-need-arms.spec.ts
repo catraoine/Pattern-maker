@@ -28,8 +28,9 @@ test('Print asks for the arms before a top with sleeves', async ({ page }, info)
     await expect(main(page).locator('label:visible').first()).not.toHaveText(label, { ignoreCase: true });
   }
   await main(page).getByRole('button', { name: 'Finish later' }).click();
-  await main(page).getByRole('button', { name: /carry on with your top/i }).click();
-  await expect(main(page).getByRole('button', { name: 'Ice Peplum Top' })).toBeVisible();
+  // A collection look carries on by its own name, onto the look itself.
+  await main(page).getByRole('button', { name: /carry on with your ice peplum top/i }).click();
+  await expect(main(page).getByRole('button', { name: 'Change a detail' })).toBeVisible();
   await page.getByRole('navigation').getByRole('button', { name: 'Print' }).click();
   await expect(page.getByText('Your sleeves are drafted from your arms: add them to print.')).toBeVisible();
   await expect(main(page).getByRole('textbox')).toBeVisible();

@@ -191,8 +191,21 @@ export default function App() {
   // A "Send to my computer" link: everything from the sewist's other device, read once the page is up.
   const [moving, setMoving] = useState<Backup<Saved> | 'broken'>();
   useEffect(() => {
-    readMoveLink<Saved>(window.location.hash).then((b) => b && setMoving(b));
+    readMoveLink<Saved>(window.location.hash).then((b) => b && arrive(b));
   }, []);
+  /** A move link from a device that was let in carries its tester code: once the code checks out, this one is let in
+   *  too, brought or not, so the computer doesn't show the waitlist next time (pretend tester, Nov 18). A link is only
+   *  packed text, so the code is checked like a typed one, and one that can't be checked lets nothing in. */
+  const arrive = (b: Backup<Saved> | 'broken') => {
+    const code = b !== 'broken' ? b.account.testerCode : undefined;
+    if (code)
+      void checkCode(code).then((r) => {
+        if (r !== 'tester') return;
+        rememberAccess();
+        setAccess(true);
+      });
+    setMoving(b);
+  };
   const dropHash = () => {
     if (window.location.hash) window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search);
   };
@@ -951,8 +964,17 @@ export default function App() {
               backup={moving}
               here={account}
               opened={(b) => {
-                const s = b.skirt as Partial<Saved>;
-                return `The ${GARMENT_NAMES[s.garment ?? 'skirt'] ?? 'piece'} you had open, in ${s.unit === 'in' ? 'inches' : 'centimetres'}`;
+                const s = { ...INITIAL, ...(b.skirt as Partial<Saved>) };
+                const g = s.garment ?? 'skirt';
+                // Called by its collection name where it still is one: "the skirt" read as some other skirt (pretend tester, Nov 18).
+                let name: string | undefined;
+                try {
+                  const them = withPeople(b.account);
+                  name = lookNameOf(g, GARMENT_DRAFTING[g].choices(s), them.people.find((p) => p.id === them.active)?.values ?? {});
+                } catch {
+                  name = undefined;
+                }
+                return `${name ? `The ${name}` : `The ${GARMENT_NAMES[g] ?? 'piece'}`} you had open, in ${s.unit === 'in' ? 'inches' : 'centimetres'}`;
               }}
               hereMeasured={Object.keys(measured).filter((k) => !person.example?.includes(k as MeasurementId)).length}
               onBring={(b) => {
@@ -992,13 +1014,23 @@ export default function App() {
     const found = link.match(/#move=[zp]\.[A-Za-z0-9_-]+/);
                 const b = found ? await readMoveLink<Saved>(found[0]) : null;
                 if (!b || b === 'broken') return false;
-                setMoving(b);
+                arrive(b);
                 setStep('move');
                 return true;
               }}
               resume={
                 account.onboarded && canLeaveMeasure
-                  ? { garment: vestOf(garment, saved) ? 'vest' : GARMENT_NAME[garment], onResume: () => setStep('style'), onSaved: () => setStep('account'), onNew: startNew }
+                  ? // Called by its look's name, and opened on the look, as when it was made: "Carry on with your skirt" led to
+                    // the first question, not the Black Pleated Skirt (pretend tester, Nov 18).
+                    {
+                      garment: lookName ?? (vestOf(garment, saved) ? 'vest' : GARMENT_NAME[garment]),
+                      onResume: () => {
+                        if (lookName) openLookNext();
+                        setStep('style');
+                      },
+                      onSaved: () => setStep('account'),
+                      onNew: startNew,
+                    }
                   : undefined
               }
             />

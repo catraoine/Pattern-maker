@@ -15,9 +15,18 @@
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <title>Maison Tracé</title>
+    <!-- Shown until the app's own code arrives: on a slow phone the first load was a plain black screen for 10 s and
+         more, with no name and no sign it was loading (pretend tester, Nov 18). The app replaces it as it starts. -->
+    <style>
+      body { background: #000; margin: 0; }
+      .boot { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; color: #efe4cc; font: 500 13px/1 system-ui, -apple-system, sans-serif; letter-spacing: 0.32em; text-indent: 0.32em; }
+      .boot i { display: block; width: 64px; height: 1px; background: #efe4cc; opacity: 0.25; animation: boot 1.6s ease-in-out infinite; }
+      @keyframes boot { 50% { opacity: 0.9; } }
+      @media (prefers-reduced-motion: reduce) { .boot i { animation: none; opacity: 0.5; } }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><div class="boot" role="status" aria-label="Maison Tracé is starting">MAISON TRACÉ<i></i></div></div>
     <!-- Lets Netlify Forms find the dressmaker sign-up; the app posts to it from the Print screen. -->
     <form name="find-a-maker" data-netlify="true" netlify-honeypot="bot-field" hidden>
       <input type="email" name="email" />

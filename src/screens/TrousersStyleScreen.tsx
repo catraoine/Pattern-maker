@@ -101,8 +101,9 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
           marks: TROUSER_LENGTHS.map((id) => ({ id, label: lengthGroup.options.find((o) => o[0] === id)![1], y: trouserLength(values as unknown as TrousersMeasurements, { leg: choices.leg, length: id }) })),
           value: choices.length,
           onPick: (length: string) => onChoices(validTrousers({ ...choices, length: length as TrousersChoices['length'], lengthCm: undefined })),
-          // The hem glides to any length between the named ones, measured from the waist (Cat, 2026-11-06).
-          free: { zero: 0, ...lengthCmRange(values as unknown as TrousersMeasurements), cm: choices.lengthCm, onCm: (cm: number) => onChoices(validTrousers({ ...choices, lengthCm: cm })) },
+          // The hem glides to any length between the named ones, measured from the waist (Cat, 2026-11-06), even on a low or
+          // high rise, which the box says (pretend tester, Nov 18).
+          free: { zero: 0, ...lengthCmRange(values as unknown as TrousersMeasurements), cm: choices.lengthCm, onCm: (cm: number) => onChoices(validTrousers({ ...choices, lengthCm: cm })), ...((choices.rise && choices.rise !== 'mid') || choices.riseCm ? { from: 'from your own waist, not the top of the trousers' } : {}) },
         };
   const elastic = choices.waist === 'elastic';
   const pockets = choices.pockets ?? 'none';

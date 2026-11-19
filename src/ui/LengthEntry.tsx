@@ -16,6 +16,8 @@ export interface LengthAsk {
   min: number;
   max: number;
   onCm: (cm: number) => void;
+  /** What hangs on below the length typed, and how far: a peplum below its seam. */
+  below?: { what: string; cm: number };
 }
 
 /** Opens the box; given by the Style layout, so every drawing's length label can offer it. */
@@ -43,10 +45,12 @@ export function LengthTap({ x, y, width, height, ask }: { x: number; y: number; 
       {(open) =>
         open && (
           <rect
-            x={x}
-            y={y}
-            width={width}
-            height={height}
+            // A little bigger than the words, for a finger: the target was about 74 by 9 px on a phone (pretend
+            // tester, Nov 18). The dot's own hit area is drawn over it, so a drag still starts on the dot.
+            x={x - height * 0.4}
+            y={y - height * 0.4}
+            width={width + height * 0.8}
+            height={height * 1.8}
             className="len-type"
             fill="transparent"
             role="button"
@@ -116,6 +120,7 @@ export function LengthBox({ ask, unit, onClose }: { ask: LengthAsk; unit: Unit; 
       </div>
       <p id="length-box-note" className={wrong ? 'length-box-note wrong' : 'length-box-note'} role={wrong ? 'alert' : undefined}>
         {wrong ?? `Any length ${range}.`}
+        {ask.below && ` ${ask.below.what} hangs about ${fmtLength(half(ask.below.cm), unit)} below it.`}
       </p>
     </form>
   );

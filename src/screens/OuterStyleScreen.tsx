@@ -251,7 +251,9 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                       onChoices(next);
                     }}
                   >
-                    <ChoicePic set={kind} group={g.id} id={id} />
+                    {/* Every picture is of a sleeved jacket, so a vest's chips go without: the Black Vest's lengths showed a cream
+                        jacket with sleeves (pretend tester, Nov 18). */}
+                    {word !== 'vest' && <ChoicePic set={kind} group={g.id} id={id} />}
                     {label}
                     {g.id === 'fit' && id === 'oversized' && <TestingTag tool="oversized_outer" />}
                     {((g.id === 'collar' && (id === 'peak' || id === 'shawl' || id === 'funnel')) || (g.id === 'lapel' && id !== 'classic')) && <TestingTag tool="jacket_collars" />}

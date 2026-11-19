@@ -128,3 +128,33 @@ test('a friend from a shared link is counted for whoever shared it', async ({ pa
   // And they get their own link to pass on.
   await expect(main.getByLabel('Your link')).toHaveValue(/\/\?ref=zz11yy22$/);
 });
+
+// A tester sent her work from her phone to her computer, and the email warns a computer without her code shows the
+// waitlist (pretend tester, Nov 18): the link carries the phone's code, so the computer is let in, brought or not.
+test('a move link from a tester\'s phone lets this computer past the waitlist', async ({ page }) => {
+  await page.route('**/.netlify/functions/tester', (route) => route.fulfill({ json: { ok: true, tester: true } }));
+  const backup = { app: 'pattern-maker', version: 1, savedAt: new Date().toISOString(), skirt: { unit: 'cm' }, account: { onboarded: true, name: '', patterns: [], testerCode: 'EXAMPLE-MOVE' } };
+  const body = Buffer.from(JSON.stringify(backup)).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  await page.goto(`/?fresh#move=p.${body}`);
+  await skipLoading(page);
+  const main = page.getByRole('main');
+  await expect(main.getByText('Your tester code, which lets this device into the app')).toBeVisible();
+  await main.getByRole('button', { name: 'Not now' }).click();
+  await page.goto('/');
+  await skipLoading(page);
+  await expect(main.getByRole('button', { name: 'Join the waitlist' })).toHaveCount(0);
+});
+
+// The link is only packed text, so its code is checked first: one that isn't a tester code lets nothing in.
+test('a move link with a code that isn\'t a tester code leaves the waitlist in place', async ({ page }) => {
+  await page.route('**/.netlify/functions/tester', (route) => route.fulfill({ json: { ok: true, tester: false } }));
+  const backup = { app: 'pattern-maker', version: 1, savedAt: new Date().toISOString(), skirt: { unit: 'cm' }, account: { onboarded: true, name: '', patterns: [], testerCode: 'EXAMPLE-NOPE' } };
+  const body = Buffer.from(JSON.stringify(backup)).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  await page.goto(`/?fresh#move=p.${body}`);
+  await skipLoading(page);
+  const main = page.getByRole('main');
+  await main.getByRole('button', { name: 'Not now' }).click();
+  await page.goto('/');
+  await skipLoading(page);
+  await expect(main.getByRole('button', { name: 'Join the waitlist' })).toBeVisible();
+});

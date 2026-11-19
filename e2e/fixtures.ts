@@ -383,16 +383,19 @@ export const lengthDot = (page: Page) => main(page).getByRole('slider', { name: 
  *  they step between the named lengths; on the skirt they move the hem 2 cm at a time, catching on each named one. */
 export async function chooseLength(page: Page, name: string) {
   await stepDotTo(page, name);
-  await expect(lengthDot(page)).toHaveAttribute('aria-valuetext', name);
+  // A named length on a dress, T-shirt or trousers says its length after it ("Mini · 52 cm").
+  await expect(lengthDot(page)).toHaveAttribute('aria-valuetext', new RegExp(`^${name}( · [\\d.,¼½¾⅛⅜⅝⅞ ]+ (cm|in))?$`));
 }
 
 /** Steps the hem dot up to its shortest, then down until it reads a name. */
 async function stepDotTo(page: Page, name: string) {
   const dot = lengthDot(page);
-  const read = () => dot.getAttribute('aria-valuetext');
+  const raw = () => dot.getAttribute('aria-valuetext');
+  // Its name alone: a named length says its length after it.
+  const read = async () => (await raw())?.split(' · ')[0] ?? null;
   // One press; false once the dot has stopped moving (at the end of its run).
   const step = async (key: string) => {
-    const before = await read();
+    const before = await raw();
     await dot.press(key);
     return expect(dot).not.toHaveAttribute('aria-valuetext', before ?? '', { timeout: 1500 }).then(() => true, () => false);
   };

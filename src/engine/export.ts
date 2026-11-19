@@ -973,6 +973,10 @@ const PAPER_CM: Record<Paper, [number, number]> = {
 };
 
 export const PAGE_MARGIN = 1; // printer-safe margin, cm
+/** Where the joining diamonds sit along a page's edge, as shares of it from the top or left. Down a side join on the
+ *  first row they sit lower, under the title block: at 0.3 the A3 diamond printed over the title card's words
+ *  (pretend tester, Nov 18). Both pages of a join are on the same row, so their halves still meet. */
+export const joinMarks = (join: 'right' | 'below', row: number): number[] => (join === 'right' && row === 0 ? [0.5, 0.8] : [0.3, 0.7]);
 export const OVERLAP = 1; // cm shared by neighbouring pages for taping
 
 /** Page size for a sheet: home paper is always portrait; a copy-shop A0 turns sideways when that takes fewer sheets. */

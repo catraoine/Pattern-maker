@@ -174,6 +174,6 @@ test('in the home-screen app, work from Safari comes across with a pasted link',
   await main(app).getByRole('button', { name: 'Bring it here' }).click();
   await expect(h1(app, /Your work/)).toBeVisible();
   await main(app).getByRole('button', { name: 'Bring it here' }).click();
-  await expect(h1(app, /Here/)).toBeVisible();
+  await expect(h1(app, /Your work is on this device/)).toBeVisible();
   await ctx.close();
 });
