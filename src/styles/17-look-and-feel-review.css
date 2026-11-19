@@ -213,7 +213,8 @@ button.later.edit-measure {
     font-size: var(--caps-size);
   }
   .measure-step.has-hero .step-words .field.plain input,
-  .measure-step.has-hero .step-words .entry-box input {
+  .measure-step.has-hero .step-words .entry-box input,
+  .measure-step.has-hero .step-words .ft-in-size {
     font-size: 56px;
   }
   .measure-step.has-hero .step-words button.later,

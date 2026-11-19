@@ -575,7 +575,9 @@ body:has(.tape-band.carried) {
   gap: 6px;
   cursor: text;
 }
-/* The box takes the width of a hidden copy of its own number, so it hugs what is typed. */
+/* The box takes the width of a hidden copy of its own number, so it hugs what is typed. The copy must be the same
+   size as the number: on a wide screen the number grows to 56px, and a copy left at 34px cut "5 ft 10" down to a
+   sliver (tester on a laptop, Nov 19). */
 .ft-in-size {
   display: inline-grid;
   font-family: var(--sans);
