@@ -10,6 +10,7 @@ import { taggedLength } from './engine/geometry';
 import type { MeasurementValues } from './measurements';
 import type { Piece } from './engine/piece';
 import { diamondCollisions, layout } from './engine/export';
+import { edgeLabels } from './engine/marks';
 
 // The five pieces the fit testers sew (Blush Shift, Ice Peplum Top, Black Pleated Skirt, Chocolate Barrel Trouser and the
 // Black Vest), made the way the app makes a look, in its own cloth, on a small, a middle and a large body, and read as a
@@ -163,4 +164,20 @@ describe('the joining diamonds', () => {
         const hit = diamondCollisions(layout(print.pieces, `Maison Tracé: ${id}`, print.notes, { pattern: id }));
         expect(hit.filter((h) => print.pieces[h.piece].kind !== 'waistband' || /ALLOWANCE/.test(h.text))).toEqual([]);
       });
+});
+
+// The Ice Peplum's bodice is sewn to its peplum at its lower edge, and its sleeve to its band, and both were labelled
+// "HEM · 1.5 CM ALLOWANCE": a tester might turn them up (pretend tester DL walk, Nov 19). No tester piece names an edge
+// that is sewn to another piece a hem.
+describe('a sewn-on edge', () => {
+  for (const id of ['blush-shift', 'ice-peplum', 'black-pleated-skirt', 'chocolate-barrel', 'black-vest'])
+    for (const [body, values] of Object.entries(BODIES))
+      it(`is not labelled a hem on ${id}, ${body} body`, () => {
+        for (const pc of made(id, values).pieces.filter((q) => q.meta.joinedHem)) expect(edgeLabels(pc).map((l) => l.text).filter((t) => t.startsWith('HEM')), pc.name).toEqual([]);
+      });
+  it('names the Ice Peplum bodice and sleeve edges as their seams', () => {
+    const words = made('ice-peplum', BODIES.middle).pieces.flatMap((pc) => edgeLabels(pc).map((l) => `${pc.name}: ${l.text}`));
+    expect(words.filter((w) => /^Bodice .*: PEPLUM SEAM/.test(w)).length).toBeGreaterThan(0);
+    expect(words.some((w) => /^Sleeve: BAND SEAM/.test(w))).toBe(true);
+  });
 });

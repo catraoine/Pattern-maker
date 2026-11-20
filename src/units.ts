@@ -108,6 +108,13 @@ export function articles(text: string): string {
   return text.replace(/(^|[.!?]\s+|\b(?=a))(a|A)n? (\d+)(?=[\d.,]*[\s⅛¼⅜½⅝¾⅞-])/g, (_, lead: string, a: string, n: string) => `${lead}${a}${n.startsWith('8') || n === '11' || n === '18' ? 'n' : ''} ${n}`);
 }
 
+/** Sewing text as a cm sewist reads it: "an 18 cm", and an iron's heat with its degree sign, "about 150°C". The steps
+ *  are written in plain letters, and the cm files said "about 150 C" while the inch files said 300°F (pretend tester DL
+ *  walk, Nov 19). */
+export function inCm(text: string): string {
+  return articles(text).replace(IRON_C, (_, about: string, c: string) => `${about} ${c}°C`);
+}
+
 export function inInches(text: string): string {
   if (SQUARE_LABEL.test(text)) return '10 CM · 3.94 IN';
   return articles(inInchesOnly(text));

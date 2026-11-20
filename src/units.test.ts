@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { articles, fmtLength, fmtMeasure, inInches, measureInches, toFeetInches, toInches, toYards, typedLength } from './units';
+import { articles, fmtLength, inCm, fmtMeasure, inInches, measureInches, toFeetInches, toInches, toYards, typedLength } from './units';
 
 describe('inches', () => {
   it('rounds to the nearest eighth', () => {
@@ -49,6 +49,9 @@ describe('inches', () => {
     // An iron's heat in Fahrenheit, to the nearest 10 (pretend tester, Nov 18).
     expect(inInches('Wool setting (about 150°C) with steam.')).toBe('Wool setting (about 300°F) with steam.');
     expect(inInches('About 150 C with a little steam.')).toBe('About 300°F with a little steam.');
+    expect(inInches('About 150°C with a little steam.')).toBe('About 300°F with a little steam.');
+    expect(inCm('Set the iron to wool (about 150 C) with steam.')).toBe('Set the iron to wool (about 150°C) with steam.');
+    expect(inCm('About 150 C, then sew a 18 cm zip.')).toBe('About 150°C, then sew an 18 cm zip.');
     expect(inInches('Set the iron to wool (about 150°C) with steam.')).toBe('Set the iron to wool (about 300°F) with steam.');
     expect(inInches('10 cm (3.94 in) test square')).toBe('10 cm (3.94 in) test square');
     expect(inInches('cm or in')).toBe('cm or in');

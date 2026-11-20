@@ -98,7 +98,7 @@ export function edgeLabels(pc: Piece): EdgeLabel[] {
   const front = /front/i.test(pc.name);
   const names: Record<string, string> = {
     waist: 'WAIST',
-    hem: 'HEM',
+    hem: (pc.meta.hemLabel as string | undefined) ?? 'HEM',
     side: 'SIDE SEAM',
     shoulder: 'SHOULDER',
     neck: 'NECKLINE',
