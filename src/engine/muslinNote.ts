@@ -14,13 +14,27 @@ const SKIPS: [RegExp, string][] = [
   [/Microtex/i, 'the fine needle (a universal 80/12 is right)'],
 ];
 
+/** What a tester may leave out of a muslin or sew as written, as she likes: none of it changes the fit (Cat, Nov 20:
+ *  "can we make it optional? Like either way is good for testing"). Read off the step titles, so only what the booklet
+ *  has. A whole lining is named by its own steps; a pocket's lining is part of the pocket. */
+const OPTIONAL: [RegExp, string][] = [
+  [/^(Make|Bag|Hem) the lining|^Line the/i, 'the lining (stitch round the neck and armholes on the seam line, press the allowance under along the stitching, and turn the hem up)'],
+  [/welt pocket/i, 'the welt pockets (chalk where they go)'],
+  [/rouleau loops/i, 'the rouleau loops and buttons (pin the back closed, centre back on centre back)'],
+  [/belt loops/i, 'the belt loops'],
+];
+
+const and = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}` : xs[0]);
+
 /** The muslin line for the booklet's fabric notes, or nothing when the fabric is muslin already. */
 export function muslinLine(guide: SewingGuide, fabricLines: string[], isMuslin: boolean): string[] {
   if (isMuslin) return [];
   const all = [...fabricLines, ...guide.steps.map((st) => st.text)].join(' ');
   const skips = SKIPS.filter(([re]) => re.test(all)).map(([, words]) => words);
-  const list = skips.length > 1 ? `${skips.slice(0, -1).join(', ')} and ${skips[skips.length - 1]}` : skips[0];
+  const list = and(skips);
+  const titles = guide.steps.map((st) => st.title);
+  const may = OPTIONAL.filter(([re]) => titles.some((t) => re.test(t))).map(([, words]) => words);
   return [
-    `Sewing in muslin (calico): for a test version, buy about the same length of muslin as the fabric above. Wash and dry it first, as it shrinks, even where the first step says not to wash the fabric above, and press it with a hot, steamy iron. The steps are written for the fabric above${list ? `; in muslin, leave out ${list}` : ''}. Sew everything else the same way, so the fit is the fit of the real one.`,
+    `Sewing in muslin (calico): for a test version, buy about the same length of muslin as the fabric above. Wash and dry it first, as it shrinks, even where the first step says not to wash the fabric above, and press it with a hot, steamy iron. The steps are written for the fabric above${list ? `; in muslin, leave out ${list}` : ''}. Sew everything else the same way, so the fit is the fit of the real one.${may.length ? ` If you like, you can also leave out ${and(may)}: either way is fine for the fit test.` : ''}`,
   ];
 }

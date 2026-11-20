@@ -193,6 +193,16 @@ describe('sewing in muslin', () => {
     const line = made('ice-peplum', BODIES.middle).guide.fabric!.find((l) => l.startsWith('Sewing in muslin'))!;
     for (const w of ['tissue paper', 'French seams', 'horsehair braid', 'universal 80/12']) expect(line).toContain(w);
   });
+  // Cat, Nov 20: the lining, welt pockets and loops may be left out of a muslin or sewn, either way.
+  it('says the lining, welt pockets and loops may be left out, where the booklet has them', () => {
+    const line = (id: string) => made(id, BODIES.middle).guide.fabric!.find((l) => l.startsWith('Sewing in muslin'))!;
+    const may = (id: string) => /If you like, you can also leave out (.*): either way is fine for the fit test\.$/.exec(line(id))?.[1] ?? '';
+    expect(may('blush-shift')).toMatch(/^the lining /);
+    expect(may('ice-peplum')).toMatch(/^the rouleau loops and buttons /);
+    expect(may('chocolate-barrel')).toMatch(/^the welt pockets .* and the belt loops$/);
+    expect(may('black-vest')).toMatch(/^the lining .* and the welt pockets /);
+    expect(may('black-pleated-skirt')).toBe('');
+  });
 });
 
 // The Ice Peplum's bodice is sewn to its peplum at its lower edge, and its sleeve to its band, and both were labelled
