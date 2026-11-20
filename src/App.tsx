@@ -46,7 +46,7 @@ import { atNewScreen, keepOffline } from './swUpdate';
 import { preloadScreens, screen } from './screens/load';
 import { FABRIC, StartOver, openLookNext, openTabNext } from './ui/StyleLayout';
 import { KeptCount } from './ui/SaveControl';
-import { GARMENT_NAME } from './measureFlow';
+import { GARMENT_NAME, baseDone } from './measureFlow';
 import type { StepsStart } from './screens/MeasureStepsScreen';
 import { mergeBackups } from './cloud/merge';
 import { useCloud } from './cloud/useCloud';
@@ -769,6 +769,18 @@ export default function App() {
 
   /** A step in the header. Style and Print wait for the measurements, and say so. */
   const openStep = (to: Step) => {
+    // Still choosing what to make, on the collection opened from the list after measuring: nothing is picked, so the
+    // garment is only the first-visit skirt. Measure showed a skirt's list without the bust or weight just given, and
+    // Style and Print stayed shut on a skirt's waist to knee, with "Make something else" the only way out (pretend
+    // tester walks, four times to DO, Nov 20). Measure goes back to the measurements given, the others to the choice.
+    if (step === 'collection' && lookFrom === 'steps' && baseDone(measured)) {
+      if (to === 'measure') return openSteps({ kind: 'check' });
+      if (!canLeaveMeasure) {
+        openSteps({ kind: 'choose' });
+        setStepsNote('Choose what to make first: Style and Print open for it.');
+        return;
+      }
+    }
     if (STEP_OF[step] === to && step !== 'photo' && step !== 'fitting' && step !== 'scale') return;
     if (to !== 'measure' && !canLeaveMeasure) {
       // A line, not a box over the headline, and no garment named (none may be chosen yet) (look and feel review, 2026-10-24).
