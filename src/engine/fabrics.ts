@@ -18,6 +18,7 @@ import { BIG_PRINT, PrintKind, bigPrintCut, printCut, printLines, printOf } from
 import { Checks, SPECIALS, Special, specialLines, specialWarnings } from './specialFabrics';
 import { KNITS, type Knit } from './knitFabrics';
 import { PRINT_FIRST } from './printFirst';
+import { muslinLine } from './muslinNote';
 import { isLowerBody, isOuterwear } from '../measurements';
 
 export type Weight = 'light' | 'medium' | 'heavy';
@@ -746,7 +747,10 @@ export function withFabric(guide: SewingGuide, f: MyFabric | undefined, garment:
   const name = describeFabric(f);
   return {
     ...guide,
-    fabric: braidedHem(guide, fabricLines(f, garment)),
+    fabric: (() => {
+      const lines = braidedHem(guide, fabricLines(f, garment));
+      return lines.length ? [...lines, ...muslinLine(guide, lines, /muslin|calico|toile/i.test(f?.name ?? ''))] : lines;
+    })(),
     notions: name ? guide.notions.map((n, i) => (i === 0 ? n.replace('woven fabric', name) : n)) : guide.notions,
     steps: guide.steps[0]?.title === PREPARE_TITLE ? guide.steps : [prepareStep(f), ...afterPrint(guide.steps, cutStep(f))],
   };

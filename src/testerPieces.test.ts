@@ -182,6 +182,19 @@ describe('every piece', () => {
     });
 });
 
+// The booklets are written for each look's own cloth, and the testers sew in muslin (calico): every tester booklet
+// says what changes in muslin (DM walk, Nov 19; Cat, Nov 20).
+describe('sewing in muslin', () => {
+  for (const id of ['blush-shift', 'ice-peplum', 'black-pleated-skirt', 'chocolate-barrel', 'black-vest'])
+    it(`is in the ${id} booklet`, () => {
+      expect(made(id, BODIES.middle).guide.fabric?.some((l) => l.startsWith('Sewing in muslin (calico): '))).toBe(true);
+    });
+  it("leaves out the Ice Peplum's tissue paper, French seams and horsehair braid", () => {
+    const line = made('ice-peplum', BODIES.middle).guide.fabric!.find((l) => l.startsWith('Sewing in muslin'))!;
+    for (const w of ['tissue paper', 'French seams', 'horsehair braid', 'universal 80/12']) expect(line).toContain(w);
+  });
+});
+
 // The Ice Peplum's bodice is sewn to its peplum at its lower edge, and its sleeve to its band, and both were labelled
 // "HEM · 1.5 CM ALLOWANCE": a tester might turn them up (pretend tester DL walk, Nov 19). No tester piece names an edge
 // that is sewn to another piece a hem.
