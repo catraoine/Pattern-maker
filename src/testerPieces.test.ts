@@ -166,6 +166,22 @@ describe('the joining diamonds', () => {
       });
 });
 
+// The Ice Peplum's bodice pieces and both waistbands printed their big name with no piece number or cutting under it,
+// since their name label is shorter than the piece's name (pretend tester DM walk, Nov 19). Every tester piece says
+// which piece it is and how many to cut.
+describe('every piece', () => {
+  for (const id of ['blush-shift', 'ice-peplum', 'black-pleated-skirt', 'chocolate-barrel', 'black-vest'])
+    it(`says its number and how many to cut on ${id}`, () => {
+      const print = made(id, BODIES.middle);
+      const sheet = layout(print.pieces, `Maison Tracé: ${id}`, print.notes, { pattern: id });
+      print.pieces.forEach((pc, i) => {
+        const words = sheet.prims.filter((pr) => pr.kind === 'text' && pr.piece === i).map((pr) => (pr.kind === 'text' ? pr.text : '')).join(' ');
+        expect(words, pc.name).toMatch(new RegExp(`PIECE ${i + 1}( OF |/)${print.pieces.length}`));
+        expect(words, pc.name).toContain(pc.cut.toUpperCase().split(' (')[0]);
+      });
+    });
+});
+
 // The Ice Peplum's bodice is sewn to its peplum at its lower edge, and its sleeve to its band, and both were labelled
 // "HEM · 1.5 CM ALLOWANCE": a tester might turn them up (pretend tester DL walk, Nov 19). No tester piece names an edge
 // that is sewn to another piece a hem.
@@ -175,6 +191,32 @@ describe('a sewn-on edge', () => {
       it(`is not labelled a hem on ${id}, ${body} body`, () => {
         for (const pc of made(id, values).pieces.filter((q) => q.meta.joinedHem)) expect(edgeLabels(pc).map((l) => l.text).filter((t) => t.startsWith('HEM')), pc.name).toEqual([]);
       });
+  // The Black Vest's lining was labelled "HEM · 1.5 CM ALLOWANCE", but it is bagged to the vest's hem allowance 1 cm
+  // from its edge (pretend tester DM walk, Nov 19): no lining on a tester piece is labelled a hem, and each says where
+  // its step sews it.
+  it('names the Black Vest lining edges for the step that bags them', () => {
+    for (const [body, values] of Object.entries(BODIES)) {
+      const p = made('black-vest', values);
+      const sews = /sew the lining to the hem allowance of the vest all round, (\d+(?:\.\d+)?) cm from the lining's edge/.exec(step(p, 'Bag the lining'))![1];
+      for (const pc of p.pieces.filter((q) => q.kind === 'lining' && q.allowances.hem !== undefined)) {
+        const words = edgeLabels(pc).map((l) => l.text);
+        expect(words.filter((t) => t.startsWith('HEM')), `${pc.name}, ${body}`).toEqual([]);
+        expect(words, `${pc.name}, ${body}`).toContain(`JOINS THE HEM ALLOWANCE · SEW ${sews} CM FROM THE EDGE`);
+      }
+    }
+  });
+  it('labels the seams the steps sew, with the allowance the steps use', () => {
+    const words = (id: string) => made(id, BODIES.middle).pieces.flatMap((pc) => edgeLabels(pc).map((l) => `${pc.name}: ${l.text}`));
+    const vest = words('black-vest');
+    expect(vest).toContain('Vest front: CHEST SEAM · 1 CM ALLOWANCE');
+    expect(vest).toContain('Vest front yoke: CHEST SEAM · 1 CM ALLOWANCE');
+    const trousers = words('chocolate-barrel');
+    for (const side of ['front', 'back']) {
+      expect(trousers).toContain(`Trousers ${side}: CROTCH SEAM · 1 CM ALLOWANCE`);
+      expect(trousers).toContain(`Trousers ${side}: INSIDE LEG SEAM · 1.5 CM ALLOWANCE`);
+    }
+    expect(trousers.filter((w) => w.startsWith('Pocket facing: SIDE SEAM'))).toHaveLength(1);
+  });
   it('names the Ice Peplum bodice and sleeve edges as their seams', () => {
     const words = made('ice-peplum', BODIES.middle).pieces.flatMap((pc) => edgeLabels(pc).map((l) => `${pc.name}: ${l.text}`));
     expect(words.filter((w) => /^Bodice .*: PEPLUM SEAM/.test(w)).length).toBeGreaterThan(0);

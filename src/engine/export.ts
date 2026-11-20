@@ -705,10 +705,15 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
     // information block in place of the count.
     const isCut = (x: string) => x.toLowerCase().startsWith(pc.cut.toLowerCase());
     const cutWords = pc.labels.map((l) => l.text).filter(isCut).sort((a, b) => b.length - a.length)[0] ?? pc.cut;
+    // The label the information block hangs from: the piece's name, or a shorter one just before its cutting words. The
+    // Ice Peplum's bodice pieces say "SIDE FRONT" and the waistbands "WAISTBAND, CURVED", so they printed with no
+    // piece number or cutting at all (pretend tester DM walk, Nov 19).
+    const nameLabel = pc.labels.find((l) => l.text === name) ?? pc.labels.find((l, k) => k + 1 < pc.labels.length && !isCut(l.text) && isCut(pc.labels[k + 1].text));
     pc.labels.forEach((l) => {
       const rot = l.rotate ?? 0;
       if (info && isCut(l.text)) return; // part of the information block
-      if (info && l.text === name) {
+      if (info && l === nameLabel) {
+        const name = l.text;
         // The piece's information block: name, piece number and cutting, the pattern and its owner.
         // Small finishing pieces carry just the first line. It is fitted to the piece: lines too long
         // for it are broken at their separators, a name too long goes on two lines (smaller if it
@@ -867,7 +872,7 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
         if (trace) lab(text(place(add(nameAt, mul(n, -nameSize * 1.2))), trace, 0.45, rot, 'middle', { face: 'label', tracking: 0.15, grey: 0.35 }), 0, 0.15);
         return;
       }
-      lab(text(tl(l.at, l.size, rot), l.text, l.size, rot, 'middle', { face: 'label', tracking: 0.1 }), l.text === name ? 0 : 2, 0.1);
+      lab(text(tl(l.at, l.size, rot), l.text, l.size, rot, 'middle', { face: 'label', tracking: 0.1 }), l === nameLabel ? 0 : 2, 0.1);
     });
     if (pc.meta.threadTrace && !info) {
       const l = pc.labels[0];

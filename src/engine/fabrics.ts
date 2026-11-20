@@ -17,6 +17,7 @@ import { LingerieFabricStyle, TeeFabricStyle, lingerieFabrics, teeFabrics, teeWa
 import { BIG_PRINT, PrintKind, bigPrintCut, printCut, printLines, printOf } from './prints';
 import { Checks, SPECIALS, Special, specialLines, specialWarnings } from './specialFabrics';
 import { KNITS, type Knit } from './knitFabrics';
+import { PRINT_FIRST } from './printFirst';
 import { isLowerBody, isOuterwear } from '../measurements';
 
 export type Weight = 'light' | 'medium' | 'heavy';
@@ -745,10 +746,26 @@ export function withFabric(guide: SewingGuide, f: MyFabric | undefined, garment:
   const name = describeFabric(f);
   return {
     ...guide,
-    fabric: fabricLines(f, garment),
+    fabric: braidedHem(guide, fabricLines(f, garment)),
     notions: name ? guide.notions.map((n, i) => (i === 0 ? n.replace('woven fabric', name) : n)) : guide.notions,
-    steps: guide.steps[0]?.title === PREPARE_TITLE ? guide.steps : [prepareStep(f), ...cutStep(f), ...guide.steps],
+    steps: guide.steps[0]?.title === PREPARE_TITLE ? guide.steps : [prepareStep(f), ...afterPrint(guide.steps, cutStep(f))],
   };
+}
+
+/** A sheer's card promises a hem rolled narrow; the big peplum is hemmed on horsehair braid instead, and the two said
+ *  different things (pretend tester DM walk, Nov 19). The card names the braid, and keeps the narrow hem when another
+ *  step still hems narrowly. */
+function braidedHem(guide: SewingGuide, lines: string[]): string[] {
+  if (!guide.steps.some((st) => st.text.includes('horsehair braid'))) return lines;
+  const narrow = guide.steps.some((st) => /\bnarrow(ly)?\b/i.test(st.text) && !st.text.includes('horsehair braid'));
+  return lines.map((l) => l.replace('a 1 cm hem rolled narrow', narrow ? 'a 1 cm hem rolled narrow, the peplum hem on horsehair braid' : 'the peplum hem on horsehair braid'));
+}
+
+/** The cloth's cutting step goes after the printing step: the Ice Peplum said "Cut the sheer" before "Print and check the
+ *  size" (pretend tester DM walk, Nov 19). With no printing step it leads, as before. */
+function afterPrint(steps: SewingGuide['steps'], cut: { title: string; text: string }[]): SewingGuide['steps'] {
+  const at = steps.findIndex((st) => st.text.includes(PRINT_FIRST));
+  return at < 0 ? [...cut, ...steps] : [...steps.slice(0, at + 1), ...cut, ...steps.slice(at + 1)];
 }
 
 /** The couture route's cloth: from the recorded fibre when there is one. */

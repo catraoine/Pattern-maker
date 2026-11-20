@@ -904,6 +904,9 @@ function notchedCollar(front: Piece, backNeck: number, frontNeck: number, s: Out
   };
 }
 
+/** How far from its edge the lining is sewn to the hem allowance: nearer than its 1.5 cm, so the spare stands as a jump hem. */
+export const LINING_JUMP_SEW = 1;
+
 /** The back lining: the back on the fold, with a pleat at the centre back for ease across the shoulders. */
 function backLining(pc: Piece, pleat: number): Piece {
   const r = ringOf(pc.outline, 24);
@@ -1468,7 +1471,10 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
   // A seam across the chest (In testing): the front and back each cut in two along it.
   const yoke = seamY !== undefined && fronts.length === 1 && backs.length === 1 ? chestSeam(fronts[0], backs[0], seamY) : undefined;
   const shellParts = yoke ? yoke.pieces : [...fronts, ...backs];
-  const pieces = [...shellParts, ...(bare ? [] : sleevePieces), ...collar, ...bands, ...facings, ...pocketPieces, ...linings, ...(bare ? [] : sleeveLining)];
+  // The lining's lower edges are bagged to the hem (and sleeve hems) LINING_JUMP_SEW from their edge, not turned up:
+  // the vest lining read "HEM · 1.5 CM ALLOWANCE" and a tester might hem it (pretend tester DM walk, Nov 19).
+  const bagged = (pc: Piece): Piece => ({ ...pc, meta: { ...pc.meta, hemLabel: rib ? 'JOINS THE BAND' : 'JOINS THE HEM ALLOWANCE', hemSewCm: LINING_JUMP_SEW } });
+  const pieces = [...shellParts, ...(bare ? [] : sleevePieces), ...collar, ...bands, ...facings, ...pocketPieces, ...linings.map(bagged), ...(bare ? [] : sleeveLining.map(bagged))];
   const finishedHem = rib ? r1(shellHem * RIB.draw) : shellHem;
   const cbTop = backPiece.outline.points(4).filter((q) => Math.abs(q.x) < 1e-6).reduce((mn, q) => Math.min(mn, q.y), Infinity);
   const cbFoot = backPiece.outline.points(4).filter((q) => Math.abs(q.x) < 1e-6).reduce((mx, q) => Math.max(mx, q.y), -Infinity);

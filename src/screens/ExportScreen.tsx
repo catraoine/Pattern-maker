@@ -20,6 +20,7 @@ import { TechFlatView } from '../ui/TechFlatView';
 import { StepDiagram } from '../ui/StepDiagram';
 import { CLOTHS, seamFinish } from '../engine/couture';
 import { FIBRES, Fibre, MyFabric, FabricStyle, adviceFor, checkFabric, clothFor, pickTag, printRepeat } from '../engine/fabrics';
+import { colourWords } from '../engine/houseColours';
 import { SPECIALS, Special, needsNap } from '../engine/specialFabrics';
 import { printNap, printOf } from '../engine/prints';
 import { SizeRun } from '../ui/SizeRun';
@@ -911,7 +912,7 @@ function YourFabric({ fabric, style, metres, onChange }: { fabric: MyFabric; sty
         <div className="shopbuy">
           <p className="small">
             <b>{shop.name}</b>
-            {fabric.colour ? `, ${fabric.colour}` : ''}{' '}
+            {fabric.colour ? `, ${colourWords(fabric.colour) ?? fabric.colour}` : ''}{' '}
             <span className="muted">
               from {shop.shop}
               {shopPrice(shop, fabric.colour) ? `, $${shopPrice(shop, fabric.colour)}/${shop.yards ? 'yd' : 'm'}` : ''}
@@ -938,10 +939,12 @@ function YourFabric({ fabric, style, metres, onChange }: { fabric: MyFabric; sty
   );
 }
 
-/** The fabric's name in a few words: its own name, else the cloth, with the colour. */
+/** The fabric's name in a few words: its own name, else the cloth, with the colour in words. A house colour is stored
+ *  as its swatch's code, and "Sheer, #9CC3E6" showed on the Print screen (pretend tester DM walk, Nov 19). */
 function fabricName(f: MyFabric): string | undefined {
   const cloth = f.name || (f.special ? SPECIALS[f.special].label : f.fibre ? FIBRES[f.fibre].label : undefined);
-  return cloth && (f.colour && !f.name ? `${cloth}, ${f.colour}` : cloth);
+  const colour = colourWords(f.colour) ?? f.colour;
+  return cloth && (colour && !f.name ? `${cloth}, ${colour}` : cloth);
 }
 
 const hasFabric = (f: MyFabric | undefined) => !!(f && (f.name || f.fibre || f.special));

@@ -1,3 +1,4 @@
+import { articles } from './units';
 import { finishesNeck } from './engine/collar';
 import { withHouseShirtSeams } from './engine/houseShirtSeams';
 import { withLinedShiftHem } from './engine/linedShift';
@@ -211,8 +212,8 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
           trousers.elastic
             ? `A pull-on elastic waist, with no zip: ${trousers.elastic.cutCm} cm of ${trousers.elastic.widthCm} cm elastic in the waistband casing`
             : trousers.closure === 'fly'
-              ? `A ${trousers.zipCm} cm fly zip with its facing and shield, and the waistband`
-              : `A ${trousers.zipCm} cm invisible zip in the left side seam, and the waistband`
+              ? articles(`A ${trousers.zipCm} cm fly zip with its facing and shield, and the waistband`)
+              : articles(`A ${trousers.zipCm} cm invisible zip in the left side seam, and the waistband`)
         }${pocketWords(trousers.pockets, trousers.pocketSides)}${trousers.pleats ? `, ${trousers.pleats.count > 1 ? 'two pleats' : 'a pleat'} on each front` : ''}${trousers.loops ? `, ${trousers.loops} belt loops` : ''}${trousers.backWelt ? ', back welt pockets' : ''}${lining ? ', and a lining' : ''}. The crease line is the grain line. Sewing steps are in the instructions booklet.`,
         ...fittingNotes,
       ],
@@ -384,8 +385,10 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
     // The hem allowance as the pieces are cut: the peplum's own narrow hem where there is one, else the top's below the
     // waist. (The note said 2.5 cm whatever was cut: the Ice Peplum's only hem is its peplum's 1 cm.)
     const hemCut = bodice.peplum ? pieces.find((pc) => /^Peplum/.test(pc.name))?.allowances.hem : below ? (pieces[0].allowances.hem ?? 2.5) : undefined;
+    // A ruffle is bound in with the neckline: "a ruffled neckline and a bias-bound neckline" read as two necklines
+    // (pretend tester DM walk, Nov 19).
     const edgeWords = sleeve
-      ? { binding: 'a bias-bound neckline', facings: 'a faced neckline', lined: 'a lined bodice' }[edges]
+      ? { binding: bodice.collar === 'ruffle' ? 'bias binding inside' : 'a bias-bound neckline', facings: 'a faced neckline', lined: 'a lined bodice' }[edges]
       : { binding: 'bias-bound edges', facings: 'faced neck and armholes', lined: 'a full lining' }[edges];
     const sleeveWords = sleeve ? `${describeBodice(saved.bodice).replace(/^.* with /, 'With ')}` : 'Sleeveless';
     // With sleeves, and the neck finished by a button front's facings or a collar on a stand, nothing is left to bind.
@@ -403,7 +406,7 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
     return {
       pieces,
       notes: [
-        `Finished bust ${bodice.finishedBust} cm, waist ${bodice.finishedWaist} cm${below ? `, round the hem ${bodice.finishedHem} cm` : ''}, back length ${bodice.backLength} cm.`,
+        `Finished bust ${bodice.finishedBust} cm, waist ${bodice.finishedWaist} cm${below ? `, round the ${bodice.peplum?.seamCm ? 'peplum seam' : 'hem'} ${bodice.finishedHem} cm` : ''}, back length ${bodice.backLength} cm.`,
         couture
           ? `Couture allowances: ${fmtCm(seams.seam)} at the seams, ${fmtCm(seams.curve)} at the neck and armholes. Thread-trace the solid stitching line.`
           : `Seam allowance ${fmtCm(seams.seam)} included, ${fmtCm(seams.curve)} at the neck and armholes${hemCut !== undefined ? `, ${fmtCm(hemCut)} at the hem` : ''}. Dashed line = stitching line.`,

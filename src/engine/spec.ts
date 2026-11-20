@@ -101,7 +101,8 @@ function waistRows(d: { waistband: { cutLength: number; cutWidth: number }; elas
 export function bodiceSpec(m: BodiceMeasurements, d: BodiceDraft, length: BodiceLength, dropCm?: number): SpecRow[] {
   const rows: SpecRow[] = [row('Bust', m.full_bust, d.finishedBust), row('Waist', m.waist, d.finishedWaist)];
   if (d.finishedHem !== undefined && dropCm !== undefined) {
-    rows.push(row(`Hem, ${d.drop} cm below the waist`, undefined, d.finishedHem));
+    // On a lowered peplum the bodice's lower edge is the peplum seam, not a hem (pretend tester DM walk, Nov 19).
+    rows.push(row(`${d.peplum?.seamCm ? 'Peplum seam' : 'Hem'}, ${d.drop} cm below the waist`, undefined, d.finishedHem));
   } else if (d.finishedHem !== undefined) {
     // A hem at the high hip reads against the body there, not the full hip below it: against the hip, a hem with 4 cm
     // of ease showed as 4 cm too small (era pattern review, Nov 14).
