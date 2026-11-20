@@ -80,6 +80,9 @@ export function HemMarks({ name, marks, value, onPick, svg, cx, k, hemAt, bare, 
   // Set, to the millimetre as typed: rounded to the half cm and then the cm, a typed 36 in read 36¼ (pretend tester, Nov 18).
   // A named length says how long it is too, so the number is there before any drag: the shift read just "MINI" (pretend
   // tester, Nov 18). Caught while dragging, the name pops on its own. Spoken, it's one line: "Mini · 41 cm".
+  // The box opens on the length as set, not rounded to the half cm as a drag is: a typed 20 in (50.8 cm) reopened as
+  // 51 cm, read back as 20⅛ (pretend tester DN walk, Nov 20).
+  const typedAt = free ? (held ? cmAt(setAt) : Math.round((setAt - free.zero) * 100) / 100) : 0;
   const cmNow = free ? `${held ? cmAt(setAt) : Math.round((setAt - free.zero) * 10) / 10} cm` : '';
   const spoken = `${at ? (free && !held ? `${at.label} · ${cmNow}` : at.label) : cmNow}${held?.end ? ` · ${held.end}` : ''}`;
   const toY = (e: PointerEvent) => new DOMPoint(e.clientX, e.clientY).matrixTransform(svg.current!.getScreenCTM()!.inverse()).y;
@@ -138,7 +141,7 @@ export function HemMarks({ name, marks, value, onPick, svg, cx, k, hemAt, bare, 
             y={dot.y - 3 * k}
             width={wordsW}
             height={under ? 8 * k : 5 * k}
-            ask={{ name, from: free.from ?? 'from the waist', cm: cmAt(setAt), min: free.min, max: free.max, onCm: free.onCm }}
+            ask={{ name, from: free.from ?? 'from the waist', cm: typedAt, min: free.min, max: free.max, onCm: free.onCm }}
           />
         )}
         <circle
