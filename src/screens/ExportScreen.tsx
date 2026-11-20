@@ -557,7 +557,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
               <details className="small fold-link">
                 <summary>How the pages fit together</summary>
                 <p className="muted small">
-                  Trim each page along its dashed line on the left and top, then lay it over the page before so the half diamonds make whole ones.
+                  Cut each page along the solid line marked CUT on its left and top edges, then lay it over the page before so the half diamonds make whole ones: each diamond says whether its page goes OVER or UNDER the page named.
                   Tape them down. On a phone, send the PDF to your email and print from a computer, or print straight from the
                   share menu.
                 </p>
