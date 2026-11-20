@@ -318,6 +318,41 @@ function diamond(page: PDFPage, x: number, y: number, label: string, labelSide: 
   page.drawText(label, { ...at, size, font, color: rgb(0, 0, 0) });
 }
 
+/**
+ * "CUT" and a small pair of scissors in the margin beside a cut line, a few times along it and clear of the diamonds:
+ * the margin is cut away with the strip, so the words go with it. `at` is the cut line's x (left edge) or y (top edge),
+ * `span` the line's extent, `marks` the diamonds' places along it.
+ */
+function cutWords(page: PDFPage, font: PDFFont, side: 'left' | 'top', at: number, span: [number, number], marks: number[]) {
+  const size = 6;
+  const words = 'CUT ON THE SOLID LINE';
+  const w = font.widthOfTextAtSize(words, size) + 0.15 * size * (words.length - 1) + 14;
+  const grey = rgb(0.3, 0.3, 0.3);
+  for (const f of [0.15, 0.5, 0.85]) {
+    const mid = span[0] + (span[1] - span[0]) * f;
+    if (marks.some((m) => Math.abs(m - mid) < w / 2 + 1.5 * CM)) continue;
+    if (side === 'left') {
+      // Read up the edge, the scissors at its foot pointing along the line.
+      const x = at - (OVERLAP / 2 + 0.3) * CM; // the left margin: 0.3 cm outside the print area's edge
+      scissors(page, x - 2.5, mid - w / 2 + 5, 90, grey);
+      drawText(page, words, { x: x + size / 3, y: mid - w / 2 + 14, size, font, tracking: 0.15, rotate: 90 });
+    } else {
+      const y = at + (OVERLAP / 2 + 0.3) * CM; // the top margin: 0.3 cm above the print area's edge, half the overlap above the line
+      scissors(page, mid - w / 2 + 5, y + 2.5, 0, grey);
+      drawText(page, words, { x: mid - w / 2 + 14, y, size, font, tracking: 0.15 });
+    }
+  }
+}
+
+/** A small pair of scissors, about 10 pt long, its blades pointing along `angle` (degrees, 0 = to the right). */
+function scissors(page: PDFPage, x: number, y: number, angle: number, color: ReturnType<typeof rgb>) {
+  const t = (angle * Math.PI) / 180;
+  const at = (u: number, v: number) => ({ x: x + u * Math.cos(t) - v * Math.sin(t), y: y + u * Math.sin(t) + v * Math.cos(t) });
+  for (const v of [-1.8, 1.8]) page.drawCircle({ ...at(0, v), size: 1.5, borderColor: color, borderWidth: 0.6 });
+  page.drawLine({ start: at(1.4, -1.3), end: at(9, 1.2), thickness: 0.6, color });
+  page.drawLine({ start: at(1.4, 1.3), end: at(9, -1.2), thickness: 0.6, color });
+}
+
 /** How many pages a finished PDF holds (cover, tiles and guide pages together), for the print screen's note. */
 export async function pdfPageCount(bytes: Uint8Array): Promise<number> {
   return (await PDFDocument.load(bytes)).getPageCount();
@@ -339,7 +374,6 @@ export async function toTiledPdf(sheet: Sheet, paper: Paper, extras?: PdfExtras)
   doc.setTitle(docTitle ? (inchMode ? inInches(docTitle) : docTitle) : 'Maison Tracé pattern');
   const tiles = extras?.part !== 'booklet';
   const book = extras?.part !== 'pattern';
-  const grey = rgb(0.6, 0.6, 0.6);
   // The top and left pages of a join are trimmed halfway across the overlap.
   const trim = OVERLAP / 2;
 
@@ -386,23 +420,44 @@ export async function toTiledPdf(sheet: Sheet, paper: Paper, extras?: PdfExtras)
         page.drawRectangle({ x: PAGE_MARGIN * CM, y: PAGE_MARGIN * CM, width: footerX - PAGE_MARGIN * CM + footWidth(footerLine) + 0.15 * CM, height: FOOTER_H * CM, color: rgb(1, 1, 1) });
       }
 
-      // Trim guides: trim the left and top edges along the dashed line and lay the page over its neighbour.
-      const guide = { borderColor: grey, borderWidth: 0.5, borderDashArray: [2, 2] };
-      page.drawRectangle({ x: PAGE_MARGIN * CM, y: PAGE_MARGIN * CM, width: tw * CM, height: th * CM, ...guide });
+      // Trim guides: the left and top edges are cut along a solid line and laid over the page before. A tester taping
+      // Letter pages couldn't tell which of two dashed lines to cut, the print area's border or the trim line, and
+      // wasn't sure whether the half diamonds go over or beside each other (fit tester, Nov 20). So the cut line is the
+      // only line on a cut edge, solid, with CUT and scissors in the margin beside it; the print area's faint edge is
+      // drawn only where nothing is cut; and each diamond says whether this page goes over or under the page named.
+      // (The cut line stays mid-grey: the print check reads the shared strips' dark ink only.)
+      const x0 = PAGE_MARGIN * CM;
+      const y0 = PAGE_MARGIN * CM;
+      const x1 = (PAGE_MARGIN + tw) * CM;
+      const y1 = (ph - PAGE_MARGIN) * CM;
+      const edge = { thickness: 0.3, color: rgb(0.75, 0.75, 0.75) };
+      const cutLeft = has(r, c - 1);
+      const cutTop = has(r - 1, c);
+      page.drawLine({ start: { x: x1, y: y0 }, end: { x: x1, y: y1 }, ...edge });
+      page.drawLine({ start: { x: x0, y: y0 }, end: { x: x1, y: y0 }, ...edge });
+      if (!cutLeft) page.drawLine({ start: { x: x0, y: y0 }, end: { x: x0, y: y1 }, ...edge });
+      if (!cutTop) page.drawLine({ start: { x: x0, y: y1 }, end: { x: x1, y: y1 }, ...edge });
       const left = (PAGE_MARGIN + trim) * CM;
       const top = (ph - PAGE_MARGIN - trim) * CM;
       const right = (PAGE_MARGIN + tw - trim) * CM;
       const bottom = (PAGE_MARGIN + trim) * CM;
-      if (c > 0) page.drawLine({ start: { x: left, y: PAGE_MARGIN * CM }, end: { x: left, y: (ph - PAGE_MARGIN) * CM }, thickness: 0.5, color: grey, dashArray: [4, 2] });
-      if (r > 0) page.drawLine({ start: { x: PAGE_MARGIN * CM, y: top }, end: { x: (pw - PAGE_MARGIN) * CM, y: top }, thickness: 0.5, color: grey, dashArray: [4, 2] });
+      const cutLine = { thickness: 1, color: rgb(0.45, 0.45, 0.45) };
+      if (cutLeft) {
+        page.drawLine({ start: { x: left, y: y0 }, end: { x: left, y: y1 }, ...cutLine });
+        cutWords(page, fonts.label, 'left', left, [y0, y1], joinMarks('right', r).map((f) => (PAGE_MARGIN + th * (1 - f)) * CM));
+      }
+      if (cutTop) {
+        page.drawLine({ start: { x: x0, y: top }, end: { x: x1, y: top }, ...cutLine });
+        cutWords(page, fonts.label, 'top', top, [x0, x1], joinMarks('below', r - 1).map((f) => (PAGE_MARGIN + tw * f) * CM));
+      }
       for (const f of joinMarks('right', r)) {
         const y = (PAGE_MARGIN + th * (1 - f)) * CM;
-        if (has(r, c - 1)) diamond(page, left, y, pageName(r, c - 1), 'right', fonts.label);
-        if (has(r, c + 1)) diamond(page, right, y, pageName(r, c + 1), 'left', fonts.label);
+        if (cutLeft) diamond(page, left, y, `OVER ${pageName(r, c - 1)}`, 'right', fonts.label);
+        if (has(r, c + 1)) diamond(page, right, y, `UNDER ${pageName(r, c + 1)}`, 'left', fonts.label);
       }
       // A join's diamonds are placed by the upper page's row, on both its pages (as printCheck reads them).
-      if (has(r - 1, c)) for (const f of joinMarks('below', r - 1)) diamond(page, (PAGE_MARGIN + tw * f) * CM, top, pageName(r - 1, c), 'below', fonts.label);
-      if (has(r + 1, c)) for (const f of joinMarks('below', r)) diamond(page, (PAGE_MARGIN + tw * f) * CM, bottom, pageName(r + 1, c), 'above', fonts.label);
+      if (cutTop) for (const f of joinMarks('below', r - 1)) diamond(page, (PAGE_MARGIN + tw * f) * CM, top, `OVER ${pageName(r - 1, c)}`, 'below', fonts.label);
+      if (has(r + 1, c)) for (const f of joinMarks('below', r)) diamond(page, (PAGE_MARGIN + tw * f) * CM, bottom, `UNDER ${pageName(r + 1, c)}`, 'above', fonts.label);
       drawText(page, `PAGE ${name}`, { x: PAGE_MARGIN * CM, y: FOOTER_Y * CM, size: 7, font: fonts.label, tracking: 0.2 });
       drawText(page, footerLine, {
         x: footerX,
@@ -629,7 +684,7 @@ function addMapPage(doc: PDFDocument, fonts: Fonts, sheet: Sheet, paper: 'a4' | 
   const { st, write, label, left, width } = flow(doc, paper, fonts);
   label('PAGE LAYOUT');
   write(
-    `Print page A2 first, at 100% (actual size), and measure its 10 cm test square; then print the other ${total - 1} pattern ${total === 2 ? 'page' : 'pages'} (page A1 has your pattern code). Trim each page along its dashed line on the left and top, then lay it over the page before it so the half diamonds make whole ones, and tape.${used.flat().some((u) => !u) ? " Pages with nothing on them aren't printed, so there are gaps in the numbers: leave a gap where a page is missing, as on the map below." : ''}`,
+    `Print page A2 first, at 100% (actual size), and measure its 10 cm test square; then print the other ${total - 1} pattern ${total === 2 ? 'page' : 'pages'} (page A1 has your pattern code). Cut each page along the solid line marked CUT on its left and top edges, then lay it over the page before it so the half diamonds make whole ones (each diamond says whether its page goes OVER or UNDER the page named), and tape.${used.flat().some((u) => !u) ? " Pages with nothing on them aren't printed, so there are gaps in the numbers: leave a gap where a page is missing, as on the map below." : ''}`,
     9.5,
     fonts.body,
     0,

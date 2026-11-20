@@ -163,3 +163,45 @@ describe('the tester pattern pages keep their footer clear', () => {
       }
     });
 });
+
+// A tester taping Letter pages couldn't tell which of two dashed lines to cut, the print area's border or the trim line,
+// and wasn't sure whether the half diamonds go over or beside each other (fit tester, Nov 20). Each page's cut edges
+// now carry one solid line marked CUT, nothing dashed, and every diamond says OVER or UNDER the page it joins.
+describe('the tester pages say where to cut and which page goes on top', () => {
+  afterEach(() => vi.restoreAllMocks());
+  for (const id of IDS)
+    it(`${id}: one solid CUT line, and OVER or UNDER at every diamond`, async () => {
+      const { look, print } = made(id, EXAMPLE_BODY);
+      const sheet = layout(print.pieces, `Maison Tracé: ${look.name}`, print.notes, { pattern: look.name, madeFor: 'Tester' });
+      for (const unit of ['cm', 'in'] as const)
+        for (const paper of ['letter', 'a4'] as const) {
+          const where = `${unit}, ${paper}`;
+          const texts = new Map<PDFPage, string[]>();
+          const dashed: string[] = [];
+          const realText = PDFPage.prototype.drawText;
+          vi.spyOn(PDFPage.prototype, 'drawText').mockImplementation(function (this: PDFPage, text: string, o?: Parameters<PDFPage['drawText']>[1]) {
+            texts.set(this, [...(texts.get(this) ?? []), text]);
+            return realText.call(this, text, o);
+          });
+          const realLine = PDFPage.prototype.drawLine;
+          vi.spyOn(PDFPage.prototype, 'drawLine').mockImplementation(function (this: PDFPage, o: Parameters<PDFPage['drawLine']>[0]) {
+            if (o.dashArray?.length) dashed.push('line');
+            return realLine.call(this, o);
+          });
+          const realRect = PDFPage.prototype.drawRectangle;
+          vi.spyOn(PDFPage.prototype, 'drawRectangle').mockImplementation(function (this: PDFPage, o?: Parameters<PDFPage['drawRectangle']>[0]) {
+            if (o?.borderDashArray?.length) dashed.push('rectangle');
+            return realRect.call(this, o);
+          });
+          await toTiledPdf(sheet, paper, { title: look.name, unit, part: 'pattern' });
+          vi.restoreAllMocks();
+          expect(dashed, where).toEqual([]);
+          for (const t of texts.values()) {
+            // A bare page name only once on a page: its own, large and faint. A diamond's says OVER or UNDER.
+            expect(t.filter((x) => /^[A-Z]\d+$/.test(x)).length, where).toBeLessThanOrEqual(1);
+            if (t.some((x) => /^OVER [A-Z]\d+$/.test(x))) expect(t.filter((x) => x === 'CUT ON THE SOLID LINE').length, where).toBeGreaterThan(0);
+          }
+          expect([...texts.values()].flat().some((x) => /^UNDER [A-Z]\d+$/.test(x)), where).toBe(true);
+        }
+    });
+});
