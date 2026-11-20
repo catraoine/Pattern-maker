@@ -219,7 +219,7 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
       ],
       guide: withFabric(
         ((g) => (lining ? withTrouserLining(g, trousers, { metres: liningM ?? trousersFabricMetres(lining), width: finish.fabricWidth, seam: fmtCm(seams.seam) }) : g))(
-          trousersGuide(trousers, lays.find((l) => l.fabric === 'self')?.metres ?? trousersFabricMetres(trousers), { seams, width: finish.fabricWidth, length: trousersChoices.length }),
+          trousersGuide(trousers, lays.find((l) => l.fabric === 'self')?.metres ?? trousersFabricMetres(trousers), { seams, width: finish.fabricWidth, length: trousersChoices.length, lined: !!lining }),
         ),
         fabric,
         'trousers',

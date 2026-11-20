@@ -34,8 +34,9 @@ export function useSaid() {
 }
 
 const half = (v: number) => Math.round(v * 2) / 2;
-/** In the sewist's unit, as she would type it: cm to the half, inches to the eighth ("20⅞"). */
-const shown = (cm: number, unit: Unit) => (unit === 'in' ? toInches(cm).replace(/ in$/, '') : String(half(cm)));
+/** In the sewist's unit, as she would type it: cm to the millimetre, inches to the eighth ("20⅞"). A dragged 53.8 cm
+ *  opened as 54, against the 53.8 on the label and in the table (pretend tester DO walk, Nov 20). */
+const shown = (cm: number, unit: Unit) => (unit === 'in' ? toInches(cm).replace(/ in$/, '') : String(Math.round(cm * 10) / 10));
 const word = (unit: Unit) => (unit === 'in' ? 'in' : 'cm');
 
 /** The length label's tap area, laid over the label's words on the drawing. Width and height are the words' own. */

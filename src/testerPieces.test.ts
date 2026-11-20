@@ -8,8 +8,9 @@ import { printableFor } from './printable';
 import { withEstimates } from './estimate';
 import { taggedLength } from './engine/geometry';
 import type { MeasurementValues } from './measurements';
-import type { Piece } from './engine/piece';
-import { diamondCollisions, layout } from './engine/export';
+import { MARK_TEXT, type Piece } from './engine/piece';
+import { diamondCollisions, labelCollisions, layout, textWidth } from './engine/export';
+import { crossings } from './engine/easeMap';
 import { edgeLabels } from './engine/marks';
 
 // The five pieces the fit testers sew (Blush Shift, Ice Peplum Top, Black Pleated Skirt, Chocolate Barrel Trouser and the
@@ -199,9 +200,31 @@ describe('sewing in muslin', () => {
     const may = (id: string) => /If you like, you can also leave out (.*): either way is fine for the fit test\.$/.exec(line(id))?.[1] ?? '';
     expect(may('blush-shift')).toMatch(/^the lining /);
     expect(may('ice-peplum')).toMatch(/^the rouleau loops and buttons /);
-    expect(may('chocolate-barrel')).toMatch(/^the welt pockets .* and the belt loops$/);
-    expect(may('black-vest')).toMatch(/^the lining .* and the welt pockets /);
-    expect(may('black-pleated-skirt')).toBe('');
+    expect(may('chocolate-barrel')).toMatch(/^the welt pockets .*, the belt loops, /);
+    expect(may('black-vest')).toMatch(/^the lining .*, the welt pockets /);
+    // And the interfacing, the zip and the buttons, where the steps use them, with what to do instead (DO walk, Nov 20).
+    expect(may('black-pleated-skirt')).toMatch(/the interfacing and stay tape and the zip \(pin or tack the opening closed/);
+    expect(may('black-vest')).toContain('the buttonholes and buttons (pin the fronts closed');
+  });
+  // Two lengths that add up in cm needn't in inches (1 cm then 3 cm read 3/8 + 1-1/8 on a 1-5/8 in allowance): the hems
+  // turn up the rest of the allowance, or halves of it (DO walk, Nov 20).
+  it('turns hems up by the allowance, not by lengths that must add up', () => {
+    const hem = step(made('chocolate-barrel', BODIES.middle), 'Hem');
+    expect(hem).toMatch(/Press up 1 cm, then turn up the rest of the [\d.]+ cm hem allowance/);
+    expect(made('ice-peplum', BODIES.middle).guide.fabric!.join(' ')).toContain('turn the hem allowance up by half, then again');
+  });
+  // The cutting layout lays an unlined trouser's back pocket bags in the fabric, and the step says so (DO walk, Nov 20).
+  it("says the trouser's back pocket bags may come from the fabric, as the layout lays them", () => {
+    const p = made('chocolate-barrel', BODIES.middle);
+    expect(step(p, 'Cut out')).toContain('the four back pocket bags from lining or pocketing, or from the fabric itself: the cutting layout leaves room for them.');
+    expect(p.lays?.find((l) => l.fabric === 'self')?.placements.some((pl) => pl.name === 'Back pocket bag')).toBe(true);
+  });
+  // The trouser's first step says wash the cloth: the line doesn't say it says not to (DO walk, Nov 20).
+  it('says the first step says not to wash only where it does', () => {
+    const line = (id: string) => made(id, BODIES.middle).guide.fabric!.find((l) => l.startsWith('Sewing in muslin'))!;
+    expect(line('chocolate-barrel')).not.toContain('says not to wash');
+    expect(line('black-vest')).toContain('says not to wash');
+    for (const id of ['blush-shift', 'ice-peplum', 'black-pleated-skirt', 'chocolate-barrel', 'black-vest']) expect(line(id)).toContain('long machine stitch');
   });
 });
 
@@ -245,4 +268,27 @@ describe('a sewn-on edge', () => {
     expect(words.filter((w) => /^Bodice .*: PEPLUM SEAM/.test(w)).length).toBeGreaterThan(0);
     expect(words.some((w) => /^Sleeve: BAND SEAM/.test(w))).toBe(true);
   });
+});
+
+// The Ice Peplum's centre front is too narrow at the bust for the finished-bust words, which were printed over PLACE ON
+// FOLD and its princess seam label (pretend tester DO walk, Nov 20). On every tester piece, the finished measurement
+// words keep clear of the other words.
+describe('the finished measurement words on each tester piece', () => {
+  for (const id of ['blush-shift', 'ice-peplum', 'black-pleated-skirt', 'chocolate-barrel', 'black-vest'])
+    for (const [body, values] of Object.entries(BODIES))
+      it(`keep clear on ${id}, ${body} body`, () => {
+        const sheet = layout(made(id, values).pieces, id, [], { pattern: id, madeFor: 'Me', date: '20 Nov 2026' });
+        expect(labelCollisions(sheet).filter((pair) => pair.some((t) => /^(FINISHED |YOU )/.test(t)))).toEqual([]);
+      });
+  // And each sits where its words fit across the piece, clear of the seam names along the edges and the fold bracket.
+  for (const [body, values] of Object.entries(BODIES))
+    it(`has room for the words on the Ice Peplum, ${body} body`, () => {
+      for (const pc of made('ice-peplum', values).pieces)
+        for (const f of pc.finished ?? []) {
+          const edge = crossings(pc.outline.points(), f.at.y);
+          const half = textWidth(f.title, MARK_TEXT, 0.12) / 2;
+          expect(f.at.x - half, `${pc.name}: ${f.title}`).toBeGreaterThanOrEqual(edge[0] + (pc.fold ? 3.4 : 1));
+          expect(f.at.x + half, `${pc.name}: ${f.title}`).toBeLessThanOrEqual(edge[edge.length - 1] - 1);
+        }
+    });
 });
