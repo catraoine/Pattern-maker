@@ -120,7 +120,19 @@ export function inInches(text: string): string {
   return articles(inInchesOnly(text));
 }
 
+// A pattern code (patternCode.ts: build, hip, bust, high bust and four characters) is not a length: "276F-97-90-0-3G3M"
+// printed as "...3G3⅜ YD" on page 1 of an inch pattern, and the fit form asks for that code (pretend tester DN walk,
+// Nov 20). Its last four characters can be digits with M, CM or IN, so codes are kept out of the conversion whole.
+const PATTERN_CODE = /(\b[0-9A-Z]{3,4}-\d+-\d+-\d+-[0-9A-Z]{4}\b)/;
+
 function inInchesOnly(text: string): string {
+  return text
+    .split(PATTERN_CODE)
+    .map((part, i) => (i % 2 ? part : lengthsInInches(part)))
+    .join('');
+}
+
+function lengthsInInches(text: string): string {
   return text
     .replace(IRON_C, (_, about, c) => `${about} ${Math.round((Number(c) * 9) / 5 / 10 + 3.2) * 10}°F`)
     .replace(SQUARE, (m) => (m.startsWith('exactly') ? 'exactly 10 cm (3.94 in)' : '10 cm (3.94 in) test square'))
