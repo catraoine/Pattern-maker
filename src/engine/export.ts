@@ -1136,6 +1136,18 @@ function tilesAt(sheet: Sheet, pw: number, ph: number): boolean[][] {
       const own = inked(sheet, x + (left ? OVERLAP : 0), y + (above ? OVERLAP : 0), tw - (left ? OVERLAP : 0), th - (above ? OVERLAP : 0));
       used[r][c] = own;
     }
+  // A page whose ink all lies in the strips a printed page to its right or below shows too: a trouser file printed pages
+  // with nothing but such a strip, though the booklet says blank pages are left out (pretend tester DO walk, Nov 20).
+  // Dropped one at a time, against the pages still printed, so every strip keeps a copy.
+  for (let r = 0; r < rows; r++)
+    for (let c = 0; c < cols; c++) {
+      if (!used[r][c]) continue;
+      const x = c * (tw - OVERLAP);
+      const y = r * (th - OVERLAP);
+      const [left, above, right, below] = [c > 0 && used[r][c - 1], r > 0 && used[r - 1][c], used[r][c + 1], used[r + 1]?.[c]].map((v) => (v ? OVERLAP : 0));
+      if (!right && !below) continue;
+      used[r][c] = inked(sheet, x + left, y + above, tw - left - right, th - above - below);
+    }
   return used;
 }
 

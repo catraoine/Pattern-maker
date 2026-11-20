@@ -235,6 +235,14 @@ describe('tiles that only repeat a printed neighbour', () => {
   it('keeps a row the ink reaches past the shared strip', () => {
     expect(usedTiles(line(28.5), 'a4').map((r) => r.filter(Boolean).length)).toEqual([1, 1]);
   });
+  // The other way round (pretend tester DO walk, Nov 20): a trouser file printed pages whose only ink was in the strip
+  // the page to their right, or below, prints too. Columns step 18 cm, so x 18 to 19 is the first page's right strip.
+  it('drops a page whose only ink is in the strip the page to its right or below prints', () => {
+    const right: Sheet = { width: 30, height: 20, prims: [{ kind: 'poly', style: 'cut', closed: false, pts: [{ x: 18.4, y: 5 }, { x: 28, y: 5 }] }] };
+    expect(usedTiles(right, 'a4')).toEqual([[false, true]]);
+    const below: Sheet = { width: 15, height: 40, prims: [{ kind: 'poly', style: 'cut', closed: false, pts: [{ x: 5, y: 26.9 }, { x: 5, y: 38 }] }] };
+    expect(usedTiles(below, 'a4')).toEqual([[false], [true]]);
+  });
 });
 
 describe('fewest big sheets on A0', () => {
