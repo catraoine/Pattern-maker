@@ -16,6 +16,8 @@ phone, in short bursts, often by voice dictation. Everything here is a standing 
   Measure), the device and size, and "NOW" on today's version. Add a one-line "what changes" caption
   per option, and use the same codes in the message and the decision card. Show every step Cat would
   need to judge it (how you get to the next step, not just the hero screen).
+- **Only garments that pass go on option sheets** (Nov 1, merged Nov 20). Leave anything not usable
+  or "nearly" off the sheet, and say in one plain line which ones were left out and why.
 - **Card taps are often accidental.** Echo a decision-card pick in one line before building; a
   typed message always beats a tap.
 - **Heads-up before a likely mistake.** If she asks for something that looks wrong, especially
@@ -35,8 +37,9 @@ phone, in short bursts, often by voice dictation. Everything here is a standing 
 
 ## Films, stills and visuals
 
-- **Stills before clips.** Show still frames of any visual change before recording or cutting a
-  film. Small late tweaks can skip this if Claude checks the frames itself.
+- **Stills before clips** (Oct 24, narrowed Nov 20). For films and demo clips recorded from the app,
+  show still frames of any visual change before recording or cutting. Small late tweaks can skip this
+  if Claude checks the frames itself. Not a standing rule for camera-shoot edits.
 - **Send each file the moment it's ready**, phone version first; never hold one back to bundle.
 - **Film layout** (Oct 29): captions at one height on every screen, pictures balanced, a smooth
   journey. Check a contact sheet before sending.
