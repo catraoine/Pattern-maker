@@ -93,6 +93,10 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
   const shown = (id: string) => id !== 'length';
   const lengthGroup = TROUSER_GROUPS.find((g) => g.id === 'length')!;
   const full = trouserLength(values as unknown as TrousersMeasurements, { leg: 'straight', length: 'full' });
+  // A length set between the named ones takes the nearest one's name, as the skirt's does: it kept the last name the dot
+  // passed, and a pair typed to 103 cm printed as "shorts" in its title, labels and booklet (pretend tester DK walk, Nov 19).
+  const nearestLength = (cm: number) =>
+    TROUSER_LENGTHS.reduce((a, b) => (Math.abs(trouserLength(values as unknown as TrousersMeasurements, { leg: choices.leg, length: b }) - cm) < Math.abs(trouserLength(values as unknown as TrousersMeasurements, { leg: choices.leg, length: a }) - cm) ? b : a));
   const hem =
     choices.leg === 'culotte' || !values.waist_to_floor || !values.waist_to_knee || !values.crotch_depth
       ? undefined
@@ -103,7 +107,7 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
           onPick: (length: string) => onChoices(validTrousers({ ...choices, length: length as TrousersChoices['length'], lengthCm: undefined })),
           // The hem glides to any length between the named ones, measured from the waist (Cat, 2026-11-06), even on a low or
           // high rise, which the box says (pretend tester, Nov 18).
-          free: { zero: 0, ...lengthCmRange(values as unknown as TrousersMeasurements), cm: choices.lengthCm, onCm: (cm: number) => onChoices(validTrousers({ ...choices, lengthCm: cm })), ...((choices.rise && choices.rise !== 'mid') || choices.riseCm ? { from: 'from your own waist, not the top of the trousers' } : {}) },
+          free: { zero: 0, ...lengthCmRange(values as unknown as TrousersMeasurements), cm: choices.lengthCm, onCm: (cm: number) => onChoices(validTrousers({ ...choices, length: nearestLength(cm), lengthCm: cm })), ...((choices.rise && choices.rise !== 'mid') || choices.riseCm ? { from: 'from your own waist, not the top of the trousers' } : {}) },
         };
   const elastic = choices.waist === 'elastic';
   const pockets = choices.pockets ?? 'none';
