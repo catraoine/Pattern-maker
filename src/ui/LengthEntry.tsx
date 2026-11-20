@@ -81,7 +81,9 @@ export function LengthBox({ ask, unit, onClose }: { ask: LengthAsk; unit: Unit; 
     input.current?.focus();
     input.current?.select();
   }, []);
-  const range = `${fmtLength(half(ask.min), unit)} to ${fmtLength(half(ask.max), unit)} ${ask.from}`;
+  // "From the top of the skirt, 5 cm below your waist" in the sewist's unit.
+  const from = unit === 'in' ? inInches(ask.from) : ask.from;
+  const range = `${fmtLength(half(ask.min), unit)} to ${fmtLength(half(ask.max), unit)} ${from}`;
   const set = (e: FormEvent) => {
     e.preventDefault();
     // Set with the number as it opened leaves the length alone: the box opens rounded (49 for 49.1, 23⅝ for a knee at
@@ -97,7 +99,7 @@ export function LengthBox({ ask, unit, onClose }: { ask: LengthAsk; unit: Unit; 
   return (
     <form className="length-box" data-keep-cm onSubmit={set} aria-label={ask.name}>
       <label htmlFor="length-box-input">
-        {ask.name}, {ask.from}
+        {ask.name}, {from}
       </label>
       <div className="length-box-row">
         <input

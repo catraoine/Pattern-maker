@@ -250,7 +250,7 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
     return {
       pieces,
       notes: [
-        `Finished waist ${Math.round(skirt.finishedWaist * 10) / 10} cm${skirt.elastic ? `, gathered onto ${skirt.elastic.finishedCm} cm of elastic` : ''}, hip ${skirt.finishedHip} cm, length ${skirt.lengthCm} cm ${skirt.lowRise ? 'from the top of the skirt' : 'from the waist'}.`,
+        `Finished waist ${Math.round(skirt.finishedWaist * 10) / 10} cm${skirt.elastic ? `, gathered onto ${skirt.elastic.finishedCm} cm of elastic` : ''}, hip ${skirt.finishedHip} cm, length ${skirt.lengthCm} cm ${skirt.lowRise ? `from the top of the skirt, ${Math.round(skirt.lowRise * 2) / 2} cm below the waist` : 'from the waist'}.`,
         couture
           ? `Couture allowances: ${fmtCm(seams.seam)} at the seams, ${fmtCm(seams.waist)} at the waist, ${fmtCm(hem)} at the hem. Thread-trace the solid stitching line.`
           : `Seam allowance ${fmtCm(seams.seam)} included, ${fmtCm(hem)} at the hem. Dashed line = stitching line.`,
