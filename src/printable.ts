@@ -174,9 +174,10 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
       notes: [
         // "Round the hem": "hem 129.1 cm" on the Black Vest read like a length (pretend tester DI walk, Nov 19).
         `Finished bust ${outer.finishedBust} cm, waist ${outer.finishedWaist} cm, round the hem ${outer.finishedHem} cm, back length ${outer.lengthCm} cm.`,
+        // The chest seam is sewn at 1 cm too (chestSeam.ts), and the Black Vest's list left it out (DP walk, Nov 20).
         couture
           ? `Couture allowances: ${fmtCm(seams.seam)} at the seams, ${fmtCm(seams.curve)} at the neck and armholes, ${fmtCm(hem)} at the hem. Thread-trace the solid stitching line.`
-          : `Seam allowance ${fmtCm(seams.seam)} included, 1 cm at the neck, armholes, collar and front edges, ${fmtCm(hem)} at the hem. Dashed line = stitching line.`,
+          : `Seam allowance ${fmtCm(seams.seam)} included, 1 cm at the neck, armholes, collar${outer.chestSeam ? ', front edges and chest seam' : ' and front edges'}, ${fmtCm(hem)} at the hem. Dashed line = stitching line.`,
         `Fully lined, with front facings${outer.lapel ? ` and a ${outer.lapel.shawl ? 'shawl' : 'notched'} collar` : ''}. ${outerButtons} button${outerButtons === 1 ? '' : 's'}, ${outer.buttons.sizeCm} cm. Sewing steps are in the instructions booklet.`,
         // (A sleeveless vest has no sleeve to describe: the Black Vest's first page gave a bicep and crown ease.)
         ...(!outer.sleeveless ? [`Sleeve: bicep ${outer.sleeve.bicep} cm, crown ease ${outer.sleeve.crownEase.front} cm front, ${outer.sleeve.crownEase.back} cm back.`] : []),

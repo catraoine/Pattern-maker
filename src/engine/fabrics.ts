@@ -367,6 +367,8 @@ const PEPLUM_NOTES = {
 };
 
 const FIT_WORDS: Record<BodiceFit, string> = { fitted: 'fitted', regular: 'regular fit', relaxed: 'relaxed', boxy: 'boxy', oversized: 'oversized' };
+/** "a" or "an" before a fit's words: Print said "Good match for a oversized jacket" (DP walk, Nov 20). */
+const aFit = (fit: BodiceFit) => `${/^[aeiou]/.test(FIT_WORDS[fit]) ? 'an' : 'a'} ${FIT_WORDS[fit]}`;
 
 /** Fabrics for a bodice style. */
 export function bodiceFabrics(style: { fit: BodiceFit; neckline: Neckline; length?: BodiceLength; darts?: BodiceDarts; structure?: Structure; neck?: unknown; peplum?: 'none' | 'flared' | 'gathered' | 'balloon' }): FabricAdvice {
@@ -393,7 +395,7 @@ export function bodiceFabrics(style: { fit: BodiceFit; neckline: Neckline; lengt
   const drawnOver = (style.neckline === 'cowl' || style.neckline === 'one_shoulder') && !!style.neck;
   const peplum = style.peplum && style.peplum !== 'none' ? PEPLUM_NOTES[style.peplum] : undefined;
   return {
-    style: cowl ? `a ${FIT_WORDS[style.fit]} cowl-neck top` : `a ${FIT_WORDS[style.fit]} top`,
+    style: cowl ? `${aFit(style.fit)} cowl-neck top` : `${aFit(style.fit)} top`,
     picks: base.picks,
     avoid: `${base.avoid} ${STRETCH}`,
     note: (drawnOver ? undefined : NECK_NOTES[style.neckline]) ?? peplum,
@@ -489,10 +491,10 @@ const OUTER: Record<'jacket' | 'coat', FabricPick[]> = {
   ],
 };
 
-/** Fabrics for a jacket or a coat. */
-export function outerFabrics(style: { garment: 'jacket' | 'coat'; fit: BodiceFit }): FabricAdvice {
+/** Fabrics for a jacket or a coat. A jacket without sleeves is named a vest, as everywhere else in the app. */
+export function outerFabrics(style: { garment: 'jacket' | 'coat'; fit: BodiceFit; sleeve?: string }): FabricAdvice {
   return {
-    style: `a ${FIT_WORDS[style.fit]} ${style.garment}`,
+    style: `${aFit(style.fit)} ${style.garment === 'jacket' && style.sleeve === 'none' ? 'vest' : style.garment}`,
     picks: OUTER[style.garment],
     avoid: `Light or fluid fabrics like lawn, chiffon or crepe de chine. They will not hold the collar, lapels and shoulders. ${STRETCH}`,
     note: 'Interface the front facings, collar and hems with a fusible weft interfacing.',
@@ -558,7 +560,7 @@ export type FabricStyle =
   | { garment: 'trousers'; fit: Fit; leg: Leg }
   | TeeFabricStyle
   | LingerieFabricStyle
-  | { garment: 'jacket' | 'coat'; fit: BodiceFit };
+  | { garment: 'jacket' | 'coat'; fit: BodiceFit; sleeve?: string };
 
 const weightRank: Record<Weight, number> = { light: 0, medium: 1, heavy: 2 };
 

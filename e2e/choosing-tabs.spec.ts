@@ -17,7 +17,15 @@ test('the header tabs, while still choosing what to make', async ({ page }) => {
     await main.getByRole('button', { name: 'Next' }).click();
     await expect(main.getByRole('heading').first()).not.toHaveText(h);
   }
-  await main.getByRole('button', { name: 'Choose what to make' }).click();
+  // On "Do these look right?" itself, Style and Print said "once your measurements are in" with the measurements on
+  // the screen, and a second tap seemed to do nothing (DP walk, Nov 20).
+  await page.getByRole('button', { name: 'Print', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Choose what to make first');
+  await expect(main.getByRole('heading', { name: 'What would you like to make?' })).toBeVisible();
+  await page.getByRole('button', { name: 'Print', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Choose what to make first');
+  await expect(main.getByRole('heading', { name: 'What would you like to make?' })).toBeVisible();
+
   await main.getByRole('button', { name: 'The collection ›' }).click();
   await expect(main.getByRole('heading', { name: 'The collection' })).toBeVisible();
 
@@ -30,6 +38,7 @@ test('the header tabs, while still choosing what to make', async ({ page }) => {
   await expect(main.getByRole('heading', { name: 'Do these look right?' })).toBeVisible();
   await expect(main).toContainText('Bust');
   await expect(main).toContainText('Weight');
-  await main.getByRole('button', { name: 'Choose what to make' }).click();
+  await page.getByRole('button', { name: 'Style', exact: true }).click();
+  await expect(page.getByRole('status')).not.toContainText('once your measurements are in');
   await expect(main.getByRole('heading', { name: 'What would you like to make?' })).toBeVisible();
 });

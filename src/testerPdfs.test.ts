@@ -178,14 +178,19 @@ describe('the tester pages say where to cut and which page goes on top', () => {
           const where = `${unit}, ${paper}`;
           const texts = new Map<PDFPage, string[]>();
           const dashed: string[] = [];
+          // Where each page's name in the footer starts, and its upright cut line: the line ran through "PAGE A2" (DP walk, Nov 20).
+          const footAt = new Map<PDFPage, number>();
+          const cutAt = new Map<PDFPage, number>();
           const realText = PDFPage.prototype.drawText;
           vi.spyOn(PDFPage.prototype, 'drawText').mockImplementation(function (this: PDFPage, text: string, o?: Parameters<PDFPage['drawText']>[1]) {
             texts.set(this, [...(texts.get(this) ?? []), text]);
+            if (text.startsWith('PAGE ') && o?.x !== undefined) footAt.set(this, o.x);
             return realText.call(this, text, o);
           });
           const realLine = PDFPage.prototype.drawLine;
           vi.spyOn(PDFPage.prototype, 'drawLine').mockImplementation(function (this: PDFPage, o: Parameters<PDFPage['drawLine']>[0]) {
             if (o.dashArray?.length) dashed.push('line');
+            if (o.start.x === o.end.x && (o.thickness ?? 1) >= 1) cutAt.set(this, o.start.x);
             return realLine.call(this, o);
           });
           const realRect = PDFPage.prototype.drawRectangle;
@@ -196,6 +201,7 @@ describe('the tester pages say where to cut and which page goes on top', () => {
           await toTiledPdf(sheet, paper, { title: look.name, unit, part: 'pattern' });
           vi.restoreAllMocks();
           expect(dashed, where).toEqual([]);
+          for (const [pg, x] of cutAt) expect(footAt.get(pg)!, where).toBeGreaterThan(x + 2);
           for (const t of texts.values()) {
             // A bare page name only once on a page: its own, large and faint. A diamond's says OVER or UNDER.
             expect(t.filter((x) => /^[A-Z]\d+$/.test(x)).length, where).toBeLessThanOrEqual(1);

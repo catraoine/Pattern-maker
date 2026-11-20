@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bodiceFabrics, checkFabric, dressFabrics, trousersFabrics, describeFabric, fabricLines, skirtFabrics, withFabric, withFabricEase } from './fabrics';
+import { bodiceFabrics, checkFabric, outerFabrics, dressFabrics, trousersFabrics, describeFabric, fabricLines, skirtFabrics, withFabric, withFabricEase } from './fabrics';
 import type { Length, Silhouette } from './skirt';
 import type { BodiceFit, Neckline } from './bodice';
 import { draftSkirt } from './skirt';
@@ -32,6 +32,15 @@ describe('fabric advice', () => {
         expect(a.avoid).toMatch(/woven/);
         expect(!!a.note).toBe(neckline === 'square' || neckline === 'v' || neckline === 'boat');
       }
+  });
+});
+
+// DP walk, Nov 20: the Black Vest's Print page said "Good match for a oversized jacket".
+describe('fabric advice words', () => {
+  it('says "an" before oversized, and names a jacket without sleeves a vest', () => {
+    expect(outerFabrics({ garment: 'jacket', fit: 'oversized', sleeve: 'none' }).style).toBe('an oversized vest');
+    expect(outerFabrics({ garment: 'jacket', fit: 'regular', sleeve: 'tailored' }).style).toBe('a regular fit jacket');
+    expect(bodiceFabrics({ fit: 'oversized', neckline: 'crew' }).style).toBe('an oversized top');
   });
 });
 

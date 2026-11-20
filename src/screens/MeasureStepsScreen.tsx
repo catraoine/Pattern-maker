@@ -65,6 +65,8 @@ interface Props {
   onMade?: () => void;
   /** "Tell me when it's ready", for something the app can't make yet. */
   onNews?: () => void;
+  /** Which page is showing: the header's Style and Print answer differently before anything is chosen. */
+  onPage?: (kind: PageKind) => void;
 }
 
 export type StepsStart = { kind: 'resume' } | { kind: 'choose' } | { kind: 'check' } | { kind: 'form' } | { kind: 'for'; garment: Garment; also?: MeasurementId[] } | { kind: 'redo'; garment: Garment; ids: MeasurementId[] };
@@ -79,6 +81,7 @@ type Page =
   | { kind: 'saved' }
   | { kind: 'describe' }
   | { kind: 'idea'; idea: IdeaReading };
+export type PageKind = Page['kind'];
 
 /** Why a described idea couldn't be read, with the way forward. */
 const IDEA_ERROR: Partial<Record<PhotoError, string>> = {
@@ -108,7 +111,7 @@ const aOrAn = (name: string) => (/(s|wear|lingerie)$/i.test(name) && !/dress$/i.
 // There is no first page (Fable's concept A, Cat's apply, Nov 15): Begin opens on the waist. Who you are designing
 // for, and the form, sit in one quiet line above the first measurement, with Change for the few who need it;
 // "Someone else" words every page for the person holding the tape and asks their name before any number is taken.
-export function MeasureStepsScreen({ testerCode, garment: current, unit, values, onUnit, onValues, helped = [], weight, onWeight, onDone, start, opening, onSomeoneElse, theirs, theirName, onSkip, onLater, form = 'womenswear', onForm, onIdea, onPhoto, onLooks, onMade, onNews, unused = () => [], named = (g) => GARMENT_NAME[g] }: Props) {
+export function MeasureStepsScreen({ testerCode, garment: current, unit, values, onUnit, onValues, helped = [], weight, onWeight, onDone, start, opening, onSomeoneElse, theirs, theirName, onSkip, onLater, form = 'womenswear', onForm, onIdea, onPhoto, onLooks, onMade, onNews, onPage, unused = () => [], named = (g) => GARMENT_NAME[g] }: Props) {
   const aimed = start?.kind === 'for' ? start.garment : undefined;
   // Opened afresh for a garment, a redo, the form or the garments (not a reload, and not stepped back into): its own
   // first page, not the one this history entry remembers from before.
@@ -137,6 +140,8 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     // page once the base measurements are in (back from the collection, Nov 11): this screen's first entry is the
     // waist, and coming back to it opens on the list or the check instead. Mending one from the check is kept.
   }, (s) => typeof s === 'object' && s !== null && 'kind' in s && (s as { kind: string }).kind !== 'intro' && !((s as Page).kind === 'base' && !(s as { back?: string }).back && baseDone(values)), newOpening);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- reports each page change; the parent's callback is new every render
+  useEffect(() => onPage?.(page.kind), [page.kind]);
   // Opened on the check because the measurements were taken on an earlier visit: say so.
   // Not when stepping back into it during this visit: only on opening it afresh.
   const [returning] = useState(() => !start && baseDone(values) && (window.history.state as { sub?: unknown } | null)?.sub === undefined);

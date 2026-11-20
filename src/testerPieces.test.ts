@@ -12,6 +12,7 @@ import { MARK_TEXT, type Piece } from './engine/piece';
 import { diamondCollisions, labelCollisions, layout, textWidth } from './engine/export';
 import { crossings } from './engine/easeMap';
 import { edgeLabels } from './engine/marks';
+import { checkPattern } from './engine/qc';
 
 // The five pieces the fit testers sew (Blush Shift, Ice Peplum Top, Black Pleated Skirt, Chocolate Barrel Trouser and the
 // Black Vest), made the way the app makes a look, in its own cloth, on a small, a middle and a large body, and read as a
@@ -291,4 +292,16 @@ describe('the finished measurement words on each tester piece', () => {
           expect(f.at.x + half, `${pc.name}: ${f.title}`).toBeLessThanOrEqual(edge[edge.length - 1] - 1);
         }
     });
+});
+
+// DP walk, Nov 20: the Black Vest's seam check listed "Yoke seam square at centre back" and "Neckline square at centre
+// back" twice, and its first page left the 1 cm chest seam off the allowances it named.
+describe('the Black Vest first page and seam check', () => {
+  it('names each check once, and the chest seam among the 1 cm allowances', () => {
+    const vest = made('black-vest', BODIES.middle);
+    const pieces = vest.pieces.filter((pc) => !pc.kind || pc.kind === 'collar' || pc.kind === 'pocket');
+    const labels = checkPattern(pieces).map((c) => c.label);
+    expect(labels.filter((l, i) => labels.indexOf(l) !== i)).toEqual([]);
+    expect(vest.notes.join(' ')).toMatch(/1 cm at [^.]*chest seam/);
+  });
 });

@@ -47,7 +47,7 @@ import { preloadScreens, screen } from './screens/load';
 import { FABRIC, StartOver, openLookNext, openTabNext } from './ui/StyleLayout';
 import { KeptCount } from './ui/SaveControl';
 import { GARMENT_NAME, baseDone } from './measureFlow';
-import type { StepsStart } from './screens/MeasureStepsScreen';
+import type { PageKind, StepsStart } from './screens/MeasureStepsScreen';
 import { mergeBackups } from './cloud/merge';
 import { useCloud } from './cloud/useCloud';
 import { useFounding } from './cloud/useFounding';
@@ -694,12 +694,18 @@ export default function App() {
   };
 
   // Why Style or Print didn't open while measuring, shown over the guided pages for a moment.
-  const [stepsNote, setStepsNote] = useState<string>();
+  // Kept with when it was asked for, so a second tap on Print shows it again for its full time: the same words twice
+  // left the first tap's timer running, and the second tap seemed to do nothing (pretend tester, Nov 20).
+  const [note, setNote] = useState<{ text: string; at: number }>();
+  const stepsNote = note?.text;
+  const setStepsNote = (text?: string) => setNote(text ? { text, at: Date.now() } : undefined);
   useEffect(() => {
-    if (!stepsNote) return;
-    const t = setTimeout(() => setStepsNote(undefined), 4000);
+    if (!note) return;
+    const t = setTimeout(() => setNote(undefined), 4000);
     return () => clearTimeout(t);
-  }, [stepsNote]);
+  }, [note]);
+  // The guided page showing, for the header's Style and Print.
+  const [stepsPage, setStepsPage] = useState<PageKind>();
 
   // Why someone landed on Measure when they asked for another screen; cleared once they move on.
   const [measureNote, setMeasureNote] = useState<string>();
@@ -773,10 +779,13 @@ export default function App() {
     // garment is only the first-visit skirt. Measure showed a skirt's list without the bust or weight just given, and
     // Style and Print stayed shut on a skirt's waist to knee, with "Make something else" the only way out (pretend
     // tester walks, four times to DO, Nov 20). Measure goes back to the measurements given, the others to the choice.
-    if (step === 'collection' && lookFrom === 'steps' && baseDone(measured)) {
-      if (to === 'measure') return openSteps({ kind: 'check' });
+    // The same on the guided pages' check and list ("Do these look right?", "What would you like to make?"): the
+    // measurements are in, so "once your measurements are in" read as wrong, and Print seemed to do nothing (DP walk, Nov 20).
+    const choosing = (step === 'collection' && lookFrom === 'steps') || (step === 'steps' && (stepsPage === 'check' || stepsPage === 'choose'));
+    if (choosing && baseDone(measured)) {
+      if (to === 'measure') return step === 'steps' ? undefined : openSteps({ kind: 'check' });
       if (!canLeaveMeasure) {
-        openSteps({ kind: 'choose' });
+        if (!(step === 'steps' && stepsPage === 'choose')) openSteps({ kind: 'choose' });
         setStepsNote('Choose what to make first: Style and Print open for it.');
         return;
       }
@@ -800,7 +809,7 @@ export default function App() {
   // The style the fabric is checked against: Print's fabric notes, and the heads up on Style's Fabric step.
   const fabricStyle: FabricStyle =
     isOuterGarment
-      ? { garment, fit: outerChoices.fit }
+      ? { garment, fit: outerChoices.fit, sleeve: outerChoices.sleeve }
       : garment === 'bodice'
       ? { garment, fit: saved.bodice.fit, neckline: saved.bodice.neckline, structure: validDetails(saved.bodice).structure }
       : garment === 'dress'
@@ -1099,6 +1108,7 @@ export default function App() {
               }}
               onMade={() => openLegal('made')}
               onNews={() => openLegal('news')}
+              onPage={setStepsPage}
               onLater={() => setStep('welcome')}
               onSkip={tryWithExample}
             />

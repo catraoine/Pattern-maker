@@ -451,6 +451,8 @@ export const turnedInBox = (q: P, [x0, y0, x1, y1]: [number, number, number, num
 // A4 and Letter, then the square, wholly inside the second page, then a narrower title card. The three take the same
 // 56 cm as the square and the 46 cm card did before, so every piece prints exactly where it did and on as many pages.
 const CODE_W = 15.5; // cm: x 3 to 18.5, inside page 1 (A4 prints to 19, Letter to 19.59)
+/** How far down the sheet page 1's code card reaches, in cm: the big page name on that page goes below it. */
+export const CODE_CARD_BOTTOM = MARGIN + 10;
 const SQUARE_AT = 17; // cm from the margin: x 20 to 30, inside page 2 (A4 from 18, Letter from 18.59) and clear of page 1
 /** The test square's left edge on the sheet, cm; the print check measures it on page A2. */
 export const TEST_SQUARE_X = MARGIN + SQUARE_AT;
