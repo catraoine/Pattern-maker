@@ -341,8 +341,7 @@ function diamond(page: PDFPage, x: number, y: number, label: string, side: Side,
   page.drawSvgPath(`M0 ${-r} L${r} 0 L0 ${r} L${-r} 0 Z`, { x, y, borderColor: rgb(0, 0, 0), borderWidth: 0.6, color: rgb(0.85, 0.85, 0.85) });
   const size = 7;
   const w = font.widthOfTextAtSize(label, size);
-  // Beside the diamond, then beside its upper or lower half (or left or right half): every place stays within the
-  // diamond's band, which the print check leaves out as page furniture.
+  // Beside the diamond, then beside its upper or lower half (or left or right half).
   const k = r * 0.6;
   const places: Record<Side, { x: number; y: number }[]> = {
     left: [{ x: x - r - 3 - w, y: y - size / 3 }, { x: x - k - 3 - w, y: y + k + 2 }, { x: x - k - 3 - w, y: y - k - 2 - size }],
@@ -350,7 +349,11 @@ function diamond(page: PDFPage, x: number, y: number, label: string, side: Side,
     above: [{ x: x - w / 2, y: y + r + 3 }, { x: x - k - 3 - w, y: y + k + 2 }, { x: x + k + 3, y: y + k + 2 }],
     below: [{ x: x - w / 2, y: y - r - 3 - size }, { x: x - k - 3 - w, y: y - k - 2 - size }, { x: x + k + 3, y: y - k - 2 - size }],
   };
-  const tries = places[side];
+  // Only places within the band either side of the diamond that the print check leaves out (1.3 cm): beside a diamond
+  // on a top or bottom edge, "UNDER B1" reached past it, words printed on one page and not the other.
+  const along = side === 'above' || side === 'below';
+  const inBand = (at: { x: number; y: number }) => (along ? Math.max(Math.abs(at.x - x), Math.abs(at.x + w - x)) : Math.max(Math.abs(at.y - y), Math.abs(at.y + size - y))) < 1.2 * CM;
+  const tries = places[side].filter((at, i) => i === 0 || inBand(at));
   const box = (at: { x: number; y: number }) => ({ x: at.x - 1, y: at.y - 2, w: w + 2, h: size + 2 });
   const free = tries.find((at) => clear(box(at)));
   const at = free ?? tries[0];
