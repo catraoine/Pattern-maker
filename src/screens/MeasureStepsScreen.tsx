@@ -67,7 +67,7 @@ interface Props {
   onNews?: () => void;
 }
 
-export type StepsStart = { kind: 'resume' } | { kind: 'choose' } | { kind: 'form' } | { kind: 'for'; garment: Garment; also?: MeasurementId[] } | { kind: 'redo'; garment: Garment; ids: MeasurementId[] };
+export type StepsStart = { kind: 'resume' } | { kind: 'choose' } | { kind: 'check' } | { kind: 'form' } | { kind: 'for'; garment: Garment; also?: MeasurementId[] } | { kind: 'redo'; garment: Garment; ids: MeasurementId[] };
 
 type Page =
   | { kind: 'form' }
@@ -117,6 +117,8 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   const [page, setPage] = usePageHistory<Page>(() => {
     if (start?.kind === 'redo') return { kind: 'extra', garment: start.garment, ids: start.ids, at: 0, redo: true };
     if (start?.kind === 'form') return { kind: 'form' };
+    // The measurements given so far, from the header's Measure while still choosing what to make (DO walk, Nov 20).
+    if (start?.kind === 'check' && baseDone(values)) return { kind: 'check' };
     // A reload, or the phone dropping the tab mid-measuring: the page still to take, not the first page again
     // (tester journey, Nov 11). Every number typed so far is already kept.
     if (start?.kind === 'resume') {
