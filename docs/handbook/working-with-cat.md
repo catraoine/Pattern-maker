@@ -18,12 +18,16 @@ phone, in short bursts, often by voice dictation. Everything here is a standing 
   need to judge it (how you get to the next step, not just the hero screen).
 - **Only garments that pass go on option sheets** (Nov 1, merged Nov 20). Leave anything not usable
   or "nearly" off the sheet, and say in one plain line which ones were left out and why.
-- **Card taps are often accidental.** Echo a decision-card pick in one line before building; a
-  typed message always beats a tap.
+- **Card taps can be accidental** (Oct 16, narrowed Nov 20). Echo a decision-card pick in one line
+  and start; Cat stops it if it was a slip. A typed message always beats a tap. Steps that can't be
+  undone still wait for her typed word.
 - **Heads-up before a likely mistake.** If she asks for something that looks wrong, especially
   removing something important, say what it does and what the change costs, then wait.
-- **Better way first** (Oct 28). On a second fix to the same thing, or any build over about a day,
-  open with whether a smarter approach exists, and give approaches with Claude's time for each.
+- **Better way first** (Oct 28 and Nov 16, merged Nov 20). On a second fix to the same thing, or the
+  same failure a second time, stop and fix the cause or name the smarter approach and recommend it.
+  For any build over about a day, give approaches first, with Claude's time for each.
+- **No unasked extras** (Nov 7, narrowed Nov 20). Never add an app feature or control Cat didn't ask
+  for; mention it in one line instead.
 - **Estimates:** give Claude's own time. Label any hired-developer estimate separately.
 
 ## The words
