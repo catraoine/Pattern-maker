@@ -2,6 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { articles, fmtLength, inCm, fmtMeasure, inInches, measureInches, toFeetInches, toInches, toYards, typedLength } from './units';
 
 describe('inches', () => {
+  // A pattern code ending in a digit and M printed as yards in an inch file (pretend tester DN walk, Nov 20).
+  it('leaves a pattern code alone, whatever it ends in', () => {
+    for (const code of ['276F-97-90-0-3G3M', '276F-97-90-0-A23M', '276F-97-90-0-AB2M', '276F-97-90-0-23CM', '276F-97-90-0-22IN', '276F-97-90-0-A2YD', '276F-97-90-0-A2MM', 'DEV-105-100-93-2345'])
+      expect(inInches(`CODE ${code} · 1.5 CM ALLOWANCE · 2 M`), code).toBe(`CODE ${code} · ⅝ IN ALLOWANCE · 2¼ YD`);
+  });
   it('rounds to the nearest eighth', () => {
     expect(toInches(2.54)).toBe('1 in');
     expect(toInches(1.5)).toBe('⅝ in');

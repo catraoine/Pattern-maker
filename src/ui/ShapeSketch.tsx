@@ -300,7 +300,7 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
               name: 'Skirt length',
               // Where the top sits, too: a tester typed her waist-to-knee and got a skirt about 5 cm long (pretend tester DM
               // walk, Nov 19).
-              from: choices.rise === 'low' && draft.lowRise ? `from the top of the skirt, ${Math.round(draft.lowRise * 2) / 2} cm below your waist` : choices.rise === 'low' ? 'from the top of the skirt' : 'from the waist',
+              from: choices.rise === 'low' && draft.lowRise ? `from the top of the skirt, ${Math.round(draft.lowRise * 10) / 10} cm below your waist` : choices.rise === 'low' ? 'from the top of the skirt' : 'from the waist',
               cm: draft.lengthCm,
               min: lengthRange(dm).min,
               max: lengthRange(dm).max,

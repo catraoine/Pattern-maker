@@ -54,6 +54,19 @@ describe('finished measurements on the printed pieces', () => {
   }
 });
 
+// A low-rise skirt's waist mark read "YOU 89.9 CM" on a 79 cm waist (pretend tester DN walk, Nov 20): it says where.
+describe('a low-rise waist mark', () => {
+  it('says how far below the waist the body was read', () => {
+    const low = draftSkirt(M, { rise: 'low' } as never);
+    const spec = skirtSpec(M, low);
+    const marks = withFinishedMarks(home(low.pieces), spec).flatMap((pc) => pc.finished ?? []);
+    const w = marks.find((x) => x.title.startsWith('FINISHED WAIST '))!;
+    expect(low.lowRise).toBeGreaterThan(0);
+    expect(w.note).toMatch(new RegExp(`^YOU [\\d.]+ CM, ${Math.round(low.lowRise! * 10) / 10} CM BELOW YOUR WAIST · EASE `));
+    expect(labelCollisions(layout(withFinishedMarks(home(low.pieces), spec), 'low skirt', [], INFO))).toEqual([]);
+  });
+});
+
 describe('the finished measurements table', () => {
   it('shows the dress against you with the ease and a fit word, and its length', () => {
     const lines = finishedLines(dressSpec(M, dress));
