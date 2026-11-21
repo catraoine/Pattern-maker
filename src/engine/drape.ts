@@ -869,7 +869,9 @@ function withPeplum(d: BodiceDraft, kind: 'flared' | 'gathered' | 'balloon', s: 
   // A peplum hangs single, its hem narrow, so it isn't lined with the bodice.
   pieces = pieces.map((pc) => ({ ...pc, meta: { ...pc.meta, unlined: true, ...(seamCm > 0 ? { sewnTo: 'hem' } : {}) } }));
   // A lowered peplum's seam is the bodice's hem: a seam allowance there, in place of the turned-up hem.
-  const body = seamCm > 0 ? d.pieces.map((pc) => (isBody(pc) && pc.allowances.hem !== undefined ? { ...pc, allowances: { ...pc.allowances, hem: s.seamAllowance }, meta: { ...pc.meta, joinedHem: true } } : pc)) : d.pieces;
+  // Named for what it is on the pattern: the lowered bodice's hem read "HEM · 1.5 CM ALLOWANCE", and a tester might
+  // turn it up and hem it (pretend tester DL walk, Nov 19).
+  const body = seamCm > 0 ? d.pieces.map((pc) => (isBody(pc) && pc.allowances.hem !== undefined ? { ...pc, allowances: { ...pc.allowances, hem: s.seamAllowance }, meta: { ...pc.meta, joinedHem: true, hemLabel: 'PEPLUM SEAM' } } : pc)) : d.pieces;
   return { ...d, pieces: [...body, ...pieces], peplum: { kind, depthCm: depth, hemCm, ...(seamCm > 0 ? { seamCm } : {}), ...(backCm ? { backCm } : {}), ...(big ? { size: 'big' as const } : {}), ...(puffCm ? { puffCm } : {}) } };
 }
 

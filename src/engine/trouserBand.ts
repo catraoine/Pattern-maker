@@ -44,7 +44,9 @@ export function curvedTrouserBand(L: number, waist: number, top: number, underla
       ];
     });
   const tag = (s: number, text: string) => ({ at: at(Ro - W * 0.75, s), text, size: 0.55, rotate: 90 });
-  const cut = 'Cut 2 (band and facing) + interfacing';
+  // The interfacing is on the fabric line ("Self + interfacing"): said in the cut too, it read twice (pretend tester
+  // DO walk, Nov 20).
+  const cut = 'Cut 2 (band and facing)';
   return {
     name: 'Waistband',
     kind: 'waistband',

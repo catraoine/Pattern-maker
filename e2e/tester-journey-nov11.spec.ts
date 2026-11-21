@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { expect, fillStepPages, measureMe, openAccount, openFold, openFresh, startWithExample, stepButton, test } from './fixtures';
+import { expect, fillStepPages, measureMe, openAccount, openFold, openFresh, openGroup, startWithExample, stepButton, test } from './fixtures';
 
 // The tester journey check (Nov 11, 2026): what a fit tester would trip on, and Cat's "fix all".
 
@@ -108,4 +108,9 @@ test('the Black Vest is called a vest throughout and asks for no arm measurement
   await stepButton(page, 'Print').click();
   await expect(m.getByText(/^Vest front: cut 2/)).toBeVisible({ timeout: 30_000 });
   await expect(m.getByRole('listitem').filter({ hasText: /^Jacket/ })).toHaveCount(0);
+  // Without the arms, the vest's sleeves wait for them, with the reason, rather than drawing nothing (code review, Nov 15).
+  await stepButton(page, 'Style').click();
+  const sleeves = await openGroup(page, 'Sleeves');
+  await expect(sleeves.getByText('Sleeves need your arm measurements.')).toBeVisible();
+  await expect(sleeves.getByRole('button', { name: /Straight|Set-in|Fitted/ }).first()).toBeDisabled();
 });

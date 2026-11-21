@@ -1,4 +1,5 @@
-// What a Founding Atelier member was promised (emails of Nov 12 2026; Cat's pick Nov 13: $35 a year, 250 places), and
+// What a Founding Atelier member was promised (emails of Nov 12 2026; Cat's pick Nov 13: $35 a year, 250 places; lowered
+// to $34 on Nov 16, so the one line strangers read, 30% off the $49 Premium, is true: $34 is 31% off), and
 // when each part starts. The list itself is on the server (src/server/founding.ts); the app only asks for the
 // signed-in person's place, through cloud().founding().
 
@@ -9,7 +10,11 @@ export const EARLY_ACCESS_FROM = new Date('2027-02-09T08:00:00Z');
 /** The fit testers' free year of Premium starts at launch, Feb 11 2027, and runs to Feb 11 2028. */
 const TESTER_FREE_UNTIL = 'Feb 11, 2028';
 
-const FOUNDING_PRICE = '$35 a year';
+const FOUNDING_PRICE = '$34 a year';
+
+/** The one line a stranger reads about founding places, on the waitlist page, the joined page and the founding card
+ *  (Cat's words, Nov 16 2026: "The first 250 lock in 30% off Premium - that's it"). */
+export const FOUNDING_LINE = 'The first 250 lock in 30% off Premium.';
 
 /** Whether founding members can come past the waitlist page yet. */
 export const earlyAccessOpen = (now = new Date()) => now.getTime() >= EARLY_ACCESS_FROM.getTime();

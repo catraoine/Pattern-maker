@@ -1,11 +1,14 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ShareLink } from '../ui/ShareLink';
+import { OWNER } from '../legal';
 import { ContourForm, type FormStart } from '../ui/ContourForm';
 import type { FormKind } from '../measurements';
 import { TOUR_LABEL, TourPlayer } from '../ui/TourPlayer';
 import { Title } from '../ui/Title';
 import { filmTape } from '../ui/filmTape';
 import { WaitlistForm, type FoundingSignIn } from '../ui/Waitlist';
+import { FOUNDING_LINE } from '../founding';
+import { onPhone } from '../ui/device';
 
 interface Props {
   onFinish: () => void;
@@ -23,6 +26,9 @@ interface Props {
    *  device" link, since the home-screen app keeps its own storage (journey review, Nov 10). False when the link
    *  isn't one. */
   onBringLink?: (link: string) => Promise<boolean>;
+  /** A fit tester with nothing here yet: on a computer they are pointed to the work on their phone rather than starting
+   *  again (testers, Nov 18: the emails say print from a computer, and the tester link opened an empty app there). */
+  tester?: boolean;
 }
 
 // The welcome has one button (Cat, 2026-10-17): Begin. The tour plays from the dress form, a close crop of the
@@ -54,11 +60,36 @@ const SIDE_BY_SIDE = '(min-width: 960px) and (min-aspect-ratio: 1/1)';
 
 const standalone = typeof window !== 'undefined' && !!window.matchMedia?.('(display-mode: standalone)').matches;
 
-/** "Started in your browser?": on the app added to the home screen only, which keeps its own copy of everything, apart
- *  from the browser's (an iPhone does this whatever the browser), so work begun in the browser isn't there. A quiet link
- *  opens the steps to move it across in a sheet over the page: opened in place, it squashed the form to half its size
- *  and named only Safari in one long sentence (Cat, Nov 15). */
-function BringFromBrowser({ onBring }: { onBring: (link: string) => Promise<boolean> }) {
+/** The steps to move work across, by where it is: in the browser on the same phone, or on the tester's phone. */
+const BRING = {
+  browser: {
+    ask: 'Started in your browser? Bring your work here',
+    lead: 'The app on your home screen keeps its own copy of your work. To move what you started in your browser:',
+    steps: ['Open Maison Tracé in your browser.', 'Tap the person icon at the top, then Your data.', 'Tap Send to another device, then Copy.', 'Come back here and paste the link below.'],
+    wrong: "That isn't a Send to another device link. Copy it again in your browser.",
+    field: 'Link you copied',
+  },
+  phone: {
+    ask: 'Measured on your phone? Bring your work here',
+    lead: 'Your measurements stay on the phone you took them on. To print from this computer:',
+    steps: [
+      'On your phone, open your tester link and tap Print.',
+      'Under Other ways, tap Send to my computer. (Not there? Tap the person icon, then Your data, then Send to another device.)',
+      'Send the link to yourself, by email or message.',
+      'Open it on this computer, or paste it below.',
+    ],
+    wrong: "That isn't a Send to my computer link. Send it again from your phone.",
+    field: 'Link you sent yourself',
+  },
+};
+
+/** Bringing work kept on another copy of the app, in a sheet over the page: opened in place, it squashed the form to half
+ *  its size and named only Safari in one long sentence (Cat, Nov 15).
+ *  `browser`: "Started in your browser?", on the app added to the home screen only, which keeps its own copy of
+ *  everything, apart from the browser's (an iPhone does this whatever the browser).
+ *  `phone`: "Measured on your phone?", for a tester on a computer with nothing here yet. */
+function BringWork({ onBring, from = 'browser' }: { onBring: (link: string) => Promise<boolean>; from?: keyof typeof BRING }) {
+  const say = BRING[from];
   const [open, setOpen] = useState(false);
   const [link, setLink] = useState('');
   const [wrong, setWrong] = useState(false);
@@ -66,7 +97,7 @@ function BringFromBrowser({ onBring }: { onBring: (link: string) => Promise<bool
     <>
       <p className="resume-more">
         <button type="button" className="link quiet" onClick={() => setOpen(true)}>
-          Started in your browser? Bring your work here
+          {say.ask}
         </button>
       </p>
       {open && (
@@ -79,20 +110,19 @@ function BringFromBrowser({ onBring }: { onBring: (link: string) => Promise<bool
             }}
           >
             <h2 id="bring-title">Bring your work here</h2>
-            <p>The app on your home screen keeps its own copy of your work. To move what you started in your browser:</p>
+            <p>{say.lead}</p>
             <ol className="bring-steps">
-              <li>Open Maison Tracé in your browser.</li>
-              <li>Tap the person icon at the top, then Your data.</li>
-              <li>Tap Send to another device, then Copy.</li>
-              <li>Come back here and paste the link below.</li>
+              {say.steps.map((st) => (
+                <li key={st}>{st}</li>
+              ))}
             </ol>
             <label className="field">
-              <span>Link you copied</span>
+              <span>{say.field}</span>
               <input type="text" inputMode="url" value={link} onChange={(e) => setLink(e.target.value)} autoComplete="off" />
             </label>
             {wrong && (
               <p className="msg small" role="status">
-                That isn't a Send to another device link. Copy it again in your browser.
+                {say.wrong}
               </p>
             )}
             <button type="submit" className="primary done" disabled={!link.trim()}>
@@ -108,7 +138,7 @@ function BringFromBrowser({ onBring }: { onBring: (link: string) => Promise<bool
   );
 }
 
-export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, waitlist, onBringLink }: Props) {
+export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, waitlist, onBringLink, tester }: Props) {
   const [touring, setTouring] = useState(false);
   // Back from the newsletter's confirm email (Kit sends people to /?joined): straight to "You're on the list".
   const [joined, setJoined] = useState(() => new URLSearchParams(window.location.search).has('joined'));
@@ -253,7 +283,13 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
           joined ? (
             <div className="stack waitlist">
               {/* The "one email when your invitation is ready" line came out (Cat, Nov 11 2026): just the share link. */}
+              {/* What joining gets them, said once more now they are on the list (Cat, Nov 16 2026). */}
+              <p className="waitlist-line">{FOUNDING_LINE}</p>
               <ShareLink />
+              {/* Nothing else is open to someone on the waitlist yet, so one way to ask (Cat's A, Nov 17 2026). */}
+              <p className="waitlist-tester">
+                Questions? <a href={`mailto:${OWNER.email}`}>{OWNER.email}</a>
+              </p>
             </div>
           ) : waitlist.checking ? (
             <div className="stack waitlist">
@@ -283,7 +319,8 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
             <button type="button" className="primary" onClick={begin}>
               Begin
             </button>
-            {onBringLink && standalone && <BringFromBrowser onBring={onBringLink} />}
+            {onBringLink && standalone && <BringWork onBring={onBringLink} />}
+            {onBringLink && !standalone && tester && !onPhone() && <BringWork onBring={onBringLink} from="phone" />}
           </div>
         )}
         {/* The agreement shows once, hushed, on a first visit; coming back you've already agreed, and the links

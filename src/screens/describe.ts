@@ -14,8 +14,12 @@ export function describePattern(c: PatternChoices) {
     const belted = c.bodice.closure === 'wrap' ? '' : beltWords(c.skirt.belt ?? 'none');
     // Cut in one from shoulder to hem: "Knee sheath dress with a boat neck and short sleeves".
     if (c.skirt.noSeam && noSeamAllowed(c.bodice)) {
-      const len = c.skirt.lengthCm !== undefined ? `${Math.round(c.skirt.lengthCm)} cm` : GROUPS[2].options.find((o) => o[0] === c.skirt.length)![1];
-      return `${len} ${c.fit === 'boxy' ? 'boxy ' : ''}${c.skirt.noSeam === 'bias' ? 'bias slip' : c.skirt.noSeam} dress with ${bodiceDetails(c.bodice)}${belted ? `, and ${belted}` : ''}`;
+      // A length set by hand is measured from the waist, so it is said as where the hem falls: "37 cm shift dress" read
+      // as a dress 37 cm long (pretend tester, Nov 18).
+      const own = c.skirt.lengthCm !== undefined ? `, its hem ${Math.round(c.skirt.lengthCm * 10) / 10} cm below the waist` : '';
+      const kind = `${c.fit === 'boxy' ? 'boxy ' : ''}${c.skirt.noSeam === 'bias' ? 'bias slip' : c.skirt.noSeam} dress`;
+      const lead = own ? kind[0].toUpperCase() + kind.slice(1) : `${GROUPS[2].options.find((o) => o[0] === c.skirt.length)![1]} ${kind}`;
+      return `${lead} with ${bodiceDetails(c.bodice)}${belted ? `, and ${belted}` : ''}${own}`;
     }
     // "Knee A-line dress with knife pleats, a scoop neck and short sleeves". A hem named on the skirt
     // ("with a high-low hem") goes last: "... dress with a crew neck, and a high-low hem". The dress's
@@ -29,9 +33,13 @@ export function describePattern(c: PatternChoices) {
     const seam = c.waistSeamCm !== undefined ? (c.waistSeamCm < 0 ? 'raised' : c.waistSeamCm > 0 ? 'dropped' : 'natural') : c.waistSeam;
     const kind = c.bodice.closure === 'front_buttons' && buttonsOnSkirt(c.skirt) ? 'shirt dress' : c.bodice.closure === 'wrap' && wrapSkirtAllowed(c.skirt) ? 'wrap dress' : 'dress';
     const word = `${c.fit === 'boxy' ? 'boxy ' : ''}${seam && seam !== 'natural' ? `${SEAM_WORDS[seam]} ${kind}` : kind}`;
-    const dress = /skirt/.test(skirt) ? skirt.replace('skirt', word) : `${skirt} ${word}`;
+    const named = /skirt/.test(skirt) ? skirt.replace('skirt', word) : `${skirt} ${word}`;
+    // A skirt length set by hand is said as the skirt's, at the end: "37 cm A-line dress" read as a dress 37 cm long.
+    const cmLead = /^(\d+(?:\.\d+)?) cm (.*)$/.exec(named);
+    const dress = cmLead ? cmLead[2][0].toUpperCase() + cmLead[2].slice(1) : named;
+    const skirtLong = cmLead ? `, its skirt ${cmLead[1]} cm long` : '';
     const ends = [...(hem ? [hem] : []), ...(c.skirt.pockets === 'inseam' ? ['pockets'] : c.skirt.pockets === 'patch' ? ['patch pockets'] : c.skirt.pockets === 'slant' ? ['slant pockets'] : []), ...(belted ? [belted] : [])];
-    return `${dress} with ${details.length ? `${details.join(' and ')}, ` : ''}${bodiceDetails(c.bodice)}${ends.length ? `, and ${ends.join(' and ')}` : ''}`;
+    return `${dress} with ${details.length ? `${details.join(' and ')}, ` : ''}${bodiceDetails(c.bodice)}${ends.length ? `, and ${ends.join(' and ')}` : ''}${skirtLong}`;
   }
   if (isTrousers(c)) return describeTrousers(c);
   if (isTee(c)) return describeTee(c);

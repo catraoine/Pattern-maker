@@ -4,7 +4,7 @@
 // When billing arrives, `plan` and `packs` must come from the server, not from what's kept on the device.
 import type { Account } from './account';
 import type { Garment } from './measurements';
-import { FREE_SAVED_LIMIT } from './account';
+import { savedLimitOf } from './account';
 
 type Plan = 'free' | 'premium' | 'maker';
 
@@ -51,8 +51,9 @@ export function hasGarment(account: Account, g: Garment, billing = BILLING_ON): 
   return FREE_GARMENTS.includes(g) || paid(account) || (account.packs ?? []).includes(g);
 }
 
-/** How many patterns can be saved: the free limit (kept today, before billing), or no limit on a paid plan. */
-export const savedLimit = (account: Account): number => (paid(account) ? Infinity : FREE_SAVED_LIMIT);
+/** How many patterns can be saved: the free limit (kept today, before billing), or no limit on a paid plan or for a
+ *  fit tester (see savedLimitOf). */
+export const savedLimit = (account: Account): number => savedLimitOf(account);
 
 /** The client book and size runs are Maker tools once billing is on. */
 export const hasMakerTools = (account: Account, billing = BILLING_ON): boolean => !billing || planOf(account) === 'maker';

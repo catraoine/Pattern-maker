@@ -17,6 +17,8 @@ import { LingerieFabricStyle, TeeFabricStyle, lingerieFabrics, teeFabrics, teeWa
 import { BIG_PRINT, PrintKind, bigPrintCut, printCut, printLines, printOf } from './prints';
 import { Checks, SPECIALS, Special, specialLines, specialWarnings } from './specialFabrics';
 import { KNITS, type Knit } from './knitFabrics';
+import { PRINT_FIRST } from './printFirst';
+import { muslinLine } from './muslinNote';
 import { isLowerBody, isOuterwear } from '../measurements';
 
 export type Weight = 'light' | 'medium' | 'heavy';
@@ -240,9 +242,16 @@ const RUCHED = {
 const SKIRT_LINING = pick('Lining: Bemberg (cupro) or acetate', ['light'], 'fluid', 'Slides over tights and breathes.');
 const BODICE_LINING = pick('Lining: cotton lawn or Bemberg (cupro)', ['light'], 'soft', 'Breathes and slides on easily.');
 
+/** "a midi A-line", or for a length of the sewist's own, just "an A-line": a typed 55 cm skirt was called knee-length,
+ *  the nearest named length, on Print, while the look said just above the knee (pretend tester, Nov 18). */
+function skirtStyleWords(style: { silhouette: Silhouette; length: Length; lengthCm?: number }): string {
+  const words = `${style.lengthCm === undefined ? `${LENGTH_WORDS[style.length]} ` : ''}${SILHOUETTE_WORDS[style.silhouette]}`;
+  return `${/^[aeiou]/i.test(words) ? 'an' : 'a'} ${words}`;
+}
+
 /** Fabrics for a skirt style. */
-export function skirtFabrics(style: { fit?: Fit; silhouette: Silhouette; length: Length; asymHem?: AsymHem; ruched?: boolean } & Partial<VolumeStyle>): FabricAdvice {
-  if (style.ruched && rucheAllowed(style)) return { ...RUCHED, style: `a ${LENGTH_WORDS[style.length]} ${SILHOUETTE_WORDS[style.silhouette]} with ruched sides`.replace('a above', 'an above'), lining: SKIRT_LINING };
+export function skirtFabrics(style: { fit?: Fit; silhouette: Silhouette; length: Length; lengthCm?: number; asymHem?: AsymHem; ruched?: boolean } & Partial<VolumeStyle>): FabricAdvice {
+  if (style.ruched && rucheAllowed(style)) return { ...RUCHED, style: `${skirtStyleWords(style)} with ruched sides`, lining: SKIRT_LINING };
   const base = SKIRT[style.silhouette];
   const full = style.silhouette === 'half_circle' || style.silhouette === 'circle';
   const note =
@@ -259,7 +268,7 @@ export function skirtFabrics(style: { fit?: Fit; silhouette: Silhouette; length:
           : undefined;
   // Pleats, godets, a flounce or tiers ask for their own kind of cloth.
   return volumeFabrics(style, {
-    style: `a ${LENGTH_WORDS[style.length]} ${SILHOUETTE_WORDS[style.silhouette]}`.replace('a above', 'an above'),
+    style: skirtStyleWords(style),
     picks: base.picks,
     avoid: `${base.avoid} ${STRETCH}`,
     note,
@@ -358,6 +367,8 @@ const PEPLUM_NOTES = {
 };
 
 const FIT_WORDS: Record<BodiceFit, string> = { fitted: 'fitted', regular: 'regular fit', relaxed: 'relaxed', boxy: 'boxy', oversized: 'oversized' };
+/** "a" or "an" before a fit's words: Print said "Good match for a oversized jacket" (DP walk, Nov 20). */
+const aFit = (fit: BodiceFit) => `${/^[aeiou]/.test(FIT_WORDS[fit]) ? 'an' : 'a'} ${FIT_WORDS[fit]}`;
 
 /** Fabrics for a bodice style. */
 export function bodiceFabrics(style: { fit: BodiceFit; neckline: Neckline; length?: BodiceLength; darts?: BodiceDarts; structure?: Structure; neck?: unknown; peplum?: 'none' | 'flared' | 'gathered' | 'balloon' }): FabricAdvice {
@@ -384,7 +395,7 @@ export function bodiceFabrics(style: { fit: BodiceFit; neckline: Neckline; lengt
   const drawnOver = (style.neckline === 'cowl' || style.neckline === 'one_shoulder') && !!style.neck;
   const peplum = style.peplum && style.peplum !== 'none' ? PEPLUM_NOTES[style.peplum] : undefined;
   return {
-    style: cowl ? `a ${FIT_WORDS[style.fit]} cowl-neck top` : `a ${FIT_WORDS[style.fit]} top`,
+    style: cowl ? `${aFit(style.fit)} cowl-neck top` : `${aFit(style.fit)} top`,
     picks: base.picks,
     avoid: `${base.avoid} ${STRETCH}`,
     note: (drawnOver ? undefined : NECK_NOTES[style.neckline]) ?? peplum,
@@ -480,10 +491,10 @@ const OUTER: Record<'jacket' | 'coat', FabricPick[]> = {
   ],
 };
 
-/** Fabrics for a jacket or a coat. */
-export function outerFabrics(style: { garment: 'jacket' | 'coat'; fit: BodiceFit }): FabricAdvice {
+/** Fabrics for a jacket or a coat. A jacket without sleeves is named a vest, as everywhere else in the app. */
+export function outerFabrics(style: { garment: 'jacket' | 'coat'; fit: BodiceFit; sleeve?: string }): FabricAdvice {
   return {
-    style: `a ${FIT_WORDS[style.fit]} ${style.garment}`,
+    style: `${aFit(style.fit)} ${style.garment === 'jacket' && style.sleeve === 'none' ? 'vest' : style.garment}`,
     picks: OUTER[style.garment],
     avoid: `Light or fluid fabrics like lawn, chiffon or crepe de chine. They will not hold the collar, lapels and shoulders. ${STRETCH}`,
     note: 'Interface the front facings, collar and hems with a fusible weft interfacing.',
@@ -492,7 +503,7 @@ export function outerFabrics(style: { garment: 'jacket' | 'coat'; fit: BodiceFit
 }
 
 /** Fabrics for a dress: the skirt's suggestions that also suit the bodice come first. */
-export function dressFabrics(style: { fit: BodiceFit; neckline: Neckline; silhouette: Silhouette; length: Length; structure?: Structure } & Partial<VolumeStyle>): FabricAdvice {
+export function dressFabrics(style: { fit: BodiceFit; neckline: Neckline; silhouette: Silhouette; length: Length; lengthCm?: number; structure?: Structure } & Partial<VolumeStyle>): FabricAdvice {
   const skirt = skirtFabrics({ ...style, fit: skirtFitOf(style.fit) });
   const bodice = bodiceFabrics({ fit: style.fit, neckline: style.neckline, structure: style.structure });
   // The boned bodice sets the cloth: the skirt is cut from the same firm fabric.
@@ -543,13 +554,13 @@ interface FabricNote {
 }
 
 export type FabricStyle =
-  | ({ garment: 'skirt'; silhouette: Silhouette; length: Length; asymHem?: AsymHem } & Partial<VolumeStyle>)
+  | ({ garment: 'skirt'; silhouette: Silhouette; length: Length; lengthCm?: number; asymHem?: AsymHem } & Partial<VolumeStyle>)
   | { garment: 'bodice'; fit: BodiceFit; neckline: Neckline; structure?: Structure }
-  | ({ garment: 'dress'; fit: BodiceFit; neckline: Neckline; silhouette: Silhouette; length: Length; structure?: Structure } & Partial<VolumeStyle>)
+  | ({ garment: 'dress'; fit: BodiceFit; neckline: Neckline; silhouette: Silhouette; length: Length; lengthCm?: number; structure?: Structure } & Partial<VolumeStyle>)
   | { garment: 'trousers'; fit: Fit; leg: Leg }
   | TeeFabricStyle
   | LingerieFabricStyle
-  | { garment: 'jacket' | 'coat'; fit: BodiceFit };
+  | { garment: 'jacket' | 'coat'; fit: BodiceFit; sleeve?: string };
 
 const weightRank: Record<Weight, number> = { light: 0, medium: 1, heavy: 2 };
 
@@ -738,10 +749,29 @@ export function withFabric(guide: SewingGuide, f: MyFabric | undefined, garment:
   const name = describeFabric(f);
   return {
     ...guide,
-    fabric: fabricLines(f, garment),
+    fabric: (() => {
+      const lines = braidedHem(guide, fabricLines(f, garment));
+      return lines.length ? [...lines, ...muslinLine(guide, lines, /muslin|calico|toile/i.test(f?.name ?? ''))] : lines;
+    })(),
     notions: name ? guide.notions.map((n, i) => (i === 0 ? n.replace('woven fabric', name) : n)) : guide.notions,
-    steps: guide.steps[0]?.title === PREPARE_TITLE ? guide.steps : [prepareStep(f), ...cutStep(f), ...guide.steps],
+    steps: guide.steps[0]?.title === PREPARE_TITLE ? guide.steps : [prepareStep(f), ...afterPrint(guide.steps, cutStep(f))],
   };
+}
+
+/** A sheer's card promises a hem rolled narrow; the big peplum is hemmed on horsehair braid instead, and the two said
+ *  different things (pretend tester DM walk, Nov 19). The card names the braid, and keeps the narrow hem when another
+ *  step still hems narrowly. */
+function braidedHem(guide: SewingGuide, lines: string[]): string[] {
+  if (!guide.steps.some((st) => st.text.includes('horsehair braid'))) return lines;
+  const narrow = guide.steps.some((st) => /\bnarrow(ly)?\b/i.test(st.text) && !st.text.includes('horsehair braid'));
+  return lines.map((l) => l.replace('a 1 cm hem rolled narrow', narrow ? 'a 1 cm hem rolled narrow, the peplum hem on horsehair braid' : 'the peplum hem on horsehair braid'));
+}
+
+/** The cloth's cutting step goes after the printing step: the Ice Peplum said "Cut the sheer" before "Print and check the
+ *  size" (pretend tester DM walk, Nov 19). With no printing step it leads, as before. */
+function afterPrint(steps: SewingGuide['steps'], cut: { title: string; text: string }[]): SewingGuide['steps'] {
+  const at = steps.findIndex((st) => st.text.includes(PRINT_FIRST));
+  return at < 0 ? [...cut, ...steps] : [...steps.slice(0, at + 1), ...cut, ...steps.slice(at + 1)];
 }
 
 /** The couture route's cloth: from the recorded fibre when there is one. */

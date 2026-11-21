@@ -1,0 +1,147 @@
+import { expect, openAccount, openCollection, openFold, startWithExample, stepButton, test } from './fixtures';
+
+// Testers tried to type their length and didn't see they had to drag the hem, and looked for the collection from
+// Style (testers, Nov 17; Cat applied both): the length label opens a box to type it, and The collection is one tap
+// under the garment's name.
+const LOOKS = ['Blush Shift', 'Black Pleated Skirt', 'Ice Peplum Top', 'Chocolate Barrel Trouser'];
+const SHOTS = process.env.SHOTS;
+for (const unit of ['cm', 'in'] as const)
+  for (const look of LOOKS)
+    test(`a typed length sets the ${look} (${unit})`, async ({ page }) => {
+      test.setTimeout(3 * 60_000);
+      const main = page.getByRole('main');
+      await startWithExample(page);
+      if (unit === 'in') {
+        await openAccount(page);
+        await openFold(page, 'Settings');
+        await main.getByRole('group', { name: 'Units' }).getByRole('button', { name: 'Inches' }).click();
+        await page.getByRole('banner').getByRole('button', { name: 'Back', exact: true }).click();
+        await stepButton(page, 'Style').click().catch(() => {});
+      }
+      await openCollection(page);
+      const card = main.getByRole('listitem').filter({ hasText: look }).first();
+      const make = card.getByRole('button', { name: /^Make (this look|the )/ });
+      const pick = (await make.count()) > 1 ? card.getByRole('button', { name: new RegExp(`^Make the ${look.split(' ').pop()!.toLowerCase()}`, 'i') }) : make;
+      await pick.first().click();
+      const change = main.getByRole('button', { name: 'Change a detail' });
+      if (await change.count()) await change.click();
+      await expect(main.getByText('Drag the dot, or tap the length to type it.')).toBeVisible({ timeout: 30_000 });
+      const slider = main.getByRole('slider', { name: /length/i }).first();
+      const was = await slider.getAttribute('aria-valuetext');
+      await main.getByRole('button', { name: /^Type the .*(length|peplum seam)$/ }).first().click();
+      const box = page.getByRole('form');
+      await expect(box).toBeVisible();
+      const input = box.getByRole('textbox');
+      const now = parseFloat(await input.inputValue());
+      // A little shorter (a peplum's seam already sits as high as it goes: longer): 3 cm, or an inch and a half.
+      const by = look.includes('Peplum') ? 1 : -1;
+      const want = unit === 'in' ? `${Math.round(now + by)} 1/2` : String(Math.round(now + 3 * by));
+      await input.fill(want);
+      if (SHOTS) await page.screenshot({ path: `${SHOTS}/type-${look.split(' ').pop()}-${unit}.png`, fullPage: true });
+      await box.getByRole('button', { name: 'Set' }).click();
+      await expect(box).toBeHidden();
+      await expect(slider).not.toHaveAttribute('aria-valuetext', was ?? '');
+      console.log(look, unit, was, '->', await slider.getAttribute('aria-valuetext'), '(typed', want, ')');
+      // Typed, the look keeps its name and is otherwise unchanged... and the collection is one tap away.
+      await main.getByRole('button', { name: 'The collection ›' }).click();
+      await expect(main.getByRole('heading', { name: 'The collection' })).toBeVisible();
+    });
+
+test('a length out of range is asked again, not set', async ({ page }) => {
+  const main = page.getByRole('main');
+  await startWithExample(page);
+  await openCollection(page);
+  await main.getByRole('listitem').filter({ hasText: 'Black Pleated Skirt' }).first().getByRole('button', { name: /^Make the skirt/i }).click();
+  const change = main.getByRole('button', { name: 'Change a detail' });
+  if (await change.count()) await change.click();
+  await main.getByRole('button', { name: 'Type the skirt length' }).click();
+  await page.getByRole('form').getByRole('textbox').fill('500');
+  await page.getByRole('form').getByRole('button', { name: 'Set' }).click();
+  await expect(page.getByRole('alert')).toContainText('This one goes');
+  await page.getByRole('form').getByRole('button', { name: 'Cancel' }).click();
+  await expect(page.getByRole('form')).toBeHidden();
+});
+
+// The pretend tester's walk (Nov 17): the Ice Peplum's box offered lengths to 25 cm and quietly kept 12, where its
+// seam stops; and the Blush Shift's label read off its curved hem as drawn, 52 cm for a typed 50.
+test('the peplum offers only the lengths its seam can take', async ({ page }) => {
+  const main = page.getByRole('main');
+  await startWithExample(page);
+  await openCollection(page);
+  await main.getByRole('listitem').filter({ hasText: 'Ice Peplum Top' }).first().getByRole('button', { name: /^Make/ }).first().click();
+  const change = main.getByRole('button', { name: 'Change a detail' });
+  if (await change.count()) await change.click();
+  await main.getByRole('button', { name: /^Type the .*(length|peplum seam)$/ }).first().click();
+  await expect(page.getByRole('form')).toContainText('6 cm to 12 cm');
+  await page.getByRole('form').getByRole('textbox').fill('20');
+  await page.getByRole('form').getByRole('button', { name: 'Set' }).click();
+  await expect(page.getByRole('alert')).toContainText('This one goes');
+});
+
+test('the shift says the length typed', async ({ page }) => {
+  const main = page.getByRole('main');
+  await startWithExample(page);
+  await openCollection(page);
+  await main.getByRole('listitem').filter({ hasText: 'Blush Shift' }).first().getByRole('button', { name: /^Make/ }).first().click();
+  const change = main.getByRole('button', { name: 'Change a detail' });
+  if (await change.count()) await change.click();
+  await main.getByRole('button', { name: 'Type the dress length' }).click();
+  await page.getByRole('form').getByRole('textbox').fill('50');
+  await page.getByRole('form').getByRole('button', { name: 'Set' }).click();
+  await expect(main.getByRole('slider', { name: 'Dress length' })).toHaveAttribute('aria-valuetext', '50 cm');
+  await main.getByRole('button', { name: 'Type the dress length' }).click();
+  await expect(page.getByRole('form').getByRole('textbox')).toHaveValue('50');
+});
+
+// The pretend tester's walk (Nov 18): a typed 21 3/4 in came back as 21⅞ on the skirt alone, rounded to the half cm
+// on its way in; the shift, trousers and peplum kept it.
+test('the skirt keeps a typed quarter inch as typed', async ({ page }) => {
+  const main = page.getByRole('main');
+  await startWithExample(page);
+  await openAccount(page);
+  await openFold(page, 'Settings');
+  await main.getByRole('group', { name: 'Units' }).getByRole('button', { name: 'Inches' }).click();
+  await page.getByRole('banner').getByRole('button', { name: 'Back', exact: true }).click();
+  await stepButton(page, 'Style').click().catch(() => {});
+  await openCollection(page);
+  await main.getByRole('listitem').filter({ hasText: 'Black Pleated Skirt' }).first().getByRole('button', { name: /^Make the skirt/i }).click();
+  const change = main.getByRole('button', { name: 'Change a detail' });
+  if (await change.count()) await change.click();
+  await main.getByRole('button', { name: 'Type the skirt length' }).click();
+  const input = page.getByRole('form').getByRole('textbox');
+  const whole = Math.round(parseFloat(await input.inputValue())) - 1;
+  await input.fill(`${whole} 3/4`);
+  await page.getByRole('form').getByRole('button', { name: 'Set' }).click();
+  await expect(page.getByRole('form')).toBeHidden();
+  await main.getByRole('button', { name: 'Type the skirt length' }).click();
+  await expect(page.getByRole('form').getByRole('textbox')).toHaveValue(`${whole}¾`);
+});
+
+// The pretend tester's DN walk (Nov 20): on the lengths set by a dot between named lengths (the shift, the trousers and
+// the T-shirt), a typed 20 in reopened as 20⅛: the box read the length back rounded to the half cm.
+for (const [look, what] of [['Blush Shift', 'dress'], ['Chocolate Barrel Trouser', 'trouser']])
+  test(`the ${look} reopens a typed inch length as typed`, async ({ page }) => {
+    const main = page.getByRole('main');
+    await startWithExample(page);
+    await openAccount(page);
+    await openFold(page, 'Settings');
+    await main.getByRole('group', { name: 'Units' }).getByRole('button', { name: 'Inches' }).click();
+    await page.getByRole('banner').getByRole('button', { name: 'Back', exact: true }).click();
+    await stepButton(page, 'Style').click().catch(() => {});
+    await openCollection(page);
+    // The trouser look comes with a top: make the trousers.
+    await main.getByRole('listitem').filter({ hasText: look }).first().getByRole('button', { name: new RegExp(`^Make (this look|the ${what})`, 'i') }).first().click();
+    const change = main.getByRole('button', { name: 'Change a detail' });
+    if (await change.count()) await change.click();
+    const type = main.getByRole('button', { name: `Type the ${what} length` });
+    await type.click();
+    const input = page.getByRole('form').getByRole('textbox');
+    // A whole inch that the half cm moves by more than a sixteenth, so rounding would show: 20 in is 50.8 cm, read back as 51.
+    const near = Math.round(parseFloat(await input.inputValue()));
+    const whole = [-1, 1, -2, 2, -3, 3, -4, 4, -5, 5].map((d) => near + d).find((w) => Math.abs(Math.round(w * 2.54 * 2) / 2 - w * 2.54) > 2.54 / 16)!;
+    await input.fill(String(whole));
+    await page.getByRole('form').getByRole('button', { name: 'Set' }).click();
+    await expect(page.getByRole('form')).toBeHidden();
+    await type.click();
+    await expect(page.getByRole('form').getByRole('textbox')).toHaveValue(String(whole));
+  });

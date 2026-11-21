@@ -42,7 +42,19 @@ export function usePersistent<T>(key: string, initial: T): [T, (v: T) => void] {
   const [value, setValue] = useState<T>(() => {
     try {
       const raw = localStorage.getItem(`pattern-maker:${key}`);
-      return raw ? fillMissing(initial, JSON.parse(raw)) : initial;
+      try {
+        return raw ? fillMissing(initial, JSON.parse(raw)) : initial;
+      } catch {
+        // Saved work this version can't read is put aside before the app starts afresh and saves over it, so it can
+        // still be recovered by hand (testers' measurements must never be lost, Nov 18). One copy per kind of work; a
+        // ?fresh link or Delete everything clears it with the rest.
+        try {
+          if (raw) localStorage.setItem(`pattern-maker:unread-${key}`, raw);
+        } catch {
+          // No room for the copy: the app still starts.
+        }
+        return initial;
+      }
     } catch {
       return initial;
     }

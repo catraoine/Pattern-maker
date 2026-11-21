@@ -14,7 +14,9 @@ const visitorId = (ip: string | undefined) => createHash('sha256').update(ip ?? 
 // Code checks here are capped as the tester check's are (tester.mts), counted before the code is looked at: without
 // it, this function answered "tester or not" up to 10 times a minute, so codes could be guessed here instead
 // (security pass, Nov 15). A tester makes a scan or two a day.
-const CODE_CAPS = { visitor: 10, all: 500 };
+// The whole-site count is set far above any real day: a low one let anyone sending junk use it up and lock every real
+// tester out of scans for the day (code review, Nov 15). The per-address cap and Netlify's rate limit stop guessing.
+const CODE_CAPS = { visitor: 10, all: 50_000 };
 
 export default async (req: Request, context: { ip?: string }) => {
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
@@ -29,7 +31,9 @@ export default async (req: Request, context: { ip?: string }) => {
   // (an accented letter, say), and the two checks must agree. The header is still read, for older copies of the app.
   const code = typeof sent === 'string' ? sent : req.headers.get('x-tester-code');
   try {
-    if ((await takeAllowance(blobCounts('body-scan-code-limits'), visitorId(context.ip), new Date(), CODE_CAPS)) !== 'ok') return Response.json({ ok: false, error: 'limit_reached' }, { status: 429 });
+    const checks = await takeAllowance(blobCounts('body-scan-code-limits'), visitorId(context.ip), new Date(), CODE_CAPS);
+    // The site's count full is 'busy', so the app says so rather than "all your scans for today".
+    if (checks !== 'ok') return Response.json({ ok: false, error: checks }, { status: checks === 'busy' ? 503 : 429 });
   } catch (e) {
     // Fails closed: an uncounted check is one the cap can't stop.
     console.error('body scan code limit failed', e);

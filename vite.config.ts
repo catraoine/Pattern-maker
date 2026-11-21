@@ -56,6 +56,11 @@ export default defineConfig({
         // The 3D drawing's library (All round, about 140 kB) downloads the first time All round opens, then stays.
         // The house prints' tiles (src/prints) are left out the same way.
         globIgnores: ['**/assets/pdf-*.js', '**/assets/PDFButton-*.js', '**/assets/account-service-*.js', '**/assets/round-3d-*.js', '**/assets/*.jpg', 'fabrics/**', 'prints/**'],
+        // A new release takes over as soon as it has downloaded, and takes the open page with it (keepUpToDate in
+        // src/swUpdate.ts then reloads once). Without these it waited behind the old one until every copy of the app
+        // was closed, which a home-screen app on a phone rarely is: Cat's showed a two-release-old welcome page (Nov 15).
+        skipWaiting: true,
+        clientsClaim: true,
         // A film or download opened by its own address (e.g. /tour/walkthrough.mp4 to save it) goes to the file, not
         // the app: the saved app otherwise answers every address typed into the browser.
         navigateFallbackDenylist: [/^\/tour\//, /^\/demos\//, /\.(mp4|webm|pdf|dxf|svg|png|jpg)$/],

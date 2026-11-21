@@ -8,7 +8,8 @@ import { DemoButton } from './DemoButton';
 import { EnlargeSketch, useEnlarged } from './EnlargeSketch';
 import { Envelope } from './Envelope';
 import { GarmentFabric } from './FabricFill';
-import { ExampleTag, GarmentDrop, LookName } from './GarmentSwitch';
+import { CollectionLink, ExampleTag, GarmentDrop, LookName, TesterLook } from './GarmentSwitch';
+import { LengthAsk, LengthBox, TypeLength, UnitNow } from './LengthEntry';
 import { ModeLink } from './ModeLink';
 import { PhotoEntry } from './PhotoEntry';
 import { Title } from './Title';
@@ -493,12 +494,14 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   }, []);
   // A look just made goes on to its Review as a page of its own, before anything is painted: the questions stay behind it,
   // so Change a detail (or Back) returns to them, and the screen's own entry keeps the questions for a garment switched in place.
-  useLayoutEffect(() => {
-    if (!lookNext) return;
+  const lookReview = () => {
     lookNext = false;
     // The questions' own entry is marked first, so going back to it opens them.
     if (window.history.state) window.history.replaceState({ ...window.history.state, sub: 'edit' }, '');
     setPage('review');
+  };
+  useLayoutEffect(() => {
+    if (lookNext) lookReview();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only on opening
   }, []);
   const [intro, setIntro] = useState(() => !introSeen());
@@ -515,6 +518,24 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   const swipe = useRef<{ x: number; y: number; sideways: boolean }>();
   const wide = useWide();
   const exampleTag = useContext(ExampleTag);
+  const openCollection = useContext(CollectionLink);
+  const testerLook = useContext(TesterLook);
+  const unit = useContext(UnitNow);
+  // A length typed instead of dragged: the drawing's length label opens the box under it (testers, Nov 17).
+  const [asking, setAsking] = useState<LengthAsk>();
+  const [lengthOn, setLengthOn] = useState(false);
+  // The hint shows while the drawing has a length label to tap; the drawing redraws itself, so it is watched. Watched
+  // afresh each time the edit page is drawn: a look opens on its Review page, so the first watch found no page to watch
+  // and the hint never showed on any tester piece (DQ walk, Nov 20).
+  useEffect(() => {
+    const el = root.current;
+    if (!el) return;
+    const look = () => setLengthOn(!!el.querySelector('.len-type'));
+    look();
+    const watch = new MutationObserver(look);
+    watch.observe(el, { childList: true, subtree: true });
+    return () => watch.disconnect();
+  }, [page, intro]);
   const look = useContext(LookName);
   // The open question on each step. Every question starts folded (Cat, 2026-11-06: the first one stood open, so
   // See the choices didn't show the whole list); a tap on one opens it.
@@ -907,13 +928,36 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
         <Title id="opts" big="Style" label={look ?? label} hideLabel />
         <GarmentDrop label={look ?? label} onChoose={onChooseGarment} onPhoto={onPhoto} />
       </div>
+      {/* The collection one tap away: from Style it was only in the name's drop-down, and a tester looking for it
+          didn't find it there (testers, Nov 17; Cat applied). */}
+      {openCollection && (
+        <button type="button" className="collection-go" onClick={openCollection}>
+          The collection ›
+        </button>
+      )}
       {exampleTag}
+      {/* A tester on the plain garment their look is made from is one tap from the look itself: picked from the
+          garment list, the plain top had no peplum to choose (testers, Nov 18). After the example note, which on a
+          phone lifts itself onto the line above. */}
+      {testerLook && (
+        <p className="tester-look">
+          Fit testing the {testerLook.name}?{' '}
+          {/* Made on the same garment, Style stays open rather than opening afresh, so the look's Review is opened here;
+              sent to measure first, Style opens afresh afterwards and does it itself. */}
+          <button type="button" onClick={() => testerLook.open() && lookNext && lookReview()}>
+            Open it ›
+          </button>
+          {testerLook.lengthStays && <span className="tester-look-note">It has its own length, so the length you set here won't come across. You can change it there.</span>}
+        </p>
+      )}
       <div className="style-edit">
         <div className={['style-pin', tall && 'tall'].filter(Boolean).join(' ')} ref={pin}>
           {/* The drawing knows which step is open: on the length step it reaches down to the longest length. */}
           <ActiveTab.Provider value={active}>
             <Sections.Provider value={sections}>
-              <Corner.Provider value={corner}>{preview}</Corner.Provider>
+              <Corner.Provider value={corner}>
+                <TypeLength.Provider value={setAsking}>{preview}</TypeLength.Provider>
+              </Corner.Provider>
             </Sections.Provider>
           </ActiveTab.Provider>
           {host &&
@@ -927,6 +971,9 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           <EnlargeSketch host={host} corner={corner} name={name} />
           {undo && <BigUndo undo={undo} host={host} />}
         </div>
+        {/* The box rises from the foot of the screen, over everything, so the pinned drawing never covers it; the hint
+            opens the step under the drawing (on the drawing, it ran over the trousers: screen check, Nov 17). */}
+        {asking && createPortal(<LengthBox key={asking.name} ask={asking} unit={unit} onClose={() => setAsking(undefined)} />, document.body)}
         <div
           className={!wide && split(active) ? 'style-panel one-q' : 'style-panel'}
           ref={panel}
@@ -950,6 +997,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           {/* A garment matched to a photo says so above its first question, with a way to try another; the way in
               is "Start from a photo" in the name's drop-down (Cat, Nov 12). */}
           {active === steps[0] && (wide || qAt <= 0) && (matched ?? (photo && <PhotoEntry onPhoto={onPhoto} photo={photo} />))}
+          {!asking && lengthOn && <p className="length-hint">Drag the dot, or tap the length to type it.</p>}
           <div className="chapter" ref={chapter}>
             {/* Watch demo sits across from the step on a computer (Cat's D3, 2026-10-29). On a phone the step bars are
                 gone and Watch demo is a link at the end of the step (Cat's P1, 2026-10-31): "Step 1 of 5" opens the

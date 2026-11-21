@@ -9,17 +9,18 @@ import { detailPic } from './detailPics';
  * Sections without picture tiles get a little moving drawing of the choice beside the line, which opens
  * full size when tapped. A phone shows one short line instead, with no drawing (Cat's P1, 2026-10-31).
  */
-export function Explain({ set, group, options, pick }: { set: ExplainSet; group: string; options: readonly (readonly [unknown, string])[]; pick: unknown }) {
+/** `say`: the screen's own words for this pick, where the usual ones would be wrong for this garment. */
+export function Explain({ set, group, options, pick, say }: { set: ExplainSet; group: string; options: readonly (readonly [unknown, string])[]; pick: unknown; say?: string }) {
   const [big, setBig] = useState(false);
   const option = options.find(([id]) => id === pick);
   const line = option && explainLine(set, group, String(pick));
   if (!option || !line) return null;
-  const [text, skill] = line;
+  const [text, skill] = say ? [say, line[1]] : line;
   const pic = detailPic(set, group, String(pick));
   const words = (
     <span>
       <span className="explain-name visually-hidden">{option[1]}:</span> <span className="explain-full">{text}</span>
-      <span className="explain-short">{shortLine(set, group, String(pick), text)}</span>
+      <span className="explain-short">{say ? say.split(/(?<=\.)\s/)[0] : shortLine(set, group, String(pick), text)}</span>
       {skill && <span className={`skill-tag ${skill}`}>{SKILL_WORDS[skill]}</span>}
     </span>
   );

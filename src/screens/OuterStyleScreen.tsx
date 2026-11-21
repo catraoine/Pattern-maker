@@ -5,6 +5,7 @@ import { outerSpec } from '../engine/spec';
 import { FinishedTable, finishedLines } from '../ui/FinishedTable';
 import { OuterDraft, OuterMeasurements, lapelled, outerDrop } from '../engine/outerwear';
 import { outerFlat, wornLines, wornShapes } from '../engine/flat';
+import { needsArms } from '../engine/sleeve';
 import { OuterChoices, describeOuter, outerAllowed, outerWord, outerGroups, oversizeOuter } from '../garments';
 import { TestingTag } from '../ui/TestingTag';
 import { TechFlatView } from '../ui/TechFlatView';
@@ -77,6 +78,9 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const kind = choices.garment;
   // What it's called on this screen: a jacket without sleeves is a vest.
   const word = outerWord(choices);
+  // A vest can be made without the arms; sleeves can't be drafted until they're taken, so they're greyed with the
+  // reason above them, as on a top (code review, Nov 15: picking one drew nothing and asked for nothing).
+  const arms = !needsArms(values as OuterMeasurements);
   const pieces = useMemo(() => draft?.pieces ?? [], [draft]);
   const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
   const flat = useMemo(() => (draft ? outerFlat(draft) : undefined), [draft]);
@@ -203,13 +207,21 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       }
     >
       <section className="card numbered" aria-labelledby="opts">
-        {outerGroups(kind)
+        {outerGroups(kind, choices)
           .filter((g) => g.id !== 'lapel' || lapelled(choices.collar))
           .map((g) => (
           <Group key={g.id} label={g.label}>
+            {g.id === 'sleeve' && !arms && (
+              <p className="muted small sleeve-why">
+                Sleeves need your arm measurements.{' '}
+                <button type="button" className="link inline-link" onClick={onEditMeasurements}>
+                  Add them
+                </button>
+              </p>
+            )}
             <div className={chipsClass(kind, g.id)}>
               {g.options.map(([id, label]) => {
-                const allowed = outerAllowed(choices, g.id, id);
+                const allowed = outerAllowed(choices, g.id, id) && (arms || g.id !== 'sleeve' || id === 'none');
                 return (
                   <button
                     key={id}
@@ -221,6 +233,9 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                       // An oversized cut goes boxy, with no pads and a plain sleeve.
                       let next = { ...choices, [g.id]: id } as OuterChoices;
                       if (g.id === 'fit') next = oversizeOuter(next);
+                      // A hem measured off a photo or set by a look (the Black Vest's 30 cm below the waist) held over a
+                      // length picked here: Cropped and Hip changed the name but not the vest (pretend-tester walk, Nov 17).
+                      if (g.id === 'length') delete next.dropCm;
                       // Without sleeves there is no sleeve head for a pad to hold out.
                       if (next.sleeve === 'none') next.pads = 'none';
                       // A fitted cut keeps its waist darts.
@@ -236,7 +251,9 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                       onChoices(next);
                     }}
                   >
-                    <ChoicePic set={kind} group={g.id} id={id} />
+                    {/* Every picture is of a sleeved jacket, so a vest's chips go without: the Black Vest's lengths showed a cream
+                        jacket with sleeves (pretend tester, Nov 18). */}
+                    {word !== 'vest' && <ChoicePic set={kind} group={g.id} id={id} />}
                     {label}
                     {g.id === 'fit' && id === 'oversized' && <TestingTag tool="oversized_outer" />}
                     {((g.id === 'collar' && (id === 'peak' || id === 'shawl' || id === 'funnel')) || (g.id === 'lapel' && id !== 'classic')) && <TestingTag tool="jacket_collars" />}
@@ -264,7 +281,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
         {(flat || draft) && (
           <TabPanel tab={FABRIC}>
             {draft ? (
-              <FabricCard metres={outerFabricMetres(draft)} advice={outerFabrics({ garment: kind, fit: choices.fit })} fabric={fabric} lined>
+              <FabricCard metres={outerFabricMetres(draft)} advice={outerFabrics({ garment: kind, fit: choices.fit, sleeve: choices.sleeve })} fabric={fabric} lined>
                 {flat && <FabricSwatches finish={finish} onFinish={onFinish} garment={kind} details />}
               </FabricCard>
             ) : (

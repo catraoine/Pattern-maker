@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { sendNote, shrinkShot } from '../help/note';
 import { REPLY_EMAIL, REPLY_EMAIL_MAX } from '../help/replyEmail';
 import { OWNER } from '../legal';
+import { signinShown } from '../cloud/flag';
 
 interface Props {
   /** The screen they came from, sent with the note so they don't have to say where they were. */
@@ -13,11 +14,20 @@ interface Props {
 
 /** Short answers to what testers trip on first (the handbook's testers page lists them). */
 const ANSWERS: [string, string][] = [
-  ['My printed pattern is the wrong size', 'Measure the 10 cm test square on page A1. If it isn’t 10 cm, print again at 100% or “Actual size”, never “Fit to page”.'],
+  ['My printed pattern is the wrong size', 'Measure the 10 cm test square on page A2 (near the top left on a copy-shop sheet). If it isn’t 10 cm, print again at 100% or “Actual size”, never “Fit to page”.'],
   ['Letter or A4?', 'Pick the paper on Print: Letter in North America, A4 almost everywhere else. A large pattern prints best as one A0 sheet at a copy shop.'],
-  ['Getting my pattern to a computer', 'In Your account, open Your data and tap Send to another device. Open the link on the computer and everything is there.'],
+  [
+    'Getting my pattern to a computer',
+    signinShown
+      ? 'Sign in under Your data in Your account, on the phone and on the computer, and your patterns are on both. Or tap Send to another device there and open the link on the computer.'
+      : 'In Your account, open Your data and tap Send to another device. Open the link on the computer and everything is there.',
+  ],
   ['A measurement looks wrong', 'Tap Measure, change it, and every pattern redrafts to the new number.'],
-  ['Where is my work kept?', 'On this phone or computer. Download a backup from Your data to keep a copy.'],
+  ['Where is my work kept?', signinShown ? 'On this phone or computer, and in your account once you sign in under Your data. Download a backup from Your data to keep a copy of your own.' : 'On this phone or computer. Download a backup from Your data to keep a copy.'],
+  // Only once there is sign-in to ask about (the Dec 7 rehearsal, Nov 16).
+  ...(signinShown
+    ? ([['My sign-in email hasn’t come', 'It comes within a minute, so look in spam too. Ask for a new one if it isn’t there: only the newest email works. If its link opens somewhere other than the app, type the code from that email in the app instead.']] as [string, string][])
+    : []),
 ];
 
 /**

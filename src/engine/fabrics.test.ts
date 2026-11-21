@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bodiceFabrics, checkFabric, dressFabrics, trousersFabrics, describeFabric, fabricLines, skirtFabrics, withFabric, withFabricEase } from './fabrics';
+import { bodiceFabrics, checkFabric, outerFabrics, dressFabrics, trousersFabrics, describeFabric, fabricLines, skirtFabrics, withFabric, withFabricEase } from './fabrics';
 import type { Length, Silhouette } from './skirt';
 import type { BodiceFit, Neckline } from './bodice';
 import { draftSkirt } from './skirt';
@@ -32,6 +32,15 @@ describe('fabric advice', () => {
         expect(a.avoid).toMatch(/woven/);
         expect(!!a.note).toBe(neckline === 'square' || neckline === 'v' || neckline === 'boat');
       }
+  });
+});
+
+// DP walk, Nov 20: the Black Vest's Print page said "Good match for a oversized jacket".
+describe('fabric advice words', () => {
+  it('says "an" before oversized, and names a jacket without sleeves a vest', () => {
+    expect(outerFabrics({ garment: 'jacket', fit: 'oversized', sleeve: 'none' }).style).toBe('an oversized vest');
+    expect(outerFabrics({ garment: 'jacket', fit: 'regular', sleeve: 'tailored' }).style).toBe('a regular fit jacket');
+    expect(bodiceFabrics({ fit: 'oversized', neckline: 'crew' }).style).toBe('an oversized top');
   });
 });
 
@@ -70,6 +79,9 @@ describe('checking your fabric', () => {
   it('calls a suggested fabric a good match', () => {
     const notes = checkFabric({ garment: 'skirt', silhouette: 'a_line', length: 'midi' }, { weight: 'medium', drape: 'crisp', fibre: 'linen' });
     expect(notes[0]).toEqual({ level: 'ok', text: 'Good match for a midi A-line.' });
+    // A length typed or dragged by hand isn't named by the nearest one: the look's words may differ (pretend tester, Nov 18).
+    const own = checkFabric({ garment: 'skirt', silhouette: 'a_line', length: 'knee', lengthCm: 55.2 }, { weight: 'medium', drape: 'crisp', fibre: 'linen' });
+    expect(own[0]).toEqual({ level: 'ok', text: 'Good match for an A-line.' });
     expect(notes[1].text).toMatch(/twice/);
   });
 

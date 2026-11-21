@@ -119,19 +119,24 @@ describe('packing the sheet', () => {
     const name = 'Oversized button-front shirt-collar back-yoke bodice with elbow-length sleeves with turned-back cuffs, 47 cm below the waist, with a shaped hem';
     const sheet = layout(outer('jacket'), name, [], INFO);
     // Cat's pick, Nov 12: a short name heads the card and the whole description runs small beneath it.
-    const lines = sheet.prims.filter((pr) => pr.kind === 'text' && pr.face !== 'label' && pr.at.y < 3 + 4.4);
+    // The title card's lines above its rule (the code card on page 1 names the pattern too, left of x = 31).
+    const lines = sheet.prims.filter((pr) => pr.kind === 'text' && pr.face !== 'label' && pr.at.y < 3 + 4.4 && pr.at.x > 38);
     const texts = lines.map((pr) => (pr.kind === 'text' ? pr.text : ''));
-    expect(texts[0]).toBe('Oversized button-front shirt-collar back-yoke bodice');
-    expect(`${texts[0]} ${texts.slice(1).join(' ').replace(/^W/, 'w')}`).toBe(name);
-    // The card runs from x = 13 to 59 (the sheet's 3 cm margin, the 10 cm square, then 46 cm).
-    for (const pr of lines) if (pr.kind === 'text') expect(pr.at.x + textWidth(pr.text, pr.size), pr.text).toBeLessThanOrEqual(59);
+    // Too long for one line on the card, the short name takes two, then the rest of the description.
+    expect(`${texts[0]} ${texts[1]}`).toBe('Oversized button-front shirt-collar back-yoke bodice');
+    // (Past two small lines the description ends in "…": the notes below say the rest.)
+    const joined = `${texts[0]} ${texts[1]} ${texts.slice(2).join(' ').replace(/^W/, 'w')}`.replace(/…$/, '');
+    expect(name.startsWith(joined), joined).toBe(true);
+    // The card runs from x = 38.4 to 53.9, whole on page 3 on A4 and Letter (DI walk, Nov 19: at 28 cm it was cut in two).
+    for (const pr of lines) if (pr.kind === 'text') expect(pr.at.x + textWidth(pr.text, pr.size), pr.text).toBeLessThanOrEqual(53.9);
   });
 
   it('leaves the title block its corner', () => {
     const pieces = outer('jacket');
     const sheet = layout(pieces, 'Jacket', [], INFO);
     const square = sheet.prims.find((pr) => pr.kind === 'text' && pr.text === '10 CM')!;
-    expect(square.kind === 'text' && square.at.x).toBeCloseTo(8, 1);
+    // The square's middle: 3 cm margin, 17 cm to the square (past page 1 on A4 and Letter), half its 10 cm.
+    expect(square.kind === 'text' && square.at.x).toBeCloseTo(25, 1);
     // No cutting line reaches into the 10 cm square or the card beside it.
     for (const pr of sheet.prims) {
       if (pr.kind !== 'poly' || pr.style !== 'cut') continue;
@@ -195,7 +200,8 @@ describe('labels on small pieces', () => {
 
   it('names the collar as it is cut, on the fold in self', () => {
     const t = texts(cases[0][1], 'Collar');
-    expect(t.some((x) => x.includes('UPPER AND UNDER COLLAR IN SELF'))).toBe(true);
+    // (Read across its lines: kept clear of a page-join diamond, the block may wrap tighter.)
+    expect(t.join(' ')).toContain('UPPER AND UNDER COLLAR IN SELF');
     expect(t.some((x) => /BIAS/.test(x))).toBe(false);
   });
 
@@ -228,6 +234,14 @@ describe('tiles that only repeat a printed neighbour', () => {
   });
   it('keeps a row the ink reaches past the shared strip', () => {
     expect(usedTiles(line(28.5), 'a4').map((r) => r.filter(Boolean).length)).toEqual([1, 1]);
+  });
+  // The other way round (pretend tester DO walk, Nov 20): a trouser file printed pages whose only ink was in the strip
+  // the page to their right, or below, prints too. Columns step 18 cm, so x 18 to 19 is the first page's right strip.
+  it('drops a page whose only ink is in the strip the page to its right or below prints', () => {
+    const right: Sheet = { width: 30, height: 20, prims: [{ kind: 'poly', style: 'cut', closed: false, pts: [{ x: 18.4, y: 5 }, { x: 28, y: 5 }] }] };
+    expect(usedTiles(right, 'a4')).toEqual([[false, true]]);
+    const below: Sheet = { width: 15, height: 40, prims: [{ kind: 'poly', style: 'cut', closed: false, pts: [{ x: 5, y: 26.9 }, { x: 5, y: 38 }] }] };
+    expect(usedTiles(below, 'a4')).toEqual([[false], [true]]);
   });
 });
 

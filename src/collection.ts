@@ -29,7 +29,7 @@ import {
   isLingerie,
   isTee,
   isTrousers,
-  outerWord,
+  unusedFor,
   sleeveOf,
   validDetails,
 } from './garments';
@@ -112,7 +112,8 @@ export const COLLECTION: HouseLook[] = [
     id: 'blush-shift',
     number: 1,
     name: 'Blush Shift',
-    line: 'A sleeveless shift above the knee, with a little room at the bust and a hem that flares just enough.',
+    // Mini, as the length dot names it: "above the knee" read as the Above knee length, a step longer (pretend tester, Nov 18).
+    line: 'A sleeveless mini shift, with a little room at the bust and a hem that flares just enough.',
     fabric: 'Blush wool crepe',
     garment: 'dress',
     choices: dress('regular', { neckline: 'crew', sleeve: 'none', darts: 'bust', bustDart: 'french', bustEase: 5, shiftBack: 'shaped' }, { silhouette: 'straight', length: 'mini', noSeam: 'shift', flareCm: 4 }),
@@ -274,6 +275,35 @@ export function lookPatch(look: HouseLook, m?: MeasurementValues): { garment: Ga
   return choicesPatch(look.garment, m ? lookChoices(look, m) : look.choices);
 }
 
+/** A look made from the garment being styled, keeping the length the maker set on it: the hem is the maker's, not the
+ *  look's (see lengthless). A tester who set 55 cm on the plain skirt and then opened the Black Pleated Skirt got the
+ *  look's own 49.3 cm, with no word (pretend tester, Nov 18). `own` is what was styled, `plain` the garment untouched:
+ *  a length never moved from where the garment starts is not a pick, so the look keeps its own. Not a top: a peplum
+ *  hangs only from some lengths. */
+export function lookPatchKeeping(look: HouseLook, m: MeasurementValues, own: PatternChoices, plain: PatternChoices): { garment: Garment } & Record<string, unknown> {
+  const made = lookChoices(look, m);
+  const g = look.garment;
+  const keys = g === 'jacket' || g === 'coat' ? ['length', 'dropCm', 'lengthCm'] : g === 'skirt' || g === 'trousers' || g === 'dress' ? ['length', 'lengthCm', 'kneeShare', 'floorClear'] : [];
+  const hemOf = (c: PatternChoices) => (g === 'dress' && isDress(c) ? c.skirt : c) as unknown as Record<string, unknown>;
+  const pick = (c: PatternChoices) => Object.fromEntries(keys.filter((k) => hemOf(c)[k] !== undefined).map((k) => [k, hemOf(c)[k]]));
+  if (!keys.length || JSON.stringify(pick(own)) === JSON.stringify(pick(plain))) return choicesPatch(g, made);
+  const rest = Object.fromEntries(Object.entries(hemOf(made)).filter(([k]) => !keys.includes(k)));
+  const hem = { ...rest, ...pick(own) };
+  const kept = (g === 'dress' && isDress(made) ? { ...made, skirt: hem } : hem) as unknown as PatternChoices;
+  // A dress goes through lookChoices again, so a named mini still stops clear of the crotch on a long rise.
+  return choicesPatch(g, g === 'dress' ? lookChoices({ choices: kept }, m) : kept);
+}
+
+/** Whether opening a top's tester look leaves behind the length set on the plain top. A top's length is where its hem
+ *  sits, but on the Ice Peplum it's where the peplum is sewn on, so carrying it across would move the seam, not the
+ *  hem. It stays behind, and the tester is told so rather than finding it gone (pretend-tester walk, Nov 18). */
+export function lookDropsLength(look: HouseLook, own: PatternChoices, plain: PatternChoices): boolean {
+  if (look.garment !== 'bodice') return false;
+  const pick = (c: PatternChoices) => JSON.stringify(['length', 'dropCm', 'lengthCm'].map((k) => (c as unknown as Record<string, unknown>)[k]));
+  // Set to the look's own length, nothing is left behind.
+  return pick(own) !== pick(plain) && pick(own) !== pick(look.choices);
+}
+
 /** Where a garment's choices are kept in the saved work. */
 function choicesPatch(garment: Garment, choices: PatternChoices): { garment: Garment } & Record<string, unknown> {
   if (isDress(choices)) return { garment, dress: choices };
@@ -316,9 +346,12 @@ export function lookHipMissing(look: Pick<HouseLook, 'choices'>, measured: Measu
 
 /** The measurements a look is drawn to: the sewist's own when the garment has all it needs, or the sample set. */
 export function lookValues(look: HouseLook, values: MeasurementValues): { values: MeasurementValues; own: boolean } {
-  // A vest is drawn without the arms (a jacket's arms are only for its sleeves).
-  const skip: MeasurementId[] = isOuter(look.choices) && outerWord(look.choices) === 'vest' ? ['arm_length', 'upper_arm'] : [];
-  return isComplete(values, look.garment, undefined, skip) ? { values, own: true } : { values: EXAMPLE_BODY, own: false };
+  // A vest is drawn without the arms (a jacket's arms are only for its sleeves). A top that goes below the waist (the Ice
+  // Peplum) needs the hip too: drawn to a top's measurements without it, its card said "This look can't be drafted to
+  // these measurements", which a tester read as being told she was too big for it (Nov 18). Until then it's drawn to
+  // the sample, like any look still missing a measurement, and making it asks for the hip first.
+  const own = isComplete(values, look.garment, undefined, unusedFor(look.choices)) && !lookHipMissing(look, values).length;
+  return own ? { values, own: true } : { values: EXAMPLE_BODY, own: false };
 }
 
 /** A look made before its garment's measurements were all in is sized to the sample body (its mini's least length,
@@ -339,11 +372,34 @@ export function lookResized(garment: Garment, current: PatternChoices, values: M
 const canon = (v: unknown): unknown =>
   Array.isArray(v) ? v.map(canon) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).filter(([, x]) => x !== undefined).sort(([a], [b]) => (a < b ? -1 : 1)).map(([k, x]) => [k, canon(x)])) : v;
 
-/** The collection look these choices still are, unchanged since it was made, for the print's title card
- *  ("Leopard Shirt Dress" over the long description; Cat, Nov 12). Undefined once any option is changed. */
+/** The choices without what the hem handle on the drawing sets: a skirt's, a dress's or trousers' length, and a top's
+ *  length below the waist, and a jacket's or coat's length. Testers are asked to set their own length that way, so it is the maker's, not the look's. */
+function lengthless(garment: Garment, c: PatternChoices): unknown {
+  const hem = (s: object) => {
+    const { length: _l, lengthCm: _c, kneeShare: _k, floorClear: _f, ...rest } = s as Record<string, unknown>;
+    return rest;
+  };
+  if (garment === 'dress' && isDress(c)) return { ...c, skirt: hem(c.skirt) };
+  // A jacket's length pick sets its length and lets go of the hem a look set below the waist (the Black Vest's 30 cm);
+  // the Black Vest turned into "Your vest" on a length pick (pretend-tester walk, Nov 18).
+  if (garment === 'bodice' || garment === 'jacket' || garment === 'coat') {
+    const { length: _l, dropCm: _d, lengthCm: _c, ...rest } = c as unknown as Record<string, unknown>;
+    return rest;
+  }
+  return garment === 'skirt' || garment === 'trousers' ? hem(c) : c;
+}
+
+/** The look each fit tester sews, by its garment: one per garment. A tester who picked "Top" from the garment list
+ *  rather than the Ice Peplum Top from the collection drafted a plain top, with no peplum to pick and the plain top's
+ *  questions (testers, Nov 18), so Style points a tester on the plain garment to the look itself. */
+export const TESTER_LOOK: Partial<Record<Garment, string>> = { dress: 'blush-shift', bodice: 'ice-peplum', skirt: 'black-pleated-skirt', trousers: 'chocolate-barrel', jacket: 'black-vest' };
+
+/** The collection look these choices still are, for the print's title card ("Leopard Shirt Dress" over the long
+ *  description; Cat, Nov 12). Undefined once any option is changed, but not the length: a Blush Shift tester who
+ *  dragged her hem to above the knee saw "Your dress" where "Blush Shift" had been (testers, Nov 17). */
 export function lookNameOf(garment: Garment, current: PatternChoices, values: MeasurementValues): string | undefined {
-  const want = JSON.stringify(canon(current));
-  return COLLECTION.find((look) => look.garment === garment && JSON.stringify(canon(lookChoices(look, lookValues(look, values).values))) === want)?.name;
+  const want = JSON.stringify(canon(lengthless(garment, current)));
+  return COLLECTION.find((look) => look.garment === garment && JSON.stringify(canon(lengthless(garment, lookChoices(look, lookValues(look, values).values)))) === want)?.name;
 }
 
 /** The look's technical flat, drafted to the given measurements; undefined if it can't be drafted for them. */

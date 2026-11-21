@@ -14,12 +14,22 @@ describe('shaping the bodice by hand', () => {
     expect(dragDrop(m, DEFAULT_BODICE, 80).dropCm).toBe(24);
   });
 
+  // Pretend tester, Nov 18: a typed 9 cm caught on "High hip" (10 cm), and the 9 was shown nowhere.
+  it('keeps a typed length as typed, without catching on a named one', () => {
+    expect(dragDrop(m, DEFAULT_BODICE, 9, true)).toMatchObject({ length: 'high_hip', dropCm: 9 });
+    expect(dragDrop(m, DEFAULT_BODICE, 20.32, true).dropCm).toBe(20.32);
+    const peplum = { ...DEFAULT_BODICE, fit: 'fitted' as const, length: 'waist' as const, dropCm: 6, peplum: 'flared' as const };
+    expect(dragDrop(m, peplum, 9, true)).toMatchObject({ dropCm: 9, peplum: 'flared' });
+  });
+
   // Demo film sweep, Nov 14: dragged 13 to 16 cm down, the Ice Peplum lost its peplum and read as a plain top.
   it('stops a peplum top where its peplum can still hang, and keeps the peplum', () => {
     const peplum = { ...DEFAULT_BODICE, fit: 'fitted' as const, length: 'waist' as const, dropCm: 6, peplum: 'flared' as const };
     for (const cm of [14, 16, 19, 40]) expect(dragDrop(m, peplum, cm)).toMatchObject({ dropCm: 12, peplum: 'flared' });
     expect(dragDrop(m, peplum, 7).dropCm).toBe(7);
-    expect(dragDrop(m, peplum, 1).length).toBe('waist');
+    // Dragged up, it stops at the peplum's least drop, as its box does, rather than going on to the waist (Cat, Nov 21).
+    expect(dragDrop(m, peplum, 1)).toMatchObject({ dropCm: 6, peplum: 'flared' });
+    expect(dragDrop(m, peplum, 4)).toMatchObject({ dropCm: 6, peplum: 'flared' });
   });
 
   it('snaps a dragged fit to the nearest fit, and brings darts back for a closer one', () => {

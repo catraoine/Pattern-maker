@@ -118,7 +118,7 @@ export const RISE_RANGE = { min: -8, max: 5 };
 export type TrouserRise = 'low' | 'mid' | 'high';
 /** Where each picked rise puts the waistband, cm from your waist: a low rise on the high hip, a high one above the
  *  waist (both inside RISE_RANGE, and a low rise still no lower than riseFor lets it go on a short waist to hip). */
-const RISE_PICK_CM: Record<TrouserRise, number> = { low: -6, mid: 0, high: 4 };
+export const RISE_PICK_CM: Record<TrouserRise, number> = { low: -6, mid: 0, high: 4 };
 
 /** The rise as it can be cut on this body: a low rise goes no lower than a quarter of the way to the hip,
  * or the waistband would sit where the body is nearly as wide as the hip and the side seam has no shape left. */
@@ -175,6 +175,8 @@ const SHORTS_HEM = 3;
 
 /** The narrowest hem a foot goes through. */
 const MIN_HEM = 31;
+/** The shortest front fork, in cm: shorter, the front's cutting line crosses itself at the foot of the crotch (sweep, Nov 16). */
+const FORK_MIN = 3;
 /** A fly zip, and how far the fly's cut-on underlap reaches past the centre front on the waistband. */
 const FLY_ZIP = 18;
 const UNDERLAP = 3.5;
@@ -496,8 +498,8 @@ function solve(g: (x: number) => number, lo: number, hi: number): number {
 
 /** The x where an increasing, nearly straight g is zero, by the secant method, kept within [lo, hi]. */
 function secant(g: (x: number) => number, lo: number, hi: number): number {
-  let x0 = 1;
-  let x1 = 1.15;
+  let x0 = Math.min(hi, Math.max(lo, 1));
+  let x1 = Math.min(hi, Math.max(lo, 1.15));
   let g0 = g(x0);
   let g1 = g(x1);
   for (let i = 0; i < 6 && Math.abs(g1) > 0.02; i++) {
@@ -554,7 +556,7 @@ export function draftTrousers(body: TrousersMeasurements, style: Partial<Trouser
   // A pull-on waist is cut to pass the hips, with no darts, and gathered onto elastic.
   const elastic = s.waist === 'elastic';
   const W = elastic ? Math.max(H, m.full_hip + PULL_ON_EASE) : m.waist + ease.waist + (fit.waistEase ?? 0);
-  if (W > H + 4) throw new DraftError('Your waist is larger than your hip, so trousers can’t be drafted from this block yet.');
+  if (W > H + 4) throw new DraftError('Your waist measures more than your hip, and our trouser draft can’t follow that shape yet. We’re working on it. A skirt or dress drafts from your waist down meanwhile.');
   const cd = m.crotch_depth + ease.depth;
   const hd = Math.min(m.waist_to_hip, cd - 5);
   if (cd > m.waist_to_knee - 12) throw new DraftError('Your crotch depth looks long next to your waist to knee. Measure it seated, from the waist down the side to the chair.');
@@ -616,14 +618,17 @@ export function draftTrousers(body: TrousersMeasurements, style: Partial<Trouser
     const back = half(f, { ...backArgs, legShift, forkDrop });
     return { front, back, frontArgs, backArgs: { ...backArgs, legShift, forkDrop } };
   };
-  // The fork's reach sets the crotch seam's length: find the one that makes it the person's own.
+  // The fork's reach sets the crotch seam's length: find the one that makes it the person's own, within the block's
+  // range. Past 1.7 times the block's the leg at the crotch is far wider than any thigh (on a 154 cm hip the back fork
+  // came to 41 cm, Nov 16), and a front fork under 3 cm crosses the front's cutting line where the crotch meets the
+  // inside leg. Past either end the person is asked to re-measure (crotchCapped).
   const reach = (f: Frame) =>
     secant(
       (x) => {
         const b = build(x, f);
         return b.front.crotch + b.back.crotch - target;
       },
-      0.55,
+      Math.max(0.55, FORK_MIN / fork0.front),
       1.7,
     );
   // Shorts are the full-length trousers cut off: the crotch, crease and back leg are settled on the full

@@ -63,6 +63,22 @@ describe('the dress and cross-checks', () => {
     expect(secondLooks({ ...EXAMPLE_VALUES, waist_to_hip: EXAMPLE_VALUES.height! * 0.06 }, 'skirt').map((c) => c.id)).not.toContain('waist_to_hip');
   });
 
+  // A trousers tester rounder in front, with straight hips and the seat's fullness low beside the centre back, was asked
+  // again and again to redo the waist to hip (Nov 18). That shape is said as one the pattern follows, never as a mistake.
+  it('reads a rounder front, straight hips and a low seat as a shape, not a mistake', () => {
+    const v = { height: 165, waist: 84, full_hip: 98, high_hip: 100, waist_to_hip: 24, front_waist_to_hip: 26, back_waist_to_hip: 21, crotch_depth: 24, crotch_length: 72, waist_to_knee: 58, waist_to_floor: 102 };
+    const checks = checkMeasurements(v, 'cm', 'trousers');
+    expect(checks.filter((c) => c.level === 'error')).toEqual([]);
+    expect(checks.map((c) => c.id)).not.toContain('crotch_depth');
+    expect(crossChecks(v).map((c) => c.id)).not.toContain('high_hip');
+    const look = secondLooks(v, 'trousers').find((c) => c.id === 'front_waist_to_hip')!;
+    expect(look.message).toMatch(/pattern follows it/);
+    for (const c of [...checks, ...secondLooks(v, 'trousers')]) expect(c.message).not.toMatch(/less usual|Please check|should be/i);
+    // A crotch depth clearly shorter than the waist to hip is still asked about, and a high hip far past the full hip.
+    expect(checkMeasurements({ ...v, crotch_depth: 20 }, 'cm', 'trousers').map((c) => c.id)).toContain('crotch_depth');
+    expect(crossChecks({ ...v, high_hip: 105 }).map((c) => c.id)).toContain('high_hip');
+  });
+
   it('asks for a second look when the front waist to hip is longer than the back', () => {
     // Cat's own skirt measurements (2026-10-24), front 7.5 in and back 7.2 in.
     const v = { height: 165.1, waist: 66, full_hip: 86.4, waist_to_hip: 18.3, waist_to_knee: 61, waist_to_floor: 104.1, front_waist_to_hip: 19.05, back_waist_to_hip: 18.29 };

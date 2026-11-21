@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { FilmBar, useFilm } from './FilmControls';
-import { openingAt, paintOpening } from './filmOpening';
+import { OPENING_END, openingAt, paintOpening, paintTitle } from './filmOpening';
 
 // The tour: the walkthrough video, full screen, opened from the play button on the welcome's dress form.
 // Skip tour is always showing; the bar along the bottom marks Measure, Choose, Style and Print as the video reaches them.
@@ -23,12 +23,12 @@ const WIDE_SCREEN = '(min-width: 900px) and (min-aspect-ratio: 1/1)';
 /** Where each part starts in the video, in seconds, and how long it runs. Update with the video. */
 /** says: what the part shows, in words, for anyone who can't see the film (the accessibility review, 2026-10-30). */
 const PARTS: FilmPart[] = [
-  { name: 'Measure', from: 0, says: 'Just a few measurements, taken once. The dress form takes your shape as you go.' },
-  { name: 'Choose', from: 11.2, says: 'Then what to make: pick a garment, start from a look in the collection, or upload a photo of a piece you love.' },
-  { name: 'Style', from: 28.0, says: 'Make it yours: its shape, length, hem and details, step by step on the drawing. Your pattern is drafted as you go, and you can shop the fabric for it.' },
-  { name: 'Print', from: 64.4, says: 'Print it at home on ordinary paper, full size at a copy shop, or project it true size onto your fabric. Drafted to your body.' },
+  { name: 'Measure', from: 0, says: 'Enter your measurements just once, taken with a soft tape: every pattern is drafted from your numbers.' },
+  { name: 'Choose', from: 13.7, says: 'Then what to make: design your own garment, choose from a collection, or start with a photo of a piece you love.' },
+  { name: 'Style', from: 29.5, says: 'Select your style details: its cut, darts, neckline and your own cloth, step by step on the drawing. Or design straight from your pattern, moving a dart or cutting off a new piece. All round turns the dress to check the seams meet and the hem sits level before you cut.' },
+  { name: 'Print', from: 57.7, says: 'Print your pattern at home on ordinary paper or full size at a copy shop, or project it true size onto your fabric. Drafted to your body: your pattern, ready to sew.' },
 ];
-export const TOUR_LABEL = '1:24';
+export const TOUR_LABEL = '1:17';
 
 export type FilmPart = { name: string; from: number; says: string };
 
@@ -82,10 +82,25 @@ export function TourPlayer({ onClose, from }: { onClose: () => void; from?: HTML
   // Read once: the film's frame keeps easing back after the player is in (arriving is false by then).
   const laying = useRef(arriving);
   const handed = useRef(false);
+  // The film handed over before it could play (a slow connection): kept out of sight until it plays, so its first
+  // frame (the welcome page) never shows, with the controls and the loading ring up meanwhile (the release walk,
+  // Nov 18: eight seconds of black with no controls, then what looked like the page again).
+  const [waiting, setWaiting] = useState(false);
+  useEffect(() => {
+    const v = video.current;
+    if (!v) return;
+    // Shown once it is truly playing (a seek on the black may end without a fresh 'playing').
+    const on = () => {
+      if (!v.paused && v.readyState >= 3) setWaiting(false);
+    };
+    const events = ['playing', 'seeked', 'timeupdate'];
+    events.forEach((e) => v.addEventListener(e, on));
+    return () => events.forEach((e) => v.removeEventListener(e, on));
+  }, []);
 
-  // The opening, drawn from the tap on the stand-in canvas, on a clock started by the tap, until the film is playing
-  // (then it fades away over it); the film, when it comes, is sent to the same moment. Both are laid over the page on
-  // their own clocks: the film's form on the page's form, easing back to the full frame as the push comes in.
+  // The opening, drawn from the tap on the stand-in canvas, on a clock started by the tap, to its fade to black; the
+  // film then comes in over it from that moment. Both are laid over the page: the film's form on the page's form,
+  // easing back to the full frame as the push comes in.
   useLayoutEffect(() => {
     const v = video.current;
     const c = standIn.current;
@@ -122,58 +137,39 @@ export function TourPlayer({ onClose, from }: { onClose: () => void; from?: HTML
     c.height = Math.round(box.height * dpr);
     const g = c.getContext('2d');
     let raf = 0;
-    // The stand-in's own clock: real time from the tap, nudged (a touch faster or slower, never seen) onto the film's
-    // once the film is playing, so the film takes over on the very frame the stand-in shows.
+    // The stand-in draws the whole opening on its own clock, real time from the tap, never nudged: the film plays
+    // from the tap too (its music with it) but stays out of sight until the opening has faded to black, then comes
+    // in on the black, sent to that moment if it has fallen behind or run ahead. Nothing is matched frame to frame,
+    // so nothing jumps or speeds up and slows down to catch up (Cat, Nov 18: the start was still choppy on her
+    // phone, where the film's clock is too coarse to match against).
     let t = 0;
-    let last = performance.now();
     let gone = Infinity;
-    let sent = false;
-    let caught = 0;
     const step = () => {
-      const at = performance.now();
-      const dt = Math.min(0.1, (at - last) / 1000);
-      last = at;
-      const ready = !v.paused && !v.seeking && v.readyState >= 3;
-      if (!handed.current && ready && !sent && v.currentTime < t - 0.25) {
-        // Sent on once, to just ahead of now (a seek takes a moment).
-        sent = true;
-        v.currentTime = t + 0.2;
+      t = now();
+      if (!handed.current && t >= OPENING_END) {
+        handed.current = true;
+        gone = now() + 0.5;
+        if (Math.abs(v.currentTime - OPENING_END) > 0.5) v.currentTime = OPENING_END;
+        if (v.paused || v.readyState < 3) setWaiting(true);
+        setArriving(false);
       }
-      const err = !handed.current && ready ? v.currentTime - t : 0;
-      t += dt * (1 + Math.max(-0.3, Math.min(0.3, 2 * err)));
-      if (!handed.current && ready) {
-        // In step for a few frames running, or still apart after a good while: the film takes over.
-        caught = Math.abs(v.currentTime - t) < 0.03 ? caught + 1 : 0;
-        if (caught >= 3 || now() > 9) {
-          handed.current = true;
-          gone = now() + 0.5;
-          setArriving(false);
-        }
-      }
-      const shown = handed.current && ready ? v.currentTime : t;
+      const shown = t;
       if (g && now() < gone) {
         g.setTransform(1, 0, 0, 1, 0, 0);
         g.clearRect(0, 0, c.width, c.height);
         g.setTransform(dpr * fit.k, 0, 0, dpr * fit.k, dpr * (fit.x - box.left), dpr * (fit.y - box.top));
         paintOpening(g, f.r, f.vw, f.vh, shown);
+        paintTitle(g, f.vw, f.vh, shown, shape === 'wide' ? 62 : 52);
         lay(c, shown);
       }
-      const moving = handed.current ? lay(v, v.currentTime) : (lay(v, t), true);
-      if (moving || now() < gone) raf = requestAnimationFrame(step);
+      lay(v, t);
+      if (!handed.current || now() < gone) raf = requestAnimationFrame(step);
     };
     step();
-    // Never left on the stand-in: if the film can't start (say it is blocked), the player comes in anyway.
-    const late = setTimeout(() => {
-      if (handed.current) return;
-      handed.current = true;
-      gone = now() + 0.5;
-      setArriving(false);
-    }, 10000);
     return () => {
       cancelAnimationFrame(raf);
       v.style.transform = '';
       from.style.visibility = formWas;
-      clearTimeout(late);
     };
   }, [from, shape]);
 
@@ -217,7 +213,7 @@ export function TourPlayer({ onClose, from }: { onClose: () => void; from?: HTML
       </div>
       <video
         ref={video}
-        className="tour-video"
+        className={waiting ? 'tour-video tour-video-waiting' : 'tour-video'}
         playsInline
         preload="auto"
         aria-describedby="tour-words"
@@ -231,7 +227,7 @@ export function TourPlayer({ onClose, from }: { onClose: () => void; from?: HTML
           <source key={v.src} src={v.src} type={v.type} />
         ))}
       </video>
-      <FilmBar film={film} />
+      <FilmBar film={waiting ? { ...film, loading: true } : film} />
       <FilmWords id="tour-words" parts={PARTS} />
     </div>
   );

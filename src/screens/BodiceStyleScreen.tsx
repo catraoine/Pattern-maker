@@ -32,7 +32,7 @@ import { DrawMenu } from '../ui/DrawMenu';
 import type { Finish } from '../savedWork';
 import { MyFabric, bodiceFabrics, fabricEase } from '../engine/fabrics';
 import { FabricCard, FabricSummary } from '../ui/FabricCard';
-import { isDraped, zipSide } from '../engine/drape';
+import { isDraped, peplumLengthOk, zipSide } from '../engine/drape';
 import { DrawOnForm, armFor, formWidth } from '../ui/DrawOnForm';
 import { orSeam, readSeamLine } from '../ui/formSeams';
 import { bodiceHemLine, orNeckline, readBodiceHemShape, readUnevenNeckline, unevenNecklineLines } from '../ui/formBodice';
@@ -68,6 +68,9 @@ interface Props {
   sleeve?: SleeveDraft;
   error?: string;
   onEditMeasurements: () => void;
+  /** Asks for the full hip and waist to hip, one page each: a top's own measurement list has no waist to hip, so "Add
+   *  them" under Length opened a list without the one it needed (pretend tester, Nov 18). */
+  onAddHip?: () => void;
   onNext: () => void;
   saveState: 'can' | 'saved' | 'full';
   onSave: () => void;
@@ -123,7 +126,7 @@ const handShaped = (c: BodiceChoices, id: string) => (REPLACES[id] ?? []).some((
 
 type View = 'sketch' | 'round' | 'flat' | 'pattern';
 
-export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChooseGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric, mode = 'all', onMode }: Props) {
+export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChooseGarment, values, draft, sleeve, error, onEditMeasurements, onAddHip = onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric, mode = 'all', onMode }: Props) {
   const can = (t: ProTool) => shows(mode, t);
   const [view, setView] = useState<View>('sketch');
   const [fit, setFit] = useState(false);
@@ -144,6 +147,9 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
   const boned = valid.structure === 'boned';
   const extra = fabricEase(fabric, 'bodice');
   const title = describeBodice(choices);
+  // A length dragged or typed below the waist is said as where it sits on the Length row: a peplum set 10 cm below read
+  // "Waist", the named length it starts from (pretend tester, Nov 18). Said as the draft makes it, not as typed.
+  const setDrop = choices.dropCm !== undefined ? hemDrop(m, choices) : 0;
   // The house shirt can be let down to the longest top's hem and past it to a mini (the Leopard Shirt Dress), so the
   // title calls it what it is then, rather than "Your bodice" over a dress (Cat, Nov 12).
   const dressLength = choices.shirtCut === 'house' && hemDrop(m, choices) >= dropRange(m, choices.length).max;
@@ -193,12 +199,15 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
     !(boned && id === 'princess') &&
     !(draped && (id === 'princess' || id === 'bustDart' || id === 'closure' || id === 'collar' || id === 'back' || id === 'structure'));
 
+  // With a peplum on, the lengths it can't hang from step aside: picking one took the peplum off without a word, so the
+  // Ice Peplum Top turned into a plain top (pretend-tester walk, Nov 18).
+  const peplumLengthFits = (length: BodiceChoices['length']) => detail.peplum === 'none' || peplumLengthOk({ ...choices, length, dropCm: undefined });
   const allowed = (id: string, opt: string) => topAllowed(choices, id, opt) && baseAllowed(id, opt);
   const baseAllowed = (id: string, opt: string) =>
     id === 'darts'
       ? DARTS_FOR_FIT[choices.fit].includes(opt as BodiceChoices['darts'])
       : id === 'length'
-        ? hip || !needsHip(opt as BodiceChoices['length'])
+        ? (hip || !needsHip(opt as BodiceChoices['length'])) && peplumLengthFits(opt as BodiceChoices['length'])
         : id === 'sleeve'
           ? (opt === 'none' || arms) && detailAllowed(choices, 'sleeve', opt)
           : id === 'sleeveShape'
@@ -354,7 +363,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
     >
       <section className="card numbered" aria-labelledby="opts">
         {BODICE_GROUPS.filter((g) => shown(g.id)).map((g) => (
-          <Group key={g.id} label={g.label} tab={PRO_GROUPS.includes(g.id) ? PRO : undefined} shaped={handShaped(choices, g.id) ? g.options.find(([id]) => id === valueOf(g.id))?.[1] : undefined}>
+          <Group key={g.id} label={g.label} tab={PRO_GROUPS.includes(g.id) ? PRO : undefined} shaped={g.id === 'length' && setDrop > 0 ? `${draft?.peplum ? 'Peplum seam ' : ''}${Math.round(setDrop * 10) / 10} cm below the waist` : handShaped(choices, g.id) ? g.options.find(([id]) => id === valueOf(g.id))?.[1] : undefined}>
             {/* Above the pictures, not under them: greyed sleeves read as locked until the reason is seen (cold read, Nov 14). */}
             {g.id === 'sleeve' && !arms && (
               <p className="muted small sleeve-why">
@@ -378,7 +387,8 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
                   {label}
                   {optionInTesting(g.id, id) && <TestingTag tool="new_details" />}
                   {oversizedInTesting(g.id, id) && <TestingTag tool="oversized" />}
-                  {g.id === 'peplum' && id !== 'none' && hemDrop(m, choices) > 0 && <TestingTag tool="low_peplum" />}
+                  {/* One In testing tag: the balloon carries its own. */}
+                  {g.id === 'peplum' && id !== 'none' && id !== 'balloon' && hemDrop(m, choices) > 0 && <TestingTag tool="low_peplum" />}
                   {g.id === 'neckline' && id === 'plunge' && <TestingTag tool="plunge" />}
                   {g.id === 'collar' && id === 'polo' && <TestingTag tool="polo_collar" />}
                   {g.id === 'peplumHem' && id === 'high_low' && <TestingTag tool="high_low_peplum" />}
@@ -400,10 +410,13 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
                 </button>
               </p>
             )}
+            {g.id === 'length' && detail.peplum !== 'none' && BODICE_GROUPS.find((x) => x.id === 'length')!.options.some(([l]) => !peplumLengthFits(l)) && (
+              <p className="muted small">A peplum hangs from the waist, so the longer lengths step aside. Take the peplum off for a longer top.</p>
+            )}
             {g.id === 'length' && !hip && (
               <p className="muted small">
                 For hip lengths, add your full hip and waist to hip.{' '}
-                <button type="button" className="link inline-link" onClick={onEditMeasurements}>
+                <button type="button" className="link inline-link" onClick={onAddHip}>
                   Add them
                 </button>
               </p>

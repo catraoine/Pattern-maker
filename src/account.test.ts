@@ -18,6 +18,7 @@ import {
   updatePerson,
   withPeople,
 } from './account';
+import type { Account } from './account';
 
 const skirt = (length: 'mini' | 'knee' | 'midi' | 'maxi' | 'above_knee') => ({ fit: 'regular' as const, silhouette: 'a_line' as const, length });
 
@@ -35,6 +36,12 @@ describe('account', () => {
     expect(savePattern(a, skirt('knee'), 'x')).toBe(a);
     for (const l of ['mini', 'midi', 'maxi', 'above_knee'] as const) a = savePattern(a, skirt(l), l);
     expect(a.patterns).toHaveLength(FREE_SAVED_LIMIT);
+  });
+
+  it('keeps every pattern a fit tester prints: five tester pieces and more (Nov 19 bug hunt)', () => {
+    let a: Account = { ...NEW_ACCOUNT, testerCode: 'EXAMPLE-CODE' };
+    for (const l of ['mini', 'knee', 'midi', 'maxi', 'above_knee'] as const) a = savePattern(a, skirt(l), l);
+    expect(a.patterns).toHaveLength(5);
   });
 
   it('falls back to "Me" when no name is given', () => {

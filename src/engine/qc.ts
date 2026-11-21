@@ -215,7 +215,8 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
       checks.push({
         group: 'Seams',
         label: garments.length > 1 || all.length > 1 ? `${g} waist seam to finished waist` : 'Waist seam to finished waist',
-        detail: `${cm(seam)}${gather > 1 ? ` once gathered (cut ${Math.round(gather * 100) / 100} times as long)` : ' with darts closed'}, finished ${cm(opts.finishedWaist)}`,
+        // "With darts closed" only where there are darts: the Black Pleated Skirt has none (DQ walk, Nov 20).
+        detail: `${cm(seam)}${gather > 1 ? ` once gathered (cut ${Math.round(gather * 100) / 100} times as long)` : [...fronts, ...backs].some((pc) => dartsOf(pc).length) ? ' with darts closed' : ''}, finished ${cm(opts.finishedWaist)}`,
         // Up to 1.5 cm eases into a waistband or a matching seam without showing.
         ok: Math.abs(seam - opts.finishedWaist) <= 1.5,
       });
@@ -240,11 +241,14 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
     if (!sidePc) continue;
     const a = taggedLength(c.outline, 'princess');
     const b = taggedLength(sidePc.outline, 'princess');
+    // The side's ease over the bust, marked by its notch below the bust (see shaping.ts panels): the rest must match.
+    // Under an eighth of an inch it's "a touch": in inches it read "the side 0 in longer" (pretend tester, Nov 18).
+    const ease = (sidePc.meta.princessEase as number | undefined) ?? 0;
     checks.push({
       group: 'Seams',
       label: `${cap(c.name.replace(/^Bodice centre /i, ''))} princess seams`,
-      detail: `centre ${cm(a)}, side ${cm(b)}, ${Math.abs(a - b) < 0.05 ? 'identical' : `${cm(Math.abs(a - b))} apart`}`,
-      ok: Math.abs(a - b) <= SEAM_TOLERANCE,
+      detail: `centre ${cm(a)}, side ${cm(b)}, ${ease ? `the side ${ease < 0.16 ? 'a touch' : cm(ease)} longer, eased in over the bust between the notches` : Math.abs(a - b) < 0.05 ? 'identical' : `${cm(Math.abs(a - b))} apart`}`,
+      ok: Math.abs(b - a - ease) <= SEAM_TOLERANCE,
     });
   }
 
@@ -407,19 +411,21 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
   const sleeve = pieces.find((pc) => /^sleeve$/i.test(pc.name));
   if (sleeve && front && back) checks.push(...sleeveChecks(sleeve, pieces.filter(isFront), pieces.filter(isBack)));
 
-  // Centre lines are square to the edges that cross them, so the piece mirrors without a point or dip.
+  // Centre lines are square to the edges that cross them, so the piece mirrors without a point or dip. Where two
+  // pieces meet the same centre line (a vest's back yoke and back both cross it at the yoke seam), each check names
+  // its piece: the vest's seam check listed "Yoke seam square at centre back" twice, with nothing to tell them apart
+  // (DP walk, Nov 20).
+  const cornerAt = checks.length;
+  const cornerPiece = new Map<Check, string>();
   for (const pc of pieces) {
     const where = (pc.meta.foldAt as string | undefined) ?? (isFront(pc) ? 'centre front' : 'centre back');
     for (const c of corners(pc)) {
       const centres = ['fold', 'centre', 'crotch'];
       const centre = centres.includes(c.a) ? c.b : centres.includes(c.b) ? c.a : '';
       if (!centre || !NAMES[centre] || ((pc.meta.pointedAtCentre as string[] | undefined) ?? []).includes(centre)) continue;
-      checks.push({
-        group: 'Corners',
-        label: `${cap(NAMES[centre])} square at ${where}`,
-        detail: deg(c.angle),
-        ok: Math.abs(c.angle - 90) <= SQUARE_TOLERANCE,
-      });
+      const check: Check = { group: 'Corners', label: `${cap(NAMES[centre])} square at ${where}`, detail: deg(c.angle), ok: Math.abs(c.angle - 90) <= SQUARE_TOLERANCE };
+      cornerPiece.set(check, pc.name);
+      checks.push(check);
     }
     // A whole piece has no centre edge: its edges must run straight across the centre line instead,
     // as two halves cut on the fold would once opened out.
@@ -435,6 +441,8 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
       });
     });
   }
+  const squares = checks.slice(cornerAt).filter((c) => cornerPiece.has(c));
+  for (const c of squares) if (squares.some((o) => o !== c && o.label === c.label)) c.label = `${c.label} (${cornerPiece.get(c)!.toLowerCase()})`;
   return checks;
 }
 

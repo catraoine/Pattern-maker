@@ -136,6 +136,10 @@ interface Split {
   top: P;
 }
 
+/** The most a princess side panel is eased into its centre panel over the bust, in cm: up to a centimetre eases in
+ *  smoothly over a full bust; more would gather. */
+const PRINCESS_EASE_MAX = 1;
+
 /** Cut a piece along a princess line into its centre and side panels. */
 export function panels(pc: Piece, s: Split, names: [string, string], cuts: [string, string], meta: Record<string, unknown>): { centre: Piece; side: Piece; line: P[] } {
   const r = s.ring;
@@ -179,8 +183,14 @@ export function panels(pc: Piece, s: Split, names: [string, string], cuts: [stri
   const top = len(sub(cs[0], s.pivot));
   const at = [top * 0.5, top + (L - top) * 0.45];
   const outward = (pts: P[]) => ([q, d]: [P, P]): [P, P] => (insidePolygon(add(q, mul(d, 0.3)), pts) ? [q, mul(d, -1)] : [q, d]);
+  // On a full bust the side's seam can come out a few millimetres longer than the centre's however its blend is set
+  // (the dart opened into the line leaves its two sides unequal). A pattern cutter keeps that as ease over the bust: the
+  // notch below the bust moves down by it on the side, so the seams meet above and below and the side is eased in
+  // between (Cat's pick, tester sweep Nov 16: on a quarter of measured bodies it showed as a seam to CHECK).
+  const ease = polyLen(ss) - L;
+  const eased = ease > 0.05 && ease <= PRINCESS_EASE_MAX;
   const cNotches = marksAlong(cs, at).map(outward(cPts));
-  const sNotches = marksAlong(ss, at).map(outward(sPts));
+  const sNotches = marksAlong(ss, eased ? [at[0], at[1] + ease] : at).map(outward(sPts));
   const own = (pts: P[]) => (q: P) => pts.some((x) => len(sub(x, q)) < 0.8) || insidePolygon(q, pts);
   const old = pc.notches.map(moveNotch(s.move));
   const cOwn = own(cPts);
@@ -224,7 +234,7 @@ export function panels(pc: Piece, s: Split, names: [string, string], cuts: [stri
     cut: cuts[1],
     alternate: undefined,
     draft: pc.draft ? { frame: pc.draft.frame, points: points((q) => sOwn(q) && !cOwn(q)) } : undefined,
-    meta: { ...meta },
+    meta: { ...meta, ...(eased ? { princessEase: ease } : {}) },
   };
   delete side.meta.pointedAtCentre;
   // The seam on the garment as sewn: from the top, through the pivot, down the closed waist dart.
@@ -240,6 +250,7 @@ export function princessPieces(
   line: Exclude<PrincessLine, 'none'>,
   at?: number,
   flat = false,
+  fairFurther = false,
 ): { pieces: Piece[]; lines: { front: P[]; back: P[] } } | undefined {
   // Front: the bust dart moved into the line, opened right to the bust point; `at` is where along the
   // shoulder or armhole it was drawn, and the back's line starts the same way along its own edge. A flat
@@ -251,11 +262,15 @@ export function princessPieces(
     const total = runLen(r, run);
     // The shoulder from the neck end, the armhole from the shoulder down, as on the back.
     const neckFirst = line === 'shoulder' && Math.abs(r.pts[run[0]].x) < Math.abs(r.pts[(run[1] + 1) % r.pts.length].x);
-    const d = line === 'shoulder' ? total * (at ?? 0.5) : total * clampAt(at ?? 0.45, ARMHOLE_AT.min, ARMHOLE_AT.max);
+    // Undrawn on the armhole, the line starts 2 cm below the armhole notch, as the back's does and as a bust dart's is
+    // moved: at a set share of the armhole a big chest's notch could fall just past the line, off its own panel's edge
+    // (the nightly menswear pass, Nov 21: 0.6 cm off the side front on a 116 cm chest).
+    const notch = front.notches[0]?.[0];
+    const d = line === 'shoulder' ? total * (at ?? 0.5) : at === undefined && notch ? Math.min(alongTo(r, run, notch) + 2, total * 0.6) : total * clampAt(at ?? 0.45, ARMHOLE_AT.min, ARMHOLE_AT.max);
     const iQ = insertAlong(r, run, neckFirst || line !== 'shoulder' ? d : total - d);
     f = panels(front, { ring: r, i1: iQ, i2: iQ, pivot: dartTipOf(front, r), move: (q) => q, top: r.pts[iQ] }, ['Bodice centre front', 'Bodice side front'], ['Cut 1 on fold', 'Cut 2 (1 pair)'], {});
   } else {
-    const m = moveBustDart(front.outline, apex, line, { princess: true, armholeNotch: front.notches[0]?.[0], belowNotch: 2, at });
+    const m = moveBustDart(front.outline, apex, line, { princess: true, armholeNotch: front.notches[0]?.[0], belowNotch: 2, at, fairFurther });
     if (!m) return undefined;
     f = panels(front, { ring: m.ring, i1: m.i1, i2: m.i1 + 1, pivot: apex, move: m.move, top: m.closedAt }, ['Bodice centre front', 'Bodice side front'], ['Cut 1 on fold', 'Cut 2 (1 pair)'], {});
   }
@@ -279,20 +294,26 @@ export function princessPieces(
   } else {
     const run = runOf(r, 'armhole')!;
     const notch = back.notches.length >= 2 ? lerp(back.notches[0][0], back.notches[1][0], 0.5) : r.pts[run[0] + 2];
-    let s = 0;
-    let best = Infinity;
-    let atS = 0;
-    for (let i = run[0]; i <= run[1] + 1; i++) {
-      if (i > run[0]) s += len(sub(r.pts[i], r.pts[i - 1]));
-      if (len(sub(r.pts[i], notch)) < best) {
-        best = len(sub(r.pts[i], notch));
-        atS = s;
-      }
-    }
+    const atS = alongTo(r, run, notch);
     iQ = insertAlong(r, run, at !== undefined ? runLen(r, run) * clampAt(at, ARMHOLE_AT.min, ARMHOLE_AT.max) : Math.min(atS + 2, runLen(r, run) * 0.6));
   }
   const b = panels(back, { ring: r, i1: iQ, i2: iQ, pivot: dartTipOf(back, r), move: (q) => q, top: r.pts[iQ] }, ['Bodice centre back', 'Bodice side back'], ['Cut 2 (1 pair)', 'Cut 2 (1 pair)'], line === 'shoulder' ? { shoulderEase: 0.5 } : {});
   return { pieces: [f.centre, f.side, b.centre, b.side], lines: { front: f.line, back: b.line } };
+}
+
+/** How far along an edge's run its point nearest to q is (cm, from the run's start). */
+function alongTo(r: Ring, run: [number, number], q: P): number {
+  let s = 0;
+  let best = Infinity;
+  let at = 0;
+  for (let i = run[0]; i <= run[1] + 1; i++) {
+    if (i > run[0]) s += len(sub(r.pts[i], r.pts[i - 1]));
+    if (len(sub(r.pts[i], q)) < best) {
+      best = len(sub(r.pts[i], q));
+      at = s;
+    }
+  }
+  return at;
 }
 
 /** Where a princess line without a bust dart turns down: the waist dart's point, or where it would be. */

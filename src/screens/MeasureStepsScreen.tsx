@@ -15,7 +15,7 @@ import { isSwimIntimates } from '../photo/swim';
 import { InterestCard } from '../ui/InterestCard';
 import { MAX_IDEA_CHARS, type IdeaReading, type IdeaResponse, type PhotoError } from '../photo/types';
 import { testerHeaders } from '../ui/TesterCode';
-import { typedLength } from '../units';
+import { inchWords, measureInches, typedLength } from '../units';
 
 interface Props {
   /** Opens the Maison collection from "What would you like to make?": the fit testers sew a house look (Nov 11). */
@@ -38,6 +38,8 @@ interface Props {
   /** Where to open. By default the start (or the check, once the base set is in). "choose" opens the list of what
    * to make; a garment opens on the first measurement it still needs; "redo" opens one measurement and comes back. */
   start?: StepsStart;
+  /** Opened just now by App for `start`, rather than stepped back into with the browser's back. */
+  opening?: boolean;
   /** Measuring someone else: their name, given on the first page, before any measurement is taken, with the form picked for them. */
   onSomeoneElse?: (name: string, form: FormKind) => void;
   /** The measurements in use are someone else's, so every page is worded for the person holding the tape. */
@@ -53,15 +55,21 @@ interface Props {
   onForm?: (form: FormKind) => void;
   /** "Something else", described and matched to a garment: style it from these choices, measuring for it first. */
   onIdea?: (choices: PatternChoices) => void;
+  /** What the garment's current design doesn't draft from, so it isn't asked (a vest's arms). */
+  unused?: (g: Garment) => MeasurementId[];
+  /** The garment's name for its current design ("vest" for a jacket without sleeves). */
+  named?: (g: Garment) => string;
   /** "Or start from a photo" on the describe page. */
   onPhoto?: () => void;
   /** "How your pattern is made", for the AI line on the describe page. */
   onMade?: () => void;
   /** "Tell me when it's ready", for something the app can't make yet. */
   onNews?: () => void;
+  /** Which page is showing: the header's Style and Print answer differently before anything is chosen. */
+  onPage?: (kind: PageKind) => void;
 }
 
-export type StepsStart = { kind: 'resume' } | { kind: 'choose' } | { kind: 'form' } | { kind: 'for'; garment: Garment; also?: MeasurementId[]; /** What the design doesn't use, so isn't asked: a vest's arms. */ skip?: MeasurementId[]; /** The garment's name when it isn't the usual one: "vest" for a jacket without sleeves. */ word?: string } | { kind: 'redo'; garment: Garment; ids: MeasurementId[] };
+export type StepsStart = { kind: 'resume' } | { kind: 'choose' } | { kind: 'check' } | { kind: 'form' } | { kind: 'for'; garment: Garment; also?: MeasurementId[] } | { kind: 'redo'; garment: Garment; ids: MeasurementId[] };
 
 type Page =
   | { kind: 'form' }
@@ -73,6 +81,7 @@ type Page =
   | { kind: 'saved' }
   | { kind: 'describe' }
   | { kind: 'idea'; idea: IdeaReading };
+export type PageKind = Page['kind'];
 
 /** Why a described idea couldn't be read, with the way forward. */
 const IDEA_ERROR: Partial<Record<PhotoError, string>> = {
@@ -85,11 +94,11 @@ const IDEA_ERROR: Partial<Record<PhotoError, string>> = {
 type Pick = Garment | 'other';
 
 const toDisplay = (cm: number | undefined, unit: Unit) =>
-  cm === undefined ? '' : String(unit === 'cm' ? cm : Math.round((cm / 2.54) * 10) / 10);
+  cm === undefined ? '' : String(unit === 'cm' ? cm : measureInches(cm));
 /** A height in feet and inches, for the two boxes. */
 const ftOf = (cm: number) => String(Math.floor(Math.round((cm / 2.54) * 10) / 10 / 12));
 const inOf = (cm: number) => String(Math.round(((cm / 2.54) % 12) * 10) / 10 % 12);
-const shown = (cm: number | undefined, unit: Unit) => (cm === undefined ? '' : `${toDisplay(cm, unit)} ${unit}`);
+const shown = (cm: number | undefined, unit: Unit) => (cm === undefined ? '' : `${unit === 'in' ? inchWords(measureInches(cm)) : cm} ${unit}`);
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 /** "a slip dress", "an evening coat"; plurals ("wide-leg trousers", "shorts") take no article. */
 const aOrAn = (name: string) => (/(s|wear|lingerie)$/i.test(name) && !/dress$/i.test(name) ? name : `${/^[aeiou]/i.test(name) ? 'an' : 'a'} ${name}`);
@@ -102,12 +111,17 @@ const aOrAn = (name: string) => (/(s|wear|lingerie)$/i.test(name) && !/dress$/i.
 // There is no first page (Fable's concept A, Cat's apply, Nov 15): Begin opens on the waist. Who you are designing
 // for, and the form, sit in one quiet line above the first measurement, with Change for the few who need it;
 // "Someone else" words every page for the person holding the tape and asks their name before any number is taken.
-export function MeasureStepsScreen({ testerCode, garment: current, unit, values, onUnit, onValues, helped = [], weight, onWeight, onDone, start, onSomeoneElse, theirs, theirName, onSkip, onLater, form = 'womenswear', onForm, onIdea, onPhoto, onLooks, onMade, onNews }: Props) {
+export function MeasureStepsScreen({ testerCode, garment: current, unit, values, onUnit, onValues, helped = [], weight, onWeight, onDone, start, opening, onSomeoneElse, theirs, theirName, onSkip, onLater, form = 'womenswear', onForm, onIdea, onPhoto, onLooks, onMade, onNews, onPage, unused = () => [], named = (g) => GARMENT_NAME[g] }: Props) {
   const aimed = start?.kind === 'for' ? start.garment : undefined;
+  // Opened afresh for a garment, a redo, the form or the garments (not a reload, and not stepped back into): its own
+  // first page, not the one this history entry remembers from before.
+  const [newOpening] = useState(() => !!opening && !!start && start.kind !== 'resume');
   // Each page is a history entry, so the header's back and the phone's back go one page back.
   const [page, setPage] = usePageHistory<Page>(() => {
     if (start?.kind === 'redo') return { kind: 'extra', garment: start.garment, ids: start.ids, at: 0, redo: true };
     if (start?.kind === 'form') return { kind: 'form' };
+    // The measurements given so far, from the header's Measure while still choosing what to make (DO walk, Nov 20).
+    if (start?.kind === 'check' && baseDone(values)) return { kind: 'check' };
     // A reload, or the phone dropping the tab mid-measuring: the page still to take, not the first page again
     // (tester journey, Nov 11). Every number typed so far is already kept.
     if (start?.kind === 'resume') {
@@ -120,13 +134,31 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     if (start?.kind === 'choose') return { kind: 'choose' };
     // `also`: more the design needs beyond the garment's own list (a collection top's sleeves need the arms).
     const also = start?.kind === 'for' ? (start.also ?? []).filter((id) => values[id] === undefined) : [];
-    const skip = start?.kind === 'for' ? (start.skip ?? []) : [];
-    const ids = aimed ? [...neededFor(aimed, values, form).map((f) => f.id), ...also].filter((id, i, a) => a.indexOf(id) === i && !skip.includes(id)) : [];
+    const ids = aimed ? [...neededFor(aimed, values, form).map((f) => f.id), ...also].filter((id, i, a) => a.indexOf(id) === i && !unused(aimed).includes(id)) : [];
     return ids.length ? { kind: 'extra', garment: aimed!, ids, at: 0 } : { kind: 'check' };
     // A remembered first page (from before Nov 15, when there was one) opens as if afresh. So does a remembered base
     // page once the base measurements are in (back from the collection, Nov 11): this screen's first entry is the
     // waist, and coming back to it opens on the list or the check instead. Mending one from the check is kept.
-  }, (s) => typeof s === 'object' && s !== null && 'kind' in s && (s as { kind: string }).kind !== 'intro' && !((s as Page).kind === 'base' && !(s as { back?: string }).back && baseDone(values)));
+  }, (s) => typeof s === 'object' && s !== null && 'kind' in s && (s as { kind: string }).kind !== 'intro' && !((s as Page).kind === 'base' && !(s as { back?: string }).back && baseDone(values)), newOpening);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- reports each page change; the parent's callback is new every render
+  useEffect(() => onPage?.(page.kind), [page.kind]);
+  // A double tap on Next on the last measuring page put its second tap on the check page's Waist row, right under Next,
+  // which opened the waist again (nightly bug hunt, Nov 21). So the check list and the garments to make don't take the
+  // second tap of a double tap: a click the browser counts as a second one, or a finger down in the first moment after
+  // the page opened. Only a finger: a mouse or a test's click right away is a real choice.
+  const openedAt = useRef(0);
+  const touchedAt = useRef(-Infinity);
+  useEffect(() => {
+    openedAt.current = performance.now();
+  }, [page]);
+  useEffect(() => {
+    const down = (e: PointerEvent) => {
+      touchedAt.current = e.pointerType === 'touch' ? performance.now() : -Infinity;
+    };
+    document.addEventListener('pointerdown', down, true);
+    return () => document.removeEventListener('pointerdown', down, true);
+  }, []);
+  const secondTap = (e: { detail: number }) => e.detail > 1 || (touchedAt.current >= openedAt.current && touchedAt.current - openedAt.current < DOUBLE_TAP_MS && performance.now() - touchedAt.current < DOUBLE_TAP_MS);
   // Opened on the check because the measurements were taken on an earlier visit: say so.
   // Not when stepping back into it during this visit: only on opening it afresh.
   const [returning] = useState(() => !start && baseDone(values) && (window.history.state as { sub?: unknown } | null)?.sub === undefined);
@@ -161,15 +193,15 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   };
   const go = (g: Pick) => {
     if (g === 'other') return setPage({ kind: 'describe' });
-    const ids = neededFor(g, values, form).map((f) => f.id);
+    const ids = neededFor(g, values, form).map((f) => f.id).filter((id) => !unused(g).includes(id));
     if (ids.length) setPage({ kind: 'extra', garment: g, ids, at: 0 });
     else onDone(g);
   };
   // On "What would you like to make?" a tap is the choice: the tile lights for a blink, so the tap reads as
   // taken, then the next page opens. No button underneath (Cat, 2026-11-08). A second tap in that blink is ignored.
   const going = useRef(false);
-  const tapToMake = (g: Pick) => {
-    if (going.current) return;
+  const tapToMake = (g: Pick, e: { detail: number }) => {
+    if (going.current || secondTap(e)) return;
     going.current = true;
     setPicked(g);
     window.setTimeout(() => {
@@ -267,7 +299,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
         <ul className="check-list" aria-label="Tap one to change it">
           {BASE.map((id, at) => (
             <li key={id}>
-              <button type="button" onClick={() => setPage({ kind: 'base', at, back: 'check' })}>
+              <button type="button" onClick={(e) => !secondTap(e) && setPage({ kind: 'base', at, back: 'check' })}>
                 <span>{cap(titleOf(id, false, form).replace(/^Your /, ''))}</span>
                 {values[id] === undefined ? <em className="add">Add</em> : <span>{shown(values[id], unit)}</span>}
               </button>
@@ -275,7 +307,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
           ))}
           {onWeight && (
             <li>
-              <button type="button" onClick={() => setPage({ kind: 'weight', back: 'check' })}>
+              <button type="button" onClick={(e) => !secondTap(e) && setPage({ kind: 'weight', back: 'check' })}>
                 <span>Weight</span>
                 {weight === undefined ? <em className="add">Add</em> : <span>{`${fromKg(weight, weightUnitOf(unit))} ${weightUnitOf(unit)}`}</span>}
               </button>
@@ -303,12 +335,12 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
         <div className="make-grid" role="group" aria-labelledby="stitle">
           {onLooks && (
             // Named for what it opens, as the testers' emails and the Style title's drop-down say (Nov 12).
-            <button type="button" className="make-looks" onClick={onLooks}>
+            <button type="button" className="make-looks" onClick={(e) => !secondTap(e) && onLooks()}>
               The collection ›
             </button>
           )}
           {[...GARMENTS, 'other' as const].map((g) => (
-            <button key={g} type="button" aria-current={picked === g || undefined} className={picked === g ? 'on' : ''} onClick={() => tapToMake(g)}>
+            <button key={g} type="button" aria-current={picked === g || undefined} className={picked === g ? 'on' : ''} onClick={(e) => tapToMake(g, e)}>
               {g === 'other' ? 'Something else' : cap(GARMENT_NAME[g])}
             </button>
           ))}
@@ -435,8 +467,6 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   const id = ids[at];
   const last = at === ids.length - 1;
   const g = page.kind === 'extra' ? page.garment : null;
-  // The garment's name on these pages: the look's own word where it has one (a vest), else the usual name.
-  const named = (x: Garment) => (start?.kind === 'for' && start.garment === x && start.word) || GARMENT_NAME[x];
   const eyebrow = `${page.kind === 'base' ? '' : g === 'other' ? 'Full set · ' : `${cap(named(g!))} · `}${at + 1} of ${ids.length}`;
   const label =
     (page.kind === 'base' && page.back === 'check') || (page.kind === 'extra' && page.redo && last) ? 'Save' : page.kind === 'extra' && page.redo ? 'Next' : page.kind === 'base' ? (last && !onWeight ? 'Done' : 'Next') : g === 'other' ? (last ? 'Done' : 'Next') : last ? `Next: style your ${named(g!)}` : 'Next';
@@ -570,6 +600,8 @@ export function DoubleChecks({ checks }: { checks: Check[] }) {
 
 /** How long a tapped garment stays lit before the next page opens. */
 const TAP_BLINK_MS = 160;
+/** Longer than the gap between the two taps of a double tap, shorter than reading a new page and tapping. */
+const DOUBLE_TAP_MS = 450;
 
 export function Shell({
   eyebrow,
@@ -811,6 +843,12 @@ export function MeasurePage({
   const checkAs = BASE.includes(id) ? 'dress' : FIELDS[garment].some((f) => f.id === id) ? garment : GARMENTS.find((g) => FIELDS[g].some((f) => f.id === id)) ?? garment;
   const problems = checkMeasurements({ [id]: value } as MeasurementValues, unit, checkAs, form).filter((c) => c.id === id && c.level === 'error' && value !== undefined);
   const error = problems[0];
+  // A number still short of the range while it's being typed (the 6 of 62) isn't wrong yet: its error waits for Next or
+  // for the box to be left, so nobody is told off mid-number (the film's critic review, Nov 16). Too big shows at once,
+  // and a saved or estimated number nobody is typing is checked straight away.
+  const [typing, setTyping] = useState(false);
+  const least = FIELDS[checkAs].find((f) => f.id === id)?.hard[0];
+  const shownError = error && typing && !tried && value !== undefined && least !== undefined && value < least ? undefined : error;
   // A double-check against the rest (the height, the weight, the other lengths): said here, where the number is
   // typed, and never in the way. Only once the number could be right on its own.
   // A check this number sets off on another one says so here too (Cat, 2026-10-21: the girths checked against each
@@ -824,7 +862,23 @@ export function MeasurePage({
     const before = new Set(warnings(without).map((c) => `${c.id} ${c.message}`));
     return now.find((c) => c.id === id) ?? now.find((c) => !before.has(`${c.id} ${c.message}`));
   })();
-  const note = error ?? (tried && value === undefined ? { level: 'error', message: `Enter ${helper ? 'their' : 'your'} ${fieldLabel.toLowerCase()} to carry on.` } : undefined);
+  // Measuring starts in cm, so a number taken in inches without tapping IN is turned away as out of range (a fit tester,
+  // Nov 17). When the same number fits the range read as inches, the message offers that switch in one tap.
+  const asInches = (() => {
+    if (!shownError || unit !== 'cm' || value === undefined) return undefined;
+    const f = FIELDS[checkAs].find((x) => x.id === id);
+    const cm = Math.round(value * 2.54 * 10) / 10;
+    return f && value < f.hard[0] && cm >= f.hard[0] && cm <= f.hard[1] ? cm : undefined;
+  })();
+  // And the other way: a number taken in cm while the app is in inches is too big, and fits read as cm (the pretend
+  // tester's inch walk, Nov 18, where only the cm pages offered the switch).
+  const asCm = (() => {
+    if (!shownError || unit !== 'in' || value === undefined) return undefined;
+    const f = FIELDS[checkAs].find((x) => x.id === id);
+    const cm = Math.round((value / 2.54) * 10) / 10;
+    return f && value > f.hard[1] && cm >= f.hard[0] && cm <= f.hard[1] ? cm : undefined;
+  })();
+  const note = shownError ?? (tried && value === undefined ? { level: 'error', message: `Enter ${helper ? 'their' : 'your'} ${fieldLabel.toLowerCase()} to carry on.` } : undefined);
 
   const feetInches = id === 'height' && unit === 'in';
   const [ftIn, setFtIn] = useState<[string, string] | null>(null);
@@ -832,10 +886,13 @@ export function MeasurePage({
   const inchText = ftIn?.[1] ?? (value === undefined ? '' : inOf(value));
   const typeFtIn = (ft: string, inch: string) => {
     setFtIn([ft, inch]);
-    const f = parseFloat(ft.replace(',', '.')), i = parseFloat(inch.replace(',', '.'));
+    // Fractions as typed in the inches box: "66 1/4" was read as 66, and the quarter dropped (pretend tester, Nov 18).
+    const f = parseFloat(ft.replace(',', '.')), i = typedLength(inch, 'in') / 2.54;
     const v = { ...values };
     if (Number.isNaN(f) && Number.isNaN(i)) delete v[id];
-    else v[id] = Math.round(((Number.isNaN(f) ? 0 : f) * 12 + (Number.isNaN(i) ? 0 : i)) * 2.54 * 10) / 10;
+    // Nobody is 9 feet tall: a number that big in the feet box is the whole height in inches. "64" there was kept as
+    // 64 feet, and the list showed a height of 768 in (pretend tester, Nov 17).
+    else v[id] = Math.round(((Number.isNaN(f) ? 0 : f > 8 ? f / 12 : f) * 12 + (Number.isNaN(i) ? 0 : i)) * 2.54 * 10) / 10;
     onValues(v);
   };
   const type = (t: string) => {
@@ -909,7 +966,11 @@ export function MeasurePage({
                       value={feetText}
                       aria-invalid={note ? true : undefined}
                       aria-describedby={note ? 'step-msg' : undefined}
-                      onChange={(e) => typeFtIn(e.target.value, inchText)}
+                      onBlur={() => setTyping(false)}
+                      onChange={(e) => {
+                        setTyping(true);
+                        typeFtIn(e.target.value, inchText);
+                      }}
                     />
                   </span>
                   <span aria-hidden="true">ft</span>
@@ -924,7 +985,11 @@ export function MeasurePage({
                       aria-label={`${fieldLabel}, inches`}
                       value={inchText}
                       aria-invalid={note ? true : undefined}
-                      onChange={(e) => typeFtIn(feetText, e.target.value)}
+                      onBlur={() => setTyping(false)}
+                      onChange={(e) => {
+                        setTyping(true);
+                        typeFtIn(feetText, e.target.value);
+                      }}
                     />
                   </span>
                   <span aria-hidden="true">in</span>
@@ -939,7 +1004,11 @@ export function MeasurePage({
                 value={text ?? toDisplay(value, unit)}
                 aria-invalid={note ? true : undefined}
                 aria-describedby={note ? 'step-msg' : undefined}
-                onChange={(e) => type(e.target.value)}
+                onBlur={() => setTyping(false)}
+                onChange={(e) => {
+                  setTyping(true);
+                  type(e.target.value);
+                }}
               />
             )}
             <span className="unit-switch" role="group" aria-label="Units">
@@ -966,6 +1035,42 @@ export function MeasurePage({
         {note && (
           <p id="step-msg" className="msg error">
             {note.message}
+            {asInches !== undefined && (
+              <>
+                {' '}
+                <button
+                  type="button"
+                  className="later go switch-unit"
+                  onClick={() => {
+                    setText(null);
+                    setFtIn(null);
+                    setTried(false);
+                    onValues({ ...values, [id]: asInches });
+                    onUnit('in');
+                  }}
+                >
+                  Switch to inches <span aria-hidden="true">›</span>
+                </button>
+              </>
+            )}
+            {asCm !== undefined && (
+              <>
+                {' '}
+                <button
+                  type="button"
+                  className="later go switch-unit"
+                  onClick={() => {
+                    setText(null);
+                    setFtIn(null);
+                    setTried(false);
+                    onValues({ ...values, [id]: asCm });
+                    onUnit('cm');
+                  }}
+                >
+                  Switch to cm <span aria-hidden="true">›</span>
+                </button>
+              </>
+            )}
           </p>
         )}
         {doubt && (

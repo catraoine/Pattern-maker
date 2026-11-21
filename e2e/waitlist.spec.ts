@@ -19,6 +19,7 @@ test('a stranger gets the waitlist where Begin was, and joining counts against t
   await main.getByLabel('Your email').fill('ada@example.com');
   await main.getByRole('button', { name: 'Join the waitlist' }).click();
   await expect(main.getByRole('heading', { level: 1, name: /You're on the list/ })).toBeVisible();
+  await expect(main.getByRole('link', { name: 'hello@maisontrace.co' })).toHaveAttribute('href', 'mailto:hello@maisontrace.co');
   expect(sent).toMatchObject({ kind: 'news', email: 'ada@example.com', src: 'ig' });
   // Their own link to bring sewing friends (Cat's "apply", Nov 11 2026).
   await expect(main.getByText(/Bring three sewing friends and your first year of Premium is free/)).toBeVisible();
@@ -85,7 +86,7 @@ test('on a phone the waitlist sits over the form drawn at full size from the sta
   const hero = page.locator('.welcome-hero');
   // A stranger can join at once: no loading screen and nothing to wait for (the waitlist review, Cat's A, 2026-11-10).
   await expect(main.getByRole('button', { name: 'Join the waitlist' })).toBeInViewport({ timeout: 1500 });
-  await expect(main).toContainText('The waitlist gets first claim on 250 numbered Founding places.');
+  await expect(main).toContainText('The first 250 lock in 30% off Premium.');
   if (info.project.name === 'phone') {
     // Curtain Up (Cat's O2, 2026-10-25): the form keeps Begin's full height, cropped from the bottom by the waitlist.
     const shown = (await hero.boundingBox())!.height;
@@ -126,4 +127,34 @@ test('a friend from a shared link is counted for whoever shared it', async ({ pa
   expect(sent).toMatchObject({ kind: 'news', email: 'bea@example.com', ref: 'k7q2m9ab', src: 'friend' });
   // And they get their own link to pass on.
   await expect(main.getByLabel('Your link')).toHaveValue(/\/\?ref=zz11yy22$/);
+});
+
+// A tester sent her work from her phone to her computer, and the email warns a computer without her code shows the
+// waitlist (pretend tester, Nov 18): the link carries the phone's code, so the computer is let in, brought or not.
+test('a move link from a tester\'s phone lets this computer past the waitlist', async ({ page }) => {
+  await page.route('**/.netlify/functions/tester', (route) => route.fulfill({ json: { ok: true, tester: true } }));
+  const backup = { app: 'pattern-maker', version: 1, savedAt: new Date().toISOString(), skirt: { unit: 'cm' }, account: { onboarded: true, name: '', patterns: [], testerCode: 'EXAMPLE-MOVE' } };
+  const body = Buffer.from(JSON.stringify(backup)).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  await page.goto(`/?fresh#move=p.${body}`);
+  await skipLoading(page);
+  const main = page.getByRole('main');
+  await expect(main.getByText('Your tester code, which lets this device into the app')).toBeVisible();
+  await main.getByRole('button', { name: 'Not now' }).click();
+  await page.goto('/');
+  await skipLoading(page);
+  await expect(main.getByRole('button', { name: 'Join the waitlist' })).toHaveCount(0);
+});
+
+// The link is only packed text, so its code is checked first: one that isn't a tester code lets nothing in.
+test('a move link with a code that isn\'t a tester code leaves the waitlist in place', async ({ page }) => {
+  await page.route('**/.netlify/functions/tester', (route) => route.fulfill({ json: { ok: true, tester: false } }));
+  const backup = { app: 'pattern-maker', version: 1, savedAt: new Date().toISOString(), skirt: { unit: 'cm' }, account: { onboarded: true, name: '', patterns: [], testerCode: 'EXAMPLE-NOPE' } };
+  const body = Buffer.from(JSON.stringify(backup)).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  await page.goto(`/?fresh#move=p.${body}`);
+  await skipLoading(page);
+  const main = page.getByRole('main');
+  await main.getByRole('button', { name: 'Not now' }).click();
+  await page.goto('/');
+  await skipLoading(page);
+  await expect(main.getByRole('button', { name: 'Join the waitlist' })).toBeVisible();
 });

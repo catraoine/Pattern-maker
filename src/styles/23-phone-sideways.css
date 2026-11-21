@@ -12,6 +12,12 @@
   .style-edit > .style-side { display: none; }
   .style-pin > section { position: static; }
   .style-pin > section:not(.live-big) > .preview { height: calc(100svh - 112px); min-height: 0; max-height: none; }
+  /* The drawing's corner as on the phone upright (38-style-journey.css): Enlarge and Draw in a row, Demo across from
+     them. Wider than the phone's 760px, the corner fell back to the computer's column, and the phone's Demo, placed for
+     a row, sat on Draw (bug hunt, Nov 18). */
+  .style-layout .preview-corner { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 0 14px; top: 2px; right: 14px; max-width: none; pointer-events: none; }
+  .style-layout .preview-corner > * { pointer-events: auto; }
+  .style-layout .preview-corner > .demo-play { position: static; order: 9; flex-basis: auto; margin: 0 0 0 auto; min-height: 32px; display: flex; align-items: center; padding: 0 4px; border: 0; }
   .main:has(.style-layout) .style-layout > .example-tag { margin-left: 64px; max-width: calc(100% - 64px); }
   .style-edit > .style-bar {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
@@ -20,10 +26,11 @@
     background: #14120e; border-top: 1px solid rgb(217 196 155 / 0.45);
   }
   .style-edit > .style-bar::before {
-    content: 'Turn upright to change it'; margin-right: auto;
+    content: 'Turn upright to change it'; margin-right: auto; white-space: nowrap; flex: none;
     font: 400 11px/1 var(--mono); letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted);
   }
-  .style-edit > .style-bar .primary { flex: none; padding: 0 22px; }
+  /* The button as wide as its words, so the note beside it stays on one line, not one word a line (pretend tester, Nov 18). */
+  .style-edit > .style-bar .primary { flex: 0 1 auto; width: auto; padding: 0 22px; }
 
   /* Print (S2) */
   .card.print-top {

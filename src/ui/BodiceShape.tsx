@@ -26,8 +26,10 @@ import { COWL_DEPTH, PEPLUM_SEAM_MAX, peplumLengthOk } from '../engine/drape';
 import { hemOffsetAt } from '../engine/bodiceHem';
 import { unevenEdge } from '../engine/uneven';
 import type { Side } from './ShapeSketch';
+import { LengthTap, useSaid } from './LengthEntry';
+import { fingerTravel } from './HemMarks';
 import { FormArm, formWidth } from './DrawOnForm';
-import { FormLayers, SQUEEZE, clothReach, formFrame, wornCloth, wornFolds, wornMapper } from './FormSketch';
+import { FormLayers, SQUEEZE, clothReach, drawnPointBack, formFrame, neckLift, squeezeX, wornCloth, wornFolds, wornMapper } from './FormSketch';
 import { landmarks } from './formLines';
 
 interface Worn {
@@ -169,24 +171,38 @@ const withDarts = (c: BodiceChoices): BodiceChoices => (DARTS_FOR_FIT[c.fit].inc
  * the half centimetre. A top with a peplum stops where its peplum can still hang (PEPLUM_SEAM_MAX below the waist):
  * dragged past it, the peplum fell off the drawing and the pattern, and the Ice Peplum read as a plain hip-length
  * top (demo film sweep, Nov 14). */
-export function dragDrop(m: BodiceMeasurements, c: BodiceChoices, cm: number): BodiceChoices {
-  const out = dropAt(m, c, cm);
+export function dragDrop(m: BodiceMeasurements, c: BodiceChoices, cm: number, typed = false): BodiceChoices {
+  // A peplum's seam stops at its least drop, as the box to type it does: dragged up, the Ice Peplum's dot went on to
+  // the waist, below the 6 cm the box then refused, and the top read as "Waist-length" (DP walk, Nov 20; Cat chose to
+  // stop it at 6 cm, Nov 21). A waist-seamed peplum is still there on the Length row's Waist.
+  if ((c.peplum ?? 'none') !== 'none') cm = Math.max(DROP_MIN, cm);
+  const out = dropAt(m, c, cm, typed);
   if ((c.peplum ?? 'none') === 'none' || peplumLengthOk(out) || !peplumLengthOk(c)) return out;
   const { dropCm: _d, ...rest } = c;
   const WH = m.waist_to_hip ?? 0;
   return { ...rest, length: PEPLUM_SEAM_MAX < WH * 0.75 ? 'high_hip' : 'hip', dropCm: PEPLUM_SEAM_MAX };
 }
 
-function dropAt(m: BodiceMeasurements, c: BodiceChoices, cm: number): BodiceChoices {
+/** How far below the waist a top's length can be typed: from the waist (a peplum's seam from its least drop) to the
+ *  longest a drag reaches. A peplum's seam stops at PEPLUM_SEAM_MAX, as its drag does: the box offered up to 25 cm and
+ *  then quietly kept 12 (pretend tester, Nov 17). */
+const dropLimits = (m: BodiceMeasurements, c: BodiceChoices) => {
+  const max = dropRange(m, c.length, c.shirtCut).max;
+  return (c.peplum ?? 'none') === 'none' ? { min: 0, max } : { min: DROP_MIN, max: Math.min(max, PEPLUM_SEAM_MAX) };
+};
+
+// `typed`: a length typed in the box is kept as typed. A drag catches on a named length within 1.5 cm, but a typed 9 cm
+// peplum seam became "High hip" at 10 cm, and the 9 was shown nowhere (pretend tester, Nov 18).
+function dropAt(m: BodiceMeasurements, c: BodiceChoices, cm: number, typed = false): BodiceChoices {
   const { dropCm: _d, ...rest } = c;
   if (cm < DROP_MIN / 2) return { ...rest, length: 'waist' };
   const range = dropRange(m, c.length, c.shirtCut);
   const v = Math.min(range.max, Math.max(range.min, cm));
   const WH = m.waist_to_hip ?? 0;
-  if (Math.abs(v - WH / 2) < 1.5) return { ...rest, length: 'high_hip' };
-  if (Math.abs(v - WH) < 1.5) return { ...rest, length: 'hip' };
-  if (Math.abs(v - WH - LONG_BELOW_HIP) < 1.5) return { ...rest, length: 'long' };
-  return { ...rest, length: v < WH * 0.75 ? 'high_hip' : v < WH + LONG_BELOW_HIP / 2 ? 'hip' : 'long', dropCm: Math.round(v * 2) / 2 };
+  if (!typed && Math.abs(v - WH / 2) < 1.5) return { ...rest, length: 'high_hip' };
+  if (!typed && Math.abs(v - WH) < 1.5) return { ...rest, length: 'hip' };
+  if (!typed && Math.abs(v - WH - LONG_BELOW_HIP) < 1.5) return { ...rest, length: 'long' };
+  return { ...rest, length: v < WH * 0.75 ? 'high_hip' : v < WH + LONG_BELOW_HIP / 2 ? 'hip' : 'long', dropCm: typed ? Math.round(v * 100) / 100 : Math.round(v * 2) / 2 };
 }
 
 /** A dragged fit: bust ease moves between the fits, snapping to each one's own ease within 1 cm. */
@@ -258,9 +274,10 @@ interface Props {
   onDone: (before: BodiceChoices, after: BodiceChoices) => void;
 }
 
-type Drag = { kind: 'hem' | 'side'; start: P; before: BodiceChoices; drop: number; ease: number };
+type Drag = { kind: 'hem' | 'side'; start: P; before: BodiceChoices; drop: number; ease: number; touch: boolean };
 
 export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, arms, onLive, onDone }: Props) {
+  const said = useSaid();
   const svg = useRef<SVGSVGElement>(null);
   const [drag, setDrag] = useState<Drag>();
   const [stroke, setStroke] = useState<P[]>();
@@ -309,7 +326,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
   // just enough to keep it on the ground.
   const easeWords = choices.bustEase !== undefined ? `${choices.bustEase} cm ease` : fitName(choices.fit);
   const longest = Math.max(...easeWords.split(' ').length > 1 ? [easeWords.slice(0, easeWords.lastIndexOf(' ')).length, easeWords.slice(easeWords.lastIndexOf(' ') + 1).length] : [easeWords.length]);
-  const cx = Math.max(frame.half, SQUEEZE * widest.x + 2.4 * k + 3.2 * k + longest * 2.6 * k * 0.85 + 1.5 * k);
+  const cx = Math.max(frame.half, squeezeX(body, widest.x, widest.y) + 2.4 * k + 3.2 * k + longest * 2.6 * k * 0.85 + 1.5 * k);
 
   const toSvg = (e: PointerEvent): P => {
     const ctm = svg.current!.getScreenCTM()!.inverse();
@@ -321,7 +338,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
     if (drawing) return;
     e.stopPropagation();
     (e.target as Element).setPointerCapture(e.pointerId);
-    setDrag({ kind, start: toSvg(e), before: choices, drop: draft.drop, ease: bodiceEase(choices).bust });
+    setDrag({ kind, start: toSvg(e), before: choices, drop: draft.drop, ease: bodiceEase(choices).bust, touch: e.pointerType === 'touch' });
   };
 
   const move = (e: PointerEvent) => {
@@ -330,8 +347,9 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
       // Moving one side out by a centimetre widens all four quarters of the bodice by as much.
       const next =
         drag.kind === 'hem'
-          ? dragDrop(m, drag.before, drag.drop + at.y - drag.start.y)
-          : dragEase(drag.before, drag.ease + (4 * (at.x - drag.start.x) * (drag.start.x >= cx ? 1 : -1)) / SQUEEZE);
+          ? // Finer for a finger, as on the other drawings (see fingerTravel).
+            dragDrop(m, drag.before, drag.drop + fingerTravel(at.y - drag.start.y, drag.touch, svg.current))
+          : dragEase(drag.before, drag.ease + (4 * (at.x - drag.start.x) * (drag.start.x >= cx ? 1 : -1)) / (squeezeX(body, widest.x + 1, widest.y) - squeezeX(body, widest.x, widest.y)));
       onLive(next);
     } else if (stroke) {
       setStroke([...stroke, toSvg(e)]);
@@ -343,13 +361,13 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
       onDone(drag.before, live.current);
       setDrag(undefined);
     } else if (stroke) {
-      const neck = stroke.length > 2 ? strokeToNeck(stroke.map((q) => ({ x: (q.x - cx) / SQUEEZE, y: q.y })), side, draft, currentNeck(choices)) : undefined;
+      const neck = stroke.length > 2 ? strokeToNeck(stroke.map((q) => drawnPointBack(body, neckLift(body), { x: q.x - cx, y: q.y })), side, draft, currentNeck(choices)) : undefined;
       if (neck) onDone(choices, { ...choices, neck });
       setStroke(undefined);
     }
   };
 
-  const lengthLabel = choices.dropCm !== undefined ? `${Math.round(draft.drop)} cm below` : lengthName(choices.length);
+  const lengthLabel = choices.dropCm !== undefined ? `${Math.round(draft.drop * 10) / 10} cm below` : lengthName(choices.length);
   const easeLabel = easeWords;
   const guide = (y: number, text: string) => (
     <g className="guide">
@@ -372,7 +390,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
     // The hem's word starts past the garment at its height, out on the ground: on a peplum and its sleeves each word sat
     // on its own chalk patch (the Ice Peplum, Nov 13). On one line if it fits there, else on two; with no room past the
     // garment at all, it stays beside the disc.
-    const past = kind === 'hem' ? cx + SQUEEZE * Math.max(...[-1.8, 0, 1.8].map((d) => clothReach(at.y + d * k, body, cloth, arms, sleeve))) + 1.6 * k : 0;
+    const past = kind === 'hem' ? cx + Math.max(...[-1.8, 0, 1.8].map((d) => squeezeX(body, clothReach(at.y + d * k, body, cloth, arms, sleeve), at.y + d * k))) + 1.6 * k : 0;
     const fitsPast = (t: string) => past + t.length * 2.6 * k * 0.85 < 2 * cx - k;
     const out = kind === 'hem' && past > at.x + r + 3.2 * k && (fitsPast(text) || (!!halves && halves.every(fitsPast)));
     const x = out ? past : at.x + r + 3.2 * k;
@@ -395,6 +413,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
           y={kind === 'hem' || roomRight ? at.y + 0.9 * k : at.y + r + 4.6 * k}
           fontSize={2.6 * k}
           textAnchor={kind === 'hem' || roomRight ? 'start' : 'end'}
+          className={kind === 'hem' && !drawing ? 'typeable' : undefined}
         >
           {two ? two.map((line, i) => (
                 <tspan key={line} x={x} dy={i ? 3.1 * k : -1.4 * k}>
@@ -403,6 +422,19 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
               ))
             : text.toUpperCase()}
         </text>
+        {/* Tapped, the length's words open a box to type it (testers, Nov 17). Under the disc's own hit area, so a drag
+            still starts wherever it did. */}
+        {kind === 'hem' && !drawing && (
+          <LengthTap
+            x={x}
+            y={at.y - (two ? 4.4 : 3) * k}
+            width={Math.max(...(two ?? [text]).map((t) => t.length)) * 2.6 * k * 0.85}
+            height={(two ? 8 : 5) * k}
+            // On a peplum top the dot is the peplum's seam, not its hem: a tester typed her real length, 20 cm, and was told
+            // "This one goes 6 cm to 12 cm" (pretend tester, Nov 18). So it's asked as the seam, with the peplum's own depth.
+            ask={{ name: draft.peplum ? 'Peplum seam' : 'Top length', from: 'below the waist', cm: draft.drop, ...dropLimits(m, choices), onCm: (cm) => onDone(choices, dragDrop(m, choices, cm, true)), ...(draft.peplum ? { below: { what: 'The peplum', cm: draft.peplum.depthCm } } : {}) }}
+          />
+        )}
         <circle
           cx={at.x}
           cy={at.y}
@@ -410,7 +442,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
           className="hit"
           role="slider"
           aria-label={kind === 'hem' ? 'Bodice length below the waist' : 'Ease at the bust'}
-          aria-valuetext={text}
+          aria-valuetext={said(text)}
           aria-valuenow={kind === 'hem' ? draft.drop : bodiceEase(choices).bust}
           tabIndex={0}
           onPointerDown={startDrag(kind)}
@@ -446,8 +478,8 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
       <FormLayers body={body} m={m} legs={false} cx={cx} top={frame.top} bottom={frame.bottom} arms={arms} lines={lines} worn={cloth} folds={folds} sleeve={arms ? sleeve : undefined} />
       {guide(waistY, 'WAIST')}
       {hip && guide(waistY + m.waist_to_hip!, 'HIP')}
-      {!drawing && hip && handle({ x: cx + SQUEEZE * hemCentre.x, y: hemCentre.y }, 'hem', lengthLabel)}
-      {!drawing && handle({ x: cx + SQUEEZE * widest.x, y: widest.y }, 'side', easeLabel)}
+      {!drawing && hip && handle({ x: cx + squeezeX(body, hemCentre.x, hemCentre.y), y: hemCentre.y }, 'hem', lengthLabel)}
+      {!drawing && handle({ x: cx + squeezeX(body, widest.x, widest.y), y: widest.y }, 'side', easeLabel)}
       {drawing && !stroke && (
         <text x={cx} y={frame.bottom - 3 * k} fontSize={2.1 * k} textAnchor="middle" className="hint">
           {side === 'front' ? 'DRAW THE NECKLINE YOU WANT' : 'DRAW THE BACK NECKLINE'}

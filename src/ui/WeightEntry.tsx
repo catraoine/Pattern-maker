@@ -10,7 +10,9 @@ type WeightUnit = 'kg' | 'lb';
 export const weightUnitOf = (unit: Unit): WeightUnit => (unit === 'cm' ? 'kg' : 'lb');
 const LB = 0.45359237;
 export const fromKg = (kg: number, u: WeightUnit) => (u === 'kg' ? Math.round(kg * 10) / 10 : Math.round((kg / LB) * 10) / 10);
-const toKg = (x: number, u: WeightUnit) => Math.round((u === 'kg' ? x : x * LB) * 10) / 10;
+// Kept to the gram: a tenth of a kilo is a fifth of a pound, so 150 lb rounded to 68.0 kg came back as 149.9 lb on the
+// review page (a fit tester, Nov 17).
+const toKg = (x: number, u: WeightUnit) => Math.round((u === 'kg' ? x : x * LB) * 1000) / 1000;
 
 /** Weights that can't be right, in kg: outside this it is nearly always the other unit or a slipped digit. */
 export const WEIGHT_HARD: [number, number] = [25, 350];
@@ -63,7 +65,7 @@ export function WeightEntry({ unit, helper, weight, onWeight, note = true }: { u
       </div>
       {wrong && (
         <p className="msg error" role="alert">
-          Weight should be between {fromKg(WEIGHT_HARD[0], wu)} and {fromKg(WEIGHT_HARD[1], wu)} {wu}. Is the unit right?
+          Weight can be from {fromKg(WEIGHT_HARD[0], wu)} to {fromKg(WEIGHT_HARD[1], wu)} {wu} here. Is the unit right? It&rsquo;s optional, so you can skip it.
         </p>
       )}
       {note && (

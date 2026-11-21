@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { chooseChip, expect, expectStyle, fillStepPages, goPrint, measureMe, openAccount, openFresh, openReview, pickToMake, startWithExample, stepButton, test } from './fixtures';
+import { chooseChip, expect, expectStyle, fillStepPages, goPrint, measureMe, openAccount, openFold, openFresh, openReview, pickToMake, startWithExample, stepButton, test } from './fixtures';
 
 // The app journey review (Nov 10, 2026): what testers hit going back, reloading, saving and printing, and the fixes Cat
 // applied ("do all fixes").
@@ -82,11 +82,21 @@ test('Back to the original style puts the choices back, after asking', async ({ 
 
 test('Email me the files sends the pattern and its instructions the app made, and says where they went', async ({ page }) => {
   let sent: { to: string; pdf: string; fileName: string; booklet?: string; bookletName?: string } | undefined;
+  let code: string | undefined;
   await page.route('**/.netlify/functions/email-pdf', async (route) => {
     sent = route.request().postDataJSON();
+    code = route.request().headers()['x-tester-code'];
     await route.fulfill({ json: { ok: true } });
   });
+  await page.route('**/.netlify/functions/tester', (route) => route.fulfill({ json: { ok: true, tester: true } }));
   await startWithExample(page);
+  // A fit tester types any address, sent with their code (weekly review, Nov 16); signed in, it goes to their own email.
+  await page.getByRole('banner').getByRole('button', { name: /account/i }).click();
+  const fold = await openFold(page, 'Fit testing');
+  await fold.getByLabel('Tester code').fill('atelier26');
+  await fold.getByRole('button', { name: 'Use code' }).click();
+  await expect(fold).toContainText('Tester code on');
+  await stepButton(page, 'Style').click();
   await goPrint(page);
   const email = main(page).getByRole('button', { name: 'Email me the files' });
   await expect(email).toBeEnabled({ timeout: 45_000 });
@@ -96,11 +106,19 @@ test('Email me the files sends the pattern and its instructions the app made, an
   await main(page).getByRole('button', { name: 'Print the example anyway' }).click();
   await expect(main(page).getByRole('status').filter({ hasText: 'Sent to sewist@example.com' })).toBeVisible();
   expect(sent?.to).toBe('sewist@example.com');
+  expect(code).toBe('ATELIER26');
   expect(sent?.pdf.startsWith('JVBER')).toBe(true);
   expect(sent?.fileName).toMatch(/\.pdf$/);
   // The instructions booklet goes with it as its own file (Cat, Nov 15).
   expect(sent?.booklet?.startsWith('JVBER')).toBe(true);
   expect(sent?.bookletName).toMatch(/-instructions\.pdf$/);
+});
+
+test('without a tester code or a sign-in, the email way is not offered (weekly review, Nov 16)', async ({ page }) => {
+  await startWithExample(page);
+  await goPrint(page);
+  await expect(main(page).getByRole('button', { name: 'Print the example anyway' }).or(main(page).getByText('Blank pages are left out'))).toBeVisible({ timeout: 45_000 });
+  await expect(main(page).getByRole('button', { name: 'Email me the files' })).toHaveCount(0);
 });
 
 test('the print screen says blank pages are left out', async ({ page }) => {
@@ -151,10 +169,11 @@ test('in the home-screen app, work from Safari comes across with a pasted link',
   await app.keyboard.press('Escape');
   await main(app).getByRole('button', { name: 'Started in your browser? Bring your work here' }).click();
   // Pasted with words around it (a whole message copied), it still finds the link.
-  await main(app).getByLabel('Link you copied').fill(`My Maison Tracé measurements and patterns. ${link} `);
+  // The link inside a message, with the full stop of its sentence after it (code review, Nov 15).
+  await main(app).getByLabel('Link you copied').fill(`My Maison Tracé measurements and patterns: ${link}. `);
   await main(app).getByRole('button', { name: 'Bring it here' }).click();
   await expect(h1(app, /Your work/)).toBeVisible();
   await main(app).getByRole('button', { name: 'Bring it here' }).click();
-  await expect(h1(app, /Here/)).toBeVisible();
+  await expect(h1(app, /Your work is on this device/)).toBeVisible();
   await ctx.close();
 });

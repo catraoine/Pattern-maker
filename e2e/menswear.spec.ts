@@ -1,4 +1,4 @@
-import { expect, expectStyle, fillStepPages, measureMe, openFresh, pickToMake, stepButton, test } from './fixtures';
+import { expect, expectStyle, fillStepPages, measureMe, openFresh, pickToMake, skipLoading, stepButton, test } from './fixtures';
 
 // The menswear form (Cat's B2 Two Forms, 2026-10-18): picked before the first measurement, it asks for the
 // chest, skips the bust measurements, and the bodice is drafted with no bust dart.
@@ -37,4 +37,19 @@ test('menswear form: chest, no bust measurements, a bodice with no bust dart', a
   await expect(list.getByRole('button', { name: /^Form\s*Womenswear$/ })).toBeVisible();
   await expect(list.getByRole('button', { name: /^High bust\s*Add$/ })).toBeVisible();
   await expect(list).toContainText('Full bust');
+});
+
+// A link with ?menswear=on opens the menswear form on that device, for someone designing menswear before its fit round;
+// without it the form stays shut, as for everyone else.
+test('a ?menswear=on link opens the menswear form, and it stays open', async ({ page }) => {
+  await page.goto('/?fresh&menswear=on');
+  await skipLoading(page);
+  await expect(page.getByRole('heading', { name: /sewing patterns for the piece/i })).toBeVisible();
+  const main = page.getByRole('main');
+  await main.getByRole('button', { name: 'Begin' }).click();
+  await measureMe(page, 'Menswear');
+  await main.getByRole('textbox', { name: 'Waist' }).fill('84');
+  await main.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(main.getByRole('heading', { level: 1, name: 'Your chest' })).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('maison-trace-menswear'))).toBe('on');
 });

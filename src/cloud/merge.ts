@@ -89,10 +89,10 @@ function mergePerson(l: Person, r: Person, b: Person | undefined, remoteNewer: b
  * measurement taken on both sides that differs by more than a retake would (3 cm, or 4% of a long one). Only asked
  * at a first join, where nothing says whose work is on this device (a shared computer used without signing in).
  */
-function notSameOwner(l: Person, la: Account, r: Person, ra: Account): boolean {
+function notSameOwner(l: Person, la: Account, r: Person, ra: Account, byName = true): boolean {
   const ln = la.name.trim().toLowerCase();
   const rn = ra.name.trim().toLowerCase();
-  if (ln && rn && ln !== rn) return true;
+  if (byName && ln && rn && ln !== rn) return true;
   return (Object.keys(l.values) as MeasurementId[]).some((k) => {
     const a = l.values[k];
     const c = r.values[k];
@@ -101,13 +101,18 @@ function notSameOwner(l: Person, la: Account, r: Person, ra: Account): boolean {
   });
 }
 
+/** This device has a measurement the brought ones lack. Joined in, it would change the pattern that was brought: the
+ *  computer's own high bust went into the phone's skirt and changed its pattern code, which the tester form asks for
+ *  (pretend tester DI walk, Nov 19). So brought work stays as it came, and this device's set is kept beside it. */
+const addsTo = (l: Person, r: Person): boolean => (Object.keys(l.values) as MeasurementId[]).some((k) => l.values[k] !== undefined && r.values[k] === undefined && !l.example?.includes(k));
+
 /**
  * The owner's measurements on this device moved to a person of their own, with the patterns saved for them, so they are
  * kept beside the account owner's rather than joined into them.
  */
-function ownerApart(a: Account & { people: Person[]; active: string }): Account & { people: Person[]; active: string } {
+function ownerApart(a: Account & { people: Person[]; active: string }, name = a.name.trim() || 'From this device'): Account & { people: Person[]; active: string } {
   const id = newId();
-  const people = a.people.map((p) => (p.id === ME ? { ...p, id, name: a.name.trim() || 'From this device', named: true } : p));
+  const people = a.people.map((p) => (p.id === ME ? { ...p, id, name, named: true } : p));
   const patterns = a.patterns.map((p) => (p.personId === ME ? { ...p, personId: id } : p));
   return { ...a, people, patterns, active: a.active === ME ? id : a.active };
 }
@@ -153,6 +158,9 @@ export interface JoinOptions {
   /** This device was last signed in to another account, and the person signing in chose to add its work to theirs:
    *  the owner's measurements here are kept as a person of their own, and the account's own settings stay as they are. */
   fromAnotherAccount?: boolean;
+  /** Both sides are known to be the same person's (a link sent from their own other device): their measurements are
+   *  joined, unless both were measured and disagree, when this device's are kept beside the link's, not mixed in. */
+  sameOwner?: boolean;
 }
 
 export function mergeBackups<S>(local: Backup<S>, remote: Backup<S> | null, base?: Backup<S> | null, opts: JoinOptions = {}): Backup<S> {
@@ -176,9 +184,12 @@ export function mergeBackups<S>(local: Backup<S>, remote: Backup<S> | null, base
     // Only the people and patterns come over; the name, tester code, studio and other settings are the account's own.
     const apart = lMe && taken(lMe) > 0 ? ownerApart(la) : la;
     la = { ...ra, people: apart.people.filter((p) => p.id !== ME), patterns: apart.patterns, active: ra.active };
-  } else if (lMe && rMe && taken(lMe) > 0 && taken(rMe) > 0 && !hasBase && notSameOwner(lMe, la, rMe, ra)) {
+  } else if (lMe && rMe && taken(lMe) > 0 && taken(rMe) > 0 && !hasBase && (notSameOwner(lMe, la, rMe, ra, !opts.sameOwner) || (opts.sameOwner && addsTo(lMe, rMe)))) {
     // The account's owner keeps their own name; this device's owner is now one of their people, under theirs.
-    la = { ...ownerApart(la), name: ra.name };
+    // Brought from one's own other device too, two measuring sessions that disagree are not mixed into one body: the
+    // phone's waist, bust and hip with this computer's high bust and shoulder made a high bust larger than the bust
+    // (pretend tester, Nov 18). The link's are used, and this device's are kept beside them, not lost.
+    la = opts.sameOwner ? ownerApart(la, 'Measured here before') : { ...ownerApart(la), name: ra.name };
   }
   const newer = workFromRemote ? ra : la;
   const older = workFromRemote ? la : ra;

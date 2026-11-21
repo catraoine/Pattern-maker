@@ -154,10 +154,17 @@ describe('steps, flat and print for the styled bodice', () => {
     expect(front.lines.filter((l) => l.kind === 'seam' && l.pts.length > 3).length).toBeGreaterThanOrEqual(2);
     expect(back.lines.some((l) => l.kind === 'zip')).toBe(false);
     expect(f.views.flatMap((v) => v.shapes.flat()).every((q) => Number.isFinite(q.x) && Number.isFinite(q.y))).toBe(true);
-    // The moved shaping never changes the garment: the flat is drawn from the block.
+    // A moved dart never changes the garment: the flat is drawn from the block.
     const plain = bodiceFlat(draftBodice(randomBody(rng(8)), { fit: 'regular' })).views[0].shapes[0];
     const size = (pts: { x: number; y: number }[]) => [Math.max(...pts.map((q) => q.x)) - Math.min(...pts.map((q) => q.x)), Math.max(...pts.map((q) => q.y)) - Math.min(...pts.map((q) => q.y))];
-    expect(len(sub({ x: size(front.shapes[0])[0], y: size(front.shapes[0])[1] }, { x: size(plain)[0], y: size(plain)[1] }))).toBeLessThan(1e-6);
+    const moved = bodiceFlat(draftBodice(randomBody(rng(8)), { fit: 'regular', bustDart: 'shoulder' })).views[0].shapes[0];
+    expect(len(sub({ x: size(moved)[0], y: size(moved)[1] }, { x: size(plain)[0], y: size(plain)[1] }))).toBeLessThan(1e-6);
+    // Princess seams keep the block's length (to a millimetre: the underarm's curve sits a hair lower); only a fuller
+    // bust's underarm moves out, by at most the 2 cm a side that the side seam no longer flares (bodice.ts sideAt; a fit
+    // tester's Ice Peplum, Nov 16).
+    expect(Math.abs(size(front.shapes[0])[1] - size(plain)[1])).toBeLessThan(0.1);
+    expect(size(front.shapes[0])[0] - size(plain)[0]).toBeGreaterThanOrEqual(-1e-6);
+    expect(size(front.shapes[0])[0] - size(plain)[0]).toBeLessThanOrEqual(4);
   });
 
   it('adds the draft-it-by-hand pages to the PDF', async () => {

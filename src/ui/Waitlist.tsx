@@ -1,3 +1,4 @@
+import { typeCaps } from './typeCaps';
 import { useState } from 'react';
 import { countStep, flushReports, keepMyRef, signupRef, signupSource } from '../report/report';
 import { CODE_MESSAGE, checkCode } from '../access';
@@ -6,6 +7,8 @@ import { SEW_LANGS, SEW_LANG_NAME, type SewLang } from '../langs';
 import type { Cloud } from '../cloud/useCloud';
 import type { Founding } from '../cloud/useFounding';
 import { CloudAccount } from './CloudAccount';
+import { FOUNDING_LINE } from '../founding';
+import { keepSigninSent, signinSent } from '../cloud/sent';
 
 /** Founding members' way in, from Feb 9: sign in with the email on the founding list. */
 export interface FoundingSignIn {
@@ -40,7 +43,8 @@ export function WaitlistForm({ onJoined, onCode, linkMessage, onRetry, founding 
   const [code, setCode] = useState('');
   const [codeMsg, setCodeMsg] = useState(linkMessage ?? '');
   const [checking, setChecking] = useState(false);
-  const [signingIn, setSigningIn] = useState(false);
+  // Back on the sign-in if its email is already on the way: a phone reloads the page while its owner fetches the code.
+  const [signingIn, setSigningIn] = useState(() => !!founding && !!signinSent());
 
   const join = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,6 +99,8 @@ export function WaitlistForm({ onJoined, onCode, linkMessage, onRetry, founding 
             className="inline-link"
             onClick={async () => {
               if (founding.cloud.user) await founding.cloud.signOut();
+              // Forgotten too, or a reload would bring the sign-in back.
+              keepSigninSent('');
               setSigningIn(false);
             }}
           >
@@ -106,8 +112,8 @@ export function WaitlistForm({ onJoined, onCode, linkMessage, onRetry, founding 
 
   return (
     <div className="stack waitlist">
-      {/* Why to join, naming only what is decided: no prices (Cat's B1, 2026-11-10) */}
-      <p className="waitlist-line">Opening 2027. The waitlist gets first claim on 250 numbered Founding places.</p>
+      {/* Why to join, in Cat's one line (Nov 16 2026; before that B1, 2026-11-10) */}
+      <p className="waitlist-line">Opening 2027. {FOUNDING_LINE}</p>
       <form className="stack" onSubmit={join}>
         {/* The language is a small tag at the end of the email line, not a line of its own (Cat's L1, 2026-10-25): it
             shows the language's short name and opens the full list. */}
@@ -154,7 +160,7 @@ export function WaitlistForm({ onJoined, onCode, linkMessage, onRetry, founding 
             </label>
             {/* Shown in capitals as it is typed, as the codes are written, so nobody wonders whether case matters (Cat, Nov 15).
                 It doesn't: the check ignores case (isTesterCode). */}
-            <input id="wl-code" autoComplete="off" autoCapitalize="characters" spellCheck={false} placeholder="Tester code" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} />
+            <input id="wl-code" autoComplete="off" autoCapitalize="characters" spellCheck={false} placeholder="Tester code" value={code} onChange={typeCaps(setCode)} />
           </div>
           <button type="submit" className="secondary sm" disabled={checking || !cleanCode(code)}>
             {checking ? 'Checking…' : 'Use code'}

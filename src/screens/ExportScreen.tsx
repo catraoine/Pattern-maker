@@ -20,6 +20,7 @@ import { TechFlatView } from '../ui/TechFlatView';
 import { StepDiagram } from '../ui/StepDiagram';
 import { CLOTHS, seamFinish } from '../engine/couture';
 import { FIBRES, Fibre, MyFabric, FabricStyle, adviceFor, checkFabric, clothFor, pickTag, printRepeat } from '../engine/fabrics';
+import { colourWords } from '../engine/houseColours';
 import { SPECIALS, Special, needsNap } from '../engine/specialFabrics';
 import { printNap, printOf } from '../engine/prints';
 import { SizeRun } from '../ui/SizeRun';
@@ -40,6 +41,10 @@ import { DemoButton } from '../ui/DemoButton';
 import { reloadPending } from './load';
 import { isKnit, isLowerBody } from '../measurements';
 import { isWaistRow } from '../engine/spec';
+import { cloud } from '../cloud/api';
+import { testerHeaders } from '../ui/TesterCode';
+import { inCm, inInches } from '../units';
+import { onPhone } from '../ui/device';
 
 /** What to print: the drafted pieces of either garment, with its notes and sewing steps. */
 export interface Printable {
@@ -80,10 +85,15 @@ interface Props {
   onEditFabric?: () => void;
   /** Keeps the pattern in your patterns, for the label card's code; the button itself is on Review. */
   onKeep?: () => void;
+  /** Saved patterns is full, so printing can't keep this one: Print says so instead of keeping quiet. */
+  full?: boolean;
   /** After printing: "How did it fit?" opens the fit notes for this pattern (saving it first if need be). */
   onFitNotes?: () => void;
   /** A fit tester's device: after printing, the tester form instead of the app's own fit notes. */
   tester?: boolean;
+  /** Who "Email me the files" may send to: the signed-in person's own email, or, for a fit tester, any address they
+   *  type (with their code). Neither: the email way isn't offered (weekly review, Nov 16). */
+  emailTo?: { signedIn?: string; testerCode?: string };
   /** The fit already reported for this pattern, in a line, if there is one. */
   fitNote?: string;
   /** Corrections from toile fittings, and their notes, already in the pattern. */
@@ -110,9 +120,6 @@ interface Props {
   edition?: string;
   credit?: string;
 }
-
-/** A touch screen with no mouse: a phone or tablet, where sending the work to a computer helps. */
-const onPhone = () => typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches && !window.matchMedia('(any-pointer: fine)').matches;
 
 const NONE: Alteration[] = [];
 
@@ -141,7 +148,9 @@ const printedDate = () => new Date().toLocaleDateString('en-GB', { day: 'numeric
 
 
 
-export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPaper, onPaper, sendLink, profile, title, lookName, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, onFitNotes, tester, fitNote, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label }: Props) {
+const FRACTION_WORDS: Record<string, string> = { '⅛': '1-8', '¼': '1-4', '⅜': '3-8', '½': '1-2', '⅝': '5-8', '¾': '3-4', '⅞': '7-8' };
+
+export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPaper, onPaper, sendLink, profile, title, lookName, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, onFitNotes, tester, emailTo, fitNote, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label, full }: Props) {
   const can = (t: ProTool) => shows(mode, t);
   /** Knits fit by their stretch: tested in a spare knit, not a calico toile. */
   const knit = isKnit(garment);
@@ -220,8 +229,8 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
     import('../engine/pdf')
       .then(async ({ toTiledPdf, toProjectorPdf, pdfPageCount }) => {
         const [bytes, book] = await Promise.all([
-          isProjector(paper) ? toProjectorPdf(sheet, { dark: paper === 'projectorDark', title }) : toTiledPdf(sheet, paper, { title, unit, part: 'pattern' }),
-          toTiledPdf(sheet, isProjector(paper) ? (unit === 'in' ? 'letter' : 'a4') : paper, { title, guide, summary, unit, part: 'booklet' }),
+          isProjector(paper) ? toProjectorPdf(sheet, { dark: paper === 'projectorDark', title: lookName ?? (unit === 'in' ? inInches(title) : title) }) : toTiledPdf(sheet, paper, { title, name: lookName, unit, part: 'pattern' }),
+          toTiledPdf(sheet, isProjector(paper) ? (unit === 'in' ? 'letter' : 'a4') : paper, { title, name: lookName, guide, summary, unit, part: 'booklet' }),
         ]);
         const pages = await pdfPageCount(book);
         // A booklet with nothing in it isn't offered.
@@ -232,7 +241,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
     return () => {
       live = false;
     };
-  }, [sheet, paper, title, guide, summary, unit]);
+  }, [sheet, paper, title, lookName, guide, summary, unit]);
 
   // These hooks sit above the early return below so every render calls them in the same order.
   // Once the pattern has left the app (downloaded, shared or opened to print), the fit question comes up.
@@ -260,12 +269,22 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
   const grid = projector ? { rows: 1, cols: 1 } : tileGrid(sheet, paper);
   const pages = projector ? 1 : pageCount(sheet, paper);
   const passed = checks.filter((c) => c.ok).length;
-  const fileBase = title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  // Named in the sewist's unit: an inch pattern downloaded as "56-cm-…" (pretend tester, Nov 17). Fractions are spelt
+  // out, "20⅛ in" as "20-1-8-in".
+  // A collection look is named for itself ("black-pleated-skirt-letter.pdf"), as testers know it (pretend tester, Nov 18).
+  const named = lookName ?? title;
+  // In cm a name's length goes to the whole cm, as file names always had it: "63.5 cm" made "63-5-cm", which reads as a range.
+  const fileBase = (unit === 'in' ? inInches(named).replace(/[⅛¼⅜½⅝¾⅞]/g, (f) => ` ${FRACTION_WORDS[f]} `) : named.replace(/(\d+\.\d+)(?= cm)/g, (n) => `${Math.round(Number(n))}`)).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
-  const fileName = `${fileBase}-${paper === 'projectorDark' ? 'projector-black' : paper}.pdf`;
+  // An inch file says so: the cm and inch files had one name, so the second came down as "(1)" (pretend tester, Nov 18).
+  const inchPart = unit === 'in' ? '-inches' : '';
+  const fileName = `${fileBase}-${paper === 'projectorDark' ? 'projector-black' : paper}${inchPart}.pdf`;
   const ready = pdf?.paper === paper ? pdf.bytes : null;
   const booklet = pdf?.paper === paper ? pdf.booklet : null;
-  const bookletName = `${fileBase}-instructions.pdf`;
+  // Named for its paper too: the Letter and A4 booklets shared one name, so the second overwrote the first or came down
+  // as "(1)" (pretend tester, Nov 18).
+  // The paper it's laid out on, which for A0 and a projector is A4 or Letter (see the booklet's toTiledPdf above).
+  const bookletName = `${fileBase}-${isProjector(paper) ? (unit === 'in' ? 'letter' : 'a4') : paper === 'a0' ? 'a4' : paper}${inchPart}-instructions.pdf`;
   // Both files together, for sharing and emailing.
   const files = () => [new File([ready!], fileName, { type: 'application/pdf' }), ...(booklet ? [new File([booklet.bytes], bookletName, { type: 'application/pdf' })] : [])];
 
@@ -329,7 +348,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
             )}
           </div>
           <div className="print-cover">
-            <Envelope house={false} name={title[0].toUpperCase() + title.slice(1)} flat={made.flat} mark={edition} foot={imported || example ? undefined : `Drafted to ${profile === 'Me' ? 'you' : profile}`} />
+            <Envelope house={false} name={lookName ?? title[0].toUpperCase() + title.slice(1)} flat={made.flat} mark={edition} foot={imported || example ? undefined : `Drafted to ${profile === 'Me' ? 'you' : profile}`} />
             <p className="eyebrow">Pieces</p>
             <ul className="pieces">
               {made.pieces.map((pc, i) => (
@@ -386,6 +405,13 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
                   {`Download instructions (${booklet.pages} ${booklet.pages === 1 ? 'page' : 'pages'})`}
                 </button>
               )}
+              {/* Said here too, not only in the small page preview: nothing on Print said there was a code, or that the
+                  tester form asks for it (pretend tester, Nov 18). */}
+              {tester && !imported && code && (
+                <p className="small muted">
+                  Your pattern code is <span data-keep-cm>{code}</span>. It&rsquo;s at the top of the first page of your pattern, and the tester form asks for it.
+                </p>
+              )}
               {pdfFailed && (
                 <p className="msg error" role="alert">
                   The PDF couldn't be made. Reload the page to try again: you'll stay on Print.
@@ -405,7 +431,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
                 <button type="button" className="way" onClick={checked(openToPrint)} disabled={!ready}>
                   Open pattern to print
                 </button>
-                {!imported && <EmailPdf ready={ready} fileName={fileName} booklet={booklet?.bytes ?? null} bookletName={bookletName} title={title} onSent={left} checked={checked} />}
+                {!imported && (emailTo?.signedIn || emailTo?.testerCode) && <EmailPdf who={emailTo} ready={ready} fileName={fileName} booklet={booklet?.bytes ?? null} bookletName={bookletName} title={title} onSent={left} checked={checked} />}
                 <CopyShopWay a0={paper === 'a0'} onA0={() => setPaper('a0')} unit={unit} />
                 {sendLink && onPhone() && (
                   <SendToDevice link={sendLink} className="way" />
@@ -440,6 +466,13 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
                   Saved in Your account, under Saved patterns.
                 </p>
               )}
+              {/* Printed with Saved patterns full: it isn't kept, and the person should know (Nov 19 bug hunt: the
+                  fourth print went nowhere without a word). */}
+              {printed && !kept && full && !example && !imported && (
+                <p className="small muted" role="status">
+                  Not kept in Saved patterns, which is full. Delete one in Your account to keep this one.
+                </p>
+              )}
             </div>
             {tester && !imported && (printed || fitNote) && <TesterReport />}
             {onFitNotes && !tester && !imported && (printed || fitNote) && (
@@ -468,7 +501,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
                   <b>Print at 100%</b> (actual size), never “fit to page”.
                 </p>
                 <p>
-                  <b>Check the size.</b> The test square on page A1 must measure 10 cm before you cut.
+                  <b>Check the size.</b> The test square on page A2 must measure exactly 10 cm before you cut.
                 </p>
                 {pages < grid.rows * grid.cols && (
                   <p>
@@ -524,7 +557,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
               <details className="small fold-link">
                 <summary>How the pages fit together</summary>
                 <p className="muted small">
-                  Trim each page along its dashed line on the left and top, then lay it over the page before so the half diamonds make whole ones.
+                  Cut each page along the solid line marked CUT on its left and top edges, then lay it over the page before so the half diamonds make whole ones: each diamond says whether its page goes OVER or UNDER the page named.
                   Tape them down. On a phone, send the PDF to your email and print from a computer, or print straight from the
                   share menu.
                 </p>
@@ -548,7 +581,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
             {/* Said only when a check found something: a line that everything passed was reassurance (copy review, Nov 14). */}
             {!imported && passed < checks.length && (
               <p className="muted small">
-                {checks.length - passed} of {checks.length} seam checks found something to look at. The details are on the last page of the PDF.
+                {checks.length - passed} of {checks.length} seam checks found something to look at. The details are under Seam check in the instructions booklet.
               </p>
             )}
           </div>
@@ -764,7 +797,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
             {guide.steps.map((st) => (
               <li key={st.title}>
                 <strong>{st.title}</strong>
-                <p>{st.text}</p>
+                <p>{inCm(st.text)}</p>
                 {st.diagram && <StepDiagram id={st.diagram} />}
               </li>
             ))}
@@ -879,7 +912,7 @@ function YourFabric({ fabric, style, metres, onChange }: { fabric: MyFabric; sty
         <div className="shopbuy">
           <p className="small">
             <b>{shop.name}</b>
-            {fabric.colour ? `, ${fabric.colour}` : ''}{' '}
+            {fabric.colour ? `, ${colourWords(fabric.colour) ?? fabric.colour}` : ''}{' '}
             <span className="muted">
               from {shop.shop}
               {shopPrice(shop, fabric.colour) ? `, $${shopPrice(shop, fabric.colour)}/${shop.yards ? 'yd' : 'm'}` : ''}
@@ -906,10 +939,12 @@ function YourFabric({ fabric, style, metres, onChange }: { fabric: MyFabric; sty
   );
 }
 
-/** The fabric's name in a few words: its own name, else the cloth, with the colour. */
+/** The fabric's name in a few words: its own name, else the cloth, with the colour in words. A house colour is stored
+ *  as its swatch's code, and "Sheer, #9CC3E6" showed on the Print screen (pretend tester DM walk, Nov 19). */
 function fabricName(f: MyFabric): string | undefined {
   const cloth = f.name || (f.special ? SPECIALS[f.special].label : f.fibre ? FIBRES[f.fibre].label : undefined);
-  return cloth && (f.colour && !f.name ? `${cloth}, ${f.colour}` : cloth);
+  const colour = colourWords(f.colour) ?? f.colour;
+  return cloth && (colour && !f.name ? `${cloth}, ${colour}` : cloth);
 }
 
 const hasFabric = (f: MyFabric | undefined) => !!(f && (f.name || f.fibre || f.special));
@@ -1232,10 +1267,12 @@ function toBase64(bytes: Uint8Array) {
  * "Email me the files" (journey review, Nov 10; was "Email me the PDF" until the instructions became their own file, Nov 15): on every phone, tablet and computer, where "Send to email or a printer"
  * needs a share menu that some computer browsers don't have. The address is used only to send this email.
  */
-function EmailPdf({ ready, fileName, booklet, bookletName, title, onSent, checked }: { ready: Uint8Array | null; fileName: string; booklet: Uint8Array | null; bookletName: string; title: string; onSent: () => void; checked: (go: () => void) => () => void }) {
+function EmailPdf({ who, ready, fileName, booklet, bookletName, title, onSent, checked }: { who: { signedIn?: string; testerCode?: string }; ready: Uint8Array | null; fileName: string; booklet: Uint8Array | null; bookletName: string; title: string; onSent: () => void; checked: (go: () => void) => () => void }) {
   const [open, setOpen] = useState(false);
-  const [to, setTo] = useState('');
-  const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'limit' | 'off' | 'big' | 'failed'>('idle');
+  const [typed, setTo] = useState('');
+  // Signed in, it goes to the account's own email, which the server checks again; a tester types any address.
+  const to = who.signedIn ?? typed;
+  const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'limit' | 'off' | 'big' | 'refused' | 'failed'>('idle');
   const [sentTo, setSentTo] = useState('');
   // The latest onSent when the send comes back, not the one from when it started, so nothing changed meanwhile is lost.
   const sentNow = useRef(onSent);
@@ -1250,16 +1287,17 @@ function EmailPdf({ ready, fileName, booklet, bookletName, title, onSent, checke
     if (!ready) return;
     setState('sending');
     try {
+      const token = who.signedIn ? await (await cloud()).token() : null;
       const res = await fetch('/.netlify/functions/email-pdf', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : testerHeaders(who.testerCode)) },
         body: JSON.stringify({ to: to.trim(), title: title.slice(0, 200), fileName, pdf: toBase64(ready), ...(booklet ? { bookletName, booklet: toBase64(booklet) } : {}) }),
       });
       if (res.ok) {
         setSentTo(to.trim());
         setState('sent');
         sentNow.current();
-      } else setState(res.status === 429 ? 'limit' : res.status === 503 ? 'off' : res.status === 413 ? 'big' : 'failed');
+      } else setState(res.status === 429 ? 'limit' : res.status === 503 ? 'off' : res.status === 403 ? 'refused' : res.status === 413 ? 'big' : 'failed');
     } catch {
       setState('failed');
     }
@@ -1272,10 +1310,14 @@ function EmailPdf({ ready, fileName, booklet, bookletName, title, onSent, checke
         checked(() => void send())();
       }}
     >
-      <label className="field">
-        <span>Your email</span>
-        <input type="email" required value={to} onChange={(e) => setTo(e.target.value)} autoComplete="email" inputMode="email" />
-      </label>
+      {who.signedIn ? (
+        <p className="small">To {who.signedIn}, the email you signed in with.</p>
+      ) : (
+        <label className="field">
+          <span>Your email</span>
+          <input type="email" required value={typed} onChange={(e) => setTo(e.target.value)} autoComplete="email" inputMode="email" />
+        </label>
+      )}
       <button type="submit" className="primary" disabled={!ready || state === 'sending' || !to.trim()}>
         {state === 'sending' ? 'Sending…' : 'Send'}
       </button>
@@ -1290,6 +1332,10 @@ function EmailPdf({ ready, fileName, booklet, bookletName, title, onSent, checke
       ) : state === 'off' || state === 'big' ? (
         <p className="msg small" role="status">
           {state === 'off' ? "Emailing isn't working just now." : 'This PDF is too big to email.'} Download the PDF instead.
+        </p>
+      ) : state === 'refused' ? (
+        <p className="msg small" role="status">
+          {who.signedIn ? 'Your sign-in has run out. Sign in again from Account, then send it.' : 'Your fit tester code didn\'t go through. Check it under Account, or download the PDF instead.'}
         </p>
       ) : state === 'failed' ? (
         <p className="msg small" role="status">

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
 import { trousersSpec } from '../engine/spec';
 import { FinishedTable, finishedLines } from '../ui/FinishedTable';
-import { TROUSER_EASE, TROUSER_LENGTHS, TROUSER_RUFFLE, TrousersDraft, TrousersMeasurements, lengthCmRange, trouserLength } from '../engine/trousers';
+import { RISE_PICK_CM, TROUSER_EASE, TROUSER_LENGTHS, TROUSER_RUFFLE, TrousersDraft, TrousersMeasurements, lengthCmRange, riseFor, trouserLength } from '../engine/trousers';
 import { trousersFlat, trousersView } from '../engine/flat';
 import { DrawOnForm, skirtForm } from '../ui/DrawOnForm';
 import { TROUSER_HELP, readTrouserHem, readTrouserPocket, readTrouserRise, readTrouserSide, trouserLines } from '../ui/formTrousers';
@@ -93,6 +93,10 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
   const shown = (id: string) => id !== 'length';
   const lengthGroup = TROUSER_GROUPS.find((g) => g.id === 'length')!;
   const full = trouserLength(values as unknown as TrousersMeasurements, { leg: 'straight', length: 'full' });
+  // A length set between the named ones takes the nearest one's name, as the skirt's does: it kept the last name the dot
+  // passed, and a pair typed to 103 cm printed as "shorts" in its title, labels and booklet (pretend tester DK walk, Nov 19).
+  const nearestLength = (cm: number) =>
+    TROUSER_LENGTHS.reduce((a, b) => (Math.abs(trouserLength(values as unknown as TrousersMeasurements, { leg: choices.leg, length: b }) - cm) < Math.abs(trouserLength(values as unknown as TrousersMeasurements, { leg: choices.leg, length: a }) - cm) ? b : a));
   const hem =
     choices.leg === 'culotte' || !values.waist_to_floor || !values.waist_to_knee || !values.crotch_depth
       ? undefined
@@ -101,8 +105,9 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
           marks: TROUSER_LENGTHS.map((id) => ({ id, label: lengthGroup.options.find((o) => o[0] === id)![1], y: trouserLength(values as unknown as TrousersMeasurements, { leg: choices.leg, length: id }) })),
           value: choices.length,
           onPick: (length: string) => onChoices(validTrousers({ ...choices, length: length as TrousersChoices['length'], lengthCm: undefined })),
-          // The hem glides to any length between the named ones, measured from the waist (Cat, 2026-11-06).
-          free: { zero: 0, ...lengthCmRange(values as unknown as TrousersMeasurements), cm: choices.lengthCm, onCm: (cm: number) => onChoices(validTrousers({ ...choices, lengthCm: cm })) },
+          // The hem glides to any length between the named ones, measured from the waist (Cat, 2026-11-06), even on a low or
+          // high rise, which the box says (pretend tester, Nov 18).
+          free: { zero: 0, ...lengthCmRange(values as unknown as TrousersMeasurements), cm: choices.lengthCm, onCm: (cm: number) => onChoices(validTrousers({ ...choices, length: nearestLength(cm), lengthCm: cm })), ...((choices.rise && choices.rise !== 'mid') || choices.riseCm ? { from: 'from your own waist, not the top of the trousers' } : {}) },
         };
   const elastic = choices.waist === 'elastic';
   const pockets = choices.pockets ?? 'none';
@@ -162,6 +167,23 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
     );
   }
 
+  // With the finished measurements, above Print: under the preview a look never showed it, since a look opens on its
+  // own page without the preview (tester walk, Nov 16).
+  const crotchNote =
+    draft?.crotchCapped &&
+          (draft.crotch.front + draft.crotch.back > draft.crotch.target ? (
+            <p className="msg small">
+              Your crotch length is short next to your crotch depth, shorter than the pattern can cut. Please re-measure both before you cut:
+              crotch depth seated, from the waist down the side to the chair, and crotch length snug between the legs from the front waist to the
+              back waist.
+            </p>
+          ) : (
+            <p className="msg small">
+              Your crotch length is long next to your crotch depth, longer than the pattern can cut. Please re-measure it, snug between the legs
+              from the front waist to the back waist. If it is right, measure your front and back waist to hip too, and the pattern will add the
+              extra length at the centre waists.
+            </p>
+          ));
   return (
     <StyleLayout
       fabric={fabric}
@@ -181,6 +203,8 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
       onMode={onMode}
       finished={
         draft && (
+          <>
+          {crotchNote}
           <FinishedTable lines={finishedLines(trousersSpec(values as TrousersMeasurements, draft), { elasticCm: draft.elastic?.finishedCm })} noun="Trousers">
             <p className="muted small">
               {draft.elastic ? `The waist is cut to pass over your hips and gathered onto ${draft.elastic.finishedCm} cm of elastic. ` : ''}
@@ -188,6 +212,7 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
               There is {ease.depth} cm of room below the crotch and {ease.crotch} cm along it.
             </p>
           </FinishedTable>
+          </>
         )
       }
     >
@@ -214,7 +239,21 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
                 </button>
               ))}
             </div>
-            <Explain set="trousers" group={g.id} options={g.options} pick={trouserAllowed(choices, g.id, trouserChoice(choices, g.id)) ? trouserChoice(choices, g.id) : undefined} />
+            {/* A low rise goes no lower than a quarter of your waist to hip, so say this body's drop, not the most (DR walk, Nov 20).
+                And the loops as drafted: a larger waist takes seven, not five (DS walk, Nov 21). */}
+            <Explain
+              set="trousers"
+              group={g.id}
+              options={g.options}
+              pick={trouserAllowed(choices, g.id, trouserChoice(choices, g.id)) ? trouserChoice(choices, g.id) : undefined}
+              say={
+                g.id === 'rise' && choices.rise === 'low' && values.waist_to_hip
+                  ? `The waistband sits low, on the top of your hips, about ${Math.round(-riseFor({ waist_to_hip: values.waist_to_hip }, RISE_PICK_CM.low))} cm below your waist.`
+                  : g.id === 'loops' && draft?.loops
+                    ? `${draft.loops === 7 ? 'Seven' : 'Five'} belt loops on the waistband: the centre back, each side, and one halfway across each front${draft.loops === 7 ? ' and each back' : ''}.`
+                    : undefined
+              }
+            />
             {g.id === 'leg' && choices.leg === 'culotte' && <p className="muted small">Culottes are cut to mid-calf, wide from the hip.</p>}
             {g.id === 'waist' && elastic && (
               <p className="muted small">
@@ -318,12 +357,6 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
         <p className="muted small">
           Drafted to your measurements as you choose.
         </p>
-        {draft?.crotchCapped && (
-          <p className="msg small">
-            Your crotch length is unusual next to your hip, so the crotch is drafted as near to it as the block allows. Please re-measure it,
-            snug between the legs from the front waist to the back waist.
-          </p>
-        )}
       </section>
 
       <aside className="card" aria-labelledby="sum">

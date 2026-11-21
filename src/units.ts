@@ -27,15 +27,37 @@ export function toYards(m: number): string {
 
 /** A height in feet and inches, the way most people know it: 165 cm → "5 ft 5 in". */
 export function toFeetInches(cm: number): string {
-  const inches = Math.round(cm / 2.54);
-  return `${Math.floor(inches / 12)} ft ${inches % 12} in`;
+  // To the quarter inch, as it can be typed: a typed 66 1/4 in read back as "5 ft 6 in" (pretend tester, Nov 18).
+  const quarters = Math.round((cm / 2.54) * 4);
+  const ft = Math.floor(quarters / 48);
+  const rest = quarters - ft * 48;
+  return `${ft} ft ${Math.floor(rest / 4)}${EIGHTHS[(rest % 4) * 2]} in`;
 }
 
 /** A measurement as the sewist reads it back: centimetres, inches to a tenth, or feet and inches for a height. */
 export function fmtMeasure(id: string, cm: number, unit: Unit): string {
   if (unit === 'cm') return `${cm} cm`;
   if (id === 'height') return toFeetInches(cm);
-  return `${Math.round((cm / 2.54) * 10) / 10} in`;
+  return `${inchWords(measureInches(cm))} in`;
+}
+
+/** A measurement in inches as it was typed. It's kept to a tenth of a centimetre, so a tape's 37.75 came back as 37.8
+ *  and 15.25 as 15.2 (pretend-tester walk, Nov 18). The tenth of an inch is shown when it gives back the same tenth of a
+ *  cm; failing that the quarter inch, a tape's own mark, when that does; otherwise the tenth (entered in cm, say). */
+export function measureInches(cm: number): number {
+  const inches = cm / 2.54;
+  const back = (n: number) => Math.round(n * 25.4) / 10 === cm;
+  const tenth = Math.round(inches * 10) / 10;
+  const quarter = Math.round(inches * 4) / 4;
+  return back(tenth) || !back(quarter) ? tenth : quarter;
+}
+
+/** Inches as read back on screen: a quarter or half inch the way every page writes it, "7¾", "30½" (a typed 7 3/4
+ *  showed as "7.75" in the step list while the pages said ¾, pretend tester, Nov 18); any other tenth stays a decimal. */
+export function inchWords(inches: number): string {
+  const quarters = Math.round(inches * 4);
+  if (Math.abs(inches * 4 - quarters) > 1e-9 || quarters % 4 === 0) return String(inches);
+  return `${Math.floor(quarters / 4) || ''}${EIGHTHS[(quarters % 4) * 2]}`;
 }
 
 /** A length in the sewist's unit: "12 cm" or "4¾ in". */
@@ -44,28 +66,88 @@ export function fmtLength(cm: number, unit: Unit): string {
 }
 
 const NUM = '(\\d+(?:[.,]\\d+)?)';
-// "30 × 20 cm" or "30 x 20 cm": both numbers are centimetres.
-const PAIR_CM = new RegExp(`${NUM}\\s*([×x])\\s*${NUM}\\s*cm\\b(?!\\s*\\()`, 'g');
-const ONE_CM = new RegExp(`${NUM}\\s*cm\\b(?!\\s*\\()`, 'g');
-const ONE_M = new RegExp(`${NUM}\\s*m\\b(?!\\s*\\()`, 'g');
+// "30 × 20 cm" or "30 x 20 cm": both numbers are centimetres. A length already followed by its inches, "10 cm (3.94
+// in)", is left alone; other brackets are not ("neckline 19.5 cm (half)" stayed in cm in the inch booklet, Nov 17).
+const DONE = '(?!\\s*\\(\\d)';
+const PAIR_CM = new RegExp(`${NUM}\\s*([×x])\\s*${NUM}\\s*cm\\b${DONE}`, 'g');
+const ONE_CM = new RegExp(`${NUM}\\s*cm\\b${DONE}`, 'g');
+const ONE_M = new RegExp(`${NUM}\\s*m\\b${DONE}`, 'g');
+// The labels printed along each seam are in capitals ("SHOULDER · 1.5 CM ALLOWANCE") and stayed in centimetres in an
+// inch PDF whose title block said "Seam allowance 5/8 in" (Nov 17).
+const ONE_CM_CAPS = new RegExp(`${NUM}\\s*CM\\b${DONE}`, 'g');
+// And the fabric amount on the booklet's cover and cutting layout ("2.4 M OF 55⅛ IN FABRIC").
+const ONE_M_CAPS = new RegExp(`${NUM}\\s*M\\b${DONE}`, 'g');
+// Millimetres, for the small steps in sewing ("trim 3 mm off", "2 mm from its edge"): to the nearest sixteenth of an inch,
+// never less than one, since an eighth is too coarse for them (Nov 17: they stayed in mm in the inch booklet).
+const ONE_MM = new RegExp(`${NUM}\\s*mm\\b${DONE}`, 'g');
+function mmToInches(mm: number): string {
+  const sixteenths = Math.max(1, Math.round((mm / 25.4) * 16));
+  return sixteenths % 2 ? `${sixteenths}/16 in` : toInches((sixteenths / 16) * 2.54);
+}
+// "stitch the sides 1 cm in." turned into "3/8 in in."; said the way an inch pattern does instead. Only where "in"
+// means inward (at the end of a clause, or before "from", "as soon", "and along" or "if you"), never "1 cm in length".
+const IN_IN = /([\d⅛¼⅜½⅝¾⅞][\d/⅛¼⅜½⅝¾⅞-]* in) in(?=[.,;:)]|$| from\b| as soon\b| and along\b| if you\b)( from)?/g;
 // The test square is the one length a sewist checks with a ruler, so it keeps the exact figure.
 const SQUARE = /10 cm test square|exactly 10 cm/g;
 const SQUARE_LABEL = /^10 CM$/;
 
 const num = (s: string) => parseFloat(s.replace(',', '.'));
+// An iron's heat, "about 150°C": an inch sewist reads Fahrenheit, to the nearest 10 like the dial (pretend tester, Nov 18).
+// Written with the degree sign: "about 300 F" read oddly (pretend tester, Nov 18).
+const IRON_C = /\b(about) (\d+) ?°?C\b/gi;
 
 /**
  * Rewrite every centimetre and metre length in a piece of text as inches and yards. The 10 cm test square
  * keeps both, because a printed copy is checked against it and 3.94 in is the exact figure.
  */
+/** "a" or "an" as a number is said before it: "an 18 cm zip", "an 8 in zip", "a 7 in zip". The cm amounts in the
+ *  sewing text are filled in, so "a 18 cm invisible zip" reached the cm files, and turning cm into inches changes the
+ *  number after it too (pretend tester DI walk, Nov 19). */
+export function articles(text: string): string {
+  // A capital "A" only where a sentence starts: elsewhere it names a piece or a view ("Piece A 8 cm").
+  return text.replace(/(^|[.!?]\s+|\b(?=a))(a|A)n? (\d+)(?=[\d.,]*[\s⅛¼⅜½⅝¾⅞-])/g, (_, lead: string, a: string, n: string) => `${lead}${a}${n.startsWith('8') || n === '11' || n === '18' ? 'n' : ''} ${n}`);
+}
+
+/** Sewing text as a cm sewist reads it: "an 18 cm", and an iron's heat with its degree sign, "about 150°C". The steps
+ *  are written in plain letters, and the cm files said "about 150 C" while the inch files said 300°F (pretend tester DL
+ *  walk, Nov 19). */
+export function inCm(text: string): string {
+  return articles(text).replace(IRON_C, (_, about: string, c: string) => `${about} ${c}°C`);
+}
+
 export function inInches(text: string): string {
   if (SQUARE_LABEL.test(text)) return '10 CM · 3.94 IN';
+  return articles(inInchesOnly(text));
+}
+
+// A pattern code (patternCode.ts: build, hip, bust, high bust and four characters) is not a length: "276F-97-90-0-3G3M"
+// printed as "...3G3⅜ YD" on page 1 of an inch pattern, and the fit form asks for that code (pretend tester DN walk,
+// Nov 20). Its last four characters can be digits with M, CM or IN, so codes are kept out of the conversion whole.
+const PATTERN_CODE = /(\b[0-9A-Z]{3,4}-\d+-\d+-\d+-[0-9A-Z]{4}\b)/;
+
+function inInchesOnly(text: string): string {
   return text
+    .split(PATTERN_CODE)
+    .map((part, i) => (i % 2 ? part : lengthsInInches(part)))
+    .join('');
+}
+
+function lengthsInInches(text: string): string {
+  return text
+    .replace(IRON_C, (_, about, c) => `${about} ${Math.round((Number(c) * 9) / 5 / 10 + 3.2) * 10}°F`)
     .replace(SQUARE, (m) => (m.startsWith('exactly') ? 'exactly 10 cm (3.94 in)' : '10 cm (3.94 in) test square'))
     .replace(PAIR_CM, (_, a, sep, b) => `${toInches(num(a)).replace(/ in$/, '')} ${sep} ${toInches(num(b))}`)
     .replace(ONE_CM, (_, a) => toInches(num(a)))
-    .replace(ONE_M, (_, a) => toYards(num(a)));
+    .replace(ONE_CM_CAPS, (_, a) => toInches(num(a)).replace(/ in$/, ' IN'))
+    .replace(ONE_M, (_, a) => toYards(num(a)))
+    .replace(ONE_M_CAPS, (_, a) => toYards(num(a)).replace(/ yd$/, ' YD'))
+    .replace(ONE_MM, (_, a) => mmToInches(num(a)))
+    .replace(IN_IN, (_, len, from) => (from ? `${len} from` : `${len} from the edge`));
 }
+
+/** The attributes a screen reader speaks, rewritten into inches with the text. */
+const SPOKEN = ['aria-label', 'aria-valuetext', 'title', 'alt'];
+const SPOKEN_SELECTOR = SPOKEN.map((a) => `[${a}]`).join(',');
 
 /**
  * Show a page in inches: every length in its text is rewritten as it appears, and again whenever the page
@@ -102,23 +184,49 @@ export function showInInches(root: Node): () => void {
     if (changed === whole) run.forEach((n, i) => put(n, originals[i]));
     else run.forEach((n, i) => put(n, i ? '' : changed));
   };
+  // What a screen reader says is rewritten too: the words on screen were in inches and the spoken names still said
+  // "hem 47 cm below the waist" (pretend tester, Nov 18). Each attribute's own words are kept, as for the text.
+  const attrWritten = new WeakMap<Element, Map<string, string>>();
+  const attrSource = new WeakMap<Element, Map<string, string>>();
+  const fixAttrs = (el: Element) => {
+    if (el.closest('[data-keep-cm]')) return;
+    const wrote = attrWritten.get(el) ?? attrWritten.set(el, new Map()).get(el)!;
+    const src = attrSource.get(el) ?? attrSource.set(el, new Map()).get(el)!;
+    for (const a of SPOKEN) {
+      const v = el.getAttribute(a);
+      if (v === null) continue;
+      if (wrote.get(a) !== v) src.set(a, v);
+      const next = inInches(src.get(a) ?? v);
+      if (next !== v) el.setAttribute(a, next);
+      wrote.set(a, next);
+    }
+  };
   const fix = (node: Node) => {
     if (isText(node)) return fixRun(node);
     const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
     const texts: Text[] = [];
     for (let n = walker.nextNode(); n; n = walker.nextNode()) texts.push(n as Text);
     texts.forEach(fixRun);
+    if (node instanceof Element) [node, ...node.querySelectorAll(SPOKEN_SELECTOR)].forEach((el) => SPOKEN.some((a) => el.hasAttribute(a)) && fixAttrs(el));
   };
   fix(root);
   const observer = new MutationObserver((records) => {
     for (const r of records) {
       if (r.type === 'characterData') fix(r.target);
+      else if (r.type === 'attributes') fixAttrs(r.target as Element);
       else r.addedNodes.forEach(fix);
     }
   });
-  observer.observe(root, { subtree: true, childList: true, characterData: true });
+  observer.observe(root, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: SPOKEN });
   return () => {
     observer.disconnect();
+    // Put the page's own spoken words back.
+    if (root instanceof Element)
+      for (const el of [root, ...root.querySelectorAll(SPOKEN_SELECTOR)])
+        for (const a of SPOKEN) {
+          const was = attrSource.get(el)?.get(a);
+          if (was !== undefined && el.getAttribute(a) === attrWritten.get(el)?.get(a)) el.setAttribute(a, was);
+        }
     // Put the page's own words back.
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     for (let n = walker.nextNode(); n; n = walker.nextNode()) {
@@ -137,11 +245,13 @@ const UNIT_SAID = /\s*(cm|centimet(?:er|re)s?|mm|in|inch(?:es)?|"|”|″)$/;
  * as 33, then turned away as out of range (bug hunt's paste check, Nov 15). NaN when there's no number.
  */
 export function typedLength(text: string, unit: Unit): number {
-  let t = text.trim().toLowerCase().replace(/(\d),(\d)/, '$1.$2');
+  // A full stop or comma after it ("33 in.", pasted from a sentence) is left off (code review, Nov 15).
+  let t = text.trim().toLowerCase().replace(/(\d),(\d)/, '$1.$2').replace(/[.,;:]+$/, '');
   const said = t.match(UNIT_SAID)?.[1];
   if (said) t = t.slice(0, -said.length).trim();
-  // "33 1/2" (a space before the fraction, so "12/2" isn't read as 1 and 2/2), "33½", "1/2", or a plain number.
-  const m = t.match(/^(?:(\d+(?:\.\d+)?)(?:\s+(\d+)\/(\d+)|\s*([¼½¾⅛⅜⅝⅞]))?|(\d+)\/(\d+))$/);
+  // "33 1/2" or "33-1/2" (a space or dash before the fraction, so "12/2" isn't read as 1 and 2/2), "33½", "1/2", or a
+  // plain number.
+  const m = t.match(/^(?:(\d+(?:\.\d+)?)(?:(?:\s+|\s*-\s*)(\d+)\/(\d+)|\s*([¼½¾⅛⅜⅝⅞]))?|(\d+)\/(\d+))$/);
   const n = !m ? parseFloat(t) : m[5] ? Number(m[5]) / Number(m[6]) : parseFloat(m[1]) + (m[2] ? Number(m[2]) / Number(m[3]) : m[4] ? FRACTION[m[4]] : 0);
   if (!Number.isFinite(n)) return NaN;
   if (said === 'mm') return n / 10;

@@ -43,7 +43,9 @@ export function skirtSpec(m: SkirtMeasurements, d: SkirtDraft): SpecRow[] {
     // Posture, when measured: the centre waist is raised or lowered to match.
     ...(m.front_waist_to_hip !== undefined ? [{ label: 'Waist to hip, centre front', body: r1(m.front_waist_to_hip), finished: '' }] : []),
     ...(m.back_waist_to_hip !== undefined ? [{ label: 'Waist to hip, centre back', body: r1(m.back_waist_to_hip), finished: '' }] : []),
-    row('Length, waist to hem', undefined, d.lengthCm),
+    // A low-rise skirt's length counts from its own top, as the length box says: called waist to hem here, a tester
+    // measuring from the waist would have cut it about 5 cm short (pretend tester, Nov 18).
+    row(d.lowRise ? 'Length, top of skirt to hem' : 'Length, waist to hem', undefined, d.lengthCm),
     row('Hem circumference', undefined, d.hemCm),
     ...(d.asym ? [{ label: `Hem ${d.asym.kind === 'diagonal' ? 'left to right' : 'front to back'}, shortest to longest`, finished: `${r1(d.lengthCm + d.asym.shift - d.asym.amp)} to ${r1(d.lengthCm + d.asym.shift + d.asym.amp)}` }] : []),
     // Pleats, godets, a flounce or tiers: how they are made.
@@ -99,7 +101,8 @@ function waistRows(d: { waistband: { cutLength: number; cutWidth: number }; elas
 export function bodiceSpec(m: BodiceMeasurements, d: BodiceDraft, length: BodiceLength, dropCm?: number): SpecRow[] {
   const rows: SpecRow[] = [row('Bust', m.full_bust, d.finishedBust), row('Waist', m.waist, d.finishedWaist)];
   if (d.finishedHem !== undefined && dropCm !== undefined) {
-    rows.push(row(`Hem, ${d.drop} cm below the waist`, undefined, d.finishedHem));
+    // On a lowered peplum the bodice's lower edge is the peplum seam, not a hem (pretend tester DM walk, Nov 19).
+    rows.push(row(`${d.peplum?.seamCm ? 'Peplum seam' : 'Hem'}, ${d.drop} cm below the waist`, undefined, d.finishedHem));
   } else if (d.finishedHem !== undefined) {
     // A hem at the high hip reads against the body there, not the full hip below it: against the hip, a hem with 4 cm
     // of ease showed as 4 cm too small (era pattern review, Nov 14).
@@ -174,7 +177,8 @@ export function dressSpec(m: DressMeasurements, d: DressDraft, sleeve?: SleeveDr
     // only for its length gave the table 2 cm more hip than the pieces and the first page's note; tester pattern review, Nov 13.)
     ...skirtSpec(m, d.skirt)
       .filter((r) => r.label !== 'Waist' && !zip.test(r.label) && !/Waistband/.test(r.label))
-      .map((r) => (r.label === 'Hip' ? row('Hip', m.full_hip, d.finishedHip) : r)),
+      // On a dress with its seam off the waist the skirt's length runs from that seam, as the length box asks it.
+      .map((r) => (r.label === 'Hip' ? row('Hip', m.full_hip, d.finishedHip) : d.seamDrop && r.label === 'Length, waist to hem' ? { ...r, label: 'Length, waist seam to hem' } : r)),
     ...(d.seamCm ? [row(d.seamDrop > 0 ? `Waist seam, ${d.seamDrop} cm below the waist` : `Waist seam, ${-d.seamDrop} cm above the waist`, fromSeam(m, d.seamDrop).waist, d.seamCm)] : []),
     row('Length, nape to hem', undefined, d.lengthCm),
     ...(sleeve ? sleeveSpec(m, sleeve) : []),
@@ -195,7 +199,9 @@ export function trousersSpec(m: TrousersMeasurements, d: TrousersDraft): SpecRow
     low ? row('Crotch depth, from where they sit', low.crotch_depth, low.crotch_depth + TROUSER_EASE[d.fit].depth) : row('Crotch depth', m.crotch_depth, m.crotch_depth + TROUSER_EASE[d.fit].depth),
     low ? row('Crotch length, from where they sit', low.crotch_length, d.crotch.front + d.crotch.back) : row('Crotch length', m.crotch_length, d.crotch.front + d.crotch.back),
     { label: 'Crotch curve, front / back', finished: `${d.crotch.front} / ${d.crotch.back}` },
-    row('Outside leg, waist to hem', undefined, d.lengthCm),
+    // Still from your own waist when the band sits lower or higher, and said so ("your"): the low-rise skirt is measured from its
+    // top, and a tester couldn't tell which the trousers meant (pretend tester, Nov 18).
+    row(d.riseCm ? 'Outside leg, your waist to hem' : 'Outside leg, waist to hem', undefined, d.lengthCm),
     ...(d.shorts ? [] : [row('Knee, round', undefined, d.kneeCm)]),
     row('Hem, round', undefined, d.hemCm),
     ...(d.pockets !== 'none' ? [{ label: d.pockets === 'slant' ? 'Slant pockets' : d.pocketSides === 'right' ? 'In-seam pocket, right side' : 'In-seam pockets', finished: d.pockets === 'slant' ? `opening ${SLANT.in} in, ${SLANT.down} down` : `opening ${INSEAM.opening}` }] : []),

@@ -26,6 +26,8 @@ const SAFARI_GATE = [
   'body-scan.spec.ts',
   'fabric-photo.spec.ts',
   'shop-catalogue.spec.ts',
+  // The five tester pieces, each made from the collection and printed on Letter and A4 (Nov 17).
+  'tester-pieces.spec.ts',
 ];
 
 // Walks left out of the Safari check because the test machine's Safari (WebKit on Linux, not an iPhone) crashes
@@ -68,6 +70,20 @@ export default defineConfig({
       testMatch: SAFARI_GATE,
       grepInvert: SAFARI_LEFT_OUT,
       use: { ...devices['iPhone 13'], browserName: 'webkit' as const, launchOptions: {} },
+    }] : []),
+    // And Safari on a Mac laptop: every computer check ran in Chromium, and many sewists use a Mac (desktop check, Nov
+    // 21). The same walks, plus the laptop and desktop screen sizes.
+    ...(process.env.E2E_SAFARI ? [{
+      name: 'mac-safari',
+      testMatch: [...SAFARI_GATE, 'computer-screens.spec.ts'],
+      grepInvert: SAFARI_LEFT_OUT,
+      use: { ...devices['Desktop Safari'], browserName: 'webkit' as const, viewport: { width: 1280, height: 800 }, launchOptions: {} },
+    }] : []),
+    // Firefox on a computer, run nightly (E2E_FIREFOX): few sewists use it, so not on every change.
+    ...(process.env.E2E_FIREFOX ? [{
+      name: 'firefox',
+      testMatch: [...SAFARI_GATE, 'computer-screens.spec.ts'],
+      use: { ...devices['Desktop Firefox'], browserName: 'firefox' as const, viewport: { width: 1280, height: 800 }, launchOptions: {} },
     }] : []),
   ],
   webServer: {

@@ -11,6 +11,7 @@ import { Piece, cutLine } from './piece';
 import { dartsOf, drillHoles, notchSlit } from './marks';
 import { checkFile } from './checkFile';
 import type { SewingGuide, SewStep } from './instructions';
+import { PRINT_FIRST } from './printFirst';
 
 export interface ImportedPattern {
   pieces: Piece[];
@@ -606,7 +607,7 @@ export function importedGuide(pieces: Piece[]): SewingGuide {
   const steps: SewStep[] = [
     {
       title: 'Print and check the size',
-      text: 'Print the pattern at 100% (actual size). Measure the test square: it should be exactly 10 cm. Trim each page along the dashed line, then tape the pages together, matching the row letters and column numbers.',
+      text: PRINT_FIRST + ' Cut each page along the solid line marked CUT on its left and top edges, lay it over the page before it so the half diamonds make whole ones, and tape, matching the row letters and column numbers.',
     },
   ];
   const cutLines = pieces.map((pc) => {

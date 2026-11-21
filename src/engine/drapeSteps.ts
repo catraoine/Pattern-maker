@@ -238,8 +238,8 @@ export function drapeBodiceSteps(g: SewingGuide, d: BodiceDraft, o: Opts): Sewin
     };
     const attach: SewStep = {
       title: 'Attach the peplum',
-      text: `Pin the peplum to the bodice's ${low ? `hem edge, ${d.peplum.seamCm} cm below your waist (the bodice is fitted down to it, so the waist stays nipped in above the puff)` : 'waist edge'}, right sides together, matching the centre front and the seams, with its open edges at the zip. Pull up the waist gathering threads until it fits, and spread the gathers evenly. Sew ${o.seam} from the edge, with the gathers on top so they stay even, overlock or zigzag the edges together, and press the seam up toward the bodice.${
-        o.edges === 'lined' ? ` Turn the lining's ${low ? 'hem' : 'waist'} edge under and slip-stitch it over the seam inside.` : ''
+      text: `Pin the peplum to the bodice's ${low ? `lower edge (PEPLUM SEAM), ${d.peplum.seamCm} cm below your waist (the bodice is fitted down to it, so the waist stays nipped in above the puff)` : 'waist edge'}, right sides together, matching the centre front and the seams, with its open edges at the zip. Pull up the waist gathering threads until it fits, and spread the gathers evenly. Sew ${o.seam} from the edge, with the gathers on top so they stay even, overlock or zigzag the edges together, and press the seam up toward the bodice.${
+        o.edges === 'lined' ? ` Turn the lining's ${low ? 'lower' : 'waist'} edge under and slip-stitch it over the seam inside.` : ''
       }`,
     };
     if (!e.before('Hem', make)) e.before('Finish', make);
@@ -263,10 +263,10 @@ export function drapeBodiceSteps(g: SewingGuide, d: BodiceDraft, o: Opts): Sewin
     };
     const attach: SewStep = {
       title: 'Attach the peplum',
-      text: `Pin the peplum to the bodice's ${low ? `hem edge, ${d.peplum.seamCm} cm below your waist (the bodice is fitted down to it, so the waist stays nipped in above the flare)` : 'waist edge'}, right sides together, matching the centre front and the seams, with its open edges at the zip.${
+      text: `Pin the peplum to the bodice's ${low ? `lower edge (PEPLUM SEAM), ${d.peplum.seamCm} cm below your waist (the bodice is fitted down to it, so the waist stays nipped in above the flare)` : 'waist edge'}, right sides together, matching the centre front and the seams, with its open edges at the zip.${
         flared ? '' : ' Pull up the gathering threads until it fits, and spread the gathers evenly.'
       } Sew ${o.seam} from the edge${flared ? '' : ', with the gathers on top so they stay even'}, overlock or zigzag the edges together, and press the seam up toward the bodice.${
-        o.edges === 'lined' ? ` Turn the lining's ${low ? 'hem' : 'waist'} edge under and slip-stitch it over the seam inside.` : ''
+        o.edges === 'lined' ? ` Turn the lining's ${low ? 'lower' : 'waist'} edge under and slip-stitch it over the seam inside.` : ''
       }`,
     };
     // In place of the bodice's own hem: the peplum is sewn to its waist edge (a lowered one to its hem edge), after the neck and sleeves.

@@ -55,7 +55,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
     },
     rise: {
       natural: ['Sits at your natural waist, the narrowest part of you.', 'easy'],
-      low: ['Sits low on the hip, about 6 cm below your waist, so it hangs from the hips. The hem stays where it was.'],
+      low: ['Sits low on the hip, up to 6 cm below your waist, so it hangs from the hips. The hem stays where it was.'],
     },
     gathers: {
       soft: ['About one and a half times the waist, gathered in: gentle folds that sit close.', 'easy'],
@@ -303,7 +303,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       slant: ['Pockets that open on a slant at the front hip, like chinos.', 'skill'],
     },
     rise: {
-      low: ['The waistband sits low, on the top of your hips, about 6 cm below your waist.'],
+      low: ['The waistband sits low, on the top of your hips, up to 6 cm below your waist.'],
       mid: ['The waistband sits at your natural waist.', 'easy'],
       high: ['The waistband sits a little above your waist, about 4 cm, for a long leg line.'],
     },
@@ -318,7 +318,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
     },
     loops: {
       none: ['A plain waistband.', 'easy'],
-      loops: ['Five belt loops on the waistband: the centre back, each side, and one halfway across each front.'],
+      loops: ['Five belt loops on the waistband, or seven on a larger waist: the centre back, each side, and across the front.'],
     },
   },
   outer: {
@@ -584,14 +584,14 @@ const SHORT: Record<string, string> = {
   'pads.soft': 'Thin pads that smooth the shoulder.',
   'pads.structured': 'Firm pads for a sharp shoulder.',
   'vent.centre': 'A back opening, to move and sit.',
-  'trim.none': 'Plain hems at bottom and cuffs.',
+  'trim.none': 'A plain hem, and plain cuffs if any.',
   'tiers.stacked': 'Two or three tiers, each fuller.',
   'tiers.drop_yoke': 'Fitted over the hip, full below.',
   'rise.natural': 'At your natural waist.',
   'rise.low': 'Low on the hip.',
   'rise.mid': 'At your natural waist.',
   'rise.high': 'Above the waist, long legged.',
-  'trim.rib': 'Rib bands at hem and cuffs.',
+  'trim.rib': 'A rib band at the hem, and any cuffs.',
   'flare.flared': 'Cinched, then flaring over the hips.',
 };
 

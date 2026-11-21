@@ -3,6 +3,7 @@
 import type { SewingGuide, SewStep } from './instructions';
 import { STRETCH_WORDS } from './knits';
 import { KNIT_HEM, KNIT_SEAM, KNIT_SLEEVE_HEM, TANK, TeeDraft } from './tee';
+import { PRINT_FIRST } from './printFirst';
 
 const n1 = (v: number) => `${v} cm`;
 
@@ -20,7 +21,7 @@ export function teeGuide(d: TeeDraft, fabricM: number, finish: { width?: number 
   const steps: SewStep[] = [
     {
       title: 'Print and check the size',
-      text: 'Print the pattern at 100% (actual size). Measure the test square: it should be exactly 10 cm. Trim each page along the dashed line, then tape the pages together, matching the row letters and column numbers.',
+      text: PRINT_FIRST + ' Cut each page along the solid line marked CUT on its left and top edges, lay it over the page before it so the half diamonds make whole ones, and tape, matching the row letters and column numbers.',
     },
     {
       title: 'Cut out',

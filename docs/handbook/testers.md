@@ -46,7 +46,27 @@ paid sewists as the backstop if fewer than 16 good applicants by Nov 8.
 - A paid pattern-cutter review (a Vancouver studio) checks the drafting itself; due first week of
   November, balance paid after.
 
-## What testers are expected to trip on (Oct 30)
+## Fewer, better tester emails (Nov 18)
+
+Cat: "We want to minimize the emails to testers", then "use sensible reasoning, not extreme swings". Before emailing
+testers, ask whether it can be avoided: a quick app fix (make the app match an email already sent), or waiting for an
+email that is already planned. If testers really need to know, or an email would genuinely help them, send it, only to
+the testers it affects, short and warm. First use: the pattern PDF was changed to match the "You're in" email
+(pattern code at the top of page 1, test square on page 2) instead of emailing every tester a correction.
+
+## Tester emails with links (Nov 19)
+
+The Gmail connector turns every link it is given into a google.com/url redirect, and testers saw those links as
+blank (two invites, Nov 19). Cat: "figure out how to just put the links in properly yourself". So tester emails with
+links go out through the app's own email service instead (`netlify/functions/tester-mail.mts`), from
+hello@maisontrace.co, with the links exactly as written. Each email goes to one tester only, links may point only to
+maisontrace.co and our Google forms, every email is copied to Cat's inbox and replies go to her, and a reply carries the
+tester's Message-ID so it stays in her conversation. Up to 25 a day. It needs a key that lives only in Netlify and with
+the Community Lead thread, never in the repo. Tester emails link to the fit form as maisontrace.co/fit-form: emails
+carrying the Google Form's own address never reached Gmail (Nov 19 tests), while maisontrace.co links arrived. Emails without links can still go from Gmail. The send word rules don't
+change: nothing goes to a tester without Cat's OK on the exact text.
+
+
 
 Wrong print scale (measure the 10 cm square), Letter vs A4, phone-only testers (use Send link and a
 copy shop), opening the site without their link, switching devices, self-measuring errors, the

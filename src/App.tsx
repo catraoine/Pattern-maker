@@ -36,24 +36,26 @@ updatePerson,
 recordMeasurements,
 withPeople,
 } from './account';
-import { validDetails, PatternChoices, outerWord } from './garments';
+import { validDetails, PatternChoices, outerWord, unusedFor } from './garments';
 import type { Printable } from './screens/ExportScreen';
 import { describePattern } from './screens/describe';
 import { WelcomeScreen } from './screens/WelcomeScreen';
 import { CODE_MESSAGE, checkCode, hasAccess, rememberAccess, testerFromLink, withoutTester } from './access';
-import { keepOffline } from './swUpdate';
+import { cleanCode } from './photo/limit';
+import { atNewScreen, keepOffline } from './swUpdate';
 import { preloadScreens, screen } from './screens/load';
 import { FABRIC, StartOver, openLookNext, openTabNext } from './ui/StyleLayout';
 import { KeptCount } from './ui/SaveControl';
-import { GARMENT_NAME } from './measureFlow';
-import type { StepsStart } from './screens/MeasureStepsScreen';
+import { GARMENT_NAME, baseDone } from './measureFlow';
+import type { PageKind, StepsStart } from './screens/MeasureStepsScreen';
+import { mergeBackups } from './cloud/merge';
 import { useCloud } from './cloud/useCloud';
 import { useFounding } from './cloud/useFounding';
 import { EARLY_ACCESS_FROM, earlyAccessOpen } from './founding';
 import { signinShown } from './cloud/flag';
 import { LegalScreen } from './screens/LegalScreen';
 import { PhotoAllowance, UnlockGarment } from './ui/PlanPrompts';
-import { BILLING_ON, canPhotoDraft, countPhotoDraft, hasGarment, plansShown, savedLimit } from './plans';
+import { BILLING_ON, GARMENT_NAMES, canPhotoDraft, countPhotoDraft, hasGarment, plansShown, savedLimit } from './plans';
 import { countStep, reportCrash, setReportView } from './report/report';
 import { PRIVACY, TERMS, legalPath } from './legal';
 import { readLink, type MeasureReply } from './measureLink';
@@ -62,9 +64,10 @@ import { coverGuide, coverMissing, coverPieces, padMap } from './engine/formCove
 import { labelCode, savedCopy } from './labels';
 import { fitSummary } from './fit';
 import { ImportedPattern, importedGuide } from './engine/importDxf';
-import { lookArmsMissing, lookFabric, lookHipMissing, lookNameOf, lookPatch, lookResized, lookValues } from './collection';
+import { COLLECTION, HouseLook, TESTER_LOOK, lookArmsMissing, lookDropsLength, lookPatchKeeping, lookFabric, lookHipMissing, lookNameOf, lookPatch, lookResized, lookValues } from './collection';
 import { archiveCut } from './archive';
-import { CollectionLink, ExampleTag, GarmentPick, LookName } from './ui/GarmentSwitch';
+import { CollectionLink, ExampleTag, GarmentPick, LookName, TesterLook } from './ui/GarmentSwitch';
+import { UnitNow } from './ui/LengthEntry';
 import { LoadingScreen } from './ui/LoadingScreen';
 import type { FormStart } from './ui/ContourForm';
 import type { Piece } from './engine/piece';
@@ -131,7 +134,7 @@ const ready = (values: MeasurementValues, unit: Unit, garment: Garment, form?: F
 /** A vest (a jacket without sleeves) isn't drafted from the arms, so they're neither asked nor needed: the Black Vest
  *  asked arm length and upper arm (fit-test walk, Nov 15). Saved jackets without a sleeve setting have sleeves. */
 const vestOf = (g: Garment, s: Pick<Saved, 'jacket'>) => g === 'jacket' && !!s.jacket && outerWord(s.jacket) === 'vest';
-const skipFor = (g: Garment, s: Pick<Saved, 'jacket'>): MeasurementId[] => (vestOf(g, s) ? ['arm_length', 'upper_arm'] : []);
+const skipFor = (g: Garment, s: Pick<Saved, 'jacket'>): MeasurementId[] => (g === 'jacket' ? unusedFor(s.jacket) : []);
 
 export default function App() {
   const [saved, setSaved] = usePersistent<Saved>('skirt', INITIAL);
@@ -188,8 +191,21 @@ export default function App() {
   // A "Send to my computer" link: everything from the sewist's other device, read once the page is up.
   const [moving, setMoving] = useState<Backup<Saved> | 'broken'>();
   useEffect(() => {
-    readMoveLink<Saved>(window.location.hash).then((b) => b && setMoving(b));
+    readMoveLink<Saved>(window.location.hash).then((b) => b && arrive(b));
   }, []);
+  /** A move link from a device that was let in carries its tester code: once the code checks out, this one is let in
+   *  too, brought or not, so the computer doesn't show the waitlist next time (pretend tester, Nov 18). A link is only
+   *  packed text, so the code is checked like a typed one, and one that can't be checked lets nothing in. */
+  const arrive = (b: Backup<Saved> | 'broken') => {
+    const code = b !== 'broken' ? b.account.testerCode : undefined;
+    if (code)
+      void checkCode(code).then((r) => {
+        if (r !== 'tester') return;
+        rememberAccess();
+        setAccess(true);
+      });
+    setMoving(b);
+  };
   const dropHash = () => {
     if (window.location.hash) window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search);
   };
@@ -296,7 +312,9 @@ export default function App() {
     if (access) {
       // A device let in earlier can hold an old code that no longer works (Cat's phone, Nov 14: the body scan turned
       // it away while Fit testing still said "Tester code on"). A newer link's code replaces it, once it's checked.
-      if (code !== storedAccount.testerCode) void checkCode(code).then((r) => r === 'tester' && setAccount({ ...latestAccount.current, testerCode: code }));
+      // Compared as codes are matched (case and stray characters aside), so a typed code kept in capitals isn't
+      // checked again on every visit by a link in small letters (code review, Nov 15).
+      if (cleanCode(code).toLowerCase() !== cleanCode(storedAccount.testerCode ?? '').toLowerCase()) void checkCode(code).then((r) => r === 'tester' && setAccount({ ...latestAccount.current, testerCode: code }));
       return;
     }
     linkCode.current = code;
@@ -343,6 +361,12 @@ export default function App() {
     } catch {
       // Storage off (a private window): a reload starts at the welcome.
     }
+  }, [step]);
+  // After the place is saved, so a new release shown now opens on this screen.
+  const firstScreen = useRef(true);
+  useEffect(() => {
+    if (firstScreen.current) firstScreen.current = false;
+    else atNewScreen(RESTORABLE.includes(step));
   }, [step]);
   // The welcome's dress form waits under the loading screen, which wraps its bodice into the form's outline.
   const [formStart, setFormStart] = useState<FormStart>(opening ? 'wait' : 'fresh');
@@ -587,13 +611,15 @@ export default function App() {
     // (A dress never styled on its own is only drawn from the skirt and bodice: nothing of its own to keep.)
     const untouched = (g === 'dress' && !saved.dress) || JSON.stringify(drafting.choices({ ...saved, ...firstVisit(g) })) === JSON.stringify(now);
     if (untouched) return { account: acc, patch: {} };
-    const kept = savePattern(acc, now, describePattern(now), person.id);
+    // A collection look is kept under its own name, as testers know it (Nov 19 bug hunt: Blush Shift was saved as
+    // "Mini shift dress with a crew neck").
+    const kept = savePattern(acc, now, lookNameOf(g, now, values) ?? describePattern(now), person.id);
     return isSavedFor(kept, now, person.id) ? { account: kept, patch: firstVisit(g) } : { account: acc, patch: {} };
   };
   // "How did it fit?" from the print screen: the pattern is kept (if it can be) and its fit notes open on Your account.
   const [fitFocus, setFitFocus] = useState<string>();
   const openFitNotes = () => {
-    const next = saveState === 'can' ? savePattern(account, current, describePattern(current), person.id) : account;
+    const next = saveState === 'can' ? savePattern(account, current, lookName ?? describePattern(current), person.id) : account;
     const kept = savedNow ?? (saveState === 'can' ? next.patterns[0] : undefined);
     if (!kept) return;
     if (next !== account) setAccount(next);
@@ -609,6 +635,11 @@ export default function App() {
   const [lookFrom, setLookFrom] = useState<'style' | 'steps'>('style');
   // A reload while measuring opens on the page still to take (tester journey, Nov 11).
   const [stepsStart, setStepsStart] = useState<{ at: number; start?: StepsStart }>(() => ({ at: 0, start: restore === 'steps' ? { kind: 'resume' } : undefined }));
+  // The opening of the guided pages last shown: one shown before is being stepped back into, and keeps its page.
+  const stepsShown = useRef(-1);
+  useEffect(() => {
+    if (step === 'steps') stepsShown.current = stepsStart.at;
+  }, [step, stepsStart.at]);
   const openSteps = (start?: StepsStart) => {
     setStepsStart({ at: stepsStart.at + 1, start });
     // Opened again from one of its own pages (a described idea, say): a fresh start on top, so back returns to that page.
@@ -638,12 +669,17 @@ export default function App() {
   const chooseGarment = () => openSteps({ kind: 'choose' });
 
   /** Switch garment, going straight to the measurements the new one still needs, one page each. */
-  const switchGarment = (g: Garment, next: Partial<Saved> = {}, to: View = step, using: MeasurementValues = measured, also: MeasurementId[] = []) => {
+  /** Opens garment `g` on `to`; false when it went to take measurements first. */
+  const switchGarment = (g: Garment, next: Partial<Saved> = {}, to: View = step, using: MeasurementValues = measured, also: MeasurementId[] = []): boolean => {
     const after = { ...saved, ...plainCloth(g), ...next, garment: g };
     setSaved(after);
     const stays = to === 'style' || to === 'export';
-    if (stays && (!ready(using, saved.unit, g, form, skipFor(g, after)) || also.length)) measureFor(g, using, form, also, after);
-    else setStep(to);
+    if (stays && (!ready(using, saved.unit, g, form, skipFor(g, after)) || also.length)) {
+      measureFor(g, using, form, also, after);
+      return false;
+    }
+    setStep(to);
+    return true;
   };
 
   /**
@@ -654,16 +690,22 @@ export default function App() {
     const skip = skipFor(g, s);
     const wrong = isComplete(using, g, on, skip) && checksFor(using, saved.unit, g, on, skip).find((c) => c.level === 'error');
     if (wrong) sendToMeasure(`Check your ${g === 'tee' ? 'T-shirt' : vestOf(g, s) ? 'vest' : g} measurements: ${wrong.message}`);
-    else openSteps({ kind: 'for', garment: g, ...(also.length ? { also } : {}), ...(skip.length ? { skip } : {}), ...(vestOf(g, s) ? { word: 'vest' } : {}) });
+    else openSteps({ kind: 'for', garment: g, ...(also.length ? { also } : {}) });
   };
 
   // Why Style or Print didn't open while measuring, shown over the guided pages for a moment.
-  const [stepsNote, setStepsNote] = useState<string>();
+  // Kept with when it was asked for, so a second tap on Print shows it again for its full time: the same words twice
+  // left the first tap's timer running, and the second tap seemed to do nothing (pretend tester, Nov 20).
+  const [note, setNote] = useState<{ text: string; at: number }>();
+  const stepsNote = note?.text;
+  const setStepsNote = (text?: string) => setNote(text ? { text, at: Date.now() } : undefined);
   useEffect(() => {
-    if (!stepsNote) return;
-    const t = setTimeout(() => setStepsNote(undefined), 4000);
+    if (!note) return;
+    const t = setTimeout(() => setNote(undefined), 4000);
     return () => clearTimeout(t);
-  }, [stepsNote]);
+  }, [note]);
+  // The guided page showing, for the header's Style and Print.
+  const [stepsPage, setStepsPage] = useState<PageKind>();
 
   // Why someone landed on Measure when they asked for another screen; cleared once they move on.
   const [measureNote, setMeasureNote] = useState<string>();
@@ -675,6 +717,17 @@ export default function App() {
     if (step !== 'measure') setMeasureNote(undefined);
     if (step !== 'steps') setStepsNote(undefined);
   }, [step]);
+
+  // A top or dress with sleeves prints them only once the arms are measured. Measuring left with Finish later and
+  // carried on from Welcome back printed the Ice Peplum without its sleeves, under a title still naming them (pretend
+  // tester, Nov 17). So Print, however it is reached, asks for the arms first.
+  const armsToAsk = lookArmsMissing({ choices: current }, measured);
+  useEffect(() => {
+    if (step !== 'export' || !armsToAsk.length) return;
+    openSteps({ kind: 'for', garment, also: armsToAsk });
+    setStepsNote('Your sleeves are drafted from your arms: add them to print.');
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- asks once each time Print is opened without the arms
+  }, [step, armsToAsk.length]);
 
   /** Switch whose measurements are in use, going back to measuring when theirs aren't done for this garment. */
   const switchPerson = (id: string, to: View = step) => {
@@ -706,6 +759,14 @@ export default function App() {
     cloud.forget();
     setSaved(INITIAL);
     setAccount(NEW_ACCOUNT);
+    // And any copy of saved work an older version couldn't read (store.ts).
+    try {
+      Object.keys(localStorage)
+        .filter((k) => k.startsWith('pattern-maker:unread-'))
+        .forEach((k) => localStorage.removeItem(k));
+    } catch {
+      // Storage blocked: nothing was kept.
+    }
     setStep('welcome');
   };
 
@@ -714,6 +775,21 @@ export default function App() {
 
   /** A step in the header. Style and Print wait for the measurements, and say so. */
   const openStep = (to: Step) => {
+    // Still choosing what to make, on the collection opened from the list after measuring: nothing is picked, so the
+    // garment is only the first-visit skirt. Measure showed a skirt's list without the bust or weight just given, and
+    // Style and Print stayed shut on a skirt's waist to knee, with "Make something else" the only way out (pretend
+    // tester walks, four times to DO, Nov 20). Measure goes back to the measurements given, the others to the choice.
+    // The same on the guided pages' check and list ("Do these look right?", "What would you like to make?"): the
+    // measurements are in, so "once your measurements are in" read as wrong, and Print seemed to do nothing (DP walk, Nov 20).
+    const choosing = (step === 'collection' && lookFrom === 'steps') || (step === 'steps' && (stepsPage === 'check' || stepsPage === 'choose'));
+    if (choosing && baseDone(measured)) {
+      if (to === 'measure') return step === 'steps' ? undefined : openSteps({ kind: 'check' });
+      if (!canLeaveMeasure) {
+        if (!(step === 'steps' && stepsPage === 'choose')) openSteps({ kind: 'choose' });
+        setStepsNote('Choose what to make first: Style and Print open for it.');
+        return;
+      }
+    }
     if (STEP_OF[step] === to && step !== 'photo' && step !== 'fitting' && step !== 'scale') return;
     if (to !== 'measure' && !canLeaveMeasure) {
       // A line, not a box over the headline, and no garment named (none may be chosen yet) (look and feel review, 2026-10-24).
@@ -733,11 +809,11 @@ export default function App() {
   // The style the fabric is checked against: Print's fabric notes, and the heads up on Style's Fabric step.
   const fabricStyle: FabricStyle =
     isOuterGarment
-      ? { garment, fit: outerChoices.fit }
+      ? { garment, fit: outerChoices.fit, sleeve: outerChoices.sleeve }
       : garment === 'bodice'
       ? { garment, fit: saved.bodice.fit, neckline: saved.bodice.neckline, structure: validDetails(saved.bodice).structure }
       : garment === 'dress'
-        ? { garment, fit: dress.fit, neckline: dress.bodice.neckline, silhouette: dress.skirt.silhouette, length: dress.skirt.length, structure: validDetails(dress.bodice).structure, asymHem: dress.skirt.asymHem, pleats: dress.skirt.pleats, godets: dress.skirt.godets, flounce: dress.skirt.flounce }
+        ? { garment, fit: dress.fit, neckline: dress.bodice.neckline, silhouette: dress.skirt.silhouette, length: dress.skirt.length, lengthCm: dress.skirt.lengthCm, structure: validDetails(dress.bodice).structure, asymHem: dress.skirt.asymHem, pleats: dress.skirt.pleats, godets: dress.skirt.godets, flounce: dress.skirt.flounce }
         : garment === 'trousers'
           ? { garment, fit: trousersChoices.fit, leg: trousersChoices.leg }
           : garment === 'tee'
@@ -748,7 +824,51 @@ export default function App() {
             ? { garment: 'trousers', fit: rangeChoices.legFit, leg: rangeChoices.leg }
           : garment === 'lingerie'
             ? { garment, piece: lingerieChoices.piece, stretch: lingerieChoices.stretch }
-          : { garment: 'skirt', silhouette: saved.choices.silhouette, length: saved.choices.length, asymHem: saved.choices.asymHem, pleats: saved.choices.pleats, godets: saved.choices.godets, flounce: saved.choices.flounce };
+          : { garment: 'skirt', silhouette: saved.choices.silhouette, length: saved.choices.length, lengthCm: saved.choices.lengthCm, asymHem: saved.choices.asymHem, pleats: saved.choices.pleats, godets: saved.choices.godets, flounce: saved.choices.flounce };
+
+  // A fit tester's own look keeps its style: the "You're in" email says the style is set and only the length is theirs.
+  // A peplum tester changed the neckline and sleeves and took the peplum off, still believing she was sewing the Ice
+  // Peplum Top (testers, Nov 18). So a change that would make it another piece is asked about first; a length isn't.
+  // Every change of choices on Style comes through here, as the part of the saved work it changes. Kept as that part, so
+  // "Change it anyway" applies it to the work as it is then, not to a copy from when it was asked.
+  const [lookLeave, setLookLeave] = useState<Partial<Saved>>();
+  const testerOwnLook = COLLECTION.find((l) => l.id === TESTER_LOOK[garment]);
+  const onOwnLook = !!account.testerCode && !!lookName && testerOwnLook?.name === lookName;
+  const styleTo = (patch: Partial<Saved>) => {
+    if (onOwnLook && step === 'style' && lookNameOf(garment, GARMENT_DRAFTING[garment].choices({ ...saved, ...patch }), values) !== lookName) setLookLeave(patch);
+    else setSaved({ ...saved, ...patch });
+  };
+  // Asked about on Style only: leaving it (Back, another garment) lets the question go.
+  useEffect(() => setLookLeave(undefined), [step, garment]);
+  // Makes a collection look: from the collection, and from a tester's link on Style to the look they sew. `keep`: the
+  // garment's own work so far is kept in Saved patterns before the look takes its place. False when it went to take
+  // measurements first.
+  const makeLook = (look: HouseLook, keep = freshStart, ownLength = false) => {
+    const sized = lookValues(look, values).values;
+    // A dress never styled on its own is only drawn from the skirt and bodice: no length of its own to keep.
+    const keepOwn = ownLength && look.garment === garment && !(garment === 'dress' && !saved.dress);
+    const { garment: g, ...next } = keepOwn ? lookPatchKeeping(look, sized, current, GARMENT_DRAFTING[garment].choices({ ...saved, ...firstVisit(garment) })) : lookPatch(look, sized);
+    if (keep) {
+      const kept = keepThenFresh(g);
+      setFreshStart(false);
+      if (kept.account !== account) setAccount(kept.account);
+    }
+    // The look comes in the cloth it's named for, so the drawing and the Fabric step open in it.
+    const cloth = lookFabric(look.fabric);
+    const withCloth = keepFinish(storedFinish, { ...finish, ...look.finish, fabric: cloth, cloth: clothFor(cloth, finish.cloth) }, mode);
+    // A look with sleeves asks for the arms first, or its pattern would print without them (bug hunt, Nov 12),
+    // and a top below the waist the hip first, or Style can't draft it (testers, Nov 12).
+    // It opens on itself, ready to print; Change a detail goes on to the questions.
+    openLookNext();
+    const here = switchGarment(g, { ...next, archive: archiveCut(look.id)?.id, finish: withCloth, house: look.finish && { garment: g, finish: look.finish } } as Partial<Saved>, 'style', measured, [...lookHipMissing(look, measured), ...lookArmsMissing(look, measured)]);
+    // To the top once the look's page is up: scrolled at once, the collection's own top flashed up while
+    // the look was drafted (testers' laptop walk, Nov 17).
+    requestAnimationFrame(() => window.scrollTo(0, 0));
+    return here;
+  };
+  // A tester on the plain garment their look is made from, offered the look itself (testers, Nov 18).
+  // Whatever was styled here is kept in Saved patterns first, so a tap never loses work (code review, Nov 18).
+  const testerLook = account.testerCode && step === 'style' && !lookName ? testerOwnLook : undefined;
 
   return (
     <>
@@ -866,13 +986,31 @@ export default function App() {
             <MoveArrivalScreen
               backup={moving}
               here={account}
-              hereMeasured={Object.keys(measured).length}
+              opened={(b) => {
+                const s = { ...INITIAL, ...(b.skirt as Partial<Saved>) };
+                const g = s.garment ?? 'skirt';
+                // Called by its collection name where it still is one: "the skirt" read as some other skirt (pretend tester, Nov 18).
+                let name: string | undefined;
+                try {
+                  const them = withPeople(b.account);
+                  name = lookNameOf(g, GARMENT_DRAFTING[g].choices(s), them.people.find((p) => p.id === them.active)?.values ?? {});
+                } catch {
+                  name = undefined;
+                }
+                return `${name ? `The ${name}` : `The ${GARMENT_NAMES[g] ?? 'piece'}`} you had open, in ${s.unit === 'in' ? 'inches' : 'centimetres'}`;
+              }}
+              hereMeasured={Object.keys(measured).filter((k) => !person.example?.includes(k as MeasurementId)).length}
               onBring={(b) => {
                 // Brought in, so a reload shouldn't offer it again.
                 dropHash();
-                // Replaced from the other device, not changed here: the next join with the account keeps everything from both.
+                // Joined with what's here, never replacing it: a link sent from a device with nothing on it, brought onto a
+                // phone that held a tester's measurements, emptied the phone (tester, Nov 18). No measurement, person or
+                // pattern from either side is dropped. Not changed here: the next join with the account keeps everything.
                 cloud.forget();
-                applyBackup(b as Backup<Saved>);
+                // Sent on purpose from one's own other device, it counts as the newer side wherever both hold the same
+                // thing, and it's the same person's work: joined, unless both were measured and disagree, when this
+                // device's measurements are kept beside the link's under their own name rather than mixed in.
+                applyBackup(mergeBackups({ ...makeBackup(saved, account, pointEdits), savedAt: new Date(0).toISOString() }, b as Backup<Saved>, null, { sameOwner: true }));
               }}
               onCarryOn={() => setStep(canLeaveMeasure ? 'export' : 'measure')}
               onNotNow={() => {
@@ -891,18 +1029,34 @@ export default function App() {
                 setAccount({ ...account, onboarded: true, mode });
                 setStep('steps');
               }}
+              tester={!!account.testerCode && !account.onboarded}
               onBringLink={async (link) => {
                 // The link may come with words around it (a message pasted whole): take the #move= part wherever it is.
-                const found = link.match(/#move=[^\s"'<>]+/);
+                // Only the link's own characters (z. or p., then URL-safe base64), so a full stop or bracket after it in a
+    // pasted message isn't read as part of it (code review, Nov 15).
+    const found = link.match(/#move=[zp]\.[A-Za-z0-9_-]+/);
                 const b = found ? await readMoveLink<Saved>(found[0]) : null;
                 if (!b || b === 'broken') return false;
-                setMoving(b);
+                arrive(b);
                 setStep('move');
                 return true;
               }}
               resume={
                 account.onboarded && canLeaveMeasure
-                  ? { garment: vestOf(garment, saved) ? 'vest' : GARMENT_NAME[garment], onResume: () => setStep('style'), onSaved: () => setStep('account'), onNew: startNew }
+                  ? // Called by its look's name, and opened on the look, as when it was made: "Carry on with your skirt" led to
+                    // the first question, not the Black Pleated Skirt (pretend tester, Nov 18).
+                    {
+                      garment: lookName ?? (vestOf(garment, saved) ? 'vest' : GARMENT_NAME[garment]),
+                      onResume: () => {
+                        // A saved pattern (printing keeps one too) is finished, so it opens on Print, ready to download:
+                        // reopening the tester link after printing led back to the look (pretend tester DI walk, Nov 19).
+                        if (isSaved) return setStep('export');
+                        if (lookName) openLookNext();
+                        setStep('style');
+                      },
+                      onSaved: () => setStep('account'),
+                      onNew: startNew,
+                    }
                   : undefined
               }
             />
@@ -915,6 +1069,9 @@ export default function App() {
           {step === 'steps' && (
             <MeasureStepsScreen
               key={stepsStart.at}
+              opening={stepsStart.at !== stepsShown.current}
+              unused={(g) => skipFor(g, saved)}
+              named={(g) => (vestOf(g, saved) ? 'vest' : GARMENT_NAME[g])}
               testerCode={account.testerCode}
               start={stepsStart.start}
               onSomeoneElse={(name, f) => {
@@ -951,6 +1108,7 @@ export default function App() {
               }}
               onMade={() => openLegal('made')}
               onNews={() => openLegal('news')}
+              onPage={setStepsPage}
               onLater={() => setStep('welcome')}
               onSkip={tryWithExample}
             />
@@ -1056,11 +1214,16 @@ export default function App() {
               checks={checks}
               canContinue={canLeaveMeasure}
               notice={measureNote}
+              name={vestOf(garment, saved) ? 'vest' : undefined}
+              unused={skipFor(garment, saved)}
               onMeasure={(ids) => openSteps({ kind: 'redo', garment, ids })}
               onChangeForm={() => openSteps({ kind: 'form' })}
               onNext={() => {
                 countStep('measured', garment);
                 setAccount(updatePerson(account, person.id, recordMeasurements(person, new Date().toISOString().slice(0, 10))));
+                // Back to a tester's own look's page, ready to print, not its questions from the start: after Edit
+                // measurements, a tester read "Style your top" as starting over (testers, Nov 18).
+                if (onOwnLook) openLookNext();
                 setStep('style');
               }}
             />
@@ -1070,30 +1233,36 @@ export default function App() {
               values={values}
               onBack={lookFrom === 'steps' ? back : () => setStep('style')}
               backLabel={lookFrom === 'steps' ? 'Back' : undefined}
-              onMake={(look) => {
-                const { garment: g, ...next } = lookPatch(look, lookValues(look, values).values);
-                // Started something new: the garment's own work so far is kept before the look takes its place.
-                if (freshStart) {
-                  const kept = keepThenFresh(g);
-                  setFreshStart(false);
-                  if (kept.account !== account) setAccount(kept.account);
-                }
-                // The look comes in the cloth it's named for, so the drawing and the Fabric step open in it.
-                const cloth = lookFabric(look.fabric);
-                const withCloth = keepFinish(storedFinish, { ...finish, ...look.finish, fabric: cloth, cloth: clothFor(cloth, finish.cloth) }, mode);
-                // A look with sleeves asks for the arms first, or its pattern would print without them (bug hunt, Nov 12),
-                // and a top below the waist the hip first, or Style can't draft it (testers, Nov 12).
-                // It opens on itself, ready to print; Change a detail goes on to the questions.
-                openLookNext();
-                switchGarment(g, { ...next, archive: archiveCut(look.id)?.id, finish: withCloth, house: look.finish && { garment: g, finish: look.finish } } as Partial<Saved>, 'style', measured, [...lookHipMissing(look, measured), ...lookArmsMissing(look, measured)]);
-                window.scrollTo(0, 0);
-              }}
+              onMake={(look) => makeLook(look)}
             />
           )}
           {/* On Style it sits under the garment's name (Cat's K3, 2026-10-28), so StyleLayout draws it. */}
           {step === 'export' && exampleTag}
+          {lookLeave && lookName && step === 'style' && (
+            <div className="form-leave" role="dialog" aria-modal="true" aria-labelledby="look-leave-title" onKeyDown={(e) => e.key === 'Escape' && setLookLeave(undefined)}>
+              <div className="form-leave-box">
+                <h2 id="look-leave-title">Change the {lookName}?</h2>
+                <p>For fit testing, the style is set and only the length is yours. This change makes it a different {GARMENT_NAME[garment]}, so it would no longer be the {lookName} you're testing.</p>
+                <button type="button" className="primary done" onClick={() => setLookLeave(undefined)} autoFocus>
+                  Keep the {lookName}
+                </button>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => {
+                    setSaved({ ...saved, ...lookLeave });
+                    setLookLeave(undefined);
+                  }}
+                >
+                  Change it anyway
+                </button>
+              </div>
+            </div>
+          )}
+          <UnitNow.Provider value={saved.unit}>
           <ExampleTag.Provider value={step === 'style' ? exampleTag : undefined}>
           <LookName.Provider value={step === 'style' ? lookName : undefined}>
+          <TesterLook.Provider value={testerLook && { name: testerLook.name, open: () => makeLook(testerLook, true, true), lengthStays: lookDropsLength(testerLook, current, GARMENT_DRAFTING[garment].choices({ ...saved, ...firstVisit(garment) })) }}>
           <CollectionLink.Provider value={step === 'style' ? () => { setLookFrom('style'); setStep('collection'); window.scrollTo(0, 0); } : undefined}>
           {/* Switched in place from the title's drop-down: no new step in history, so ← still leaves the style screen. */}
           <GarmentPick.Provider value={step === 'style' ? { garment, onNew: startNew, onSaved: () => setStep('account') } : undefined}>
@@ -1103,7 +1272,7 @@ export default function App() {
               current={current}
               body={values as PhotoBody}
               headers={testerHeaders(account.testerCode)}
-              onChoices={(c) => setSaved({ ...saved, ...choicesPatch(c)[1] })}
+              onChoices={(c) => styleTo(choicesPatch(c)[1])}
             />
           )}
           {step === 'style' && garment === 'skirt' && (
@@ -1112,7 +1281,7 @@ export default function App() {
               onMode={setMode}
               easeMap={ease}
               choices={saved.choices}
-              onChoices={(choices) => setSaved({ ...saved, choices })}
+              onChoices={(choices) => styleTo({ choices })}
               fabric={fabric}
               onChooseGarment={chooseGarment}
               values={values}
@@ -1121,7 +1290,7 @@ export default function App() {
               onEditMeasurements={() => setStep('measure')}
               onNext={() => setStep('export')}
               saveState={saveState}
-              onSave={() => setAccount(savePattern(account, current, describePattern(current), person.id))}
+              onSave={() => setAccount(savePattern(account, current, lookName ?? describePattern(current), person.id))}
               onAccount={() => setStep('account')}
               finish={finish}
               onFinish={setFinish}
@@ -1139,7 +1308,7 @@ export default function App() {
               onFinish={setFinish}
               easeMap={ease}
               choices={saved.bodice}
-              onChoices={(bodice) => setSaved({ ...saved, bodice })}
+              onChoices={(bodice) => styleTo({ bodice })}
               fabric={fabric}
               onChooseGarment={chooseGarment}
               values={values}
@@ -1147,9 +1316,10 @@ export default function App() {
               sleeve={result.sleeve}
               error={styleError}
               onEditMeasurements={() => setStep('measure')}
+              onAddHip={() => openSteps({ kind: 'for', garment, also: ['full_hip', 'waist_to_hip'] })}
               onNext={() => setStep('export')}
               saveState={saveState}
-              onSave={() => setAccount(savePattern(account, current, describePattern(current), person.id))}
+              onSave={() => setAccount(savePattern(account, current, lookName ?? describePattern(current), person.id))}
               onAccount={() => setStep('account')}
             />
           )}
@@ -1163,7 +1333,7 @@ export default function App() {
               onFinish={setFinish}
               easeMap={ease}
               choices={dress}
-              onChoices={(d) => setSaved({ ...saved, dress: d })}
+              onChoices={(d) => styleTo({ dress: d })}
               fabric={fabric}
               onChooseGarment={chooseGarment}
               values={values}
@@ -1173,7 +1343,7 @@ export default function App() {
               onEditMeasurements={() => setStep('measure')}
               onNext={() => setStep('export')}
               saveState={saveState}
-              onSave={() => setAccount(savePattern(account, current, describePattern(current), person.id))}
+              onSave={() => setAccount(savePattern(account, current, lookName ?? describePattern(current), person.id))}
               onAccount={() => setStep('account')}
             />
           )}
@@ -1187,7 +1357,7 @@ export default function App() {
               onFinish={setFinish}
               easeMap={ease}
               choices={trousersChoices}
-              onChoices={(t) => setSaved({ ...saved, trousers: t })}
+              onChoices={(t) => styleTo({ trousers: t })}
               fabric={fabric}
               onChooseGarment={chooseGarment}
               values={values}
@@ -1196,7 +1366,7 @@ export default function App() {
               onEditMeasurements={() => setStep('measure')}
               onNext={() => setStep('export')}
               saveState={saveState}
-              onSave={() => setAccount(savePattern(account, current, describePattern(current), person.id))}
+              onSave={() => setAccount(savePattern(account, current, lookName ?? describePattern(current), person.id))}
               onAccount={() => setStep('account')}
             />
           )}
@@ -1207,7 +1377,7 @@ export default function App() {
               mode={mode}
               onMode={setMode}
               choices={teeChoices}
-              onChoices={(t) => setSaved({ ...saved, tee: t })}
+              onChoices={(t) => styleTo({ tee: t })}
               finish={finish}
               onFinish={setFinish}
               fabric={fabric}
@@ -1219,7 +1389,7 @@ export default function App() {
               onEditMeasurements={() => setStep('measure')}
               onNext={() => setStep('export')}
               saveState={saveState}
-              onSave={() => setAccount(savePattern(account, current, describePattern(current), person.id))}
+              onSave={() => setAccount(savePattern(account, current, lookName ?? describePattern(current), person.id))}
               onAccount={() => setStep('account')}
             />
           )}
@@ -1231,7 +1401,7 @@ export default function App() {
               mode={mode}
               onMode={setMode}
               choices={rangeChoices}
-              onChoices={(c) => setSaved({ ...saved, [rangeSlot(garment)]: c })}
+              onChoices={(c) => styleTo({ [rangeSlot(garment)]: c })}
               finish={finish}
               onFinish={setFinish}
               fabric={fabric}
@@ -1243,7 +1413,7 @@ export default function App() {
               onEditMeasurements={() => setStep('measure')}
               onNext={() => setStep('export')}
               saveState={saveState}
-              onSave={() => setAccount(savePattern(account, current, describePattern(current), person.id))}
+              onSave={() => setAccount(savePattern(account, current, lookName ?? describePattern(current), person.id))}
               onAccount={() => setStep('account')}
             />
           )}
@@ -1254,7 +1424,7 @@ export default function App() {
               mode={mode}
               onMode={setMode}
               choices={lingerieChoices}
-              onChoices={(l) => setSaved({ ...saved, lingerie: l })}
+              onChoices={(l) => styleTo({ lingerie: l })}
               fabric={fabric}
               onFabric={(f) => setFinish({ ...finish, fabric: f, cloth: clothFor(f, finish.cloth) })}
               onChooseGarment={chooseGarment}
@@ -1264,7 +1434,7 @@ export default function App() {
               onEditMeasurements={() => setStep('measure')}
               onNext={() => setStep('export')}
               saveState={saveState}
-              onSave={() => setAccount(savePattern(account, current, describePattern(current), person.id))}
+              onSave={() => setAccount(savePattern(account, current, lookName ?? describePattern(current), person.id))}
               onAccount={() => setStep('account')}
             />
           )}
@@ -1279,7 +1449,7 @@ export default function App() {
               onFinish={(f) => setSaved({ ...saved, finish: f })}
               easeMap={ease}
               choices={outerChoices}
-              onChoices={(c) => setSaved({ ...saved, [garment]: c })}
+              onChoices={(c) => styleTo({ [garment]: c })}
               fabric={fabric}
               onChooseGarment={chooseGarment}
               values={values}
@@ -1288,14 +1458,16 @@ export default function App() {
               onEditMeasurements={() => setStep('measure')}
               onNext={() => setStep('export')}
               saveState={saveState}
-              onSave={() => setAccount(savePattern(account, current, describePattern(current), person.id))}
+              onSave={() => setAccount(savePattern(account, current, lookName ?? describePattern(current), person.id))}
               onAccount={() => setStep('account')}
             />
           )}
           </GarmentPick.Provider>
           </CollectionLink.Provider>
+          </TesterLook.Provider>
           </LookName.Provider>
           </ExampleTag.Provider>
+          </UnitNow.Provider>
           {step === 'export' && !hasGarment(account, garment) && <UnlockGarment garment={garment} onPlans={openPlans} onBack={() => setStep('style')} />}
           {step === 'export' && hasGarment(account, garment) && (
             <ExportScreen
@@ -1311,9 +1483,11 @@ export default function App() {
                 openTabNext(FABRIC);
                 setStep('style');
               }}
-              onKeep={saveState === 'can' ? () => setAccount(savePattern(account, current, describePattern(current), person.id)) : undefined}
+              onKeep={saveState === 'can' ? () => setAccount(savePattern(account, current, lookName ?? describePattern(current), person.id)) : undefined}
               onFitNotes={saveState === 'full' && !savedNow ? undefined : openFitNotes}
+              full={saveState === 'full'}
               tester={!!account.testerCode}
+              emailTo={{ signedIn: cloud.user?.email, testerCode: account.testerCode }}
               fitNote={savedNow?.fit ? fitSummary(savedNow.fit, savedNow.choices) : undefined}
               garment={garment}
               profile={profile}

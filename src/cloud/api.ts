@@ -14,9 +14,9 @@ interface CloudApi {
   /** Who is signed in on this device, if anyone (also finishes a sign-in arriving from an email link). */
   user(): Promise<CloudUser | null>;
   onChange(fn: (u: CloudUser | null) => void): () => void;
-  /** Emails a sign-in link with a 6-digit code in it. */
+  /** Emails a sign-in link with a code in it. */
   sendLink(email: string, returnTo: string): Promise<void>;
-  /** The 6-digit code from that email, for when the link opens in another browser (or outside the home-screen app). */
+  /** The code from that email, for when the link opens in another browser (or outside the home-screen app). */
   verifyCode(email: string, code: string): Promise<CloudUser>;
   /** Whether "Continue with Google" is switched on in the account service (it's off until Cat sets up Google). */
   googleOn(): Promise<boolean>;
@@ -34,6 +34,8 @@ interface CloudApi {
   deleteAccount(): Promise<void>;
   /** The signed-in person's Founding Atelier place, or null when they aren't on the list. Throws when it can't be checked. */
   founding(): Promise<FoundingPlace | null>;
+  /** The signed-in person's sign-in token, for a server function that sends to their own email; null when signed out. */
+  token(): Promise<string | null>;
 }
 
 export interface Kept {
@@ -133,6 +135,10 @@ async function supabaseCloud(): Promise<CloudApi> {
       if (!res.ok) throw new Error(`Founding check failed (${res.status})`);
       return ((await res.json()) as { place?: FoundingPlace | null }).place ?? null;
     },
+    async token() {
+      const { data } = await sb.auth.getSession();
+      return data.session?.access_token ?? null;
+    },
   };
 }
 
@@ -224,6 +230,9 @@ function fakeCloud(): CloudApi {
       if (!who) return null;
       const places = JSON.parse(localStorage.getItem('pattern-maker:founding-fake') || '{}') as Record<string, FoundingPlace>;
       return places[who.email] ?? null;
+    },
+    async token() {
+      return current() ? 'fake-token' : null;
     },
   };
 }

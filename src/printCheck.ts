@@ -7,7 +7,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { OVERLAP, PAGE_MARGIN, Paper, Sheet, layout, pageName, pageSize, tileGrid, usedTiles } from './engine/export';
+import { OVERLAP, PAGE_MARGIN, Paper, TEST_SQUARE_X, Sheet, joinMarks, layout, pageName, pageSize, tileGrid, usedTiles } from './engine/export';
 import { toTiledPdf } from './engine/pdf';
 import { PatternDesign, printedPattern } from './patternSweep';
 import { DEFAULT_COAT_CHOICES, DEFAULT_TEE_CHOICES, DEFAULT_TROUSERS_CHOICES } from './garments';
@@ -116,21 +116,22 @@ function runs(g: Gray, along: 'row' | 'col', at: number, from: number, to: numbe
   return out;
 }
 
-/** The test square's sides on page A1, measured across its middle both ways, in cm. Sheet margin 3 cm. */
-function testSquare(page: Gray, dpi: number): { across?: number; down?: number } {
+/** The test square's sides, measured across its middle both ways, in cm. `at` is the square's left
+ *  edge on its page, in cm from the paper's edge; its top is 3 cm (the sheet margin) below the printable area. */
+function testSquare(page: Gray, dpi: number, at: number): { across?: number; down?: number } {
   const px = dpi / 2.54;
-  const left = (PAGE_MARGIN + 3) * px;
+  const left = at * px;
+  const top = (PAGE_MARGIN + 3) * px;
   // Across a row 2 cm down inside the square (clear of its words), and down a column 2 cm in.
-  const row = Math.round(left + 2 * px);
-  const xs = runs(page, 'row', row, Math.round(left - 0.5 * px), Math.round(left + 10.5 * px));
-  const ys = runs(page, 'col', row, Math.round(left - 0.5 * px), Math.round(left + 10.5 * px));
+  const xs = runs(page, 'row', Math.round(top + 2 * px), Math.round(left - 0.5 * px), Math.round(left + 10.5 * px));
+  const ys = runs(page, 'col', Math.round(left + 2 * px), Math.round(top - 0.5 * px), Math.round(top + 10.5 * px));
   const side = (v: number[]) => (v.length >= 2 ? (v[v.length - 1] - v[0]) / px : undefined);
   return { across: side(xs), down: side(ys) };
 }
 
 /** Where two neighbouring pages' shared strip differs: dark pixels on one with nothing dark within 2 px on the other.
  *  The joining diamonds and the trim lines are page furniture, not the pattern, so their bands are left out. */
-function stripMismatch(a: Gray, b: Gray, dpi: number, join: 'right' | 'below', pw: number, ph: number): { ink: number; off: number } {
+function stripMismatch(a: Gray, b: Gray, dpi: number, join: 'right' | 'below', pw: number, ph: number, row: number): { ink: number; off: number } {
   const px = dpi / 2.54;
   const tw = pw - 2 * PAGE_MARGIN;
   const th = ph - 2 * PAGE_MARGIN;
@@ -141,7 +142,7 @@ function stripMismatch(a: Gray, b: Gray, dpi: number, join: 'right' | 'below', p
   // The page's footer ("PAGE A2 ...") is printed over the last 3 mm of the tile, at the bottom of a right join's strip
   // and across the whole of a lower join's strip on the page above.
   const FOOT = 0.35;
-  const furniture = (t: number) => [0.3, 0.7].some((f) => Math.abs(t / px - (join === 'right' ? th * f : tw * f)) < 1.3) || (join === 'right' && t / px > th - FOOT);
+  const furniture = (t: number) => joinMarks(join, row).some((f) => Math.abs(t / px - (join === 'right' ? th * f : tw * f)) < 1.3) || (join === 'right' && t / px > th - FOOT);
   let ink = 0;
   let off = 0;
   // A dark pixel is matched by any ink within 2 px on the other page, not only a dark pixel: a thin grey dashed line
@@ -176,7 +177,11 @@ export async function printProblems(d: PatternDesign, paper: Paper, dpi = 150): 
   out.push(...piecesOffThePages(sheet, paper, pieces));
   const used = usedTiles(sheet, paper);
   const order = used.flatMap((row, r) => row.flatMap((u, c) => (u ? [[r, c] as const] : [])));
-  if (!used[0]?.[0]) out.push('page A1, with the test square, is not printed');
+  if (!used[0]?.[0]) out.push('page A1, with the pattern code, is not printed');
+  // The square's page: A2 on home paper (the tester email says so), A1 on an A0 sheet wide enough to hold it.
+  const step = pageSize(sheet, paper)[0] - 2 * PAGE_MARGIN - OVERLAP;
+  const sqCol = Math.max(0, Math.ceil((TEST_SQUARE_X + 10 - (step + OVERLAP)) / step));
+  if (!used[0]?.[sqCol]) out.push(`page ${pageName(0, sqCol)}, with the test square, is not printed`);
   const pages = renderPages(pdf, dpi, 1, order.length);
   if (pages.length !== order.length) out.push(`${pages.length} pattern pages rendered, ${order.length} expected`);
   const [pw, ph] = pageSize(sheet, paper);
@@ -186,8 +191,10 @@ export async function printProblems(d: PatternDesign, paper: Paper, dpi = 150): 
       out.push(`a page prints ${(g.w / px).toFixed(1)} x ${(g.h / px).toFixed(1)} cm, the paper is ${pw} x ${ph}`);
       break;
     }
-  if (pages[0]) {
-    const sq = testSquare(pages[0], dpi);
+  const at = order.findIndex(([r, c]) => r === 0 && c === sqCol);
+  if (at >= 0 && pages[at]) {
+    // The square sits TEST_SQUARE_X along the sheet and 3 cm down (the sheet margin); its page starts sqCol steps along.
+    const sq = testSquare(pages[at], dpi, PAGE_MARGIN + TEST_SQUARE_X - sqCol * step);
     for (const [way, v] of [['across', sq.across], ['down', sq.down]] as const)
       if (v === undefined || Math.abs(v - 10) > 0.05) out.push(`the test square measures ${v === undefined ? 'nothing' : `${v.toFixed(2)} cm`} ${way}, not 10 cm`);
   }
@@ -196,7 +203,7 @@ export async function printProblems(d: PatternDesign, paper: Paper, dpi = 150): 
     for (const [dr, dc, join] of [[0, 1, 'right'], [1, 0, 'below']] as const) {
       const j = index.get(`${r + dr},${c + dc}`);
       if (j === undefined) continue;
-      const m = stripMismatch(pages[index.get(`${r},${c}`)!], pages[j], dpi, join, pw, ph);
+      const m = stripMismatch(pages[index.get(`${r},${c}`)!], pages[j], dpi, join, pw, ph, r);
       // A few pixels of a line's anti-aliasing can fall either side; a line out of place is hundreds.
       if (m.off > Math.max(30, m.ink * 0.03)) out.push(`pages ${pageName(r, c)} and ${pageName(r + dr, c + dc)} differ where they overlap: ${m.off} of ${m.ink} inked pixels on one page have nothing under them on the other (a line or words missing or moved)`);
     }

@@ -603,6 +603,9 @@ function ruffleCollar(c: CollarIn): Piece {
     outline: pathOf({ pts, tags }),
     lines: [new Path(p(0.5, -RUFFLE.width)).line(p(L - 0.5, -RUFFLE.width))],
     grain: [p(L * 0.6 - 4, -h * 0.3), p(L * 0.6 + 4, -h * 0.3)],
+    // The fold end gets its PLACE ON FOLD bracket: without one the only FOLD on the piece was the lengthwise fold line,
+    // and a strip cut with its end off the fold comes out half as long (tester sweep, Nov 17).
+    fold: [p(0, -h + 0.6), p(0, -0.6)],
     notches: [notchAt([p(0, 0), p(L, 0)], shoulder), notchAt([p(0, 0), p(L, 0)], neck * RUFFLE.ratio)].map(([q, d]) => [q, d] as [P, P]),
     labels: [
       { at: p(L * 0.3, -h * 0.72), text: 'NECK RUFFLE', size: 0.6 },
@@ -614,7 +617,9 @@ function ruffleCollar(c: CollarIn): Piece {
     fabric: 'Self',
     seamAllowance: c.sa,
     allowances: { neck: 1, ruffle: 1, end: c.sa, fold: 0 },
-    meta: { collarTo: buttons ? 'front edges' : 'centre back', ruffle: RUFFLE.ratio },
+    // Its fold end is the middle of the ruffle, so it is named for where it sits: the centre front, or the centre back on
+    // a button front. Named by the piece alone it read CENTRE BACK on the Ice Peplum, whose booklet puts it at the front.
+    meta: { collarTo: buttons ? 'front edges' : 'centre back', ruffle: RUFFLE.ratio, foldLabel: buttons ? 'CENTRE BACK' : 'CENTRE FRONT' },
   };
   piece.draft = draftNotes([
     ['1', `Rule the strip ${RUFFLE.ratio} times half the neckline as sewn, ${neck.toFixed(1)} cm, so it gathers into it: ${L.toFixed(1)} cm.`],

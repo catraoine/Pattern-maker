@@ -64,6 +64,8 @@ export interface Panel {
   hidden?: boolean;
   /** A raglan sleeve's shoulder piece: the points of it that lie on the body's shoulder, not round the arm. */
   yoke?: boolean[];
+  /** Folded in half along its length and drawn as both its layers (a cuff band, a turned-back cuff). */
+  folded?: boolean;
 }
 
 export interface Draped {
@@ -1813,6 +1815,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
         },
         thick,
       );
+      bandP.folded = true;
       cuffPanel = bandP;
     }
     // A sleeve ruffle: one strip gathered onto the sleeve's hem, laid round it after the sleeve has hung.
@@ -1829,6 +1832,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
       // (Meshed with a row of points along its fold, so the fold is a clean edge: across the mesh's triangles it read
       // as a ragged one.)
       cuffTurnP = B.add(extra.cuffTurn, 'sleeve', (q) => [0, 1, 2].map((k) => a[k] + dn[k] * (hemAlong + q.x + 80) + 8 * (Math.cos((TAU * q.y) / L) * ov[k] + Math.sin((TAU * q.y) / L) * fv[k])) as V3, thick, [[pt(Wc / 2, -1), pt(Wc / 2, L + 1)]], 1);
+      cuffTurnP.folded = true;
     }
   }
 

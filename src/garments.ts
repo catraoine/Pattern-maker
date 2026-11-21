@@ -2,6 +2,7 @@
 import { CUFFS, Cuff, cuffAllowed } from './engine/cuffs';
 import { BACK_NECKS, BackNeck, backBlocked } from './engine/backNeck';
 import type { Choices } from './savedWork';
+import type { MeasurementId } from './measurements';
 import type { BodiceDarts, BodiceFit, BodiceLength, DrawnNeck, Neckline, UnevenNeck } from './engine/bodice';
 import { SHAPES_FOR_LENGTH, SleeveLength, SleeveShape } from './engine/sleeve';
 import { SLEEVE_CUTS, SleeveCut, sleeveCutBlocked, sleeveCutOf } from './engine/sleeveCut';
@@ -222,7 +223,9 @@ export function validTrousers(c: TrousersChoices): TrousersChoices {
 /** A plain name, such as "Ankle-length wide-leg trousers with a side zip and in-seam pockets". */
 export function describeTrousers(c: TrousersChoices) {
   const shorts = c.leg !== 'culotte' && c.length === 'shorts';
-  const drawn = c.leg !== 'culotte' && c.lengthCm !== undefined && !shorts ? `${Math.round(c.lengthCm)} cm ` : undefined;
+  // Lengths to the millimetre, not the whole cm: a length typed in inches came back rounded in the name, 40 in as 40⅛
+  // (pretend tester, Nov 18). The same in every garment's name.
+  const drawn = c.leg !== 'culotte' && c.lengthCm !== undefined && !shorts ? `${Math.round(c.lengthCm * 10) / 10} cm ` : undefined;
   const rise = { low: 'low-rise ', mid: '', high: 'high-rise ' }[riseOf(c)];
   const length = (drawn ?? (c.leg === 'culotte' || shorts ? '' : { full: '', ankle: 'Ankle-length ', cropped: 'Cropped ', capri: 'Capri ', knee: 'Knee-length ', shorts: '' }[c.length])) + rise;
   const pockets = c.pockets === 'slant' ? 'slant pockets' : c.pockets === 'inseam' ? 'in-seam pockets' : '';
@@ -273,7 +276,7 @@ const TEE_LENGTH_WORDS: Record<TeeLength, string> = { cropped: 'Cropped ', hip: 
 export function describeTee(c: TeeChoices) {
   const boxy = c.shoulder === 'dropped' && c.sleeve !== 'none';
   const fit = boxy ? 'boxy ' : c.fit === 'regular' ? '' : `${c.fit} `;
-  const lead = `${c.lengthCm !== undefined ? `${Math.round(c.lengthCm)} cm ` : TEE_LENGTH_WORDS[c.length]}${fit}${TEE_NECK_WORDS[c.neckline]}`;
+  const lead = `${c.lengthCm !== undefined ? `${Math.round(c.lengthCm * 10) / 10} cm ` : TEE_LENGTH_WORDS[c.length]}${fit}${TEE_NECK_WORDS[c.neckline]}`;
   const words = c.sleeve === 'none' ? `${lead} tank` : `${lead} T-shirt with ${boxy ? 'dropped shoulders and ' : ''}${TEE_SLEEVE_WORDS[c.sleeve]}`;
   return words[0].toUpperCase() + words.slice(1);
 }
@@ -391,7 +394,8 @@ export const DEFAULT_COAT_CHOICES: OuterChoices = { garment: 'coat', fit: 'regul
 type OuterGroupId = 'fit' | 'length' | 'shaping' | 'front' | 'collar' | 'lapel' | 'sleeve' | 'pads' | 'pockets' | 'chest' | 'vent' | 'trim' | 'flare';
 
 /** The style groups for a jacket or a coat: a coat has its own lengths and a flare below the hip. */
-export function outerGroups(kind: OuterKind): { id: OuterGroupId; label: string; options: [string, string][] }[] {
+export function outerGroups(kind: OuterKind, c?: Pick<OuterChoices, 'sleeve'>): { id: OuterGroupId; label: string; options: [string, string][] }[] {
+  const sleeveless = c?.sleeve === 'none';
   return [
     { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed'], ['oversized', 'Oversized']] },
     {
@@ -412,7 +416,8 @@ export function outerGroups(kind: OuterKind): { id: OuterGroupId; label: string;
     { id: 'pockets', label: 'Pockets', options: [['patch', 'Patch'], ['welt', 'Welt'], ['flap', 'Flap'], ['none', 'None']] },
     { id: 'chest', label: 'Chest pocket', options: [['none', 'None'], ['welt', 'Welt']] },
     { id: 'vent', label: 'Back vent', options: [['centre', 'Centre vent'], ['none', 'None']] },
-    { id: 'trim', label: 'Hem and cuffs', options: [['none', 'Plain hems'], ['rib', 'Rib bands']] },
+    // A vest has no cuffs: its rib band goes round the hem only (pretend-tester walk, Nov 18).
+    sleeveless ? { id: 'trim', label: 'Hem', options: [['none', 'Plain hem'], ['rib', 'Rib band']] } : { id: 'trim', label: 'Hem and cuffs', options: [['none', 'Plain hems'], ['rib', 'Rib bands']] },
     // Flared (In testing): out from the waist like a basque, on a jacket or a coat.
     kind === 'coat'
       ? { id: 'flare' as const, label: 'Below the hip', options: [['straight', 'Straight'], ['a_line', 'A-line'], ['flared', 'Flared']] as [string, string][] }
@@ -464,6 +469,10 @@ export function oversizeOuter(c: OuterChoices): OuterChoices {
 /** What a jacket or coat is called: a jacket cut without sleeves is a vest (the Black Vest was named a jacket on every
  *  screen and piece, fit-test walk, Nov 15). */
 export const outerWord = (c: Pick<OuterChoices, 'garment' | 'sleeve'>): 'jacket' | 'coat' | 'vest' => (c.garment === 'jacket' && c.sleeve === 'none' ? 'vest' : c.garment);
+
+/** The measurements a design doesn't draft from, so they're neither asked nor needed: a vest's arms, which a jacket
+ *  uses only for its sleeves. One place for the rule, used by the measuring pages, the checks and the collection. */
+export const unusedFor = (c: PatternChoices | undefined): MeasurementId[] => (c && isOuter(c) && outerWord(c) === 'vest' ? ['arm_length', 'upper_arm'] : []);
 
 /** A plain name, such as "Hip-length single-breasted jacket with notched lapels". */
 export function describeOuter(c: OuterChoices) {
@@ -836,5 +845,5 @@ export function describeBodice(c: BodiceChoices) {
   const shapedHem = isShaped(c.hem) && (c.length !== 'waist' || dropped) ? ', with a shaped hem' : '';
   // Oversized is a cut of its own, so it is named; the other fits are read off the drawing.
   const big = v.fit === 'oversized' ? 'oversized ' : '';
-  return `${lengthWords}${big}${neck}${princess}${seam} top${sleeve}${dropped ? `, ${Math.round(c.dropCm!)} cm below the waist` : ''}${shapedHem}`;
+  return `${lengthWords}${big}${neck}${princess}${seam} top${sleeve}${dropped ? `, ${Math.round(c.dropCm! * 10) / 10} cm below the waist` : ''}${shapedHem}`;
 }

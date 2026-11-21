@@ -8,11 +8,12 @@ import type { Choices } from '../savedWork';
 import { skirtFlat, wornLines, wornShapes } from '../engine/flat';
 import type { P } from '../engine/geometry';
 import { HEM_SAMPLES, HemShape, flatHem, isShaped, offsetAt } from '../engine/hem';
+import { LengthTap, useSaid } from './LengthEntry';
 import { LENGTHS, Length, Silhouette, SkirtDraft, SkirtMeasurements, flareRange, isCircle, draftedMeasures, lengthRange, presetFlare } from '../engine/skirt';
 import { GROUPS } from '../skirtChoices';
 import { skirtForm } from './DrawOnForm';
 import { FormLayers, SQUEEZE, formFrame, hemCorner, wornCloth, wornFolds, wornMapper } from './FormSketch';
-import { CATCH, CATCH_SHARE, MARGIN } from './HemMarks';
+import { CATCH, CATCH_SHARE, MARGIN, fingerTravel } from './HemMarks';
 
 export type Side = 'front' | 'back';
 
@@ -75,12 +76,13 @@ const LENGTH_IDS = Object.keys(LENGTHS) as Length[];
 const lengthName = (id: Length) => GROUPS[2].options.find((o) => o[0] === id)![1];
 const silName = (id: Silhouette) => GROUPS[1].options.find((o) => o[0] === id)![1];
 
-/** A dragged length: snaps to a named length within 1.5 cm, otherwise kept to the half centimetre. */
-export function dragLength(m: SkirtMeasurements, c: Choices, cm: number, catchCm = 1.5): Choices {
+/** A dragged (or typed) length. A drag is kept to the half cm; a typed length passes `exact`, so it is kept as typed:
+ *  rounded to the half cm, a typed 21 3/4 in came back as 21⅞ on the skirt alone (pretend tester, Nov 18). */
+export function dragLength(m: SkirtMeasurements, c: Choices, cm: number, catchCm = 1.5, exact = false): Choices {
   const v = lengthRange(m).clamp(cm);
   const named = LENGTH_IDS.map((id) => ({ id, at: LENGTHS[id](m) })).sort((a, b) => Math.abs(a.at - v) - Math.abs(b.at - v))[0];
   const { look: _look, lengthCm: _l, kneeShare: _k, floorClear: _f, ...rest } = c;
-  return Math.abs(named.at - v) < catchCm ? { ...rest, length: named.id } : { ...rest, length: named.id, lengthCm: Math.round(v * 2) / 2 };
+  return Math.abs(named.at - v) < catchCm ? { ...rest, length: named.id } : { ...rest, length: named.id, lengthCm: exact ? Math.round(v * 100) / 100 : Math.round(v * 2) / 2 };
 }
 
 /** A dragged flare: moves between pencil, straight and A-line, snapping to each one's own shape. */
@@ -128,7 +130,7 @@ interface Props {
   onDone: (before: Choices, after: Choices) => void;
 }
 
-type Drag = { kind: 'hem' | 'side'; start: P; before: Choices; base: Choices; length: number; flare: number };
+type Drag = { kind: 'hem' | 'side'; start: P; before: Choices; base: Choices; length: number; flare: number; touch: boolean; loose?: number };
 
 /** A shape matched from a photo is pinned to proportions; dragging lets go of it, keeping the length
  * and flare it had so the skirt doesn't jump. */
@@ -139,6 +141,7 @@ function unpin(c: Choices, draft: SkirtDraft): Choices {
 }
 
 export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, onDone }: Props) {
+  const said = useSaid();
   const svg = useRef<SVGSVGElement>(null);
   const [drag, setDrag] = useState<Drag>();
   const [stroke, setStroke] = useState<P[]>();
@@ -204,15 +207,22 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
     if (drawing) return;
     e.stopPropagation();
     (e.target as Element).setPointerCapture(e.pointerId);
-    setDrag({ kind, start: toSvg(e), before: choices, base: unpin(choices, draft), length: draft.lengthCm, flare: draft.flareCm ?? 0 });
+    // A length set close to a named one, not on it, doesn't catch on it until the drag has left it: a typed 49.3 cm
+    // jumped to the knee's 53 cm at a 6 px nudge (pretend tester DJ walk, Nov 19). `loose` is that named length.
+    const near = marksAt.reduce((a, b) => (Math.abs(b - draft.lengthCm) < Math.abs(a - draft.lengthCm) ? b : a));
+    const loose = kind === 'hem' && (choices.lengthCm || choices.kneeShare || choices.floorClear) && Math.abs(near - draft.lengthCm) < catchCm ? near : undefined;
+    setDrag({ kind, start: toSvg(e), before: choices, base: unpin(choices, draft), length: draft.lengthCm, flare: draft.flareCm ?? 0, touch: e.pointerType === 'touch', loose });
   };
 
   const move = (e: PointerEvent) => {
     if (drag) {
       const at = toSvg(e);
+      const cm = drag.length + fingerTravel(at.y - drag.start.y, drag.touch, svg.current);
+      if (drag.loose !== undefined && Math.abs(cm - drag.loose) >= catchCm) drag.loose = undefined;
       const next =
         drag.kind === 'hem'
-          ? dragLength(dm, drag.base, drag.length + at.y - drag.start.y, catchCm)
+          ? // Finer for a finger, as on the other drawings (see fingerTravel).
+            dragLength(dm, drag.base, cm, drag.loose === undefined ? catchCm : 0)
           : dragFlare(dm, drag.base, draft.lengthCm, drag.flare + ((at.x - drag.start.x) * (drag.start.x >= cx ? 1 : -1)) / SQUEEZE);
       onLive(next);
     } else if (stroke) {
@@ -237,7 +247,9 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
     }
   };
 
-  const lengthLabel = choices.lengthCm || choices.kneeShare || choices.floorClear ? `${Math.round(draft.lengthCm)} cm` : lengthName(choices.length);
+  // A named length says its length too, as the dress's and trousers' do ("Knee · 59 cm"): the skirt's "Knee" alone
+  // read as a 9 cm jump with no number to check it by (pretend tester DI walk, Nov 19).
+  const lengthLabel = choices.lengthCm || choices.kneeShare || choices.floorClear ? `${Math.round(draft.lengthCm * 10) / 10} cm` : `${lengthName(choices.length)} · ${Math.round(draft.lengthCm * 10) / 10} cm`;
   const flareLabel = choices.flareCm !== undefined ? `${choices.flareCm > 0 ? '+' : ''}${choices.flareCm} cm` : silName(choices.silhouette);
   const guide = (y: number, text: string) => (
     <g className="guide">
@@ -255,6 +267,8 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
         ? `M${at.x - c} ${at.y - r - 1.2 * k + c} L${at.x} ${at.y - r - 1.2 * k} L${at.x + c} ${at.y - r - 1.2 * k + c} M${at.x - c} ${at.y + r + 1.2 * k - c} L${at.x} ${at.y + r + 1.2 * k} L${at.x + c} ${at.y + r + 1.2 * k - c}`
         : `M${at.x + r + 1.2 * k - c} ${at.y - c} L${at.x + r + 1.2 * k} ${at.y} L${at.x + r + 1.2 * k - c} ${at.y + c} M${at.x - r - 1.2 * k + c} ${at.y - c} L${at.x - r - 1.2 * k} ${at.y} L${at.x - r - 1.2 * k + c} ${at.y + c}`;
     const active = drag?.kind === kind;
+    // A named length is its own word for what the dot sets ("↕ Knee · 56.6 cm"), and short enough on a phone.
+    const words = kind === 'hem' ? (text.includes(' · ') ? `↕ ${text}` : `↕ Length · ${text}`) : `↔ Width · ${text}`;
     return (
       <g className={active ? 'handle on' : 'handle'}>
         <circle cx={at.x} cy={at.y} r={r} strokeWidth={0.22} />
@@ -265,15 +279,35 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
         {/* Caught on a named length while dragging (dragLength holds it there), its name pops, as on every garment. */}
         <text
           key={active && kind === 'hem' && !choices.lengthCm ? choices.length : ''}
-          className={active && kind === 'hem' && !choices.lengthCm ? 'caught' : undefined}
+          className={[active && kind === 'hem' && !choices.lengthCm ? 'caught' : '', kind === 'hem' && !drawing ? 'typeable' : ''].filter(Boolean).join(' ') || undefined}
           // A clear gap from the disc (Cat, Nov 11 sweep: the disc sat on the last letter, "KNE").
           x={kind === 'hem' ? at.x - r - 3.2 * k : at.x + r + 3.2 * k}
           y={at.y + 0.9 * k}
           fontSize={2.6 * k}
           textAnchor={kind === 'hem' ? 'end' : 'start'}
         >
-          {(kind === 'hem' ? `↕ Length · ${text}` : `↔ Width · ${text}`).toUpperCase()}
+          {words.toUpperCase()}
         </text>
+        {/* Tapped, the length's words open a box to type it (testers, Nov 17). Under the disc's own hit area, so a drag
+            still starts wherever it did. */}
+        {kind === 'hem' && !drawing && (
+          <LengthTap
+            x={at.x - r - 3.2 * k - words.length * 2.6 * k * 0.85}
+            y={at.y - 3 * k}
+            width={words.length * 2.6 * k * 0.85}
+            height={5 * k}
+            ask={{
+              name: 'Skirt length',
+              // Where the top sits, too: a tester typed her waist-to-knee and got a skirt about 5 cm long (pretend tester DM
+              // walk, Nov 19).
+              from: choices.rise === 'low' && draft.lowRise ? `from the top of the skirt, ${Math.round(draft.lowRise * 10) / 10} cm below your waist` : choices.rise === 'low' ? 'from the top of the skirt' : 'from the waist',
+              cm: draft.lengthCm,
+              min: lengthRange(dm).min,
+              max: lengthRange(dm).max,
+              onCm: (cm) => onDone(choices, dragLength(dm, unpin(choices, draft), cm, 0, true)),
+            }}
+          />
+        )}
         <circle
           cx={at.x}
           cy={at.y}
@@ -281,7 +315,7 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
           className="hit"
           role="slider"
           aria-label={kind === 'hem' ? 'Skirt length' : 'Flare at the hem'}
-          aria-valuetext={text}
+          aria-valuetext={said(text)}
           aria-valuenow={kind === 'hem' ? draft.lengthCm : draft.flareCm ?? 0}
           tabIndex={0}
           onPointerDown={startDrag(kind)}

@@ -184,6 +184,9 @@ export interface BodiceStyle {
   peplumSize?: PeplumSize;
   /** Boned like a corset (always with a strapless neckline, by choice with a cami); soft otherwise. */
   structure?: Structure;
+  /** Set for a jacket or coat: its side seam runs out below the arm as a darted block's does, princess seams or not, so
+   *  the underarm stays put and the armhole the sleeve is drafted to keeps its size over the ease (see sideAt). */
+  outer?: boolean;
   /** Style seams drawn on the form (see seams.ts), one kind at a time: a front and/or back yoke (cm
    * below the neck point at the centre), an empire seam (cm below the bust point), or side panels
    * (where the seam leaves the armhole, 0 to 1). */
@@ -503,7 +506,9 @@ function shape(d: BodiceDraft, s: BodiceStyle): BodiceDraft {
   }
   if (princess) {
     if (s.darts !== 'bust_waist') return d;
-    const pp = princessPieces(front, back, d.front.apex, princess, s.lineAt, flat);
+    // (A top's or dress's side seam, which no longer flares under the arm, may need its fair curve run further: see
+    // manipulate.ts fairSide.)
+    const pp = princessPieces(front, back, d.front.apex, princess, s.lineAt, flat, !s.outer);
     if (!pp) return d;
     return {
       ...d,
@@ -550,6 +555,9 @@ export const SIDE_DART_MAX = 6;
  * few cm between them bubbles out under the arm, so a full bust moves the underarm out instead, as a
  * full bust adjustment does. */
 const FLARE_MAX = 3;
+/** The same with princess seams, which shape the bust themselves (see sideAt). A little is kept so a small bust's
+ *  side seam is the block's. */
+const PRINCESS_FLARE_MAX = 1;
 /** How much longer the back armhole is than the front's, in cm: room for the shoulder blade and the
  * arm reaching forward, as most blocks have it. The side seam is moved forward under the arm to give it. */
 const ARMHOLE_BALANCE = 0.7;
@@ -614,13 +622,18 @@ export function draftBodice(m: BodiceMeasurements, style: Partial<BodiceStyle> =
   const s = wrapStyle(unevenStyle(seamStyle(drapeStyle({ ...DEFAULT_BODICE_STYLE, ...style }))));
   // A peplum (drape.ts) goes on any waist-length bodice, a boned one too.
   const redraft = (st: BodiceStyle) => draftBlock(m, st);
-  if (isTop(s.neckline)) {
-    // Cut below the shoulders: the block drafted as usual, then cut along the top edge and shaped.
-    const t = topStyle(s);
-    const cut = cutTop(draftBlock(m, t), t, s.fitting?.lowShoulder);
-    return drapeBodice(isBoned(t) ? bonedPanels(cut, t) : isShirred(t) ? shirredBack(shape(cut, t)) : shape(cut, t), t, m, redraft);
-  }
-  return drapeBodice(unevenFront(finish(cutSleeves(styleSeams(shape(draftBlock(m, s), s), s), s, m as BodiceMeasurements & SleeveMeasurements), s, m), s), s, m, redraft);
+  const once = (st: BodiceStyle): BodiceDraft => {
+    if (isTop(st.neckline)) {
+      // Cut below the shoulders: the block drafted as usual, then cut along the top edge and shaped.
+      const t = topStyle(st);
+      const cut = cutTop(draftBlock(m, t), t, st.fitting?.lowShoulder);
+      return drapeBodice(isBoned(t) ? bonedPanels(cut, t) : isShirred(t) ? shirredBack(shape(cut, t)) : shape(cut, t), t, m, redraft);
+    }
+    return drapeBodice(unevenFront(finish(cutSleeves(styleSeams(shape(draftBlock(m, st), st), st), st, m as BodiceMeasurements & SleeveMeasurements), st, m), st), st, m, redraft);
+  };
+  const d = once(s);
+  // A V or boat neck pulls on only if its edge goes over the head; a smaller one is drafted again with its zip.
+  return d.pullOn && OVER_HEAD_NECKS.includes(s.neckline) && d.neck < HEAD_PASS_CM ? once({ ...s, pullOn: false }) : d;
 }
 
 /**
@@ -783,8 +796,11 @@ function draftBlock(m: BodiceMeasurements, style: BodiceStyle): BodiceDraft {
   const pinned = (d: { armhole: number; inner: { pin: number } }) => d.armhole + d.inner.pin;
   for (let i = 0; i < 30; i++) {
     const mid = (lo + hi) / 2;
-    // Found without any shoulder pad: a pad raises the shoulder, not the underarm.
-    if (pinned(draft(m, { ...s, shoulderPad: 0 }, mid)) < target) lo = mid;
+    // Found without any shoulder pad: a pad raises the shoulder, not the underarm. Found with the block's flare too:
+    // princess seams' underarm, moved out rather than flared (sideAt), lengthens the armhole, and found with it the
+    // underarm came up 1 cm on a fuller bust (the head pattern cutter's check of the Ice Peplum fix, Nov 16). The armhole
+    // keeps its depth and grows that little instead, as a full bust adjustment's does.
+    if (pinned(draft(m, { ...s, shoulderPad: 0 }, mid, { flareMax: FLARE_MAX })) < target) lo = mid;
     else hi = mid;
   }
   const result = withSides((lo + hi) / 2);
@@ -804,7 +820,11 @@ function draftBlock(m: BodiceMeasurements, style: BodiceStyle): BodiceDraft {
 const ZIPS = [20, 22, 25, 30, 35, 40, 45, 50, 55, 60];
 /** The longest standard invisible zip that fits the centre back opening. */
 /** A top pulls on over a zip that stops at the waist only if the waist below it is this much more than the bust. */
-const PULL_ON_CM = 2;
+export const PULL_ON_CM = 2;
+/** Necklines that can go on over the head with no opening when a look asks (BodiceStyle.pullOn), besides a plunge. */
+export const OVER_HEAD_NECKS: string[] = ['v', 'boat'];
+/** A neck edge this long, or longer, goes over an adult head in a woven cloth (an adult head is about 55 to 58 cm round). */
+export const HEAD_PASS_CM = 60;
 /** Zips for a top that opens right through to its hem: the tops' own, and a dress's longer ones for a long top. */
 const THROUGH_ZIPS = [...ZIPS, 65, 70, 75];
 const zipFor = (opening: number) => [...ZIPS].reverse().find((z) => z <= opening) ?? ZIPS[0];
@@ -880,6 +900,8 @@ function frontNeck(path: Path, hps: P, uShoulder: P, shape: Neckline | 'drawn', 
  * the side seam below the bust to keep from the first line, and the back side seam length to match. */
 interface SideLine {
   drop?: number;
+  /** The front side seam's flare under the arm, in place of the style's (see sideAt). */
+  flareMax?: number;
   keep?: { bustDart: number; lower: number; forward: number; pin: number; turn: number };
   backSide?: number;
 }
@@ -1088,10 +1110,15 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   // The whole side seam then moves `fw` forward, the back wider by as much as the front is narrower
   // from the underarm to the waist (and hem), so the seam keeps its line and length and the bust and
   // waist their size. A dress skirt is drafted to the bodice's front and back waists, so it follows.
-  const sideAt = (fw: number, pinned = true) => {
+  // Princess seams take the bust's fullness over the bust point, where it is, so the side seam needs no flare: with
+  // one, the side front's side seam bowed out below the arm and hooked in at the underarm, worse the fuller the bust
+  // (a fit tester with 10 cm between full and high bust on the Ice Peplum, Nov 16). The underarm moves out instead, as a
+  // full bust adjustment spreads the side out whole. Not a jacket's or coat's: see `outer`.
+  const flareMax = side.flareMax ?? (s.princess && s.princess !== 'none' && !s.outer ? PRINCESS_FLARE_MAX : FLARE_MAX);
+  const sideAt = (fw: number, pinned = true, flare = flareMax) => {
     const bustX = frontW - fw;
     const frameX = Math.max((HB + be) / 4 + 0.5, AF / 2 + 3) - fw;
-    return { bustX, underF: (pinned ? pivotSide : pivot)(p(Math.min(bustX, Math.max(frameX, bustX - FLARE_MAX)), scye)), underB: p(backW + fw, underY), swB: p(swB0.x + fw, wb) };
+    return { bustX, underF: (pinned ? pivotSide : pivot)(p(Math.min(bustX, Math.max(frameX, bustX - flare)), scye)), underB: p(backW + fw, underY), swB: p(swB0.x + fw, wb) };
   };
   const down = turnArm(turnV(p(0, 1)));
   // The two armholes: across back (or front) and round the underarm, meeting the side seam square.
@@ -1101,8 +1128,10 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     path.curve(add(spF, mul(perp(uF), 2.5)), sub(afPt, p(0, 3)), afPt, 'armhole').curve(add(afPt, p(0, (scye - afPt.y) * 0.5)), sub(sideF, mul(squareTo(sideDown), (sideF.x - afPt.x) * 0.75)), sideF, 'armhole');
   // Moved forward until the back armhole is ARMHOLE_BALANCE longer than the front's (never backward), weighed before
   // the armhole pin, so the pin shortens the front armhole rather than moving the seam back to let it out again.
+  // Weighed with the block's flare, so princess seams' underarm moved out (see flareMax) leaves the waist where the block
+  // has it: weighed with it, the seam came 1 cm forward on a fuller bust and the waist and peplum with it (Nov 16).
   const balance = (fw: number) => {
-    const at = sideAt(fw, false);
+    const at = sideAt(fw, false, side.flareMax ?? FLARE_MAX);
     return backArmhole(new Path(spB), at.underB, at.swB).length() - frontArmhole(new Path(spF), at.underF, turnV(p(0, 1))).length() - ARMHOLE_BALANCE;
   };
   let forward = side.keep?.forward ?? 0;
@@ -1210,8 +1239,8 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   const zipCm = zipThrough ? (THROUGH_ZIPS.find((z) => z >= cbRun - 0.5) ?? THROUGH_ZIPS[THROUGH_ZIPS.length - 1]) : tight ? THROUGH_ZIPS[THROUGH_ZIPS.length - 1] : zipFor(wb - bd - key + (s.dressHem ? DRESS_ZIP_BELOW : below ? 0 : -2));
   const zipEnd = p(0, bd + key + (zipThrough ? cbRun : zipCm));
   // A top that goes on over the head with no opening: a plunge is a neck wide enough for the head, and nothing below
-  // it is a ring the bust and shoulders don't pass.
-  const pullOn = !!s.pullOn && !tight && !s.dressHem && !key && s.neckline === 'plunge' && !s.neck;
+  // it is a ring the bust and shoulders don't pass. A V or boat neck can be too: draftBodice checks its edge clears the head.
+  const pullOn = !!s.pullOn && !tight && !s.dressHem && !key && (s.neckline === 'plunge' || OVER_HEAD_NECKS.includes(s.neckline)) && !s.neck;
   const backCut = 'Cut 2 (1 pair)';
   const backDraft = {
     frame: [

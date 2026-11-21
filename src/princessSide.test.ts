@@ -1,0 +1,197 @@
+import { describe, expect, it } from 'vitest';
+import { COLLECTION, lookPatch } from './collection';
+import { withEstimates } from './estimate';
+import { printedPattern, walkDesign } from './patternSweep';
+import type { MeasurementValues } from './measurements';
+
+// A fit tester with 10 cm between full and high bust printed the Ice Peplum's side front with its side seam bowed out
+// below the arm and hooked in at the underarm (Nov 16). The side seam of a princess-seamed side front is one fair line
+// from the underarm to the waist, however full the bust.
+const body = (fullBust: number, highBust: number) =>
+  withEstimates({
+    height: 166, waist: 76, full_hip: 108, waist_to_hip: 20.5, front_waist_to_hip: 20.5, back_waist_to_hip: 20.5, waist_to_knee: 58, waist_to_floor: 104,
+    full_bust: fullBust, underbust: fullBust - 16, high_bust: highBust, neck: 36, shoulder_width: 39, shoulder_length: 12, across_back: 36, across_front: 32,
+    nape_to_waist: 41, front_hps_to_waist: 48, bust_depth: 28, apex_separation: 18, armscye: 41, arm_length: 59, upper_arm: 30, wrist: 16,
+    front_shoulder_slope: 43, back_shoulder_slope: 45, torso_loop: 156,
+  } as unknown as MeasurementValues);
+
+/** The sharpest turn along a piece's side seam, in degrees between neighbouring steps. */
+function sharpestSideTurn(pts: { x: number; y: number }[], tags: string[]) {
+  const side = pts.filter((_, i) => tags[i] === 'side');
+  let worst = 0;
+  for (let i = 1; i < side.length - 1; i++) {
+    const [a, b, c] = [side[i - 1], side[i], side[i + 1]];
+    let d = Math.abs(Math.atan2(c.y - b.y, c.x - b.x) - Math.atan2(b.y - a.y, b.x - a.x)) * (180 / Math.PI);
+    if (d > 180) d = 360 - d;
+    worst = Math.max(worst, d);
+  }
+  return worst;
+}
+
+describe('the Ice Peplum side front for a fuller bust', () => {
+  const look = COLLECTION.find((l) => l.name === 'Ice Peplum Top')!;
+  for (const [full, high] of [[99, 96], [102, 96], [106, 96], [104, 96]] as const) {
+    it(`full bust ${full}, high bust ${high}: a fair side seam`, () => {
+      const values = body(full, high);
+      const { garment, ...saved } = lookPatch(look, values);
+      const side = printedPattern({ garment, saved: saved as never }, values).made.pieces.find((pc) => pc.name === 'Bodice side front')!;
+      const { pts, tags } = side.outline.taggedPoints();
+      // Live before the fix: 5 degrees at 6 and 10 cm apart; the fair seam turns under 2 between its steps.
+      expect(sharpestSideTurn(pts, tags)).toBeLessThan(2.5);
+    });
+  }
+});
+
+// Testers measure their own bust depth and front length, and the app's estimates of them never showed this: with a bust
+// point high for a long front, the same side seam ran in under the arm and then out (Nov 16), even at 2 cm between full
+// and high bust. Measured the way testers measure, from a high bust point to a low one and short to long fronts, the
+// seam from the underarm to the waist bends one way only.
+const measured = (high: number, diff: number, waist: number, hip: number, bustDepth: number, front: number, back: number) =>
+  withEstimates({
+    height: 166, full_bust: high + diff, high_bust: high, underbust: high - 6, waist, full_hip: hip, waist_to_hip: 20.5, front_waist_to_hip: 20.5, back_waist_to_hip: 20.5,
+    waist_to_knee: 58, waist_to_floor: 104, neck: 36, shoulder_width: 39, shoulder_length: 12, across_back: 36, across_front: 32, nape_to_waist: back,
+    front_hps_to_waist: front, bust_depth: bustDepth, apex_separation: 17 + diff * 0.15, armscye: 41, arm_length: 59, upper_arm: 30, wrist: 16,
+    front_shoulder_slope: 43, back_shoulder_slope: 45, torso_loop: 156,
+  } as unknown as MeasurementValues);
+
+/** How a side seam turns above the waist, read every 0.5 cm, in degrees: the most it turns one way and then the other
+ *  (an S turns well both ways, a fair seam only one), and its sharpest single turn (a kink). */
+function sideS(pts: { x: number; y: number }[], tags: string[]) {
+  const s = tags.indexOf('side');
+  let e = s;
+  while (e + 1 < pts.length && tags[e + 1] === 'side') e++;
+  const all = pts.slice(s, e + 2);
+  const hemY = Math.max(...all.map((q) => q.y));
+  // The top runs on 6 cm below the waist, where the seam turns out for the hip: that turn is shaping, not a wave.
+  const run = all.filter((q) => q.y < hemY - 6.5);
+  const even: { x: number; y: number }[] = [run[0]];
+  let carry = 0;
+  for (let i = 1; i < run.length; i++) {
+    const [a, b] = [run[i - 1], run[i]];
+    const l = Math.hypot(b.x - a.x, b.y - a.y);
+    let t = 0.5 - carry;
+    for (; t <= l; t += 0.5) even.push({ x: a.x + ((b.x - a.x) * t) / l, y: a.y + ((b.y - a.y) * t) / l });
+    carry = l - (t - 0.5);
+  }
+  let pos = 0;
+  let neg = 0;
+  let cur = 0;
+  let sign = 0;
+  let sharp = 0;
+  for (let i = 2; i < even.length; i++) {
+    const [a, b, c] = [even[i - 2], even[i - 1], even[i]];
+    let d = Math.atan2(c.y - b.y, c.x - b.x) - Math.atan2(b.y - a.y, b.x - a.x);
+    if (d > Math.PI) d -= 2 * Math.PI;
+    if (d < -Math.PI) d += 2 * Math.PI;
+    const deg = (d * 180) / Math.PI;
+    sharp = Math.max(sharp, Math.abs(deg));
+    if (Math.abs(deg) < 0.05) continue;
+    if (Math.sign(deg) !== sign) [cur, sign] = [0, Math.sign(deg)];
+    cur += deg;
+    if (sign > 0) pos = Math.max(pos, cur);
+    else neg = Math.min(neg, cur);
+  }
+  return { both: Math.min(pos, -neg), sharp };
+}
+
+describe('the Ice Peplum side front on measured bust depths and front lengths', () => {
+  const look = COLLECTION.find((l) => l.name === 'Ice Peplum Top')!;
+  const cases = [
+    [84, 2, 70, 92, 22, 47, 38],
+    [84, 4, 70, 92, 34, 47, 38],
+    [90, 6, 74, 100, 26, 49, 44],
+    [96, 10, 86, 112, 34, 47, 38],
+    [104, 14, 96, 124, 22, 42, 41],
+    [106, 10, 98, 112, 30, 53, 44],
+  ] as const;
+  for (const [high, diff, waist, hip, bustDepth, front, back] of cases) {
+    it(`high bust ${high} (+${diff}), bust depth ${bustDepth}, front ${front}, back ${back}: no S under the arm`, () => {
+      const values = measured(high, diff, waist, hip, bustDepth, front, back);
+      const { garment, ...saved } = lookPatch(look, values);
+      const side = printedPattern({ garment, saved: saved as never }, values).made.pieces.find((pc) => pc.name === 'Bodice side front')!;
+      const { pts, tags } = side.outline.taggedPoints();
+      // Live before the fix: 20 to 36 degrees each way on these bodies.
+      const { both, sharp } = sideS(pts, tags);
+      expect(both).toBeLessThan(5);
+      expect(sharp).toBeLessThan(4);
+    });
+  }
+});
+
+// The Blush Shift's French dart: closing the side dart left its front side seam, from the underarm down to the dart,
+// bowing out, standing straight where the old dart closed and bowing out again (the bug hunt's sweep, Nov 16: 1,065 of
+// 1,275 measured bodies). Now one fair line, on a small bust and a full one, a short front and a long one, hips to 124.
+describe('the Blush Shift front side seam above the French dart on measured bodies', () => {
+  const look = COLLECTION.find((l) => l.name === 'Blush Shift')!;
+  const cases = [
+    [84, 2, 70, 92, 22, 39, 38],
+    [90, 6, 74, 100, 34, 49, 44],
+    [96, 10, 86, 112, 30, 47, 41],
+    [104, 14, 96, 124, 22, 47, 38],
+    [110, 14, 100, 124, 26, 50, 44],
+    [104, 10, 96, 124, 34, 53, 44],
+    // Here the old in-and-out held more than 0.6 cm over a fair line, so the underarm rises further.
+    [84, 6, 70, 92, 34, 47, 38],
+  ] as const;
+  for (const [high, diff, waist, hip, bustDepth, front, back] of cases) {
+    it(`high bust ${high} (+${diff}), hip ${hip}, bust depth ${bustDepth}, front ${front}, back ${back}: one fair line to the dart`, () => {
+      const values = measured(high, diff, waist, hip, bustDepth, front, back);
+      const { garment, ...saved } = lookPatch(look, values);
+      const design = { key: look.name, garment, saved: saved as never, finish: look.finish };
+      const front1 = printedPattern(design, values).made.pieces.find((pc) => pc.name === 'Dress front')!;
+      const { pts, tags } = front1.outline.taggedPoints();
+      // The side seam's first run: the underarm down to the dart.
+      const s = tags.indexOf('side');
+      let e = s;
+      while (tags[e + 1] === 'side') e++;
+      const run = pts.slice(s, e + 2);
+      const [A, B] = [run[0], run[run.length - 1]];
+      const L = Math.hypot(B.x - A.x, B.y - A.y);
+      // How far it stands either side of the straight line between them: a fair seam bows one way only.
+      const off = run.map((q) => ((q.x - A.x) * (B.y - A.y) - (q.y - A.y) * (B.x - A.x)) / L);
+      expect(Math.min(Math.max(...off), -Math.min(...off))).toBeLessThan(0.1);
+      // And the pattern still walks: side seams matching the back, the armhole blending across them, notches on the edge.
+      expect(walkDesign(design, values).problems).toEqual([]);
+    });
+  }
+});
+
+// Faired to match the side back, the side front's seam ended at the waist along its line in, and on a top that runs on
+// below the waist that left a point where the seam turns out for the hip: up to 80 degrees on a full bust, a tight spot
+// at the side waist in CLO (Nov 17). The curve now runs on round the turn. Read every 0.5 cm, the seam from the underarm
+// to the hem turns no more than 15 degrees at a step, as the seam before the fairing did.
+describe('the Ice Peplum side front at the side waist on full busts', () => {
+  const look = COLLECTION.find((l) => l.name === 'Ice Peplum Top')!;
+  const bodies = [
+    'height=178 full_bust=98 high_bust=96 waist=92 full_hip=123 waist_to_hip=25 nape_to_waist=39 front_hps_to_waist=49 bust_depth=21',
+    'height=157 full_bust=128 high_bust=112 waist=81 full_hip=134 waist_to_hip=21 nape_to_waist=37 front_hps_to_waist=45 bust_depth=33',
+    'height=157 full_bust=136 high_bust=120 waist=86 full_hip=134 waist_to_hip=17 nape_to_waist=37 front_hps_to_waist=45 bust_depth=33',
+    'height=185 full_bust=128 high_bust=112 waist=81 full_hip=125 waist_to_hip=21 nape_to_waist=37 front_hps_to_waist=45 bust_depth=33',
+  ];
+  for (const body of bodies) {
+    it(`${body.split(' ').slice(1, 4).join(' ')}: no point at the side waist`, () => {
+      const values = withEstimates(Object.fromEntries(body.split(' ').map((kv) => { const [k, x] = kv.split('='); return [k, Number(x)]; })) as unknown as MeasurementValues);
+      const { garment, ...saved } = lookPatch(look, values);
+      const side = printedPattern({ garment, saved: saved as never }, values).made.pieces.find((pc) => pc.name === 'Bodice side front')!;
+      const { pts, tags } = side.outline.taggedPoints();
+      const run = pts.filter((_, i) => tags[i] === 'side' || tags[i - 1] === 'side');
+      const even = [run[0]];
+      let carry = 0;
+      for (let i = 1; i < run.length; i++) {
+        const [a, b] = [run[i - 1], run[i]];
+        const l = Math.hypot(b.x - a.x, b.y - a.y);
+        if (l < 1e-9) continue;
+        let t = 0.5 - carry;
+        for (; t <= l; t += 0.5) even.push({ x: a.x + ((b.x - a.x) * t) / l, y: a.y + ((b.y - a.y) * t) / l });
+        carry = l - (t - 0.5);
+      }
+      let worst = 0;
+      for (let i = 2; i < even.length; i++) {
+        let d = Math.abs(Math.atan2(even[i].y - even[i - 1].y, even[i].x - even[i - 1].x) - Math.atan2(even[i - 1].y - even[i - 2].y, even[i - 1].x - even[i - 2].x)) * (180 / Math.PI);
+        if (d > 180) d = 360 - d;
+        worst = Math.max(worst, d);
+      }
+      expect(worst).toBeLessThan(15);
+    });
+  }
+});

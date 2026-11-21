@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { SKIRT_BELTS, beltAllowed, beltPieces, skirtBelt } from '../engine/belt';
 import type { Choices } from '../savedWork';
 import { layout } from '../engine/export';
-import { PULL_ON_EASE, lengthRange, lowRiseAllowed, SkirtDraft, SkirtMeasurements } from '../engine/skirt';
+import { PULL_ON_EASE, lengthRange, lowRiseAllowed, lowRiseCm, SkirtDraft, SkirtMeasurements } from '../engine/skirt';
 import { skirtSpec } from '../engine/spec';
 import { FinishedTable, finishedLines } from '../ui/FinishedTable';
 import { isShaped } from '../engine/hem';
@@ -438,7 +438,8 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
               );
             })}
           </div>
-          <Explain set="skirt" group="rise" options={RISE_GROUP.options} pick={choices.rise === 'low' ? 'low' : 'natural'} />
+          {/* The low rise drops a quarter of your waist to hip, at most 6 cm, so say this body's drop, not the most (DR walk, Nov 20). */}
+          <Explain set="skirt" group="rise" options={RISE_GROUP.options} pick={choices.rise === 'low' ? 'low' : 'natural'} say={choices.rise === 'low' && m.waist_to_hip ? `Sits low on the hip, about ${Math.round(lowRiseCm(m))} cm below your waist, so it hangs from the hips. The hem stays where it was.` : undefined} />
           {!lowRiseAllowed(choices) && <p className="muted small">A high waist rises above your waist, so it can't sit low too.</p>}
         </Group>
         {/* Pleats, godets, a flounce, tiers or ruching: named Fullness, as on the Draw tool, so the step called Details

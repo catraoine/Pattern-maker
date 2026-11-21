@@ -8,6 +8,7 @@ import type { SewStep, SewingGuide, SkirtFinish } from './instructions';
 import type { Piece } from './piece';
 import type { SkirtDraft } from './skirt';
 import { SLIP_LEVEL } from './slip';
+import { PRINT_FIRST } from './printFirst';
 
 const n1 = (v: number) => `${Math.round(v * 10) / 10} cm`;
 
@@ -33,7 +34,7 @@ export function wholeGuide(draft: SkirtDraft, fabricM: number, finish: SkirtFini
   const steps: SewStep[] = [
     {
       title: 'Print and check the size',
-      text: 'Print the pattern at 100% (actual size). Measure the test square: it should be exactly 10 cm. Trim each page along the dashed line, then tape the pages together, matching the row letters and column numbers.',
+      text: PRINT_FIRST + ' Cut each page along the solid line marked CUT on its left and top edges, lay it over the page before it so the half diamonds make whole ones, and tape, matching the row letters and column numbers.',
     },
     {
       title: 'Cut out',

@@ -201,7 +201,9 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
     ).map((g) => ({
       id: g.id,
       label: g.label,
-      options: g.options as [string, string][],
+      // A shift keeps its back waist darts whatever the front has, so "Bust only" read wrong there (DQ walk, Nov 20). Cat
+      // chose "Bust (front)" on Nov 20, then for the label to name the back too: "Front bust, back waist" (Nov 21).
+      options: (g.id === 'darts' && noSeam === 'shift' ? g.options.map(([id, label]) => [id, id === 'bust' ? 'Front bust, back waist' : label]) : g.options) as [string, string][],
     })),
     // A sheath can be ruched at the sides below the hip.
     ...(noSeam === 'sheath' ? [{ id: 'ruched', label: 'Sides', options: SHEATH_SIDES }] : []),
@@ -329,11 +331,19 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       onChoices({ ...choices, skirt: { ...choices.skirt, slit: opt as SlitPlace, slitCm: undefined } });
       return;
     }
-    if (id === 'silhouette' || id === 'length' || id === 'asymHem' || id === 'pockets') {
+    if (id === 'length') {
+      // A length, from the hem dot on the drawing or its arrow keys, changes the length and nothing else: rebuilt like
+      // the chips below, the Blush Shift lost its cut and flare and became a waist-seam dress (testers, Nov 17).
+      const { lengthCm: _c, kneeShare: _k, floorClear: _f, ...skirt } = choices.skirt;
+      onChoices({ ...choices, skirt: validCut({ ...skirt, length: opt as Length }) });
+      return;
+    }
+    if (id === 'silhouette' || id === 'asymHem' || id === 'pockets') {
       // The dress skirt is styled by its chips: no era look, photo shape or hand-drawn changes.
-      // Pleats, godets or a flounce stay; one the new shape, length or hem doesn't take falls back to none.
-      const { fit, silhouette, length, asymHem, pleats, godets, flounce, pockets, slit, slitCm, belt, gathers } = choices.skirt;
-      onChoices({ ...choices, skirt: validCut({ fit, silhouette, length, ...(asymHem ? { asymHem } : {}), ...(pockets ? { pockets } : {}), ...(belt ? { belt } : {}), ...(slit ? { slit } : {}), ...(slitCm !== undefined ? { slitCm } : {}), ...(gathers ? { gathers } : {}), pleats, godets, flounce, [id]: opt }) });
+      // Pleats, godets or a flounce stay; one the new shape, length or hem doesn't take falls back to none. The cut
+      // (a waist seam, sheath, shift or bias slip) is its own question, so it stays too.
+      const { fit, silhouette, length, asymHem, pleats, godets, flounce, pockets, slit, slitCm, belt, gathers, noSeam: cut } = choices.skirt;
+      onChoices({ ...choices, skirt: validCut({ fit, silhouette, length, ...(cut ? { noSeam: cut } : {}), ...(asymHem ? { asymHem } : {}), ...(pockets ? { pockets } : {}), ...(belt ? { belt } : {}), ...(slit ? { slit } : {}), ...(slitCm !== undefined ? { slitCm } : {}), ...(gathers ? { gathers } : {}), pleats, godets, flounce, [id]: opt }) });
       return;
     }
     if (id === 'belt') {
@@ -376,6 +386,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       min: lengthRange(mv).min - (draft?.seamDrop ?? 0),
       max: lengthRange(mv).max - (draft?.seamDrop ?? 0),
       cm: choices.skirt.lengthCm,
+      from: draft?.seamDrop ? 'from the waist seam' : 'from the waist',
       onCm: (cm: number) => onChoices({ ...choices, skirt: { ...choices.skirt, lengthCm: cm } }),
     },
   };
@@ -611,7 +622,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                 </button>
               ))}
             </div>
-            <Explain set={['noSeam', 'silhouette', 'length', 'asymHem', 'slit', 'gathers', 'volume', 'pockets', 'belt'].includes(g.id) ? 'skirt' : 'bodice'} group={g.id} options={g.options} pick={value(g.id)} />
+            <Explain set={['noSeam', 'silhouette', 'length', 'asymHem', 'slit', 'gathers', 'volume', 'pockets', 'belt'].includes(g.id) ? 'skirt' : 'bodice'} group={g.id} options={g.options} pick={value(g.id)} say={g.id === 'darts' && noSeam === 'shift' && value(g.id) === 'bust' ? 'Darts at the bust on the front, and the back keeps its two waist darts, so it follows your back.' : undefined} />
             {g.id === 'sleeveCut' && SLEEVE_CUTS.map(([c]) => sleeveCutBlocked({ ...choices.bodice, closure }, c)).find(Boolean) && (
               <p className="muted small">{SLEEVE_CUTS.map(([c]) => sleeveCutBlocked({ ...choices.bodice, closure }, c)).find(Boolean)}</p>
             )}
@@ -702,7 +713,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
             {draft ? (
               <FabricCard
             metres={dressFabricMetres([...pieces, ...(draft ? layoutExtras(draft.skirt) : [])])}
-            advice={dressFabrics({ fit: choices.fit, neckline: choices.bodice.neckline, silhouette: choices.skirt.silhouette, length: choices.skirt.length, structure: valid.structure, asymHem: choices.skirt.asymHem, pleats: choices.skirt.pleats, godets: choices.skirt.godets, flounce: choices.skirt.flounce })}
+            advice={dressFabrics({ fit: choices.fit, neckline: choices.bodice.neckline, silhouette: choices.skirt.silhouette, length: choices.skirt.length, lengthCm: choices.skirt.lengthCm, structure: valid.structure, asymHem: choices.skirt.asymHem, pleats: choices.skirt.pleats, godets: choices.skirt.godets, flounce: choices.skirt.flounce })}
             fabric={fabric}>
                 {flat && <FabricSwatches finish={finish} onFinish={onFinish} garment="dress" details />}
               </FabricCard>
