@@ -841,6 +841,15 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
 
   // The Review page as the pattern's envelope (R1, look and feel review, 2026-10-24): the garment's name, the
   // front-and-back drawing, the finished measurements open (F1, 2026-10-28), one Print, and the pieces folded under a line.
+  // In the gold bar at the foot of the screen on a phone, like Next on every question, so Print is never below the
+  // fold (cold read, Nov 14: "no obvious print button").
+  const printBar = onPrint && (
+    <div className="review-print-bar">
+      <button type="button" className="primary review-print" disabled={!ready} onClick={onPrint}>
+        Print my pattern <span aria-hidden="true">›</span>
+      </button>
+    </div>
+  );
   if (page === 'review')
     return (
       <div className="style-review">
@@ -862,16 +871,11 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
             Change a detail
           </button>
         </p>
+        {/* On a computer Print sits right under the drawing, above the measurements: under the table it fell below
+            the foot of a 900-tall screen (desktop review, Nov 21). */}
+        {wide && printBar}
         {finished}
-        {/* In the gold bar at the foot of the screen on a phone, like Next on every question, so Print is never below
-            the fold (cold read, Nov 14: "no obvious print button"). */}
-        {onPrint && (
-          <div className="review-print-bar">
-            <button type="button" className="primary review-print" disabled={!ready} onClick={onPrint}>
-              Print my pattern <span aria-hidden="true">›</span>
-            </button>
-          </div>
-        )}
+        {!wide && printBar}
         {folded}
         {onEditMeasurements && (
           <p className="review-edits">

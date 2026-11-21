@@ -115,8 +115,12 @@ const TINT_STEPS = 11;
  *  a fifth darker than named, and a pale colour's red ran out of room first, so the Blush Shift drew grey-taupe
  *  (Cat, Nov 14: "doesn't look blush"). `contrast` under 1 quietens the swatch's own marks: a satin's folds. */
 function tintTable(hex: string, swatch: string | undefined, contrast = 1): [string, string, string] {
+  return tintLevels(hex, SWATCH_LIGHT[swatch ?? ''] ?? 0.5, contrast);
+}
+
+/** The same table for any picture of cloth whose average lightness is `mean`. */
+function tintLevels(hex: string, mean: number, contrast = 1): [string, string, string] {
   const ch = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
-  const mean = SWATCH_LIGHT[swatch ?? ''] ?? 0.5;
   // The lights: up by as much as the brightest channel allows, so all three rise together.
   const lift = Math.min(1.3, 1 / Math.max(...ch, 0.01));
   return ch.map((c) => {
@@ -128,6 +132,36 @@ function tintTable(hex: string, swatch: string | undefined, contrast = 1): [stri
       return Math.min(1, Math.max(0, v)).toFixed(3);
     }).join(' ');
   }) as [string, string, string];
+}
+
+/** Each cloth close-up's average lightness, 0 to 1 (public/fabrics, measured Nov 21). */
+const CLOSE_UP_LIGHT: Record<string, number> = { blend: 0.47, corduroy: 0.39, cotton: 0.67, denim: 0.26, lace: 0.35, leather: 0.36, linen: 0.54, polyester: 0.1, satin: 0.5, sequins: 0.68, sheer: 0.69, silk: 0.78, velvet: 0.1, viscose: 0.29, wool: 0.15 };
+
+/** A plain cloth's colour, for the pictures of it outside the drawings: Print's close-up and its cutting layout. Each
+ *  was one fixed photo per cloth, so "Wool, Blush" sat beside charcoal wool and a grey layout (desktop review, Nov 20).
+ *  Nothing for a print, the maker's own photo, or no colour: those keep their own picture. */
+export function clothTint(fabric: MyFabric | undefined, of: 'close-up' | 'tile'): [string, string, string] | undefined {
+  const hex = colourHex(fabric);
+  const id = flatId(fabric);
+  if (!hex || !id || fabric?.photo || printShown(fabric)) return undefined;
+  if (of === 'tile') return tintTable(hex, id, id === 'satin' ? 0.5 : 1);
+  // The close-up photo is by fibre or special cloth only: a knit with neither shows the plain "no fabric" photo, left as it is.
+  const photo = fabric?.special ?? fabric?.fibre;
+  return photo ? tintLevels(hex, CLOSE_UP_LIGHT[photo] ?? 0.5) : undefined;
+}
+
+/** The filter that paints a picture of cloth in a tint table: greyed, then each lightness mapped to the colour. */
+export function TintFilter({ id, table }: { id: string; table: [string, string, string] }) {
+  return (
+    <filter id={id} className="fabric-tint" colorInterpolationFilters="sRGB">
+      <feColorMatrix type="saturate" values="0" />
+      <feComponentTransfer>
+        <feFuncR type="table" tableValues={table[0]} />
+        <feFuncG type="table" tableValues={table[1]} />
+        <feFuncB type="table" tableValues={table[2]} />
+      </feComponentTransfer>
+    </filter>
+  );
 }
 
 const IVORY = '#efe8d6';
@@ -269,16 +303,7 @@ export function GarmentFabric({ fabric, children }: { fabric: MyFabric | undefin
     <div className="garment-fabric" style={{ '--garment': `url(#${body})`, '--garment-band': `url(#${band})` } as CSSProperties}>
       <svg key={ready ? 'l' : 'p'} className="fabric-defs" aria-hidden="true" focusable="false">
         <defs>
-          {table && (
-            <filter id={tint} className="fabric-tint" colorInterpolationFilters="sRGB">
-              <feColorMatrix type="saturate" values="0" />
-              <feComponentTransfer>
-                <feFuncR type="table" tableValues={table[0]} />
-                <feFuncG type="table" tableValues={table[1]} />
-                <feFuncB type="table" tableValues={table[2]} />
-              </feComponentTransfer>
-            </filter>
-          )}
+          {table && <TintFilter id={tint} table={table} />}
           {tile(body, false)}
           {tile(band, true)}
         </defs>
@@ -322,8 +347,10 @@ function useShopCatalogue(type: string | undefined) {
   }, [type]);
 }
 
-/** A shop card's swatch: the shop's own photo, small, or the app's tile for the cloth. */
-const shopTile = (f: ShopFabric) => `url(${f.img ? `${f.img}${f.img.includes('?') ? '&' : '?'}width=160` : tileUrl(f.tile)})`;
+/** A shop card's swatch: the shop's own photo, small, over the app's tile for the cloth, which shows alone when the shop
+ * has no photo or its photo doesn't load. The photos were black squares on the live site (desktop review, Nov 20): the
+ * site's image rule in netlify.toml didn't allow the shops' image address, and nothing stood in for a photo that failed. */
+const shopTile = (f: ShopFabric) => `${f.img ? `url(${f.img}${f.img.includes('?') ? '&' : '?'}width=160), ` : ''}url(${tileUrl(f.tile)})`;
 
 /** A catalogue card's name: the cloth, then its colour unless the name already says it ("Gray Silk Chiffon"). */
 const shopCardName = (f: ShopFabric) => {

@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { expect, fillStepPages, measureMe, openAccount, openFold, openFresh, openGroup, startWithExample, stepButton, test } from './fixtures';
+import { expect, fillStepPages, headerBack, measureMe, openAccount, openFold, openFresh, openGroup, startWithExample, stepButton, test } from './fixtures';
 
 // The tester journey check (Nov 11, 2026): what a fit tester would trip on, and Cat's "fix all".
 
@@ -24,8 +24,10 @@ test('What would you like to make? opens the collection first', async ({ page })
   await main(page).getByRole('button', { name: 'Choose what to make' }).click();
   await main(page).getByRole('button', { name: 'The collection ›' }).click();
   await expect(main(page).getByRole('heading', { name: 'The collection' })).toBeVisible();
-  // Back returns to the list it came from.
-  await main(page).getByRole('button', { name: 'Back', exact: true }).click();
+  // Back returns to the list it came from: the header's arrow, the one way back (a second Back link in the page did
+  // the same thing until Cat's apply, Nov 21).
+  await expect(main(page).getByRole('button', { name: 'Back', exact: true })).toHaveCount(0);
+  await headerBack(page).click();
   await expect(main(page).getByRole('heading', { name: 'What would you like to make?' })).toBeVisible();
 });
 

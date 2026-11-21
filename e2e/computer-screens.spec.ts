@@ -21,6 +21,9 @@ for (const [w, h] of [[1024, 768], [1280, 720], [1280, 800], [1366, 768], [1440,
     await measureMe(page);
     await fillStepPages(page);
     await main(page).getByRole('button', { name: 'Choose what to make' }).click();
+    // Every garment in the list has its picture (desktop review, Nov 21: a page of words in boxes).
+    const makes = main(page).locator('.make-grid button:not(.make-looks)');
+    await expect(makes.locator('svg.make-pic')).toHaveCount(await makes.count());
     await main(page).getByRole('button', { name: 'The collection ›' }).click();
     await expect(main(page).getByRole('heading', { name: 'The collection' })).toBeVisible();
     await shot('collection');
@@ -49,6 +52,15 @@ for (const [w, h] of [[1024, 768], [1280, 720], [1280, 800], [1366, 768], [1440,
     const panel = await box(page, '.style-panel');
     expect(panel.x, 'the step sits beside the drawing').toBeGreaterThanOrEqual(drawing.x + drawing.width - 1);
     expect(panel.x + panel.width).toBeLessThanOrEqual(w);
+    // With the two side by side, the drawing stays on screen while a long step scrolls: it used to scroll away with
+    // the fabrics, so a choice was made without seeing it land (desktop review, Nov 21).
+    if (w >= 1100) {
+      await main(page).getByRole('tab', { name: 'Fabric', exact: true }).click();
+      await page.evaluate(() => scrollTo(0, 600));
+      await expect.poll(() => page.evaluate(() => scrollY), 'the fabric step is long enough to scroll').toBeGreaterThan(300);
+      expect((await box(page, '.style-pin .preview')).y, 'the drawing stays in view').toBeGreaterThanOrEqual(0);
+      await page.evaluate(() => scrollTo(0, 0));
+    }
 
     // The Measure list: the garment, then the title, then the list, in one column.
     await stepButton(page, 'Measure').click();

@@ -1232,7 +1232,7 @@ export default function App() {
             <CollectionScreen
               values={values}
               onBack={lookFrom === 'steps' ? back : () => setStep('style')}
-              backLabel={lookFrom === 'steps' ? 'Back' : undefined}
+              backLabel={lookFrom === 'steps' ? '' : undefined}
               onMake={(look) => makeLook(look)}
             />
           )}

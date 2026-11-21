@@ -20,7 +20,7 @@ interface Props {
   values: MeasurementValues;
   onMake: (look: HouseLook) => void;
   onBack: () => void;
-  /** The back link's words: back to styling, or just Back when opened from the list of what to make. */
+  /** The back link's words: back to styling. Empty when opened from the list of what to make, where the header's arrow is the way back. */
   backLabel?: string;
 }
 
@@ -203,9 +203,13 @@ export function CollectionScreen({ values, onMake, onBack, backLabel = 'Back to 
             </button>
           ))}
         </div>
-        <button type="button" className="link" onClick={onBack}>
-          {backLabel}
-        </button>
+        {/* Only when it goes somewhere the header's arrow doesn't: opened from What to make, the two did the same
+            thing (desktop review, Nov 21). */}
+        {backLabel && (
+          <button type="button" className="link" onClick={onBack}>
+            {backLabel}
+          </button>
+        )}
       </header>
       {shelf === 'house' ? (
         <>

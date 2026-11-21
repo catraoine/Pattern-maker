@@ -1,7 +1,7 @@
 import { DropMenu } from '../ui/DropMenu';
 import { TesterReport } from '../ui/TesterReport';
 import { useTablet, useWide } from '../ui/StyleLayout';
-import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { CopyShopWay } from '../ui/CopyShopWay';
 import { SendToDevice } from '../ui/SendToDevice';
 import { OVERLAP, PAGE_MARGIN, Paper, Sheet, layout, pageCount, pageName, pageSize, tileGrid, toSvg, usedTiles } from '../engine/export';
@@ -31,7 +31,7 @@ import { Mode, ProTool, shows } from '../mode';
 import { ModeLink } from '../ui/ModeLink';
 import { countStep } from '../report/report';
 import { patternCode } from '../patternCode';
-import { flatId } from '../ui/FabricFill';
+import { GarmentFabric, TintFilter, clothTint, flatId } from '../ui/FabricFill';
 import { amazonLink, amazonTagged, kit } from '../engine/projectorKit';
 import { buyAmount, buyLink, shopFabric, shopPrice, type ShopFabric } from '../engine/shopFabrics';
 import { canShareFiles, download } from '../ui/download';
@@ -347,6 +347,9 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
               </p>
             )}
           </div>
+          {/* The card's garment in the cloth picked in Style, as on Your look: it was drawn white beside "Wool, Blush"
+              (desktop review, Nov 21). */}
+          <GarmentFabric fabric={finish.fabric}>
           <div className="print-cover">
             <Envelope house={false} name={lookName ?? title[0].toUpperCase() + title.slice(1)} flat={made.flat} mark={edition} foot={imported || example ? undefined : `Drafted to ${profile === 'Me' ? 'you' : profile}`} />
             <p className="eyebrow">Pieces</p>
@@ -358,6 +361,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
               ))}
             </ul>
           </div>
+          </GarmentFabric>
           <div className="print-controls">
             <fieldset className="group">
               <legend>Print on</legend>
@@ -660,6 +664,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
                   lay={lay}
                   size={lays.length > 1}
                   cloth={lay.fabric === 'self' ? (flatId(finish.fabric) ?? 'default') : lay.fabric === 'lining' ? 'silk' : 'cotton'}
+                  tint={lay.fabric === 'self' ? clothTint(finish.fabric, 'tile') : undefined}
                   print={lay.fabric === 'self' && print ? { kind: print, repeat: printRepeat(finish.fabric), stripes: finish.fabric?.checks?.stripes, gingham: finish.fabric?.checks?.gingham } : undefined}
                 />
                 {lay.fabric === 'self' && <DemoButton demo="fabric" />}
@@ -846,9 +851,19 @@ function FabricStage({ fabric }: { fabric: MyFabric }) {
   const id = fabric.special ?? fabric.fibre;
   const label = fabric.special ? SPECIALS[fabric.special].label : fabric.fibre ? FIBRES[fabric.fibre].label : undefined;
   const handle = [fabric.weight && `${fabric.weight} weight`, fabric.drape && `${fabric.drape} drape`].filter(Boolean).join(', ');
+  // In the colour picked, so the close-up is the cloth named over it.
+  const tint = clothTint(fabric, 'close-up');
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   return (
     <figure className="fabstage">
-      <img src={fabricPhoto(id)} alt={label ? `${label} close up` : ''} />
+      {tint && (
+        <svg className="fabric-defs" aria-hidden="true" focusable="false">
+          <defs>
+            <TintFilter id={`stage${uid}`} table={tint} />
+          </defs>
+        </svg>
+      )}
+      <img src={fabricPhoto(id)} alt={label ? `${label} close up` : ''} style={tint ? { filter: `url(#stage${uid})` } : undefined} />
       <figcaption>
         <span className="fabname">{label ?? 'No fabric chosen'}</span>
         <span className="muted small">{label ? (handle ? handle[0].toUpperCase() + handle.slice(1) : 'Set the weight and drape under Fabric in Style.') : 'Choose one under Fabric in Style.'}</span>

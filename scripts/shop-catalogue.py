@@ -97,11 +97,13 @@ KIND = [
     (r'taffeta|shantung|dupioni|dupion|mikado|gazar|organza|organdy|poplin|broadcloth|oxford|shirting|seersucker|eyelet|matka|tafetta', 'light', 'crisp'),
     (r'chiffon|georgette|charmeuse|crepe de chine|cr[eê]pe de chine|habotai|china silk|voile|lawn|batiste|challis|crinkle|gauze|tulle|lingerie|silk satin|stretch satin|rayon|viscose|cupro|modal|tencel|lyocell', 'light', 'fluid'),
     (r'crepe|cr[eê]pe|satin|sateen|velvet|velour|lace|sequin|beaded', 'medium', 'fluid'),
-    (r'linen|chambray|flannel|double cloth|double-face|double face|wool|cashmere|alpaca|mohair|camel', 'medium', 'soft'),
+    (r'linen|chambray|flannel|double cloth|double-face|double face|wool|cashmere|alpaca|mohair|camel[ -]?hair', 'medium', 'soft'),
 ]
 
+# "Camel" alone is a colour (and half of "Camellia"), so only camel hair counts as wool: camel polyester and cotton
+# were listed under Wool (desktop review, Nov 21).
 FIBRE_WORDS = [
-    ('silk', r'\bsilk\b'), ('wool', r'wool|cashmere|alpaca|mohair|camel|merino|angora'), ('linen', r'linen|flax|ramie|hemp'),
+    ('silk', r'\bsilk\b'), ('wool', r'wool|cashmere|alpaca|mohair|camel[ -]?hair|merino|angora'), ('linen', r'linen|flax|ramie|hemp'),
     ('cotton', r'cotton'), ('viscose', r'viscose|rayon|modal|tencel|lyocell|cupro|bamboo|acetate|triacetate'),
     ('polyester', r'polyester|\bpoly\b|nylon|polyamide|acrylic|microfiber|metallic|lurex'),
 ]
