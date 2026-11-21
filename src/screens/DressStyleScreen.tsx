@@ -201,9 +201,9 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
     ).map((g) => ({
       id: g.id,
       label: g.label,
-      // A shift keeps its back waist darts whatever the front has, so "Bust only" read wrong there (DQ walk, Nov 20; Cat
-      // chose "Bust (front)", Nov 20).
-      options: (g.id === 'darts' && noSeam === 'shift' ? g.options.map(([id, label]) => [id, id === 'bust' ? 'Bust (front)' : label]) : g.options) as [string, string][],
+      // A shift keeps its back waist darts whatever the front has, so "Bust only" read wrong there (DQ walk, Nov 20). Cat
+      // chose "Bust (front)" on Nov 20, then for the label to name the back too: "Front bust, back waist" (Nov 21).
+      options: (g.id === 'darts' && noSeam === 'shift' ? g.options.map(([id, label]) => [id, id === 'bust' ? 'Front bust, back waist' : label]) : g.options) as [string, string][],
     })),
     // A sheath can be ruched at the sides below the hip.
     ...(noSeam === 'sheath' ? [{ id: 'ruched', label: 'Sides', options: SHEATH_SIDES }] : []),
