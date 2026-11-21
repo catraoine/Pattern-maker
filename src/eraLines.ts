@@ -23,9 +23,9 @@ const PIECES: Omit<EraPiece, 'number'>[] = [
     choices: <OuterChoices>{ ...DEFAULT_JACKET_CHOICES, fit: 'fitted', shaping: 'princess', length: 'hip', flare: 'flared', pads: 'none', pockets: 'none', vent: 'none' } },
   // 1920s
   { era: '1920s', id: '20-top', name: 'Twenties tunic', fabric: 'Butter silk crepe de chine', garment: 'bodice', line: 'Loose and sleeveless with a V neck, falling straight to the hip.',
-    choices: bodice({ fit: 'relaxed', neckline: 'v', darts: 'none', sleeve: 'none', length: 'hip' }) },
+    choices: bodice({ fit: 'relaxed', neckline: 'v', darts: 'none', sleeve: 'none', length: 'hip', pullOn: true }) },
   { era: '1920s', id: '20-dress', name: 'Drop-waist dress', fabric: 'Blush silk crepe de chine', garment: 'dress', line: 'A straight, easy bodice to a low waist seam, then a knee-length skirt.',
-    choices: { ...dress('relaxed', { neckline: 'boat', sleeve: 'none', darts: 'none' }, { silhouette: 'straight', length: 'knee' }), waistSeam: 'low' } },
+    choices: { ...dress('relaxed', { neckline: 'boat', sleeve: 'none', darts: 'none', pullOn: true }, { silhouette: 'straight', length: 'knee' }), waistSeam: 'low' } },
   { era: '1920s', id: '20-coat', name: 'Twenties shawl coat', fabric: 'Camel wool velour', garment: 'coat', line: 'A relaxed knee-length coat with a deep shawl collar.',
     choices: <OuterChoices>{ ...DEFAULT_COAT_CHOICES, fit: 'relaxed', length: 'knee', collar: 'shawl', lapel: 'plunge', shaping: 'boxy', flare: 'straight', pads: 'none', pockets: 'none' } },
   // 1930s
@@ -65,7 +65,7 @@ const PIECES: Omit<EraPiece, 'number'>[] = [
     choices: <TrousersChoices>{ ...DEFAULT_TROUSERS_CHOICES, fit: 'fitted', leg: 'flare', length: 'full', rise: 'high' } },
   // 1980s
   { era: '1980s', id: '80-top', name: 'Eighties slouch top', fabric: 'Lilac viscose crepe', garment: 'bodice', line: 'Oversized, with a wide boat neck and dropped shoulders.',
-    choices: bodice({ fit: 'oversized', neckline: 'boat', sleeve: 'long', sleeveShape: 'straight', sleeveCut: 'drop', length: 'hip', darts: 'none' }) },
+    choices: bodice({ fit: 'oversized', neckline: 'boat', sleeve: 'long', sleeveShape: 'straight', sleeveCut: 'drop', length: 'hip', darts: 'none', pullOn: true }) },
   { era: '1980s', id: '80-dress', name: 'Puff-sleeve party dress', fabric: 'Emerald silk taffeta', garment: 'dress', line: 'Big puffed sleeves and a V neck over a pencil skirt to the knee.',
     choices: dress('fitted', { neckline: 'v', sleeve: 'short', sleeveShape: 'puff', sleeveFullness: 'full' }, { silhouette: 'pencil', length: 'above_knee' }) },
   { era: '1980s', id: '80-jacket', name: 'Power blazer', fabric: 'Grey wool gabardine', garment: 'jacket', line: 'Big padded shoulders, a peak lapel and two rows of buttons, long and easy.',
