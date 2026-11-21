@@ -64,6 +64,9 @@ test('a double tap on each measuring Next goes on one page, with no error and no
     // Each page opens clean: no "Enter your ... to carry on" before anything is typed.
     await expect(main(page).getByText(/to carry on\.$/)).toHaveCount(0);
     await box.fill(MEASUREMENTS[label]);
+    // A person reads the page and types before tapping, longer than the moment a new page ignores a finger for: on a
+    // slow test machine the fill can land inside it, and then both taps fall in that moment and the page stays.
+    await page.waitForTimeout(500);
     await doubleTap(page, main(page).getByRole('button', { name: /^Next\b/ }), !!info.project.use.hasTouch);
     await expect.poll(async () => (await heading(page, 'Do these look right?').isVisible()) || ((await box.count()) === 1 && (await labelOf(box)) !== label)).toBe(true);
     await page.waitForTimeout(500);
