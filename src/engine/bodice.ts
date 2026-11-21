@@ -1048,7 +1048,9 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   // run in and the drawing breaks (a top drawn with points at infinity froze the app, Nov 10). Only a mistyped
   // measurement, or a toile correction on top of one, gets here, so say what to check rather than draw something wrong.
   if (FL - BD < MIN_BUST_TO_WAIST)
-    throw new DraftError(`Your bust point comes out ${FL - BD <= 0 ? 'at or below your waist' : 'right at your waist'}, so this top can't be drafted. Please check your bust depth (neck to bust point, ${cm(BD)}) and your front length (neck to waist, ${cm(FL)}).`);
+    // The front length as typed: one no longer than the back is drafted 1 cm longer than it (above), and quoting that
+    // turned a typed 12 in into 12⅜ in (pretend tester DV walk, Nov 21), so it says why instead.
+    throw new DraftError(`Your bust point comes out ${FL - BD <= 0 ? 'at or below your waist' : 'right at your waist'}, so this top can't be drafted. Please check your bust depth (neck to bust point, ${cm(BD)}) and your front length (neck to waist, ${cm(m.front_hps_to_waist)}${FL !== m.front_hps_to_waist ? `, which should be longer than your back length, ${cm(NW)}` : ''}).`);
   const dx = AS / 2 - nwF;
   const apex = p(AS / 2, hpsF0.y + Math.sqrt(Math.max(BD ** 2 - dx ** 2, 1)));
   const wf = apex.y + Math.max(FL - BD, 0);

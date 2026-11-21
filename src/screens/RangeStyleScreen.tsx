@@ -200,6 +200,7 @@ export function RangeStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
 
   return (
     <StyleLayout
+      error={error}
       fabric={fabric}
       onEditMeasurements={onEditMeasurements}
       onPrint={onNext}

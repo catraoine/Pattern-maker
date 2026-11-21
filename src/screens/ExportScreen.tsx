@@ -64,6 +64,8 @@ interface Props {
   example?: boolean;
   /** Measure me, from that question: drops the example and opens measuring. */
   onMeasureMe?: () => void;
+  /** Back to the measurements, from a pattern that can't be drafted to them. */
+  onEditMeasurements?: () => void;
   /** The sewist's unit; the PDF's text is written in inches when it is `in`. */
   unit?: Unit;
   /** The paper picked last time, kept with the rest of the work; without one, inches start on US Letter. */
@@ -150,7 +152,7 @@ const printedDate = () => new Date().toLocaleDateString('en-GB', { day: 'numeric
 
 const FRACTION_WORDS: Record<string, string> = { '⅛': '1-8', '¼': '1-4', '⅜': '3-8', '½': '1-2', '⅝': '5-8', '¾': '3-4', '⅞': '7-8' };
 
-export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPaper, onPaper, sendLink, profile, title, lookName, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, onFitNotes, tester, emailTo, fitNote, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label, full }: Props) {
+export function ExportScreen({ example, onMeasureMe, onEditMeasurements, unit = 'cm', paper: savedPaper, onPaper, sendLink, profile, title, lookName, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, onFitNotes, tester, emailTo, fitNote, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label, full }: Props) {
   const can = (t: ProTool) => shows(mode, t);
   /** Knits fit by their stretch: tested in a spare knit, not a calico toile. */
   const knit = isKnit(garment);
@@ -261,6 +263,12 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
     return (
       <section className="card">
         <p className="msg error">{error ?? 'Add your measurements first.'}</p>
+        {/* The tab had no way back to Measure (pretend tester DV walk, Nov 21). */}
+        {onEditMeasurements && (
+          <button type="button" className="primary" onClick={onEditMeasurements}>
+            Check my measurements
+          </button>
+        )}
       </section>
     );
   }

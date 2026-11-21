@@ -213,6 +213,12 @@ describe('the grain arrows', () => {
     });
 });
 
+// DV walk, Nov 21: back and front length typed as 12 in each, the Ice Peplum can't be drafted, and its message quoted the
+// front length as 12⅜ in, the length it was drafted with, so the tester couldn't tell which number it meant.
+it('quotes the front length as typed when the top cannot be drafted', () => {
+  expect(() => made('ice-peplum', { ...BODIES.middle, nape_to_waist: 30.48, front_hps_to_waist: 30.48, bust_depth: 30 })).toThrow(/front length \(neck to waist, 30\.5 cm, which should be longer than your back length, 30\.5 cm\)/);
+});
+
 describe('the joining diamonds', () => {
   // DQ walk, Nov 20: "OVER D4" printed on the Ice Peplum's "ARMHOLE · 1 CM ALLOWANCE".
   for (const id of ['blush-shift', 'ice-peplum', 'black-pleated-skirt', 'chocolate-barrel', 'black-vest'])

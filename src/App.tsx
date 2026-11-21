@@ -1473,6 +1473,7 @@ export default function App() {
             <ExportScreen
               example={!!person.example?.length}
               onMeasureMe={measureMe}
+              onEditMeasurements={() => setStep('measure')}
               unit={saved.unit}
               paper={saved.paper}
               onPaper={(paper) => setSaved({ ...saved, paper })}

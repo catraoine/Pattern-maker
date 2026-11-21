@@ -424,6 +424,8 @@ interface Props {
   onMode?: (m: Mode) => void;
   /** Edit measurements, on the Review page. */
   onEditMeasurements?: () => void;
+  /** Why the pattern can't be drafted, if it can't: said on the Review page too, above a way back to the measurements. */
+  error?: string;
   /** Which tab a choice goes on, where this garment groups them its own way. */
   sections?: Record<string, string>;
   /** Undo and Redo, only in the enlarged drawing, where the hem is dragged: on the questions a pick is taken back by
@@ -484,7 +486,7 @@ function questionRank(q: Question): [number, number] {
 /** Past this many letters ("your trousers"), the garment's name and the example note don't share a phone's line. */
 const LONG_NAME = 13;
 
-export function StyleLayout({ children, label, name, ready, onChooseGarment, onPhoto, photo, matched, mode, onMode, onEditMeasurements, sections = NO_SECTIONS, undo, flat, fabric, onPrint, finished }: Props) {
+export function StyleLayout({ children, label, name, ready, onChooseGarment, onPhoto, photo, matched, mode, onMode, onEditMeasurements, error, sections = NO_SECTIONS, undo, flat, fabric, onPrint, finished }: Props) {
   const [options, preview, summary] = Children.toArray(children);
   const [page, setPage] = usePageHistory<'edit' | 'review'>(() => 'edit', (s) => s === 'edit' || s === 'review');
   // Read here and cleared once mounted: React may run this twice, and the second run must see it too.
@@ -858,6 +860,20 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           <span className="eyebrow">{look ? 'Your look' : `Review · ${label}`}</span>
           {look ?? Name}
         </h1>
+        {/* A look that can't be drafted to these measurements showed only its title and a greyed Print, and the reason was
+            on the Print tab, with no way back to Measure (pretend tester DV walk, Nov 21): it says why here, with the way. */}
+        {error && (
+          <div className="review-error">
+            <p className="msg error" role="status">
+              {error}
+            </p>
+            {onEditMeasurements && (
+              <button type="button" className="primary" onClick={onEditMeasurements}>
+                Check my measurements
+              </button>
+            )}
+          </div>
+        )}
         {/* In the look's own cloth: drawn without it, the flat took the page's black, so the Blush Shift showed as a black
             dress (tester persona walk, Nov 15; Cat, Nov 14: "How come not showing in colour"). */}
         {flat && (
