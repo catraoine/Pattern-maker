@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { withEstimates } from './estimate';
-import { checkMeasurements, isComplete, type MeasurementValues } from './measurements';
+import { EXAMPLE_BODY, checkMeasurements, isComplete, type MeasurementValues } from './measurements';
 import { extrasFor, fullSetMissing, labelOf, missingFor, stepsOf, tipOf, titleOf } from './measureFlow';
 import { draftBodice, type BodiceMeasurements } from './engine/bodice';
 import { draftOuter, type OuterMeasurements } from './engine/outerwear';
@@ -10,6 +10,7 @@ import { bodiceFlat, outerFlat } from './engine/flat';
 import { outerGuide } from './engine/outerGuide';
 import { checkPattern } from './engine/qc';
 import { randomMan, rng } from './engine/randomBodies';
+import { patternDesigns, walkDesign } from './patternSweep';
 
 // The menswear form (Cat's B2 Two Forms, 2026-10-18): the chest instead of the bust, none of the bust
 // measurements asked, and tops drafted with no bust dart.
@@ -88,6 +89,17 @@ describe('the menswear follow-ups', () => {
         expect(d.pieces.map((pc) => pc.name)).toEqual(['Bodice centre front', 'Bodice side front', 'Bodice centre back', 'Bodice side back']);
         expect(failing(d.pieces)).toEqual([]);
       }
+    }
+  });
+
+  it('keeps the armhole notch on its panel when princess seams start at the armhole, in the printed pattern', () => {
+    // The nightly menswear pass (Nov 21) found it 0.6 cm off the side front on a 116 cm chest: the line now starts 2 cm
+    // below the notch, as the back's does.
+    const r = rng(7);
+    const designs = patternDesigns().filter((d) => /princess=armhole/.test(d.key));
+    for (let i = 0; i < 60; i++) {
+      const values = { ...EXAMPLE_BODY, ...withEstimates(randomMan(r), 'menswear') };
+      for (const d of designs) expect(walkDesign(d, values, 'menswear').problems, `${d.key}, body ${i + 1}`).toEqual([]);
     }
   });
 
