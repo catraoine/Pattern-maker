@@ -142,6 +142,23 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   }, (s) => typeof s === 'object' && s !== null && 'kind' in s && (s as { kind: string }).kind !== 'intro' && !((s as Page).kind === 'base' && !(s as { back?: string }).back && baseDone(values)), newOpening);
   // eslint-disable-next-line react-hooks/exhaustive-deps -- reports each page change; the parent's callback is new every render
   useEffect(() => onPage?.(page.kind), [page.kind]);
+  // A double tap on Next on the last measuring page put its second tap on the check page's Waist row, right under Next,
+  // which opened the waist again (nightly bug hunt, Nov 21). So the check list and the garments to make don't take the
+  // second tap of a double tap: a click the browser counts as a second one, or a finger down in the first moment after
+  // the page opened. Only a finger: a mouse or a test's click right away is a real choice.
+  const openedAt = useRef(0);
+  const touchedAt = useRef(-Infinity);
+  useEffect(() => {
+    openedAt.current = performance.now();
+  }, [page]);
+  useEffect(() => {
+    const down = (e: PointerEvent) => {
+      touchedAt.current = e.pointerType === 'touch' ? performance.now() : -Infinity;
+    };
+    document.addEventListener('pointerdown', down, true);
+    return () => document.removeEventListener('pointerdown', down, true);
+  }, []);
+  const secondTap = (e: { detail: number }) => e.detail > 1 || (touchedAt.current >= openedAt.current && touchedAt.current - openedAt.current < DOUBLE_TAP_MS && performance.now() - touchedAt.current < DOUBLE_TAP_MS);
   // Opened on the check because the measurements were taken on an earlier visit: say so.
   // Not when stepping back into it during this visit: only on opening it afresh.
   const [returning] = useState(() => !start && baseDone(values) && (window.history.state as { sub?: unknown } | null)?.sub === undefined);
@@ -183,8 +200,8 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   // On "What would you like to make?" a tap is the choice: the tile lights for a blink, so the tap reads as
   // taken, then the next page opens. No button underneath (Cat, 2026-11-08). A second tap in that blink is ignored.
   const going = useRef(false);
-  const tapToMake = (g: Pick) => {
-    if (going.current) return;
+  const tapToMake = (g: Pick, e: { detail: number }) => {
+    if (going.current || secondTap(e)) return;
     going.current = true;
     setPicked(g);
     window.setTimeout(() => {
@@ -282,7 +299,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
         <ul className="check-list" aria-label="Tap one to change it">
           {BASE.map((id, at) => (
             <li key={id}>
-              <button type="button" onClick={() => setPage({ kind: 'base', at, back: 'check' })}>
+              <button type="button" onClick={(e) => !secondTap(e) && setPage({ kind: 'base', at, back: 'check' })}>
                 <span>{cap(titleOf(id, false, form).replace(/^Your /, ''))}</span>
                 {values[id] === undefined ? <em className="add">Add</em> : <span>{shown(values[id], unit)}</span>}
               </button>
@@ -290,7 +307,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
           ))}
           {onWeight && (
             <li>
-              <button type="button" onClick={() => setPage({ kind: 'weight', back: 'check' })}>
+              <button type="button" onClick={(e) => !secondTap(e) && setPage({ kind: 'weight', back: 'check' })}>
                 <span>Weight</span>
                 {weight === undefined ? <em className="add">Add</em> : <span>{`${fromKg(weight, weightUnitOf(unit))} ${weightUnitOf(unit)}`}</span>}
               </button>
@@ -318,12 +335,12 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
         <div className="make-grid" role="group" aria-labelledby="stitle">
           {onLooks && (
             // Named for what it opens, as the testers' emails and the Style title's drop-down say (Nov 12).
-            <button type="button" className="make-looks" onClick={onLooks}>
+            <button type="button" className="make-looks" onClick={(e) => !secondTap(e) && onLooks()}>
               The collection ›
             </button>
           )}
           {[...GARMENTS, 'other' as const].map((g) => (
-            <button key={g} type="button" aria-current={picked === g || undefined} className={picked === g ? 'on' : ''} onClick={() => tapToMake(g)}>
+            <button key={g} type="button" aria-current={picked === g || undefined} className={picked === g ? 'on' : ''} onClick={(e) => tapToMake(g, e)}>
               {g === 'other' ? 'Something else' : cap(GARMENT_NAME[g])}
             </button>
           ))}
@@ -583,6 +600,8 @@ export function DoubleChecks({ checks }: { checks: Check[] }) {
 
 /** How long a tapped garment stays lit before the next page opens. */
 const TAP_BLINK_MS = 160;
+/** Longer than the gap between the two taps of a double tap, shorter than reading a new page and tapping. */
+const DOUBLE_TAP_MS = 450;
 
 export function Shell({
   eyebrow,
