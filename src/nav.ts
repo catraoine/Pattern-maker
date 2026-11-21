@@ -88,7 +88,7 @@ function replaceView(view: string) {
  * The app's screen, kept in step with history. `onPop` sees where back or forward landed and may redirect.
  * `ladder` names the screens a screen hangs off, given the rungs of the one showing now.
  */
-export function useViewHistory<V extends string>(start: V, onPop: (view: V) => V, ladder: (to: V, trail: V[]) => V[]) {
+export function useViewHistory<V extends string>(start: V, onPop: (view: V) => V, ladder: (to: V, trail: V[]) => V[], keepsPage: (to: V) => boolean = () => false) {
   const [view, setView] = useState<V>(() => {
     // Before any screen reads it: this opening's first entry.
     window.history.replaceState({ view: start, depth: 0, trail: [start], bases: [0], visit: VISIT } satisfies NavState, '');
@@ -140,8 +140,14 @@ export function useViewHistory<V extends string>(start: V, onPop: (view: V) => V
     const meeting: NavState = { view: chain[keep - 1], depth: meet, trail: trail.slice(0, keep), bases: bases.slice(0, keep), visit: VISIT };
     const push = entries(chain, keep, meeting);
     if (steps > 0) {
-      // The screen changes once the browser has stepped back, so it opens on its own entry.
-      pending = { push, then: () => setView(to) };
+      // The screen changes once the browser has stepped back, so it opens on its own entry. Stepping off a page of the
+      // screen it hangs from to one aside from the way on (`keepsPage`: a look's Review to Your account), that entry
+      // keeps the page: back from Your account opened the look's questions, or How styling works, in place of the look
+      // (pretend tester DV walk, Nov 21). Going on (to Print) the screen's own entry opens as it always has.
+      // Going to the screen itself by any other way (Open on a saved pattern from Your account, a step button), its entry
+      // is written afresh, so it opens on its first page as before rather than on the page kept for Back.
+      const replace = keepsPage(to) && now?.view === meeting.view && now.sub !== undefined ? { ...meeting, sub: now.sub } : keep === chain.length ? meeting : undefined;
+      pending = { replace, push, then: () => setView(to) };
       window.history.go(-steps);
       return;
     }

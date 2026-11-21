@@ -180,6 +180,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   ) : undefined;
   return (
     <StyleLayout
+      error={error}
       fabric={fabric}
       onEditMeasurements={onEditMeasurements}
       onPrint={onNext}

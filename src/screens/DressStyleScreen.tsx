@@ -559,6 +559,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   ) : undefined;
   return (
     <StyleLayout
+      error={error}
       fabric={fabric}
       onEditMeasurements={onEditMeasurements}
       onPrint={onNext}

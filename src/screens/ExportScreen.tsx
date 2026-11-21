@@ -64,6 +64,8 @@ interface Props {
   example?: boolean;
   /** Measure me, from that question: drops the example and opens measuring. */
   onMeasureMe?: () => void;
+  /** Back to the measurements, from a pattern that can't be drafted to them. */
+  onEditMeasurements?: () => void;
   /** The sewist's unit; the PDF's text is written in inches when it is `in`. */
   unit?: Unit;
   /** The paper picked last time, kept with the rest of the work; without one, inches start on US Letter. */
@@ -160,7 +162,7 @@ const printedDate = () => new Date().toLocaleDateString('en-GB', { day: 'numeric
 
 const FRACTION_WORDS: Record<string, string> = { '⅛': '1-8', '¼': '1-4', '⅜': '3-8', '½': '1-2', '⅝': '5-8', '¾': '3-4', '⅞': '7-8' };
 
-export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPaper, onPaper, sendLink, profile, title, lookName, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, onFitNotes, tester, emailTo, fitNote, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label, full }: Props) {
+export function ExportScreen({ example, onMeasureMe, onEditMeasurements, unit = 'cm', paper: savedPaper, onPaper, sendLink, profile, title, lookName, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, onFitNotes, tester, emailTo, fitNote, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label, full }: Props) {
   const can = (t: ProTool) => shows(mode, t);
   /** Knits fit by their stretch: tested in a spare knit, not a calico toile. */
   const knit = isKnit(garment);
@@ -277,6 +279,12 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
     return (
       <section className="card">
         <p className="msg error">{error ?? 'Add your measurements first.'}</p>
+        {/* The tab had no way back to Measure (pretend tester DV walk, Nov 21). */}
+        {onEditMeasurements && (
+          <button type="button" className="primary" onClick={onEditMeasurements}>
+            Check my measurements
+          </button>
+        )}
       </section>
     );
   }
@@ -638,6 +646,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
           style={style}
           metres={lays.find((l) => l.fabric !== 'lining' && l.fabric !== 'interlining' && !l.hide)?.metres}
           onChange={onEditFabric}
+          calico={tester ? guide.fabric?.find((l) => l.startsWith('Sewing in muslin')) : undefined}
         />
       )}
 
@@ -697,7 +706,9 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
 
       {/* The toile shows in the simple view too (measuring accuracy, 2026-10-21): a calico try-on fixes what a tape at
           home can't, so a first-time sewist is offered it before cutting good fabric. */}
-      {!imported && (
+      {/* Not for a fit tester, who sews the pattern as drafted and reports on the tester form: redrawn first, the pattern
+          and its code no longer match what was tested (pretend tester DV walk, Nov 21; Cat: hide it for testers). */}
+      {!imported && !tester && (
         <section className="card" aria-labelledby="toiletitle">
           <p className="eyebrow">Before you cut your fabric{fittingNotes.length && fitting ? ` · version ${fitting.round + 1}` : ''}</p>
           <h2 id="toiletitle">{knit ? 'Try it in a spare knit first' : fittingNotes.length ? 'Corrected after your toile' : 'Sew a test version first'}</h2>
@@ -912,7 +923,15 @@ function BuyShopFabric({ shop, colour, metres }: { shop: ShopFabric; colour?: st
 
 /** The fabric, as chosen on the style screen's Fabric tab (one place to choose it, Cat 2026-10-18): what it
  * is, whether it suits the style, where to buy it, and the way back to change it. */
-function YourFabric({ fabric, style, metres, onChange }: { fabric: MyFabric; style: Props['style']; metres?: number; onChange?: () => void }) {
+function YourFabric({ fabric, style, metres, onChange, calico }: { fabric: MyFabric; style: Props['style']; metres?: number; onChange?: () => void; calico?: string }) {
+  // Testers sew in calico, and the screen headlined only the look's own cloth, with its care ("Do not wash it"): the
+  // calico advice was in the booklet alone (pretend tester DV walk, Nov 21; Cat: add it for testers).
+  const forTest = calico && (
+    <p className="small fabnote tester-calico">
+      <b>For your fit test </b>
+      {calico}
+    </p>
+  );
   const shop = shopFabric(fabric.shop);
   const notes = checkFabric(style, fabric);
   const name = fabricName(fabric);
@@ -923,6 +942,7 @@ function YourFabric({ fabric, style, metres, onChange }: { fabric: MyFabric; sty
         <p className="eyebrow" id="fabtitle">
           Your fabric
         </p>
+        {forTest}
         <div className="fabline">
           <p className="muted small">Not chosen yet. It sets the cutting layout and goes on the PDF.</p>
           {onChange && (
@@ -939,6 +959,7 @@ function YourFabric({ fabric, style, metres, onChange }: { fabric: MyFabric; sty
       <h2 id="fabtitle" className="fabhead">
         {name ? `${name}${metres !== undefined ? ` · ${metres} m` : ''}` : 'Not chosen yet'}
       </h2>
+      {forTest}
       <FabricStage fabric={fabric} />
       {shop && (
         <div className="shopbuy">
