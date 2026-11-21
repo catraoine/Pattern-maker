@@ -22,7 +22,7 @@ import { type Lay, hideSqFt, layWords } from './layplan';
 import type { Flat } from './flat';
 import { DIAGRAMS, DiagramId } from './diagrams';
 import { P } from './geometry';
-import { CODE_CARD_BOTTOM, Face, OVERLAP, PAGE_MARGIN, Paper, STYLES, Sheet, joinMarks, pageName, pageSize, tileGrid, usedTiles } from './export';
+import { CODE_CARD_BOTTOM, Face, OVERLAP, PAGE_MARGIN, Paper, STYLES, Sheet, joinMarks, pageName, pageSize, textCorners, tileGrid, usedTiles } from './export';
 
 // The page footer sits inside the 1 cm margin: closer to the edge most home printers cannot print, and some
 // drivers then offer to shrink the page, which breaks the scale.
@@ -325,7 +325,16 @@ function inkInBox(sheet: Sheet, view: { ox: number; oy: number; left: number; to
     if (pr.kind === 'poly') {
       const pts = pr.closed ? [...pr.pts, pr.pts[0]] : pr.pts;
       for (let i = 1; i < pts.length; i++) if (cross(pts[i - 1], pts[i])) return true;
-    } else if (inside(pr.at)) return true;
+    } else if (pr.text && pr.size) {
+      // The whole of a word, not only where it starts: "OVER D8" sat on a GRAIN whose start was off the box (DS walk,
+      // Nov 21).
+      const cs = textCorners(pr);
+      if (cs.some((q, i) => cross(q, cs[(i + 1) % 4]))) return true;
+      // Or the box wholly inside a big word.
+      const mid = { x: (x0 + x1) / 2, y: (y0 + y1) / 2 };
+      const sides = cs.map((q, i) => { const r = cs[(i + 1) % 4]; return (r.x - q.x) * (mid.y - q.y) - (r.y - q.y) * (mid.x - q.x); });
+      if (sides.every((v) => v >= 0) || sides.every((v) => v <= 0)) return true;
+    }
   }
   return false;
 }
@@ -365,7 +374,10 @@ function diamond(page: PDFPage, x: number, y: number, label: string, side: Side,
   const box = (at: { x: number; y: number }) => ({ x: at.x - 1, y: at.y - 2, w: w + 2, h: size + 2 });
   const free = tries.find((at) => clear(box(at)));
   const at = free ?? tries[0];
-  if (!free) for (const [dx, dy] of [[-0.7, 0], [0.7, 0], [0, -0.7], [0, 0.7], [-0.5, -0.5], [0.5, 0.5], [-0.5, 0.5], [0.5, -0.5]]) page.drawText(label, { x: at.x + dx, y: at.y + dy, size, font, color: rgb(1, 1, 1) });
+  // The edge twice as wide as it was, so the line stops well short of the letters ("UNDER B1" still read as crossed,
+  // DS walk, Nov 21).
+  const halo = [[-1, 0], [1, 0], [0, -1], [0, 1], [-0.7, -0.7], [0.7, 0.7], [-0.7, 0.7], [0.7, -0.7]].flatMap(([dx, dy]) => [0.7, 1.4].map((r) => [dx * r, dy * r]));
+  if (!free) for (const [dx, dy] of halo) page.drawText(label, { x: at.x + dx, y: at.y + dy, size, font, color: rgb(1, 1, 1) });
   page.drawText(label, { ...at, size, font, color: rgb(0, 0, 0) });
 }
 
@@ -483,7 +495,9 @@ export async function toTiledPdf(sheet: Sheet, paper: Paper, extras?: PdfExtras)
         const [first, second] = joinMarks('below', r).map((f) => (PAGE_MARGIN + tw * f) * CM);
         if (footerX + footWidth(footerLine) > first - clear) {
           footerX = first + clear;
-          const shorter = [`${number} OF ${total}   ·   PRINT AT 100% / ACTUAL SIZE`, `${number} OF ${total}   ·   PRINT AT 100%`];
+          // Keeping "/ ACTUAL SIZE" longest, the words most print boxes use: closer set, then without the page count,
+          // before it goes (A4 pages lost it, DS walk, Nov 21).
+          const shorter = [`${number} OF ${total}   ·   PRINT AT 100% / ACTUAL SIZE`, `${number} OF ${total} · PRINT AT 100% / ACTUAL SIZE`, 'PRINT AT 100% / ACTUAL SIZE', `${number} OF ${total}   ·   PRINT AT 100%`];
           footerLine = shorter.find((t) => footerX + footWidth(t) < second - clear) ?? `${number} OF ${total}`;
         }
         // From the cut line (the print area's edge where nothing is cut), so the grey strip isn't notched (DR walk, Nov
@@ -786,16 +800,42 @@ function addMapPage(doc: PDFDocument, fonts: Fonts, sheet: Sheet, paper: 'a4' | 
     }),
   );
   // Page names as large as the boxes allow, so each taped page can be found on the map at a glance. They go on last,
-  // each on a white patch, so the piece outlines and the next page's edge don't run through them (DR walk, Nov 20).
+  // in the top left corner or the middle of the page, where no piece's outline crosses, so the outlines don't run through them (DR walk,
+  // Nov 20; DS walk, Nov 21: on a white patch alone, "H2", "H3" and "H4" sat on a waistband's line). Where every place
+  // is crossed, the top left, on a white patch.
   const size = Math.max(7, Math.min(16, ph0 * k * 0.18));
+  const cuts = sheet.prims.filter((pr) => pr.kind === 'poly' && pr.style === 'cut').map((pr) => (pr.kind === 'poly' ? [...pr.pts, pr.pts[0]] : []));
+  // Whether an outline crosses a box on the map (x, y its lower left, in points).
+  const crossed = (b: { x: number; y: number; w: number; h: number }) => {
+    const [bx0, bx1, by0, by1] = [(b.x - x0) / k, (b.x + b.w - x0) / k, (y0 - b.y - b.h) / k, (y0 - b.y) / k];
+    const inside = (q: P) => q.x >= bx0 && q.x <= bx1 && q.y >= by0 && q.y <= by1;
+    return cuts.some((pts) =>
+      pts.some((q, i) => {
+        if (!i) return false;
+        const a = pts[i - 1];
+        if (inside(a) || inside(q)) return true;
+        if (Math.max(a.x, q.x) < bx0 || Math.min(a.x, q.x) > bx1 || Math.max(a.y, q.y) < by0 || Math.min(a.y, q.y) > by1) return false;
+        const side = (c: P) => (q.x - a.x) * (c.y - a.y) - (q.y - a.y) * (c.x - a.x);
+        const cs = [side({ x: bx0, y: by0 }), side({ x: bx1, y: by0 }), side({ x: bx0, y: by1 }), side({ x: bx1, y: by1 })];
+        return Math.min(...cs) <= 0 && Math.max(...cs) >= 0;
+      }),
+    );
+  };
   used.forEach((row, r) =>
     row.forEach((on, c) => {
       if (!on) return;
       const a = at({ x: c * stepX, y: r * stepY });
       const name = pageName(r, c);
       const w = fonts.label.widthOfTextAtSize(name, size) + 0.1 * size * (name.length - 1);
-      st.page.drawRectangle({ x: a.x + 2.5, y: a.y - size - 4.5, width: w + 3, height: size + 3, color: rgb(1, 1, 1) });
-      drawText(st.page, name, { x: a.x + 4, y: a.y - size - 3, size, font: fonts.label, tracking: 0.1, grey: 0.35 });
+      // Then about the middle of the page's own part of the box: in a right or lower corner, the name sat beside the
+      // next page's and read as one ("A6A7").
+      const [mx, my] = [a.x + (stepX * k - w) / 2, a.y - (stepY * k + size) / 2];
+      const places = [{ x: a.x + 4, y: a.y - size - 3 }, ...[0, 1, -1, 2, -2].map((d) => ({ x: mx, y: my + d * size * 1.2 }))];
+      const patch = (q: { x: number; y: number }) => ({ x: q.x - 1.5, y: q.y - 1.5, w: w + 3, h: size + 3 });
+      const free = places.find((q) => !crossed(patch(q)));
+      const q = free ?? places[0];
+      if (!free) st.page.drawRectangle({ x: q.x - 1.5, y: q.y - 1.5, width: w + 3, height: size + 3, color: rgb(1, 1, 1) });
+      drawText(st.page, name, { x: q.x, y: q.y, size, font: fonts.label, tracking: 0.1, grey: 0.35 });
     }),
   );
   st.y -= sheet.height * k + 10;

@@ -171,6 +171,20 @@ describe('the page footers', () => {
     });
 });
 
+describe('the grain and fold words', () => {
+  // DS walk, Nov 21: "FOLD" sat on "PAGE D9". They keep out of the footer row where they can: 35 sat in it across these
+  // pieces and bodies, and the 8 left would land on a diamond if pushed out.
+  it('are seldom in the footer row', () => {
+    const hit = ['blush-shift', 'ice-peplum', 'black-pleated-skirt', 'chocolate-barrel', 'black-vest'].flatMap((id) =>
+      Object.values(BODIES).flatMap((values) => {
+        const print = made(id, values);
+        return footerCollisions(layout(print.pieces, `Maison Tracé: ${id}`, print.notes, { pattern: id })).filter((h) => /^(GRAIN|FOLD|PLACE ON FOLD|CREASE LINE ON GRAIN)$/.test(h.text));
+      }),
+    );
+    expect(hit.length).toBeLessThanOrEqual(8);
+  });
+});
+
 describe('the page cut lines', () => {
   // DR walk, Nov 20: "ALLOWANCE" ran across skirt page A2's cut line, so half of it was cut away with the strip. The
   // seam names and the finished measurement words keep off the cut lines where they have room: 74 of them crossed one

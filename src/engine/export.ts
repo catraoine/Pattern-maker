@@ -183,6 +183,14 @@ function textBox(at: P, text: string, size: number, rotate: number, tracking = 0
   return { c: add(at, mul(n, -size * 0.32)), u, n, hw: textWidth(text, size, tracking) / 2 + pad, hh: size * 0.38 + pad };
 }
 
+/** A text's footprint on the sheet, as its four corners: what the page's own marks (the joining diamonds' words) keep off. */
+export function textCorners(pr: Extract<Prim, { kind: 'text' }>): P[] {
+  const b = textBox(pr.at, pr.text, pr.size, pr.rotate, pr.tracking ?? 0, 0);
+  const [a, c, d, e] = corners(pr.anchor === 'start' ? { ...b, c: add(b.c, mul(b.u, b.hw)) } : b);
+  // In order round the word.
+  return [a, c, e, d];
+}
+
 /** A box along a line (a grain arrow), `across` wide. */
 function lineBox(a: P, b: P, across: number): Box {
   const u = unit(sub(b, a));
@@ -821,7 +829,10 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
           ...(pc.alternate ? [`TRIM YOUR ${pc.alternate.label.split(' ')[0]} SIDE TO THE ${pc.alternate.label} LINE`] : []),
           ...(pc.kind
             ? []
-            : [info.pattern.toUpperCase(), [info.madeFor && `MADE FOR ${info.madeFor}`, info.date, info.edition].filter(Boolean).join(' · ').toUpperCase()]),
+            : // The look's own name where it has one: the whole description ("Ruffled crew neck princess top with long
+              // bishop sleeves…") made the block too big for its piece, and it ran into the cut strip (DS walk, Nov 21).
+              // The cover and the booklet keep the description.
+              [(info.name ?? info.pattern).toUpperCase(), [info.madeFor && `MADE FOR ${info.madeFor}`, info.date, info.edition].filter(Boolean).join(' · ').toUpperCase()]),
         ].filter(Boolean);
         const trace = pc.meta.threadTrace ? 'THREAD-TRACE THE STITCHING LINE' : '';
         // The name block keeps off the diamonds themselves only: kept off their words as well, the skirt's side front
@@ -889,7 +900,7 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
               (within({ ...bx, hw: bx.hw - 0.15, hh: bx.hh - 0.15 }, stitch) ? 0 : 1e4) +
               obstacles.filter((o) => overlaps(o, bx)).length * 100 +
               blockMarks.filter((ln) => crossesLine(bx, ln)).length * 50 +
-              cuts.filter((o) => overlaps(o, bx)).length * 20
+              [...cuts, ...footers].filter((o) => overlaps(o, bx)).length * 20
             );
           };
           shift = p(0, 0);
@@ -951,6 +962,9 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
       // across it (the pleat instructions) moved onto a diamond.
       ...arrow.map((box) => ({ prim: { kind: 'text' as const, at: box.c, text: '', size: 0, rotate: 0, anchor: 'middle' as const }, box, rank: 0, minRank: 3 })),
       ...cuts.map((box) => ({ prim: { kind: 'text' as const, at: box.c, text: '', size: 0, rotate: 0, anchor: 'middle' as const }, box, rank: 0, minRank: 2, soft: true })),
+      // The grain and fold words keep out of the footer row too where they can: "FOLD" sat on "PAGE D9" (DS walk, Nov
+      // 21). Only where they can, as pushed out they landed on a diamond.
+      ...footers.map((box) => ({ prim: { kind: 'text' as const, at: box.c, text: '', size: 0, rotate: 0, anchor: 'middle' as const }, box, rank: 0, minRank: 1, soft: true })),
     ];
     labs.push(...furniture);
     settle(labs, stitch, marks);
