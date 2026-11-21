@@ -13,6 +13,7 @@ import { Piece, withAlternate } from './piece';
 import { DraftError, Side, cm } from './skirt';
 import type { DartPlace, PrincessLine } from './manipulate';
 import { moveFrontDart, princessPieces } from './shaping';
+import { blendWaist } from './waistBlend';
 import { BackNeck, KEYHOLE, backDepthFor, backNeckOf } from './backNeck';
 import { Buttons, CAPE_NECKS, Closure, Collar, EXTENSION_CM, ShirtCut, RUFFLE_NECKS, capeDepth, backNeckFacing, poloSlit, backOnFold, buttonPlaces, collarPieces, frontFacing, isBandCollar, openFront } from './collar';
 import { DrapeInfo, Peplum, PeplumHem, PeplumInfo, PeplumSize, drapeBodice, drapeStyle, isDraped } from './drape';
@@ -513,7 +514,8 @@ function shape(d: BodiceDraft, s: BodiceStyle): BodiceDraft {
     return {
       ...d,
       block: [front, back],
-      pieces: pp.pieces,
+      // A peplum top's seams run on below the waist to the peplum seam, and are blended through it (see waistBlend.ts).
+      pieces: d.drop > 0 && s.peplum && s.peplum !== 'none' ? pp.pieces.map((pc) => blendWaist(pc, ['side', 'princess'])) : pp.pieces,
       styleLines: { skip: 'all', front: [{ pts: pp.lines.front, kind: 'seam' }], back: [{ pts: pp.lines.back, kind: 'seam' }] },
     };
   }
