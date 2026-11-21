@@ -92,7 +92,7 @@ export function eraLine(eraId: string): EraPiece[] {
     line: l.about,
     fabric: l.fabric,
     garment: 'skirt',
-    choices: skirtLook({ fit: l.fit, silhouette: l.silhouette, length: l.length, look: l.id }),
+    choices: skirtLook({ fit: l.fit, silhouette: l.silhouette, length: l.length, look: l.id, ...(l.floorClear !== undefined ? { floorClear: l.floorClear } : {}), ...(l.flareCm !== undefined ? { flareCm: l.flareCm } : {}) }),
   }));
   return [...skirts, ...PIECES.filter((p) => p.era === era.id)].map((p, i) => ({ ...p, number: i + 1 }));
 }
