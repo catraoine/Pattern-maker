@@ -629,6 +629,7 @@ export function ExportScreen({ example, onMeasureMe, onEditMeasurements, unit = 
           style={style}
           metres={lays.find((l) => l.fabric !== 'lining' && l.fabric !== 'interlining' && !l.hide)?.metres}
           onChange={onEditFabric}
+          calico={tester ? guide.fabric?.find((l) => l.startsWith('Sewing in muslin')) : undefined}
         />
       )}
 
@@ -688,7 +689,9 @@ export function ExportScreen({ example, onMeasureMe, onEditMeasurements, unit = 
 
       {/* The toile shows in the simple view too (measuring accuracy, 2026-10-21): a calico try-on fixes what a tape at
           home can't, so a first-time sewist is offered it before cutting good fabric. */}
-      {!imported && (
+      {/* Not for a fit tester, who sews the pattern as drafted and reports on the tester form: redrawn first, the pattern
+          and its code no longer match what was tested (pretend tester DV walk, Nov 21; Cat: hide it for testers). */}
+      {!imported && !tester && (
         <section className="card" aria-labelledby="toiletitle">
           <p className="eyebrow">Before you cut your fabric{fittingNotes.length && fitting ? ` · version ${fitting.round + 1}` : ''}</p>
           <h2 id="toiletitle">{knit ? 'Try it in a spare knit first' : fittingNotes.length ? 'Corrected after your toile' : 'Sew a test version first'}</h2>
@@ -903,7 +906,15 @@ function BuyShopFabric({ shop, colour, metres }: { shop: ShopFabric; colour?: st
 
 /** The fabric, as chosen on the style screen's Fabric tab (one place to choose it, Cat 2026-10-18): what it
  * is, whether it suits the style, where to buy it, and the way back to change it. */
-function YourFabric({ fabric, style, metres, onChange }: { fabric: MyFabric; style: Props['style']; metres?: number; onChange?: () => void }) {
+function YourFabric({ fabric, style, metres, onChange, calico }: { fabric: MyFabric; style: Props['style']; metres?: number; onChange?: () => void; calico?: string }) {
+  // Testers sew in calico, and the screen headlined only the look's own cloth, with its care ("Do not wash it"): the
+  // calico advice was in the booklet alone (pretend tester DV walk, Nov 21; Cat: add it for testers).
+  const forTest = calico && (
+    <p className="small fabnote tester-calico">
+      <b>For your fit test </b>
+      {calico}
+    </p>
+  );
   const shop = shopFabric(fabric.shop);
   const notes = checkFabric(style, fabric);
   const name = fabricName(fabric);
@@ -914,6 +925,7 @@ function YourFabric({ fabric, style, metres, onChange }: { fabric: MyFabric; sty
         <p className="eyebrow" id="fabtitle">
           Your fabric
         </p>
+        {forTest}
         <div className="fabline">
           <p className="muted small">Not chosen yet. It sets the cutting layout and goes on the PDF.</p>
           {onChange && (
@@ -930,6 +942,7 @@ function YourFabric({ fabric, style, metres, onChange }: { fabric: MyFabric; sty
       <h2 id="fabtitle" className="fabhead">
         {name ? `${name}${metres !== undefined ? ` · ${metres} m` : ''}` : 'Not chosen yet'}
       </h2>
+      {forTest}
       <FabricStage fabric={fabric} />
       {shop && (
         <div className="shopbuy">

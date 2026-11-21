@@ -128,7 +128,9 @@ export const COLLECTION: HouseLook[] = [
     number: 2,
     set: 'The Black Vest Set',
     name: 'Black Vest',
-    line: 'A long, boxy vest with square corners and straight sides, a big collar pointing down over a small lapel, and three big buttons below a seam across the chest.',
+    // In the words of its drawing and pattern: the card's "square corners" and "big collar pointing down" matched neither
+    // (pretend tester DV walk, Nov 21; Cat: rewrite it to match the drawing).
+    line: 'A long, boxy single-breasted vest with straight sides, a notched collar and lapels, three buttons, welt pockets and a seam across the chest.',
     fabric: 'Black crisp wool gabardine',
     garment: 'jacket',
     choices: { ...DEFAULT_JACKET_CHOICES, fit: 'oversized', length: 'long', shaping: 'boxy', collar: 'notched', lapel: 'high', pockets: 'welt', sleeve: 'none', pads: 'none', dropCm: 30, easeCm: 29, breakCm: 17, buttons: 3, buttonGapCm: 14, shoulderCm: 9.5, buttonSizeCm: 3, buttonholes: 'horizontal', yokeCm: 19, vent: 'none', houseCut: true },
