@@ -34,9 +34,8 @@ phone, in short bursts, often by voice dictation. Everything here is a standing 
 
 - **"apply"** = build it and open a green PR. Nothing goes into the app before "apply".
 - **"bye"** = "apply" (dictation mishears it; she never says bye to Claude).
-- **"ship"** = merge every green PR in the repo as one release (not only the asking thread's).
-  "Ship" must be written in the working thread; one sent only in the project chat should be
-  confirmed there.
+- **"ship"** = Cat writes it only in the current Releases thread; Releases then ships every ready,
+  green change together (Nov 17). Fixes that land close together go out with one ship.
 - **"send me the draft"** = show it in the thread. Only email someone when Cat says to send it to them.
 
 ## Films, stills and visuals
@@ -71,6 +70,5 @@ phone, in short bursts, often by voice dictation. Everything here is a standing 
 
 ## Rules from Cat, Nov 17 (all departments)
 
-- One ship line: any deploy goes to Cat as ONE combined line, which she writes in the Releases thread: "Deploy <change> to maisontrace.co". Ship items in the 6 pm batch use that same line, and her "all" for the batch does not cover them.
 - Every check and walkthrough covers phone AND laptop/desktop (1280, 1366, 1440 and 1920 wide). Testers use computers too. On Nov 17 the collection and the Measure list were found broken on a laptop after every walk had been done at iPhone size.
 - Before any file or draft link reaches Cat, open that exact file or draft and confirm it is the new version.
