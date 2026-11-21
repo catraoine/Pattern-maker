@@ -3,7 +3,8 @@ name: Quality checks nightly
 # Every night, the Quality: Automated checks department's checks at full size (Cat, 2026-11-04). The same checks run on
 # every pull request at a smaller size (see e2e.yml); this run only reports. The department's nightly read takes the
 # "Summary" step's log and tells Cat only when something got worse.
-# - Pattern geometry: every option of every garment, on the example body and on random bodies (src/patternSweep.ts).
+# - Pattern geometry: every option of every garment, on the example body and on random bodies (src/patternSweep.ts), and
+#   on random men's bodies on the menswear form.
 # - Fit sweep: 300 new random bodies each night, a random design of every garment on each (src/fitSweep.ts).
 # - Print check: the sample patterns' PDFs on A4, Letter and A0, rendered and measured (src/printCheck.ts).
 # - Front drawing: every option's drawing on the form, read out of the real app and scored (src/frontCheck.ts).
@@ -39,14 +40,20 @@ jobs:
         env:
           PATTERN_BODIES: ${{ github.event.inputs.bodies || '20' }}
           PATTERN_BODIES_REPORT: pattern-bodies.md
+      - run: npx vitest run src/patternSweep.test.ts -t "menswear form"
+        if: ${{ !cancelled() }}
+        env:
+          PATTERN_MENSWEAR: '10'
+          PATTERN_MENSWEAR_REPORT: pattern-menswear.md
       - name: Report
         if: ${{ !cancelled() }}
-        run: cat pattern-options.md pattern-bodies.md >> "$GITHUB_STEP_SUMMARY" || true
+        run: cat pattern-options.md pattern-bodies.md pattern-menswear.md >> "$GITHUB_STEP_SUMMARY" || true
       - name: Summary
         if: ${{ !cancelled() }}
         run: |
           head -6 pattern-options.md || true
           head -8 pattern-bodies.md || true
+          head -8 pattern-menswear.md || true
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
@@ -54,6 +61,7 @@ jobs:
           path: |
             pattern-options.md
             pattern-bodies.md
+            pattern-menswear.md
 
   fit:
     name: Fit sweep on 300 new random bodies

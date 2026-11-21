@@ -4,7 +4,7 @@
 // shoulders, the sleeve crown into the armhole, waist seams, collars, yokes, princess lines), the notches on two edges
 // that sew together sit at the same place along them, and no piece's stitching or cutting line crosses itself.
 // patternSweep.test.ts runs it on every pull request and nightly, held to src/patternOptions.json.
-import { EXAMPLE_BODY, Garment, MeasurementValues } from './measurements';
+import { EXAMPLE_BODY, FormKind, Garment, MeasurementValues } from './measurements';
 import { GARMENT_DRAFTING, DraftInputs, dressOf, skirtStyleOf, trousersChoicesOf } from './garmentDrafts';
 import { DEFAULT_FINISH, INITIAL, Finish, Saved } from './savedWork';
 import { DEFAULT_TEE_CHOICES, DEFAULT_TROUSERS_CHOICES, TEE_GROUPS, TROUSER_GROUPS, TrousersChoices, trouserAllowed, validTrousers } from './garments';
@@ -52,10 +52,10 @@ export function patternDesigns(): PatternDesign[] {
 }
 
 /** The design's drafts and its printed pattern, as the app and the print screen build them. */
-export function printedPattern(d: Omit<PatternDesign, 'key'>, values: MeasurementValues = EXAMPLE_BODY) {
+export function printedPattern(d: Omit<PatternDesign, 'key'>, values: MeasurementValues = EXAMPLE_BODY, form: FormKind = 'womenswear') {
   const saved = { ...INITIAL, ...d.saved } as Saved;
   const finish: Finish = { ...DEFAULT_FINISH, ...d.finish };
-  const inputs: DraftInputs = { saved, form: 'womenswear', fabric: undefined };
+  const inputs: DraftInputs = { saved, form, fabric: undefined };
   const result = GARMENT_DRAFTING[d.garment].draft(values, inputs, undefined);
   const made = printableFor({
     result,
@@ -75,8 +75,8 @@ export function printedPattern(d: Omit<PatternDesign, 'key'>, values: Measuremen
 }
 
 /** The printed pattern's pieces and its finished waist, as the print screen builds them. */
-function patternOf(d: PatternDesign, values: MeasurementValues = EXAMPLE_BODY): { pieces: Piece[]; finishedWaist?: number } {
-  const { made } = printedPattern(d, values);
+function patternOf(d: PatternDesign, values: MeasurementValues, form: FormKind): { pieces: Piece[]; finishedWaist?: number } {
+  const { made } = printedPattern(d, values, form);
   const waist = (made.spec.find((r) => /^Waist seam, /.test(r.label)) ?? made.spec.find((r) => isWaistRow(r.label)))?.finished;
   return { pieces: made.pieces, finishedWaist: typeof waist === 'number' ? waist : undefined };
 }
@@ -324,9 +324,10 @@ export function patternReport(results: PatternResult[], c: ReturnType<typeof che
   return lines.join('\n');
 }
 
-export function walkDesign(d: PatternDesign, values: MeasurementValues = EXAMPLE_BODY): PatternResult {
+/** One design's pattern walked; on the menswear form when asked (the nightly menswear pass, Nov 21). */
+export function walkDesign(d: PatternDesign, values: MeasurementValues = EXAMPLE_BODY, form: FormKind = 'womenswear'): PatternResult {
   try {
-    const { pieces, finishedWaist } = patternOf(d, values);
+    const { pieces, finishedWaist } = patternOf(d, values, form);
     return { key: d.key, problems: patternProblems(pieces, finishedWaist) };
   } catch (e) {
     return { key: d.key, problems: [], error: String(e) };
