@@ -246,7 +246,7 @@ export default function App() {
     }
   });
   const [startView] = useState<View>(incoming?.kind === 'ask' ? 'link' : incoming?.kind === 'reply' ? 'arrive' : isMoveLink(window.location.hash) ? 'move' : legalPath(window.location.pathname) ?? 'welcome');
-  const [step, setStep] = useViewHistory<View>(startView, (to) => (NEEDS_MEASUREMENTS.includes(to) && !canLeaveMeasure ? 'measure' : to), ladder);
+  const [step, setStep] = useViewHistory<View>(startView, (to) => (NEEDS_MEASUREMENTS.includes(to) && !canLeaveMeasure ? 'measure' : to), ladder, (to) => to === 'account');
   // A look just made opens on itself on Style, after any measurements it asks for first; gone anywhere else, it doesn't
   // carry over to the next garment's Style.
   useEffect(() => {
