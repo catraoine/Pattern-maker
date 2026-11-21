@@ -600,6 +600,11 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                 </button>
               </p>
             )}
+            {/* A dress cut in one greys the choices that need a waist seam; without the reason they read as broken
+                (desktop review, Nov 21). */}
+            {noSeam && g.id !== 'noSeam' && g.options.some(([id]) => !cutAllows(g.id, id)) && (
+              <p className="muted small sleeve-why">The greyed ones need a waist seam. This dress is cut in one piece.</p>
+            )}
             <div className={chipsClass((['noSeam', 'silhouette', 'length', 'asymHem', 'slit', 'gathers'].includes(g.id) ? 'skirt' : 'bodice'), g.id)}>
               {g.options.map(([id, label]) => (
                 <button

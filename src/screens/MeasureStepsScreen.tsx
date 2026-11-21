@@ -10,6 +10,7 @@ import { Title } from '../ui/Title';
 import type { PatternChoices } from '../garments';
 import { keepMenswear, menswearOpen, testingNote } from '../launch';
 import { TestingTag } from '../ui/TestingTag';
+import { MakePic } from '../ui/MakePic';
 import { ideaChoices, ideaRows, pieceGarment } from '../photo/idea';
 import { isSwimIntimates } from '../photo/swim';
 import { InterestCard } from '../ui/InterestCard';
@@ -341,7 +342,8 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
           )}
           {[...GARMENTS, 'other' as const].map((g) => (
             <button key={g} type="button" aria-current={picked === g || undefined} className={picked === g ? 'on' : ''} onClick={(e) => tapToMake(g, e)}>
-              {g === 'other' ? 'Something else' : cap(GARMENT_NAME[g])}
+              <MakePic garment={g} />
+              <span className="make-name">{g === 'other' ? 'Something else' : cap(GARMENT_NAME[g])}</span>
             </button>
           ))}
         </div>
@@ -360,7 +362,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
           A few words is enough. Name the garment and anything you love about it. We use AI to read your words, then you check the style
           before we draft.{' '}
           {onMade && (
-            <button type="button" className="inline-link" onClick={onMade}>
+            <button type="button" className="link inline-link" onClick={onMade}>
               How your pattern is made
             </button>
           )}

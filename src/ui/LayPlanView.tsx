@@ -1,7 +1,7 @@
 import { useId } from 'react';
 import type { Lay } from '../engine/layplan';
 import { PrintKind, printImage, printTileCm } from '../engine/prints';
-import { tileUrl } from './FabricFill';
+import { TintFilter, tileUrl } from './FabricFill';
 
 /** One fabric tile, in cm, as on the style sketch. */
 const TILE = 16;
@@ -14,7 +14,7 @@ const TILE = 16;
  * motifs are lined up so one sits in the middle of the front, and a border runs along the selvedge.
  */
 /** `size` writes the length and width under the drawing: only needed when a page shows more than one layout, since one layout's size is already its heading (Cat, Nov 11 2026: say it once). */
-export function LayPlanView({ lay, cloth = 'default', print, size: showSize = true }: { lay: Lay; cloth?: string; print?: { kind: PrintKind; repeat?: number; stripes?: boolean; gingham?: boolean }; size?: boolean }) {
+export function LayPlanView({ lay, cloth = 'default', tint, print, size: showSize = true }: { lay: Lay; cloth?: string; /** The cloth's colour, as a tint table (clothTint): the layout is drawn in it. */ tint?: [string, string, string]; print?: { kind: PrintKind; repeat?: number; stripes?: boolean; gingham?: boolean }; size?: boolean }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const L = lay.length + 4;
   const H = lay.across;
@@ -30,8 +30,9 @@ export function LayPlanView({ lay, cloth = 'default', print, size: showSize = tr
     <svg viewBox={`0 ${-size * 2.2} ${L} ${H + size * 4.4}`} className={shown ? 'layplan lay-printed' : 'layplan'} role="img" aria-label={`Cutting layout on ${lay.width} cm fabric, ${lay.metres.toFixed(1)} metres`}>
       <defs>
         <pattern id={`cloth${uid}`} patternUnits="userSpaceOnUse" width={TILE} height={TILE} patternTransform="rotate(90)">
-          <image href={tileUrl(cloth)} width={TILE} height={TILE} preserveAspectRatio="none" />
+          <image href={tileUrl(cloth)} width={TILE} height={TILE} preserveAspectRatio="none" filter={tint ? `url(#tint${uid})` : undefined} />
         </pattern>
+        {tint && <TintFilter id={`tint${uid}`} table={tint} />}
         {shown && (
           <pattern
             id={`print${uid}`}

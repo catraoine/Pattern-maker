@@ -1,0 +1,180 @@
+/* The desktop design review (Nov 20): the live site walked on laptop and desktop screens, and what it found. */
+
+/* 1. Style on a computer: the drawing stays in view while a long list of choices scrolls beside it. Its box was
+   stretched to the full height of the page (the Fabric list runs to 3,000 px), so there was nothing left for it to
+   stay pinned inside, and scrolling the choices left the left two thirds of the screen empty. */
+@media (min-width: 1100px) {
+  .style-pin > section {
+    align-self: start;
+  }
+}
+
+/* 5. What would you like to make?: a small line drawing on every garment, and four across on a computer. */
+.make-grid button:not(.make-looks) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 8px 12px;
+}
+.make-pic {
+  width: 40px;
+  height: 48px;
+  fill: none;
+  stroke: var(--gild);
+  stroke-width: 1.1;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.make-pic .pic-faint {
+  stroke: var(--muted);
+  stroke-dasharray: 2 2;
+  stroke-width: 0.8;
+}
+.make-grid button.on .make-pic,
+.make-grid button.on .make-pic .pic-faint {
+  stroke: var(--paper);
+}
+@media (min-width: 900px) and (min-aspect-ratio: 1/1) {
+  .measure-step.centred:has(.make-grid) {
+    max-width: 760px;
+  }
+  .make-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .make-pic {
+    width: 50px;
+    height: 60px;
+  }
+}
+
+/* 6. Measuring on a short laptop screen (a 13 inch laptop leaves about 650 px under the browser's bars): Next was cut
+   off by the bottom edge on every measuring page, so each one needed a scroll. Under 760 px of height the words
+   start higher and the heading comes down a size, so the number box and Next stay in view. */
+@media (min-width: 960px) and (min-aspect-ratio: 1/1) and (max-height: 760px) {
+  .measure-step.has-hero .step-words {
+    padding-top: 20px;
+    gap: 10px;
+  }
+  .measure-step.has-hero .step-words h1 {
+    font-size: 48px;
+  }
+  .measure-step.has-hero .step-words .entry-box {
+    padding-top: 0;
+  }
+  .measure-step.has-hero .step-words .step-next {
+    margin-top: 10px;
+  }
+}
+
+/* Your look page (desktop review, Nov 21): the drawing sat small in a black window, when every other garment window
+   in the app is chalk (Style, Print, saved patterns). It takes the same chalk and ink as src/styles/34-chalk-windows.css
+   (change both together), and the drawing is let grow so the garment is the first thing seen. */
+.style-review .envelope {
+  --ink: #1d1a17;
+  --gild: #2a2622;
+  --gild-glow: #1d1a17;
+  --muted: #5e5547;
+  --line-strong: #2a2622;
+  --guide: #b9b2a4;
+  color: var(--ink);
+  background: #dcd5c7;
+  border-color: #dcd5c7;
+}
+.style-review .envelope figcaption * {
+  color: var(--ink);
+}
+.style-review .envelope .techflat .flat-shape {
+  fill: var(--garment, #f6f2ea);
+}
+.style-review .envelope .env-art .techflat {
+  max-height: min(36vh, 340px);
+}
+/* Print is the one thing to do on this page, so it is the filled champagne button on a computer too, as it already is
+   in the bar at the foot of a phone. */
+.style-review > .review-print-bar > .review-print:not(:disabled) {
+  background: var(--gild);
+  border-color: var(--gild);
+  color: var(--paper);
+}
+
+/* Small polish (desktop review, Nov 21). */
+/* The header's back arrow comes and goes between screens, and Measure, Style and Print slid sideways each time it
+   did. On a computer it sits out of the row's flow, so the three stay put. */
+@media (min-width: 900px) {
+  .steady-row {
+    position: relative;
+  }
+  .steady-row > .steady-back {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    translate: 0 -50%;
+  }
+}
+/* The length hint was pressed against the top edge of the questions panel on a computer. */
+@media (min-width: 1100px) {
+  .style-panel > .length-hint {
+    margin: 18px 0 -2px;
+  }
+}
+/* On a phone the fabric cards run in one line and the picked card grows a little. On a computer they wrap into rows,
+   and the bigger card pushed its row out of line and bumped a card to the next row. There the picked card keeps its
+   size and is marked by an outline instead. */
+@media (min-width: 1100px) {
+  .style-panel .swatch-row .swatch.on,
+  .style-panel .printtile.on {
+    --card-w: 72px;
+    --tex-h: 96px;
+  }
+  .style-panel .shopfab.on {
+    --card-w: 112px;
+    --tex-h: 96px;
+  }
+  .style-panel .colourdots .colourdot.on {
+    --card-w: 52px;
+    --tex-h: 48px;
+  }
+  .style-panel :is(.swatch, .colourdot, .shopfab, .printtile).on {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+  }
+  .style-panel .on > .card-name,
+  .style-panel .on > .shopfab-text {
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
+}
+/* The account's row of small links ran past the column of rows above it and sat hard under the last line. */
+@media (min-width: 1100px) {
+  .account > .fineprint.plain {
+    max-width: 720px;
+    margin-top: 18px;
+    line-height: 1.9;
+  }
+}
+/* "Tips" is already underlined as a link; the browser's own triangle beside it looked unfinished. */
+.phototips summary {
+  list-style: none;
+}
+.phototips summary::-webkit-details-marker {
+  display: none;
+}
+/* Print's Demo links are set very small for a phone held close; on a computer they could hardly be read. */
+@media (min-width: 900px) {
+  body:has(.print-top) .main .demo-play {
+    font-size: 11px;
+  }
+}
+/* With pictures, two across made this list a long scroll on a phone; three across keeps nearly all of it on one
+   screen, as the words-only list was. */
+@media (max-width: 899px) {
+  .make-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .make-grid button:not(.make-looks) {
+    font-size: 14px;
+    padding: 12px 4px 10px;
+  }
+}
