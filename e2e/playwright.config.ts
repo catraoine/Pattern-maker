@@ -77,13 +77,13 @@ export default defineConfig({
       name: 'mac-safari',
       testMatch: [...SAFARI_GATE, 'computer-screens.spec.ts'],
       grepInvert: SAFARI_LEFT_OUT,
-      use: { ...devices['Desktop Safari'], viewport: { width: 1280, height: 800 }, launchOptions: {} },
+      use: { ...devices['Desktop Safari'], browserName: 'webkit' as const, viewport: { width: 1280, height: 800 }, launchOptions: {} },
     }] : []),
     // Firefox on a computer, run nightly (E2E_FIREFOX): few sewists use it, so not on every change.
     ...(process.env.E2E_FIREFOX ? [{
       name: 'firefox',
       testMatch: [...SAFARI_GATE, 'computer-screens.spec.ts'],
-      use: { ...devices['Desktop Firefox'], viewport: { width: 1280, height: 800 }, launchOptions: {} },
+      use: { ...devices['Desktop Firefox'], browserName: 'firefox' as const, viewport: { width: 1280, height: 800 }, launchOptions: {} },
     }] : []),
   ],
   webServer: {
