@@ -8,7 +8,9 @@ const main = (page: Page) => page.getByRole('main');
 const SHOTS = process.env.SHOTS;
 const box = async (page: Page, sel: string) => (await page.locator(sel).first().boundingBox())!;
 
-for (const [w, h] of [[1280, 800], [1366, 768], [1440, 900], [1920, 1080]])
+// And an iPad on its side or a small laptop (1024), and Windows laptops set to 125% or 150% text (1536 x 864, 1280 x 720):
+// at 1024 the collection fell two across with Look 01 alone in a half row (desktop check, Nov 21).
+for (const [w, h] of [[1024, 768], [1280, 720], [1280, 800], [1366, 768], [1440, 900], [1536, 864], [1920, 1080]])
   test(`a tester's route lays out on a ${w} x ${h} screen`, async ({ page }, info) => {
     test.skip(info.project.name !== 'desktop', 'laptop and desktop screens only');
     test.setTimeout(3 * 60_000);

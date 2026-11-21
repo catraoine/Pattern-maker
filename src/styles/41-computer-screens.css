@@ -13,8 +13,10 @@
 }
 
 /* The collection on a computer: four looks across, a set taking two places side by side, so the numbered looks run in
-   order with no empty half rows, and each look is a quarter of the width, not one tall half. */
-@media (min-width: 1100px) {
+   order with no empty half rows, and each look is a quarter of the width, not one tall half. From 900 px: between
+   that and 1100 (an iPad on its side, a small laptop, a Windows laptop at 150%) the looks fell two across, and Look 01
+   sat alone in a half row before the first set (desktop check, Nov 21). */
+@media (min-width: 900px) {
   .collection {
     max-width: 1280px;
   }
