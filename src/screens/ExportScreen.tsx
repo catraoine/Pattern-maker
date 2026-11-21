@@ -31,7 +31,7 @@ import { Mode, ProTool, shows } from '../mode';
 import { ModeLink } from '../ui/ModeLink';
 import { countStep } from '../report/report';
 import { patternCode } from '../patternCode';
-import { TintFilter, clothTint, flatId } from '../ui/FabricFill';
+import { GarmentFabric, TintFilter, clothTint, flatId } from '../ui/FabricFill';
 import { amazonLink, amazonTagged, kit } from '../engine/projectorKit';
 import { buyAmount, buyLink, shopFabric, shopPrice, type ShopFabric } from '../engine/shopFabrics';
 import { canShareFiles, download } from '../ui/download';
@@ -347,6 +347,9 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
               </p>
             )}
           </div>
+          {/* The card's garment in the cloth picked in Style, as on Your look: it was drawn white beside "Wool, Blush"
+              (desktop review, Nov 21). */}
+          <GarmentFabric fabric={finish.fabric}>
           <div className="print-cover">
             <Envelope house={false} name={lookName ?? title[0].toUpperCase() + title.slice(1)} flat={made.flat} mark={edition} foot={imported || example ? undefined : `Drafted to ${profile === 'Me' ? 'you' : profile}`} />
             <p className="eyebrow">Pieces</p>
@@ -358,6 +361,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
               ))}
             </ul>
           </div>
+          </GarmentFabric>
           <div className="print-controls">
             <fieldset className="group">
               <legend>Print on</legend>

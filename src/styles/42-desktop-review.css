@@ -38,7 +38,8 @@
 }
 @media (min-width: 900px) and (min-aspect-ratio: 1/1) {
   .measure-step.centred:has(.make-grid) {
-    max-width: 760px;
+    /* The shared reading column, plus this page's own side padding. */
+    max-width: calc(var(--read-col) + 44px);
   }
   .make-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -149,7 +150,7 @@
 /* The account's row of small links ran past the column of rows above it and sat hard under the last line. */
 @media (min-width: 1100px) {
   .account > .fineprint.plain {
-    max-width: 720px;
+    max-width: var(--read-col);
     margin-top: 18px;
     line-height: 1.9;
   }
@@ -176,5 +177,26 @@
   .make-grid button:not(.make-looks) {
     font-size: 14px;
     padding: 12px 4px 10px;
+  }
+}
+
+/* One reading column on a computer (desktop review, Nov 21): What to make, the Measure list, Your look and the account's
+   rows were 760, 560, 640 and 720 px wide, so the page seemed to jump sideways from one screen to the next. They share
+   one width now; change it here. */
+:root {
+  --read-col: 640px;
+}
+.style-review {
+  max-width: var(--read-col);
+}
+@media (min-width: 960px) and (min-aspect-ratio: 1/1) {
+  .welcome-card.measure-list {
+    /* Plus the card's own side padding, so its words start on the same line as the other screens'. */
+    max-width: calc(var(--read-col) + 44px);
+  }
+}
+@media (min-width: 1100px) {
+  .account .folds {
+    max-width: var(--read-col);
   }
 }
