@@ -243,6 +243,12 @@ interface Lab {
   rank: number;
   /** The line the label sits beside (a grain arrow, a fold): it stays within that line's reach. */
   along?: [P, P];
+  /** Furniture only labels of this rank or more give way to: the footer rows (a grain or fold label pushed out of one
+   *  landed on a diamond). */
+  minRank?: number;
+  /** Furniture a label keeps off only when it can (a page's cut line, the grain arrow): a label moving off anything
+   *  else may land on it, or a seam name near a page join found nowhere to go and stayed on its diamond. */
+  soft?: boolean;
 }
 
 const LABEL_GAP = 0.3;
@@ -288,7 +294,7 @@ function settle(labs: Lab[], poly: P[], marks: P[][] = []) {
         const b = labs[j];
         if (!overlaps(a.box, b.box)) continue;
         const [stay, mv] = b.rank >= a.rank ? [a, b] : [b, a];
-        if (mv.rank === 0) continue;
+        if (mv.rank === 0 || (stay.minRank && mv.rank < stay.minRank)) continue;
         const others = labs.filter((o) => o !== mv && o !== stay);
         // Just clear of the other label along each axis, or farther when something else is there.
         const options = [mv.box.u, mv.box.n].flatMap((ax) => {
@@ -301,7 +307,7 @@ function settle(labs: Lab[], poly: P[], marks: P[][] = []) {
         const onLine = marks.some((ln) => crossesLine(mv.box, ln));
         const clear = (m: P) => {
           const bx = shifted(mv.box, m);
-          return !overlaps(bx, stay.box) && !others.some((o) => o.rank <= mv.rank && overlaps(o.box, bx)) && (onLine || !marks.some((ln) => crossesLine(bx, ln)));
+          return !overlaps(bx, stay.box) && !others.some((o) => o.rank <= mv.rank && !(o.minRank && mv.rank < o.minRank) && !(o.soft && !stay.soft) && overlaps(o.box, bx)) && (onLine || !marks.some((ln) => crossesLine(bx, ln)));
         };
         const valid = options.filter((m) => inside(m) && clear(m)).sort((x, y) => dist(x) - dist(y));
         // A grain or fold label slides along its line rather than away from it, when it can.
@@ -345,6 +351,45 @@ export function diamondCollisions(sheet: Sheet, words = false): { piece: number;
     const corners = [-1, 1].flatMap((a) => [-1, 1].map((b) => add(box.c, add(mul(box.u, a * box.hw), mul(box.n, b * box.hh)))));
     // `words`: the diamond with its OVER or UNDER words beside it.
     if (joinDiamonds(corners).some((d) => overlaps(box, words ? { ...d, hw: d.hw - 0.4, hh: d.hh - 0.4 } : { ...d, hw: 0.4, hh: 0.4 }))) out.push({ piece: pr.piece, text: pr.text });
+  }
+  return out;
+}
+
+/** The piece labels printed in a page's footer row (A4 or Letter), where the footer covers them. */
+export function footerCollisions(sheet: Sheet): { piece: number; text: string }[] {
+  const out: { piece: number; text: string }[] = [];
+  for (const pr of sheet.prims) {
+    if (pr.kind !== 'text' || pr.piece === undefined) continue;
+    const box = textBox(pr.at, pr.text, pr.size, pr.rotate, pr.tracking ?? 0, 0);
+    const corners = [-1, 1].flatMap((a) => [-1, 1].map((b) => add(box.c, add(mul(box.u, a * box.hw), mul(box.n, b * box.hh)))));
+    if (footerRows(corners).some((f) => overlaps(box, f))) out.push({ piece: pr.piece, text: pr.text });
+  }
+  return out;
+}
+
+/** The piece labels printed across a page's cut line (A4 or Letter), cut in two when the page is trimmed. */
+export function cutCollisions(sheet: Sheet): { piece: number; text: string }[] {
+  const out: { piece: number; text: string }[] = [];
+  for (const pr of sheet.prims) {
+    if (pr.kind !== 'text' || pr.piece === undefined) continue;
+    const box = textBox(pr.at, pr.text, pr.size, pr.rotate, pr.tracking ?? 0, 0);
+    const corners = [-1, 1].flatMap((a) => [-1, 1].map((b) => add(box.c, add(mul(box.u, a * box.hw), mul(box.n, b * box.hh)))));
+    if (cutLines(corners).some((f) => overlaps(box, f))) out.push({ piece: pr.piece, text: pr.text });
+  }
+  return out;
+}
+
+/** The piece labels printed on their piece's grain arrow. */
+export function grainCollisions(sheet: Sheet): { piece: number; text: string }[] {
+  // The arrow is the line with a head at each end (the piece's other lines are drawn in the same step).
+  const polys = sheet.prims.filter((pr) => pr.kind === 'poly' && pr.step === 'grain').map((pr) => pr as Extract<Prim, { kind: 'poly' }>);
+  const tip = (q: P) => polys.some((h) => h.pts.length === 3 && Math.hypot(h.pts[1].x - q.x, h.pts[1].y - q.y) < 1e-6);
+  const arrows = polys.filter((pr) => pr.pts.length === 2 && tip(pr.pts[0]) && tip(pr.pts[1]));
+  const out: { piece: number; text: string }[] = [];
+  for (const pr of sheet.prims) {
+    if (pr.kind !== 'text' || pr.piece === undefined) continue;
+    const box = textBox(pr.at, pr.text, pr.size, pr.rotate, pr.tracking ?? 0, 0);
+    if (arrows.some((a) => a.piece === pr.piece && overlaps(box, lineBox(a.pts[0], a.pts[1], 0.8)))) out.push({ piece: pr.piece, text: pr.text });
   }
   return out;
 }
@@ -414,7 +459,8 @@ function wrapWords(line: string, size: number, tracking: number, free: number): 
   // A number stays on the line with its unit ("127 cm", "30 × 20 cm"): each printed line is turned into inches on its
   // own, so "127" left at a line's end and "cm." at the next's start stayed in cm in an inch file (DI walk, Nov 19).
   const GLUE = '\u00a0';
-  const glued = line.replace(/ × /g, `${GLUE}×${GLUE}`).replace(/(\d) (?=(cm|mm|m|in|yd)\b)/g, `$1${GLUE}`);
+  // In capitals too: the peplum's "7.6" / "CM BELOW THE WAIST" stayed in cm in an inch file (DR walk, Nov 20).
+  const glued = line.replace(/ × /g, `${GLUE}×${GLUE}`).replace(/(\d) (?=(cm|mm|m|in|yd)\b)/gi, `$1${GLUE}`);
   for (const word of glued.split(' ').map((w) => w.split(GLUE).join(' '))) {
     const last = out[out.length - 1];
     if (last !== undefined && textWidth(`${last} ${word}`, size, tracking) <= free) out[out.length - 1] = `${last} ${word}`;
@@ -669,13 +715,25 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
     // The pages' joining diamonds are printed over the sheet, and one sat on "WAIST · 5/8 IN ALLOWANCE" (pretend tester
     // DJ walk, Nov 19): where home paper (A4 or Letter, the same sheet for both) puts one, the labels keep off it.
     const diamonds = opts.paper === 'a0' ? [] : joinDiamonds(stitch);
+    // And the page footers: a band was cleared under each to keep it readable, and it cut the labels there short
+    // ("SIDE SEA", "PANE", DR walk, Nov 20). The labels that can move keep out of the footer row instead. (The name
+    // block doesn't: kept out of it too, a narrow piece's block landed on a diamond. Its words in that row print whole
+    // on the page below, which is laid over this strip.)
+    const footers = opts.paper === 'a0' ? [] : footerRows(stitch);
+    // And the lines the pages are cut on: a label across one is cut in two, half of it on the strip cut away
+    // ("ALLOWANCE", "BAG", DR walk, Nov 20). Labels that can move keep off them where they can, and so does the name block.
+    const cuts = opts.paper === 'a0' ? [] : cutLines(stitch);
     // The grain arrow and the fold bracket: labels keep off them.
     const fixtures: Box[] = [];
+    // The seam names keep off the grain arrow too: the peplum ruffle's "NECKLINE · 1 CM ALLOWANCE" ran through its
+    // head (DR walk, Nov 20).
+    const arrow: Box[] = [];
     if (pc.grain) {
       const [a, b] = pc.grain.map(t);
       poly([a, b], 'mark');
       arrowHeads(a, b).forEach((h) => poly(h, 'mark'));
       fixtures.push(lineBox(a, b, 0.8));
+      arrow.push(lineBox(a, b, 0.8));
       const u = unit(sub(pc.grain[1], pc.grain[0]));
       const rot = (Math.atan2(u.y, u.x) * 180) / Math.PI;
       lab(text(tl(add(lerp(pc.grain[0], pc.grain[1], 0.5), mul(p(-u.y, u.x), -0.6)), 0.7, rot), 'GRAIN', 0.7, rot, 'middle', { face: 'label', tracking: 0.2 }), 1, 0.2, [a, b]);
@@ -822,14 +880,16 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
           block = { c: add(nameAt, mul(n, (topN + botN) / 2)), u, n, hw: widest / 2 + 0.15, hh: (botN - topN) / 2 + 0.15 };
           // The nearest shift that keeps the block on the piece, off the marks and clear of the lines
           // drawn across the piece: tried close by at a fine step, then over the whole piece, and
-          // failing both, the spot that overlaps least (a line crossed counts for less than a label).
+          // failing both, the spot that overlaps least (a line crossed counts for less than a label, and a page's cut
+          // line for less again: taped, the block reads whole).
           const bx0 = block;
           const score = (d: P) => {
             const bx = shifted(bx0, d);
             return (
               (within({ ...bx, hw: bx.hw - 0.15, hh: bx.hh - 0.15 }, stitch) ? 0 : 1e4) +
               obstacles.filter((o) => overlaps(o, bx)).length * 100 +
-              blockMarks.filter((ln) => crossesLine(bx, ln)).length * 50
+              blockMarks.filter((ln) => crossesLine(bx, ln)).length * 50 +
+              cuts.filter((o) => overlaps(o, bx)).length * 20
             );
           };
           shift = p(0, 0);
@@ -844,7 +904,7 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
               }
             };
             for (let dn = -6; dn <= 6; dn += 0.25) for (let dux = -12; dux <= 12; dux += 0.5) consider(dux, dn);
-            if (bestS >= 50) {
+            if (bestS >= 20) {
               const uLo = Math.min(...span) + block.hw - dot(sub(block.c, at0), u);
               const uHi = Math.max(...span) - block.hw - dot(sub(block.c, at0), u);
               const nLo = Math.min(...deep) + block.hh - dot(sub(block.c, at0), n);
@@ -884,12 +944,20 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
       if (l) lab(text(t(add(l.at, turn(p(0, -l.size * 1.2), l.rotate ?? 0))), 'THREAD-TRACE THE STITCHING LINE', 0.45, l.rotate ?? 0, 'middle', { face: 'label', tracking: 0.15, grey: 0.35 }), 2, 0.15);
     }
     // The other labels give way to the diamonds as to a label that can't move.
-    const furniture: Lab[] = diamonds.map((box) => ({ prim: { kind: 'text', at: box.c, text: '', size: 0, rotate: 0, anchor: 'middle' }, box, rank: 0 }));
+    const furniture: Lab[] = [
+      ...diamonds.map((box) => ({ prim: { kind: 'text' as const, at: box.c, text: '', size: 0, rotate: 0, anchor: 'middle' as const }, box, rank: 0 })),
+      ...footers.map((box) => ({ prim: { kind: 'text' as const, at: box.c, text: '', size: 0, rotate: 0, anchor: 'middle' as const }, box, rank: 0, minRank: 2 })),
+      // Only the seam names give way to the grain arrow: the words that belong beside it ("CREASE LINE ON GRAIN") or
+      // across it (the pleat instructions) moved onto a diamond.
+      ...arrow.map((box) => ({ prim: { kind: 'text' as const, at: box.c, text: '', size: 0, rotate: 0, anchor: 'middle' as const }, box, rank: 0, minRank: 3 })),
+      ...cuts.map((box) => ({ prim: { kind: 'text' as const, at: box.c, text: '', size: 0, rotate: 0, anchor: 'middle' as const }, box, rank: 0, minRank: 2, soft: true })),
+    ];
     labs.push(...furniture);
     settle(labs, stitch, marks);
-    // A seam name left with no room is left off: the notches and the garment's own labels say it.
+    // A seam name left with no room is left off: the notches and the garment's own labels say it. One left across a
+    // page's cut line stays (taped, it reads whole), and one on the grain arrow (better crossed than missing).
     for (const l of [...labs].reverse()) {
-      if (l.rank !== 3 || !labs.some((o) => o !== l && overlaps(o.box, l.box))) continue;
+      if (l.rank !== 3 || !labs.some((o) => o !== l && !o.soft && !arrow.includes(o.box) && overlaps(o.box, l.box))) continue;
       labs.splice(labs.indexOf(l), 1);
       prims.splice(prims.indexOf(l.prim), 1);
     }
@@ -1052,6 +1120,48 @@ function joinDiamonds(near: P[]): Box[] {
   }
   return out;
 }
+/** How far up from a page's printed edge its footer reaches, in cm: the footer's line and the band cleared under it. */
+const FOOTER_ROW = 0.45;
+
+/** The footer rows of A4 and Letter pages near these points, as boxes for the labels to keep out of: each page's last
+ *  FOOTER_ROW cm, its full width. */
+function footerRows(near: P[]): Box[] {
+  const xs = near.map((q) => q.x);
+  const ys = near.map((q) => q.y);
+  const [x0, x1, y0, y1] = [Math.min(...xs) - 1, Math.max(...xs) + 1, Math.min(...ys) - 1, Math.max(...ys) + 1];
+  const out: Box[] = [];
+  for (const paper of ['a4', 'letter'] as const) {
+    const [tw, th] = PAPER_CM[paper].map((v) => v - 2 * PAGE_MARGIN);
+    const [sx, sy] = [tw - OVERLAP, th - OVERLAP];
+    for (let r = Math.max(0, Math.floor(y0 / sy) - 1); r * sy <= y1; r++) {
+      const y = r * sy + th - FOOTER_ROW / 2;
+      if (y < y0 || y > y1) continue;
+      for (let c = Math.max(0, Math.floor(x0 / sx) - 1); c * sx <= x1; c++) out.push({ c: p(c * sx + tw / 2, y), u: p(1, 0), n: p(0, 1), hw: tw / 2, hh: FOOTER_ROW / 2 });
+    }
+  }
+  return out;
+}
+
+/** The lines A4 and Letter pages are cut on near these points, as thin boxes for the labels to keep off: down each
+ *  page's left edge and across its top, half the overlap in from the print area's edge (the first column and row
+ *  aren't cut). */
+function cutLines(near: P[]): Box[] {
+  const xs = near.map((q) => q.x);
+  const ys = near.map((q) => q.y);
+  const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+  const out: Box[] = [];
+  const thin = 0.05;
+  for (const paper of ['a4', 'letter'] as const) {
+    const [tw, th] = PAPER_CM[paper].map((v) => v - 2 * PAGE_MARGIN);
+    const [sx, sy] = [tw - OVERLAP, th - OVERLAP];
+    const [cy, hy] = [(y0 + y1) / 2, (y1 - y0) / 2 + 1];
+    const [cx, hx] = [(x0 + x1) / 2, (x1 - x0) / 2 + 1];
+    for (let c = Math.max(1, Math.ceil((x0 - OVERLAP / 2) / sx)); c * sx + OVERLAP / 2 <= x1; c++) out.push({ c: p(c * sx + OVERLAP / 2, cy), u: p(1, 0), n: p(0, 1), hw: thin, hh: hy });
+    for (let r = Math.max(1, Math.ceil((y0 - OVERLAP / 2) / sy)); r * sy + OVERLAP / 2 <= y1; r++) out.push({ c: p(cx, r * sy + OVERLAP / 2), u: p(1, 0), n: p(0, 1), hw: hx, hh: thin });
+  }
+  return out;
+}
+
 export const OVERLAP = 1; // cm shared by neighbouring pages for taping
 
 /** Page size for a sheet: home paper is always portrait; a copy-shop A0 turns sideways when that takes fewer sheets. */

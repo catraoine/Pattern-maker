@@ -91,6 +91,42 @@ describe('the tester pieces print cleanly', () => {
       });
 });
 
+// DR walk, Nov 20: the Blush Shift's inch booklet read "Shoulder seam (back) 5 in, ease -1/8 in, finished 5 in".
+describe('the inch booklets add up', () => {
+  afterEach(() => vi.restoreAllMocks());
+  // "21-7/8 in" or "-1/8 in" in eighths of an inch.
+  const eighths = (t: string) => {
+    const m = /^([+\-−]?)(\d+)?(?:-?(\d)\/(\d))? in$/.exec(t.trim());
+    if (!m || (!m[2] && !m[3])) return undefined;
+    return (m[1] === '-' || m[1] === '−' ? -1 : 1) * (Number(m[2] ?? 0) * 8 + (m[3] ? (Number(m[3]) * 8) / Number(m[4]) : 0));
+  };
+  for (const id of IDS)
+    for (const [bodyName, body] of Object.entries(BODIES))
+      it(`${id}, ${bodyName}: each finished measurement is the body plus the ease`, async () => {
+        const { look, print } = made(id, body);
+        const summary = { rows: print.spec.filter((r) => typeof r.finished === 'number'), checks: [], flat: print.flat, fabric: print.guide.fabric, lays: print.lays, madeFor: 'Tester' };
+        const sheet = layout(print.pieces, `Maison Tracé: ${look.name}`, print.notes, { pattern: look.name, madeFor: 'Tester' });
+        const drawn: string[] = [];
+        const real = PDFPage.prototype.drawText;
+        vi.spyOn(PDFPage.prototype, 'drawText').mockImplementation(function (this: PDFPage, text: string, o?: unknown) {
+          drawn.push(text);
+          return real.call(this, text, o as never);
+        });
+        await toTiledPdf(sheet, 'letter', { title: look.name, guide: print.guide, summary, unit: 'in', part: 'booklet' });
+        const wrong: string[] = [];
+        let rows = 0;
+        for (let i = 0; i + 2 < drawn.length; i++) {
+          if (!/^[+\-−]/.test(drawn[i + 1])) continue;
+          const [b, e, f] = [drawn[i], drawn[i + 1], drawn[i + 2]].map(eighths);
+          if (b === undefined || e === undefined || f === undefined) continue;
+          rows++;
+          if (b + e !== f) wrong.push(`${drawn[i - 1]}: ${drawn[i]}, ease ${drawn[i + 1]}, finished ${drawn[i + 2]}`);
+        }
+        expect(rows).toBeGreaterThan(0);
+        expect(wrong).toEqual([]);
+      });
+});
+
 // The booklet split its seam check, leaving two checks alone on a page, and left step headings at a page's foot with
 // their words over the page (pretend-tester walk, Nov 17).
 describe('the tester booklets keep things together', () => {

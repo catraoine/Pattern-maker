@@ -9,7 +9,7 @@ import { withEstimates } from './estimate';
 import { taggedLength } from './engine/geometry';
 import type { MeasurementValues } from './measurements';
 import { MARK_TEXT, type Piece } from './engine/piece';
-import { diamondCollisions, labelCollisions, layout, textWidth } from './engine/export';
+import { cutCollisions, diamondCollisions, footerCollisions, grainCollisions, labelCollisions, layout, textWidth } from './engine/export';
 import { crossings } from './engine/easeMap';
 import { edgeLabels } from './engine/marks';
 import { checkPattern } from './engine/qc';
@@ -158,6 +158,47 @@ describe.each(Object.entries(BODIES))('the other tester pieces on a %s body', (_
 // A joining diamond printed over "WAIST · 5/8 IN ALLOWANCE" on the skirt's first Letter page (pretend tester DJ walk,
 // Nov 19): on every tester piece, on every body, the labels keep off the diamonds of both home papers. A waistband is
 // the one exception: a long, narrow band laid along a page join has a diamond every few cm, with no gap for its name.
+// DR walk, Nov 20: the band cleared under each page's footer cut the labels in that row short ("SIDE SEA", "PANE").
+describe('the page footers', () => {
+  for (const id of ['blush-shift', 'ice-peplum', 'black-pleated-skirt', 'chocolate-barrel', 'black-vest'])
+    it(`have no piece words in their row on ${id}`, () => {
+      for (const values of Object.values(BODIES)) {
+        const print = made(id, values);
+        const hit = footerCollisions(layout(print.pieces, `Maison Tracé: ${id}`, print.notes, { pattern: id }));
+        // The labels that move out of the way: the seam names and the finished measurement words.
+        expect(hit.filter((h) => /ALLOWANCE|^FINISHED |^YOU /.test(h.text)).map((h) => `${print.pieces[h.piece].name}: ${h.text}`)).toEqual([]);
+      }
+    });
+});
+
+describe('the page cut lines', () => {
+  // DR walk, Nov 20: "ALLOWANCE" ran across skirt page A2's cut line, so half of it was cut away with the strip. The
+  // seam names and the finished measurement words keep off the cut lines where they have room: 74 of them crossed one
+  // across these pieces and bodies, and the 37 left have nowhere else to go on their seam, or would land on a diamond
+  // (taped, they read whole).
+  it('have few piece words across them', () => {
+    const hit = ['blush-shift', 'ice-peplum', 'black-pleated-skirt', 'chocolate-barrel', 'black-vest'].flatMap((id) =>
+      Object.values(BODIES).flatMap((values) => {
+        const print = made(id, values);
+        return cutCollisions(layout(print.pieces, `Maison Tracé: ${id}`, print.notes, { pattern: id })).filter((h) => /ALLOWANCE|^FINISHED |^YOU /.test(h.text));
+      }),
+    );
+    expect(hit.length).toBeLessThanOrEqual(37);
+  });
+});
+
+describe('the grain arrows', () => {
+  // DR walk, Nov 20: the Ice Peplum neck ruffle's "NECKLINE · 1 CM ALLOWANCE" ran through its grain arrow's head.
+  for (const id of ['blush-shift', 'ice-peplum', 'black-pleated-skirt', 'chocolate-barrel', 'black-vest'])
+    it(`have no seam name on them on ${id}`, () => {
+      for (const values of Object.values(BODIES)) {
+        const print = made(id, values);
+        const hit = grainCollisions(layout(print.pieces, `Maison Tracé: ${id}`, print.notes, { pattern: id }));
+        expect(hit.filter((h) => /ALLOWANCE/.test(h.text)).map((h) => `${print.pieces[h.piece].name}: ${h.text}`)).toEqual([]);
+      }
+    });
+});
+
 describe('the joining diamonds', () => {
   // DQ walk, Nov 20: "OVER D4" printed on the Ice Peplum's "ARMHOLE · 1 CM ALLOWANCE".
   for (const id of ['blush-shift', 'ice-peplum', 'black-pleated-skirt', 'chocolate-barrel', 'black-vest'])
@@ -335,4 +376,18 @@ describe('the seam check words', () => {
     expect(checks.some((c) => /waist seam to finished waist/i.test(c.label))).toBe(true);
     expect(checks.map((c) => c.detail).join(' ')).not.toContain('darts closed');
   });
+});
+
+// DR walk, Nov 20: the Ice Peplum's description broke as "PEPLUM, 7.6" / "CM BELOW THE WAIST", and each printed line is
+// turned into inches on its own, so an inch file kept the cm.
+describe('a wrapped length', () => {
+  for (const id of ['blush-shift', 'ice-peplum', 'black-pleated-skirt', 'chocolate-barrel', 'black-vest'])
+    it(`keeps its number and unit on one line on ${id}`, () => {
+      const print = made(id, BODIES.middle);
+      // The look's description as the app titles it, with its length in it.
+      const info = { pattern: 'Ruffled crew neck princess top with long bishop sleeves and a big flared peplum, 7.6 cm below the waist', madeFor: 'Me', date: '21 Nov 2026' };
+      const sheet = layout(print.pieces, `Maison Tracé: ${id}`, print.notes, info);
+      const texts = sheet.prims.flatMap((pr) => (pr.kind === 'text' ? [pr.text] : []));
+      expect(texts.filter((t) => /^(cm|mm|in|yd)\b/i.test(t))).toEqual([]);
+    });
 });

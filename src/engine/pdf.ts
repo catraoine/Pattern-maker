@@ -352,8 +352,16 @@ function diamond(page: PDFPage, x: number, y: number, label: string, side: Side,
   // Only places within the band either side of the diamond that the print check leaves out (1.3 cm): beside a diamond
   // on a top or bottom edge, "UNDER B1" reached past it, words printed on one page and not the other.
   const along = side === 'above' || side === 'below';
-  const inBand = (at: { x: number; y: number }) => (along ? Math.max(Math.abs(at.x - x), Math.abs(at.x + w - x)) : Math.max(Math.abs(at.y - y), Math.abs(at.y + size - y))) < 1.2 * CM;
-  const tries = places[side].filter((at, i) => i === 0 || inBand(at));
+  const inBand = (at: { x: number; y: number }) => (along ? Math.max(Math.abs(at.x - x), Math.abs(at.x + w - x)) : Math.max(Math.abs(at.y - y), Math.abs(at.y + size - y))) <= 1.25 * CM;
+  // Then the first place slid a little along the edge each way, and then one step farther from the edge too: a cutting
+  // line crossing the edge beside the diamond ran through "UNDER B1" in all three (DR walk, Nov 20). Across the pieces,
+  // this left about one label in 25 with no clear place, from one in 7.
+  const first = places[side][0];
+  const away = { above: [0, size + 3], below: [0, -size - 3], right: [0.5 * CM, 0], left: [-0.5 * CM, 0] }[side];
+  const slide = (far: number, d: number) => ({ x: first.x + far * away[0] + (along ? d * CM : 0), y: first.y + far * away[1] + (along ? 0 : d * CM) });
+  const shifts = [0.25, -0.25, 0.5, -0.5, 0.75, -0.75];
+  const slid = [...shifts.map((d) => slide(0, d)), ...[0, ...shifts].map((d) => slide(1, d))];
+  const tries = [...places[side], ...slid].filter((at, i) => i === 0 || inBand(at));
   const box = (at: { x: number; y: number }) => ({ x: at.x - 1, y: at.y - 2, w: w + 2, h: size + 2 });
   const free = tries.find((at) => clear(box(at)));
   const at = free ?? tries[0];
@@ -478,9 +486,10 @@ export async function toTiledPdf(sheet: Sheet, paper: Paper, extras?: PdfExtras)
           const shorter = [`${number} OF ${total}   ·   PRINT AT 100% / ACTUAL SIZE`, `${number} OF ${total}   ·   PRINT AT 100%`];
           footerLine = shorter.find((t) => footerX + footWidth(t) < second - clear) ?? `${number} OF ${total}`;
         }
-        // From the print area's edge, under the cut strip too: started at the footer's own start, it left a seam's
-        // allowance words running into "PAGE A2" (DQ walk, Nov 20).
-        page.drawRectangle({ x: PAGE_MARGIN * CM, y: PAGE_MARGIN * CM, width: footerX - PAGE_MARGIN * CM + footWidth(footerLine) + 0.15 * CM, height: FOOTER_H * CM, color: rgb(1, 1, 1) });
+        // From the cut line (the print area's edge where nothing is cut), so the grey strip isn't notched (DR walk, Nov
+        // 20). The labels keep out of the footer row (footerRows in export.ts), so this clears only lines.
+        const bandX = cutLeft ? (PAGE_MARGIN + trim) * CM : PAGE_MARGIN * CM;
+        page.drawRectangle({ x: bandX, y: PAGE_MARGIN * CM, width: footerX - bandX + footWidth(footerLine) + 0.15 * CM, height: FOOTER_H * CM, color: rgb(1, 1, 1) });
       }
 
       // Trim guides: the left and top edges are cut along a solid line and laid over the page before. A tester taping
@@ -688,7 +697,12 @@ function addSummaryPage(
   st.y -= 16;
   for (const row of s.rows) {
     room(16);
-    const cells = [row.label, row.body !== undefined ? `${fmt(row.body)} cm` : '', row.ease !== undefined ? `${row.ease < 0 ? '' : '+'}${fmt(row.ease)} cm` : '', typeof row.finished === 'number' ? `${fmt(row.finished)} cm` : row.finished];
+    // In inches the finished size is the body plus the ease as they are printed, each to the eighth: rounded on its own,
+    // a back shoulder read "5 in, ease -1/8 in, finished 5 in" (DR walk, Nov 20). It moves by 3 mm at most.
+    const eighth = 2.54 / 8;
+    const toEighth = (cm: number) => Math.round(cm / eighth);
+    const finished = inchMode && typeof row.finished === 'number' && row.body !== undefined && row.ease !== undefined ? (toEighth(row.body) + toEighth(row.ease)) * eighth : row.finished;
+    const cells = [row.label, row.body !== undefined ? `${fmt(row.body)} cm` : '', row.ease !== undefined ? `${row.ease < 0 ? '' : '+'}${fmt(row.ease)} cm` : '', typeof finished === 'number' ? `${fmt(finished)} cm` : finished];
     cells.forEach((t, i) => drawText(st.page, t, { x: colX[i], y: st.y, size: 10, font: i === 3 ? fonts.bodyMedium : fonts.body }));
     st.y -= 16;
   }
@@ -769,9 +783,19 @@ function addMapPage(doc: PDFDocument, fonts: Fonts, sheet: Sheet, paper: 'a4' | 
       if (!on) return;
       const a = at({ x: c * stepX, y: r * stepY });
       st.page.drawRectangle({ x: a.x, y: a.y - ph0 * k, width: pw0 * k, height: ph0 * k, borderColor: rgb(0.6, 0.6, 0.6), borderWidth: 0.4, borderDashArray: [2, 2] });
-      // Page names as large as the boxes allow, so each taped page can be found on the map at a glance.
-      const size = Math.max(7, Math.min(16, ph0 * k * 0.18));
-      drawText(st.page, pageName(r, c), { x: a.x + 4, y: a.y - size - 3, size, font: fonts.label, tracking: 0.1, grey: 0.35 });
+    }),
+  );
+  // Page names as large as the boxes allow, so each taped page can be found on the map at a glance. They go on last,
+  // each on a white patch, so the piece outlines and the next page's edge don't run through them (DR walk, Nov 20).
+  const size = Math.max(7, Math.min(16, ph0 * k * 0.18));
+  used.forEach((row, r) =>
+    row.forEach((on, c) => {
+      if (!on) return;
+      const a = at({ x: c * stepX, y: r * stepY });
+      const name = pageName(r, c);
+      const w = fonts.label.widthOfTextAtSize(name, size) + 0.1 * size * (name.length - 1);
+      st.page.drawRectangle({ x: a.x + 2.5, y: a.y - size - 4.5, width: w + 3, height: size + 3, color: rgb(1, 1, 1) });
+      drawText(st.page, name, { x: a.x + 4, y: a.y - size - 3, size, font: fonts.label, tracking: 0.1, grey: 0.35 });
     }),
   );
   st.y -= sheet.height * k + 10;

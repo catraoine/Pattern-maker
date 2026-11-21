@@ -55,7 +55,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
     },
     rise: {
       natural: ['Sits at your natural waist, the narrowest part of you.', 'easy'],
-      low: ['Sits low on the hip, about 6 cm below your waist, so it hangs from the hips. The hem stays where it was.'],
+      low: ['Sits low on the hip, up to 6 cm below your waist, so it hangs from the hips. The hem stays where it was.'],
     },
     gathers: {
       soft: ['About one and a half times the waist, gathered in: gentle folds that sit close.', 'easy'],
@@ -303,7 +303,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       slant: ['Pockets that open on a slant at the front hip, like chinos.', 'skill'],
     },
     rise: {
-      low: ['The waistband sits low, on the top of your hips, about 6 cm below your waist.'],
+      low: ['The waistband sits low, on the top of your hips, up to 6 cm below your waist.'],
       mid: ['The waistband sits at your natural waist.', 'easy'],
       high: ['The waistband sits a little above your waist, about 4 cm, for a long leg line.'],
     },
