@@ -87,6 +87,9 @@ test('a collection top below the waist asks for the hip first, so Style drafts i
 // Fit-test walk, Nov 15: the Black Vest was called a jacket while measuring, on Your look and on Print, and asked for
 // the arm length and upper arm, which a vest isn't drafted from.
 test('the Black Vest is called a vest throughout and asks for no arm measurements', async ({ page }) => {
+  // It measures, makes and prints the vest, as tester-pieces.spec.ts does, so it gets that walk's time: on a slow Safari
+  // runner it took 1.5 to 1.7 minutes, past the usual 90 seconds (Nov 21), and 1.1 on a quick one.
+  test.setTimeout(180_000);
   const m = main(page);
   await openFresh(page);
   await m.getByRole('button', { name: 'Begin' }).click();
