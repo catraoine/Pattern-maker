@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { GARMENT_PROOF, LAUNCH_GARMENTS, TESTING_TOOLS, TestingTool, inTesting, stillInTesting } from './launch';
+import { GARMENT_PROOF, LAUNCH_GARMENTS, TESTING_TOOLS, TestingTool, inTesting, menswearFromLink, menswearOpen, stillInTesting } from './launch';
 import { GARMENTS, GARMENT_NAME } from './measureFlow';
 
 const walk = (dir: string): string[] => readdirSync(dir).flatMap((f) => (statSync(join(dir, f)).isDirectory() ? walk(join(dir, f)) : join(dir, f).endsWith('.tsx') ? [join(dir, f)] : []));
@@ -38,5 +38,26 @@ describe('in-testing registry', () => {
     const doc = readFileSync('docs/SHIP-LIST.md', 'utf8');
     for (const k of keys) expect(doc, `${TESTING_TOOLS[k].name} is missing from docs/SHIP-LIST.md`).toContain(TESTING_TOOLS[k].name);
     for (const g of GARMENTS.filter(inTesting)) expect(doc.toLowerCase(), `${g} is missing from docs/SHIP-LIST.md`).toContain(GARMENT_NAME[g].toLowerCase());
+  });
+});
+
+describe('the menswear link', () => {
+  afterEach(() => vi.unstubAllGlobals());
+  const store = () => {
+    const m = new Map<string, string>();
+    vi.stubGlobal('localStorage', { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v) });
+  };
+
+  it('opens menswear on this device only when the link asks for it', () => {
+    store();
+    menswearFromLink('?tester=EXAMPLE-ONE');
+    expect(menswearOpen()).toBe(false);
+    menswearFromLink('?menswear=yes');
+    expect(menswearOpen()).toBe(false);
+    menswearFromLink('?tester=EXAMPLE-ONE&menswear=on');
+    expect(menswearOpen()).toBe(true);
+    // Kept for later visits, after the address has been tidied.
+    menswearFromLink('');
+    expect(menswearOpen()).toBe(true);
   });
 });

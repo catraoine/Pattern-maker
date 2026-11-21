@@ -1,7 +1,8 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { checkPatterns, patternDesigns, patternProblems, patternReport, selfCrossing, walkDesign } from './patternSweep';
-import { randomArms, randomBody, randomCrotch, rng } from './engine/randomBodies';
+import { randomArms, randomBody, randomCrotch, randomMan, rng } from './engine/randomBodies';
+import { withEstimates } from './estimate';
 import { EXAMPLE_BODY, MeasurementValues } from './measurements';
 import { Path, p } from './engine/geometry';
 import type { Piece } from './engine/piece';
@@ -46,6 +47,27 @@ describe.skipIf(!BODIES)('pattern geometry on random bodies', () => {
     const c = checkPatterns(results, byBody);
     writeFileSync(process.env.PATTERN_BODIES_REPORT ?? 'pattern-bodies.md', `Seed ${seed}\n\n${patternReport(results, c, `Pattern geometry on ${BODIES} random bodies`)}`);
     expect(results.length).toBe(BODIES * designs.length);
+  }, 6 * 60 * 60_000);
+});
+
+// The menswear form (locked as In testing while the fit round is womenswear only) had no nightly check of its own: every
+// garment can be drafted on it, so PATTERN_MENSWEAR=<n> (nightly) walks every option on that many random men's bodies on
+// the menswear form, each design held to its own faults on the example body, and only reports, like the random bodies.
+const MEN = Number(process.env.PATTERN_MENSWEAR ?? 0);
+describe.skipIf(!MEN)('pattern geometry on the menswear form', () => {
+  it(`walks every option on ${MEN} random men's bodies and reports`, () => {
+    const seed = Number(process.env.PATTERN_SEED ?? new Date().toISOString().slice(0, 10).replace(/-/g, ''));
+    const r = rng(seed);
+    const designs = patternDesigns();
+    const results = Array.from({ length: MEN }, (_, i) => {
+      const values = { ...EXAMPLE_BODY, ...withEstimates(randomMan(r), 'menswear') };
+      return designs.map((d) => ({ ...walkDesign(d, values, 'menswear'), key: `${d.key} (man ${i + 1})` }));
+    }).flat();
+    const known = JSON.parse(readFileSync(file, 'utf8')) as Record<string, string[]>;
+    const byBody = Object.fromEntries(results.map((x) => [x.key, known[x.key.replace(/ \(man \d+\)$/, '')] ?? []]));
+    const c = checkPatterns(results, byBody);
+    writeFileSync(process.env.PATTERN_MENSWEAR_REPORT ?? 'pattern-menswear.md', `Seed ${seed}\n\n${patternReport(results, c, `Pattern geometry on the menswear form, ${MEN} random men's bodies`)}`);
+    expect(results.length).toBe(MEN * designs.length);
   }, 6 * 60 * 60_000);
 });
 

@@ -197,3 +197,12 @@ export function keepMenswear() {
     // Storage blocked: the form choice still keeps menswear for this visit (MeasureStepsScreen's onMenswear).
   }
 }
+
+/** A link with ?menswear=on opens menswear on that device for good, so someone designing menswear before its fit round
+ *  can pick it without touching the browser's storage by hand. Everyone else still sees it shut. */
+export function menswearFromLink(search: string) {
+  if (new URLSearchParams(search).get('menswear') === 'on') keepMenswear();
+}
+
+// Read once, when the app loads, before the address is tidied (the tester link and ?go are taken out of it).
+if (typeof location !== 'undefined') menswearFromLink(location.search);
