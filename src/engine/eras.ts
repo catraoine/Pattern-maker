@@ -11,6 +11,10 @@ interface EraLook {
   silhouette: Silhouette;
   length: Length;
   fit: Fit;
+  /** A floor-length look's own hem, this many cm clear of the floor (see SkirtStyle.floorClear). */
+  floorClear?: number;
+  /** Extra flare at each side of the hem, in cm (see SkirtStyle.flareCm). */
+  flareCm?: number;
 }
 
 interface Era {
@@ -92,11 +96,15 @@ export const ERAS: Era[] = [
       {
         id: '1930s_evening',
         name: 'Thirties evening skirt',
-        about: 'The fluted shape at full length, for evening.',
-        fabric: 'Satin, crepe-back satin or velvet',
-        silhouette: 'trumpet',
+        about: 'Cut on the bias, so it skims the hips with no darts and falls softly to just skim the floor.',
+        fabric: 'Satin, crepe-back satin or silk crepe',
+        // Its own pattern, not the Edwardian walking skirt's trumpet (which clears the ground): a thirties evening
+        // skirt was cut on the bias and fell to the floor (Cat, Nov 15).
+        silhouette: 'slip',
         length: 'maxi',
         fit: 'fitted',
+        floorClear: 2,
+        flareCm: 10,
       },
     ],
   },
