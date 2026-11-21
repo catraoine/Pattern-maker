@@ -233,3 +233,32 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 14
+
+  mac-safari:
+    # The same walks in Safari on a Mac laptop, and the laptop and desktop screen sizes: every computer check ran in
+    # Chromium, and many sewists use a Mac (Cat's "apply", Nov 21).
+    name: Mac Safari (tester walks, laptop)
+    runs-on: ubuntu-24.04 # Playwright's browsers don't install on later Ubuntu yet
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install WebKit
+        run: npx playwright install --with-deps webkit
+      - run: npm run test:e2e -- --project mac-safari
+        env:
+          CI: true
+          E2E_SAFARI: '1'
+      - name: Upload report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-mac-safari
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14

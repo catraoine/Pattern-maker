@@ -9,6 +9,7 @@ name: Quality checks nightly
 # - Front drawing: every option's drawing on the form, read out of the real app and scored (src/frontCheck.ts).
 # - Screens: every screen photographed on a phone and a computer, looked over for words cut off (e2e/screenAudit.ts).
 # - DXF round trip: every option's DXF read back and held to the draft, on random bodies too (src/dxfRoundTrip.ts).
+# - Firefox: the tester walks and the laptop screen sizes in Firefox on a computer (Cat's "apply", Nov 21).
 on:
   schedule:
     - cron: '30 9 * * *'
@@ -191,3 +192,32 @@ jobs:
         with:
           name: quality-nightly-screens
           path: screens
+
+  firefox:
+    name: Tester walks in Firefox (computer)
+    runs-on: ubuntu-24.04 # Playwright's browsers don't install on later Ubuntu yet
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install Firefox
+        run: npx playwright install --with-deps firefox
+      - run: npm run test:e2e -- --project firefox
+        env:
+          CI: true
+          E2E_FIREFOX: '1'
+      - name: Summary
+        if: ${{ !cancelled() }}
+        run: echo "Firefox tester walks finished with ${{ job.status }}"
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: quality-nightly-firefox
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
