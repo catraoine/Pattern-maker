@@ -213,6 +213,21 @@ describe('the grain arrows', () => {
     });
 });
 
+// DU walk, Nov 21: the skirt's curved waistband printed its name and cutting over the grain arrow, and the vest collar's
+// GRAIN sat on its FOLD. Only the words that belong on or beside the arrow touch it: the crease line, the pleat
+// instructions that run across it, and its own word.
+describe('the grain arrows, with the name block', () => {
+  for (const id of ['blush-shift', 'ice-peplum', 'black-pleated-skirt', 'chocolate-barrel', 'black-vest'])
+    it(`have no name, cutting or fold word on them on ${id}`, () => {
+      for (const values of Object.values(BODIES)) {
+        const print = made(id, values);
+        const sheet = layout(print.pieces, `Maison Tracé: ${id}`, print.notes, { pattern: id, name: id, madeFor: 'Tester', date: '21 Nov 2026', code: 'MT-EXAMPLE' });
+        const hit = grainCollisions(sheet).filter((h) => !/^GRAIN$|CREASE LINE|^BRING EACH PAIR/.test(h.text));
+        expect(hit.map((h) => `${print.pieces[h.piece].name}: ${h.text}`)).toEqual([]);
+      }
+    });
+});
+
 describe('the joining diamonds', () => {
   // DQ walk, Nov 20: "OVER D4" printed on the Ice Peplum's "ARMHOLE · 1 CM ALLOWANCE".
   for (const id of ['blush-shift', 'ice-peplum', 'black-pleated-skirt', 'chocolate-barrel', 'black-vest'])

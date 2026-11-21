@@ -81,6 +81,52 @@ function arrowHeads(a: P, b: P, head = 1.2): P[][] {
   return [side(b, 1), side(a, -1)];
 }
 
+/**
+ * Moves a grain arrow, its heads and its word to the nearest spot on the piece where neither the arrow nor its word
+ * lies on the words that stay put (the name block, the piece's own labels, a fold's word) or on `keepOff` (the fold
+ * bracket, the joining diamonds), and its word is off `wordOff` too (the page footers). Failing any spot, the arrow
+ * is tried shorter, down to 4 cm. Nothing moves when it is already clear; false when it stays on a word.
+ */
+function moveGrain(g: { line: Extract<Prim, { kind: 'poly' }>; heads: Extract<Prim, { kind: 'poly' }>[]; word: Lab }, labs: Lab[], keepOff: Box[], wordOff: Box[], stitch: P[], replaced: (from: Box, to: Box) => void): boolean {
+  const [a, b] = g.line.pts;
+  const fixed = labs.filter((l) => l !== g.word && l.rank <= 2).map((l) => l.box);
+  const clear = (bx: Box, word: Box) => within(bx, stitch) && within(word, stitch) && ![...fixed, ...keepOff].some((o) => overlaps(o, bx) || overlaps(o, word)) && !wordOff.some((o) => overlaps(o, word));
+  const arrowBox = (q: P, r: P) => lineBox(q, r, 0.8);
+  // A trouser's arrow is its crease line, and stays where the crease is.
+  if (labs.some((l) => /CREASE/.test(l.prim.text))) return true;
+  if (!fixed.some((o) => overlaps(o, arrowBox(a, b)) || overlaps(o, g.word.box))) return true;
+  const u = unit(sub(b, a));
+  const n = p(-u.y, u.x);
+  const len = Math.hypot(b.x - a.x, b.y - a.y);
+  const mid = lerp(a, b, 0.5);
+  const xs = stitch.map((q) => dot(sub(q, mid), u));
+  const ys = stitch.map((q) => dot(sub(q, mid), n));
+  for (const keep of [1, 0.75, 0.5].filter((k) => k === 1 || len * k >= 4)) {
+    const half = (len * keep) / 2;
+    let best: P | undefined;
+    for (let du = Math.min(...xs); du <= Math.max(...xs); du += 0.5)
+      for (let dn = Math.min(...ys); dn <= Math.max(...ys); dn += 0.25) {
+        const d = add(mul(u, du), mul(n, dn));
+        if (best && Math.hypot(d.x, d.y) >= Math.hypot(best.x, best.y)) continue;
+        const c = add(mid, d);
+        const word = shifted(g.word.box, sub(c, mid));
+        if (clear(arrowBox(add(c, mul(u, -half)), add(c, mul(u, half))), word)) best = d;
+      }
+    if (!best) continue;
+    const c = add(mid, best);
+    const [a2, b2] = [add(c, mul(u, -half)), add(c, mul(u, half))];
+    const from = arrowBox(a, b);
+    g.line.pts = [a2, b2];
+    arrowHeads(a2, b2).forEach((h, k) => (g.heads[k].pts = h));
+    g.word.prim.at = add(g.word.prim.at, best);
+    g.word.box = shifted(g.word.box, best);
+    g.word.along = [a2, b2];
+    replaced(from, arrowBox(a2, b2));
+    return true;
+  }
+  return false;
+}
+
 /** A drill hole: a small circle with a cross through it. */
 function drill(at: P, r = 0.25): P[][] {
   const ring = Array.from({ length: 13 }, (_, i) => add(at, p(r * Math.cos((i * Math.PI) / 6), r * Math.sin((i * Math.PI) / 6))));
@@ -736,15 +782,21 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
     // The seam names keep off the grain arrow too: the peplum ruffle's "NECKLINE · 1 CM ALLOWANCE" ran through its
     // head (DR walk, Nov 20).
     const arrow: Box[] = [];
+    // The arrow's lines and its word, kept to move them if the name block has nowhere clear of them (below).
+    let grainMarks: { line: Extract<Prim, { kind: 'poly' }>; heads: Extract<Prim, { kind: 'poly' }>[]; word: Lab } | undefined;
     if (pc.grain) {
       const [a, b] = pc.grain.map(t);
       poly([a, b], 'mark');
+      const line = prims[prims.length - 1] as Extract<Prim, { kind: 'poly' }>;
       arrowHeads(a, b).forEach((h) => poly(h, 'mark'));
-      fixtures.push(lineBox(a, b, 0.8));
-      arrow.push(lineBox(a, b, 0.8));
+      const heads = prims.slice(-2) as Extract<Prim, { kind: 'poly' }>[];
+      const box = lineBox(a, b, 0.8);
+      fixtures.push(box);
+      arrow.push(box);
       const u = unit(sub(pc.grain[1], pc.grain[0]));
       const rot = (Math.atan2(u.y, u.x) * 180) / Math.PI;
       lab(text(tl(add(lerp(pc.grain[0], pc.grain[1], 0.5), mul(p(-u.y, u.x), -0.6)), 0.7, rot), 'GRAIN', 0.7, rot, 'middle', { face: 'label', tracking: 0.2 }), 1, 0.2, [a, b]);
+      grainMarks = { line, heads, word: labs[labs.length - 1] };
     }
     if (pc.fold) {
       // Top to bottom on the sheet; a turned piece has its fold edge on the right, so the bracket
@@ -953,6 +1005,26 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
     if (pc.meta.threadTrace && !info) {
       const l = pc.labels[0];
       if (l) lab(text(t(add(l.at, turn(p(0, -l.size * 1.2), l.rotate ?? 0))), 'THREAD-TRACE THE STITCHING LINE', 0.45, l.rotate ?? 0, 'middle', { face: 'label', tracking: 0.15, grey: 0.35 }), 2, 0.15);
+    }
+    // A narrow piece's name block can find no spot clear of the grain arrow: the skirt's curved waistband printed its
+    // name and cutting over the arrow, and the vest collar's GRAIN sat on its FOLD (DU walk, Nov 21). The
+    // arrow only has to lie along the grain, so there the arrow moves instead, to the nearest spot on the piece clear of
+    // the words that stay put.
+    const gm = grainMarks;
+    if (gm && !moveGrain(gm, labs, [...fixtures.filter((f) => !arrow.includes(f)), ...diamonds.map((d) => ({ ...d, hw: 0.8, hh: 0.8 }))], footers, stitch, (from, to) => {
+      fixtures.splice(fixtures.indexOf(from), 1, to);
+      arrow.splice(arrow.indexOf(from), 1, to);
+    })) {
+      // Nowhere clear on a small piece cut on the fold (the vest collar): a fold runs on the straight grain, so its
+      // bracket says the grain, as a printed pattern's does, and the arrow and its word are left off.
+      const [fa, fb] = pc.fold ?? [];
+      const [ga, gb] = pc.grain!;
+      if (fa && fb && Math.abs(dot(unit(sub(fb, fa)), unit(sub(gb, ga)))) > 0.99) {
+        for (const pr of [gm.line, ...gm.heads, gm.word.prim]) prims.splice(prims.indexOf(pr), 1);
+        labs.splice(labs.indexOf(gm.word), 1);
+        fixtures.splice(fixtures.indexOf(arrow[0]), 1);
+        arrow.splice(0, 1);
+      }
     }
     // The other labels give way to the diamonds as to a label that can't move.
     const furniture: Lab[] = [
