@@ -1501,8 +1501,8 @@ export function dressFlat(d: DressDraft, edges: BodiceEdges = 'binding', opts: {
           lines.push({ pts: Array.from({ length: 13 }, (_, n) => add(c, p(0.65 * Math.cos((n / 12) * 2 * Math.PI), 0.65 * Math.sin((n / 12) * 2 * Math.PI)))), kind: 'seam' });
         }
       }
-      // A one-shoulder dress zips in the side seam, out of sight; a shirt dress or a wrap has no zip.
-      if (b.label === 'BACK' && !d.zipSide && !d.skirtButtons && !d.bodice.wrap) {
+      // A one-shoulder dress zips in the side seam, out of sight; a shirt dress, a wrap or a pulled-on dress has no zip.
+      if (b.label === 'BACK' && !d.zipSide && !d.skirtButtons && !d.bodice.wrap && !d.pullOn) {
         const key = keyholeOf(d.bodice);
         const neck = b.shapes[0].reduce((m, q) => (Math.abs(q.x) < 1e-6 && q.y < m ? q.y : m), Infinity);
         lines.push({ pts: [p(0, neck + key), p(0, b.foot)], kind: 'seam' }, ...zip(neck + key, d.zipCm), ...keyButton(neck, key));
