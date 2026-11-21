@@ -215,7 +215,8 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
       checks.push({
         group: 'Seams',
         label: garments.length > 1 || all.length > 1 ? `${g} waist seam to finished waist` : 'Waist seam to finished waist',
-        detail: `${cm(seam)}${gather > 1 ? ` once gathered (cut ${Math.round(gather * 100) / 100} times as long)` : ' with darts closed'}, finished ${cm(opts.finishedWaist)}`,
+        // "With darts closed" only where there are darts: the Black Pleated Skirt has none (DQ walk, Nov 20).
+        detail: `${cm(seam)}${gather > 1 ? ` once gathered (cut ${Math.round(gather * 100) / 100} times as long)` : [...fronts, ...backs].some((pc) => dartsOf(pc).length) ? ' with darts closed' : ''}, finished ${cm(opts.finishedWaist)}`,
         // Up to 1.5 cm eases into a waistband or a matching seam without showing.
         ok: Math.abs(seam - opts.finishedWaist) <= 1.5,
       });

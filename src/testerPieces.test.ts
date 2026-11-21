@@ -159,12 +159,22 @@ describe.each(Object.entries(BODIES))('the other tester pieces on a %s body', (_
 // Nov 19): on every tester piece, on every body, the labels keep off the diamonds of both home papers. A waistband is
 // the one exception: a long, narrow band laid along a page join has a diamond every few cm, with no gap for its name.
 describe('the joining diamonds', () => {
+  // DQ walk, Nov 20: "OVER D4" printed on the Ice Peplum's "ARMHOLE · 1 CM ALLOWANCE".
+  for (const id of ['blush-shift', 'ice-peplum', 'black-pleated-skirt', 'chocolate-barrel', 'black-vest'])
+    it(`keep the seam names off their OVER and UNDER words on ${id}`, () => {
+      for (const values of Object.values(BODIES)) {
+        const print = made(id, values);
+        const hit = diamondCollisions(layout(print.pieces, `Maison Tracé: ${id}`, print.notes, { pattern: id }), true);
+        expect(hit.filter((h) => /ALLOWANCE/.test(h.text)).map((h) => `${print.pieces[h.piece].name}: ${h.text}`)).toEqual([]);
+      }
+    });
+
   for (const id of ['blush-shift', 'ice-peplum', 'black-pleated-skirt', 'chocolate-barrel', 'black-vest'])
     for (const [body, values] of Object.entries(BODIES))
       it(`print over no label on ${id}, ${body} body`, () => {
         const print = made(id, values);
         const hit = diamondCollisions(layout(print.pieces, `Maison Tracé: ${id}`, print.notes, { pattern: id }));
-        expect(hit.filter((h) => print.pieces[h.piece].kind !== 'waistband' || /ALLOWANCE/.test(h.text))).toEqual([]);
+        expect(hit.filter((h) => print.pieces[h.piece].kind !== 'waistband' || /ALLOWANCE/.test(h.text)).map((h) => `${print.pieces[h.piece].name}: ${h.text}`)).toEqual([]);
       });
 });
 
@@ -204,8 +214,19 @@ describe('sewing in muslin', () => {
     expect(may('chocolate-barrel')).toMatch(/^the welt pockets .*, the belt loops, /);
     expect(may('black-vest')).toMatch(/^the lining .*, the welt pockets /);
     // And the interfacing, the zip and the buttons, where the steps use them, with what to do instead (DO walk, Nov 20).
-    expect(may('black-pleated-skirt')).toMatch(/the interfacing and stay tape and the zip \(pin or tack the opening closed/);
+    expect(may('black-pleated-skirt')).toMatch(/the interfacing and the zip \(pin or tack the opening closed/);
     expect(may('black-vest')).toContain('the buttonholes and buttons (pin the fronts closed');
+  });
+  // DQ walk, Nov 20: stay tape named on a skirt and trouser that have none, "pin the fronts closed" for the trouser's
+  // one button, and the press cloth left out where the skirt's pleats are pressed through a damp one.
+  it('names only what each booklet uses, and says how to press without the cloth', () => {
+    const line = (id: string) => made(id, BODIES.middle).guide.fabric!.find((l) => l.startsWith('Sewing in muslin'))!;
+    const steps = (id: string) => made(id, BODIES.middle).guide.steps.map((st) => st.text).join(' ');
+    for (const id of ['blush-shift', 'ice-peplum', 'black-pleated-skirt', 'chocolate-barrel', 'black-vest']) if (!/stay tape/i.test(steps(id))) expect(line(id), id).not.toContain('stay tape');
+    expect(line('chocolate-barrel')).not.toContain('pin the fronts closed');
+    expect(line('chocolate-barrel')).toContain('the buttonhole and button (pin the opening closed where it buttons)');
+    expect(line('black-vest')).not.toContain('the buttonhole and button (');
+    if (/press cloth/i.test(steps('black-pleated-skirt'))) expect(line('black-pleated-skirt')).toContain('the press cloth (press the muslin directly, with steam)');
   });
   // Two lengths that add up in cm needn't in inches (1 cm then 3 cm read 3/8 + 1-1/8 on a 1-5/8 in allowance): the hems
   // turn up the rest of the allowance, or halves of it (DO walk, Nov 20).
@@ -303,5 +324,15 @@ describe('the Black Vest first page and seam check', () => {
     const labels = checkPattern(pieces).map((c) => c.label);
     expect(labels.filter((l, i) => labels.indexOf(l) !== i)).toEqual([]);
     expect(vest.notes.join(' ')).toMatch(/1 cm at [^.]*chest seam/);
+  });
+});
+
+// DQ walk, Nov 20: the pleated skirt's seam check said "with darts closed", and it has no darts.
+describe('the seam check words', () => {
+  it('says darts closed only where there are darts', () => {
+    const skirt = made('black-pleated-skirt', BODIES.middle);
+    const checks = checkPattern(skirt.pieces.filter((pc) => !pc.kind || pc.kind === 'collar' || pc.kind === 'pocket'), { finishedWaist: 80 });
+    expect(checks.some((c) => /waist seam to finished waist/i.test(c.label))).toBe(true);
+    expect(checks.map((c) => c.detail).join(' ')).not.toContain('darts closed');
   });
 });

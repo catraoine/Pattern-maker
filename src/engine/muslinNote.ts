@@ -11,7 +11,8 @@ const SKIPS: [RegExp, string][] = [
   [/French seam/i, 'the French seams (sew plain seams and zigzag the edges)'],
   // Halves, not lengths: 0.5 cm and 0.5 cm read 1/4 + 1/4 in on a 3/8 in allowance in an inch booklet (DO walk, Nov 20).
   [/horsehair braid/i, 'the horsehair braid, so you need none (turn the hem allowance up by half, then again, and stitch: muslin holds its shape)'],
-  [/press cloth/i, 'the press cloth'],
+  // Where a step presses through a damp cloth (the skirt's pleats), the note says what to do instead (DQ walk, Nov 20).
+  [/press cloth/i, 'the press cloth (press the muslin directly, with steam)'],
   [/Microtex/i, 'the fine needle (a universal 80/12 is right)'],
 ];
 
@@ -28,9 +29,13 @@ const OPTIONAL: [RegExp, string][] = [
 /** The same, found in the steps' words rather than their titles: the interfacing and the zip (DO walk, Nov 20: the
  *  muslin line said nothing of either, so a tester could not tell whether to buy them). */
 const OPTIONAL_WORDS: [RegExp, string][] = [
-  [/interfacing|stay tape/i, 'the interfacing and stay tape'],
+  // Each named only where the steps use it: the skirt and trouser were told to leave out stay tape they never had, and
+  // the trouser's one button to "pin the fronts closed" (DQ walk, Nov 20).
+  [/interfacing/i, 'the interfacing'],
+  [/stay tape/i, 'the stay tape'],
   [/\bzip\b/i, 'the zip (pin or tack the opening closed along its stitching line to try it on)'],
-  [/buttonhole/i, 'the buttonholes and buttons (pin the fronts closed, centre front on centre front)'],
+  [/buttonholes/i, 'the buttonholes and buttons (pin the fronts closed, centre front on centre front)'],
+  [/buttonhole\b(?!s)/i, 'the buttonhole and button (pin the opening closed where it buttons)'],
 ];
 
 const and = (xs: string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}` : xs[0]);
@@ -43,7 +48,10 @@ export function muslinLine(guide: SewingGuide, fabricLines: string[], isMuslin: 
   const list = and(skips);
   const titles = guide.steps.map((st) => st.title);
   const steps = guide.steps.map((st) => st.text).join(' ');
-  const may = [...OPTIONAL.filter(([re]) => titles.some((t) => re.test(t))), ...OPTIONAL_WORDS.filter(([re]) => re.test(steps))].map(([, words]) => words);
+  const words = OPTIONAL_WORDS.filter(([re]) => re.test(steps)).map(([, w]) => w);
+  // Buttonholes, plural, say it all: the vest's "buttonhole twist" is not a second buttonhole.
+  const buttons = words.filter((w) => w.startsWith('the buttonhole')).slice(1);
+  const may = [...OPTIONAL.filter(([re]) => titles.some((t) => re.test(t))).map(([, w]) => w), ...words.filter((w) => !buttons.includes(w))];
   // Only where the steps say not to wash the cloth: the trouser's first step says wash it, and "even where the first
   // step says not to" read as a mistake there (DO walk, Nov 20).
   const unwashed = /\bnot (to )?wash\b|don't wash/i.test(all);

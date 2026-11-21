@@ -524,7 +524,9 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   // A length typed instead of dragged: the drawing's length label opens the box under it (testers, Nov 17).
   const [asking, setAsking] = useState<LengthAsk>();
   const [lengthOn, setLengthOn] = useState(false);
-  // The hint shows while the drawing has a length label to tap; the drawing redraws itself, so it is watched.
+  // The hint shows while the drawing has a length label to tap; the drawing redraws itself, so it is watched. Watched
+  // afresh each time the edit page is drawn: a look opens on its Review page, so the first watch found no page to watch
+  // and the hint never showed on any tester piece (DQ walk, Nov 20).
   useEffect(() => {
     const el = root.current;
     if (!el) return;
@@ -533,7 +535,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
     const watch = new MutationObserver(look);
     watch.observe(el, { childList: true, subtree: true });
     return () => watch.disconnect();
-  }, []);
+  }, [page, intro]);
   const look = useContext(LookName);
   // The open question on each step. Every question starts folded (Cat, 2026-11-06: the first one stood open, so
   // See the choices didn't show the whole list); a tap on one opens it.

@@ -336,14 +336,15 @@ export function labelCollisions(sheet: Sheet): [string, string][] {
 }
 
 /** The piece labels that a joining diamond on A4 or Letter pages would print over: the check a layout is held to. */
-export function diamondCollisions(sheet: Sheet): { piece: number; text: string }[] {
+export function diamondCollisions(sheet: Sheet, words = false): { piece: number; text: string }[] {
   const out: { piece: number; text: string }[] = [];
   for (const pr of sheet.prims) {
     if (pr.kind !== 'text' || pr.piece === undefined) continue;
     const box = textBox(pr.at, pr.text, pr.size, pr.rotate, pr.tracking ?? 0, 0);
     // The diamond itself, without the room kept round it.
     const corners = [-1, 1].flatMap((a) => [-1, 1].map((b) => add(box.c, add(mul(box.u, a * box.hw), mul(box.n, b * box.hh)))));
-    if (joinDiamonds(corners).some((d) => overlaps(box, { ...d, hw: 0.4, hh: 0.4 }))) out.push({ piece: pr.piece, text: pr.text });
+    // `words`: the diamond with its OVER or UNDER words beside it.
+    if (joinDiamonds(corners).some((d) => overlaps(box, words ? { ...d, hw: d.hw - 0.4, hh: d.hh - 0.4 } : { ...d, hw: 0.4, hh: 0.4 }))) out.push({ piece: pr.piece, text: pr.text });
   }
   return out;
 }
@@ -765,7 +766,9 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
             : [info.pattern.toUpperCase(), [info.madeFor && `MADE FOR ${info.madeFor}`, info.date, info.edition].filter(Boolean).join(' · ').toUpperCase()]),
         ].filter(Boolean);
         const trace = pc.meta.threadTrace ? 'THREAD-TRACE THE STITCHING LINE' : '';
-        const obstacles = [...fixtures, ...diamonds, ...labs.filter((x) => x.rank !== 2).map((x) => x.box)];
+        // The name block keeps off the diamonds themselves only: kept off their words as well, the skirt's side front
+        // and the belt loops found nowhere clear and their blocks landed on a diamond.
+        const obstacles = [...fixtures, ...diamonds.map((d) => ({ ...d, hw: 0.8, hh: 0.8 })), ...labs.filter((x) => x.rank !== 2).map((x) => x.box)];
         let lines: string[] = [];
         let row = '';
         let nameAt = at0;
@@ -1020,8 +1023,10 @@ export const PAGE_MARGIN = 1; // printer-safe margin, cm
 // (0.62, not 0.5: halfway down a Letter page fell on the cards' bottom corners, DI walk, Nov 19.)
 export const joinMarks = (join: 'right' | 'below', row: number): number[] => (join === 'right' && row === 0 ? [0.62, 0.85] : [0.3, 0.7]);
 
-/** Room kept round each joining diamond, its page name beside it, in cm either way from its centre. */
-const DIAMOND_ROOM = 0.8;
+/** Room kept round each joining diamond and its OVER or UNDER words, in cm either way from its centre: across a side
+ *  join the words sit beside the diamond, up to 2 cm out; across a top or bottom join, above or below it. Kept to the
+ *  diamond alone, "OVER D4" printed on "ARMHOLE · 1 CM ALLOWANCE" (DQ walk, Nov 20). */
+const DIAMOND_ROOM = { right: [2, 0.8], below: [1, 1] } as const;
 
 /**
  * Where the joining diamonds of A4 and of Letter pages fall on the sheet near these points (a piece's stitching
@@ -1033,16 +1038,16 @@ function joinDiamonds(near: P[]): Box[] {
   const ys = near.map((q) => q.y);
   const [x0, x1, y0, y1] = [Math.min(...xs) - 1, Math.max(...xs) + 1, Math.min(...ys) - 1, Math.max(...ys) + 1];
   const out: Box[] = [];
-  const add = (x: number, y: number) => {
-    if (x >= x0 && x <= x1 && y >= y0 && y <= y1) out.push({ c: p(x, y), u: p(1, 0), n: p(0, 1), hw: DIAMOND_ROOM, hh: DIAMOND_ROOM });
+  const add = (x: number, y: number, join: 'right' | 'below') => {
+    if (x >= x0 && x <= x1 && y >= y0 && y <= y1) out.push({ c: p(x, y), u: p(1, 0), n: p(0, 1), hw: DIAMOND_ROOM[join][0], hh: DIAMOND_ROOM[join][1] });
   };
   for (const paper of ['a4', 'letter'] as const) {
     const [tw, th] = PAPER_CM[paper].map((v) => v - 2 * PAGE_MARGIN);
     const [sx, sy] = [tw - OVERLAP, th - OVERLAP];
     for (let r = Math.max(0, Math.floor(y0 / sy) - 1); r * sy <= y1; r++)
       for (let c = Math.max(0, Math.floor(x0 / sx) - 1); c * sx <= x1; c++) {
-        for (const f of joinMarks('right', r)) add(c * sx + tw - OVERLAP / 2, r * sy + th * f);
-        for (const f of joinMarks('below', r)) add(c * sx + tw * f, r * sy + th - OVERLAP / 2);
+        for (const f of joinMarks('right', r)) add(c * sx + tw - OVERLAP / 2, r * sy + th * f, 'right');
+        for (const f of joinMarks('below', r)) add(c * sx + tw * f, r * sy + th - OVERLAP / 2, 'below');
       }
   }
   return out;

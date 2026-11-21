@@ -478,7 +478,9 @@ export async function toTiledPdf(sheet: Sheet, paper: Paper, extras?: PdfExtras)
           const shorter = [`${number} OF ${total}   ·   PRINT AT 100% / ACTUAL SIZE`, `${number} OF ${total}   ·   PRINT AT 100%`];
           footerLine = shorter.find((t) => footerX + footWidth(t) < second - clear) ?? `${number} OF ${total}`;
         }
-        page.drawRectangle({ x: footStart, y: PAGE_MARGIN * CM, width: footerX - footStart + footWidth(footerLine) + 0.15 * CM, height: FOOTER_H * CM, color: rgb(1, 1, 1) });
+        // From the print area's edge, under the cut strip too: started at the footer's own start, it left a seam's
+        // allowance words running into "PAGE A2" (DQ walk, Nov 20).
+        page.drawRectangle({ x: PAGE_MARGIN * CM, y: PAGE_MARGIN * CM, width: footerX - PAGE_MARGIN * CM + footWidth(footerLine) + 0.15 * CM, height: FOOTER_H * CM, color: rgb(1, 1, 1) });
       }
 
       // Trim guides: the left and top edges are cut along a solid line and laid over the page before. A tester taping
