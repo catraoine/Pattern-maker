@@ -201,7 +201,9 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
     ).map((g) => ({
       id: g.id,
       label: g.label,
-      options: g.options as [string, string][],
+      // A shift keeps its back waist darts whatever the front has, so "Bust only" read wrong there (DQ walk, Nov 20; Cat
+      // chose "Bust (front)", Nov 20).
+      options: (g.id === 'darts' && noSeam === 'shift' ? g.options.map(([id, label]) => [id, id === 'bust' ? 'Bust (front)' : label]) : g.options) as [string, string][],
     })),
     // A sheath can be ruched at the sides below the hip.
     ...(noSeam === 'sheath' ? [{ id: 'ruched', label: 'Sides', options: SHEATH_SIDES }] : []),
@@ -620,7 +622,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                 </button>
               ))}
             </div>
-            <Explain set={['noSeam', 'silhouette', 'length', 'asymHem', 'slit', 'gathers', 'volume', 'pockets', 'belt'].includes(g.id) ? 'skirt' : 'bodice'} group={g.id} options={g.options} pick={value(g.id)} />
+            <Explain set={['noSeam', 'silhouette', 'length', 'asymHem', 'slit', 'gathers', 'volume', 'pockets', 'belt'].includes(g.id) ? 'skirt' : 'bodice'} group={g.id} options={g.options} pick={value(g.id)} say={g.id === 'darts' && noSeam === 'shift' && value(g.id) === 'bust' ? 'Darts at the bust on the front. The back keeps its waist darts, so it follows your back.' : undefined} />
             {g.id === 'sleeveCut' && SLEEVE_CUTS.map(([c]) => sleeveCutBlocked({ ...choices.bodice, closure }, c)).find(Boolean) && (
               <p className="muted small">{SLEEVE_CUTS.map(([c]) => sleeveCutBlocked({ ...choices.bodice, closure }, c)).find(Boolean)}</p>
             )}
