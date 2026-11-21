@@ -3,7 +3,6 @@
 // goes on the day's 1st, 10th and 50th real crash, so a bad day sends at most three, and noise from browsers, robots
 // and app updates is left out (the nightly bug hunt still reads every report). Used by the report function.
 import type { CountStore } from '../photo/limit';
-import { EMAIL_CAPS } from './emailPdf';
 import type { StoredCrash } from './reports';
 
 /** The day's real-crash counts that send an email: the first tells Cat something broke, the others that it's spreading. */
@@ -21,7 +20,7 @@ const NOISE = [
   /Failed to register a ServiceWorker/i,
   /Failed to fetch dynamically imported module/i,
   /Importing a module script failed/i,
-  /is not a valid JavaScript MIME type|'text\/html'/i,
+  /is not a valid JavaScript MIME type|Failed to load module script/i,
 ];
 
 export const isNoise = (c: Pick<StoredCrash, 'message'>) => NOISE.some((re) => re.test(c.message));
@@ -56,28 +55,33 @@ export function crashAlertFor(at: number, n: number, latest: StoredCrash, day: s
   };
 }
 
+/** Tries at each count's email, so a send the email service turned away is tried again with the next crash. */
+const TRIES = 3;
+
 /**
- * Counts the day's real crashes and sends the email when a count in ALERT_AT is reached. Each count's email is claimed
- * once in the store first, so two reports arriving together can't both send it. Like every limit here it fails closed:
- * if a counter can't be reached, the error goes up and nothing is sent. Returns the count it emailed about, if any.
+ * Counts the day's real crashes and sends the email when a count in ALERT_AT is reached. A count's email is marked done
+ * only once it has gone; until then each new crash tries again, up to TRIES times. The tries are claimed in the store
+ * first, so reports arriving together rarely send it twice, and its own counters mean the visitors' daily email cap
+ * never holds it back. Like every limit here it fails closed: if a counter can't be reached the error goes up and
+ * nothing is sent. `send` throws when the email doesn't go. Returns the count it emailed about, if any.
  */
 export async function alertCrashes(
   crashes: StoredCrash[],
   day: string,
-  stores: { alerts: CountStore; email: CountStore },
+  alerts: CountStore,
   send: (mail: ReturnType<typeof crashAlertFor>) => Promise<void>,
   to: string,
 ): Promise<number | undefined> {
   const real = crashes.filter((c) => !isNoise(c));
   if (!real.length) return undefined;
-  for (let i = 0; i < real.length; i++) await stores.alerts.take(`${day}/real`, Infinity);
-  const n = await stores.alerts.get(`${day}/real`);
-  // A count passed without its email (a send that failed) is claimed with the next, so only one email goes out.
-  let due: number | undefined;
-  for (const t of ALERT_AT) if (t <= n && (await stores.alerts.take(`${day}/sent-${t}`, 1))) due = t;
-  if (due === undefined) return undefined;
-  // Counted with every other email the site sends, under the same daily cap.
-  if (!(await stores.email.take(`${day}/all`, EMAIL_CAPS.all))) return undefined;
-  await send(crashAlertFor(due, n, real[real.length - 1], day, to));
-  return due;
+  // One take for each crash: a report carries at most five.
+  for (let i = 0; i < real.length; i++) await alerts.take(`${day}/real`, Infinity);
+  const n = await alerts.get(`${day}/real`);
+  // Only the highest count reached and not yet emailed: a lower one missed (its email failed) is covered by it.
+  const at = [...ALERT_AT].reverse().find((t) => t <= n);
+  if (at === undefined || (await alerts.get(`${day}/done-${at}`)) > 0) return undefined;
+  if (!(await alerts.take(`${day}/try-${at}`, TRIES))) return undefined;
+  await send(crashAlertFor(at, n, real[real.length - 1], day, to));
+  for (const t of ALERT_AT) if (t <= at) await alerts.take(`${day}/done-${t}`, 1);
+  return at;
 }

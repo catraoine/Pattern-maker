@@ -30,23 +30,25 @@ const blobDays = (): DayStore => {
 };
 
 // Same-day crash emails (Cat's "apply", Nov 21): to CRASH_ALERT_TO, or else the inbox tester emails are copied to.
-// Without RESEND_API_KEY or an address nothing is sent; a failed send is only logged, after the report is stored.
+// Without RESEND_API_KEY or an address nothing is sent. A send that fails is only logged, after the report is stored,
+// and is tried again with the next crash; the email service gets 10 seconds, so a stuck one can't hold reports open.
 async function emailCrashes(crashes: StoredCrash[], day: string) {
   const key = Netlify.env.get('RESEND_API_KEY')?.trim();
   const to = (Netlify.env.get('CRASH_ALERT_TO') || Netlify.env.get('TESTER_MAIL_COPY_TO'))?.trim();
   if (!key || !to) return;
   try {
-    await alertCrashes(crashes, day, { alerts: blobCounts('crash-alerts'), email: blobCounts('email-limits') }, async (mail) => {
+    await alertCrashes(crashes, day, blobCounts('crash-alerts'), async (mail) => {
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(mail),
+        signal: AbortSignal.timeout(10_000),
       });
       // Only the status: the service's reply could hold the address, which is never logged.
-      if (!res.ok) console.error('crash email not sent', res.status);
+      if (!res.ok) throw new Error(`email service answered ${res.status}`);
     }, to);
   } catch (e) {
-    console.error('crash email not sent', e);
+    console.error('crash email not sent', e instanceof Error ? e.message : e);
   }
 }
 
