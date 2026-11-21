@@ -262,7 +262,11 @@ export function princessPieces(
     const total = runLen(r, run);
     // The shoulder from the neck end, the armhole from the shoulder down, as on the back.
     const neckFirst = line === 'shoulder' && Math.abs(r.pts[run[0]].x) < Math.abs(r.pts[(run[1] + 1) % r.pts.length].x);
-    const d = line === 'shoulder' ? total * (at ?? 0.5) : total * clampAt(at ?? 0.45, ARMHOLE_AT.min, ARMHOLE_AT.max);
+    // Undrawn on the armhole, the line starts 2 cm below the armhole notch, as the back's does and as a bust dart's is
+    // moved: at a set share of the armhole a big chest's notch could fall just past the line, off its own panel's edge
+    // (the nightly menswear pass, Nov 21: 0.6 cm off the side front on a 116 cm chest).
+    const notch = front.notches[0]?.[0];
+    const d = line === 'shoulder' ? total * (at ?? 0.5) : at === undefined && notch ? Math.min(alongTo(r, run, notch) + 2, total * 0.6) : total * clampAt(at ?? 0.45, ARMHOLE_AT.min, ARMHOLE_AT.max);
     const iQ = insertAlong(r, run, neckFirst || line !== 'shoulder' ? d : total - d);
     f = panels(front, { ring: r, i1: iQ, i2: iQ, pivot: dartTipOf(front, r), move: (q) => q, top: r.pts[iQ] }, ['Bodice centre front', 'Bodice side front'], ['Cut 1 on fold', 'Cut 2 (1 pair)'], {});
   } else {
@@ -290,20 +294,26 @@ export function princessPieces(
   } else {
     const run = runOf(r, 'armhole')!;
     const notch = back.notches.length >= 2 ? lerp(back.notches[0][0], back.notches[1][0], 0.5) : r.pts[run[0] + 2];
-    let s = 0;
-    let best = Infinity;
-    let atS = 0;
-    for (let i = run[0]; i <= run[1] + 1; i++) {
-      if (i > run[0]) s += len(sub(r.pts[i], r.pts[i - 1]));
-      if (len(sub(r.pts[i], notch)) < best) {
-        best = len(sub(r.pts[i], notch));
-        atS = s;
-      }
-    }
+    const atS = alongTo(r, run, notch);
     iQ = insertAlong(r, run, at !== undefined ? runLen(r, run) * clampAt(at, ARMHOLE_AT.min, ARMHOLE_AT.max) : Math.min(atS + 2, runLen(r, run) * 0.6));
   }
   const b = panels(back, { ring: r, i1: iQ, i2: iQ, pivot: dartTipOf(back, r), move: (q) => q, top: r.pts[iQ] }, ['Bodice centre back', 'Bodice side back'], ['Cut 2 (1 pair)', 'Cut 2 (1 pair)'], line === 'shoulder' ? { shoulderEase: 0.5 } : {});
   return { pieces: [f.centre, f.side, b.centre, b.side], lines: { front: f.line, back: b.line } };
+}
+
+/** How far along an edge's run its point nearest to q is (cm, from the run's start). */
+function alongTo(r: Ring, run: [number, number], q: P): number {
+  let s = 0;
+  let best = Infinity;
+  let at = 0;
+  for (let i = run[0]; i <= run[1] + 1; i++) {
+    if (i > run[0]) s += len(sub(r.pts[i], r.pts[i - 1]));
+    if (len(sub(r.pts[i], q)) < best) {
+      best = len(sub(r.pts[i], q));
+      at = s;
+    }
+  }
+  return at;
 }
 
 /** Where a princess line without a bust dart turns down: the waist dart's point, or where it would be. */
