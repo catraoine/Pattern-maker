@@ -22,7 +22,7 @@ import { type Lay, hideSqFt, layWords } from './layplan';
 import type { Flat } from './flat';
 import { DIAGRAMS, DiagramId } from './diagrams';
 import { P } from './geometry';
-import { CODE_CARD_BOTTOM, Face, OVERLAP, PAGE_MARGIN, Paper, STYLES, Sheet, joinMarks, pageName, pageSize, textCorners, tileGrid, usedTiles } from './export';
+import { CODE_CARD_BOTTOM, Face, OVERLAP, PAGE_MARGIN, Paper, type Prim, STYLES, Sheet, joinMarks, pageName, pageSize, textCorners, tileGrid, usedTiles } from './export';
 
 // The page footer sits inside the 1 cm margin: closer to the edge most home printers cannot print, and some
 // drivers then offer to shrink the page, which breaks the scale.
@@ -768,6 +768,9 @@ function addSummaryPage(
   addMapPage(doc, fonts, sheet, paper, used, total, [stepX, stepY]);
 }
 
+/** Words on a piece that mark it rather than name it: on a narrow piece they sit right by its name block. */
+const MARKING_WORDS = /^(GRAIN|FOLD|PLACE ON FOLD|CREASE LINE ON GRAIN|BUTTONHOLE|PLEAT)$/;
+
 /** The page map on a page of its own, as large as the page allows (Cat, Nov 15: it was a small sketch under the seam
  *  check, too small to tape by): how to print and join the pages, and every page's place over the pieces. */
 function addMapPage(doc: PDFDocument, fonts: Fonts, sheet: Sheet, paper: 'a4' | 'letter', used: boolean[][], total: number, [stepX, stepY]: [number, number]) {
@@ -789,7 +792,8 @@ function addMapPage(doc: PDFDocument, fonts: Fonts, sheet: Sheet, paper: 'a4' | 
   for (const pr of sheet.prims) {
     if (pr.kind !== 'poly' || pr.style !== 'cut') continue;
     const d = pr.pts.map((q, i) => `${i ? 'L' : 'M'}${(q.x * k).toFixed(2)} ${(q.y * k).toFixed(2)}`).join(' ') + ' Z';
-    st.page.drawSvgPath(d, { x: x0, y: y0, borderColor: rgb(0, 0, 0), borderWidth: 0.6 });
+    // Mid grey, so the page names (dark, over them) read first: the map is for finding a page (DT walk, Nov 21).
+    st.page.drawSvgPath(d, { x: x0, y: y0, borderColor: rgb(0.55, 0.55, 0.55), borderWidth: 0.6 });
   }
   const [pw0, ph0] = [stepX + OVERLAP, stepY + OVERLAP];
   used.forEach((row, r) =>
@@ -799,20 +803,50 @@ function addMapPage(doc: PDFDocument, fonts: Fonts, sheet: Sheet, paper: 'a4' | 
       st.page.drawRectangle({ x: a.x, y: a.y - ph0 * k, width: pw0 * k, height: ph0 * k, borderColor: rgb(0.6, 0.6, 0.6), borderWidth: 0.4, borderDashArray: [2, 2] });
     }),
   );
-  // Page names as large as the boxes allow, so each taped page can be found on the map at a glance. They go on last,
-  // in the top left corner or the middle of the page, where no piece's outline crosses, so the outlines don't run through them (DR walk,
-  // Nov 20; DS walk, Nov 21: on a white patch alone, "H2", "H3" and "H4" sat on a waistband's line). Where every place
-  // is crossed, the top left, on a white patch.
+  const cuts = sheet.prims.filter((pr) => pr.kind === 'poly' && pr.style === 'cut').map((pr) => (pr.kind === 'poly' ? pr.pts : []));
   const size = Math.max(7, Math.min(16, ph0 * k * 0.18));
-  const cuts = sheet.prims.filter((pr) => pr.kind === 'poly' && pr.style === 'cut').map((pr) => (pr.kind === 'poly' ? [...pr.pts, pr.pts[0]] : []));
-  // Whether an outline crosses a box on the map (x, y its lower left, in points).
+  // Each piece's name on the map, about where it sits on the piece, so it shows which pages make which piece (DT walk,
+  // Nov 21). A piece's name is the bigger words just above its "PIECE 2 OF 11 · CUT 2" line, in its name block.
+  const inPiece = (q: P, pts: P[]) =>
+    pts.reduce((inside, a, i) => {
+      const b = pts[(i + 1) % pts.length];
+      return (a.y > q.y) !== (b.y > q.y) && q.x < a.x + ((q.y - a.y) * (b.x - a.x)) / (b.y - a.y) ? !inside : inside;
+    }, false);
+  const words = sheet.prims.filter((pr): pr is Extract<Prim, { kind: 'text' }> => pr.kind === 'text' && pr.text.trim() !== '');
+  const pieceSize = Math.max(5.5, Math.min(7.5, ph0 * k * 0.08));
+  // Clear of the page names in each page's corner, which go on after.
+  const nameBox = (r: number, c: number) => {
+    const a = at({ x: c * stepX, y: r * stepY });
+    return { x: a.x + 2, y: a.y - size - 5, w: fonts.label.widthOfTextAtSize(pageName(r, c), size) + 0.1 * size * 3 + 4, h: size + 4 };
+  };
+  const nameBoxes = used.flatMap((row, r) => row.flatMap((on, c) => (on ? [nameBox(r, c)] : [])));
+  const meets = (a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+  for (const pts of cuts) {
+    const mine = words.filter((w) => inPiece(w.at, pts));
+    const tag = mine.find((w) => /^PIECE \d/.test(w.text));
+    if (!tag) continue;
+    const lines = mine.filter((w) => w !== tag && !MARKING_WORDS.test(w.text) && w.size > tag.size && w.rotate === tag.rotate && Math.hypot(w.at.x - tag.at.x, w.at.y - tag.at.y) < 4 * w.size);
+    if (!lines.length) continue;
+    const mid = at({ x: lines.reduce((t, w) => t + w.at.x, 0) / lines.length, y: lines.reduce((t, w) => t + w.at.y, 0) / lines.length });
+    const name = lines.map((w) => w.text).join(' ');
+    const w = fonts.label.widthOfTextAtSize(name, pieceSize) + 0.08 * pieceSize * (name.length - 1);
+    const spots = [0, -1, 1, -2, 2, -3, 3].map((d) => ({ x: mid.x - w / 2, y: mid.y - pieceSize / 2 + d * pieceSize * 1.5 }));
+    const box = (q: { x: number; y: number }) => ({ x: q.x - 1.5, y: q.y - 1.5, w: w + 3, h: pieceSize + 3 });
+    const q = spots.find((sp) => !nameBoxes.some((b) => meets(box(sp), b))) ?? spots[0];
+    // On a white patch: the piece's own outline or a seam may run through the middle of it.
+    st.page.drawRectangle({ ...((b) => ({ x: b.x, y: b.y, width: b.w, height: b.h }))(box(q)), color: rgb(1, 1, 1) });
+    drawText(st.page, name, { x: q.x, y: q.y, size: pieceSize, font: fonts.label, tracking: 0.08, grey: 0.4 });
+  }
+  // Page names as large as the boxes allow, so each taped page can be found on the map at a glance, dark over the grey
+  // outlines. Always the same place, each page's top left corner: names moved to dodge the outlines jumped about from
+  // page to page (DT walk, Nov 21). Where an outline runs under one, a white patch keeps the letters clear.
   const crossed = (b: { x: number; y: number; w: number; h: number }) => {
     const [bx0, bx1, by0, by1] = [(b.x - x0) / k, (b.x + b.w - x0) / k, (y0 - b.y - b.h) / k, (y0 - b.y) / k];
     const inside = (q: P) => q.x >= bx0 && q.x <= bx1 && q.y >= by0 && q.y <= by1;
     return cuts.some((pts) =>
-      pts.some((q, i) => {
+      [...pts, pts[0]].some((q, i, all) => {
         if (!i) return false;
-        const a = pts[i - 1];
+        const a = all[i - 1];
         if (inside(a) || inside(q)) return true;
         if (Math.max(a.x, q.x) < bx0 || Math.min(a.x, q.x) > bx1 || Math.max(a.y, q.y) < by0 || Math.min(a.y, q.y) > by1) return false;
         const side = (c: P) => (q.x - a.x) * (c.y - a.y) - (q.y - a.y) * (c.x - a.x);
@@ -827,15 +861,10 @@ function addMapPage(doc: PDFDocument, fonts: Fonts, sheet: Sheet, paper: 'a4' | 
       const a = at({ x: c * stepX, y: r * stepY });
       const name = pageName(r, c);
       const w = fonts.label.widthOfTextAtSize(name, size) + 0.1 * size * (name.length - 1);
-      // Then about the middle of the page's own part of the box: in a right or lower corner, the name sat beside the
-      // next page's and read as one ("A6A7").
-      const [mx, my] = [a.x + (stepX * k - w) / 2, a.y - (stepY * k + size) / 2];
-      const places = [{ x: a.x + 4, y: a.y - size - 3 }, ...[0, 1, -1, 2, -2].map((d) => ({ x: mx, y: my + d * size * 1.2 }))];
-      const patch = (q: { x: number; y: number }) => ({ x: q.x - 1.5, y: q.y - 1.5, w: w + 3, h: size + 3 });
-      const free = places.find((q) => !crossed(patch(q)));
-      const q = free ?? places[0];
-      if (!free) st.page.drawRectangle({ x: q.x - 1.5, y: q.y - 1.5, width: w + 3, height: size + 3, color: rgb(1, 1, 1) });
-      drawText(st.page, name, { x: q.x, y: q.y, size, font: fonts.label, tracking: 0.1, grey: 0.35 });
+      const q = { x: a.x + 4, y: a.y - size - 3 };
+      const patch = { x: q.x - 2, y: q.y - 2, w: w + 4, h: size + 4 };
+      if (crossed(patch)) st.page.drawRectangle({ x: patch.x, y: patch.y, width: patch.w, height: patch.h, color: rgb(1, 1, 1) });
+      drawText(st.page, name, { x: q.x, y: q.y, size, font: fonts.label, tracking: 0.1, grey: 0.15 });
     }),
   );
   st.y -= sheet.height * k + 10;
