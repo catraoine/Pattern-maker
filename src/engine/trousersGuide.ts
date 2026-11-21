@@ -78,7 +78,7 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
       text: elastic
         ? 'Cut the waistband from its pattern piece with the grain along its length. It is a casing for the elastic, as long as the trousers waist so they pull on over your hips, and it has no interfacing so it can gather. Snip the notches for the side seams and the centre front.'
         : curved
-          ? `Cut the curved waistband twice, once for the band and once for its facing, with the grain arrow along the band at the centre back, and fuse interfacing to the outer band so the curve cannot stretch. Snip the notches for the ${fly ? 'centre fronts, side seams and centre back' : 'side seams, centre front and centre back'} on both long edges.`
+          ? `You need two curved waistbands, one for the band and one for its facing: on folded fabric that is one cut through both layers. Keep the grain arrow along the band at the centre back, and fuse interfacing to the outer band so the curve cannot stretch. Snip the notches for the ${fly ? 'centre fronts, side seams and centre back' : 'side seams, centre front and centre back'} on both long edges.`
           : `Cut the waistband from its pattern piece with the grain along its length, and fuse interfacing to the outer half. Snip the notches for the ${fly ? 'centre fronts, side seams and centre back' : 'side seams, centre front and centre back'}.`,
     },
     {

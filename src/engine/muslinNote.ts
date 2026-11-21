@@ -55,7 +55,10 @@ export function muslinLine(guide: SewingGuide, fabricLines: string[], isMuslin: 
   // Only where the steps say not to wash the cloth: the trouser's first step says wash it, and "even where the first
   // step says not to" read as a mistake there (DO walk, Nov 20).
   const unwashed = /\bnot (to )?wash\b|don't wash/i.test(all);
+  // The steps say to try it on and take it in or let it out, while the fit testers are asked not to alter it, so the
+  // fit report shows how the pattern itself fits (DU walk, Nov 21).
+  const alter = /take (it )?in or let (it )?out/i.test(steps);
   return [
-    `Sewing in muslin (calico): for a test version, buy about the same length of muslin as the fabric above. Wash and dry it first, as it shrinks${unwashed ? ', even where the first step says not to wash the fabric above' : ''}, and press it with a hot, steamy iron. The steps are written for the fabric above${list ? `; in muslin, leave out ${list}` : ''}. Sew everything else the same way, so the fit is the fit of the real one, with a long machine stitch so the seams unpick easily if the fit needs changing.${may.length ? ` If you like, you can also leave out ${and(may)}: either way is fine for the fit test.` : ''}`,
+    `Sewing in muslin (calico): for a test version, buy about the same length of muslin as the fabric above. Wash and dry it first, as it shrinks${unwashed ? ', even where the first step says not to wash the fabric above' : ''}, and press it with a hot, steamy iron. The steps are written for the fabric above${list ? `; in muslin, leave out ${list}` : ''}. Sew everything else the same way, so the fit is the fit of the real one, with a long machine stitch so the seams unpick easily if the fit needs changing.${alter ? ' For the fit test, where a step says to take it in or let it out, try it on but leave the seams as they are, and note what you would change for your fit report.' : ''}${may.length ? ` If you like, you can also leave out ${and(may)}: either way is fine for the fit test.` : ''}`,
   ];
 }

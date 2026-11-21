@@ -303,6 +303,16 @@ describe('sewing in muslin', () => {
     expect(line('black-vest')).toContain('says not to wash');
     for (const id of ['blush-shift', 'ice-peplum', 'black-pleated-skirt', 'chocolate-barrel', 'black-vest']) expect(line(id)).toContain('long machine stitch');
   });
+  // The steps say take it in or let it out, and testers are asked not to alter: the line says so wherever a step does
+  // (DU walk, Nov 21).
+  it('tells testers to leave the seams as drafted wherever a step says take in or let out', () => {
+    for (const id of ['blush-shift', 'ice-peplum', 'black-pleated-skirt', 'chocolate-barrel', 'black-vest']) {
+      const p = made(id, BODIES.middle);
+      const line = p.guide.fabric!.find((l) => l.startsWith('Sewing in muslin'))!;
+      expect(line.includes('leave the seams as they are'), id).toBe(p.guide.steps.some((st) => /take (it )?in or let (it )?out/i.test(st.text)));
+    }
+    expect(made('black-pleated-skirt', BODIES.middle).guide.fabric!.find((l) => l.startsWith('Sewing in muslin'))).toContain('leave the seams as they are');
+  });
 });
 
 // The Ice Peplum's bodice is sewn to its peplum at its lower edge, and its sleeve to its band, and both were labelled

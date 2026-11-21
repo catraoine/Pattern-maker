@@ -141,7 +141,8 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
       text: elastic
         ? "Cut the waistband from its pattern piece with the grain arrow along the selvedge. It is a casing for the elastic, as long as the skirt's waist so the skirt pulls on over your hips, and it has no interfacing so it can gather. Snip the notches for the side seams and the centre front on both long edges."
         : curved
-          ? 'Cut the curved waistband twice, once for the band and once for its facing, with the grain arrow along the selvedge so it won\'t stretch. Snip the notches for the centre front and the side seams on both long edges.'
+          ? // "Twice" on folded fabric read as four pieces (DU tester walk, Nov 21): it is two in all.
+            'You need two curved waistbands, one for the band and one for its facing: on folded fabric that is one cut through both layers. Keep the grain arrow along the selvedge so it won\'t stretch. Snip the notches for the centre front and the side seams on both long edges.'
           : 'Cut the waistband from its pattern piece with the grain arrow along the selvedge, so it won\'t stretch. Snip the notches for the centre front and the side seams on both long edges, and at each end of the fold line.',
     },
     ...(lined

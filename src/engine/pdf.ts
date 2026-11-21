@@ -711,12 +711,13 @@ function addSummaryPage(
   st.y -= 16;
   for (const row of s.rows) {
     room(16);
-    // In inches the finished size is the body plus the ease as they are printed, each to the eighth: rounded on its own,
-    // a back shoulder read "5 in, ease -1/8 in, finished 5 in" (DR walk, Nov 20). It moves by 3 mm at most.
+    // In inches the ease is the finished size less the body, each as printed to the eighth, so the row adds up: a back
+    // shoulder read "5 in, ease -1/8 in, finished 5 in" (DR walk, Nov 20). The finished size stays as the app shows it:
+    // made the sum instead, the inch skirt's waist read 44-5/8 here and 44-3/4 in the app (DU walk, Nov 21).
     const eighth = 2.54 / 8;
     const toEighth = (cm: number) => Math.round(cm / eighth);
-    const finished = inchMode && typeof row.finished === 'number' && row.body !== undefined && row.ease !== undefined ? (toEighth(row.body) + toEighth(row.ease)) * eighth : row.finished;
-    const cells = [row.label, row.body !== undefined ? `${fmt(row.body)} cm` : '', row.ease !== undefined ? `${row.ease < 0 ? '' : '+'}${fmt(row.ease)} cm` : '', typeof finished === 'number' ? `${fmt(finished)} cm` : finished];
+    const ease = inchMode && typeof row.finished === 'number' && row.body !== undefined && row.ease !== undefined ? (toEighth(row.finished) - toEighth(row.body)) * eighth : row.ease;
+    const cells = [row.label, row.body !== undefined ? `${fmt(row.body)} cm` : '', ease !== undefined ? `${ease < 0 ? '' : '+'}${fmt(ease)} cm` : '', typeof row.finished === 'number' ? `${fmt(row.finished)} cm` : row.finished];
     cells.forEach((t, i) => drawText(st.page, t, { x: colX[i], y: st.y, size: 10, font: i === 3 ? fonts.bodyMedium : fonts.body }));
     st.y -= 16;
   }
