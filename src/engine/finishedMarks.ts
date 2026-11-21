@@ -76,7 +76,7 @@ export function withFinishedMarks(pieces: Piece[], spec: SpecRow[]): Piece[] {
     if (!spot?.at) return false;
     // A low rise's waist is read against the body where its top sits: "YOU 89.9 CM" on a 79 cm waist read as a
     // mistake (pretend tester DN walk, Nov 20), so the note says where.
-    const low = /^Waist, ([\d.]+) cm (below|above) yours$/.exec(r.label);
+    const low = /^Top edge, ([\d.]+) cm (below|above) your waist$/.exec(r.label);
     const you = low ? `YOU ${fmt(r.body!)} CM, ${low[1]} CM ${low[2].toUpperCase()} YOUR WAIST` : `YOU ${fmt(r.body!)} CM`;
     const mark = { at: p(spot.at.x, spot.y), title, note: `${you} · EASE ${signed(r.ease!)} CM` };
     marks.set(pc, [...(marks.get(pc) ?? []), above ? { ...mark, above } : mark]);

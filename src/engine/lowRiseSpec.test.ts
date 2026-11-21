@@ -13,7 +13,7 @@ describe('a low rise reads its table where it sits', () => {
     const m = body as SkirtMeasurements;
     const spec = skirtSpec(m, draftSkirt(m, { rise: 'low', pleats: 'box' }));
     const w = spec.find((r) => isWaistRow(r.label))!;
-    expect(w.label).toBe('Waist, 5.1 cm below yours');
+    expect(w.label).toBe('Top edge, 5.1 cm below your waist');
     expect(w.body).toBeGreaterThan(70);
     expect(w.ease).toBeLessThan(4);
     expect(finishedLines(spec).find((l) => isWaistRow(l.label))?.fit).toBe('Close');
@@ -23,7 +23,7 @@ describe('a low rise reads its table where it sits', () => {
     const m = { ...body, waist: 122, full_hip: 138, crotch_depth: 31.4, crotch_length: 90.5 } as TrousersMeasurements;
     const spec = trousersSpec(m, draftTrousers(m, { ...DEFAULT_TROUSERS, rise: 'low' }));
     const w = spec.find((r) => isWaistRow(r.label))!;
-    expect(w.label).toMatch(/cm below yours$/);
+    expect(w.label).toMatch(/cm below your waist$/);
     expect(w.ease).toBeLessThan(6);
     const c = spec.find((r) => r.label === 'Crotch length, from where they sit')!;
     expect(c.body).toBeCloseTo(90.5 - 2 * 5.125, 0);

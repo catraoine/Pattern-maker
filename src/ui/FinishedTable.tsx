@@ -9,7 +9,7 @@ import { UnitNow } from './LengthEntry';
 // every garment shows what the pattern measures against you, the ease between, and a plain fit word.
 
 /** The rounds a fit word reads true for: the body's girths. An arm or a crotch has its own scale. */
-const GIRTH = /^(Bust|Waist|Hip|High hip|Underbust)\b/;
+const GIRTH = /^(Bust|Waist|Hip|High hip|Underbust|Top edge)\b/;
 /** The few lengths worth seeing beside them; the rest stays on the printed spec sheet. */
 const LENGTH = /^(Length|Nape to hem|Centre back length|Outside leg|Hem circumference|Hem, round|Hem, \d)/;
 
