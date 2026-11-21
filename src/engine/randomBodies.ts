@@ -1,6 +1,7 @@
 // Random but realistic adult bodies for stress-testing the drafting engine.
 import { BodiceMeasurements } from './bodice';
 import { SkirtMeasurements } from './skirt';
+import type { MeasurementValues } from '../measurements';
 
 /** Small seeded PRNG (mulberry32) so failures reproduce. */
 export function rng(seed: number) {
@@ -84,3 +85,26 @@ export const sweep = (n: number) => (FULL_SWEEP ? n : Math.max(3, Math.ceil(n / 
  */
 export const batches = (n: number, size: number): [number, number, string][] =>
   n <= size ? [[1, n, '']] : Array.from({ length: Math.ceil(n / size) }, (_, i): [number, number, string] => [i * size + 1, Math.min(n, (i + 1) * size), ` (bodies ${i * size + 1} to ${Math.min(n, (i + 1) * size)})`]);
+
+/** A random man's measurements for the menswear form, linked roughly the way bodies are (cm): the menswear checks
+ *  and the nightly menswear pass. */
+export function randomMan(r: () => number): MeasurementValues {
+  const u = (lo: number, hi: number) => lo + (hi - lo) * r();
+  const chest = u(86, 130);
+  const floor = u(98, 116);
+  const depth = u(25, 30);
+  return {
+    full_bust: chest,
+    waist: chest * u(0.78, 1.0),
+    full_hip: chest * u(0.92, 1.04),
+    waist_to_floor: floor,
+    nape_to_waist: floor * u(0.4, 0.44),
+    shoulder_width: 40 + (chest - 86) * 0.2 + u(-1.5, 1.5),
+    waist_to_hip: u(19, 23),
+    waist_to_knee: floor * u(0.54, 0.58),
+    crotch_depth: depth,
+    crotch_length: depth * u(2.45, 2.85),
+    arm_length: u(58, 68),
+    upper_arm: chest * u(0.28, 0.34),
+  };
+}
