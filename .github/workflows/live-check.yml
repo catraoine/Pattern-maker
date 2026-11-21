@@ -1,0 +1,47 @@
+name: Live site check
+
+# Every 30 minutes, checks that maisontrace.co opens and its app code loads (Cat's "apply", Nov 21, from the code quality
+# review). If it doesn't (Netlify credits run out, a broken release, the site paused), the run fails and GitHub emails
+# Cat, so we'd know within half an hour instead of from a tester. It tries three times a minute apart first, so a
+# passing blip doesn't send an email. Only reads the public site; changes nothing.
+#
+# Once a day it also reads the sign-in database the way the app does, with the app's own public key read out of the
+# live page (no secret here). On the free plan a database with no use for about a week is paused, and it was paused in
+# early November; sign-in stays hidden until Dec 7, so nothing else uses it until then. The read returns nothing (no
+# one's saved work is readable without signing in) and keeps it awake.
+on:
+  schedule:
+    - cron: '7,37 * * * *'
+  workflow_dispatch:
+
+jobs:
+  live:
+    name: maisontrace.co opens
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Page and app code load
+        run: |
+          for try in 1 2 3; do
+            ok=1
+            page=$(curl -fsS --max-time 30 https://maisontrace.co/) || ok=0
+            js=$(printf '%s' "$page" | grep -o '/assets/index-[^"]*\.js' | head -1 || true)
+            [ -n "$js" ] || ok=0
+            [ "$ok" = 1 ] && curl -fsS --max-time 60 -o app.js "https://maisontrace.co$js" || ok=0
+            [ "$ok" = 1 ] && [ "$(wc -c < app.js)" -gt 100000 ] || ok=0
+            if [ "$ok" = 1 ]; then echo "maisontrace.co opens, app code $js"; exit 0; fi
+            echo "Try $try: maisontrace.co did not open fully"; sleep 60
+          done
+          echo "::error::maisontrace.co did not open on three tries a minute apart"
+          exit 1
+      - name: Keep the sign-in database awake (once a day)
+        # In the 15:00 UTC hour only (8 am in Vancouver), or when run by hand. A database that doesn't answer fails
+        # the run too, so a pause is caught the same morning.
+        run: |
+          if [ "$GITHUB_EVENT_NAME" != workflow_dispatch ] && [ "$(date -u +%H)" != 15 ]; then echo "Not this hour"; exit 0; fi
+          url=$(grep -o 'https://[a-z0-9]*\.supabase\.co' app.js | head -1 || true)
+          key=$(grep -o 'sb_publishable_[A-Za-z0-9_-]*' app.js | head -1 || true)
+          if [ -z "$url" ] || [ -z "$key" ]; then echo "::error::The live app has no sign-in database address or key"; exit 1; fi
+          code=$(curl -sS --max-time 30 -o answer.json -w '%{http_code}' "$url/rest/v1/backups?select=user_id&limit=1" -H "apikey: $key")
+          if [ "$code" != 200 ] || [ "$(cat answer.json)" != '[]' ]; then echo "::error::The sign-in database answered $code: $(head -c 200 answer.json)"; exit 1; fi
+          echo "Sign-in database awake, and it shows no one's saved work without signing in"

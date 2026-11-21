@@ -7,6 +7,8 @@
 // Netlify (Site configuration > Environment variables); without it the read-out is refused.
 import { randomUUID } from 'node:crypto';
 import { getStore } from '@netlify/blobs';
+import { blobCounts } from '../../src/server/blobCounts';
+import { alertCrashes } from '../../src/server/crashAlert';
 import { shotBytes, type StoredNote } from '../../src/server/notes';
 import { addBeacon, checkBeacon, byLanguage, funnel, keyMatches, lastDays, updateDay, type DayStore, type DayTotals, type StoredCrash } from '../../src/server/reports';
 import { confirmedAccounts, referrers } from '../../src/server/referral';
@@ -27,6 +29,27 @@ const blobDays = (): DayStore => {
   };
 };
 
+// Same-day crash emails (Cat's "apply", Nov 21): to CRASH_ALERT_TO, or else the inbox tester emails are copied to.
+// Without RESEND_API_KEY or an address nothing is sent; a failed send is only logged, after the report is stored.
+async function emailCrashes(crashes: StoredCrash[], day: string) {
+  const key = Netlify.env.get('RESEND_API_KEY')?.trim();
+  const to = (Netlify.env.get('CRASH_ALERT_TO') || Netlify.env.get('TESTER_MAIL_COPY_TO'))?.trim();
+  if (!key || !to) return;
+  try {
+    await alertCrashes(crashes, day, { alerts: blobCounts('crash-alerts'), email: blobCounts('email-limits') }, async (mail) => {
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(mail),
+      });
+      // Only the status: the service's reply could hold the address, which is never logged.
+      if (!res.ok) console.error('crash email not sent', res.status);
+    }, to);
+  } catch (e) {
+    console.error('crash email not sent', e);
+  }
+}
+
 async function record(text: string) {
   const beacon = checkBeacon(text);
   if (!beacon) return new Response(null, { status: 400 });
@@ -40,6 +63,7 @@ async function record(text: string) {
     const store = reports();
     const time = at.slice(11, 19).replace(/:/g, '');
     await Promise.all((crashes ?? []).map((c) => store.setJSON(`crash/${day}/${time}-${randomUUID().slice(0, 8)}`, c)));
+    if (crashes?.length) await emailCrashes(crashes, day);
   } catch (e) {
     // Reports are best effort: the visitor never waits on them or sees a failure.
     console.error('report not stored', e);
