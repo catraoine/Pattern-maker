@@ -190,7 +190,9 @@ describe('the tester pattern pages keep their footer clear', () => {
           expect(foot, 'a pattern page with no footer').toBeGreaterThan(0);
           const fy = (list[foot] as { y: number }).y;
           const clear = list.find((e) => e.kind === 'clear') as { x1: number; y1: number } | undefined;
-          const line = list[foot + 1] as { x1: number };
+          const line = list[foot + 1] as { x1: number; text: string };
+          // And it keeps "ACTUAL SIZE", the words most print boxes use (A4 pages lost it, DS walk, Nov 21).
+          expect(line.text, paper).toMatch(/ACTUAL SIZE/);
           // Words drawn on the footer's line before it, unless a cleared band went down between.
           for (const e of list.slice(0, foot))
             if (e.kind === 'text' && e.y > fy - 0.1 * CM && e.y < fy + 0.25 * CM && e.x < line.x1 + 0.3 * CM && e.x1 > 0.9 * CM && !(clear && list.indexOf(clear as never) > list.indexOf(e) && e.y < clear.y1 && e.x < clear.x1)) under.push(`"${e.text}"`);

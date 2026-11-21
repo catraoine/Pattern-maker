@@ -239,8 +239,21 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
                 </button>
               ))}
             </div>
-            {/* A low rise goes no lower than a quarter of your waist to hip, so say this body's drop, not the most (DR walk, Nov 20). */}
-            <Explain set="trousers" group={g.id} options={g.options} pick={trouserAllowed(choices, g.id, trouserChoice(choices, g.id)) ? trouserChoice(choices, g.id) : undefined} say={g.id === 'rise' && choices.rise === 'low' && values.waist_to_hip ? `The waistband sits low, on the top of your hips, about ${Math.round(-riseFor({ waist_to_hip: values.waist_to_hip }, RISE_PICK_CM.low))} cm below your waist.` : undefined} />
+            {/* A low rise goes no lower than a quarter of your waist to hip, so say this body's drop, not the most (DR walk, Nov 20).
+                And the loops as drafted: a larger waist takes seven, not five (DS walk, Nov 21). */}
+            <Explain
+              set="trousers"
+              group={g.id}
+              options={g.options}
+              pick={trouserAllowed(choices, g.id, trouserChoice(choices, g.id)) ? trouserChoice(choices, g.id) : undefined}
+              say={
+                g.id === 'rise' && choices.rise === 'low' && values.waist_to_hip
+                  ? `The waistband sits low, on the top of your hips, about ${Math.round(-riseFor({ waist_to_hip: values.waist_to_hip }, RISE_PICK_CM.low))} cm below your waist.`
+                  : g.id === 'loops' && draft?.loops
+                    ? `${draft.loops === 7 ? 'Seven' : 'Five'} belt loops on the waistband: the centre back, each side, and one halfway across each front${draft.loops === 7 ? ' and each back' : ''}.`
+                    : undefined
+              }
+            />
             {g.id === 'leg' && choices.leg === 'culotte' && <p className="muted small">Culottes are cut to mid-calf, wide from the hip.</p>}
             {g.id === 'waist' && elastic && (
               <p className="muted small">

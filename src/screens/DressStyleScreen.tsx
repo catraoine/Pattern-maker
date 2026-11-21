@@ -622,7 +622,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                 </button>
               ))}
             </div>
-            <Explain set={['noSeam', 'silhouette', 'length', 'asymHem', 'slit', 'gathers', 'volume', 'pockets', 'belt'].includes(g.id) ? 'skirt' : 'bodice'} group={g.id} options={g.options} pick={value(g.id)} say={g.id === 'darts' && noSeam === 'shift' && value(g.id) === 'bust' ? 'Darts at the bust on the front. The back keeps its waist darts, so it follows your back.' : undefined} />
+            <Explain set={['noSeam', 'silhouette', 'length', 'asymHem', 'slit', 'gathers', 'volume', 'pockets', 'belt'].includes(g.id) ? 'skirt' : 'bodice'} group={g.id} options={g.options} pick={value(g.id)} say={g.id === 'darts' && noSeam === 'shift' && value(g.id) === 'bust' ? 'Darts at the bust on the front, and the back keeps its two waist darts, so it follows your back.' : undefined} />
             {g.id === 'sleeveCut' && SLEEVE_CUTS.map(([c]) => sleeveCutBlocked({ ...choices.bodice, closure }, c)).find(Boolean) && (
               <p className="muted small">{SLEEVE_CUTS.map(([c]) => sleeveCutBlocked({ ...choices.bodice, closure }, c)).find(Boolean)}</p>
             )}

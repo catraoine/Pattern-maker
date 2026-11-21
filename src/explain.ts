@@ -318,7 +318,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
     },
     loops: {
       none: ['A plain waistband.', 'easy'],
-      loops: ['Five belt loops on the waistband: the centre back, each side, and one halfway across each front.'],
+      loops: ['Five belt loops on the waistband, or seven on a larger waist: the centre back, each side, and across the front.'],
     },
   },
   outer: {
