@@ -4,7 +4,9 @@
    stretched to the full height of the page (the Fabric list runs to 3,000 px), so there was nothing left for it to
    stay pinned inside, and scrolling the choices left the left two thirds of the screen empty. */
 @media (min-width: 1100px) {
-  .style-pin > section {
+  /* Not the enlarged window: it fills the screen, and starting at the top there let it grow past the foot, taking its
+     Undo off screen. */
+  .style-pin > section:not(.live-big) {
     align-self: start;
   }
 }
