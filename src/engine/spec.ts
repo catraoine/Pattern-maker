@@ -30,9 +30,11 @@ const STRAP_CM = 4;
 
 /** A low rise's waist row: read against the body where the band sits, not the waist above it, or a tester sees
  *  "+11.6 Roomy" on a band with 2 cm ease and takes it in (CLO tester sizes, Nov 13). */
-const lowWaistLabel = (cm: number) => `Waist, ${r1(Math.abs(cm))} cm ${cm < 0 ? 'above' : 'below'} yours`;
+// Named for where it is, the top edge: "Waist, 5 cm below yours · YOU 76.5" read at a glance as the app having taken the
+// waist wrong (DT tester walk, Nov 21). The body column is the body there, 5 cm down.
+const lowWaistLabel = (cm: number) => `Top edge, ${r1(Math.abs(cm))} cm ${cm < 0 ? 'above' : 'below'} your waist`;
 /** The waist row, at the waist or a low rise's. */
-export const isWaistRow = (label: string) => label === 'Waist' || /^Waist, [\d.]+ cm (below|above) yours$/.test(label);
+export const isWaistRow = (label: string) => label === 'Waist' || /^Top edge, [\d.]+ cm (below|above) your waist$/.test(label);
 
 export function skirtSpec(m: SkirtMeasurements, d: SkirtDraft): SpecRow[] {
   const low = d.lowRise ? lowered(m, d.lowRise) : undefined;

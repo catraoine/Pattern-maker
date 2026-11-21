@@ -249,3 +249,31 @@ describe('the tester pages say where to cut and which page goes on top', () => {
         }
     });
 });
+
+// DT walk, Nov 21: the page map showed the pieces' outlines with no names, so which pages made which piece took working out.
+describe('the page map names the pieces', () => {
+  afterEach(() => vi.restoreAllMocks());
+  for (const id of IDS)
+    it(`${id}: every big piece's name is on the map`, async () => {
+      const { look, print } = made(id, EXAMPLE_BODY);
+      const summary = { rows: print.spec.filter((r) => typeof r.finished === 'number'), checks: [], flat: print.flat, fabric: print.guide.fabric, lays: print.lays, madeFor: 'Tester' };
+      const sheet = layout(print.pieces, `Maison Tracé: ${look.name}`, print.notes, { pattern: look.name, madeFor: 'Tester' });
+      const drawn: { page: PDFPage; text: string }[] = [];
+      const real = PDFPage.prototype.drawText;
+      vi.spyOn(PDFPage.prototype, 'drawText').mockImplementation(function (this: PDFPage, text: string, o?: unknown) {
+        drawn.push({ page: this, text });
+        return real.call(this, text, o as never);
+      });
+      await toTiledPdf(sheet, 'a4', { title: look.name, guide: print.guide, summary, unit: 'cm', part: 'booklet' });
+      // Only the map's own page: the cutting layouts after it name the pieces too.
+      const mapPage = drawn.find((d) => d.text === 'PAGE LAYOUT')!.page;
+      const map = drawn.filter((d) => d.page === mapPage).map((d) => d.text).join('\n');
+      // The two largest pieces (by their outline's span) are always big enough to name.
+      const big = [...print.pieces].sort((a, b) => span(b) - span(a)).slice(0, 2);
+      for (const pc of big) expect(map, pc.name).toContain(pc.name.toUpperCase());
+    });
+  const span = (pc: { outline: { points: () => { x: number; y: number }[] } }) => {
+    const ps = pc.outline.points();
+    return (Math.max(...ps.map((q) => q.x)) - Math.min(...ps.map((q) => q.x))) * (Math.max(...ps.map((q) => q.y)) - Math.min(...ps.map((q) => q.y)));
+  };
+});

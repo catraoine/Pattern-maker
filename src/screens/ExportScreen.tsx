@@ -13,7 +13,7 @@ import { PatternPreview } from '../ui/Preview';
 import type { Finish } from '../savedWork';
 import type { Garment, Unit } from '../measurements';
 import type { Alteration, Fitting } from '../engine/fitting';
-import { FABRIC_WIDTHS, type FabricWidth, Lay, layAmount, layWords } from '../engine/layplan';
+import { FABRIC_WIDTHS, type FabricWidth, Lay, type LayFabric, fabricsOf, layAmount, layWords } from '../engine/layplan';
 import { LayPlanView } from '../ui/LayPlanView';
 import type { Flat } from '../engine/flat';
 import { TechFlatView } from '../ui/TechFlatView';
@@ -39,7 +39,7 @@ import { LabelCard } from '../ui/LabelCard';
 import { TestingTag } from '../ui/TestingTag';
 import { DemoButton } from '../ui/DemoButton';
 import { reloadPending } from './load';
-import { isKnit, isLowerBody } from '../measurements';
+import { fieldsFor, isKnit, isLowerBody } from '../measurements';
 import { isWaistRow } from '../engine/spec';
 import { cloud } from '../cloud/api';
 import { testerHeaders } from '../ui/TesterCode';
@@ -144,6 +144,16 @@ const isProjector = (o: Output): o is 'projector' | 'projectorDark' => o === 'pr
 const ProjectorMode = lazy(() => import('../ui/ProjectorMode').then((m) => ({ default: m.ProjectorMode })));
 
 /** The date as printed on the pattern, such as 14 Oct 2026. */
+// A piece cut from the fabric and again from the lining (or coutil) is one pattern piece, so the list named it once and
+// read as if the lining needed nothing (DU walk, Nov 21): it says where it is cut again.
+const AGAIN: Record<Exclude<LayFabric, 'self'>, string> = { lining: 'lining', interlining: 'coutil' };
+const againIn = (pc: Piece) => {
+  const from = fabricsOf(pc);
+  const also = from.filter((f) => f !== 'self').map((f) => AGAIN[f]);
+  // A piece cut only from the lining is named as a lining piece already.
+  return from.includes('self') && also.length ? `, and again in ${also.join(' and ')}` : '';
+};
+
 const printedDate = () => new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
 
@@ -184,7 +194,13 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
   useEffect(() => setLeftOut([]), [made]);
   const toPrint = useMemo(() => made?.pieces.filter((_, i) => !leftOut.includes(i)), [made, leftOut]);
   // The whole draft's code, so a reprint of one piece carries the same one.
-  const code = useMemo(() => (made ? patternCode(made.pieces, values ?? {}, __APP_VERSION__) : undefined), [made, values]);
+  // Only the high bust this garment drafts from: a skirt's code changed once a dress asked for the high bust, so its
+  // printed page 1 no longer matched the app (DU tester walk, Nov 21).
+  const code = useMemo(() => {
+    if (!made) return undefined;
+    const own = fieldsFor(garment).some((f) => f.id === 'high_bust') ? values ?? {} : { ...values, high_bust: undefined };
+    return patternCode(made.pieces, own, __APP_VERSION__);
+  }, [made, values, garment]);
   const sheet = useMemo(
     () =>
       made && toPrint ? layout(toPrint, `Maison Tracé: ${title}`, made.notes, { pattern: title, name: lookName, madeFor: profile, date, edition, credit, code }, { atelier: finish.atelier, paper: paper === 'a0' ? 'a0' : undefined }) : undefined,
@@ -357,6 +373,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
               {made.pieces.map((pc, i) => (
                 <li key={i}>
                   {pc.name}: {pc.cut.replace(' (1 pair)', '').toLowerCase()}
+                  {againIn(pc)}
                 </li>
               ))}
             </ul>
