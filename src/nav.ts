@@ -144,7 +144,9 @@ export function useViewHistory<V extends string>(start: V, onPop: (view: V) => V
       // screen it hangs from to one aside from the way on (`keepsPage`: a look's Review to Your account), that entry
       // keeps the page: back from Your account opened the look's questions, or How styling works, in place of the look
       // (pretend tester DV walk, Nov 21). Going on (to Print) the screen's own entry opens as it always has.
-      const replace = keepsPage(to) && now?.view === meeting.view && now.sub !== undefined ? { ...meeting, sub: now.sub } : undefined;
+      // Going to the screen itself by any other way (Open on a saved pattern from Your account, a step button), its entry
+      // is written afresh, so it opens on its first page as before rather than on the page kept for Back.
+      const replace = keepsPage(to) && now?.view === meeting.view && now.sub !== undefined ? { ...meeting, sub: now.sub } : keep === chain.length ? meeting : undefined;
       pending = { replace, push, then: () => setView(to) };
       window.history.go(-steps);
       return;
