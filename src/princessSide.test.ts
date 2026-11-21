@@ -195,3 +195,56 @@ describe('the Ice Peplum side front at the side waist on full busts', () => {
     });
   }
 });
+
+// The Ice Peplum's seams run on 6 cm below the waist to the peplum seam, and were drafted in to the waist in one line and
+// out in another: they met there in a corner, up to 16 degrees on the princess seams and 11 on the side back's side seam
+// (whose front had been faired round it), which a fit tester read as jogs near the bottom of the seams (Nov 21). They are
+// blended through the waist now. Read every 0.5 cm, no seam turns 15 degrees at a step below the bust, the side back's
+// side seam turns as gently as the side front's (under 5).
+describe('the Ice Peplum seams through the waist', () => {
+  const look = COLLECTION.find((l) => l.name === 'Ice Peplum Top')!;
+  const bodies = [
+    'height=162 full_bust=84 high_bust=81 waist=66 full_hip=86 waist_to_hip=19.5 nape_to_waist=39.5',
+    'height=162 full_bust=92 high_bust=88 waist=70 full_hip=96 waist_to_hip=19.5 nape_to_waist=39.5',
+    'height=166 full_bust=100 high_bust=93 waist=83 full_hip=105 waist_to_hip=21 nape_to_waist=41',
+    'height=165 full_bust=108 high_bust=100 waist=90 full_hip=112 waist_to_hip=21 nape_to_waist=41',
+    'height=168 full_bust=128 high_bust=117 waist=114 full_hip=136 waist_to_hip=22.5 nape_to_waist=42',
+  ];
+  const turns = (run: { x: number; y: number }[]) => {
+    const even = [run[0]];
+    let carry = 0;
+    for (let i = 1; i < run.length; i++) {
+      const [a, b] = [run[i - 1], run[i]];
+      const l = Math.hypot(b.x - a.x, b.y - a.y);
+      if (l < 1e-9) continue;
+      let t = 0.5 - carry;
+      for (; t <= l; t += 0.5) even.push({ x: a.x + ((b.x - a.x) * t) / l, y: a.y + ((b.y - a.y) * t) / l });
+      carry = l - (t - 0.5);
+    }
+    return even.slice(2).map((q, i) => {
+      let d = Math.abs(Math.atan2(q.y - even[i + 1].y, q.x - even[i + 1].x) - Math.atan2(even[i + 1].y - even[i].y, even[i + 1].x - even[i].x)) * (180 / Math.PI);
+      if (d > 180) d = 360 - d;
+      return { d, y: even[i + 1].y };
+    });
+  };
+  for (const body of bodies) {
+    it(`${body.split(' ').slice(1, 5).join(' ')}: no corner at the waist`, () => {
+      const values = withEstimates(Object.fromEntries(body.split(' ').map((kv) => { const [k, x] = kv.split('='); return [k, Number(x)]; })) as unknown as MeasurementValues);
+      const { garment, ...saved } = lookPatch(look, values);
+      const pieces = printedPattern({ garment, saved: saved as never }, values).made.pieces.filter((pc) => /^Bodice/.test(pc.name));
+      expect(pieces).toHaveLength(4);
+      for (const pc of pieces) {
+        const { pts, tags } = pc.outline.taggedPoints();
+        for (const tag of ['side', 'princess']) {
+          const run = pts.filter((_, i) => tags[i] === tag || tags[i - 1] === tag);
+          if (run.length < 2) continue;
+          const bottom = Math.max(run[0].y, run[run.length - 1].y);
+          // From 10 cm above the peplum seam down: the waist and the flare out below it, clear of the bust.
+          const low = turns(run).filter((t) => bottom - t.y < 10);
+          const worst = Math.max(...low.map((t) => t.d));
+          expect(worst, `${pc.name} ${tag}`).toBeLessThan(pc.name === 'Bodice side back' && tag === 'side' ? 5 : 15);
+        }
+      }
+    });
+  }
+});
