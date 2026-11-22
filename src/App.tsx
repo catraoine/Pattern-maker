@@ -45,6 +45,7 @@ import { cleanCode } from './photo/limit';
 import { atNewScreen, keepOffline } from './swUpdate';
 import { preloadScreens, screen } from './screens/load';
 import { FABRIC, StartOver, openLookNext, openTabNext } from './ui/StyleLayout';
+import { leavePrintForFabric } from './ui/printReturn';
 import { KeptCount } from './ui/SaveControl';
 import { GARMENT_NAME, baseDone } from './measureFlow';
 import type { PageKind, StepsStart } from './screens/MeasureStepsScreen';
@@ -1482,6 +1483,7 @@ export default function App() {
               onMode={setMode}
               onEditFabric={() => {
                 openTabNext(FABRIC);
+                leavePrintForFabric();
                 setStep('style');
               }}
               onKeep={saveState === 'can' ? () => setAccount(savePattern(account, current, lookName ?? describePattern(current), person.id)) : undefined}

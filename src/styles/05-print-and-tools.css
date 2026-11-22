@@ -54,6 +54,42 @@
   flex: none;
 }
 
+/* A square tick box in the house line, not the phone's own rounded one (Cat, Nov 21: "this rounded box"). Ticked is a
+   heavier champagne outline with a champagne tick, never a fill. */
+.check input[type='checkbox'] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: grid;
+  place-content: center;
+  border: var(--bw) solid var(--ink);
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.check input[type='checkbox']:checked {
+  border: 2px solid var(--gild);
+}
+
+.check input[type='checkbox']:checked::before {
+  content: '';
+  width: 10px;
+  height: 5px;
+  border-left: 2px solid var(--gild);
+  border-bottom: 2px solid var(--gild);
+  transform: translateY(-1px) rotate(-45deg);
+}
+
+.check input[type='checkbox']:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.check input[type='checkbox']:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
 /* Atelier view: the drafting notes under the pattern preview. */
 .atelier {
   display: grid;
