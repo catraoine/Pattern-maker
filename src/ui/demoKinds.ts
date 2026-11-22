@@ -18,14 +18,15 @@ export const kindOf = (g?: Garment): Kind | undefined =>
 
 type Film = { base: string; parts: FilmPart[]; length: string };
 
-const STYLE_SAYS = (fit: string) => [
+const STYLE_SAYS = (fit: string, kind: Kind) => [
   `Pick how close it fits. Here, ${fit}. The pattern redraws to fit you.`,
-  'Drag the hem up or down to set the length.',
+  // On the peplum top the dot moves the seam the peplum hangs from (the EC tester walk, Nov 22).
+  kind === 'bodice' ? 'Drag the dot to move the peplum seam up or down.' : 'Drag the hem up or down to set the length.',
   'Tap Pattern to see the pieces you will cut.',
 ];
 const style = (kind: Kind, fit: string, at: number[], length: string): Film => ({
   base: `/demos/style-${kind}`,
-  parts: ['Fit', 'Length', 'Pattern'].map((name, i) => ({ name, from: at[i], says: STYLE_SAYS(fit)[i] })),
+  parts: ['Fit', 'Length', 'Pattern'].map((name, i) => ({ name, from: at[i], says: STYLE_SAYS(fit, kind)[i] })),
   length,
 });
 
@@ -43,13 +44,13 @@ const patterns = (kind: Kind, fuller: string, cut: string, at: number[], length:
 /** Where each part starts, from the recording log (update with the clips). */
 export const KIND_FILMS: Partial<Record<'style' | 'patterns', Record<Kind, Film>>> = {
   style: {
-    dress: style('dress', 'relaxed', [0, 9.2, 14.9], '0:23'),
-    bodice: style('bodice', 'relaxed', [0, 9.6, 19.5], '0:27'),
-    trousers: style('trousers', 'regular', [0, 9.2, 15.3], '0:23'),
+    dress: style('dress', 'relaxed', [0, 8.9, 14.4], '0:22'),
+    bodice: style('bodice', 'relaxed', [0, 9.0, 18.1], '0:26'),
+    trousers: style('trousers', 'regular', [0, 8.9, 14.6], '0:22'),
   },
   patterns: {
-    dress: patterns('dress', 'The hem gets fuller.', 'Or draw across a piece and cut it off as a new piece. Here, a front yoke.', [0, 11.7, 24.7, 33.2], '0:42'),
-    bodice: patterns('bodice', 'The peplum gets fuller.', 'Or draw across a piece and cut it off as a new piece. Here, a back yoke.', [0, 12.0, 25.3, 34.1], '0:43'),
-    trousers: patterns('trousers', 'The leg gets wider at the hem.', 'Or draw across the hip and cut it off as a new piece. Here, a yoke.', [0, 11.9, 25.2, 34.2], '0:44'),
+    dress: patterns('dress', 'The hem gets fuller.', 'Or draw across a piece and cut it off as a new piece. Here, a front yoke.', [0, 11.6, 24.3, 31.8], '0:41'),
+    bodice: patterns('bodice', 'The peplum gets fuller.', 'Or draw across a piece and cut it off as a new piece. Here, a back yoke.', [0, 11.7, 24.0, 31.6], '0:41'),
+    trousers: patterns('trousers', 'The leg gets wider at the hem.', 'Or draw across the hip and cut it off as a new piece. Here, a yoke.', [0, 11.9, 24.4, 32.3], '0:42'),
   },
 };

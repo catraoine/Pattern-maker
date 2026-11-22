@@ -5,7 +5,6 @@ import { askIds, minutesFor, replyLink, type MeasureAsk } from '../measureLink';
 import { canGoBack, goBack, usePageHistory } from '../nav';
 import { usePersistent } from '../store';
 import { Title } from '../ui/Title';
-import { TapeDemo } from '../ui/ContourForm';
 import { firstName, shareLink } from '../ui/shareLink';
 import { MeasurePage, Shell } from './MeasureStepsScreen';
 
@@ -80,7 +79,7 @@ export function MeasureLinkScreen({ ask, unit, onUnit, onKeep }: Props) {
     const reply = () => replyLink(window.location.origin, { id: ask.id, client: ask.client, garment: ask.garment, date: new Date().toISOString().slice(0, 10), values: Object.fromEntries(ids.filter((id) => values[id] !== undefined).map((id) => [id, values[id]!])), redo: !!ask.redo });
     const send = async () => setSent(await shareLink(`${ask.redo ? 'Measured again' : `My measurements for the ${garment}`}${name ? `, from ${name}` : ''}:`, reply()));
     return (
-      <Shell eyebrow={`${done} of ${ids.length}`} title={name ? `All done, ${name}.` : 'All done.'} hero={<TapeDemo id="waist" name="" mode="all" />}>
+      <Shell eyebrow={`${done} of ${ids.length}`} title={name ? `All done, ${name}.` : 'All done.'}>
         <ul className="check-list" aria-label="Tap one to change it">
           {ids.map((id, at) => (
             <li key={id}>

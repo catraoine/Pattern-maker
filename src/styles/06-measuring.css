@@ -234,6 +234,13 @@ button.link.how-link {
   justify-content: center;
 }
 
+/* Something else's "How your pattern is made": on its own line under the tip, with room above, not run on from the
+   paragraph's last words (the EC tester walk, Nov 22: it looked squashed under it). */
+.measure-step .step-tip > button.link.inline-link {
+  display: block;
+  margin-top: 12px;
+}
+
 /* "Something else", described: the picks it starts from, read-only, laid out like the check list */
 .idea-picks {
   margin: 4px 0 20px;
