@@ -581,6 +581,14 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   const [atEnd, setAtEnd] = useState(false);
   // On a phone the list of steps opens from "Step 1 of 5".
   const [jump, setJump] = useState(false);
+  // While the list of steps is open over the drawing, the page under it holds still: it went on scrolling under a
+  // sliver of drawing at the top, which moved but offered nothing (Cat, Nov 22: "this top scroll that offers
+  // nothing"). That sliver is veiled, and a tap on it closes the list.
+  useEffect(() => {
+    if (!jump || wide) return;
+    document.documentElement.classList.add('steps-open');
+    return () => document.documentElement.classList.remove('steps-open');
+  }, [jump, wide]);
   useEffect(() => {
     const el = strip.current;
     if (!el) return;
@@ -1018,6 +1026,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
               is "Start from a photo" in the name's drop-down (Cat, Nov 12). */}
           {active === steps[0] && (wide || qAt <= 0) && (matched ?? (photo && <PhotoEntry onPhoto={onPhoto} photo={photo} />))}
           {!asking && lengthOn && <p className="length-hint">Drag the dot, or tap the length to type it.</p>}
+          {jump && !wide && <button type="button" className="style-steps-veil" aria-label="Close the list of steps" onClick={() => setJump(false)} />}
           <div className="chapter" ref={chapter}>
             {/* Watch demo sits across from the step on a computer (Cat's D3, 2026-10-29). On a phone the step bars are
                 gone and Watch demo is a link at the end of the step (Cat's P1, 2026-10-31): "Step 1 of 5" opens the

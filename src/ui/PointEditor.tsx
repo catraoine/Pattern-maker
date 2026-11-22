@@ -191,6 +191,11 @@ const pathD = (pc: Piece, o: P) => {
   return pts.map((q, i) => `${i ? 'L' : 'M'}${(q.x + o.x).toFixed(2)} ${(q.y + o.y).toFixed(2)}`).join('') + 'Z';
 };
 
+/** A sheet opened under the pieces is brought into view: tall pieces filled the window, so the question a drawn line
+ *  asks opened out of sight below them, and on a laptop always did. A line seemed to be drawn for nothing (Cat, Nov 22:
+ *  "what is the point of being able to draw these lines"). */
+const showSheet = (el: HTMLDivElement | null) => el?.scrollIntoView({ block: 'nearest' });
+
 /** A point's move, not a cut or a dart moved. */
 const isPoint = (e: PatternEdit): e is PointEdit => !isCut(e) && !isDartMove(e);
 
@@ -692,7 +697,7 @@ function PointEditor({ base, edits: saved, setEdits: save, undo }: PointEditing 
       </svg>
 
       {tape && measure && (
-        <div className="pe-sheet">
+        <div ref={showSheet} className="pe-sheet">
           <div className="row between">
             <span className="pe-label">{measure.label}</span>
             <strong className="pe-value" role="status">
@@ -750,7 +755,7 @@ function PointEditor({ base, edits: saved, setEdits: save, undo }: PointEditing 
       )}
 
       {asking && (
-        <div className="pe-sheet pe-ask" role="group" aria-label="What should this line do?">
+        <div ref={showSheet} className="pe-sheet pe-ask" role="group" aria-label="What should this line do?">
           <span className="pe-label">What should this line do?</span>
           {asking.dart && (
             <button type="button" className="ghost" onClick={chooseDart}>
@@ -773,7 +778,7 @@ function PointEditor({ base, edits: saved, setEdits: save, undo }: PointEditing 
       )}
 
       {cutAt && active !== undefined && cutAt.cut !== 'piece' && (
-        <div className="pe-sheet" role="group" aria-label={cutAt.cut === 'spread' ? 'Spread it open' : 'Add fullness'}>
+        <div ref={showSheet} className="pe-sheet" role="group" aria-label={cutAt.cut === 'spread' ? 'Spread it open' : 'Add fullness'}>
           <div className="row between">
             <span className="pe-label">{cutAt.cut === 'spread' ? 'Opens by' : 'Adds'}</span>
             <strong className="pe-value" role="status">
@@ -822,7 +827,7 @@ function PointEditor({ base, edits: saved, setEdits: save, undo }: PointEditing 
       )}
 
       {cutAt && active !== undefined && cutAt.cut === 'piece' && (
-        <div className="pe-sheet" role="group" aria-label="New piece">
+        <div ref={showSheet} className="pe-sheet" role="group" aria-label="New piece">
           <label className="pe-label" htmlFor="pe-name">
             New piece: its name
           </label>
@@ -850,7 +855,7 @@ function PointEditor({ base, edits: saved, setEdits: save, undo }: PointEditing 
       )}
 
       {dartMoved !== undefined && isDartMove(edits[dartMoved]) && (
-        <div className="pe-sheet" role="group" aria-label="Dart moved">
+        <div ref={showSheet} className="pe-sheet" role="group" aria-label="Dart moved">
           <span className="pe-label">Dart moved</span>
           <p className="muted small">{dartGone ? 'Closed, and the hem flares at the diamond instead. Drag the diamond along the hem to move it.' : 'It opens at the diamond. Drag the diamond along the edge to move it, or draw from its point to another edge.'}</p>
           <div className="row">

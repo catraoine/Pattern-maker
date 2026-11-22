@@ -54,8 +54,10 @@ test('starts a line on a point, changes a cut by tapping it, and closes darts in
   const ask = page.getByRole('group', { name: 'What should this line do?' });
   await expect(ask).toBeVisible();
   await expect(page.locator('.pe-ghost')).toHaveCount(0);
+  // (Read against the piece: the page now scrolls to bring the question into view, which moves both on screen.)
   const after = await centre(page, 'circle.pe-point.dart[data-piece="Skirt front"]');
-  expect(Math.hypot(after.x - at.x, after.y - at.y)).toBeLessThan(1.5);
+  const b2 = await boxOf(page, 'Skirt front');
+  expect(Math.hypot(after.x - b2.x - (at.x - b.x), after.y - b2.y - (at.y - b.y))).toBeLessThan(1.5);
   await expect(dart).toBeVisible();
   await still(page, '1-line-from-a-point');
   await ask.getByRole('button', { name: /Spread it open/ }).click();
