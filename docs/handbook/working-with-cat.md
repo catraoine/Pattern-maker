@@ -63,9 +63,8 @@ phone, in short bursts, often by voice dictation. Everything here is a standing 
   in her browser, not inside the Claude app. Live site and previews likewise.
 - Model pick: say whether a job needs Fable (hard checks where mistakes cost money or fit) or
   whether Opus is enough.
-- Don't resolve a thread until Cat has seen its result.
+- Don't resolve a thread until Cat has replied (the full rule is in the project instructions).
 - Don't propose recurring digests unless she asks (the Friday digest was paused as not useful).
-- Never suggest turning on Netlify credit recharge or API auto-reload.
 
 ## Rules from Cat, Nov 17 (all departments)
 
