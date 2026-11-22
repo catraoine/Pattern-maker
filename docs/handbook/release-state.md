@@ -4,10 +4,10 @@ _Update this page whenever a release ships or a PR is queued._
 
 ## Now (Nov 21, 2026): how a ship works
 
-Live: **release DV** (Nov 21, Cat's 1:02 pm "ship"): the 30-minute live-site check and same-day crash emails, and the
-eight desktop design review fixes with their follow-ups, on top of DU (menswear by link, the Thirties evening skirt, the
-Sixties empire dress and pull-on necks). Rollback = release DU. Releases CW to DV went out Nov 17 to 21; every release's
-commit, deploy id and rollback is in project memory (pattern-maker-releases-nov14), and the running list of what is
+Live: **release DX** (Nov 21, Cat's 6:49 pm "ship"): the Ice Peplum booklet matching its pattern (ruffle check, neck
+binding, crown ease, French seam), a hint when a cm number only fits inches, and a note that a princess-seam top has no
+darts, on top of DW (walk fixes, grain arrows clear of names, Ice Peplum waist seams). Rollback = release DW. Releases CW
+to DX went out Nov 17 to 21; every release's commit, deploy id and rollback is in project memory (pattern-maker-releases-nov14), and the running list of what is
 ready is `/mnt/project-files/releases/ready-to-ship.md`.
 
 The ship rule (Cat, Nov 17, 7:47 pm):
