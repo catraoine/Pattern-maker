@@ -5,6 +5,7 @@ something that changes how a department works. Design picks for single screens s
 
 ## November 2026
 
+- **Nov 22** One play style for films (Cat picked "Match the Demo style" over a ring on both, after "We can't have too many different styles"): Watch it draft takes the Demo buttons' look, mono caps with ▶ after and no underline. `src/ui/PointEditor.tsx`, `src/styles/19-style-balance.css`.
 - **Nov 22** Enlarged Pattern view tidied (Cat: "Apply", after "What's the point of this edited by you" and "do we need all the black space"): no "Edited by you" row above the pieces (each edited piece's label already says it), In testing sits in Move points' how-to line; enlarged, the window takes the screen's width, the pieces fill it whole (on a laptop they had run off the window), and Undo, Redo and Watch it draft share one row inside it. `src/ui/PointEditor.tsx`, `src/styles/46-big-pattern.css`.
 - **Nov 22** From the Dec 7 dress rehearsal walk (Cat: "All"; built, and live only once she ships it): someone who joined the waitlist and comes back on the same device lands on "You're on the list" with their link to bring friends, not on the empty join form as if they had never joined. One line under it, "Testing for us, or joining with another email? Open the join page", leads to the join form with its tester code and, from Feb 9, the founding sign-in; a tester link or a sign-in part way through opens the join page directly (`src/screens/WelcomeScreen.tsx`). The walk's other fixes are words cut off on 360 px phones and on laptops (`src/styles/45-dress-rehearsal.css`, `e2e/dress-rehearsal.spec.ts`).
 - **Nov 21** Sew becomes a fourth step in the header, after Print (Cat picked "Yes, add a Sew tab"): Sewing mode, one step at a time with pictures drawn from the pattern's own pieces (Cat's pick C from the illustrated sewing steps sheet). Print keeps a Start sewing button that goes there and keeps the written list. See [brand-and-voice.md](brand-and-voice.md).
@@ -239,4 +240,3 @@ something that changes how a department works. Design picks for single screens s
 - **Oct 14** Name Maison Tracé; look Contour Line in champagne; releases bundled to save Netlify credits.
 - **Oct 13** Netlify hosting; device-first accounts.
 - **Oct 12** Home sewists first; freemium; guests draft freely.
-- Nov 22: Watch it draft takes the Demo buttons' look (mono caps, ▶ after, no underline), so the app has one play style for films (Cat picked matching Demo over a ring).
