@@ -514,7 +514,9 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
     if (lookNext) lookReview();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only on opening
   }, []);
-  const [intro, setIntro] = useState(() => !introSeen());
+  // Not when Print's Change fabric opened Style: that's one quick change, so Fabric opens straight away, without an intro
+  // about fits and necklines in between (DY pretend-tester walk, Nov 21). It still shows on the next ordinary visit.
+  const [intro, setIntro] = useState(() => !fromPrint && !introSeen());
   const [tabs, setTabs] = useState<string[]>([]);
   const root = useRef<HTMLDivElement>(null);
   // The first time Style opens in a visit, its picture window lights up from black to chalk (Cat, Nov 11), easing the
