@@ -1,6 +1,7 @@
 import { Children, createContext, CSSProperties, ReactNode, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Mode } from '../mode';
+import { TESTING_WHY } from '../launch';
 import type { Garment } from '../measurements';
 import { canGoBack, goBack, usePageHistory } from '../nav';
 import type { Flat } from '../engine/flat';
@@ -55,15 +56,28 @@ const introSeen = () => {
   }
 };
 
+/** Three details the garment really has, for How styling works. */
+function introDetails(name: string): string {
+  if (/skirt/.test(name)) return 'the fit, the length and the waist';
+  if (/trouser|short|jumpsuit/.test(name)) return 'the fit, the leg and the waist';
+  // Lingerie and swimwear: no sleeves to talk about (code review, Nov 22).
+  if (/bra|brief|bodysuit|swimsuit|slip|knicker|thong|cami/.test(name)) return 'the fit, the shape and the straps';
+  // A vest has no sleeves either; coats and jackets do.
+  if (/vest|waistcoat|gilet/.test(name)) return 'the fit, the length and the front';
+  return 'the fit, the neckline and the sleeves';
+}
+
 /** How styling works, on a screen of its own the first time Style's questions open, then never again (Cat's A, Nov 14:
  *  "it should be very clear"). One line a step, in the order they happen, with no numbers (Cat). */
 function StyleIntro({ name, onStart }: { name: string; onStart: () => void }) {
   // Each step opens with its words in bold, so the four read at a glance (Cat, Nov 14).
+  // Only words that are on the screens themselves, and details this garment has (clarity review A3, Nov 22: it named a
+  // "styling window" and "option cards", and offered necklines and sleeves on a skirt).
   const steps: [string, string][] = [
-    ['Each screen', ' below the styling window covers one detail, such as the fit, the neckline or the sleeves.'],
-    ['Tap an option card', ' to select your style.'],
-    ['Happy', ' with what is there? Tap NEXT to keep it and move on.'],
-    ['To change', ' a previous selection, tap the back arrow, or select it from the style detail drop-down menu.'],
+    ['Each step', ` covers one detail of your ${name}, such as ${introDetails(name)}.`],
+    ['Tap a choice', ' to pick it. The drawing changes to show it.'],
+    ['Happy', ' with what is picked? Tap Next to keep it and move on.'],
+    ['To go back', ' a step, tap ‹.'],
   ];
   return (
     <div className="style-intro">
@@ -192,12 +206,18 @@ export function Group({ label, tab, children, className, shaped }: { label: stri
   const solo = !tab && !section;
   const ref = useRef<HTMLFieldSetElement>(null);
   const [pick, setPick] = useState('');
+  // Whether any choice here carries an In testing tag, so the question can say once what that means (clarity review A1,
+  // Nov 22: three cold readers took the tag for a note we'd left for ourselves).
+  const [testing, setTesting] = useState(false);
   // The picked choice's name, for the folded line: a picked chip, or any pressed button when there are none.
   // eslint-disable-next-line react-hooks/exhaustive-deps -- reads the page after every render; the check stops a loop
   useLayoutEffect(() => {
     const el = ref.current;
     const text = (el ? pickIn(el) : '') || (shaped ?? '');
     if (text !== pick) setPick(text);
+    // Only this question's own tags: a question folded inside it says its own line.
+    const tagged = !!el && [...el.querySelectorAll(':scope > .fold-body .testing-tag')].some((tag) => tag.closest('fieldset') === el);
+    if (tagged !== testing) setTesting(tagged);
   });
   const folds = !!fold && !solo && t !== PRO;
   const open = !folds || fold.open[t] === label;
@@ -246,6 +266,7 @@ export function Group({ label, tab, children, className, shaped }: { label: stri
       </legend>
       <div className="fold-body" hidden={!open}>
         {children}
+        {testing && <p className="testing-why">{TESTING_WHY}</p>}
       </div>
     </fieldset>
   );
@@ -264,7 +285,6 @@ function StartOverLink() {
   const startOver = useContext(StartOver);
   const [asking, setAsking] = useState(false);
   const [done, setDone] = useState<() => void>();
-  if (!startOver) return null;
   if (done)
     return (
       <p className="small muted start-over" role="status">
@@ -281,6 +301,8 @@ function StartOverLink() {
         </button>
       </p>
     );
+  // Offered only once something has changed (clarity review A6, Nov 22): the app hands no startOver before then.
+  if (!startOver) return null;
   return asking ? (
     <div className="start-over" role="group" aria-label="Back to the original style">
       <p className="small">Put every style choice back to how it started? Your measurements stay.</p>
@@ -879,6 +901,9 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   if (page === 'review')
     return (
       <div className="style-review">
+        {/* Two halves, so on a computer the picture and Print sit beside the measurements and pieces on one screen
+            (clarity review C6, Nov 22). On a phone the halves are invisible and the page is one column as before. */}
+        <div className="review-left">
         {/* A collection look is named for itself, so a tester sees the piece they were asked to sew (Cat, Nov 14). */}
         <h1 className="review-title">
           <span className="eyebrow">{look ? 'Your look' : `Review · ${label}`}</span>
@@ -907,13 +932,16 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
         )}
         {/* Changing it sits right under the drawing, where the eye is. */}
         <p className="review-edits review-change">
-          <button type="button" className="later" onClick={() => (canGoBack() ? goBack() : setPage('edit'))}>
+          {/* An outline button, not a grey label (clarity review A6, Nov 22: readers missed it as the way in). */}
+          <button type="button" className="secondary change-detail" onClick={() => (canGoBack() ? goBack() : setPage('edit'))}>
             Change a detail
           </button>
         </p>
         {/* On a computer Print sits right under the drawing, above the measurements: under the table it fell below
             the foot of a 900-tall screen (desktop review, Nov 21). */}
         {wide && printBar}
+        </div>
+        <div className="review-right">
         {finished}
         {!wide && printBar}
         {folded}
@@ -936,6 +964,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
             }}
           />
         )}
+        </div>
       </div>
     );
   if (intro)
@@ -1172,14 +1201,21 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
               {backArrow}
               {/* On a phone the one box is in the bar at the bottom (F1, 2026-10-24); the computer has no bar. */}
               {steps[at + 1] && (
-                <button type="button" className="step-go" aria-label={`Next: ${steps[at + 1]}`} onClick={() => goStep(steps[at + 1])}>
-                  Next ›
+                // Names the next step, as the phone's Next does (clarity review A10, Nov 22).
+                <button type="button" className="step-go primary" aria-label={`Next: ${steps[at + 1]}`} onClick={() => goStep(steps[at + 1])}>
+                  Next: {steps[at + 1]} ›
                 </button>
               )}
               {/* Back from the fabric to Print, on the step Print sent you to (Cat, Nov 21). */}
               {!steps[at + 1] && fromPrint && toPrint && (
-                <button type="button" className="step-go" disabled={!ready} onClick={toPrint}>
+                <button type="button" className="step-go primary" disabled={!ready} onClick={toPrint}>
                   Back to Print ›
+                </button>
+              )}
+              {/* After the last step the way on is Print, as the screen's one filled button (clarity review B1, Nov 22). */}
+              {!steps[at + 1] && !fromPrint && toPrint && (
+                <button type="button" className="step-go primary" disabled={!ready} onClick={toPrint}>
+                  Print my pattern ›
                 </button>
               )}
             </div>
@@ -1195,8 +1231,9 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           // The side holds Print, then the rest folded under one line (declutter, Cat's E, Nov 21): the finished
           // measurements stood open under every step, so the page ran on well past the drawing.
           <div className="style-side">
-            {onPrint && (
-              <button type="button" className="primary review-print" disabled={!ready} onClick={toPrint}>
+            {onPrint && !(at >= 0 && !steps[at + 1] && !fromPrint) && (
+              // An outline beside the step's own Next (on the last step the filled Print under it takes over), so the screen has one filled button (clarity review B1, Nov 22).
+              <button type="button" className="secondary review-print" disabled={!ready} onClick={toPrint}>
                 Print my pattern
               </button>
             )}

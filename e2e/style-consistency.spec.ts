@@ -115,7 +115,7 @@ test('a first dress asks five more measurements, not thirteen', async ({ page })
   await expectStyle(page, 'Dress');
   await openReview(page);
   await main.getByRole('button', { name: 'Edit measurements' }).click();
-  await expect(main.getByRole('button', { name: /more for a closer fit$/ })).toBeVisible();
+  await expect(main.getByRole('button', { name: /^Add .* for a closer fit$/ })).toBeVisible();
 });
 
 // The enlarged window's Undo and Redo: a new change clears what could be redone.

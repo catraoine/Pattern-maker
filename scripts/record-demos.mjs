@@ -759,7 +759,7 @@ Object.assign(DEMOS, {
       await press(f.locator('.pe-done').first(), 400);
       await focus('svg.point-svg', PIECES);
     });
-    await cap('Edited', 'Notches are added so the pieces match. To start again, tap Back to drafted.');
+    await cap('Edited', 'Notches are added so the pieces match. To start again, tap Start again.');
     await wait(1800);
     await cap('', '');
     await card('', 'Cut it your way.', 2200, true);
@@ -989,7 +989,7 @@ for (const [kind, k] of Object.entries(KINDS)) {
       // The piece and the new one cut from it.
       await focus('svg.point-svg', only(k.back, ...(await names()).filter((n) => !had.includes(n))));
     });
-    await cap('Edited', 'Notches are added so the pieces match. To start again, tap Back to drafted.');
+    await cap('Edited', 'Notches are added so the pieces match. To start again, tap Start again.');
     await wait(2200);
     await cap('', '');
     await card('', 'Cut it your way.', 2200, true);

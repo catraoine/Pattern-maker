@@ -19,11 +19,12 @@ async function openMovePoints(page: Page) {
   await expect(page.locator('.point-svg')).toBeVisible();
 }
 
-test('Move points: a moved point, and Back to drafted, can be undone and redone', async ({ page }) => {
+test('Move points: a moved point, and Start again, can be undone and redone', async ({ page }) => {
   await openMovePoints(page);
   const undo = main(page).getByRole('button', { name: 'Undo the last change to the pieces' });
   const redo = main(page).getByRole('button', { name: 'Redo the change to the pieces you undid' });
-  await expect(undo).toBeDisabled();
+  // Undo and Redo wait for a first change (Cat applied clarity review A7, Nov 22): nothing to take back yet.
+  await expect(undo).toBeHidden();
 
   const ua = await point(page, 'Bodice front', 'armhole|side#0');
   await page.mouse.move(ua.x, ua.y);
@@ -37,8 +38,8 @@ test('Move points: a moved point, and Back to drafted, can be undone and redone'
   await redo.click();
   await expect(page.locator('.pe-ghost').first()).toBeAttached();
 
-  // Back to drafted is one step too: Undo brings the moved point back.
-  await main(page).getByRole('button', { name: 'Back to drafted' }).click();
+  // Start again is one step too: Undo brings the moved point back.
+  await main(page).getByRole('button', { name: 'Start again' }).click();
   await expect(page.locator('.pe-ghost')).toHaveCount(0);
   await undo.click();
   await expect(page.locator('.pe-ghost').first()).toBeAttached();
@@ -58,7 +59,8 @@ test('Move points enlarged: every piece shows whole in the window, with Undo', a
     expect(q.y).toBeGreaterThan(0);
     expect(q.y).toBeLessThan(view.height);
   }
-  await expect(main(page).getByRole('button', { name: 'Undo the last change to the pieces' })).toBeInViewport();
+  // Undo's row is inside the window; Undo itself shows there after the first change (clarity review A7, Nov 22).
+  await expect(page.locator('section.live-big .pe-undo-row')).toBeInViewport();
   // One Watch demo, Move points' own, and Done to close the tool.
   await expect(page.locator('section.live-big .demo-play:visible')).toHaveCount(1);
   await expect(main(page).getByRole('button', { name: 'Done moving points' })).toBeVisible();

@@ -56,6 +56,9 @@ const PLAIN: Record<string, string> = { 'Hem circumference': 'Hem, all the way r
 // inches to the nearest eighth like the rest of the app.
 const fmtIn = (unit: 'cm' | 'in') => (v: number) => (unit === 'cm' ? `${Math.round(v * 10) / 10}` : toInches(v).replace(/ in$/, ''));
 
+/** The fit word as it reads after the ease: "close fit", "comfy", "stretches on". */
+const fitWords = (fit: string) => (fit === 'Close' ? 'close fit' : fit.toLowerCase());
+
 /** The finished measurements table: You, the garment, and the ease with its fit word. */
 export function FinishedTable({ lines, noun, children }: { lines: FinishedLine[]; noun: string; children?: ReactNode }) {
   const unit = useContext(UnitNow);
@@ -90,7 +93,8 @@ export function FinishedTable({ lines, noun, children }: { lines: FinishedLine[]
               <td className="fin">{fmt(l.finished)}</td>
               <td className="ease">
                 {l.ease !== undefined && signed(shownEase(l))}
-                {l.fit && <span className={`fitword fit-${l.fit.split(' ')[0].toLowerCase()}`}>{l.fit}</span>}
+                {/* Plain words after the number, not a filled tag (clarity review A2, Nov 22: CLOSE read as a button to close the row). */}
+                {l.fit && <span className={`fitword fit-${l.fit.split(' ')[0].toLowerCase()}`}>{fitWords(l.fit)}</span>}
               </td>
             </tr>
           ))}

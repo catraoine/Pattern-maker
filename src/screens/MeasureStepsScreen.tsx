@@ -571,7 +571,13 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   return (
     <MeasurePage
       key={`${page.kind}-${id}`}
-      who={whoLine}
+      who={whoLine || (page.kind === 'extra' && !page.redo && at === 0 && g && g !== 'other' && (
+        // Back to measuring after What to make, said plainly on every size (clarity review A4, Nov 22: readers thought
+        // measuring was over, and the computer showed no count at all).
+        <p className="extra-intro">
+          {ids.length === 1 ? 'One more measurement' : `${ids.length} more measurements`} for your {named(g)}
+        </p>
+      ))}
       whoWindow={whoWindow}
       tapeFirst={fresh}
       id={id}

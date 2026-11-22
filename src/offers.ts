@@ -38,7 +38,7 @@ export const OFFERS: Record<OfferId, Offer> = {
   },
   printed: {
     id: 'printed',
-    eyebrow: 'No taping',
+    eyebrow: 'Coming soon · No taping',
     title: 'Have it printed and posted',
     text: 'Your pattern printed full size on one roll of pattern paper and posted to you. No sheets to tape together.',
     prices: [['Full-size roll, posted', '$12']],
@@ -84,7 +84,7 @@ export const OFFERS: Record<OfferId, Offer> = {
   },
   kit: {
     id: 'kit',
-    eyebrow: 'Fabric and notions kit',
+    eyebrow: 'Coming soon · Fabric and notions kit',
     title: 'Buy everything for this pattern',
     text: 'The fabric for your cutting layout, with the zip, interfacing and thread to match, from a partner fabric shop. You pay the shop at its own checkout.',
     button: 'Tell me when kits open',
@@ -170,7 +170,7 @@ export const OFFERS: Record<OfferId, Offer> = {
   },
   labels: {
     id: 'labels',
-    eyebrow: 'Woven labels · posted',
+    eyebrow: 'Coming soon · Woven labels, posted',
     title: 'Have your labels woven',
     text: 'Twelve woven labels in the house colours, with your name and this pattern\'s code, posted to you.',
     prices: [['Pack of 12', '$18']],

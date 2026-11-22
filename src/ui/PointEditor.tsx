@@ -83,7 +83,7 @@ export function PatternPane({ children, onPlay }: { children: ReactNode; onPlay?
   const ctx = useContext(PointEditContext);
   const [on, setOn] = useState(false);
   // Every point moved, line cut or dart moved can be taken back, one at a time (Cat, Nov 12: "we need an undo button
-  // here"); Back to drafted too. Kept while the pattern shows, so closing and opening Move points keeps it.
+  // here"); Start again too. Kept while the pattern shows, so closing and opening Move points keeps it.
   const history = useUndo<PatternEdit[]>(ctx?.edits ?? [], (e) => ctx?.setEdits(e));
   const watch = onPlay && !on && <WatchDraft onPlay={onPlay} />;
   // The pane is drawn only once there are pieces, so it is measured again when they arrive.
@@ -869,11 +869,13 @@ function PointEditor({ base, edits: saved, setEdits: save, undo }: PointEditing 
         </div>
       )}
 
-      {/* Undo and Redo, then Back to drafted: always laid out, Back to drafted shown once something has changed (appearing
+      {/* Undo and Redo, then Start again (Back to drafted until Nov 22): always laid out, Start again shown once something has changed (appearing
           under a finger mid-stroke, it grew the page and the pinned drawing eased under the finger, so a line being drawn
-          jumped, round 3). Undo takes back one move, cut or dart at a time, and Back to drafted itself. */}
+          jumped, round 3). Undo takes back one move, cut or dart at a time, and Start again itself. */}
       <div className="row between pe-undo-row">
-        <div className="form-undo">
+        {/* Undo and Redo wait for a first change (clarity review A7, Nov 22: shown greyed before anything had changed, they
+            read as broken); hidden, not removed, so the row keeps its height under a finger mid-stroke. */}
+        <div className="form-undo" style={undo.canUndo || undo.canRedo ? undefined : { visibility: 'hidden' }}>
           <button type="button" onClick={() => (closeAll(), undo.undo())} disabled={!undo.canUndo} aria-label="Undo the last change to the pieces">
             ↶ Undo
           </button>
@@ -883,7 +885,7 @@ function PointEditor({ base, edits: saved, setEdits: save, undo }: PointEditing 
         </div>
         <button
           type="button"
-          className="ghost"
+          className="link quiet pe-start-again"
           style={changed ? undefined : { visibility: 'hidden' }}
           aria-hidden={!changed || undefined}
           tabIndex={changed ? undefined : -1}
@@ -892,7 +894,8 @@ function PointEditor({ base, edits: saved, setEdits: save, undo }: PointEditing 
             closeAll();
           }}
         >
-          Back to drafted
+          {/* A quiet link, not the loudest button in the window (clarity review A7, Nov 22). */}
+          Start again
         </button>
       </div>
     </div>

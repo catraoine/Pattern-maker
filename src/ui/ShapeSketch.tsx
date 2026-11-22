@@ -14,6 +14,7 @@ import { GROUPS } from '../skirtChoices';
 import { skirtForm } from './DrawOnForm';
 import { FormLayers, SQUEEZE, formFrame, hemCorner, wornCloth, wornFolds, wornMapper } from './FormSketch';
 import { CATCH, CATCH_SHARE, MARGIN, fingerTravel } from './HemMarks';
+import { useLengthStep, useNarrow } from './StyleLayout';
 
 export type Side = 'front' | 'back';
 
@@ -180,15 +181,23 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
   // Enlarged, the skirt fills the screen (Cat's E2, 2026-10-25): from just above the waist to a little past the hem,
   // as wide as the skirt. It holds still while a handle is dragged, and reframes once it's let go.
   const big = useEnlarged();
+  // On a phone the skirt is framed like the enlarged view, from just above the waist to past the hem, so it fills its
+  // window instead of a quarter of it (clarity review C8, Nov 22). The length step keeps the whole figure to the floor,
+  // so the hem can be dragged to every length.
+  const lengthStep = useLengthStep();
+  const narrow = useNarrow();
+  const crop = big || (narrow && !lengthStep);
   const held = useRef(frame);
   if (!drag) {
     const pts = cloth.flat();
     const wide = SQUEEZE * Math.max(...pts.map((q) => Math.abs(q.x)), m.waist / 4) + 6;
     const low = Math.max(...pts.map((q) => q.y), m.waist_to_hip ?? 20);
-    held.current = big ? { half: frame.half, left: cx - wide, width: 2 * wide, top: -16, bottom: Math.min(frame.bottom, low + 9) } as typeof frame : frame;
+    held.current = crop ? { half: frame.half, left: cx - wide, width: 2 * wide, top: -16, bottom: Math.min(frame.bottom, low + 9) } as typeof frame : frame;
   }
   const shown = held.current as typeof frame & { left?: number; width?: number };
-  const k = (shown.bottom - shown.top) / 110; // handle and label size, in proportion to the sketch
+  // Handle and label size, in proportion to the sketch. Cropped on a phone the sketch is shorter, so they are scaled
+  // back up to the size they had beside the whole figure, or the names under the dots were too small to read.
+  const k = (shown.bottom - shown.top) / (crop && !big ? 75 : 110);
   // The handles sit on the skirt as drawn: its hem at the centre, and the hem's outer corner.
   const skirt = cloth[0] ?? [];
   const hemCentre = skirt.length ? skirt.reduce((a, b) => (b.y > a.y ? b : a)) : { x: 0, y: draft.lengthCm };

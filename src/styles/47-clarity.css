@@ -1,0 +1,326 @@
+/* The first clarity review (Cat applied all, Nov 22): one style per role, words a first-time sewist can follow, and
+   drawings that use the space they're given. The reasons for each rule are in docs/handbook/design-system.md. */
+
+/* A1: In testing is one small outline tag everywhere, never a fill, never a word run into an option's name. */
+.testing-tag,
+.testing-tag.chip,
+.chip .testing-tag.chip,
+.screen-head .testing-tag,
+.swatch-row .swatch .testing-tag.chip,
+.make-grid button.on .testing-tag {
+  display: inline-block;
+  width: auto;
+  min-height: 0;
+  margin: 4px 0 0;
+  padding: 1px 6px;
+  font: 400 11px/1.4 var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: none;
+  border: 1px solid currentColor;
+}
+/* Inside a choice it sits on its own line under the name, so it doesn't read as part of the name. */
+.chip .testing-tag { display: table; margin: 6px auto 0; }
+.testing-why {
+  margin: 10px 0 0;
+  font: 400 14px/1.45 var(--sans);
+  color: var(--muted);
+}
+
+/* A2: the fit after the ease is plain words, not a filled tag that reads as a Close button. */
+.fitword,
+.fitword.fit-held,
+.fitword.fit-close,
+.fitword.fit-snug,
+.fitword.fit-roomy,
+.fitword.fit-stretches {
+  display: inline;
+  margin-left: 6px;
+  padding: 0;
+  font: 400 14px/1.4 var(--sans);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--muted);
+  background: none;
+  border: 0;
+}
+
+/* B1: one main button, drawn one way: champagne fill, 16px Chakra Petch 500 spaced 0.1em, 56px tall. Every other
+   button is an outline (button.secondary). Each screen keeps one .primary in view; the rest were moved to secondary. */
+button.primary:not(:disabled),
+button.primary.main-go:not(:disabled) {
+  background: var(--gild);
+  border-color: var(--gild);
+  color: var(--paper);
+}
+button.primary {
+  min-height: 56px;
+  font-family: var(--mono);
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  white-space: normal;
+}
+@media (hover: hover) {
+  button.primary:hover:not(:disabled) {
+    background: var(--gild-glow);
+    border-color: var(--gild-glow);
+  }
+}
+body button.secondary {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--gild);
+  background: transparent;
+  color: var(--gild);
+  font-family: var(--mono);
+  font-size: var(--caps-size);
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+@media (hover: hover) {
+  body button.secondary:hover:not(:disabled) {
+    border-color: var(--gild-glow);
+    color: var(--gild-glow);
+  }
+}
+body button.secondary:disabled {
+  border-color: var(--disabled);
+  color: var(--disabled);
+}
+
+/* B2: every play mark is the Demo one, at one size: words then ▶, no underline. */
+body .demo-play.demo-play,
+body .demo-play.demo-play :is(.demo-play-words, .demo-play-mark) {
+  font: 500 13.5px/1 var(--mono);
+  letter-spacing: 0.1em;
+}
+
+/* B3: a picked view (Front, Flat, All round, Pattern) is a champagne outline like every other pick, never a fill. */
+.style-layout .style-pin > section:not(.live-big) .seg button.on,
+.style-layout .style-pin > section:not(.live-big) > .lookboxes button.on:last-child {
+  background: transparent;
+  box-shadow: inset 0 0 0 2px var(--gild);
+  color: var(--gild-glow);
+}
+
+/* B5: the drawing's Smaller is square like every other control, and while Move points is open, Done is the one way
+   out (A7: two exits read as two different things). */
+section.live-big .enlarge,
+section.live-big .enlarge[aria-pressed='true'] {
+  border-radius: 0;
+}
+section.live-big:has(.pe-open-tool.on) .enlarge[aria-pressed='true'] {
+  display: none;
+}
+
+/* B7: nothing under 11px, and the phone's side margin is 16px on every screen. */
+body .card-name,
+body .shopfab-text,
+.example-tag,
+.example-tag * {
+  font-size: 11px;
+}
+.pc-name,
+.preview-corner .tool-word {
+  font-size: max(11px, 1em);
+}
+/* At 11px the cards' names keep their whole word on a phone: less spacing, and a long one may take two lines. */
+@media (max-width: 1099px) {
+  body .card-name,
+  body .shopfab-text {
+    letter-spacing: 0.04em;
+    white-space: normal;
+    text-overflow: clip;
+    padding-left: 5px;
+    padding-right: 4px;
+  }
+}
+
+/* A7: Start again is a quiet link, not the loudest button in the window. */
+.pe-undo-row .pe-start-again {
+  font: 400 var(--caps-size)/1 var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-decoration: underline;
+  border: 0;
+  background: none;
+  min-height: 44px;
+}
+
+/* A6: Change a detail sits under the drawing as an outline button. */
+.review-change .change-detail { margin-top: 4px; }
+
+/* A4: the line that says how many more measurements this garment needs. */
+.extra-intro {
+  margin: 0 0 6px;
+  font: 400 16px/1.4 var(--sans);
+  color: var(--ink);
+}
+
+/* B4: › only ever means "go to another screen". A folded question opens in place, so it ends in +, as every fold does. */
+.fold-pick::after {
+  content: ' +';
+}
+
+/* B6: headings follow importance. Page 40, part 28, section 22; a garment's description reads as a sentence, not a
+   heading louder than its own name. */
+.print-part h2,
+.print-head #ptitle {
+  font-size: 28px;
+}
+.yourfabric .fabhead,
+.sew-card > h2 {
+  font-size: 22px;
+}
+/* On a look, the title above already names it, so the description on the card reads as a sentence. */
+.style-review .envelope .env-name {
+  font: 400 17px/1.35 var(--sans);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.style-review .envelope .env-name::first-letter {
+  text-transform: uppercase;
+}
+
+/* C3: on a computer the Style drawing was held to 600px wide, so at 1920 the skirt sat small in a big empty window.
+   It now takes the window's full height and keeps its shape. */
+@media (min-width: 1100px) {
+  .style-layout .style-pin > section:not(.live-big) > .preview > .preview-svg.sketch {
+    max-width: 100%;
+    height: 100%;
+  }
+}
+
+/* C4: on a computer the fabric cards sat four to a row and pushed Next and Print my pattern far below the window.
+   They now fill the panel's width in shorter cards, and the names are whole instead of cut short. */
+@media (min-width: 1100px) {
+  .style-panel .swatch-row .swatches {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+    gap: 6px;
+    align-items: start;
+  }
+  .style-panel .swatch-row .swatch,
+  .style-panel .swatch-row .swatch.on {
+    --tex-h: 40px;
+    width: auto;
+  }
+  .style-panel .swatch-row .swatch .card-name {
+    padding: 6px 5px;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    text-overflow: clip;
+  }
+  .style-panel .swatch-row .swatch.on .card-name {
+    padding: 6px 5px;
+  }
+}
+/* C4: the way on stays in sight at the foot of the window while the choices above it scroll. */
+@media (min-width: 1100px) {
+  .style-panel .step-next {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    background: #14120e;
+    box-shadow: 0 -12px 16px -4px #14120e;
+  }
+}
+
+/* C5: on a computer, Print's lines ran up to 1,760px wide. Text and forms keep a reading width, the step list reads in
+   two columns, and the extras sit side by side as cards. */
+@media (min-width: 1100px) {
+  main:has(.print-top) .card p:not(.eyebrow),
+  main:has(.print-top) .card label.check,
+  .extras-signup > p,
+  .extras-signup > form,
+  .extras-signup > .extras-ticks {
+    max-width: 680px;
+  }
+  .card.sew .sewsteps {
+    display: block;
+    columns: 2;
+    column-gap: 48px;
+  }
+  .card.sew .sewsteps > li {
+    break-inside: avoid;
+    margin-bottom: 16px;
+  }
+  .extras-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    align-items: start;
+  }
+  .extras-cards > .split {
+    display: contents;
+  }
+}
+
+/* C6: Your look was the phone's one column on a computer, 640px wide, and scrolled. The picture, Change a
+   detail and Print sit on the left, the measurements and pieces on the right, on one screen. It starts at 1100px, where
+   the code moves Print up beside the picture. Narrower, the two halves draw no box of their own, so the page is one
+   column as before. */
+.review-left,
+.review-right {
+  display: contents;
+}
+@media (min-width: 1100px) {
+  .style-review {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 56px;
+    align-items: start;
+    max-width: 1180px;
+  }
+  .review-left,
+  .review-right {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    min-width: 0;
+  }
+  .review-right {
+    padding-top: 12px;
+  }
+}
+
+/* C8 (Cat's call, applied Nov 22): on a phone the Style window is about 30% shorter, and the drawing is cropped to the
+   garment so it still fills it. That leaves room for the choices under it without scrolling. */
+@media (max-width: 760px) {
+  .style-layout .style-pin > section:not(.live-big) > .preview {
+    --view-h: 31dvh;
+  }
+  .style-layout.compact .style-pin > section:not(.live-big) > .preview {
+    --view-h: 23dvh;
+  }
+}
+@media (max-width: 760px) and (max-height: 700px) {
+  .style-layout .style-pin > section:not(.live-big) > .preview {
+    --view-h: 25dvh;
+  }
+  .style-layout.compact .style-pin > section:not(.live-big) > .preview {
+    --view-h: 20dvh;
+  }
+}
+
+/* A10: the phone and the computer say the same help line under a pick: the short one the phone has used since Cat's P1
+   (Oct 31). The computer keeps its drawing beside it. */
+.style-panel .explain-full {
+  display: none;
+}
+.style-panel .explain-short {
+  display: inline;
+}
+/* B7: one phone margin. Print's parts and the Measure list sat in boxes with no visible edge but 18px of padding, so their
+   words started 35px in while Style's start at 16px. The boxes keep their padding top and bottom only. */
+@media (max-width: 760px) {
+  main:has(.print-top) .card,
+  .card.welcome-card.measure-list {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}

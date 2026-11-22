@@ -111,7 +111,7 @@ const DEMOS = {
       { name: 'Pattern', from: 0, says: 'Shown on an example skirt. These are your pattern pieces. Draw a line across one to change it.' },
       { name: 'Spread', from: 12.6, says: 'Choose what the line does. Here, spread it open. Drag the round handle to open it more. The hem gets fuller.' },
       { name: 'New piece', from: 23.7, says: 'Or draw across the hip and cut it off as a new piece. Here, a yoke.' },
-      { name: 'Edited', from: 31.9, says: 'Notches are added so the pieces match. To start again, tap Back to drafted.' },
+      { name: 'Edited', from: 31.9, says: 'Notches are added so the pieces match. To start again, tap Start again.' },
     ],
     length: '0:41',
   },

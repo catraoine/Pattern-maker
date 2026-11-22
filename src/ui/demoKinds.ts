@@ -35,7 +35,7 @@ const patterns = (kind: Kind, fuller: string, cut: string, at: number[], length:
     { name: 'Pattern', from: at[0], says: 'These are your pattern pieces. Draw a line across one to change it.' },
     { name: 'Spread', from: at[1], says: `Choose what the line does. Here, spread it open. Drag the round handle to open it more. ${fuller}` },
     { name: 'New piece', from: at[2], says: cut },
-    { name: 'Edited', from: at[3], says: 'Notches are added so the pieces match. To start again, tap Back to drafted.' },
+    { name: 'Edited', from: at[3], says: 'Notches are added so the pieces match. To start again, tap Start again.' },
   ],
   length,
 });

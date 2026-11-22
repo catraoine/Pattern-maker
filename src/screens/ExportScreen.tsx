@@ -209,8 +209,9 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
   const nap = finish.nap || napFixed;
   const guide = made?.guide;
   const [sewing, setSewing] = useState(false);
-  // Print's own picture for Sewing mode: the cutting, the first step that shows the pieces.
-  const startPicture = useMemo(() => (made ? made.guide.steps.map((st) => stepPicture(st, made.pieces)).find((pic) => pic.kind === 'cut') : undefined), [made]);
+  // Print's own picture for Sewing mode.
+  // The first real sewing step, not the cutting layout again (clarity review A8, Nov 22: it repeated Cut it above).
+  const startPicture = useMemo(() => (made ? made.guide.steps.map((st) => stepPicture(st, made.pieces)).find((pic) => pic.kind === 'sew') : undefined), [made]);
   const date = useMemo(printedDate, []);
   // Pieces left out of the print, by their place in the list, so one lost sleeve reprints on a page or two
   // instead of the whole pattern (the PDF-printing pain in the Reddit research, 2026-10-28). A new draft starts whole.
@@ -552,7 +553,7 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
                   <b>Print at 100%</b> (actual size), never “fit to page”.
                 </p>
                 <p>
-                  <b>Check the size.</b> The test square on page A2 must measure exactly 10 cm before you cut.
+                  <b>Check the size.</b> The test square on page A2 (row A, column 2, as its footer says) must measure exactly 10 cm before you cut.
                 </p>
                 {pages < grid.rows * grid.cols && (
                   <p>
@@ -805,7 +806,6 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
       {/* Sewing mode first (Cat's C, Nov 21): the steps one at a time, each drawn from this pattern's own pieces. The
           list stays, folded under it, for anyone who'd rather read it all (Cat applied P1, 2026-10-24: a fold). */}
       <section className="card sew-card" aria-labelledby="sewtitle">
-        <p className="eyebrow">After printing</p>
         <h2 id="sewtitle">How to sew it</h2>
         {guide && made && (
           <div className="sew-start">
@@ -815,7 +815,8 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
             <p className="small">
               {guide.steps.length} steps, one at a time, each drawn from your own pieces. Keep it open by your machine.
             </p>
-            <button type="button" className="primary" onClick={() => (onSew ? onSew() : setSewing(true))}>
+            {/* An outline button: Download pattern is this screen's one fill (clarity review B1, Nov 22). */}
+            <button type="button" className="secondary" onClick={() => (onSew ? onSew() : setSewing(true))}>
               Start sewing <span aria-hidden="true">›</span>
             </button>
           </div>
@@ -901,7 +902,8 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
               </li>
             ))}
           </ol>
-          <InterestCard offer="tools" pattern={title} inset />
+          {/* No "Links to buy what you'll need" until there are links (clarity review A8, Nov 22: it promised links, then said
+              there were none). The offer stays in offers.ts for when the shops are chosen. */}
         </div>
       </details>
 
@@ -913,12 +915,15 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
             <span className="muted small">Printed and posted roll · fabric and notions kit · {label ? 'your label and woven labels' : 'woven labels'}{hasFabric(finish.fabric) ? '' : ' · deadstock cloth'}</span>
           </summary>
           <ExtrasSignup offers={['printed', 'kit', ...(label ? (['labels'] as const) : []), ...(hasFabric(finish.fabric) ? [] : (['deadstock'] as const))]} pattern={title}>
-            <div className="split">
-              <InterestCard offer="printed" pattern={title} />
-              <InterestCard offer="kit" pattern={title} />
+            {/* One holder, so on a computer the extras sit side by side as cards (clarity review C5, Nov 22). */}
+            <div className="extras-cards">
+              <div className="split">
+                <InterestCard offer="printed" pattern={title} />
+                <InterestCard offer="kit" pattern={title} />
+              </div>
+              {label && <LabelCard name={label.name} code={label.code} pattern={title} onKeep={onKeep} />}
+              {!hasFabric(finish.fabric) && <Deadstock style={style} lays={lays} title={title} />}
             </div>
-            {label && <LabelCard name={label.name} code={label.code} pattern={title} onKeep={onKeep} />}
-            {!hasFabric(finish.fabric) && <Deadstock style={style} lays={lays} title={title} />}
           </ExtrasSignup>
         </details>
       )}
@@ -1216,7 +1221,8 @@ function MakerPack({
             ? 'The dressmaker gets the tech pack (the piece list and sewing steps), the pattern to print and a DXF for pattern software.'
             : 'The dressmaker gets the tech pack (your measurements, the ease, the piece list, fabric and sewing steps), the pattern to print and a DXF for pattern software.'}
         </p>
-        <button type="button" className="primary" onClick={send} disabled={!ready}>
+        {/* An outline: Download pattern is the screen's one filled button (clarity review B1, Nov 22). */}
+        <button type="button" className="secondary" onClick={send} disabled={!ready}>
           {ready ? 'Send to a dressmaker' : 'Making the files…'}
         </button>
         <p className="muted small">Opens your share menu with the files and a short note for the maker.</p>
@@ -1439,7 +1445,8 @@ function EmailPdf({ who, ready, fileName, booklet, bookletName, title, onSent, c
           <input type="email" required value={typed} onChange={(e) => setTo(e.target.value)} autoComplete="email" inputMode="email" />
         </label>
       )}
-      <button type="submit" className="primary" disabled={!ready || state === 'sending' || !to.trim()}>
+      {/* An outline, like every button but Download pattern on this screen (clarity review B1, Nov 22). */}
+      <button type="submit" className="secondary" disabled={!ready || state === 'sending' || !to.trim()}>
         {state === 'sending' ? 'Sending…' : 'Send'}
       </button>
       {state === 'sent' ? (
