@@ -39,10 +39,9 @@
 - Brand direction: high fashion mixed with street style (Paris, Berlin, London, Scandi), cutting-edge,
   not cliché Paris. Taste references and the yes/never lists are in the **taste brief** (Claude Doc,
   linked from the business plan); read it before any promo, editorial or image work.
-- App look: Contour Line on a true black ground #000000, champagne lines (#D9C49B) and ivory text (#EFE4CC), muted
-  #9A8E78 (`src/styles/01-base.css`). An oxblood ground (#120805) was tried on Nov 6 and taken back the same day; the
-  app has been black since. Square outline buttons; no shadows or rounded cards. Every button, link and label is drawn
-  one way per job: see [design-system.md](design-system.md). One fill only (Oct 31): champagne
+- App look: Contour Line on an oxblood near-black ground #120805 (Nov 6; true black before), champagne lines
+  (#DFBE84) and ivory text (#F3DFB7), muted #A28C69, shadows a deeper oxblood #080302, never black. Square outline buttons; no shadows or rounded cards. Every button, link and label is drawn one way per job: see
+  [design-system.md](design-system.md). One fill only (Oct 31): champagne
   fill is for the main button; a picked choice is a heavier champagne outline, never a fill. One job per screen, one main
   button, few words.
 - Style screen picture windows (Nov 11, Cat's B): chalk #dcd5c7 (C1, a warm stone) inside the window with dark ink lines (#2a2622, #1d1a17)
