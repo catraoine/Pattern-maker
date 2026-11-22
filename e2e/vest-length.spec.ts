@@ -14,6 +14,9 @@ test('a length picked for the Black Vest sets its hem', async ({ page }, info) =
   if (info.project.name !== 'phone' && (await change.count())) await change.click();
   const table = main.locator('.finished');
   const back = async () => {
+    // On a computer the table is folded in the side panel since the declutter (Cat's E, Nov 21).
+    const fold = main.locator('.style-side details.review-fold');
+    if (info.project.name !== 'phone' && (await fold.count()) && !(await fold.evaluate((d) => (d as HTMLDetailsElement).open))) await fold.locator('> summary').click();
     if (info.project.name === 'phone') for (let i = 0; i < 12 && !(await table.count()); i++) await page.getByRole('button', { name: /^Next\b|^Review\b/ }).last().click();
     const row = table.getByRole('row').filter({ hasText: 'Centre back length' });
     await expect(row).toBeVisible({ timeout: 30_000 });

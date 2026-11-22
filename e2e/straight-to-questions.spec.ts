@@ -3,7 +3,9 @@ import { expect, startWithExample, stepTabs, switchGarment, test } from './fixtu
 // On a phone, Style goes straight to the questions (Cat's K, Nov 8): one question per screen, its name as the
 // heading, "Next: <question> ›" in the bar pinned at the bottom, a bare ‹ to go back, and no step names or counter.
 test('one question at a time, Next names the next one, and the list jumps to any', async ({ page }, info) => {
-  test.skip(info.project.name !== 'phone', 'One question per screen only on a phone.');
+  // On iPhone Safari too: a pretend tester's tap on the question's name timed out there (DY walk, Nov 22), and only
+  // Chromium had opened the list in a test.
+  test.skip(!['phone', 'iphone-safari'].includes(info.project.name), 'One question per screen only on a phone.');
   await startWithExample(page);
   await switchGarment(page, 'Bodice');
   const main = page.getByRole('main');

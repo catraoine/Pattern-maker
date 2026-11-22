@@ -13,6 +13,7 @@ import { cutCollisions, diamondCollisions, footerCollisions, grainCollisions, la
 import { crossings } from './engine/easeMap';
 import { edgeLabels } from './engine/marks';
 import { checkPattern } from './engine/qc';
+import { inInches } from './units';
 
 // The five pieces the fit testers sew (Blush Shift, Ice Peplum Top, Black Pleated Skirt, Chocolate Barrel Trouser and the
 // Black Vest), made the way the app makes a look, in its own cloth, on a small, a middle and a large body, and read as a
@@ -60,7 +61,7 @@ describe.each(Object.entries(BODIES))('the Ice Peplum Top on a %s body', (_size,
     expect(ease).toBeGreaterThan(1.2);
     expect(ease).toBeLessThan(1.8);
     // The step says what the piece is, and does not ask for steam the cloth will not answer to.
-    expect(step(p, 'Ease the sleeve heads')).toMatch(/The crown is 1\.[4-6] cm longer than the armhole/);
+    expect(step(p, 'Ease the sleeve heads')).toMatch(/by its ease, 0\.[6-8] cm at the front and 0\.[7-9] cm at the back/);
     expect(step(p, 'Ease the sleeve heads')).toContain('A sheer does not shrink in under steam');
     expect(step(p, 'Ease the sleeve heads')).not.toContain('Steam it over a ham');
   });
@@ -87,8 +88,35 @@ describe.each(Object.entries(BODIES))('the Ice Peplum Top on a %s body', (_size,
   });
 
   it("finishes the peplum's open edges on the centre back line, as the bodice's are", () => {
-    expect(step(p, 'Close the back with buttons and loops')).toContain('0.75 cm then 0.75 cm');
-    expect(step(p, 'Make the peplum')).toContain('Turn the open edges in twice by 0.75 cm');
+    // As halves of the allowance, not lengths: 0.75 cm read as 1/4 in each time in the inch booklet, 1/2 in of a 5/8 in
+    // allowance, so the edges overlapped (pretend tester DX walk, Nov 22).
+    expect(step(p, 'Close the back with buttons and loops')).toContain('Turn the 1.5 cm allowance on both backs under twice, half of it each time');
+    expect(step(p, 'Make the peplum')).toContain('Turn the open edges in twice, half the 1.5 cm allowance each time');
+    expect(inInches(step(p, 'Close the back with buttons and loops'))).toContain('Turn the ⅝ in allowance on both backs under twice, half of it each time');
+  });
+
+  it('labels the centre back an opening, as the booklet sews it, never a seam (DX walk, Nov 22)', () => {
+    for (const name of ['Bodice centre back', 'Peplum back']) {
+      const pc = p.pieces.find((x) => x.name.startsWith(name));
+      expect(pc, name).toBeDefined();
+      const words = edgeLabels(pc!).map((l) => l.text).join(' | ');
+      expect(words, name).toContain('CENTRE BACK OPENING');
+      expect(words, name).not.toContain('CENTRE BACK SEAM');
+    }
+  });
+
+  it('says the whole sleeve hem drawn up to the band, and the crown ease front and back, with no total to disagree with them in inches', () => {
+    const band = step(p, 'Attach the sleeve bands');
+    const [hem, cuff] = /the ([\d.]+) cm sleeve hem is drawn up to the ([\d.]+) cm band/.exec(band)!.slice(1).map(Number);
+    // A bishop sleeve: its hem much fuller than the band it is gathered into.
+    expect(hem).toBeGreaterThan(cuff * 1.5);
+    const crown = step(p, 'Ease the sleeve heads');
+    expect(crown).toMatch(/longer than the armhole by its ease, [\d.]+ cm at the front and [\d.]+ cm at the back/);
+    expect(crown).not.toMatch(/The crown is [\d.]+ cm longer/);
+  });
+
+  it('says the back shoulder ease is split between its two panels', () => {
+    expect(step(p, 'Sew the shoulders')).toContain('1 cm longer, 0.5 cm on each of its two panels');
   });
 
   it('lists no interfacing, which no step uses, and says the sheer is cut single layer in place of folding', () => {

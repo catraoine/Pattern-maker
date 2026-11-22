@@ -19,7 +19,7 @@ export function crownEaseFor(f: MyFabric | undefined): number | undefined {
 /** The easing step for a sheer: the ease is spread by hand, since steam will not shrink it away. A sleeve that kept
  *  the fit's own ease (the maker turned "adjust the ease for this fabric" off) keeps its own words too. */
 export function easeSheerHead(st: SewStep): SewStep {
-  const cm = Number(/The crown is ([\d.]+) cm longer/.exec(st.text)?.[1]);
-  if (!(cm <= SHEER_CROWN_EASE + 0.3)) return st;
+  const said = /by its ease, ([\d.]+) cm at the front and ([\d.]+) cm at the back/.exec(st.text);
+  if (!said || Number(said[1]) + Number(said[2]) > SHEER_CROWN_EASE + 0.3) return st;
   return { ...st, text: st.text.replace(' Steam it over a ham and let it cool.', ' A sheer does not shrink in under steam, so this crown is cut with very little ease: spread it evenly with your fingers, and pin closely.') };
 }

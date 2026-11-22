@@ -39,8 +39,8 @@ describe('sleeve head ease by cloth', () => {
   });
 
   it('only rewords the easing step of a sleeve that was cut with the smaller ease', () => {
-    const step = (cm: number) => ({ title: 'Ease the sleeve heads', text: `The crown is ${cm} cm longer than the armhole. Steam it over a ham and let it cool.` });
-    expect(easeSheerHead(step(1.4)).text).toContain('A sheer does not shrink in under steam');
-    expect(easeSheerHead(step(3)).text).toBe(step(3).text);
+    const step = (f: number, b: number) => ({ title: 'Ease the sleeve heads', text: `The crown is longer than the armhole by its ease, ${f} cm at the front and ${b} cm at the back. Steam it over a ham and let it cool.` });
+    expect(easeSheerHead(step(0.6, 0.8)).text).toContain('A sheer does not shrink in under steam');
+    expect(easeSheerHead(step(1.3, 1.7)).text).toBe(step(1.3, 1.7).text);
   });
 });

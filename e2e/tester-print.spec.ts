@@ -23,7 +23,7 @@ test("a fit tester's Print says how to sew it in calico, and offers no redraw", 
     else await page.waitForTimeout(300);
   }
   await print.click();
-  await expect(main(page).getByRole('heading', { name: 'Sew a test version first' })).toBeVisible();
+  await expect(main(page).getByRole('heading', { name: 'Sew a toile first' })).toBeVisible();
   await expect(main(page).locator('.tester-calico')).toHaveCount(0);
   await openAccount(page);
   const fold = await openFold(page, 'Fit testing');
@@ -32,5 +32,5 @@ test("a fit tester's Print says how to sew it in calico, and offers no redraw", 
   await expect(fold.getByRole('link', { name: 'Open the tester form ›' })).toBeVisible();
   await page.getByRole('button', { name: 'Print', exact: true }).first().click();
   await expect(main(page).locator('.tester-calico')).toContainText('For your fit test Sewing in muslin (calico)');
-  await expect(main(page).getByRole('heading', { name: 'Sew a test version first' })).toHaveCount(0);
+  await expect(main(page).getByRole('heading', { name: 'Sew a toile first' })).toHaveCount(0);
 });

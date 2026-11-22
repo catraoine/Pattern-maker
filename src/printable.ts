@@ -392,7 +392,10 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
     // A button front's facings, or a band collar, finish the neck.
     const neckDone = bodice.closure === 'front_buttons' || finishesNeck(bodice.collar);
     const facings = edges === 'facings' ? (bodice.drape ? drapeFacings(bodice, !sleeve, !neckDone) : bodiceFacings(...blockOf(bodice), !sleeve, !neckDone)) : [];
-    const pieces = allow([...main, ...(sleeve?.pieces ?? []), ...facings]);
+    // A back closed with buttons and loops is never sewn at the centre back: its edges fold under. Labelled a seam, a
+    // tester reading the pattern first would sew it shut (pretend tester DX walk, Nov 22).
+    const opening = (pc: Piece): Piece => (bodice.backLoops ? { ...pc, meta: { ...pc.meta, centreLabel: 'CENTRE BACK OPENING' } } : pc);
+    const pieces = allow([...main.map(opening), ...(sleeve?.pieces ?? []), ...facings]);
     // The hem allowance as the pieces are cut: the peplum's own narrow hem where there is one, else the top's below the
     // waist. (The note said 2.5 cm whatever was cut: the Ice Peplum's only hem is its peplum's 1 cm.)
     const hemCut = bodice.peplum ? pieces.find((pc) => /^Peplum/.test(pc.name))?.allowances.hem : below ? (pieces[0].allowances.hem ?? 2.5) : undefined;

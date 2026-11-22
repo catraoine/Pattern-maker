@@ -41,10 +41,11 @@ test('after measuring, back from Style goes to the measurements list, not throug
 test('hopping between screens never makes back ping-pong', async ({ page }) => {
   test.setTimeout(150_000);
   await startWithExample(page);
-  // The collection's own "Back to styling", then back: up to the measurements, not into the collection again.
+  // Back from the collection by the header's arrow (its own "Back to styling" went in the declutter, Cat's E, Nov 21),
+  // then back: up to the measurements, not into the collection again.
   await openCollection(page);
   await expect(h1(page, /collection/i)).toBeVisible();
-  await main(page).getByRole('button', { name: 'Back to styling' }).click();
+  await page.getByRole('banner').getByRole('button', { name: 'Back', exact: true }).click();
   await expectStyle(page, 'Skirt');
 
   // Measure, Print, Measure, Print from the header: back still climbs one rung at a time.
