@@ -5,6 +5,7 @@ import type { Garment } from '../measurements';
 import { canGoBack, goBack, usePageHistory } from '../nav';
 import type { Flat } from '../engine/flat';
 import { DemoButton } from './DemoButton';
+import { ShownView } from './PreviewSwitch';
 import { EnlargeSketch, useEnlarged } from './EnlargeSketch';
 import { Envelope } from './Envelope';
 import { GarmentFabric } from './FabricFill';
@@ -741,6 +742,11 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   const at = steps.indexOf(active ?? '');
   // The drawing's corner for its tools, made inside the drawing's area.
   const [corner, setCorner] = useState<HTMLElement | null>(null);
+  // The Demo plays the clip for the view the drawing shows (Cat, Nov 21: "specific to the tools on the style window
+  // the user is on"): Front, the styling clip; All round, its own; Pattern, drawing a line on the pattern. Flat is
+  // only a drawing to look at, so it has none.
+  const [shown, setShown] = useState<string>();
+  const demo = shown === 'pattern' ? 'patterns' : shown === 'round' ? 'allround' : shown === 'flat' ? undefined : 'style';
   // Each step's picks, for the list of steps on a phone (Cat's P3, 2026-11-06, in place of "Your picks"): its first
   // two questions' picks, such as "Regular · At the waist".
   const [stepPicks, setStepPicks] = useState<Record<string, string>>({});
@@ -976,7 +982,9 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           <ActiveTab.Provider value={active}>
             <Sections.Provider value={sections}>
               <Corner.Provider value={corner}>
-                <TypeLength.Provider value={setAsking}>{preview}</TypeLength.Provider>
+                <ShownView.Provider value={setShown}>
+                  <TypeLength.Provider value={setAsking}>{preview}</TypeLength.Provider>
+                </ShownView.Provider>
               </Corner.Provider>
             </Sections.Provider>
           </ActiveTab.Provider>
@@ -1030,7 +1038,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
                   </p>
                 )
               ) : null}
-              {wide && <DemoButton demo="style" />}
+              {wide && demo && <DemoButton demo={demo} />}
             </div>
             {wide ? (
               <h2 className="chapter-name">{active}</h2>
@@ -1155,7 +1163,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
               holds one button, and Watch demo. */}
           {/* On a phone the list of questions holds every pick, so Review comes after the last question, and Watch
               demo stands with the drawing's tools, under Enlarge and Draw (Cat's B combo and K, 2026-11-08). */}
-          {!wide && corner && createPortal(<DemoButton demo="style" />, corner)}
+          {!wide && corner && demo && createPortal(<DemoButton demo={demo} />, corner)}
         </div>
         {wide ? (
           <div className="style-side">

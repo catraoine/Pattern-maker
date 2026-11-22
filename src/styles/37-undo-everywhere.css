@@ -42,7 +42,9 @@ section.live-big .pattern-pane > .point-editor > .point-svg {
 }
 
 /* Move points open: one Watch demo, its own, beside the how-to line under the pieces; the style's Watch demo in the
-   corner is put away until Done, so there aren't two (Cat, Nov 12, "add"). */
-.preview:has(.point-editor) .preview-corner > .demo-play {
+   corner is put away until Done, so there aren't two (Cat, Nov 12, "add"). On a computer the Demo beside the step goes too: it plays the
+   same clip now (Cat, Nov 21). */
+.preview:has(.point-editor) .preview-corner > .demo-play,
+.style-edit:has(.point-editor) .chapter-top > .demo-play {
   display: none;
 }
