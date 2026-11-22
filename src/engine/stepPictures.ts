@@ -1,0 +1,104 @@
+// What each sewing step shows in Sewing mode (Cat's C, Nov 21): the garment's own pieces, with the edges being sewn
+// drawn in as you watch, so every style gets its own pictures without filming. Read from the step's own words, so
+// the steps themselves never change for a picture.
+import type { Piece } from './piece';
+import type { SewStep } from './instructions';
+import type { DiagramId } from './diagrams';
+
+export type StepPicture =
+  /** Fabric straightened on the grain: the same for every garment. */
+  | { kind: 'prep' }
+  /** The test square on its page, with a ruler. */
+  | { kind: 'print' }
+  /** The cutting layout, with these pieces cut out as you watch (by name, as the layout names them). */
+  | { kind: 'cut'; names: string[] }
+  /** These pieces (by index), with these edges stitched as you watch, and their darts when `darts`. `around`: small
+   *  pieces (a pocket, a loop) stitched all the way round. */
+  | { kind: 'sew'; pieces: number[]; edges: string[]; darts: boolean; around?: number[] }
+  /** A close-up of the technique, from the step's own small drawing. */
+  | { kind: 'diagram'; id: DiagramId }
+  /** The finished garment, front and back. */
+  | { kind: 'flat' };
+
+/** Words in a step that name an edge, and the outline tags that edge carries. */
+const EDGES: [RegExp, string[]][] = [
+  // A sleeve's crown is tagged with the armhole it is sewn into.
+  [/\bset (in )?the sleeves?\b|\bsleeves? in\b|\bsew in the (raglan )?sleeves\b|\braglan seams\b/, ['armhole']],
+  [/\bsleeve seams?\b|\boverarm seams?\b/, ['sleeve-front', 'sleeve-back']],
+  [/\bside seams?\b|\bthe sides\b|\bthe side (and|edges)\b|\bside panels?\b/, ['side']],
+  [/\bshoulders?\b/, ['shoulder']],
+  [/\bhem\b|\bhems\b/, ['hem']],
+  [/\bcentre back\b|\bcentre front\b|\bzip\b|\bvent\b/, ['centre']],
+  [/\bwaist(band)?\b/, ['waist']],
+  [/\bneck(line|band)?\b|\bcollar\b/, ['neck']],
+  [/\barmholes?\b/, ['armhole']],
+  [/\binside legs?\b|\binseams?\b/, ['inseam']],
+  [/\bcrotch\b/, ['crotch']],
+];
+
+/** Pieces a step can name, matched against the piece's own name or kind. */
+const NAMED: [RegExp, RegExp][] = [
+  [/\bwaistband\b|\bband\b/, /waistband|\bband\b/i],
+  [/\bneckband\b/, /neckband|mock neck/i],
+  [/\bcollar\b/, /collar/i],
+  [/\bcuffs?\b/, /cuff/i],
+  [/\bpockets?\b/, /pocket/i],
+  [/\bpeplum\b/, /peplum/i],
+  [/\bruffle\b/, /ruffle/i],
+  [/\bflounce\b/, /flounce/i],
+  [/\bsleeves?\b/, /sleeve/i],
+  [/\blining\b/, /lining/i],
+  [/\bfacings?\b/, /facing/i],
+  [/\bbelt loops?\b/, /loop/i],
+  [/\bhood\b/, /hood/i],
+  [/\btiers?\b/, /tier/i],
+  [/\bgodets?\b/, /godet/i],
+  [/\byoke\b/, /yoke/i],
+  [/\bstraps?\b/, /strap/i],
+  [/\b(side )?ties\b|\bsash\b/, /\btie\b|sash/i],
+];
+
+const isGarment = (pc: Piece) => !pc.kind || pc.kind === 'collar' || pc.kind === 'pocket';
+const tagsOf = (pc: Piece) => new Set(pc.outline.tags);
+const hasDarts = (pc: Piece) => pc.lines.length > 0;
+
+/** The picture for one step, from its title first, then its words. */
+export function stepPicture(step: SewStep, pieces: Piece[]): StepPicture {
+  const title = step.title.toLowerCase();
+  const all = `${title} ${step.text.toLowerCase()}`;
+  if (/prepare your fabric|pre-?wash/.test(title)) return { kind: 'prep' };
+  if (/print and check|test square/.test(title)) return { kind: 'print' };
+  const named = (words: string) =>
+    NAMED.filter(([w]) => w.test(words)).flatMap(([, name]) => pieces.map((pc, i) => (name.test(pc.name) || (pc.kind && name.test(pc.kind)) ? i : -1)).filter((i) => i >= 0));
+  if (/^cut\b/.test(title)) {
+    const these = named(title);
+    // "Cut out": the garment's own pieces; "Cut the lining" or "Cut the waistband": just those.
+    const cut = these.length ? these : pieces.map((pc, i) => (isGarment(pc) ? i : -1)).filter((i) => i >= 0);
+    return { kind: 'cut', names: [...new Set(cut.map((i) => pieces[i].name))] };
+  }
+  if (/\bdarts?\b/.test(title)) {
+    const withDarts = pieces.map((pc, i) => (isGarment(pc) && hasDarts(pc) ? i : -1)).filter((i) => i >= 0);
+    if (withDarts.length) return { kind: 'sew', pieces: withDarts, edges: [], darts: true };
+  }
+  if (/^finish$|try it on|put it on|final press/.test(title)) return { kind: 'flat' };
+  // The edges the title names, else the ones its words name.
+  const edgesIn = (words: string) => [...new Set(EDGES.filter(([w]) => w.test(words)).flatMap(([, t]) => t))];
+  const these = named(title);
+  // Interfacing, pressing or marking a piece sews nothing: show just that piece, plain ("Interface the waistband" names
+  // the waist, but the skirt's waist isn't stitched yet).
+  if (/^(interface|fuse|press|mark|chalk|transfer|trace)\b/.test(title)) {
+    if (these.length) return { kind: 'sew', pieces: these, edges: [], darts: false };
+    return step.diagram ? { kind: 'diagram', id: step.diagram } : { kind: 'flat' };
+  }
+  let edges = edgesIn(title);
+  // A step that only says "sew" or "neaten" in its title names its edges in its words. Others (press the creases)
+  // don't stitch anything, so their words aren't searched for seams.
+  if (!edges.length && !these.length && /^(sew|neaten|stitch|join|bind|stay|close|zigzag|overlock)\b/.test(title)) edges = edgesIn(all);
+  const carrying = pieces.map((pc, i) => (isGarment(pc) && edges.some((t) => tagsOf(pc).has(t)) ? i : -1)).filter((i) => i >= 0);
+  const shown = [...new Set([...these, ...carrying])];
+  // A small piece the step makes (a pocket, a loop, a tie) is sewn all the way round.
+  const around = edges.length ? [] : these.filter((i) => /pocket|loop|tie|sash|strap|flap|cuff|tab/i.test(pieces[i].name));
+  if (shown.length) return { kind: 'sew', pieces: shown, edges, darts: false, ...(around.length ? { around } : {}) };
+  if (step.diagram) return { kind: 'diagram', id: step.diagram };
+  return { kind: 'flat' };
+}

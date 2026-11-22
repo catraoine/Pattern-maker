@@ -56,7 +56,7 @@
   (Nov 4, B Taller Type); "Your trousers" wraps to two lines on a phone rather than shrinking.
 - Buttons in Chakra Petch use only the loaded weights, 400 and 500; a heavier weight is a bold the phone
   fakes and reads squished (Nov 4). The Style Next button is 16px, weight 500, spaced 0.1em.
-- The three steps in the header stay **Measure, Style, Print**. Every screen says where you've landed and
+- The four steps in the header are **Measure, Style, Print, Sew** (Sew added Nov 21, Cat's pick; before it was three). Every screen says where you've landed and
   holds the sewist's hand (Cat, Nov 3: big capitals for a whole choice are "overwhelming and jarring"). Print
   opens on a modest "Your summary" heading, one line on what the page is for, then the garment's name in
   reading type.

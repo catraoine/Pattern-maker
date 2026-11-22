@@ -19,6 +19,8 @@ import type { Flat } from '../engine/flat';
 import { TechFlatView } from '../ui/TechFlatView';
 import { StepDiagram } from '../ui/StepDiagram';
 import { takeFabricReturn } from '../ui/printReturn';
+import { SewPicture } from '../ui/SewPicture';
+import { stepPicture } from '../engine/stepPictures';
 import { CLOTHS, seamFinish } from '../engine/couture';
 import { FIBRES, Fibre, MyFabric, FabricStyle, adviceFor, checkFabric, clothFor, pickTag, printRepeat } from '../engine/fabrics';
 import { colourWords } from '../engine/houseColours';
@@ -63,6 +65,8 @@ export interface Printable {
 interface Props {
   /** Drafted to the example body because measuring was skipped: printing asks first (Cat, 2026-10-21). */
   example?: boolean;
+  /** To the Sew tab, from How to sew it. Without it (a pattern read from a file), Sewing mode opens here. */
+  onSew?: () => void;
   /** Measure me, from that question: drops the example and opens measuring. */
   onMeasureMe?: () => void;
   /** Back to the measurements, from a pattern that can't be drafted to them. */
@@ -144,6 +148,7 @@ const PAPERS: { id: Paper | 'projector'; label: string }[] = [
 const isProjector = (o: Output): o is 'projector' | 'projectorDark' => o === 'projector' || o === 'projectorDark';
 
 // Projector mode loads only when it is opened.
+const SewingMode = lazy(() => import('../ui/SewingMode').then((m) => ({ default: m.SewingMode })));
 const ProjectorMode = lazy(() => import('../ui/ProjectorMode').then((m) => ({ default: m.ProjectorMode })));
 
 /** The date as printed on the pattern, such as 14 Oct 2026. */
@@ -163,7 +168,7 @@ const printedDate = () => new Date().toLocaleDateString('en-GB', { day: 'numeric
 
 const FRACTION_WORDS: Record<string, string> = { '⅛': '1-8', '¼': '1-4', '⅜': '3-8', '½': '1-2', '⅝': '5-8', '¾': '3-4', '⅞': '7-8' };
 
-export function ExportScreen({ example, onMeasureMe, onEditMeasurements, unit = 'cm', paper: savedPaper, onPaper, sendLink, profile, title, lookName, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, onFitNotes, tester, emailTo, fitNote, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label, full }: Props) {
+export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, unit = 'cm', paper: savedPaper, onPaper, sendLink, profile, title, lookName, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, onFitNotes, tester, emailTo, fitNote, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label, full }: Props) {
   const can = (t: ProTool) => shows(mode, t);
   // Back from choosing the fabric in Style: open on the fabric, where they left Print (Cat, Nov 21).
   useEffect(() => {
@@ -201,6 +206,9 @@ export function ExportScreen({ example, onMeasureMe, onEditMeasurements, unit = 
   const napFixed = needsNap(special) || printNap(print);
   const nap = finish.nap || napFixed;
   const guide = made?.guide;
+  const [sewing, setSewing] = useState(false);
+  // Print's own picture for Sewing mode: the cutting, the first step that shows the pieces.
+  const startPicture = useMemo(() => (made ? made.guide.steps.map((st) => stepPicture(st, made.pieces)).find((pic) => pic.kind === 'cut') : undefined), [made]);
   const date = useMemo(printedDate, []);
   // Pieces left out of the print, by their place in the list, so one lost sleeve reprints on a page or two
   // instead of the whole pattern (the PDF-printing pain in the Reddit research, 2026-10-28). A new draft starts whole.
@@ -785,11 +793,42 @@ export function ExportScreen({ example, onMeasureMe, onEditMeasurements, unit = 
       )}
       {values && draftAt && can('sizeRun') && <InterestCard offer="sizerun" pattern={title} />}
 
-      {/* Folded shut on phone and computer alike (Cat applied P1, 2026-10-24), so Print is a shorter scroll. */}
+      {/* Sewing mode first (Cat's C, Nov 21): the steps one at a time, each drawn from this pattern's own pieces. The
+          list stays, folded under it, for anyone who'd rather read it all (Cat applied P1, 2026-10-24: a fold). */}
+      <section className="card sew-card" aria-labelledby="sewtitle">
+        <p className="eyebrow">After printing</p>
+        <h2 id="sewtitle">How to sew it</h2>
+        {guide && made && (
+          <div className="sew-start">
+            <div className="sewmode-pic">
+              <SewPicture picture={startPicture ?? { kind: 'prep' }} pieces={made.pieces} lays={lays} flat={null} />
+            </div>
+            <p className="small">
+              {guide.steps.length} steps, one at a time, each drawn from your own pieces. Keep it open by your machine.
+            </p>
+            <button type="button" className="primary" onClick={() => (onSew ? onSew() : setSewing(true))}>
+              Start sewing <span aria-hidden="true">›</span>
+            </button>
+          </div>
+        )}
+      </section>
+      {sewing && guide && made && (
+        <Suspense fallback={null}>
+          <SewingMode
+            steps={guide.steps}
+            pieces={made.pieces}
+            lays={lays}
+            flat={made.flat ? <TechFlatView flat={made.flat} title={title} /> : null}
+            title={title}
+            keep={code ?? title}
+            inCm={inCm}
+            onClose={() => setSewing(false)}
+          />
+        </Suspense>
+      )}
       <details className="card sew">
         <summary className="sew-summary">
-          <p className="eyebrow">After printing</p>
-          <h2 id="sewtitle">How to sew it</h2>
+          <h3 className="sew-list-head">Every step as a list</h3>
         </summary>
         <div className="row between wrap">
           {garment !== 'trousers' && !knit && can('couture') && !imported && (

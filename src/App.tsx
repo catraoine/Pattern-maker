@@ -93,7 +93,7 @@ import { NEEDS_MEASUREMENTS, PARENT, PLACE_KEY, SIDE, STEPS, STEP_OF, ladder, ty
 
 
 /** The screens a reload may open again. */
-const RESTORABLE: View[] = ['measure', 'steps', 'style', 'export', 'account', 'collection'];
+const RESTORABLE: View[] = ['measure', 'steps', 'style', 'export', 'sew', 'account', 'collection'];
 
 const MeasureScreen = screen(() => import('./screens/MeasureScreen').then((m) => m.MeasureScreen));
 const StyleScreen = screen(() => import('./screens/StyleScreen').then((m) => m.StyleScreen));
@@ -104,6 +104,7 @@ const TeeStyleScreen = screen(() => import('./screens/TeeStyleScreen').then((m) 
 const RangeStyleScreen = screen(() => import('./screens/RangeStyleScreen').then((m) => m.RangeStyleScreen));
 const LingerieStyleScreen = screen(() => import('./screens/LingerieStyleScreen').then((m) => m.LingerieStyleScreen));
 const OuterStyleScreen = screen(() => import('./screens/OuterStyleScreen').then((m) => m.OuterStyleScreen));
+const SewScreen = screen(() => import('./screens/SewScreen').then((m) => m.SewScreen));
 const AccountScreen = screen(() => import('./screens/AccountScreen').then((m) => m.AccountScreen));
 const PhotoScreen = screen(() => import('./screens/PhotoScreen').then((m) => m.PhotoScreen));
 const SignupScreen = screen(() => import('./screens/SignupScreen').then((m) => m.SignupScreen));
@@ -525,7 +526,7 @@ export default function App() {
   // A look made before the garment's measurements were all in was sized to the sample body: once they are, it is sized
   // to the maker's own (see lookResized).
   useEffect(() => {
-    if (step !== 'style' && step !== 'export') return;
+    if (step !== 'style' && step !== 'export' && step !== 'sew') return;
     const resized = lookResized(garment, current, values);
     if (!resized) return;
     const { garment: _g, ...next } = resized;
@@ -904,10 +905,10 @@ export default function App() {
           ) : (
             <>
               <div className="steady-row">
-                {/* No header back on the three chapters (Cat, 2026-11-02: "this arrow causes confusion"): Measure, Style
-                    and Print are tapped to move between them. Guided measuring, side screens, Draw and Review keep it
+                {/* No header back on the chapters (Cat, 2026-11-02: "this arrow causes confusion"): Measure, Style,
+                    Print and Sew are tapped to move between them. Guided measuring, side screens, Draw and Review keep it
                     (Style's steps hide it in 25-step-back.css). */}
-                {step !== 'measure' && step !== 'export' && (
+                {step !== 'measure' && step !== 'export' && step !== 'sew' && (
                   <button type="button" className="steady-back" aria-label="Back" onClick={back}>
                     ←
                   </button>
@@ -1477,6 +1478,7 @@ export default function App() {
           {step === 'export' && hasGarment(account, garment) && (
             <ExportScreen
               example={!!person.example?.length}
+              onSew={() => setStep('sew')}
               onMeasureMe={measureMe}
               onEditMeasurements={() => setStep('measure')}
               unit={saved.unit}
@@ -1516,6 +1518,10 @@ export default function App() {
               credit={fromArchive?.credit}
               label={{ name: profile === 'Me' ? account.name : profile, code: labelFor }}
             />
+          )}
+          {step === 'sew' && !hasGarment(account, garment) && <UnlockGarment garment={garment} onPlans={openPlans} onBack={() => setStep('style')} />}
+          {step === 'sew' && hasGarment(account, garment) && (
+            <SewScreen made={printable} title={title} keep={`${garment}:${lookName ?? title}`} onPrint={() => setStep('export')} onStyle={() => setStep('style')} />
           )}
           {step === 'check' && (
             <CheckFileScreen
