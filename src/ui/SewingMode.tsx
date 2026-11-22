@@ -6,7 +6,7 @@ import type { SewStep } from '../engine/instructions';
 import { stepPicture } from '../engine/stepPictures';
 import { SewPicture } from './SewPicture';
 import { readAt, readTicks, saveAt, saveDone, saveTicks } from './sewPlace';
-import { stepLines } from '../engine/stepLines';
+import { isNote, stepLines } from '../engine/stepLines';
 
 // Sewing mode (Cat's C, Nov 21): the steps one at a time, each with a drawing of the garment's own pieces where the
 // edges being sewn draw themselves in, so it reads at arm's length beside the machine. The words are the steps' own.
@@ -23,10 +23,13 @@ interface Props {
   inCm: (s: string) => string;
   /** Open on this step instead of the one you were on (a step picked from the Sew tab's list). */
   from?: number;
+  /** For a fit tester, what changes in muslin, shown on the first step: its words are written for the look's own cloth
+   *  ("Do not wash it" for wool) while testers sew a toile (EA pretend-tester walk, Nov 21). */
+  muslin?: string;
   onClose: () => void;
 }
 
-export function SewingMode({ steps, pieces, lays, flat, title, keep, inCm, from, onClose }: Props) {
+export function SewingMode({ steps, pieces, lays, flat, title, keep, inCm, from, muslin, onClose }: Props) {
   const [at, setAt] = useState(() => {
     if (from === undefined) return readAt(keep, steps.length);
     saveAt(keep, from);
@@ -132,6 +135,7 @@ export function SewingMode({ steps, pieces, lays, flat, title, keep, inCm, from,
           <ul className="sew-lines" aria-label="Tick each one as you do it">
             {stepLines(inCm(step.text)).map((line, i) => {
               const on = (ticks[at] ?? []).includes(i);
+              if (isNote(line)) return <li key={`${at}-${i}`} className="note">{line}</li>;
               return (
                 <li key={`${at}-${i}`} className={on ? 'done' : undefined}>
                   <label>
@@ -142,6 +146,7 @@ export function SewingMode({ steps, pieces, lays, flat, title, keep, inCm, from,
               );
             })}
           </ul>
+          {at === 0 && muslin && <p className="sew-muslin">{inCm(muslin)}</p>}
           <div className="sewmode-go">
             <button type="button" className="ghost" disabled={at === 0} onClick={() => go(at - 1)}>
               <span aria-hidden="true">‹</span> Back

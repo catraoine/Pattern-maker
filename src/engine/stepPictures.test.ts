@@ -75,4 +75,8 @@ describe('the picture for each sewing step', () => {
     const sf = piece('Skirt side front', ['waist', 'side', 'hem', 'panel']);
     expect(stepPicture({ title: 'Join the side panels', text: '' }, [fr, sf])).toEqual({ kind: 'sew', pieces: [0, 1], edges: ['panel'], darts: false });
   });
+  it('folds pleats on the pieces whose pleat lines are drawn, not on the finished skirt (EA walk, Nov 21)', () => {
+    const pleated = piece('Skirt front', ['waist', 'side', 'hem', 'fold'], { lines: [new Path(p(10, 0)).line(p(10, 60))] });
+    expect(stepPicture({ title: 'Fold and baste the pleats', text: '' }, [pleated, back])).toEqual({ kind: 'sew', pieces: [0], edges: [], darts: false });
+  });
 });

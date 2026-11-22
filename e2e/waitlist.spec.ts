@@ -27,16 +27,26 @@ test('a stranger gets the waitlist where Begin was, and joining counts against t
   await expect(main.getByRole('button', { name: 'Share link' })).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem('maison-trace-source'))).toBe('ig');
 
-  // The Privacy Policy opens, and back comes home to the waitlist, not the app.
+  // Back on this device later, they are still on the list with their link to share, not asked to join again, and the
+  // join page with its tester code is one tap away (Dec 7 dress rehearsal, Nov 22).
   await page.reload();
   await skipLoading(page);
+  await expect(main.getByRole('heading', { level: 1, name: /You're on the list/ })).toBeVisible();
+  await expect(main.getByLabel('Your link')).toHaveValue(/\/\?ref=k7q2m9ab$/);
+  await expect(main.getByRole('button', { name: 'Join the waitlist' })).toHaveCount(0);
+  await main.getByRole('button', { name: 'Open the join page' }).click();
+  await expect(main.getByRole('button', { name: 'Join the waitlist' })).toBeVisible();
+  await expect(main.getByRole('button', { name: 'Use your code' })).toBeVisible();
+  await page.reload();
+  await skipLoading(page);
+  // The Privacy Policy opens, and back comes home to the waitlist, not the app.
   // The footer is the one word Privacy (Cat's A, Nov 6): "How it's made" lives in the app, not on the waitlist.
   await expect(main.getByRole('button', { name: "How it's made" })).toHaveCount(0);
   await main.getByRole('button', { name: 'Privacy', exact: true }).click();
   await expect(main.getByRole('heading', { level: 1, name: 'Privacy Policy' })).toBeVisible();
   await expect(page.getByRole('banner').getByRole('button', { name: /account/i })).toHaveCount(0);
   await page.getByRole('banner').getByRole('button', { name: 'Back' }).click();
-  await expect(main.getByRole('button', { name: 'Join the waitlist' })).toBeVisible();
+  await expect(main.getByRole('heading', { level: 1, name: /You're on the list/ })).toBeVisible();
 });
 
 // The code stays in the address (journey review, Nov 10): an iPhone's home-screen icon opens the address it was added

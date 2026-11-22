@@ -4,10 +4,11 @@ _Update this page whenever a release ships or a PR is queued._
 
 ## Now (Nov 21, 2026): how a ship works
 
-Live: **release EA** (Nov 21, Cat's 10:29 pm "ship"): Sew as a fourth step with Sewing mode drawn from your own
-pieces as a tick list, each Style view's Demo playing its own clip, and the Black Pleated Skirt's Neaten the edges
-naming the panel seams, on top of DZ (the whole app decluttered, "toile", the Ice Peplum booklet). Rollback = release
-DZ. Releases CW to EA went out Nov 17 to 21; every release's commit, deploy id and rollback is in project memory (pattern-maker-releases-nov14), and the running list of what is
+Live: **release EC** (Nov 22, Cat's 1:20 pm "ship"): the enlarged Pattern view tidy (the window takes the screen width,
+pieces fill it whole, Undo and Redo inside it), the empire seam no longer steps at the opened under-bust dart (empire
+dresses only, not launch patterns), and the film's "Something else" screens and demos tidied, on top of EB (Sewing mode
+follow-ups, small-screen fixes). Rollback = release EB. Releases CW to EC went out Nov 17 to 22;
+every release's commit, deploy id and rollback is in project memory (pattern-maker-releases-nov14), and the running list of what is
 ready is `/mnt/project-files/releases/ready-to-ship.md`.
 
 The ship rule (Cat, Nov 17, 7:47 pm):

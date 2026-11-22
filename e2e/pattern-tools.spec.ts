@@ -3,7 +3,7 @@ import type { Page } from '@playwright/test';
 
 // Draw a line on the pattern (Design: Pattern tools, Cat's pick P2, 2026-11-07): a line drawn across a skirt piece
 // spreads it open from where it was started, and dragging the handle at its far end opens it more; a line across the
-// hip makes a yoke, a new piece; the pattern then says Edited by you, and Back to drafted undoes it all.
+// hip makes a yoke, a new piece; and Back to drafted undoes it all.
 // With STILLS=<folder> in the environment, a phone still of each step is saved there for Cat.
 
 const still = async (page: Page, name: string) => {
@@ -81,10 +81,10 @@ test('draws a line on the skirt to spread it, opens it more, cuts a yoke, and go
   await still(page, '4-new-piece-yoke');
   await page.getByRole('group', { name: 'New piece' }).getByRole('button', { name: 'Done' }).click();
 
-  // Back on the pieces, the pattern says it was edited, In testing.
+  // The tool says In testing while it is open; back on the pieces there is no "Edited by you" row (Cat, Nov 22).
+  await expect(main.locator('.pe-howto .testing-tag')).toBeVisible();
   await main.getByRole('button', { name: 'Done moving points' }).click();
-  await expect(main.locator('.pe-edited')).toContainText('Edited by you');
-  await expect(main.locator('.pe-edited .testing-tag')).toBeVisible();
+  await expect(main.locator('.pe-edited')).toHaveCount(0);
   await still(page, '5-edited-by-you');
 
   // Back to drafted takes every cut out. (From the top of the page: scrolled near its end, the pinned drawing eases

@@ -346,7 +346,7 @@ const DEMOS = {
     await card('', 'Styling', 1200, true);
     await focus('svg.preview-svg', SKETCH);
     await uncard();
-    await cap('Shape', 'Pick a shape. Your pattern redraws to fit you.');
+    await cap('Shape', 'Shown on an example skirt. Pick a shape, and your pattern redraws to fit you.');
     await wait(1200);
     await pick('Pencil');
     await pick('A-line');
@@ -739,7 +739,7 @@ Object.assign(DEMOS, {
     await press(R('button', 'Move points'), 1200);
     await focus('svg.point-svg', PIECES);
     await uncard();
-    await cap('Pattern', 'These are your pattern pieces. Draw a line across one to change it.');
+    await cap('Pattern', 'Shown on an example skirt. These are your pattern pieces. Draw a line across one to change it.');
     await wait(1400);
     await draw(piece('Skirt front'), [[0.62, 0.3], [0.61, 0.6], [0.6, 0.9]], 900);
     await cap('Spread', 'Choose what the line does. Here, spread it open.');
@@ -832,7 +832,7 @@ Object.assign(DEMOS, {
     await wait(900);
     // Few steps: each turn redraws the sewn garment, slow in the recording browser.
     await drag(canvas, [320, 0], 2600, 4);
-    await cap('Fit map', 'Tap Fit map to see the room your pattern leaves around you.');
+    await cap('Fit map', 'Tap Fit map, under the view at the right, to see the room your pattern leaves around you.');
     await veil(async () => {
       await press(tool('Fit map'), 1200);
       await settled();
@@ -841,7 +841,7 @@ Object.assign(DEMOS, {
     });
     await wait(3000);
     // The garment alone, big: the Feel buttons are too small to read in the frame, so the caption names them.
-    await cap('Feel', 'Tap Feel to make the cloth softer or stiffer, lighter or heavier. Here, softer, then stiffer.');
+    await cap('Feel', 'Tap Feel, beside it, to make the cloth softer or stiffer, lighter or heavier. Here, softer, then stiffer.');
     // Two looks, each settled under the veil: softer, then stiffer (two taps, from softer).
     await veil(async () => {
       await press(tool('Fabric'), 600);

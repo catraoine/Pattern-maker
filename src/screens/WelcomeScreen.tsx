@@ -8,6 +8,8 @@ import { Title } from '../ui/Title';
 import { filmTape } from '../ui/filmTape';
 import { WaitlistForm, type FoundingSignIn } from '../ui/Waitlist';
 import { FOUNDING_LINE } from '../founding';
+import { myRef } from '../report/report';
+import { signinSent } from '../cloud/sent';
 import { onPhone } from '../ui/device';
 
 interface Props {
@@ -141,7 +143,17 @@ function BringWork({ onBring, from = 'browser' }: { onBring: (link: string) => P
 export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, waitlist, onBringLink, tester }: Props) {
   const [touring, setTouring] = useState(false);
   // Back from the newsletter's confirm email (Kit sends people to /?joined): straight to "You're on the list".
-  const [joined, setJoined] = useState(() => new URLSearchParams(window.location.search).has('joined'));
+  const [joinedNow, setJoined] = useState(() => new URLSearchParams(window.location.search).has('joined'));
+  // And back on a device that joined before (Dec 7 dress rehearsal, Nov 22): a reload used to show the empty form
+  // again, as if they had never joined, and their link to bring friends was gone for good. One line under it leads
+  // to the join page, for a tester code, another email, or (from Feb 9) the founding sign-in.
+  const [returning, setReturning] = useState(() => !!myRef());
+  // Not while a tester link is being checked or has just failed, and not part way through the founding sign-in:
+  // those are said and finished on the join page.
+  const [signingIn] = useState(() => !!signinSent());
+  const busy = !!waitlist && (!!waitlist.checking || !!waitlist.linkMessage || (!!waitlist.founding && (signingIn || !!waitlist.founding.cloud.user)));
+  const back = returning && !joinedNow && !busy;
+  const joined = joinedNow || back;
   useEffect(() => {
     const url = new URL(window.location.href);
     if (!url.searchParams.has('joined')) return;
@@ -260,7 +272,7 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
 
   return (
     <div className={['welcome', formStart !== 'wait' && 'go', leaving && 'leaving', touring && 'pulling', waitlist && 'waitlist-page', waitlist && curtain !== 'off' && `curtain-${curtain}`, atOnce && 'curtain-now', waitlistNow && 'waitlist-now'].filter(Boolean).join(' ')}>
-      <section className="card welcome-card" aria-labelledby="wtitle">
+      <section className={waitlist && joined ? 'card welcome-card joined' : 'card welcome-card'} aria-labelledby="wtitle">
         {leaving && pulled}
         <div className="welcome-hero" ref={hero}>
           <ContourForm start={formStart} kind={form} />
@@ -290,6 +302,14 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
               <p className="waitlist-tester">
                 Questions? <a href={`mailto:${OWNER.email}`}>{OWNER.email}</a>
               </p>
+              {back && (
+                <p className="waitlist-tester">
+                  Testing for us, or joining with another email?{' '}
+                  <button type="button" className="inline-link" onClick={() => setReturning(false)}>
+                    Open the join page
+                  </button>
+                </p>
+              )}
             </div>
           ) : waitlist.checking ? (
             <div className="stack waitlist">
