@@ -38,6 +38,10 @@ test('someone who is not here can be sent the measuring link from Who it is for'
   // Maya is added, and her page opens on the link that asks her to measure.
   await expect(main.getByRole('heading', { name: 'Maya', exact: true })).toBeVisible();
   await expect(main.getByRole('heading', { name: 'Ask Maya to measure' })).toBeVisible();
+  // In the simple view the page is worded for a friend or family member, with no client or studio.
+  await expect(main.getByText('Sewing for')).toBeVisible();
+  await expect(main.getByText(/client|studio/i)).toHaveCount(0);
+  await expect(main.getByLabel('A note for them')).toBeVisible();
   if (SHOTS) await page.screenshot({ path: `${SHOTS}/D-ask-page-${info.project.name}.png` });
 });
 

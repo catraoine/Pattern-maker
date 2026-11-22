@@ -1594,6 +1594,7 @@ export default function App() {
               onChange={(p) => setAccount(updatePerson(account, person.id, p))}
               onOpen={openPattern}
               garment={garment}
+              simple={mode === 'simple'}
               onAccount={setAccount}
               onReply={(r) => {
                 setArriving(r);

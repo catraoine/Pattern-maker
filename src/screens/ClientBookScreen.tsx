@@ -19,6 +19,8 @@ interface Props {
   garment: Garment;
   onAccount: (a: Account) => void;
   onReply: (reply: MeasureReply) => void;
+  /** The simple view words the page for a friend or family member, not a dressmaker's client. */
+  simple?: boolean;
 }
 
 const FIELDS = [...SKIRT_FIELDS, ...TROUSERS_FIELDS, ...BODICE_FIELDS].filter((f, i, all) => all.findIndex((g) => g.id === f.id) === i);
@@ -30,7 +32,7 @@ const show = (v: number | undefined, unit: Unit) => (v === undefined ? '–' : u
  * One client's record, the way a dressmaker keeps a client book: their measurements over time, every
  * toile fitting and what it changed, fitting notes, toile photos and the patterns made for them.
  */
-export function ClientBookScreen({ account, person, unit, onChange, onOpen, garment, onAccount, onReply }: Props) {
+export function ClientBookScreen({ account, person, unit, onChange, onOpen, garment, onAccount, onReply, simple }: Props) {
   const name = personName(account, person);
   const history = person.history ?? [];
   const recent = history.slice(-4);
@@ -54,14 +56,16 @@ export function ClientBookScreen({ account, person, unit, onChange, onOpen, garm
       <section className="card" aria-labelledby="cbtitle">
         <div className="row between wrap">
           <div>
-            <p className="eyebrow">Client book <TestingTag tool="client_book" /></p>
+            <p className="eyebrow">{simple ? 'Sewing for' : 'Client book'}</p>
             <h1 id="cbtitle">{name}</h1>
           </div>
+          {/* Beside the name, not between the label and the name, where it split the heading in two. */}
+          <TestingTag tool="client_book" />
         </div>
         <p className="muted small">Kept on this device only, with the photos.</p>
       </section>
 
-      <AskToMeasure account={account} person={person} garment={garment} onAccount={onAccount} onReply={onReply} />
+      <AskToMeasure account={account} person={person} garment={garment} onAccount={onAccount} onReply={onReply} simple={simple} />
 
       <section className="card" aria-labelledby="cbm">
         <h2 id="cbm">Measurements over time</h2>
