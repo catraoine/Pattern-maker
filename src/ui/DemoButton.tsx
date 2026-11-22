@@ -23,11 +23,11 @@ const DEMOS = {
     title: 'How Style works',
     base: '/demos/style',
     parts: [
-      { name: 'Shape', from: 0, says: 'Pick a shape. Your pattern redraws to fit you.' },
-      { name: 'Length', from: 8.1, says: 'Drag the hem up or down to set the length.' },
-      { name: 'Pattern', from: 15.4, says: 'Tap Pattern to see the pieces you will cut.' },
+      { name: 'Shape', from: 0, says: 'Shown on an example skirt. Pick a shape, and your pattern redraws to fit you.' },
+      { name: 'Length', from: 9.5, says: 'Drag the hem up or down to set the length.' },
+      { name: 'Pattern', from: 16.5, says: 'Tap Pattern to see the pieces you will cut.' },
     ],
-    length: '0:23',
+    length: '0:24',
   },
   draw: {
     title: 'How drawing on your form works',
@@ -108,12 +108,12 @@ const DEMOS = {
     title: 'How drawing a line on your pattern works',
     base: '/demos/patterns',
     parts: [
-      { name: 'Pattern', from: 0, says: 'These are your pattern pieces. Draw a line across one to change it.' },
-      { name: 'Spread', from: 11.2, says: 'Choose what the line does. Here, spread it open. Drag the round handle to open it more. The hem gets fuller.' },
-      { name: 'New piece', from: 22.4, says: 'Or draw across the hip and cut it off as a new piece. Here, a yoke.' },
-      { name: 'Edited', from: 30.7, says: 'Notches are added so the pieces match. To start again, tap Back to drafted.' },
+      { name: 'Pattern', from: 0, says: 'Shown on an example skirt. These are your pattern pieces. Draw a line across one to change it.' },
+      { name: 'Spread', from: 12.6, says: 'Choose what the line does. Here, spread it open. Drag the round handle to open it more. The hem gets fuller.' },
+      { name: 'New piece', from: 23.7, says: 'Or draw across the hip and cut it off as a new piece. Here, a yoke.' },
+      { name: 'Edited', from: 31.9, says: 'Notches are added so the pieces match. To start again, tap Back to drafted.' },
     ],
-    length: '0:40',
+    length: '0:41',
   },
   // The All round view's own clip (Cat, Nov 21): turning, the fit map, the cloth's feel and Look closer.
   allround: {
@@ -121,11 +121,11 @@ const DEMOS = {
     base: '/demos/allround',
     parts: [
       { name: 'Turn', from: 0, says: 'Drag to turn it, and see every side.' },
-      { name: 'Fit map', from: 17.4, says: 'Tap Fit map to see the room your pattern leaves around you.' },
-      { name: 'Feel', from: 23.9, says: 'Tap Feel to make the cloth softer or stiffer, lighter or heavier. Here, softer, then stiffer.' },
-      { name: 'Closer', from: 36.7, says: 'Tap Look closer to zoom in on it.' },
+      { name: 'Fit map', from: 16.0, says: 'Tap Fit map, under the view at the right, to see the room your pattern leaves around you.' },
+      { name: 'Feel', from: 23.8, says: 'Tap Feel, beside it, to make the cloth softer or stiffer, lighter or heavier. Here, softer, then stiffer.' },
+      { name: 'Closer', from: 35.3, says: 'Tap Look closer to zoom in on it.' },
     ],
-    length: '0:50',
+    length: '0:46',
   },
   shop: {
     title: 'How shopping the fabric works',
@@ -158,11 +158,15 @@ export function DemoButton({ demo }: { demo: DemoName }) {
 
 // How long the player takes to ease back to the page as it closes; 34-chalk-windows.css has the same length.
 const LEAVE_MS = 1100;
+// How long the last frame holds before the player closes by itself.
+const END_HOLD_MS = 1800;
 
 function DemoPlayer({ demo, onClose: done }: { demo: Demo; onClose: () => void }) {
   const video = useRef<HTMLVideoElement>(null);
   const close = useRef<HTMLButtonElement>(null);
   const film = useFilm(video);
+  const ending = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(ending.current), []);
   // A soft fade to black as it opens and back to the stone window as it closes (Cat, Nov 11).
   const [leaving, setLeaving] = useState(false);
   const onClose = useCallback(() => {
@@ -205,8 +209,10 @@ function DemoPlayer({ demo, onClose: done }: { demo: Demo; onClose: () => void }
         // Our own controls, not the phone's (FilmControls): a tap on the clip pauses or plays it.
         onClick={film.toggle}
         aria-describedby="demo-words"
-        // It stays open at the end, the focus on Close (the accessibility review, 2026-10-30).
-        onEnded={() => close.current?.focus()}
+        // At the end it holds the last frame a moment, then closes on its own (a tester walk, Nov 21: it sat on the
+        // last caption with a play button, as if there were more). Playing it again stops the close.
+        onEnded={() => { ending.current = window.setTimeout(onClose, END_HOLD_MS); }}
+        onPlay={() => window.clearTimeout(ending.current)}
       >
         <source src={`${demo.base}.mp4`} type='video/mp4; codecs="avc1.640032"' />
         <source src={`${demo.base}.webm`} type='video/webm; codecs="vp9"' />
