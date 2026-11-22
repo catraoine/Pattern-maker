@@ -62,6 +62,8 @@
   gap: 8px;
   border-top: var(--bw) solid var(--line-strong);
   padding-top: 8px;
+  /* Brought into view when it opens (showSheet in PointEditor.tsx), clear of the Next bar fixed at the foot of a phone. */
+  scroll-margin-bottom: 96px;
 }
 .pe-sheet .row {
   gap: 6px;
@@ -112,13 +114,8 @@
 .pe-sheet input[type='text'] {
   width: 100%;
 }
-.pe-edited {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
 /* The tag hugs its words, as on a screen's heading: it isn't tapped, so it needs no tap height. */
-.pe-edited .testing-tag {
+.pe-howto .testing-tag {
   display: inline-block;
   margin: 0;
   padding: 2px 8px;

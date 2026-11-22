@@ -118,7 +118,7 @@ export const RISE_RANGE = { min: -8, max: 5 };
 export type TrouserRise = 'low' | 'mid' | 'high';
 /** Where each picked rise puts the waistband, cm from your waist: a low rise on the high hip, a high one above the
  *  waist (both inside RISE_RANGE, and a low rise still no lower than riseFor lets it go on a short waist to hip). */
-const RISE_PICK_CM: Record<TrouserRise, number> = { low: -6, mid: 0, high: 4 };
+export const RISE_PICK_CM: Record<TrouserRise, number> = { low: -6, mid: 0, high: 4 };
 
 /** The rise as it can be cut on this body: a low rise goes no lower than a quarter of the way to the hip,
  * or the waistband would sit where the body is nearly as wide as the hip and the side seam has no shape left. */

@@ -180,6 +180,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   ) : undefined;
   return (
     <StyleLayout
+      error={error}
       fabric={fabric}
       onEditMeasurements={onEditMeasurements}
       onPrint={onNext}
@@ -281,7 +282,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
         {(flat || draft) && (
           <TabPanel tab={FABRIC}>
             {draft ? (
-              <FabricCard metres={outerFabricMetres(draft)} advice={outerFabrics({ garment: kind, fit: choices.fit })} fabric={fabric} lined>
+              <FabricCard metres={outerFabricMetres(draft)} advice={outerFabrics({ garment: kind, fit: choices.fit, sleeve: choices.sleeve })} fabric={fabric} lined>
                 {flat && <FabricSwatches finish={finish} onFinish={onFinish} garment={kind} details />}
               </FabricCard>
             ) : (

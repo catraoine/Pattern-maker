@@ -22,3 +22,19 @@ python3 -I scripts/body-table/build_table.py mh/base.obj src/engine/bodyShape.ts
 
 Needs numpy. The landmarks (where the body's heights land on the form) and the example girths are at the top of
 `build_table.py`.
+
+The menswear form's body, `src/engine/bodyShapeMenswear.ts`, is MakeHuman's young male average read the same way
+(`--menswear` sets its landmarks, girths and armhole, at the top of `build_table.py`):
+
+```sh
+cd mh
+for t in caucasian african asian; do
+  curl -L -o $t-male-young.target https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/targets/macrodetails/$t-male-young.target
+done
+cd ..
+python3 -I scripts/body-table/build_table.py mh/base.obj src/engine/bodyShapeMenswear.ts --menswear \
+  --target mh/caucasian-male-young.target:0.3334 \
+  --target mh/african-male-young.target:0.3333 \
+  --target mh/asian-male-young.target:0.3333
+```
+

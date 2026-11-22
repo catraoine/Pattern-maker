@@ -47,6 +47,22 @@ await ctx.route('**/.netlify/functions/analyze-photo', async (route) => {
   await new Promise((r) => setTimeout(r, 2200));
   await route.fulfill({ json: { ok: true, reading: PHOTO_READING, changes: [] } });
 });
+// Something else: the words typed in the film and the answer the live app gave for them (Nov 21), pinned so the
+// take never waits on the AI or gets a different reply.
+const IDEA_TEXT = 'A midi dress with long sleeves and a round neck';
+const IDEA_READING = {
+  ...PHOTO_READING,
+  details: 'A midi dress with long sleeves and a round neck.',
+  silhouette: { value: 'a_line', confidence: 'high' },
+  length: { value: 'midi', confidence: 'high' },
+  shape: { hemAt: 0.8, hemFullness: 1.3, flareAt: null, confidence: 'medium' },
+  top: { ...PHOTO_READING.top, length: 'waist', opening: 'back', waistSeam: true, waistSeamAt: 'natural', dressCut: 'seam' },
+  fabric: { ...PHOTO_READING.fabric, print: 'none' },
+};
+await ctx.route('**/.netlify/functions/describe-idea', async (route) => {
+  await new Promise((r) => setTimeout(r, 1800));
+  await route.fulfill({ json: { ok: true, idea: { verdict: 'make', name: 'long-sleeved midi dress', note: "I've set up a midi dress with long sleeves and a round neck, using a bodice joined to an A-line skirt at the waist and a back zip. You can change the skirt shape or the fit if you like.", start: 'dress', bias: false, reading: IDEA_READING } } });
+});
 // photo and shop: the two moments the film used to draw itself (a framed photo, a strip of swatch cards), filmed from
 // the app's own screens instead (Cat, Nov 14: "all literal matches"). Taken last, from Style, so nothing after them
 // changes. shop: the Fabric step's partner-shop list for the silk already picked, gliding down through its swatches.
@@ -406,19 +422,55 @@ const captionRoom = 'main .testing-tag, main .testing-note, .topbar { display: n
 // little heavier to read on film (Cat, Nov 18: the page looked empty under the line).
 const chooseOnly = await p.addStyleTag({ content: captionRoom + ' main #stitle, main .measure-step .eyebrow { display: none !important; } main .make-grid button { border-width: 2px !important; }' });
 await wait(900);
-await start();
-await wait(900);
-// The pen presses Dress early, so the choice is seen to land before the film moves on (the critic's review, Nov 16:
-// Dress lit up only as the screen faded). press() clicks straight on the button: the form never stops moving.
-await press(main.getByRole('group', { name: 'What would you like to make?' }).getByRole('button', { name: /^Dress\b/ }), 0);
-await wait(2000);
-await stop('choose');
+// Design your own garment, as the app really does it (Cat picked it, Nov 22: "Something else"): the grid, a tap on
+// Something else, the idea typed in, and the app's answer, "We can make that", held long enough to read. The answer is
+// pinned to the one the live app gave for these words, so the film never depends on the AI's reply on the night.
+// TOUR_GRID=1 takes the old shot instead, the grid with Dress tapped. Each moment's time goes in choose-marks.json.
+if (process.env.TOUR_GRID) {
+  await start();
+  await wait(900);
+  // The pen presses Dress early, so the choice is seen to land before the film moves on (the critic's review, Nov 16:
+  // Dress lit up only as the screen faded). press() clicks straight on the button: the form never stops moving.
+  await press(main.getByRole('group', { name: 'What would you like to make?' }).getByRole('button', { name: /^Dress\b/ }), 0);
+  await wait(2000);
+  await stop('choose');
+} else {
+  const chooseMarks = {};
+  await start();
+  const ct0 = Date.now();
+  const cmark = (what) => { chooseMarks[what] = Number(((Date.now() - ct0) / 1000).toFixed(2)); writeFileSync(join(OUT, 'choose-marks.json'), JSON.stringify(chooseMarks)); };
+  await wait(1100);
+  cmark('tap');
+  await press(main.getByRole('group', { name: 'What would you like to make?' }).getByRole('button', { name: /^Something else/ }), 0);
+  // The describe and answer pages keep their own titles: only the grid's question is left out.
+  await chooseOnly.evaluate((el) => el.remove());
+  const describeOnly = await p.addStyleTag({ content: captionRoom });
+  await main.locator('textarea#idea').waitFor();
+  await wait(900);
+  cmark('type');
+  await main.locator('textarea#idea').pressSequentially(IDEA_TEXT, { delay: 55 });
+  await wait(700);
+  cmark('ask');
+  await press(main.getByRole('button', { name: 'See what we can make' }), 0);
+  await main.getByRole('button', { name: /^(Style your dress|Next: \d+ dress)/ }).waitFor({ timeout: 15000 });
+  cmark('answer');
+  await wait(5200);
+  cmark('end');
+  await stop('choose');
+  // Back to the grid off camera, and Dress picked there as before, so every take after this one is unchanged.
+  await describeOnly.evaluate((el) => el.remove());
+  await p.goBack();
+  await main.locator('textarea#idea').waitFor({ timeout: 8000 });
+  await p.goBack();
+  await main.getByRole('heading', { name: 'What would you like to make?' }).waitFor({ timeout: 8000 });
+  await main.getByRole('group', { name: 'What would you like to make?' }).getByRole('button', { name: /^Dress\b/ }).click();
+}
 // TOUR_CHOOSE_ONLY=1 records the tape and choose shots and stops, to take the garment pick again on its own.
 if (process.env.TOUR_CHOOSE_ONLY) {
   await b.close();
   process.exit(0);
 }
-await chooseOnly.evaluate((el) => el.remove());
+if (process.env.TOUR_GRID) await chooseOnly.evaluate((el) => el.remove());
 await wait(800);
 await fillAll();
 await intoStyle();

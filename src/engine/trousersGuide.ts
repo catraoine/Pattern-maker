@@ -24,7 +24,11 @@ const HEM_AT: Record<TrouserLength, string> = {
  * `finish.length` is the length chosen, which the draft itself does not record; without
  * it the hem step describes both.
  */
-export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams?: SeamWidths; width?: number; length?: TrouserLength } = {}): SewingGuide {
+// Unlined, the cutting layout lays the back pocket bags in the fabric, so the fabric bought covers them; the step said
+// lining or pocketing only, and read as the layout being wrong (pretend tester DO walk, Nov 20).
+const BAGS_IN_FABRIC = ', or from the fabric itself: the cutting layout leaves room for them.';
+
+export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams?: SeamWidths; width?: number; length?: TrouserLength; lined?: boolean } = {}): SewingGuide {
   const sw = finish.seams ?? SEAM_WIDTHS.home;
   const seam = n1(sw.seam);
   const waist = n1(sw.waist);
@@ -63,18 +67,18 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
   const steps: SewStep[] = [
     {
       title: 'Print and check the size',
-      text: PRINT_FIRST + ' Trim each page along the dashed line, then tape the pages together, matching the row letters and column numbers.',
+      text: PRINT_FIRST + ' Cut each page along the solid line marked CUT on its left and top edges, lay it over the page before it so the half diamonds make whole ones, and tape, matching the row letters and column numbers.',
     },
     {
       title: 'Cut out',
-      text: `Fold the fabric in half with the selvedges together. Place the trousers front and back on both layers so you get a pair of each, with the crease line on each parallel to the selvedge. Cut along the solid outer line, snip the notches${darts ? ' and chalk-mark the darts' : ''}. Mark the crease line on the wrong side with tailor's chalk.${pleats ? ' Snip the notches for the pleat folds and placement lines on each front, and chalk the fold lines.' : ''}${fly ? ' Cut the fly facing and the fly shield, and the fly facing again from fusible interfacing.' : ''}${pocketCut}${loops ? ' Cut the belt loop strip with the grain along its length.' : ''}${d.backWelt ? ' Cut the two back welts and the two back pocket facings from the fabric, the welts again from fusible interfacing, and the four back pocket bags from lining or pocketing.' : ''}`,
+      text: `Fold the fabric in half with the selvedges together. Place the trousers front and back on both layers so you get a pair of each, with the crease line on each parallel to the selvedge. Cut along the solid outer line, snip the notches${darts ? ' and chalk-mark the darts' : ''}. Mark the crease line on the wrong side with tailor's chalk.${pleats ? ' Snip the notches for the pleat folds and placement lines on each front, and chalk the fold lines.' : ''}${fly ? ' Cut the fly facing and the fly shield, and the fly facing again from fusible interfacing.' : ''}${pocketCut}${loops ? ' Cut the belt loop strip with the grain along its length.' : ''}${d.backWelt ? ' Cut the two back welts and the two back pocket facings from the fabric, the welts again from fusible interfacing, and the four back pocket bags from lining or pocketing' + (finish.lined ? '.' : BAGS_IN_FABRIC) : ''}`,
     },
     {
       title: 'Cut the waistband',
       text: elastic
         ? 'Cut the waistband from its pattern piece with the grain along its length. It is a casing for the elastic, as long as the trousers waist so they pull on over your hips, and it has no interfacing so it can gather. Snip the notches for the side seams and the centre front.'
         : curved
-          ? `Cut the curved waistband twice, once for the band and once for its facing, with the grain arrow along the band at the centre back, and fuse interfacing to the outer band so the curve cannot stretch. Snip the notches for the ${fly ? 'centre fronts, side seams and centre back' : 'side seams, centre front and centre back'} on both long edges.`
+          ? `You need two curved waistbands, one for the band and one for its facing: on folded fabric that is one cut through both layers. Keep the grain arrow along the band at the centre back, and fuse interfacing to the outer band so the curve cannot stretch. Snip the notches for the ${fly ? 'centre fronts, side seams and centre back' : 'side seams, centre front and centre back'} on both long edges.`
           : `Cut the waistband from its pattern piece with the grain along its length, and fuse interfacing to the outer half. Snip the notches for the ${fly ? 'centre fronts, side seams and centre back' : 'side seams, centre front and centre back'}.`,
     },
     {
@@ -188,6 +192,8 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
           text: `Join each ruffle strip into a ring with a French seam. Roll a narrow hem on one long edge: press up 0.5 cm, then 0.5 cm more, and stitch. Run two rows of long gathering stitches along the other edge, either side of the seam line. Pin it round the leg's hem, right sides together, the seam at the inside leg and the quarter notches spaced evenly, and pull up the gathers to fit. Sew ${seam} from the edge, neaten the seam together and press it up into the leg.`,
         }
       : {
+      // The rest of the allowance, not a second number: in inches, 1 cm then 3 cm read 3/8 + 1-1/8 = 1-1/2 in on a
+      // 1-5/8 in allowance (pretend tester DO walk, Nov 20).
       title: 'Hem',
       text: `Try the ${things} on with the shoes you will wear and pin up the hem: ${
         culotte
@@ -195,7 +201,7 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
           : finish.length
             ? HEM_AT[finish.length]
             : 'full-length trousers just touch the top of the shoe at the front, ankle-length ones end just above the ankle bone'
-      }. Press up 1 cm, then ${Math.max(1, hem - 1)} cm more, and slip-stitch by hand so no stitches show on the outside.`,
+      }. Press up 1 cm, then turn up the rest of the ${hem} cm hem allowance, and slip-stitch by hand so no stitches show on the outside.`,
     },
     {
       title: 'Finish',

@@ -1,7 +1,8 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import type { Page } from '@playwright/test';
-import { GarmentName, MEASUREMENTS, expect, expectStyle, goPrint, measureMe, openAccount, openFresh, startWithExample, stepTabs, switchGarment, test } from './fixtures';
+import { GarmentName, MEASUREMENTS, asMan, expect, expectStyle, goPrint, measureMe, openAccount, openFresh, startWithExample, stepTabs, switchGarment, test } from './fixtures';
 import { auditScreen } from './screenAudit';
+import { EXAMPLE_MAN } from '../src/engine/randomBodies';
 
 // Not part of the ordinary end-to-end run: the screen check (Quality: Automated checks, Cat 2026-11-04). Every screen
 // of the app, on a phone and on a computer, is photographed and looked over for words cut off and things standing
@@ -10,6 +11,17 @@ import { auditScreen } from './screenAudit';
 // and what was found land there, and src/screenCheck.test.ts holds the findings to src/screenKnown.json.
 const OUT = process.env.SCREEN_CHECK;
 test.skip(!OUT, 'Set SCREEN_CHECK to a folder to take the screen check');
+// SCREEN_FORM=menswear takes every screen on the menswear form instead, measuring a man and styling as the example
+// man (the nightly menswear check, Nov 22).
+const MEN = process.env.SCREEN_FORM === 'menswear';
+/** The example to style on: the example body, or the example man on the menswear form. */
+async function startExample(page: Page) {
+  await startWithExample(page);
+  if (MEN) {
+    await asMan(page, EXAMPLE_MAN as Record<string, number>);
+    await expectStyle(page, 'Skirt');
+  }
+}
 
 const main = (page: Page) => page.getByRole('main');
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -35,11 +47,13 @@ function looker(page: Page, project: string, part: string) {
 test.beforeEach(async ({ page, consoleErrors }) => {
   consoleErrors.allow(/.*/);
   await page.emulateMedia({ reducedMotion: 'reduce' });
+  if (MEN) await page.addInitScript(() => localStorage.setItem('maison-trace-menswear', 'on'));
 });
 
 test.describe('waitlist', () => {
   test.use({ waitlist: true });
   test('screens: waitlist', async ({ page }, info) => {
+    test.skip(MEN, 'The waitlist is the same on either form');
     const l = looker(page, info.project.name, 'waitlist');
     await page.goto('/?fresh');
     await page.keyboard.press('Escape').catch(() => {});
@@ -56,7 +70,7 @@ test('screens: welcome and measuring', async ({ page }, info) => {
   await l.look('welcome');
   await main(page).getByRole('button', { name: 'Begin' }).click();
   await l.look('measure: who for');
-  await measureMe(page);
+  await measureMe(page, MEN ? 'Menswear' : 'Womenswear');
   // Each measuring page, by the measurement it asks for, then the check page.
   for (let n = 0; n < 40; n++) {
     const input = main(page).getByRole('textbox');
@@ -86,7 +100,7 @@ for (const g of GARMENTS)
   test(`screens: ${g}`, async ({ page }, info) => {
     test.setTimeout(600_000);
     const l = looker(page, info.project.name, g);
-    await startWithExample(page);
+    await startExample(page);
     if (g !== 'Skirt') await switchGarment(page, g);
     const name = g.toLowerCase();
     const count = await (await stepTabs(page)).getByRole('tab').count();
@@ -126,7 +140,7 @@ for (const g of GARMENTS)
 test('screens: a full dress in every view', async ({ page }, info) => {
   test.setTimeout(300_000);
   const l = looker(page, info.project.name, 'full dress');
-  await startWithExample(page);
+  await startExample(page);
   await switchGarment(page, 'Dress');
   await page.evaluate(() => {
     const key = 'pattern-maker:skirt';
@@ -157,7 +171,7 @@ test('screens: a full dress in every view', async ({ page }, info) => {
 test('screens: account', async ({ page }, info) => {
   test.setTimeout(300_000);
   const l = looker(page, info.project.name, 'account');
-  await startWithExample(page);
+  await startExample(page);
   await openAccount(page);
   await l.look('account');
   for (const s of await main(page).locator('details:not([open]) > summary').all()) await s.click({ timeout: 3000 }).catch(() => {});

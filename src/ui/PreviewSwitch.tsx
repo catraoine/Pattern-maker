@@ -1,3 +1,5 @@
+import { createContext, useContext, useEffect } from 'react';
+
 // The two ways to look at a garment on the style screens (Cat's D1, 2026-10-18): the garment itself, on
 // the form, or the paper pieces to cut. The fit is a switch on the pieces, not a view of its own.
 
@@ -22,8 +24,16 @@ export function PreviewSwitch({ look, onLook }: { look: Look; onLook: (look: Loo
   );
 }
 
+/** Told which view the drawing shows, so the window's Demo can play that view's clip (Cat, Nov 21). */
+export const ShownView = createContext<((view: string | undefined) => void) | undefined>(undefined);
+
 /** The ways to see the garment itself: a sketch's sides, the flat drawing, all round on the form. */
 export function GarmentViews<T extends string>({ views, view, onView }: { views: [T, string][]; view: T | 'pattern'; onView: (v: T) => void }) {
+  const tell = useContext(ShownView);
+  useEffect(() => {
+    tell?.(view);
+    return () => tell?.(undefined);
+  }, [tell, view]);
   if (views.length < 2) return null;
   return (
     <div className="seg" role="group" aria-label="Garment view">

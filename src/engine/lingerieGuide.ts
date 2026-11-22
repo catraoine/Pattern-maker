@@ -44,7 +44,7 @@ export function lingerieGuide(d: LingerieDraft, fabricM: number, finish: { width
   const steps: SewStep[] = [
     {
       title: 'Print and check the size',
-      text: PRINT_FIRST + ' Trim each page along the dashed line, then tape the pages together, matching the row letters and column numbers.',
+      text: PRINT_FIRST + ' Cut each page along the solid line marked CUT on its left and top edges, lay it over the page before it so the half diamonds make whole ones, and tape, matching the row letters and column numbers.',
     },
     {
       title: 'Cut out',

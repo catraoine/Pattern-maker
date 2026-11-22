@@ -6,9 +6,14 @@ test('the finished measurements follow the unit', async ({ page }, info) => {
   const main = page.getByRole('main');
   await startWithExample(page);
   const table = main.locator('.finished');
-  // On a phone the table is on the review page, after the questions; on a computer it stands beside them.
+  // On a phone the table is on the review page, after the questions; on a computer it is beside them, folded under
+  // one line with the pieces since the declutter (Cat's E, Nov 21).
   const review = async () => {
-    if (info.project.name !== 'phone') return;
+    if (info.project.name !== 'phone') {
+      const fold = main.locator('.style-side details.review-fold');
+      if (!(await fold.evaluate((d) => (d as HTMLDetailsElement).open))) await fold.locator('> summary').click();
+      return;
+    }
     for (let i = 0; i < 12 && !(await table.count()); i++) await page.getByRole('button', { name: /^Next\b|^Review\b/ }).last().click();
   };
   await review();
@@ -19,7 +24,8 @@ test('the finished measurements follow the unit', async ({ page }, info) => {
   await main.getByRole('group', { name: 'Units' }).getByRole('button', { name: 'Inches' }).click();
   await page.getByRole('banner').getByRole('button', { name: 'Back', exact: true }).click();
   await stepButton(page, 'Style').click().catch(() => {});
-  if (!(await table.count())) await review();
+  // The side fold closes again when Style opens afresh, so on a computer it is opened again.
+  if (info.project.name !== 'phone' || !(await table.count())) await review();
   await expect(table.getByText('All in inches.', { exact: false })).toBeVisible({ timeout: 30_000 });
   const inText = await table.locator('tbody').innerText();
   // Inches to the eighth, the tape's way: no decimals, and the bust reads well under its centimetres.

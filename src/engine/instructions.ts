@@ -125,7 +125,7 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
   const steps: SewStep[] = [
     {
       title: 'Print and check the size',
-      text: PRINT_FIRST + ' Trim each page along the dashed line, then tape the pages together, matching the row letters and column numbers.',
+      text: PRINT_FIRST + ' Cut each page along the solid line marked CUT on its left and top edges, lay it over the page before it so the half diamonds make whole ones, and tape, matching the row letters and column numbers.',
     },
     {
       title: 'Cut out',
@@ -141,7 +141,8 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
       text: elastic
         ? "Cut the waistband from its pattern piece with the grain arrow along the selvedge. It is a casing for the elastic, as long as the skirt's waist so the skirt pulls on over your hips, and it has no interfacing so it can gather. Snip the notches for the side seams and the centre front on both long edges."
         : curved
-          ? 'Cut the curved waistband twice, once for the band and once for its facing, with the grain arrow along the selvedge so it won\'t stretch. Snip the notches for the centre front and the side seams on both long edges.'
+          ? // "Twice" on folded fabric read as four pieces (DU tester walk, Nov 21): it is two in all.
+            'You need two curved waistbands, one for the band and one for its facing: on folded fabric that is one cut through both layers. Keep the grain arrow along the selvedge so it won\'t stretch. Snip the notches for the centre front and the side seams on both long edges.'
           : 'Cut the waistband from its pattern piece with the grain arrow along the selvedge, so it won\'t stretch. Snip the notches for the centre front and the side seams on both long edges, and at each end of the fold line.',
     },
     ...(lined
@@ -473,6 +474,10 @@ function pullOnSteps(g: SewingGuide, d: BodiceDraft): SewingGuide {
       case 'Finish':
         steps.push({ ...s, text: s.text.replace(/Sew a hook and eye at the top of the zip, inside the neckline\. ?/, '') });
         continue;
+      case 'Bind the neckline':
+        // With no centre back opening the neckline is a closed ring: the binding goes all the way round from a shoulder seam.
+        steps.push({ ...s, text: s.text.replace('and 1 cm extra at each end', 'and starting at a shoulder seam, all the way round').replace('Fold the ends in, then turn', 'Where the ends meet, fold the top end under and lap it 1 cm over the other, then turn') });
+        continue;
       default:
         steps.push(s);
     }
@@ -528,7 +533,7 @@ function bodiceSteps(draft: BodiceDraft, _style: { length: BodiceLength }, fabri
   const steps: SewStep[] = [
     {
       title: 'Print and check the size',
-      text: PRINT_FIRST + ' Trim each page along the dashed line, then tape the pages together, matching the row letters and column numbers.',
+      text: PRINT_FIRST + ' Cut each page along the solid line marked CUT on its left and top edges, lay it over the page before it so the half diamonds make whole ones, and tape, matching the row letters and column numbers.',
     },
     {
       title: 'Cut out',
@@ -882,7 +887,7 @@ function dressSteps(draft: DressDraft, style: { silhouette: Silhouette; length: 
     { title: 'Finish', text: `Sew a hook and eye at the top of the zip, inside the ${draft.bodice.top ? 'top edge' : 'neckline'}. Give the dress a final press.` },
   ];
 
-  return wrapDressSteps(shirtDress(gatheredJoin(mirroredGuide(draft.bodice, drapeDressSteps(
+  return pullOnDress(wrapDressSteps(shirtDress(gatheredJoin(mirroredGuide(draft.bodice, drapeDressSteps(
     {
       notions: [...top.notions.map((n) => (/invisible zip/.test(n) ? `${draft.zipCm} cm invisible zip` : n)), ...(draft.skirt.ruche ? [rucheNotion(draft.skirt.ruche)] : [])],
       steps: rucheSteps(volumeSteps(steps, draft.skirt, { seam, waist, hem: draft.skirt.pieces[0].allowances.hem ?? 4 }, 'dress'), draft.skirt.ruche, 'dress'),
@@ -890,7 +895,43 @@ function dressSteps(draft: DressDraft, style: { silhouette: Silhouette; length: 
     top,
     draft,
     { seam, waist, curve, edges, slit, sleeve: !!finish.sleeve },
-  )), draft), draft, top, { seam, waist }), draft, { seam, waist });
+  )), draft), draft, top, { seam, waist }), draft, { seam, waist }), draft);
+}
+
+/** A dress that pulls on over the head (DressDraft.pullOn): no zip, and the bodice back and skirt back each cut on the fold. */
+function pullOnDress(g: SewingGuide, draft: DressDraft): SewingGuide {
+  if (!draft.pullOn) return g;
+  const steps = g.steps.flatMap((st): SewStep[] => {
+    switch (st.title) {
+      case 'Put in the zip':
+      case 'Close the centre back':
+      case 'Finish the lining at the zip':
+        return [];
+      case 'Cut out':
+        return [
+          {
+            ...st,
+            text: st.text
+              .replace(' Place the skirt front on the fold and the skirt back on both layers.', ' Place the skirt front and the skirt back on the fold.')
+              .replace(' The skirt pieces are too wide for folded fabric: cut them from a single layer, turning the pattern over for the second of each so you get pairs.', ' The skirt pieces are too wide for fabric folded selvedge to selvedge: fold just enough of the width to take each one on its fold line.')
+              .concat(' The dress goes on over your head, so neither back has a seam or a zip.'),
+          },
+        ];
+      case 'Neaten the edges':
+        return [{ ...st, text: st.text.replace(', the side edges of the skirt, and the centre back edges of both', ' and the side edges of the skirt').replace(', and the centre back edges of both', '') }];
+      case 'Join the bodice to the skirt':
+        return [{ ...st, text: st.text.replace('Pin each back half the same way.', 'Pin the back the same way, matching the centre backs.') }];
+      case 'Finish':
+        return [{ ...st, text: st.text.replace(/Sew a hook and eye at the top of the zip, inside the (neckline|top edge)\. ?/, '') }];
+      default:
+        return [st];
+    }
+  });
+  // A lined dress's lining is finished at the waist inside, which the zip's lining step used to do.
+  const lined = steps.some((st) => st.title === 'Make the lining');
+  const hem = steps.findIndex((st) => st.title === 'Hem');
+  if (lined && hem >= 0) steps.splice(hem, 0, { title: 'Finish the lining at the waist', text: "Turn the lining's waist edge under and slip-stitch it over the waist seam inside, all the way round." });
+  return { ...g, notions: g.notions.filter((n) => !/zip|hook and eye/i.test(n)), steps };
 }
 
 /**
@@ -1066,7 +1107,6 @@ function sleeveSteps(sl: SleeveDraft, seam: string, curve: string, lined: boolea
   const puff = gatheredHead !== undefined;
   const band = !sl.cuff && sl.pieces.length > (sl.cut === 'raglan' ? 2 : 1);
   const cuff = sl.cuff;
-  const ease = Math.round((sl.crownEase.front + sl.crownEase.back) * 10) / 10;
   const hemAllowance = sl.pieces[0].allowances.hem ?? 2.5;
   return [
     ...(sl.elbowDart
@@ -1091,7 +1131,7 @@ function sleeveSteps(sl: SleeveDraft, seam: string, curve: string, lined: boolea
       : band
       ? {
           title: 'Attach the sleeve bands',
-          text: `Sew two rows of long gathering stitches round each sleeve hem, inside the seam allowance. Join each band's short ends into a ring, ${seam} from the edge, and press the seam open. Pin one edge of the band to the sleeve hem, right sides together, with its seam at the underarm and its notch at the middle of the sleeve, pull up the gathers to fit (${sl.gathers!.hem} cm is gathered into each band), and sew ${seam} from the edge. Fold the band in half to the inside along its fold line, turn its raw edge under ${seam}, and stitch it down over the seam.`,
+          text: `Sew two rows of long gathering stitches round each sleeve hem, inside the seam allowance. Join each band's short ends into a ring, ${seam} from the edge, and press the seam open. Pin one edge of the band to the sleeve hem, right sides together, with its seam at the underarm and its notch at the middle of the sleeve, pull up the gathers to fit (the ${Math.round((sl.gathers!.hem + sl.hemCm) * 10) / 10} cm sleeve hem is drawn up to the ${sl.hemCm} cm band), and sew ${seam} from the edge. Fold the band in half to the inside along its fold line, turn its raw edge under ${seam}, and stitch it down over the seam.`,
         }
       : sl.pieces[0].meta.flutter
         ? {
@@ -1113,7 +1153,7 @@ function sleeveSteps(sl: SleeveDraft, seam: string, curve: string, lined: boolea
         }
       : {
           title: 'Ease the sleeve heads',
-          text: `Sew two rows of long machine stitches round each crown between the front and back notches, one just inside the seam line and one 0.5 cm further out. The crown is ${ease} cm longer than the armhole, a little more at the back: draw the threads up just enough to cup it to the armhole's shape, with no gathers or tucks. Steam it over a ham and let it cool.`,
+          text: `Sew two rows of long machine stitches round each crown between the front and back notches, one just inside the seam line and one 0.5 cm further out. The crown is longer than the armhole by its ease, ${sl.crownEase.front} cm at the front and ${sl.crownEase.back} cm at the back: draw the threads up just enough to cup it to the armhole's shape, with no gathers or tucks. Steam it over a ham and let it cool.`,
         },
     {
       title: 'Set in the sleeves',

@@ -9,7 +9,7 @@ type Line = readonly [text: string, skill?: Skill];
 export const SKILL_WORDS: Record<Skill, string> = { easy: 'Easy', skill: 'More skill' };
 
 const FIT: Record<string, Line> = {
-  fitted: ['Close to the body, with just enough room to move. Fit matters more, so make a test version first.', 'skill'],
+  fitted: ['Close to the body, with just enough room to move. Fit matters more, so make a toile first.', 'skill'],
   regular: ['The everyday fit: room to sit, reach and breathe without looking loose.', 'easy'],
   relaxed: ['Loose and easy to wear, and the most forgiving to fit.', 'easy'],
 };
@@ -55,7 +55,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
     },
     rise: {
       natural: ['Sits at your natural waist, the narrowest part of you.', 'easy'],
-      low: ['Sits low on the hip, about 6 cm below your waist, so it hangs from the hips. The hem stays where it was.'],
+      low: ['Sits low on the hip, up to 6 cm below your waist, so it hangs from the hips. The hem stays where it was.'],
     },
     gathers: {
       soft: ['About one and a half times the waist, gathered in: gentle folds that sit close.', 'easy'],
@@ -303,7 +303,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       slant: ['Pockets that open on a slant at the front hip, like chinos.', 'skill'],
     },
     rise: {
-      low: ['The waistband sits low, on the top of your hips, about 6 cm below your waist.'],
+      low: ['The waistband sits low, on the top of your hips, up to 6 cm below your waist.'],
       mid: ['The waistband sits at your natural waist.', 'easy'],
       high: ['The waistband sits a little above your waist, about 4 cm, for a long leg line.'],
     },
@@ -318,7 +318,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
     },
     loops: {
       none: ['A plain waistband.', 'easy'],
-      loops: ['Five belt loops on the waistband: the centre back, each side, and one halfway across each front.'],
+      loops: ['Five belt loops on the waistband, or seven on a larger waist: the centre back, each side, and across the front.'],
     },
   },
   outer: {

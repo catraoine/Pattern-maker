@@ -10,6 +10,7 @@ import { Title } from '../ui/Title';
 import type { PatternChoices } from '../garments';
 import { keepMenswear, menswearOpen, testingNote } from '../launch';
 import { TestingTag } from '../ui/TestingTag';
+import { MakePic } from '../ui/MakePic';
 import { ideaChoices, ideaRows, pieceGarment } from '../photo/idea';
 import { isSwimIntimates } from '../photo/swim';
 import { InterestCard } from '../ui/InterestCard';
@@ -65,9 +66,11 @@ interface Props {
   onMade?: () => void;
   /** "Tell me when it's ready", for something the app can't make yet. */
   onNews?: () => void;
+  /** Which page is showing: the header's Style and Print answer differently before anything is chosen. */
+  onPage?: (kind: PageKind) => void;
 }
 
-export type StepsStart = { kind: 'resume' } | { kind: 'choose' } | { kind: 'form' } | { kind: 'for'; garment: Garment; also?: MeasurementId[] } | { kind: 'redo'; garment: Garment; ids: MeasurementId[] };
+export type StepsStart = { kind: 'resume' } | { kind: 'choose' } | { kind: 'check' } | { kind: 'form' } | { kind: 'for'; garment: Garment; also?: MeasurementId[] } | { kind: 'redo'; garment: Garment; ids: MeasurementId[] };
 
 type Page =
   | { kind: 'form' }
@@ -79,6 +82,7 @@ type Page =
   | { kind: 'saved' }
   | { kind: 'describe' }
   | { kind: 'idea'; idea: IdeaReading };
+export type PageKind = Page['kind'];
 
 /** Why a described idea couldn't be read, with the way forward. */
 const IDEA_ERROR: Partial<Record<PhotoError, string>> = {
@@ -108,7 +112,7 @@ const aOrAn = (name: string) => (/(s|wear|lingerie)$/i.test(name) && !/dress$/i.
 // There is no first page (Fable's concept A, Cat's apply, Nov 15): Begin opens on the waist. Who you are designing
 // for, and the form, sit in one quiet line above the first measurement, with Change for the few who need it;
 // "Someone else" words every page for the person holding the tape and asks their name before any number is taken.
-export function MeasureStepsScreen({ testerCode, garment: current, unit, values, onUnit, onValues, helped = [], weight, onWeight, onDone, start, opening, onSomeoneElse, theirs, theirName, onSkip, onLater, form = 'womenswear', onForm, onIdea, onPhoto, onLooks, onMade, onNews, unused = () => [], named = (g) => GARMENT_NAME[g] }: Props) {
+export function MeasureStepsScreen({ testerCode, garment: current, unit, values, onUnit, onValues, helped = [], weight, onWeight, onDone, start, opening, onSomeoneElse, theirs, theirName, onSkip, onLater, form = 'womenswear', onForm, onIdea, onPhoto, onLooks, onMade, onNews, onPage, unused = () => [], named = (g) => GARMENT_NAME[g] }: Props) {
   const aimed = start?.kind === 'for' ? start.garment : undefined;
   // Opened afresh for a garment, a redo, the form or the garments (not a reload, and not stepped back into): its own
   // first page, not the one this history entry remembers from before.
@@ -117,6 +121,8 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   const [page, setPage] = usePageHistory<Page>(() => {
     if (start?.kind === 'redo') return { kind: 'extra', garment: start.garment, ids: start.ids, at: 0, redo: true };
     if (start?.kind === 'form') return { kind: 'form' };
+    // The measurements given so far, from the header's Measure while still choosing what to make (DO walk, Nov 20).
+    if (start?.kind === 'check' && baseDone(values)) return { kind: 'check' };
     // A reload, or the phone dropping the tab mid-measuring: the page still to take, not the first page again
     // (tester journey, Nov 11). Every number typed so far is already kept.
     if (start?.kind === 'resume') {
@@ -135,6 +141,40 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     // page once the base measurements are in (back from the collection, Nov 11): this screen's first entry is the
     // waist, and coming back to it opens on the list or the check instead. Mending one from the check is kept.
   }, (s) => typeof s === 'object' && s !== null && 'kind' in s && (s as { kind: string }).kind !== 'intro' && !((s as Page).kind === 'base' && !(s as { back?: string }).back && baseDone(values)), newOpening);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- reports each page change; the parent's callback is new every render
+  useEffect(() => onPage?.(page.kind), [page.kind]);
+  // The second tap of a double tap lands on the page the first one opened, where another button may sit under the
+  // finger. On the check page it opened the waist again (nightly bug hunt, Nov 21); on the measuring steps it hit Finish
+  // later (home, looking like everything was lost), said "Enter your full bust to carry on" before anything was typed,
+  // or went past Weight (DT tester walk, Nov 21). So no button on these pages takes a click in the first moment after
+  // its page opened when it is the second of a double click, or a finger's tap. A mouse's single click (and a test's)
+  // still counts at once.
+  const openedAt = useRef(0);
+  const touchedAt = useRef(-Infinity);
+  // By what the page is, not the object: a re-render (each key typed) can hand back an equal page anew.
+  const pageKey = JSON.stringify(page);
+  useEffect(() => {
+    openedAt.current = performance.now();
+  }, [pageKey]);
+  useEffect(() => {
+    const down = (e: PointerEvent) => {
+      touchedAt.current = e.pointerType === 'touch' ? performance.now() : -Infinity;
+    };
+    const click = (e: MouseEvent) => {
+      const now = performance.now();
+      const touch = touchedAt.current >= openedAt.current && now - touchedAt.current < DOUBLE_TAP_MS;
+      if (now - openedAt.current >= DOUBLE_TAP_MS || !(e.detail > 1 || touch)) return;
+      if (!(e.target instanceof Element) || !e.target.closest('.measure-step')) return;
+      e.preventDefault();
+      e.stopPropagation();
+    };
+    document.addEventListener('pointerdown', down, true);
+    document.addEventListener('click', click, true);
+    return () => {
+      document.removeEventListener('pointerdown', down, true);
+      document.removeEventListener('click', click, true);
+    };
+  }, []);
   // Opened on the check because the measurements were taken on an earlier visit: say so.
   // Not when stepping back into it during this visit: only on opening it afresh.
   const [returning] = useState(() => !start && baseDone(values) && (window.history.state as { sub?: unknown } | null)?.sub === undefined);
@@ -317,7 +357,8 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
           )}
           {[...GARMENTS, 'other' as const].map((g) => (
             <button key={g} type="button" aria-current={picked === g || undefined} className={picked === g ? 'on' : ''} onClick={() => tapToMake(g)}>
-              {g === 'other' ? 'Something else' : cap(GARMENT_NAME[g])}
+              <MakePic garment={g} />
+              <span className="make-name">{g === 'other' ? 'Something else' : cap(GARMENT_NAME[g])}</span>
             </button>
           ))}
         </div>
@@ -325,9 +366,12 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
       </Shell>
     );
 
+  // Something else and its answers open on the words, with no form above them (Cat, Nov 21: the small form there
+  // was decoration, not help), the words starting just under the steps, like a measuring page (Cat, Nov 22: no
+  // blank space above them).
   if (page.kind === 'describe')
     return (
-      <Shell eyebrow="Something else" title="Tell us what you have in mind." hero={<TapeDemo id="waist" name="" mode="still" kind={form} />} short>
+      <Shell eyebrow="Something else" title="Tell us what you have in mind.">
         <div className="field plain ready">
           <label htmlFor="idea">Describe it</label>
           <textarea id="idea" rows={3} maxLength={MAX_IDEA_CHARS} value={idea} onChange={(e) => setIdea(e.target.value)} />
@@ -336,7 +380,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
           A few words is enough. Name the garment and anything you love about it. We use AI to read your words, then you check the style
           before we draft.{' '}
           {onMade && (
-            <button type="button" className="inline-link" onClick={onMade}>
+            <button type="button" className="link inline-link" onClick={onMade}>
               How your pattern is made
             </button>
           )}
@@ -366,7 +410,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     const choose = () => setPage({ kind: 'choose' });
     if ((!choices || !read.start) && isSwimIntimates(read.name))
       return (
-        <Shell eyebrow="Coming next" title={`${cap(aOrAn(read.name))} ${/s$/i.test(read.name) && !/dress$/i.test(read.name) ? 'are' : 'is'} in our next drop.`} hero={<TapeDemo id="waist" name="" mode="still" kind={form} />} short>
+        <Shell eyebrow="Coming next" title={`${cap(aOrAn(read.name))} ${/s$/i.test(read.name) && !/dress$/i.test(read.name) ? 'are' : 'is'} in our next drop.`}>
           <InterestCard offer="swim" pattern={read.name} />
           <button type="button" className="secondary" onClick={fullSet}>
             Take my full measurements for a dressmaker
@@ -380,7 +424,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
       );
     if (!choices || !read.start)
       return (
-        <Shell eyebrow="Not yet" title={`We can't draft ${aOrAn(read.name)} yet.`} hero={<TapeDemo id="waist" name="" mode="still" kind={form} />} short>
+        <Shell eyebrow="Not yet" title={`We can't draft ${aOrAn(read.name)} yet.`}>
           {read.note && <p className="muted step-tip">{read.note}</p>}
           <p className="muted step-tip">We've noted that you asked for it.</p>
           <div className="idea-actions">
@@ -404,7 +448,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     const more = neededFor(g, values, form).length;
     const closest = read.verdict === 'closest';
     return (
-      <Shell eyebrow={closest ? 'The closest we can do' : 'We can make that'} title={`${cap(closest ? read.name : `${aOrAn(read.name)}`)}.`} hero={<TapeDemo id="waist" name="" mode="still" kind={form} />} short>
+      <Shell eyebrow={closest ? 'The closest we can do' : 'We can make that'} title={`${cap(closest ? read.name : `${aOrAn(read.name)}`)}.`}>
         {read.note && <p className="muted step-tip">{read.note}</p>}
         <ul className="check-list idea-picks" aria-label={`Your ${GARMENT_NAME[g]}`}>
           {ideaRows(choices).map(([label, value]) => (
@@ -576,6 +620,8 @@ export function DoubleChecks({ checks }: { checks: Check[] }) {
 
 /** How long a tapped garment stays lit before the next page opens. */
 const TAP_BLINK_MS = 160;
+/** Longer than the gap between the two taps of a double tap, shorter than reading a new page and tapping. */
+const DOUBLE_TAP_MS = 450;
 
 export function Shell({
   eyebrow,

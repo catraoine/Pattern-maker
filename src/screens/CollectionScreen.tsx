@@ -19,9 +19,6 @@ import { ERA_PIECES } from '../eraLines';
 interface Props {
   values: MeasurementValues;
   onMake: (look: HouseLook) => void;
-  onBack: () => void;
-  /** The back link's words: back to styling, or just Back when opened from the list of what to make. */
-  backLabel?: string;
 }
 
 type Shelf = 'house' | 'eras' | 'archive';
@@ -166,7 +163,7 @@ function sets<T extends { look: HouseLook }>(looks: T[]): T[][] {
 }
 
 /** The Maison collection, laid out like a lookbook: each house look drawn flat to the sewist's measurements. */
-export function CollectionScreen({ values, onMake, onBack, backLabel = 'Back to styling' }: Props) {
+export function CollectionScreen({ values, onMake }: Props) {
   const [shelf, setShelf] = useState<Shelf>('house');
   const looks = useMemo(
     () =>
@@ -203,9 +200,8 @@ export function CollectionScreen({ values, onMake, onBack, backLabel = 'Back to 
             </button>
           ))}
         </div>
-        <button type="button" className="link" onClick={onBack}>
-          {backLabel}
-        </button>
+        {/* No "Back to styling" here: the header's arrow and the Style step both go back to styling (declutter, Cat's E, Nov 21;
+            from What to make the arrow was already the only way back, desktop review, Nov 21). */}
       </header>
       {shelf === 'house' ? (
         <>

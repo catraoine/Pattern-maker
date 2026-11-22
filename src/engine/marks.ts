@@ -97,13 +97,14 @@ const fmt = (v: number) => (Math.round(v * 10) / 10).toString();
 export function edgeLabels(pc: Piece): EdgeLabel[] {
   const front = /front/i.test(pc.name);
   const names: Record<string, string> = {
-    waist: 'WAIST',
+    // A peplum sewn to a lowered bodice's lower edge joins it below the waist (pretend tester DM walk, Nov 19).
+    waist: pc.meta.sewnTo === 'hem' ? 'PEPLUM SEAM' : 'WAIST',
     hem: (pc.meta.hemLabel as string | undefined) ?? 'HEM',
     side: 'SIDE SEAM',
     shoulder: 'SHOULDER',
     neck: 'NECKLINE',
     armhole: 'ARMHOLE',
-    centre: front ? 'CENTRE FRONT SEAM' : 'CENTRE BACK SEAM',
+    centre: (pc.meta.centreLabel as string | undefined) ?? (front ? 'CENTRE FRONT SEAM' : 'CENTRE BACK SEAM'),
     fold: (pc.meta.foldLabel as string | undefined) ?? (/gusset/i.test(pc.name) ? 'CENTRE' : front ? 'CENTRE FRONT' : 'CENTRE BACK'),
     facing: 'NEATEN THIS EDGE',
     flounce: 'FLOUNCE SEAM',
@@ -112,27 +113,42 @@ export function edgeLabels(pc: Piece): EdgeLabel[] {
     godet: 'GODET SEAM',
     'pocket-side': 'SIDE SEAM',
     'pocket-edge': 'POCKET OPENING',
+    'pocket-waist': 'WAIST',
     leg: 'LEG OPENING',
+    // Seams a tester sews that went unlabelled, with their allowance only in the title block, which can differ (the
+    // vest's chest seam is 1 cm, the block said 1.5; pretend tester DM walk, Nov 19).
+    princess: 'PRINCESS SEAM',
+    crotch: 'CROTCH SEAM',
+    inseam: 'INSIDE LEG SEAM',
+    yoke: pc.meta.chestPart ? 'CHEST SEAM' : 'YOKE SEAM',
+    // A jacket's front edge; a hoodie's kangaroo pocket tags its openings the same way.
+    opening: /pocket/i.test(pc.name) ? 'POCKET OPENING' : 'FRONT EDGE',
+    lapel: 'FRONT EDGE',
+    lining: pc.kind === 'lining' ? 'FACING SEAM' : 'LINING SEAM',
+    'sleeve-front': 'SLEEVE SEAM',
+    'sleeve-back': 'SLEEVE SEAM',
   };
   // The gusset is too small for seam names; its shape says which end is which.
   if (pc.meta.lingerie === 'gusset') return [];
   const { pts, tags } = pc.outline.taggedPoints(24);
-  // Longest unbroken run of each tag.
-  const runs = new Map<string, [number, number, number]>(); // tag -> [first edge, last edge, length]
+  // Longest unbroken run of each seam name. Edges with different tags but one name run on as one: the trouser pocket
+  // facing printed SIDE SEAM twice, on the side seam and on the part of it the pocket bag shares (DM walk, Nov 19).
+  const nameOf = (tag: string) => names[tag] ?? tag;
+  const runs = new Map<string, [number, number, number, string]>(); // name -> [first edge, last edge, length, tag]
   let i = 0;
   while (i < tags.length) {
     let j = i;
     let l = 0;
-    while (j < tags.length && tags[j] === tags[i]) {
+    while (j < tags.length && nameOf(tags[j]) === nameOf(tags[i])) {
       l += len(sub(pts[j + 1], pts[j]));
       j++;
     }
-    const prev = runs.get(tags[i]);
-    if (!prev || prev[2] < l) runs.set(tags[i], [i, j - 1, l]);
+    const prev = runs.get(nameOf(tags[i]));
+    if (!prev || prev[2] < l) runs.set(nameOf(tags[i]), [i, j - 1, l, tags[i]]);
     i = j;
   }
   const out: EdgeLabel[] = [];
-  for (const [tag, [a, b, l]] of runs) {
+  for (const [, [a, b, l, tag]] of runs) {
     if (!names[tag] || l < 6) continue;
     // Centre lines carry the grain or fold arrow at their middle, so their label sits further along.
     const target = l * (tag === 'fold' || tag === 'centre' ? 0.18 : 0.5);
@@ -151,8 +167,11 @@ export function edgeLabels(pc: Piece): EdgeLabel[] {
       let rotate = (Math.atan2(u.y, u.x) * 180) / Math.PI;
       if (rotate > 90) rotate -= 180;
       if (rotate <= -90) rotate += 180;
-      const sa = tag === 'fold' || tag === 'facing' ? 0 : (pc.allowances[tag] ?? pc.seamAllowance);
-      out.push({ at: add(mid, mul(n, 1.1)), text: sa ? `${names[tag]} · ${fmt(sa)} CM ALLOWANCE` : names[tag], rotate });
+      const here = tags[k];
+      const sa = here === 'fold' || here === 'facing' ? 0 : (pc.allowances[here] ?? pc.seamAllowance);
+      // A lining bagged to the hem is sewn nearer its edge than it is cut, for the jump hem, so it says where to sew.
+      const sew = here === 'hem' ? (pc.meta.hemSewCm as number | undefined) : undefined;
+      out.push({ at: add(mid, mul(n, 1.1)), text: sew ? `${names[tag]} · SEW ${fmt(sew)} CM FROM THE EDGE` : sa ? `${names[tag]} · ${fmt(sa)} CM ALLOWANCE` : names[tag], rotate });
       break;
     }
   }

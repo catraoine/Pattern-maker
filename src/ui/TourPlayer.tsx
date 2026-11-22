@@ -132,7 +132,11 @@ export function TourPlayer({ onClose, from }: { onClose: () => void; from?: HTML
     };
     v.style.transformOrigin = origin;
     Object.assign(c.style, { left: `${box.left - host.left}px`, top: `${box.top - host.top}px`, width: `${box.width}px`, height: `${box.height}px`, transformOrigin: origin });
-    const dpr = Math.min(3, window.devicePixelRatio || 1);
+    // Drawn at the page's own pixels, not the screen's (Cat, Nov 21: the start was still choppy on her phone). At an
+    // iPhone's 3x the phone repainted nine times the pixels every frame and dropped most of them when busy or in Low
+    // Power Mode (55 dropped frames in the four seconds at phone speed; 2 at 1x). A soft moving line drawing that
+    // fades to black loses almost nothing.
+    const dpr = 1;
     c.width = Math.round(box.width * dpr);
     c.height = Math.round(box.height * dpr);
     const g = c.getContext('2d');

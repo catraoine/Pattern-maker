@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { withEstimates } from './estimate';
-import { checkMeasurements, isComplete, type MeasurementValues } from './measurements';
+import { EXAMPLE_BODY, checkMeasurements, isComplete, type MeasurementValues } from './measurements';
 import { extrasFor, fullSetMissing, labelOf, missingFor, stepsOf, tipOf, titleOf } from './measureFlow';
 import { draftBodice, type BodiceMeasurements } from './engine/bodice';
 import { draftOuter, type OuterMeasurements } from './engine/outerwear';
@@ -9,7 +9,9 @@ import { bodiceGuide } from './engine/instructions';
 import { bodiceFlat, outerFlat } from './engine/flat';
 import { outerGuide } from './engine/outerGuide';
 import { checkPattern } from './engine/qc';
-import { rng } from './engine/randomBodies';
+import { randomMan, rng } from './engine/randomBodies';
+import { patternDesigns, walkDesign } from './patternSweep';
+import { DEFAULT_JACKET_CHOICES, MENSWEAR_JACKET_CHOICES } from './garments';
 
 // The menswear form (Cat's B2 Two Forms, 2026-10-18): the chest instead of the bust, none of the bust
 // measurements asked, and tops drafted with no bust dart.
@@ -74,29 +76,18 @@ describe('drafting on the menswear form', () => {
       expect(d.pieces.length).toBeGreaterThan(3);
     }
   });
-});
 
-/** A random man's measurements, linked roughly the way bodies are (cm). */
-function randomMan(r: () => number): MeasurementValues {
-  const u = (lo: number, hi: number) => lo + (hi - lo) * r();
-  const chest = u(86, 130);
-  const floor = u(98, 116);
-  const depth = u(25, 30);
-  return {
-    full_bust: chest,
-    waist: chest * u(0.78, 1.0),
-    full_hip: chest * u(0.92, 1.04),
-    waist_to_floor: floor,
-    nape_to_waist: floor * u(0.4, 0.44),
-    shoulder_width: 40 + (chest - 86) * 0.2 + u(-1.5, 1.5),
-    waist_to_hip: u(19, 23),
-    waist_to_knee: floor * u(0.54, 0.58),
-    crotch_depth: depth,
-    crotch_length: depth * u(2.45, 2.85),
-    arm_length: u(58, 68),
-    upper_arm: chest * u(0.28, 0.34),
-  };
-}
+  it('starts its jacket Long, over the seat, longer than the shirt-length Hip', () => {
+    const m = withEstimates({ ...MAN, ...ARMS, waist_to_knee: 60 }, 'menswear') as OuterMeasurements;
+    const back = (c: typeof DEFAULT_JACKET_CHOICES) => {
+      const p = draftOuter(m, { ...c, kind: 'jacket', fitting: { flatFront: true } }).pieces.find((pc) => /back/i.test(pc.name) && !pc.kind)!;
+      const ys = p.outline.points().map((q) => q.y);
+      return Math.max(...ys) - Math.min(...ys);
+    };
+    expect(MENSWEAR_JACKET_CHOICES.length).toBe('long');
+    expect(back(MENSWEAR_JACKET_CHOICES)).toBeGreaterThan(back(DEFAULT_JACKET_CHOICES) + 5);
+  });
+});
 
 const failing = (pieces: Parameters<typeof checkPattern>[0]) => checkPattern(pieces).filter((c) => !c.ok);
 
@@ -110,6 +101,17 @@ describe('the menswear follow-ups', () => {
         expect(d.pieces.map((pc) => pc.name)).toEqual(['Bodice centre front', 'Bodice side front', 'Bodice centre back', 'Bodice side back']);
         expect(failing(d.pieces)).toEqual([]);
       }
+    }
+  });
+
+  it('keeps the armhole notch on its panel when princess seams start at the armhole, in the printed pattern', () => {
+    // The nightly menswear pass (Nov 21) found it 0.6 cm off the side front on a 116 cm chest: the line now starts 2 cm
+    // below the notch, as the back's does.
+    const r = rng(7);
+    const designs = patternDesigns().filter((d) => /princess=armhole/.test(d.key));
+    for (let i = 0; i < 60; i++) {
+      const values = { ...EXAMPLE_BODY, ...withEstimates(randomMan(r), 'menswear') };
+      for (const d of designs) expect(walkDesign(d, values, 'menswear').problems, `${d.key}, body ${i + 1}`).toEqual([]);
     }
   });
 

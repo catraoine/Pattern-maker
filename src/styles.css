@@ -27,7 +27,7 @@
 @import './styles/24-one-fill.css'; /* Gaps 4 + 5 of the design review: P1 trimmed phone Style panel, S1 one fill (Oct 31). */
 @import './styles/25-step-back.css'; /* Back a step: a plain arrow left of Next on Style (Oct 31). */
 @import './styles/26-palette-card.css'; /* D1 One Palette Card beside the form (Nov 2). */
-@import './styles/27-print-summary.css'; /* Print opens on a calm "Your summary" (Nov 3). */
+@import './styles/27-print-summary.css'; /* Print opens on a calm heading (Nov 3; Print it, Nov 21). */
 @import './styles/28-help.css'; /* Help & feedback: the account page's first small link, short answers and a note to us (Nov 6). */
 @import './styles/28-step-arrow.css'; /* A down arrow under the step's name on a phone (Nov 6). */
 @import './styles/29-view-glider.css'; /* Style's view line as a glider: a low dark track, the view showing a raised block (Nov 6). */
@@ -44,3 +44,8 @@
 @import './styles/39-print-ways.css'; /* Print my pattern easier to scan: one filled Download, the other ways in a plain list (Cat, Nov 14). */
 @import './styles/40-atelier-sheet.css'; /* The collection drawn as an atelier sheet: chalk, ink in three weights, softer light, the cloth pinned under it (H8, Nov 14). */
 @import './styles/41-computer-screens.css'; /* Laptop and desktop screens: the Measure list in one column, the collection four across (testers, Nov 17). */
+@import './styles/42-desktop-review.css'; /* The desktop design review: the Style drawing stays in view, pictures on What to make, short laptop screens (Nov 20). */
+@import './styles/43-declutter.css'; /* The declutter (Cat's E, Nov 21): Feel behind a button, one row of window tools, Print in three parts, one email box for the extras. */
+@import './styles/44-sewing-mode.css'; /* Sewing mode: one step at a time, each drawn from the garment's own pieces (Cat's C, Nov 21). */
+@import './styles/45-dress-rehearsal.css'; /* The Dec 7 dress rehearsal walk: words cut off on small phones and laptops (Nov 22). */
+@import './styles/46-big-pattern.css'; /* The enlarged Pattern view fills the screen, pieces whole, Undo inside the window (Cat, Nov 22). */

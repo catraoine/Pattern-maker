@@ -4,6 +4,7 @@ import { canGoBack, goBack, pushFresh, useViewHistory } from './nav';
 import { DraftError, SkirtMeasurements } from './engine/skirt';
 import { BodiceDraft } from './engine/bodice';
 import { withAllowances } from './engine/allowances';
+import { pickBody } from './engine/body';
 import { Fitting, carriedFitting, describeCarried, describeFitting, saveVersion, alterationSheet } from './engine/fitting';
 import { layPlans } from './engine/layplan';
 import { FabricStyle, clothFor } from './engine/fabrics';
@@ -36,8 +37,9 @@ updatePerson,
 recordMeasurements,
 withPeople,
 } from './account';
-import { validDetails, PatternChoices, outerWord, unusedFor } from './garments';
+import { MENSWEAR_JACKET_CHOICES, validDetails, PatternChoices, outerWord, unusedFor } from './garments';
 import type { Printable } from './screens/ExportScreen';
+import { openSewingNext } from './ui/sewPlace';
 import { describePattern } from './screens/describe';
 import { WelcomeScreen } from './screens/WelcomeScreen';
 import { CODE_MESSAGE, checkCode, hasAccess, rememberAccess, testerFromLink, withoutTester } from './access';
@@ -45,9 +47,10 @@ import { cleanCode } from './photo/limit';
 import { atNewScreen, keepOffline } from './swUpdate';
 import { preloadScreens, screen } from './screens/load';
 import { FABRIC, StartOver, openLookNext, openTabNext } from './ui/StyleLayout';
+import { leavePrintForFabric } from './ui/printReturn';
 import { KeptCount } from './ui/SaveControl';
-import { GARMENT_NAME } from './measureFlow';
-import type { StepsStart } from './screens/MeasureStepsScreen';
+import { GARMENT_NAME, baseDone } from './measureFlow';
+import type { PageKind, StepsStart } from './screens/MeasureStepsScreen';
 import { mergeBackups } from './cloud/merge';
 import { useCloud } from './cloud/useCloud';
 import { useFounding } from './cloud/useFounding';
@@ -87,11 +90,11 @@ import { PhotoCheck } from './ui/PhotoCheck';
 import type { PhotoSource } from './photo/check';
 import type { PhotoBody } from './photo/garments';
 import { testerHeaders } from './ui/TesterCode';
-import { NEEDS_MEASUREMENTS, PARENT, PLACE_KEY, SIDE, STEPS, STEP_OF, ladder, type Step, type View } from './navigation';
+import { NEEDS_MEASUREMENTS, PARENT, PLACE_KEY, STEPS, STEP_OF, UNDER_ACCOUNT, ladder, type Step, type View } from './navigation';
 
 
 /** The screens a reload may open again. */
-const RESTORABLE: View[] = ['measure', 'steps', 'style', 'export', 'account', 'collection'];
+const RESTORABLE: View[] = ['measure', 'steps', 'style', 'export', 'sew', 'account', 'collection'];
 
 const MeasureScreen = screen(() => import('./screens/MeasureScreen').then((m) => m.MeasureScreen));
 const StyleScreen = screen(() => import('./screens/StyleScreen').then((m) => m.StyleScreen));
@@ -102,6 +105,7 @@ const TeeStyleScreen = screen(() => import('./screens/TeeStyleScreen').then((m) 
 const RangeStyleScreen = screen(() => import('./screens/RangeStyleScreen').then((m) => m.RangeStyleScreen));
 const LingerieStyleScreen = screen(() => import('./screens/LingerieStyleScreen').then((m) => m.LingerieStyleScreen));
 const OuterStyleScreen = screen(() => import('./screens/OuterStyleScreen').then((m) => m.OuterStyleScreen));
+const SewScreen = screen(() => import('./screens/SewScreen').then((m) => m.SewScreen));
 const AccountScreen = screen(() => import('./screens/AccountScreen').then((m) => m.AccountScreen));
 const PhotoScreen = screen(() => import('./screens/PhotoScreen').then((m) => m.PhotoScreen));
 const SignupScreen = screen(() => import('./screens/SignupScreen').then((m) => m.SignupScreen));
@@ -155,6 +159,9 @@ export default function App() {
   const measuredKey = JSON.stringify(measured);
   // The dress form their patterns are drafted on: the menswear form drafts with no bust shaping.
   const form = formOf(person);
+  // Every 3D view draws their form's body (body.ts): on the menswear form, a man's. Picked as the app draws, before
+  // any view below reads it.
+  pickBody(form);
   // Keyed on the numbers, as the account (and so the person) is rebuilt on every render.
   // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the numbers (measuredKey), not the rebuilt object
   const values = useMemo(() => withEstimates(measured, form), [measuredKey, form]);
@@ -246,7 +253,7 @@ export default function App() {
     }
   });
   const [startView] = useState<View>(incoming?.kind === 'ask' ? 'link' : incoming?.kind === 'reply' ? 'arrive' : isMoveLink(window.location.hash) ? 'move' : legalPath(window.location.pathname) ?? 'welcome');
-  const [step, setStep] = useViewHistory<View>(startView, (to) => (NEEDS_MEASUREMENTS.includes(to) && !canLeaveMeasure ? 'measure' : to), ladder);
+  const [step, setStep] = useViewHistory<View>(startView, (to) => (NEEDS_MEASUREMENTS.includes(to) && !canLeaveMeasure ? 'measure' : to), ladder, (to) => to === 'account');
   // A look just made opens on itself on Style, after any measurements it asks for first; gone anywhere else, it doesn't
   // carry over to the next garment's Style.
   useEffect(() => {
@@ -410,10 +417,11 @@ export default function App() {
   const finish = finishFor(storedFinish, mode, saved.house?.garment === garment ? saved.house.finish : undefined);
   const setFinish = (f: Finish) => setSaved({ ...saved, finish: keepFinish(storedFinish, f, mode) });
   const fabric = finish.fabric;
-  // What every garment drafts from (see garmentDrafts.ts), and the open garment's entry in the catalogue.
+  // What every garment drafts from (see garmentDrafts.ts), and the open garment's entry in the catalogue. A jacket not
+  // yet styled starts Long on the menswear form (garments.ts).
   const inputs = useMemo(
     (): DraftInputs => ({
-      saved: { choices: saved.choices, bodice: saved.bodice, dress: saved.dress, trousers: saved.trousers, tee: saved.tee, knitDress: saved.knitDress, hoodie: saved.hoodie, jumpsuit: saved.jumpsuit, lingerie: saved.lingerie, jacket: saved.jacket, coat: saved.coat },
+      saved: { choices: saved.choices, bodice: saved.bodice, dress: saved.dress, trousers: saved.trousers, tee: saved.tee, knitDress: saved.knitDress, hoodie: saved.hoodie, jumpsuit: saved.jumpsuit, lingerie: saved.lingerie, jacket: saved.jacket ?? (form === 'menswear' ? MENSWEAR_JACKET_CHOICES : undefined), coat: saved.coat },
       form,
       fabric,
     }),
@@ -520,7 +528,7 @@ export default function App() {
   // A look made before the garment's measurements were all in was sized to the sample body: once they are, it is sized
   // to the maker's own (see lookResized).
   useEffect(() => {
-    if (step !== 'style' && step !== 'export') return;
+    if (step !== 'style' && step !== 'export' && step !== 'sew') return;
     const resized = lookResized(garment, current, values);
     if (!resized) return;
     const { garment: _g, ...next } = resized;
@@ -673,7 +681,7 @@ export default function App() {
   const switchGarment = (g: Garment, next: Partial<Saved> = {}, to: View = step, using: MeasurementValues = measured, also: MeasurementId[] = []): boolean => {
     const after = { ...saved, ...plainCloth(g), ...next, garment: g };
     setSaved(after);
-    const stays = to === 'style' || to === 'export';
+    const stays = to === 'style' || to === 'export' || to === 'sew';
     if (stays && (!ready(using, saved.unit, g, form, skipFor(g, after)) || also.length)) {
       measureFor(g, using, form, also, after);
       return false;
@@ -694,12 +702,18 @@ export default function App() {
   };
 
   // Why Style or Print didn't open while measuring, shown over the guided pages for a moment.
-  const [stepsNote, setStepsNote] = useState<string>();
+  // Kept with when it was asked for, so a second tap on Print shows it again for its full time: the same words twice
+  // left the first tap's timer running, and the second tap seemed to do nothing (pretend tester, Nov 20).
+  const [note, setNote] = useState<{ text: string; at: number }>();
+  const stepsNote = note?.text;
+  const setStepsNote = (text?: string) => setNote(text ? { text, at: Date.now() } : undefined);
   useEffect(() => {
-    if (!stepsNote) return;
-    const t = setTimeout(() => setStepsNote(undefined), 4000);
+    if (!note) return;
+    const t = setTimeout(() => setNote(undefined), 4000);
     return () => clearTimeout(t);
-  }, [stepsNote]);
+  }, [note]);
+  // The guided page showing, for the header's Style and Print.
+  const [stepsPage, setStepsPage] = useState<PageKind>();
 
   // Why someone landed on Measure when they asked for another screen; cleared once they move on.
   const [measureNote, setMeasureNote] = useState<string>();
@@ -717,7 +731,7 @@ export default function App() {
   // tester, Nov 17). So Print, however it is reached, asks for the arms first.
   const armsToAsk = lookArmsMissing({ choices: current }, measured);
   useEffect(() => {
-    if (step !== 'export' || !armsToAsk.length) return;
+    if ((step !== 'export' && step !== 'sew') || !armsToAsk.length) return;
     openSteps({ kind: 'for', garment, also: armsToAsk });
     setStepsNote('Your sleeves are drafted from your arms: add them to print.');
     // eslint-disable-next-line react-hooks/exhaustive-deps -- asks once each time Print is opened without the arms
@@ -727,7 +741,7 @@ export default function App() {
   const switchPerson = (id: string, to: View = step) => {
     const who = account.people.find((p) => p.id === id) ?? person;
     setAccount({ ...account, active: who.id });
-    if ((to === 'style' || to === 'export') && !ready(who.values, saved.unit, garment, formOf(who), skipFor(garment, saved))) measureFor(garment, who.values, formOf(who));
+    if ((to === 'style' || to === 'export' || to === 'sew') && !ready(who.values, saved.unit, garment, formOf(who), skipFor(garment, saved))) measureFor(garment, who.values, formOf(who));
     else setStep(to);
   };
 
@@ -769,6 +783,21 @@ export default function App() {
 
   /** A step in the header. Style and Print wait for the measurements, and say so. */
   const openStep = (to: Step) => {
+    // Still choosing what to make, on the collection opened from the list after measuring: nothing is picked, so the
+    // garment is only the first-visit skirt. Measure showed a skirt's list without the bust or weight just given, and
+    // Style and Print stayed shut on a skirt's waist to knee, with "Make something else" the only way out (pretend
+    // tester walks, four times to DO, Nov 20). Measure goes back to the measurements given, the others to the choice.
+    // The same on the guided pages' check and list ("Do these look right?", "What would you like to make?"): the
+    // measurements are in, so "once your measurements are in" read as wrong, and Print seemed to do nothing (DP walk, Nov 20).
+    const choosing = (step === 'collection' && lookFrom === 'steps') || (step === 'steps' && (stepsPage === 'check' || stepsPage === 'choose'));
+    if (choosing && baseDone(measured)) {
+      if (to === 'measure') return step === 'steps' ? undefined : openSteps({ kind: 'check' });
+      if (!canLeaveMeasure) {
+        if (!(step === 'steps' && stepsPage === 'choose')) openSteps({ kind: 'choose' });
+        setStepsNote('Choose what to make first: Style and Print open for it.');
+        return;
+      }
+    }
     if (STEP_OF[step] === to && step !== 'photo' && step !== 'fitting' && step !== 'scale') return;
     if (to !== 'measure' && !canLeaveMeasure) {
       // A line, not a box over the headline, and no garment named (none may be chosen yet) (look and feel review, 2026-10-24).
@@ -788,7 +817,7 @@ export default function App() {
   // The style the fabric is checked against: Print's fabric notes, and the heads up on Style's Fabric step.
   const fabricStyle: FabricStyle =
     isOuterGarment
-      ? { garment, fit: outerChoices.fit }
+      ? { garment, fit: outerChoices.fit, sleeve: outerChoices.sleeve }
       : garment === 'bodice'
       ? { garment, fit: saved.bodice.fit, neckline: saved.bodice.neckline, structure: validDetails(saved.bodice).structure }
       : garment === 'dress'
@@ -878,10 +907,10 @@ export default function App() {
           ) : (
             <>
               <div className="steady-row">
-                {/* No header back on the three chapters (Cat, 2026-11-02: "this arrow causes confusion"): Measure, Style
-                    and Print are tapped to move between them. Guided measuring, side screens, Draw and Review keep it
+                {/* No header back on the chapters (Cat, 2026-11-02: "this arrow causes confusion"): Measure, Style,
+                    Print and Sew are tapped to move between them. Guided measuring, side screens, Draw and Review keep it
                     (Style's steps hide it in 25-step-back.css). */}
-                {step !== 'measure' && step !== 'export' && (
+                {step !== 'measure' && step !== 'export' && step !== 'sew' && (
                   <button type="button" className="steady-back" aria-label="Back" onClick={back}>
                     ←
                   </button>
@@ -906,7 +935,7 @@ export default function App() {
                 </nav>
                 <button
                   type="button"
-                  className={step === 'account' ? 'avatar on' : 'avatar'}
+                  className={step === 'account' || UNDER_ACCOUNT.includes(step) ? 'avatar on' : 'avatar'}
                   aria-label={`Your account (${owner})`}
                   aria-current={step === 'account' ? 'page' : undefined}
                   onClick={() => setStep('account')}
@@ -922,11 +951,6 @@ export default function App() {
                   )}
                 </button>
               </div>
-              {SIDE[step] && (
-                <p className="crumb">
-                  {SIDE[step]![0]} › <span>{SIDE[step]![1]}</span>
-                </p>
-              )}
             </>
           )}
         </header>
@@ -1087,6 +1111,7 @@ export default function App() {
               }}
               onMade={() => openLegal('made')}
               onNews={() => openLegal('news')}
+              onPage={setStepsPage}
               onLater={() => setStep('welcome')}
               onSkip={tryWithExample}
             />
@@ -1209,8 +1234,6 @@ export default function App() {
           {step === 'collection' && (
             <CollectionScreen
               values={values}
-              onBack={lookFrom === 'steps' ? back : () => setStep('style')}
-              backLabel={lookFrom === 'steps' ? 'Back' : undefined}
               onMake={(look) => makeLook(look)}
             />
           )}
@@ -1450,7 +1473,12 @@ export default function App() {
           {step === 'export' && hasGarment(account, garment) && (
             <ExportScreen
               example={!!person.example?.length}
+              onSew={() => {
+                openSewingNext();
+                setStep('sew');
+              }}
               onMeasureMe={measureMe}
+              onEditMeasurements={() => setStep('measure')}
               unit={saved.unit}
               paper={saved.paper}
               onPaper={(paper) => setSaved({ ...saved, paper })}
@@ -1459,6 +1487,7 @@ export default function App() {
               onMode={setMode}
               onEditFabric={() => {
                 openTabNext(FABRIC);
+                leavePrintForFabric();
                 setStep('style');
               }}
               onKeep={saveState === 'can' ? () => setAccount(savePattern(account, current, lookName ?? describePattern(current), person.id)) : undefined}
@@ -1487,6 +1516,10 @@ export default function App() {
               credit={fromArchive?.credit}
               label={{ name: profile === 'Me' ? account.name : profile, code: labelFor }}
             />
+          )}
+          {step === 'sew' && !hasGarment(account, garment) && <UnlockGarment garment={garment} onPlans={openPlans} onBack={() => setStep('style')} />}
+          {step === 'sew' && hasGarment(account, garment) && (
+            <SewScreen made={printable} title={title} keep={`${person.id}:${garment}`} onPrint={() => setStep('export')} onStyle={() => setStep('style')} tester={!!account.testerCode} />
           )}
           {step === 'check' && (
             <CheckFileScreen

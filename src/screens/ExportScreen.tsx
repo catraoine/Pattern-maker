@@ -1,7 +1,7 @@
 import { DropMenu } from '../ui/DropMenu';
 import { TesterReport } from '../ui/TesterReport';
 import { useTablet, useWide } from '../ui/StyleLayout';
-import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { CopyShopWay } from '../ui/CopyShopWay';
 import { SendToDevice } from '../ui/SendToDevice';
 import { OVERLAP, PAGE_MARGIN, Paper, Sheet, layout, pageCount, pageName, pageSize, tileGrid, toSvg, usedTiles } from '../engine/export';
@@ -13,13 +13,17 @@ import { PatternPreview } from '../ui/Preview';
 import type { Finish } from '../savedWork';
 import type { Garment, Unit } from '../measurements';
 import type { Alteration, Fitting } from '../engine/fitting';
-import { FABRIC_WIDTHS, type FabricWidth, Lay, layAmount, layWords } from '../engine/layplan';
+import { FABRIC_WIDTHS, type FabricWidth, Lay, type LayFabric, fabricsOf, layAmount, layWords } from '../engine/layplan';
 import { LayPlanView } from '../ui/LayPlanView';
 import type { Flat } from '../engine/flat';
 import { TechFlatView } from '../ui/TechFlatView';
 import { StepDiagram } from '../ui/StepDiagram';
+import { takeFabricReturn } from '../ui/printReturn';
+import { SewPicture } from '../ui/SewPicture';
+import { stepPicture } from '../engine/stepPictures';
 import { CLOTHS, seamFinish } from '../engine/couture';
 import { FIBRES, Fibre, MyFabric, FabricStyle, adviceFor, checkFabric, clothFor, pickTag, printRepeat } from '../engine/fabrics';
+import { colourWords } from '../engine/houseColours';
 import { SPECIALS, Special, needsNap } from '../engine/specialFabrics';
 import { printNap, printOf } from '../engine/prints';
 import { SizeRun } from '../ui/SizeRun';
@@ -30,7 +34,7 @@ import { Mode, ProTool, shows } from '../mode';
 import { ModeLink } from '../ui/ModeLink';
 import { countStep } from '../report/report';
 import { patternCode } from '../patternCode';
-import { flatId } from '../ui/FabricFill';
+import { GarmentFabric, TintFilter, clothTint, flatId } from '../ui/FabricFill';
 import { amazonLink, amazonTagged, kit } from '../engine/projectorKit';
 import { buyAmount, buyLink, shopFabric, shopPrice, type ShopFabric } from '../engine/shopFabrics';
 import { canShareFiles, download } from '../ui/download';
@@ -38,12 +42,14 @@ import { LabelCard } from '../ui/LabelCard';
 import { TestingTag } from '../ui/TestingTag';
 import { DemoButton } from '../ui/DemoButton';
 import { reloadPending } from './load';
-import { isKnit, isLowerBody } from '../measurements';
+import { fieldsFor, isKnit, isLowerBody } from '../measurements';
 import { isWaistRow } from '../engine/spec';
 import { cloud } from '../cloud/api';
 import { testerHeaders } from '../ui/TesterCode';
 import { inCm, inInches } from '../units';
 import { onPhone } from '../ui/device';
+import { PartHead } from '../ui/PrintParts';
+import { ExtrasSignup } from '../ui/ExtrasSignup';
 
 /** What to print: the drafted pieces of either garment, with its notes and sewing steps. */
 export interface Printable {
@@ -61,8 +67,12 @@ export interface Printable {
 interface Props {
   /** Drafted to the example body because measuring was skipped: printing asks first (Cat, 2026-10-21). */
   example?: boolean;
+  /** To the Sew tab, from How to sew it. Without it (a pattern read from a file), Sewing mode opens here. */
+  onSew?: () => void;
   /** Measure me, from that question: drops the example and opens measuring. */
   onMeasureMe?: () => void;
+  /** Back to the measurements, from a pattern that can't be drafted to them. */
+  onEditMeasurements?: () => void;
   /** The sewist's unit; the PDF's text is written in inches when it is `in`. */
   unit?: Unit;
   /** The paper picked last time, kept with the rest of the work; without one, inches start on US Letter. */
@@ -139,18 +149,40 @@ const PAPERS: { id: Paper | 'projector'; label: string }[] = [
 
 const isProjector = (o: Output): o is 'projector' | 'projectorDark' => o === 'projector' || o === 'projectorDark';
 
-// Projector mode loads only when it is opened.
+// Projector mode and Sewing mode load only when they are opened.
+const SewingMode = lazy(() => import('../ui/SewingMode').then((m) => ({ default: m.SewingMode })));
 const ProjectorMode = lazy(() => import('../ui/ProjectorMode').then((m) => ({ default: m.ProjectorMode })));
 
 /** The date as printed on the pattern, such as 14 Oct 2026. */
+// A piece cut from the fabric and again from the lining (or coutil) is one pattern piece, so the list named it once and
+// read as if the lining needed nothing (DU walk, Nov 21): it says where it is cut again.
+const AGAIN: Record<Exclude<LayFabric, 'self'>, string> = { lining: 'lining', interlining: 'coutil' };
+const againIn = (pc: Piece) => {
+  const from = fabricsOf(pc);
+  const also = from.filter((f) => f !== 'self').map((f) => AGAIN[f]);
+  // A piece cut only from the lining is named as a lining piece already.
+  return from.includes('self') && also.length ? `, and again in ${also.join(' and ')}` : '';
+};
+
 const printedDate = () => new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
 
 
 const FRACTION_WORDS: Record<string, string> = { '⅛': '1-8', '¼': '1-4', '⅜': '3-8', '½': '1-2', '⅝': '5-8', '¾': '3-4', '⅞': '7-8' };
 
-export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPaper, onPaper, sendLink, profile, title, lookName, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, onFitNotes, tester, emailTo, fitNote, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label, full }: Props) {
+export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, unit = 'cm', paper: savedPaper, onPaper, sendLink, profile, title, lookName, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, onFitNotes, tester, emailTo, fitNote, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label, full }: Props) {
   const can = (t: ProTool) => shows(mode, t);
+  // Back from choosing the fabric in Style: open on the fabric, where they left Print (Cat, Nov 21).
+  useEffect(() => {
+    if (!takeFabricReturn()) return;
+    requestAnimationFrame(() => {
+      const fabric = document.querySelector('.yourfabric');
+      if (!fabric) return;
+      // Clear of the top bar, which stays at the top as the page scrolls, with a little room above the heading.
+      const bar = document.querySelector('.topbar')?.getBoundingClientRect().bottom ?? 0;
+      window.scrollTo(0, fabric.getBoundingClientRect().top + window.scrollY - bar - 16);
+    });
+  }, []);
   /** Knits fit by their stretch: tested in a spare knit, not a calico toile. */
   const knit = isKnit(garment);
   // The paper starts on what was picked before, else on US Letter for a sewist measuring in inches or on a
@@ -176,6 +208,9 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
   const napFixed = needsNap(special) || printNap(print);
   const nap = finish.nap || napFixed;
   const guide = made?.guide;
+  const [sewing, setSewing] = useState(false);
+  // Print's own picture for Sewing mode: the cutting, the first step that shows the pieces.
+  const startPicture = useMemo(() => (made ? made.guide.steps.map((st) => stepPicture(st, made.pieces)).find((pic) => pic.kind === 'cut') : undefined), [made]);
   const date = useMemo(printedDate, []);
   // Pieces left out of the print, by their place in the list, so one lost sleeve reprints on a page or two
   // instead of the whole pattern (the PDF-printing pain in the Reddit research, 2026-10-28). A new draft starts whole.
@@ -183,7 +218,13 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
   useEffect(() => setLeftOut([]), [made]);
   const toPrint = useMemo(() => made?.pieces.filter((_, i) => !leftOut.includes(i)), [made, leftOut]);
   // The whole draft's code, so a reprint of one piece carries the same one.
-  const code = useMemo(() => (made ? patternCode(made.pieces, values ?? {}, __APP_VERSION__) : undefined), [made, values]);
+  // Only the high bust this garment drafts from: a skirt's code changed once a dress asked for the high bust, so its
+  // printed page 1 no longer matched the app (DU tester walk, Nov 21).
+  const code = useMemo(() => {
+    if (!made) return undefined;
+    const own = fieldsFor(garment).some((f) => f.id === 'high_bust') ? values ?? {} : { ...values, high_bust: undefined };
+    return patternCode(made.pieces, own, __APP_VERSION__);
+  }, [made, values, garment]);
   const sheet = useMemo(
     () =>
       made && toPrint ? layout(toPrint, `Maison Tracé: ${title}`, made.notes, { pattern: title, name: lookName, madeFor: profile, date, edition, credit, code }, { atelier: finish.atelier, paper: paper === 'a0' ? 'a0' : undefined }) : undefined,
@@ -260,6 +301,12 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
     return (
       <section className="card">
         <p className="msg error">{error ?? 'Add your measurements first.'}</p>
+        {/* The tab had no way back to Measure (pretend tester DV walk, Nov 21). */}
+        {onEditMeasurements && (
+          <button type="button" className="primary" onClick={onEditMeasurements}>
+            Check my measurements
+          </button>
+        )}
       </section>
     );
   }
@@ -335,17 +382,20 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
       <div className="split">
         <section className="card grow print-top" aria-labelledby="ptitle">
           <div className="print-head">
-            {/* Where you've landed, said calmly (Cat, Nov 3): a quiet "Your summary" heading and one line on what
-                the page is for. The garment's name and who it's for are on the card below, so they aren't
-                repeated here (Cat, Nov 7: less clutter). An imported pattern still says which file it came from. */}
-            <h1 id="ptitle">Your summary</h1>
-            <p className="print-guide">Everything you picked, ready to print. Check the pieces, choose your paper, then download.</p>
+            {/* Where you've landed, said calmly (Cat, Nov 3). Part 1 of three since the declutter (Cat's E, Nov 21), with no
+                line under it: the card and the buttons say what the page is for. The garment's name and who it's for
+                are on the card below (Cat, Nov 7). An imported pattern still says which file it came from. */}
+            <p className="eyebrow print-part-no">Part 1</p>
+            <h1 id="ptitle">Print it</h1>
             {imported && (
               <p className="muted">
                 {`${imported.fileName} · ${made.pieces.length} ${made.pieces.length === 1 ? 'piece' : 'pieces'}${imported.source ? ` from ${imported.source}` : ''}`}
               </p>
             )}
           </div>
+          {/* The card's garment in the cloth picked in Style, as on Your look: it was drawn white beside "Wool, Blush"
+              (desktop review, Nov 21). */}
+          <GarmentFabric fabric={finish.fabric}>
           <div className="print-cover">
             <Envelope house={false} name={lookName ?? title[0].toUpperCase() + title.slice(1)} flat={made.flat} mark={edition} foot={imported || example ? undefined : `Drafted to ${profile === 'Me' ? 'you' : profile}`} />
             <p className="eyebrow">Pieces</p>
@@ -353,10 +403,12 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
               {made.pieces.map((pc, i) => (
                 <li key={i}>
                   {pc.name}: {pc.cut.replace(' (1 pair)', '').toLowerCase()}
+                  {againIn(pc)}
                 </li>
               ))}
             </ul>
           </div>
+          </GarmentFabric>
           <div className="print-controls">
             <fieldset className="group">
               <legend>Print on</legend>
@@ -552,11 +604,13 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
             )}
             {/* No "ask for pages 2 to N" line here: the PDF they download is what they print, cover, layout and steps
                 included (Cat, Nov 15). The cover carries the pattern code testers need for their report. */}
+            {/* One fold about the pages (declutter, Cat's E, Nov 21): on a phone "See the pages" opens with it, where it
+                was a second link of its own under it. */}
             {!projector && paper !== 'a0' && (
-              <details className="small fold-link">
-                <summary>How the pages fit together</summary>
+              <details className="small fold-link pages-fold" open={!wide && !tablet ? seePages : undefined} onToggle={(e) => !wide && !tablet && setSeePages((e.currentTarget as HTMLDetailsElement).open)}>
+                <summary>{!wide && !tablet ? 'The pages and how they fit together' : 'How the pages fit together'}</summary>
                 <p className="muted small">
-                  Trim each page along its dashed line on the left and top, then lay it over the page before so the half diamonds make whole ones.
+                  Cut each page along the solid line marked CUT on its left and top edges, then lay it over the page before so the half diamonds make whole ones: each diamond says whether its page goes OVER or UNDER the page named.
                   Tape them down. On a phone, send the PDF to your email and print from a computer, or print straight from the
                   share menu.
                 </p>
@@ -565,7 +619,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
           </div>
           <div className="print-sheet">
             {/* On a phone the pages fold behind one line (Cat applied P3, 2026-10-24), so Print is a shorter scroll. */}
-            {!wide && !tablet && (
+            {!wide && !tablet && (projector || paper === 'a0') && (
               <button type="button" className="later go see-pages" aria-expanded={seePages} onClick={() => setSeePages(!seePages)}>
                 {seePages ? 'Hide the pages' : projector || pages === 1 ? 'See the page' : 'See the pages'} <span aria-hidden="true">{seePages ? '‹' : '›'}</span>
               </button>
@@ -610,12 +664,15 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
         </section>
       )}
 
+      <PartHead n={2} title="Cut it" />
+
       {!imported && (
         <YourFabric
           fabric={finish.fabric ?? {}}
           style={style}
           metres={lays.find((l) => l.fabric !== 'lining' && l.fabric !== 'interlining' && !l.hide)?.metres}
           onChange={onEditFabric}
+          calico={tester ? guide.fabric?.find((l) => l.startsWith('Sewing in muslin')) : undefined}
         />
       )}
 
@@ -644,8 +701,13 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
             <label className="check">
               <input type="checkbox" checked={nap} disabled={napFixed} onChange={(e) => onFinish({ ...finish, nap: e.target.checked })} />
               <span>
-                Nap or one-way print{' '}
-                <span className="muted small">{napFixed ? `always on for ${needsNap(special) ? SPECIALS[special!].label.toLowerCase() : print === 'motif' ? 'placed motifs' : 'a one-way print'}` : 'every piece the same way up'}</span>
+                {/* Its purpose in plain words: "nap" alone meant nothing to Cat (Nov 21). */}
+                Pile or one-way print{' '}
+                <span className="muted small">
+                  {napFixed
+                    ? `Always on for ${needsNap(special) ? SPECIALS[special!].label.toLowerCase() : print === 'motif' ? 'placed motifs' : 'a one-way print'}: every piece is laid the same way up.`
+                    : 'Tick it if your fabric has a pile, like velvet or corduroy, or a print that points one way. Every piece is then laid the same way up, so it takes a little more fabric.'}
+                </span>
               </span>
             </label>
           </div>
@@ -659,6 +721,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
                   lay={lay}
                   size={lays.length > 1}
                   cloth={lay.fabric === 'self' ? (flatId(finish.fabric) ?? 'default') : lay.fabric === 'lining' ? 'silk' : 'cotton'}
+                  tint={lay.fabric === 'self' ? clothTint(finish.fabric, 'tile') : undefined}
                   print={lay.fabric === 'self' && print ? { kind: print, repeat: printRepeat(finish.fabric), stripes: finish.fabric?.checks?.stripes, gingham: finish.fabric?.checks?.gingham } : undefined}
                 />
                 {lay.fabric === 'self' && <DemoButton demo="fabric" />}
@@ -672,12 +735,17 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
         )}
       </section>
 
+      <PartHead n={3} title="Sew it" />
+
       {/* The toile shows in the simple view too (measuring accuracy, 2026-10-21): a calico try-on fixes what a tape at
           home can't, so a first-time sewist is offered it before cutting good fabric. */}
-      {!imported && (
+      {/* Not for a fit tester, who sews the pattern as drafted and reports on the tester form: redrawn first, the pattern
+          and its code no longer match what was tested (pretend tester DV walk, Nov 21; Cat: hide it for testers). */}
+      {!imported && !tester && (
         <section className="card" aria-labelledby="toiletitle">
-          <p className="eyebrow">Before you cut your fabric{fittingNotes.length && fitting ? ` · version ${fitting.round + 1}` : ''}</p>
-          <h2 id="toiletitle">{knit ? 'Try it in a spare knit first' : fittingNotes.length ? 'Corrected after your toile' : 'Sew a test version first'}</h2>
+          {/* Under Sew it, "Before you cut your fabric" went (declutter, Nov 21); a corrected version still says which. */}
+          {fittingNotes.length > 0 && fitting && <p className="eyebrow">Version {fitting.round + 1}</p>}
+          <h2 id="toiletitle">{knit ? 'Try it in a spare knit first' : fittingNotes.length ? 'Corrected after your toile' : 'Sew a toile first'}</h2>
           {knit ? (
             <p className="muted">
               {garment === 'lingerie'
@@ -699,7 +767,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
           <div className="row wrap">
             {!knit && (
               <button type="button" className="secondary" onClick={onFitting}>
-                {fittingNotes.length ? 'Fit another toile' : 'I’ve tried on my test version'}
+                {fittingNotes.length ? 'Fit another toile' : 'I’ve tried on my toile'}
               </button>
             )}
             {onTrueScale && made && can('toile') && (
@@ -734,11 +802,43 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
       )}
       {values && draftAt && can('sizeRun') && <InterestCard offer="sizerun" pattern={title} />}
 
-      {/* Folded shut on phone and computer alike (Cat applied P1, 2026-10-24), so Print is a shorter scroll. */}
+      {/* Sewing mode first (Cat's C, Nov 21): the steps one at a time, each drawn from this pattern's own pieces. The
+          list stays, folded under it, for anyone who'd rather read it all (Cat applied P1, 2026-10-24: a fold). */}
+      <section className="card sew-card" aria-labelledby="sewtitle">
+        <p className="eyebrow">After printing</p>
+        <h2 id="sewtitle">How to sew it</h2>
+        {guide && made && (
+          <div className="sew-start">
+            <div className="sewmode-pic">
+              <SewPicture picture={startPicture ?? { kind: 'prep' }} pieces={made.pieces} lays={lays} flat={null} />
+            </div>
+            <p className="small">
+              {guide.steps.length} steps, one at a time, each drawn from your own pieces. Keep it open by your machine.
+            </p>
+            <button type="button" className="primary" onClick={() => (onSew ? onSew() : setSewing(true))}>
+              Start sewing <span aria-hidden="true">›</span>
+            </button>
+          </div>
+        )}
+      </section>
+      {sewing && guide && made && (
+        <Suspense fallback={null}>
+          <SewingMode
+            steps={guide.steps}
+            pieces={made.pieces}
+            lays={lays}
+            flat={made.flat ? <TechFlatView flat={made.flat} title={title} /> : null}
+            title={title}
+            keep={code ?? title}
+            inCm={inCm}
+            muslin={tester ? guide.fabric?.find((l) => l.startsWith('Sewing in muslin')) : undefined}
+            onClose={() => setSewing(false)}
+          />
+        </Suspense>
+      )}
       <details className="card sew">
         <summary className="sew-summary">
-          <p className="eyebrow">After printing</p>
-          <h2 id="sewtitle">How to sew it</h2>
+          <h3 className="sew-list-head">Every step as a list</h3>
         </summary>
         <div className="row between wrap">
           {garment !== 'trousers' && !knit && can('couture') && !imported && (
@@ -812,12 +912,14 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
             <span className="extras-title">Extras for this pattern</span>
             <span className="muted small">Printed and posted roll · fabric and notions kit · {label ? 'your label and woven labels' : 'woven labels'}{hasFabric(finish.fabric) ? '' : ' · deadstock cloth'}</span>
           </summary>
-          <div className="split">
-            <InterestCard offer="printed" pattern={title} />
-            <InterestCard offer="kit" pattern={title} />
-          </div>
-          {label && <LabelCard name={label.name} code={label.code} pattern={title} onKeep={onKeep} />}
-          {!hasFabric(finish.fabric) && <Deadstock style={style} lays={lays} title={title} />}
+          <ExtrasSignup offers={['printed', 'kit', ...(label ? (['labels'] as const) : []), ...(hasFabric(finish.fabric) ? [] : (['deadstock'] as const))]} pattern={title}>
+            <div className="split">
+              <InterestCard offer="printed" pattern={title} />
+              <InterestCard offer="kit" pattern={title} />
+            </div>
+            {label && <LabelCard name={label.name} code={label.code} pattern={title} onKeep={onKeep} />}
+            {!hasFabric(finish.fabric) && <Deadstock style={style} lays={lays} title={title} />}
+          </ExtrasSignup>
         </details>
       )}
     </>
@@ -845,9 +947,19 @@ function FabricStage({ fabric }: { fabric: MyFabric }) {
   const id = fabric.special ?? fabric.fibre;
   const label = fabric.special ? SPECIALS[fabric.special].label : fabric.fibre ? FIBRES[fabric.fibre].label : undefined;
   const handle = [fabric.weight && `${fabric.weight} weight`, fabric.drape && `${fabric.drape} drape`].filter(Boolean).join(', ');
+  // In the colour picked, so the close-up is the cloth named over it.
+  const tint = clothTint(fabric, 'close-up');
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   return (
     <figure className="fabstage">
-      <img src={fabricPhoto(id)} alt={label ? `${label} close up` : ''} />
+      {tint && (
+        <svg className="fabric-defs" aria-hidden="true" focusable="false">
+          <defs>
+            <TintFilter id={`stage${uid}`} table={tint} />
+          </defs>
+        </svg>
+      )}
+      <img src={fabricPhoto(id)} alt={label ? `${label} close up` : ''} style={tint ? { filter: `url(#stage${uid})` } : undefined} />
       <figcaption>
         <span className="fabname">{label ?? 'No fabric chosen'}</span>
         <span className="muted small">{label ? (handle ? handle[0].toUpperCase() + handle.slice(1) : 'Set the weight and drape under Fabric in Style.') : 'Choose one under Fabric in Style.'}</span>
@@ -879,7 +991,15 @@ function BuyShopFabric({ shop, colour, metres }: { shop: ShopFabric; colour?: st
 
 /** The fabric, as chosen on the style screen's Fabric tab (one place to choose it, Cat 2026-10-18): what it
  * is, whether it suits the style, where to buy it, and the way back to change it. */
-function YourFabric({ fabric, style, metres, onChange }: { fabric: MyFabric; style: Props['style']; metres?: number; onChange?: () => void }) {
+function YourFabric({ fabric, style, metres, onChange, calico }: { fabric: MyFabric; style: Props['style']; metres?: number; onChange?: () => void; calico?: string }) {
+  // Testers sew in calico, and the screen headlined only the look's own cloth, with its care ("Do not wash it"): the
+  // calico advice was in the booklet alone (pretend tester DV walk, Nov 21; Cat: add it for testers).
+  const forTest = calico && (
+    <p className="small fabnote tester-calico">
+      <b>For your fit test </b>
+      {calico}
+    </p>
+  );
   const shop = shopFabric(fabric.shop);
   const notes = checkFabric(style, fabric);
   const name = fabricName(fabric);
@@ -890,6 +1010,7 @@ function YourFabric({ fabric, style, metres, onChange }: { fabric: MyFabric; sty
         <p className="eyebrow" id="fabtitle">
           Your fabric
         </p>
+        {forTest}
         <div className="fabline">
           <p className="muted small">Not chosen yet. It sets the cutting layout and goes on the PDF.</p>
           {onChange && (
@@ -906,12 +1027,13 @@ function YourFabric({ fabric, style, metres, onChange }: { fabric: MyFabric; sty
       <h2 id="fabtitle" className="fabhead">
         {name ? `${name}${metres !== undefined ? ` · ${metres} m` : ''}` : 'Not chosen yet'}
       </h2>
+      {forTest}
       <FabricStage fabric={fabric} />
       {shop && (
         <div className="shopbuy">
           <p className="small">
             <b>{shop.name}</b>
-            {fabric.colour ? `, ${fabric.colour}` : ''}{' '}
+            {fabric.colour ? `, ${colourWords(fabric.colour) ?? fabric.colour}` : ''}{' '}
             <span className="muted">
               from {shop.shop}
               {shopPrice(shop, fabric.colour) ? `, $${shopPrice(shop, fabric.colour)}/${shop.yards ? 'yd' : 'm'}` : ''}
@@ -938,10 +1060,12 @@ function YourFabric({ fabric, style, metres, onChange }: { fabric: MyFabric; sty
   );
 }
 
-/** The fabric's name in a few words: its own name, else the cloth, with the colour. */
+/** The fabric's name in a few words: its own name, else the cloth, with the colour in words. A house colour is stored
+ *  as its swatch's code, and "Sheer, #9CC3E6" showed on the Print screen (pretend tester DM walk, Nov 19). */
 function fabricName(f: MyFabric): string | undefined {
   const cloth = f.name || (f.special ? SPECIALS[f.special].label : f.fibre ? FIBRES[f.fibre].label : undefined);
-  return cloth && (f.colour && !f.name ? `${cloth}, ${f.colour}` : cloth);
+  const colour = colourWords(f.colour) ?? f.colour;
+  return cloth && (colour && !f.name ? `${cloth}, ${colour}` : cloth);
 }
 
 const hasFabric = (f: MyFabric | undefined) => !!(f && (f.name || f.fibre || f.special));

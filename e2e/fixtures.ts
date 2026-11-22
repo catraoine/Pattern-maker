@@ -117,6 +117,23 @@ export async function openFresh(page: Page) {
   await expect(heading(page, /sewing patterns for the piece/i)).toBeVisible();
 }
 
+/** Turns the person open on this device (after startWithExample, the example body) into a man on the menswear form, with
+ *  `values` (EXAMPLE_MAN), and opens the menswear form on this device as the ?menswear=on link does. The app is opened
+ *  again after, on whatever it was showing. */
+export async function asMan(page: Page, values: Record<string, number>) {
+  await page.evaluate((values) => {
+    localStorage.setItem('maison-trace-menswear', 'on');
+    const a = JSON.parse(localStorage.getItem('pattern-maker:account') ?? '{}');
+    const people = (a.people ?? []) as { id: string; form?: string; values?: unknown }[];
+    for (const p of people) if (p.id === (a.active ?? people[0]?.id)) Object.assign(p, { form: 'menswear', values });
+    localStorage.setItem('pattern-maker:account', JSON.stringify(a));
+  }, values);
+  await page.reload();
+  await skipLoading(page);
+  const carry = main(page).getByRole('button', { name: /^Carry on with your/ });
+  if (await carry.isVisible().catch(() => false)) await carry.click({ timeout: 5_000 }).catch(() => {});
+}
+
 /** Begin, then the quiet Skip link under the first measuring page's buttons. */
 export async function skipToExample(page: Page) {
   await main(page).getByRole('button', { name: 'Begin' }).click();
@@ -234,6 +251,13 @@ export async function goTab(page: Page, name: string) {
   else await tabs.locator(`[role="tab"][data-step="${name}"]`).first().click();
 }
 
+/** The step where the length is asked (Length & hem), where the length hint shows since the declutter (Cat's E,
+ *  Nov 21); a garment with no such step asks it on its first, which is already open. */
+export async function openLengthStep(page: Page) {
+  const tab = main(page).getByRole('tablist', { name: 'Style choices', includeHidden: true }).locator('[role="tab"][data-step="Length & hem"], [role="tab"][aria-label="Length & hem"]');
+  if (await tab.count()) await goTab(page, 'Length & hem');
+}
+
 export async function addCloserFit(page: Page, g: GarmentName) {
   const add = main(page).getByRole('button', { name: 'Add them' }).first();
   await expect(await stepTabs(page)).toBeVisible();
@@ -293,8 +317,12 @@ async function fromGarmentDrop(page: Page, item: string) {
   await main(page).getByRole('menuitemradio', { name: item }).click();
 }
 
-/** From a style screen, "The collection" in the garment's drop-down. */
-export const openCollection = (page: Page) => fromGarmentDrop(page, 'The collection ›');
+/** From a style screen, the "The collection ›" link under the garment's name (the drop-down's line for it went in the
+ *  declutter, Cat's E, Nov 21). */
+export async function openCollection(page: Page) {
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await main(page).locator('button.collection-go').click();
+}
 
 /** From a style screen, "Start from a photo" in the garment's drop-down: straight to the photo page. */
 export const openPhoto = (page: Page) => fromGarmentDrop(page, 'Start from a photo ›');
@@ -370,6 +398,9 @@ async function openNumbers(page: Page) {
 
 /** From a style screen (or its Review page) to Print. */
 export async function goPrint(page: Page) {
+  // Style opened from Print's Choose fabric goes straight back to Print (Cat, Nov 21).
+  const back = main(page).getByRole('button', { name: /^Back to Print/ }).first();
+  if (await back.isVisible()) return back.click();
   const print = main(page).getByRole('button', { name: 'Print my pattern' });
   if (!(await print.isVisible())) await openReview(page);
   await print.click();

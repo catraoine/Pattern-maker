@@ -2,12 +2,14 @@
 
 _Update this page whenever a release ships or a PR is queued._
 
-## Now (Nov 17, 2026): how a ship works
+## Now (Nov 21, 2026): how a ship works
 
-Live: **release CW** cc8aa08 (Nov 17, 6:25 pm Cat clock): form drawings with sleeves over printed cloth and a crew neck at
-the neck base, on top of the day's tester fixes (inch PDFs, Blush Shift hem, collection link and typed length, laptop
-layout, review fixes, Dec 7 rehearsal fixes). Rollback = release CV. Every release's deploy id and rollback is in project
-memory (pattern-maker-releases-nov14).
+Live: **release EC** (Nov 22, Cat's 1:20 pm "ship"): the enlarged Pattern view tidy (the window takes the screen width,
+pieces fill it whole, Undo and Redo inside it), the empire seam no longer steps at the opened under-bust dart (empire
+dresses only, not launch patterns), and the film's "Something else" screens and demos tidied, on top of EB (Sewing mode
+follow-ups, small-screen fixes). Rollback = release EB. Releases CW to EC went out Nov 17 to 22;
+every release's commit, deploy id and rollback is in project memory (pattern-maker-releases-nov14), and the running list of what is
+ready is `/mnt/project-files/releases/ready-to-ship.md`.
 
 The ship rule (Cat, Nov 17, 7:47 pm):
 1. Cat writes just "ship" in the Releases thread. Only a "ship" written there counts: no long line to copy, and a "ship"
@@ -19,6 +21,10 @@ The ship rule (Cat, Nov 17, 7:47 pm):
 4. Releases replies with exactly what went live and anything held back, and why (for example still running checks, or a
    pattern change under the Nov 16 to Dec 6 freeze).
 5. A fix that lands after a ship goes on the list for the next one.
+6. At most one ship a day, around the 6 pm batch, unless a tester is stuck; Cat's "ship" always overrides it (Cat:
+   "Apply", Nov 21). Each release reloads testers' open app and costs Netlify credits.
+7. From Nov 16 to Dec 6 no tester piece's pattern shape changes unless Cat approves it as a fit fix; each release
+   checks this.
 
 Each release still runs the full checks on the joined code, checks the live site after, pushes main to match live and
 saves a bundle to code-backup/.

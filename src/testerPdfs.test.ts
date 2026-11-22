@@ -91,6 +91,42 @@ describe('the tester pieces print cleanly', () => {
       });
 });
 
+// DR walk, Nov 20: the Blush Shift's inch booklet read "Shoulder seam (back) 5 in, ease -1/8 in, finished 5 in".
+describe('the inch booklets add up', () => {
+  afterEach(() => vi.restoreAllMocks());
+  // "21-7/8 in" or "-1/8 in" in eighths of an inch.
+  const eighths = (t: string) => {
+    const m = /^([+\-−]?)(\d+)?(?:-?(\d)\/(\d))? in$/.exec(t.trim());
+    if (!m || (!m[2] && !m[3])) return undefined;
+    return (m[1] === '-' || m[1] === '−' ? -1 : 1) * (Number(m[2] ?? 0) * 8 + (m[3] ? (Number(m[3]) * 8) / Number(m[4]) : 0));
+  };
+  for (const id of IDS)
+    for (const [bodyName, body] of Object.entries(BODIES))
+      it(`${id}, ${bodyName}: each finished measurement is the body plus the ease`, async () => {
+        const { look, print } = made(id, body);
+        const summary = { rows: print.spec.filter((r) => typeof r.finished === 'number'), checks: [], flat: print.flat, fabric: print.guide.fabric, lays: print.lays, madeFor: 'Tester' };
+        const sheet = layout(print.pieces, `Maison Tracé: ${look.name}`, print.notes, { pattern: look.name, madeFor: 'Tester' });
+        const drawn: string[] = [];
+        const real = PDFPage.prototype.drawText;
+        vi.spyOn(PDFPage.prototype, 'drawText').mockImplementation(function (this: PDFPage, text: string, o?: unknown) {
+          drawn.push(text);
+          return real.call(this, text, o as never);
+        });
+        await toTiledPdf(sheet, 'letter', { title: look.name, guide: print.guide, summary, unit: 'in', part: 'booklet' });
+        const wrong: string[] = [];
+        let rows = 0;
+        for (let i = 0; i + 2 < drawn.length; i++) {
+          if (!/^[+\-−]/.test(drawn[i + 1])) continue;
+          const [b, e, f] = [drawn[i], drawn[i + 1], drawn[i + 2]].map(eighths);
+          if (b === undefined || e === undefined || f === undefined) continue;
+          rows++;
+          if (b + e !== f) wrong.push(`${drawn[i - 1]}: ${drawn[i]}, ease ${drawn[i + 1]}, finished ${drawn[i + 2]}`);
+        }
+        expect(rows).toBeGreaterThan(0);
+        expect(wrong).toEqual([]);
+      });
+});
+
 // The booklet split its seam check, leaving two checks alone on a page, and left step headings at a page's foot with
 // their words over the page (pretend-tester walk, Nov 17).
 describe('the tester booklets keep things together', () => {
@@ -154,7 +190,9 @@ describe('the tester pattern pages keep their footer clear', () => {
           expect(foot, 'a pattern page with no footer').toBeGreaterThan(0);
           const fy = (list[foot] as { y: number }).y;
           const clear = list.find((e) => e.kind === 'clear') as { x1: number; y1: number } | undefined;
-          const line = list[foot + 1] as { x1: number };
+          const line = list[foot + 1] as { x1: number; text: string };
+          // And it keeps "ACTUAL SIZE", the words most print boxes use (A4 pages lost it, DS walk, Nov 21).
+          expect(line.text, paper).toMatch(/ACTUAL SIZE/);
           // Words drawn on the footer's line before it, unless a cleared band went down between.
           for (const e of list.slice(0, foot))
             if (e.kind === 'text' && e.y > fy - 0.1 * CM && e.y < fy + 0.25 * CM && e.x < line.x1 + 0.3 * CM && e.x1 > 0.9 * CM && !(clear && list.indexOf(clear as never) > list.indexOf(e) && e.y < clear.y1 && e.x < clear.x1)) under.push(`"${e.text}"`);
@@ -162,4 +200,80 @@ describe('the tester pattern pages keep their footer clear', () => {
         expect(under, paper).toEqual([]);
       }
     });
+});
+
+// A tester taping Letter pages couldn't tell which of two dashed lines to cut, the print area's border or the trim line,
+// and wasn't sure whether the half diamonds go over or beside each other (fit tester, Nov 20). Each page's cut edges
+// now carry one solid line marked CUT, nothing dashed, and every diamond says OVER or UNDER the page it joins.
+describe('the tester pages say where to cut and which page goes on top', () => {
+  afterEach(() => vi.restoreAllMocks());
+  for (const id of IDS)
+    it(`${id}: one solid CUT line, and OVER or UNDER at every diamond`, async () => {
+      const { look, print } = made(id, EXAMPLE_BODY);
+      const sheet = layout(print.pieces, `Maison Tracé: ${look.name}`, print.notes, { pattern: look.name, madeFor: 'Tester' });
+      for (const unit of ['cm', 'in'] as const)
+        for (const paper of ['letter', 'a4'] as const) {
+          const where = `${unit}, ${paper}`;
+          const texts = new Map<PDFPage, string[]>();
+          const dashed: string[] = [];
+          // Where each page's name in the footer starts, and its upright cut line: the line ran through "PAGE A2" (DP walk, Nov 20).
+          const footAt = new Map<PDFPage, number>();
+          const cutAt = new Map<PDFPage, number>();
+          const realText = PDFPage.prototype.drawText;
+          vi.spyOn(PDFPage.prototype, 'drawText').mockImplementation(function (this: PDFPage, text: string, o?: Parameters<PDFPage['drawText']>[1]) {
+            texts.set(this, [...(texts.get(this) ?? []), text]);
+            if (text.startsWith('PAGE ') && o?.x !== undefined) footAt.set(this, o.x);
+            return realText.call(this, text, o);
+          });
+          const realLine = PDFPage.prototype.drawLine;
+          vi.spyOn(PDFPage.prototype, 'drawLine').mockImplementation(function (this: PDFPage, o: Parameters<PDFPage['drawLine']>[0]) {
+            if (o.dashArray?.length) dashed.push('line');
+            if (o.start.x === o.end.x && (o.thickness ?? 1) >= 1) cutAt.set(this, o.start.x);
+            return realLine.call(this, o);
+          });
+          const realRect = PDFPage.prototype.drawRectangle;
+          vi.spyOn(PDFPage.prototype, 'drawRectangle').mockImplementation(function (this: PDFPage, o?: Parameters<PDFPage['drawRectangle']>[0]) {
+            if (o?.borderDashArray?.length) dashed.push('rectangle');
+            return realRect.call(this, o);
+          });
+          await toTiledPdf(sheet, paper, { title: look.name, unit, part: 'pattern' });
+          vi.restoreAllMocks();
+          expect(dashed, where).toEqual([]);
+          for (const [pg, x] of cutAt) expect(footAt.get(pg)!, where).toBeGreaterThan(x + 2);
+          for (const t of texts.values()) {
+            // A bare page name only once on a page: its own, large and faint. A diamond's says OVER or UNDER.
+            expect(t.filter((x) => /^[A-Z]\d+$/.test(x)).length, where).toBeLessThanOrEqual(1);
+            if (t.some((x) => /^OVER [A-Z]\d+$/.test(x))) expect(t.filter((x) => x === 'CUT ON THE SOLID LINE').length, where).toBeGreaterThan(0);
+          }
+          expect([...texts.values()].flat().some((x) => /^UNDER [A-Z]\d+$/.test(x)), where).toBe(true);
+        }
+    });
+});
+
+// DT walk, Nov 21: the page map showed the pieces' outlines with no names, so which pages made which piece took working out.
+describe('the page map names the pieces', () => {
+  afterEach(() => vi.restoreAllMocks());
+  for (const id of IDS)
+    it(`${id}: every big piece's name is on the map`, async () => {
+      const { look, print } = made(id, EXAMPLE_BODY);
+      const summary = { rows: print.spec.filter((r) => typeof r.finished === 'number'), checks: [], flat: print.flat, fabric: print.guide.fabric, lays: print.lays, madeFor: 'Tester' };
+      const sheet = layout(print.pieces, `Maison Tracé: ${look.name}`, print.notes, { pattern: look.name, madeFor: 'Tester' });
+      const drawn: { page: PDFPage; text: string }[] = [];
+      const real = PDFPage.prototype.drawText;
+      vi.spyOn(PDFPage.prototype, 'drawText').mockImplementation(function (this: PDFPage, text: string, o?: unknown) {
+        drawn.push({ page: this, text });
+        return real.call(this, text, o as never);
+      });
+      await toTiledPdf(sheet, 'a4', { title: look.name, guide: print.guide, summary, unit: 'cm', part: 'booklet' });
+      // Only the map's own page: the cutting layouts after it name the pieces too.
+      const mapPage = drawn.find((d) => d.text === 'PAGE LAYOUT')!.page;
+      const map = drawn.filter((d) => d.page === mapPage).map((d) => d.text).join('\n');
+      // The two largest pieces (by their outline's span) are always big enough to name.
+      const big = [...print.pieces].sort((a, b) => span(b) - span(a)).slice(0, 2);
+      for (const pc of big) expect(map, pc.name).toContain(pc.name.toUpperCase());
+    });
+  const span = (pc: { outline: { points: () => { x: number; y: number }[] } }) => {
+    const ps = pc.outline.points();
+    return (Math.max(...ps.map((q) => q.x)) - Math.min(...ps.map((q) => q.x))) * (Math.max(...ps.map((q) => q.y)) - Math.min(...ps.map((q) => q.y)));
+  };
 });

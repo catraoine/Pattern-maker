@@ -13,6 +13,7 @@ import { Piece, withAlternate } from './piece';
 import { DraftError, Side, cm } from './skirt';
 import type { DartPlace, PrincessLine } from './manipulate';
 import { moveFrontDart, princessPieces } from './shaping';
+import { blendWaist } from './waistBlend';
 import { BackNeck, KEYHOLE, backDepthFor, backNeckOf } from './backNeck';
 import { Buttons, CAPE_NECKS, Closure, Collar, EXTENSION_CM, ShirtCut, RUFFLE_NECKS, capeDepth, backNeckFacing, poloSlit, backOnFold, buttonPlaces, collarPieces, frontFacing, isBandCollar, openFront } from './collar';
 import { DrapeInfo, Peplum, PeplumHem, PeplumInfo, PeplumSize, drapeBodice, drapeStyle, isDraped } from './drape';
@@ -513,7 +514,8 @@ function shape(d: BodiceDraft, s: BodiceStyle): BodiceDraft {
     return {
       ...d,
       block: [front, back],
-      pieces: pp.pieces,
+      // A peplum top's seams run on below the waist to the peplum seam, and are blended through it (see waistBlend.ts).
+      pieces: d.drop > 0 && s.peplum && s.peplum !== 'none' ? pp.pieces.map((pc) => blendWaist(pc, ['side', 'princess'])) : pp.pieces,
       styleLines: { skip: 'all', front: [{ pts: pp.lines.front, kind: 'seam' }], back: [{ pts: pp.lines.back, kind: 'seam' }] },
     };
   }
@@ -622,13 +624,18 @@ export function draftBodice(m: BodiceMeasurements, style: Partial<BodiceStyle> =
   const s = wrapStyle(unevenStyle(seamStyle(drapeStyle({ ...DEFAULT_BODICE_STYLE, ...style }))));
   // A peplum (drape.ts) goes on any waist-length bodice, a boned one too.
   const redraft = (st: BodiceStyle) => draftBlock(m, st);
-  if (isTop(s.neckline)) {
-    // Cut below the shoulders: the block drafted as usual, then cut along the top edge and shaped.
-    const t = topStyle(s);
-    const cut = cutTop(draftBlock(m, t), t, s.fitting?.lowShoulder);
-    return drapeBodice(isBoned(t) ? bonedPanels(cut, t) : isShirred(t) ? shirredBack(shape(cut, t)) : shape(cut, t), t, m, redraft);
-  }
-  return drapeBodice(unevenFront(finish(cutSleeves(styleSeams(shape(draftBlock(m, s), s), s), s, m as BodiceMeasurements & SleeveMeasurements), s, m), s), s, m, redraft);
+  const once = (st: BodiceStyle): BodiceDraft => {
+    if (isTop(st.neckline)) {
+      // Cut below the shoulders: the block drafted as usual, then cut along the top edge and shaped.
+      const t = topStyle(st);
+      const cut = cutTop(draftBlock(m, t), t, st.fitting?.lowShoulder);
+      return drapeBodice(isBoned(t) ? bonedPanels(cut, t) : isShirred(t) ? shirredBack(shape(cut, t)) : shape(cut, t), t, m, redraft);
+    }
+    return drapeBodice(unevenFront(finish(cutSleeves(styleSeams(shape(draftBlock(m, st), st), st), st, m as BodiceMeasurements & SleeveMeasurements), st, m), st), st, m, redraft);
+  };
+  const d = once(s);
+  // A V or boat neck pulls on only if its edge goes over the head; a smaller one is drafted again with its zip.
+  return d.pullOn && OVER_HEAD_NECKS.includes(s.neckline) && d.neck < HEAD_PASS_CM ? once({ ...s, pullOn: false }) : d;
 }
 
 /**
@@ -815,7 +822,11 @@ function draftBlock(m: BodiceMeasurements, style: BodiceStyle): BodiceDraft {
 const ZIPS = [20, 22, 25, 30, 35, 40, 45, 50, 55, 60];
 /** The longest standard invisible zip that fits the centre back opening. */
 /** A top pulls on over a zip that stops at the waist only if the waist below it is this much more than the bust. */
-const PULL_ON_CM = 2;
+export const PULL_ON_CM = 2;
+/** Necklines that can go on over the head with no opening when a look asks (BodiceStyle.pullOn), besides a plunge. */
+export const OVER_HEAD_NECKS: string[] = ['v', 'boat'];
+/** A neck edge this long, or longer, goes over an adult head in a woven cloth (an adult head is about 55 to 58 cm round). */
+export const HEAD_PASS_CM = 60;
 /** Zips for a top that opens right through to its hem: the tops' own, and a dress's longer ones for a long top. */
 const THROUGH_ZIPS = [...ZIPS, 65, 70, 75];
 const zipFor = (opening: number) => [...ZIPS].reverse().find((z) => z <= opening) ?? ZIPS[0];
@@ -1039,7 +1050,9 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   // run in and the drawing breaks (a top drawn with points at infinity froze the app, Nov 10). Only a mistyped
   // measurement, or a toile correction on top of one, gets here, so say what to check rather than draw something wrong.
   if (FL - BD < MIN_BUST_TO_WAIST)
-    throw new DraftError(`Your bust point comes out ${FL - BD <= 0 ? 'at or below your waist' : 'right at your waist'}, so this top can't be drafted. Please check your bust depth (neck to bust point, ${cm(BD)}) and your front length (neck to waist, ${cm(FL)}).`);
+    // The front length as typed: one no longer than the back is drafted 1 cm longer than it (above), and quoting that
+    // turned a typed 12 in into 12⅜ in (pretend tester DV walk, Nov 21), so it says why instead.
+    throw new DraftError(`Your bust point comes out ${FL - BD <= 0 ? 'at or below your waist' : 'right at your waist'}, so this top can't be drafted. Please check your bust depth (neck to bust point, ${cm(BD)}) and your front length (neck to waist, ${cm(m.front_hps_to_waist)}${FL !== m.front_hps_to_waist ? `, which should be longer than your back length, ${cm(NW)}` : ''}).`);
   const dx = AS / 2 - nwF;
   const apex = p(AS / 2, hpsF0.y + Math.sqrt(Math.max(BD ** 2 - dx ** 2, 1)));
   const wf = apex.y + Math.max(FL - BD, 0);
@@ -1230,8 +1243,8 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   const zipCm = zipThrough ? (THROUGH_ZIPS.find((z) => z >= cbRun - 0.5) ?? THROUGH_ZIPS[THROUGH_ZIPS.length - 1]) : tight ? THROUGH_ZIPS[THROUGH_ZIPS.length - 1] : zipFor(wb - bd - key + (s.dressHem ? DRESS_ZIP_BELOW : below ? 0 : -2));
   const zipEnd = p(0, bd + key + (zipThrough ? cbRun : zipCm));
   // A top that goes on over the head with no opening: a plunge is a neck wide enough for the head, and nothing below
-  // it is a ring the bust and shoulders don't pass.
-  const pullOn = !!s.pullOn && !tight && !s.dressHem && !key && s.neckline === 'plunge' && !s.neck;
+  // it is a ring the bust and shoulders don't pass. A V or boat neck can be too: draftBodice checks its edge clears the head.
+  const pullOn = !!s.pullOn && !tight && !s.dressHem && !key && (s.neckline === 'plunge' || OVER_HEAD_NECKS.includes(s.neckline)) && !s.neck;
   const backCut = 'Cut 2 (1 pair)';
   const backDraft = {
     frame: [

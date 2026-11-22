@@ -5,6 +5,7 @@ import type { Garment } from '../measurements';
 import { canGoBack, goBack, usePageHistory } from '../nav';
 import type { Flat } from '../engine/flat';
 import { DemoButton } from './DemoButton';
+import { ShownView } from './PreviewSwitch';
 import { EnlargeSketch, useEnlarged } from './EnlargeSketch';
 import { Envelope } from './Envelope';
 import { GarmentFabric } from './FabricFill';
@@ -16,6 +17,7 @@ import { Title } from './Title';
 import type { Undo } from './useUndo';
 import { OpenDetail } from './FabricHeadsUp';
 import type { MyFabric } from '../engine/fabrics';
+import { cameFromPrint, forgetPrint, returnToFabric } from './printReturn';
 
 /** Whether the style window has lit up yet in this visit. */
 let litOnce = false;
@@ -424,6 +426,8 @@ interface Props {
   onMode?: (m: Mode) => void;
   /** Edit measurements, on the Review page. */
   onEditMeasurements?: () => void;
+  /** Why the pattern can't be drafted, if it can't: said on the Review page too, above a way back to the measurements. */
+  error?: string;
   /** Which tab a choice goes on, where this garment groups them its own way. */
   sections?: Record<string, string>;
   /** Undo and Redo, only in the enlarged drawing, where the hem is dragged: on the questions a pick is taken back by
@@ -484,14 +488,21 @@ function questionRank(q: Question): [number, number] {
 /** Past this many letters ("your trousers"), the garment's name and the example note don't share a phone's line. */
 const LONG_NAME = 13;
 
-export function StyleLayout({ children, label, name, ready, onChooseGarment, onPhoto, photo, matched, mode, onMode, onEditMeasurements, sections = NO_SECTIONS, undo, flat, fabric, onPrint, finished }: Props) {
+export function StyleLayout({ children, label, name, ready, onChooseGarment, onPhoto, photo, matched, mode, onMode, onEditMeasurements, error, sections = NO_SECTIONS, undo, flat, fabric, onPrint, finished }: Props) {
   const [options, preview, summary] = Children.toArray(children);
   const [page, setPage] = usePageHistory<'edit' | 'review'>(() => 'edit', (s) => s === 'edit' || s === 'review');
   // Read here and cleared once mounted: React may run this twice, and the second run must see it too.
   const [active, setActive] = useState<string | undefined>(() => nextTab ?? (leftOn?.name === name ? leftOn.tab : undefined));
+  // Opened from Print's Choose fabric: the way on goes straight back to Print, on its fabric (Cat, Nov 21).
+  const [fromPrint] = useState(cameFromPrint);
   useEffect(() => {
     nextTab = undefined;
+    forgetPrint();
   }, []);
+  const toPrint = onPrint && fromPrint ? () => {
+    returnToFabric();
+    onPrint();
+  } : onPrint;
   // A look just made goes on to its Review as a page of its own, before anything is painted: the questions stay behind it,
   // so Change a detail (or Back) returns to them, and the screen's own entry keeps the questions for a garment switched in place.
   const lookReview = () => {
@@ -504,7 +515,9 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
     if (lookNext) lookReview();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only on opening
   }, []);
-  const [intro, setIntro] = useState(() => !introSeen());
+  // Not when Print's Change fabric opened Style: that's one quick change, so Fabric opens straight away, without an intro
+  // about fits and necklines in between (DY pretend-tester walk, Nov 21). It still shows on the next ordinary visit.
+  const [intro, setIntro] = useState(() => !fromPrint && !introSeen());
   const [tabs, setTabs] = useState<string[]>([]);
   const root = useRef<HTMLDivElement>(null);
   // The first time Style opens in a visit, its picture window lights up from black to chalk (Cat, Nov 11), easing the
@@ -524,7 +537,9 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   // A length typed instead of dragged: the drawing's length label opens the box under it (testers, Nov 17).
   const [asking, setAsking] = useState<LengthAsk>();
   const [lengthOn, setLengthOn] = useState(false);
-  // The hint shows while the drawing has a length label to tap; the drawing redraws itself, so it is watched.
+  // The hint shows while the drawing has a length label to tap; the drawing redraws itself, so it is watched. Watched
+  // afresh each time the edit page is drawn: a look opens on its Review page, so the first watch found no page to watch
+  // and the hint never showed on any tester piece (DQ walk, Nov 20).
   useEffect(() => {
     const el = root.current;
     if (!el) return;
@@ -533,7 +548,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
     const watch = new MutationObserver(look);
     watch.observe(el, { childList: true, subtree: true });
     return () => watch.disconnect();
-  }, []);
+  }, [page, intro]);
   const look = useContext(LookName);
   // The open question on each step. Every question starts folded (Cat, 2026-11-06: the first one stood open, so
   // See the choices didn't show the whole list); a tap on one opens it.
@@ -577,6 +592,14 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   const [atEnd, setAtEnd] = useState(false);
   // On a phone the list of steps opens from "Step 1 of 5".
   const [jump, setJump] = useState(false);
+  // While the list of steps is open over the drawing, the page under it holds still: it went on scrolling under a
+  // sliver of drawing at the top, which moved but offered nothing (Cat, Nov 22: "this top scroll that offers
+  // nothing"). That sliver is veiled, and a tap on it closes the list.
+  useEffect(() => {
+    if (!jump || wide) return;
+    document.documentElement.classList.add('steps-open');
+    return () => document.documentElement.classList.remove('steps-open');
+  }, [jump, wide]);
   useEffect(() => {
     const el = strip.current;
     if (!el) return;
@@ -737,6 +760,11 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   const at = steps.indexOf(active ?? '');
   // The drawing's corner for its tools, made inside the drawing's area.
   const [corner, setCorner] = useState<HTMLElement | null>(null);
+  // The Demo plays the clip for the view the drawing shows (Cat, Nov 21: "specific to the tools on the style window
+  // the user is on"): Front, the styling clip; All round, its own; Pattern, drawing a line on the pattern. Flat is
+  // only a drawing to look at, so it has none.
+  const [shown, setShown] = useState<string>();
+  const demo = shown === 'pattern' ? 'patterns' : shown === 'round' ? 'allround' : shown === 'flat' ? undefined : 'style';
   // Each step's picks, for the list of steps on a phone (Cat's P3, 2026-11-06, in place of "Your picks"): its first
   // two questions' picks, such as "Regular · At the waist".
   const [stepPicks, setStepPicks] = useState<Record<string, string>>({});
@@ -839,6 +867,15 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
 
   // The Review page as the pattern's envelope (R1, look and feel review, 2026-10-24): the garment's name, the
   // front-and-back drawing, the finished measurements open (F1, 2026-10-28), one Print, and the pieces folded under a line.
+  // In the gold bar at the foot of the screen on a phone, like Next on every question, so Print is never below the
+  // fold (cold read, Nov 14: "no obvious print button").
+  const printBar = onPrint && (
+    <div className="review-print-bar">
+      <button type="button" className="primary review-print" disabled={!ready} onClick={toPrint}>
+        Print my pattern <span aria-hidden="true">›</span>
+      </button>
+    </div>
+  );
   if (page === 'review')
     return (
       <div className="style-review">
@@ -847,6 +884,20 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           <span className="eyebrow">{look ? 'Your look' : `Review · ${label}`}</span>
           {look ?? Name}
         </h1>
+        {/* A look that can't be drafted to these measurements showed only its title and a greyed Print, and the reason was
+            on the Print tab, with no way back to Measure (pretend tester DV walk, Nov 21): it says why here, with the way. */}
+        {error && (
+          <div className="review-error">
+            <p className="msg error" role="status">
+              {error}
+            </p>
+            {onEditMeasurements && (
+              <button type="button" className="primary" onClick={onEditMeasurements}>
+                Check my measurements
+              </button>
+            )}
+          </div>
+        )}
         {/* In the look's own cloth: drawn without it, the flat took the page's black, so the Blush Shift showed as a black
             dress (tester persona walk, Nov 15; Cat, Nov 14: "How come not showing in colour"). */}
         {flat && (
@@ -860,16 +911,11 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
             Change a detail
           </button>
         </p>
+        {/* On a computer Print sits right under the drawing, above the measurements: under the table it fell below
+            the foot of a 900-tall screen (desktop review, Nov 21). */}
+        {wide && printBar}
         {finished}
-        {/* In the gold bar at the foot of the screen on a phone, like Next on every question, so Print is never below
-            the fold (cold read, Nov 14: "no obvious print button"). */}
-        {onPrint && (
-          <div className="review-print-bar">
-            <button type="button" className="primary review-print" disabled={!ready} onClick={onPrint}>
-              Print my pattern <span aria-hidden="true">›</span>
-            </button>
-          </div>
-        )}
+        {!wide && printBar}
         {folded}
         {onEditMeasurements && (
           <p className="review-edits">
@@ -907,6 +953,11 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
         }}
       />
     );
+  // The length hint shows once, where the length is asked: the Length & hem step, or the first step for a garment that
+  // has none (trousers, T-shirt); on a phone only on that step's first question. Over every question it repeated the
+  // dot's own label (Cat's E, declutter, Nov 21).
+  const hintStep = steps.includes(LENGTH) ? LENGTH : steps[0];
+  const hintHere = active === hintStep && (wide || qAt < 0 || qs[qAt - 1]?.tab !== hintStep);
   // The step after this one: the bar's Next goes there, and says only "Next" (Cat, 2026-11-06).
   const next = steps[at + 1];
   // Back a step names the step it goes to, to the left of the way on (Cat's B, 2026-11-02, after a plain arrow from
@@ -914,6 +965,12 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   const backArrow = at > 0 && (
     <button type="button" className="step-back-arrow named" aria-label={`Back to ${steps[at - 1]}`} title={steps[at - 1]} onClick={() => goStep(steps[at - 1])}>
       <span aria-hidden="true">‹</span> {steps[at - 1].split(/\s/)[0]}
+    </button>
+  );
+
+  const backToPrint = toPrint && fromPrint && (
+    <button type="button" className="primary" disabled={!ready} onClick={toPrint}>
+      Back to Print <span aria-hidden="true">›</span>
     </button>
   );
 
@@ -954,7 +1011,9 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           <ActiveTab.Provider value={active}>
             <Sections.Provider value={sections}>
               <Corner.Provider value={corner}>
-                <TypeLength.Provider value={setAsking}>{preview}</TypeLength.Provider>
+                <ShownView.Provider value={setShown}>
+                  <TypeLength.Provider value={setAsking}>{preview}</TypeLength.Provider>
+                </ShownView.Provider>
               </Corner.Provider>
             </Sections.Provider>
           </ActiveTab.Provider>
@@ -995,21 +1054,11 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           {/* A garment matched to a photo says so above its first question, with a way to try another; the way in
               is "Start from a photo" in the name's drop-down (Cat, Nov 12). */}
           {active === steps[0] && (wide || qAt <= 0) && (matched ?? (photo && <PhotoEntry onPhoto={onPhoto} photo={photo} />))}
-          {!asking && lengthOn && <p className="length-hint">Drag the dot, or tap the length to type it.</p>}
+          {!asking && lengthOn && hintHere && <p className="length-hint">Drag the dot, or tap the length to type it.</p>}
+          {jump && !wide && <button type="button" className="style-steps-veil" aria-label="Close the list of steps" onClick={() => setJump(false)} />}
           <div className="chapter" ref={chapter}>
-            {/* Watch demo sits across from the step on a computer (Cat's D3, 2026-10-29). On a phone the step bars are
-                gone and Watch demo is a link at the end of the step (Cat's P1, 2026-10-31): "Step 1 of 5" opens the
-                list of steps instead, to jump to one. */}
-            <div className="chapter-top">
-              {wide ? (
-                at >= 0 && (
-                  <p className="chapter-step">
-                    Step <b>{at + 1}</b> of {steps.length}
-                  </p>
-                )
-              ) : null}
-              {wide && <DemoButton demo="style" />}
-            </div>
+            {/* No "Step 1 of 5" on a computer: the bars under the step's name say the same and are tapped to jump (Cat's E,
+                declutter, Nov 21). Demo is in the drawing's corner on every screen, as on a phone. */}
             {wide ? (
               <h2 className="chapter-name">{active}</h2>
             ) : (
@@ -1109,9 +1158,9 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
                 <ModeLink mode={mode} onMode={onMode} />
               </TabPanel>
             ) : (
-              // Once, on the last tab, so it isn't repeated under every choice.
-              // On a computer under every step; on a phone it is on the Review page (Cat, 2026-10-31).
-              wide && <ModeLink mode={mode} onMode={onMode} />
+              // Once, on the last tab, so it isn't repeated under every choice. On a phone it is on the Review page (Cat, 2026-10-31).
+              // On a computer once, under the last step, as on a phone (declutter, Cat's E, Nov 21): it stood under all five.
+              wide && at === steps.length - 1 && <ModeLink mode={mode} onMode={onMode} />
             )}
             </Sections.Provider>
           </ActiveTab.Provider>
@@ -1127,24 +1176,36 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
                   Next ›
                 </button>
               )}
+              {/* Back from the fabric to Print, on the step Print sent you to (Cat, Nov 21). */}
+              {!steps[at + 1] && fromPrint && toPrint && (
+                <button type="button" className="step-go" disabled={!ready} onClick={toPrint}>
+                  Back to Print ›
+                </button>
+              )}
             </div>
           )}
           {/* On a phone the step ends with two quiet links (Cat's P1, 2026-10-31): Review, which left the bar so it
               holds one button, and Watch demo. */}
           {/* On a phone the list of questions holds every pick, so Review comes after the last question, and Watch
               demo stands with the drawing's tools, under Enlarge and Draw (Cat's B combo and K, 2026-11-08). */}
-          {!wide && corner && createPortal(<DemoButton demo="style" />, corner)}
+          {/* On a computer too since the declutter (Cat's E, Nov 21): one Demo, in the window's corner, on every screen. */}
+          {corner && demo && createPortal(<DemoButton demo={demo} />, corner)}
         </div>
         {wide ? (
+          // The side holds Print, then the rest folded under one line (declutter, Cat's E, Nov 21): the finished
+          // measurements stood open under every step, so the page ran on well past the drawing.
           <div className="style-side">
-            <p className="eyebrow">{name}</p>
-            {finished}
             {onPrint && (
-              <button type="button" className="primary review-print" disabled={!ready} onClick={onPrint}>
+              <button type="button" className="primary review-print" disabled={!ready} onClick={toPrint}>
                 Print my pattern
               </button>
             )}
-            {folded}
+            <p className="eyebrow">{name}</p>
+            <details className="review-fold">
+              <summary>Finished measurements, pieces and fabric</summary>
+              {finished}
+              {summary}
+            </details>
             {onEditMeasurements && (
               <p className="review-edits side-edits">
                 <button type="button" className="later" onClick={onEditMeasurements}>
@@ -1179,9 +1240,11 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
                 Next: {qs[qAt + 1].label} <span aria-hidden="true">›</span>
               </button>
             ) : qAt >= 0 ? (
-              <button type="button" className="primary" disabled={!ready} onClick={() => setPage('review')}>
-                Review <span aria-hidden="true">›</span>
-              </button>
+              backToPrint || (
+                <button type="button" className="primary" disabled={!ready} onClick={() => setPage('review')}>
+                  Review <span aria-hidden="true">›</span>
+                </button>
+              )
             ) : !seen ? (
               <button type="button" className="primary" onClick={() => showChoices()}>
                 See the choices <span aria-hidden="true">↓</span>
@@ -1192,9 +1255,11 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
                 Next <span aria-hidden="true">›</span>
               </button>
             ) : (
-              <button type="button" className="primary" disabled={!ready} onClick={() => setPage('review')}>
-                Review <span aria-hidden="true">›</span>
-              </button>
+              backToPrint || (
+                <button type="button" className="primary" disabled={!ready} onClick={() => setPage('review')}>
+                  Review <span aria-hidden="true">›</span>
+                </button>
+              )
             )}
           </div>
         )}

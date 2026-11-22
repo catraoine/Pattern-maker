@@ -9,7 +9,7 @@ import { UnitNow } from './LengthEntry';
 // every garment shows what the pattern measures against you, the ease between, and a plain fit word.
 
 /** The rounds a fit word reads true for: the body's girths. An arm or a crotch has its own scale. */
-const GIRTH = /^(Bust|Waist|Hip|High hip|Underbust)\b/;
+const GIRTH = /^(Bust|Waist|Hip|High hip|Underbust|Top edge)\b/;
 /** The few lengths worth seeing beside them; the rest stays on the printed spec sheet. */
 const LENGTH = /^(Length|Nape to hem|Centre back length|Outside leg|Hem circumference|Hem, round|Hem, \d)/;
 
@@ -61,6 +61,10 @@ export function FinishedTable({ lines, noun, children }: { lines: FinishedLine[]
   const unit = useContext(UnitNow);
   if (!lines.length) return null;
   const fmt = fmtIn(unit);
+  // In inches the ease is the finished size less yours, each as shown to the eighth, so the row adds up: rounded on its
+  // own, the inch skirt read 43⅞ + ¾ = 44¾ (DU tester walk, Nov 21). It moves by an eighth at most.
+  const eighth = 2.54 / 8;
+  const shownEase = (l: FinishedLine) => (unit === 'in' && l.body !== undefined ? (Math.round(l.finished / eighth) - Math.round(l.body / eighth)) * eighth : l.ease!);
   const signed = (v: number) => (fmt(v) === '0' || fmt(-v) === '0' ? '0' : v > 0 ? `+${fmt(v)}` : `−${fmt(-v)}`);
   return (
     <section className="finished" aria-labelledby="finished-h">
@@ -85,7 +89,7 @@ export function FinishedTable({ lines, noun, children }: { lines: FinishedLine[]
               <td>{l.body !== undefined ? fmt(l.body) : ''}</td>
               <td className="fin">{fmt(l.finished)}</td>
               <td className="ease">
-                {l.ease !== undefined && signed(l.ease)}
+                {l.ease !== undefined && signed(shownEase(l))}
                 {l.fit && <span className={`fitword fit-${l.fit.split(' ')[0].toLowerCase()}`}>{l.fit}</span>}
               </td>
             </tr>

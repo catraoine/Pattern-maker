@@ -45,13 +45,13 @@ const SELF_BIND =
   'Cut 2.5 cm bias strips from the same sheer. Trim the seam to 0.6 cm, lay a strip over it right sides together, sew 0.5 cm from the edge, wrap the strip round the raw edges and slip-stitch its fold down by hand over the stitching';
 
 /** The sewing guide for a top in sheer cloth: French seams, self-bound edges, and a stiffened big peplum. */
-export function withSheerTop(g: SewingGuide, d: Pick<BodiceDraft, 'peplum' | 'zipCm'> & { backLoops?: boolean }, seam: string): SewingGuide {
+export function withSheerTop(g: SewingGuide, d: Pick<BodiceDraft, 'peplum' | 'zipCm'> & { backLoops?: boolean }, seam: string, neck: string): SewingGuide {
   const steps: SewStep[] = [];
   for (const st of g.steps) {
     switch (st.title) {
       case 'Neaten the edges':
         // Nothing is overlocked in a sheer: each seam encloses its own edges as it is sewn.
-        steps.push({ title: 'Sew French seams', text: `Every seam shows through a sheer, so none is overlocked: each one is sewn as a French seam, which leaves a neat 0.3 cm fold inside. ${FRENCH(seam)}. Test one on scraps first, with a fine needle and a short stitch.` });
+        steps.push({ title: 'Sew French seams', text: `Every seam shows through a sheer, so none is overlocked: each one is sewn as a French seam, which leaves a neat 0.6 cm fold inside, its raw edges shut in. ${FRENCH(seam)}. Test one on scraps first, with a fine needle and a short stitch.` });
         break;
       case 'Sew the princess seams':
         steps.push({
@@ -68,7 +68,9 @@ export function withSheerTop(g: SewingGuide, d: Pick<BodiceDraft, 'peplum' | 'zi
         steps.push({ ...st, text: `${st.text} Then trim each dart to 0.3 cm from its stitching and overcast the edges together by hand, so only a fine line shows through.` });
         break;
       case 'Bind the neckline':
-        steps.push({ ...st, text: `${SELF_BIND.replace('Trim the seam to 0.6 cm, lay a strip over it right sides together', 'Pin a strip to the neckline right sides together, 1 cm extra at each end')}. Bought binding is heavier and darker than the sheer and would show as a band.` });
+        // Sewn on the neck's own stitching line and then trimmed: sewn 0.5 cm from an untrimmed edge, the seam sat 0.5 cm
+        // outside the drafted neckline, a smaller, higher neck than the one the fit test checks (DW walk, Nov 21).
+        steps.push({ ...st, text: `Cut 2.5 cm bias strips from the same sheer. Pin a strip to the neckline right sides together, 1 cm extra at each end, and sew it on the neck's stitching line, ${neck} from the edge. Trim the seam to 0.5 cm, wrap the strip round the raw edges and slip-stitch its fold down by hand over the stitching. Bought binding is heavier and darker than the sheer and would show as a band.` });
         break;
       case 'Finish the armhole seams':
         steps.push({ ...st, text: `${SELF_BIND} round each armhole, starting at the underarm. Let the seam turn toward the sleeve.` });
@@ -99,8 +101,9 @@ export function withSheerTop(g: SewingGuide, d: Pick<BodiceDraft, 'peplum' | 'zi
 export function withBackLoops(g: SewingGuide, d: LoopedBack, seam: string): SewingGuide {
   const n = loopsFor(d);
   // The bodice's back edges fold on the centre back line (half the allowance, twice), so the peplum's open edges do too.
-  const half = `${Math.round((parseFloat(seam) / 2) * 100) / 100} cm`;
-  const peplumEdges = `Turn the open edges in twice by ${half} and stitch, so they finish on the centre back line as the bodice's edges do.`;
+  // Said as halves, not as a length: 0.75 cm read as 1/4 in each time in the inch booklet, using up only 1/2 in of a
+  // 5/8 in allowance, so the edges overlapped (pretend tester DX walk, Nov 22).
+  const peplumEdges = `Turn the open edges in twice, half the ${seam} allowance each time, and stitch, so they finish on the centre back line as the bodice's edges do.`;
   const steps = g.steps.flatMap((st): SewStep[] => {
     if (st.title === 'Put in the zip')
       return [
@@ -110,7 +113,7 @@ export function withBackLoops(g: SewingGuide, d: LoopedBack, seam: string): Sewi
         },
         {
           title: 'Close the back with buttons and loops',
-          text: `On the right back (as you wear it), mark ${n} points down the centre back line ${LOOP_GAP} cm apart, the first 1 cm below the neck edge. Fold each loop in half and baste its ends to the right side at a mark, raw edges in the ${seam} allowance and the loop pointing toward the side seam. Turn the allowance on both backs under twice, ${half} then ${half}, enclosing the loop ends, and slip-stitch it down so the loops stand out from the fold. On the left back, sew a 1 cm covered button opposite each loop, 0.3 cm in from the fold, so the two edges meet with no gap.`,
+          text: `On the right back (as you wear it), mark ${n} points down the centre back line ${LOOP_GAP} cm apart, the first 1 cm below the neck edge. Fold each loop in half and baste its ends to the right side at a mark, raw edges in the ${seam} allowance and the loop pointing toward the side seam. Turn the ${seam} allowance on both backs under twice, half of it each time, enclosing the loop ends, so each fold falls on the centre back line, and slip-stitch it down so the loops stand out from the fold. On the left back, sew a 1 cm covered button opposite each loop, 0.3 cm in from the fold, so the two edges meet with no gap.`,
         },
       ];
     if (st.title === 'Finish') return [{ ...st, text: st.text.replace(/Sew a hook and eye at the top of the zip, inside the [a-z ]+\. ?/, '') }];

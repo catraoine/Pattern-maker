@@ -27,6 +27,9 @@ function waistSeam(pc: Piece): number | undefined {
   return ys.length ? ys[Math.floor(ys.length / 2)] : undefined;
 }
 
+/** How far in from the stitching line a seam's name reaches, in cm. */
+const EDGE_WORDS = 1;
+
 /**
  * Where across the piece a mark at level y sits: the middle of the widest stretch that no dart, grain
  * arrow or fold bracket crosses anywhere in the band its words take, so the words keep off the lines.
@@ -34,7 +37,10 @@ function waistSeam(pc: Piece): number | undefined {
 function across(pc: Piece, y: number, band: [number, number]): { x: number; w: number } | undefined {
   const edge = crossings(pc.outline.points(), y);
   if (edge.length < 2) return undefined;
-  const [x0, x1] = [edge[0], edge[edge.length - 1]];
+  // The seam names run just inside each edge: the words keep off them too, or a narrow piece's words ran into its
+  // princess seam's name (pretend tester DO walk, Nov 20).
+  const [x0, x1] = [edge[0] + EDGE_WORDS, edge[edge.length - 1] - EDGE_WORDS];
+  if (x1 <= x0) return undefined;
   const lines = [...pc.lines.map((ln) => ln.points()), ...(pc.grain ? [pc.grain] : [])];
   const cuts: number[] = pc.fold ? [pc.fold[0].x + 3.4] : [];
   for (let k = 0; k <= 6; k++) {
@@ -42,7 +48,7 @@ function across(pc: Piece, y: number, band: [number, number]): { x: number; w: n
     for (const ln of lines) cuts.push(...crossings(ln.length === 2 ? [...ln, ...ln.slice().reverse()] : ln, yy));
     // The outline itself narrows or widens across the band.
     const e = crossings(pc.outline.points(), yy);
-    if (e.length >= 2) cuts.push(e[0], e[e.length - 1]);
+    if (e.length >= 2) cuts.push(e[0] + EDGE_WORDS, e[e.length - 1] - EDGE_WORDS);
   }
   const xs = [x0, ...cuts.filter((x) => x > x0 && x < x1).sort((u, v) => u - v), x1];
   let best = { w: 0, x: (x0 + x1) / 2 };
@@ -61,21 +67,39 @@ export function withFinishedMarks(pieces: Piece[], spec: SpecRow[]): Piece[] {
   const fronts = shells(pieces);
   const marks = new Map<Piece, FinishedMark[]>();
   // The level is tried as given, then a little either side, until the words fit clear of the lines.
-  const add = (pc: Piece, y: number, name: string, r: SpecRow, above = false, tries = [0, 1.5, -1.5, 3]) => {
+  // `roomy`: only where the words fit whole, so a narrower piece can be passed over for one with room.
+  const add = (pc: Piece, y: number, name: string, r: SpecRow, above = false, tries = [0, 1.5, -1.5, 3], roomy = false) => {
     const title = `FINISHED ${name} ${fmt(r.finished as number)} CM`;
     const need = textWidth(title, MARK_TEXT, 0.12) * 1.3 + 0.6;
     const spots = tries.map((dy) => ({ y: y + dy, at: across(pc, y + dy, above ? [-2.4, 0.8] : [-0.8, 2.6]) }));
-    const spot = spots.find((s) => s.at && s.at.w >= need) ?? spots.find((s) => s.at && s.at.w >= 4);
-    if (!spot?.at) return;
-    const mark = { at: p(spot.at.x, spot.y), title, note: `YOU ${fmt(r.body!)} CM · EASE ${signed(r.ease!)} CM` };
+    const spot = spots.find((s) => s.at && s.at.w >= need) ?? (roomy ? undefined : spots.find((s) => s.at && s.at.w >= 4));
+    if (!spot?.at) return false;
+    // A low rise's waist is read against the body where its top sits: "YOU 89.9 CM" on a 79 cm waist read as a
+    // mistake (pretend tester DN walk, Nov 20), so the note says where.
+    const low = /^Top edge, ([\d.]+) cm (below|above) your waist$/.exec(r.label);
+    const you = low ? `YOU ${fmt(r.body!)} CM, ${low[1]} CM ${low[2].toUpperCase()} YOUR WAIST` : `YOU ${fmt(r.body!)} CM`;
+    const mark = { at: p(spot.at.x, spot.y), title, note: `${you} · EASE ${signed(r.ease!)} CM` };
     marks.set(pc, [...(marks.get(pc) ?? []), above ? { ...mark, above } : mark]);
+    return true;
   };
 
   const bust = row('Bust');
   let upper: Piece | undefined;
   if (bust) {
-    upper = fronts.find((pc) => apexOf(pc)) ?? fronts.find((pc) => balanceY(pc, 'UNDERARM LINE') !== undefined);
-    if (upper) add(upper, apexOf(upper)?.y ?? balanceY(upper, 'UNDERARM LINE')! + 2.5, 'BUST', bust);
+    // The front with the bust point first, then any front reaching the underarm. A princess top's centre front is too
+    // narrow at the bust for the words, which printed over PLACE ON FOLD and its seam label (pretend tester DO walk,
+    // Nov 20): the side front, with room, takes them.
+    // A princess side front has no bust point of its own; cut from the same draft, it shares the centre front's level.
+    const apex = fronts.map(apexOf).find((q) => q);
+    const spans = (pc: Piece, y: number) => pc.outline.points().some((q) => q.y < y) && pc.outline.points().some((q) => q.y > y);
+    const levelOf = (pc: Piece) => apexOf(pc)?.y ?? (balanceY(pc, 'UNDERARM LINE') !== undefined ? balanceY(pc, 'UNDERARM LINE')! + 2.5 : apex!.y);
+    const reach = [
+      ...fronts.filter((pc) => apexOf(pc)),
+      ...fronts.filter((pc) => !apexOf(pc) && balanceY(pc, 'UNDERARM LINE') !== undefined),
+      ...(apex ? fronts.filter((pc) => !apexOf(pc) && balanceY(pc, 'UNDERARM LINE') === undefined && spans(pc, apex.y)) : []),
+    ];
+    upper = reach.find((pc) => add(pc, levelOf(pc), 'BUST', bust, false, undefined, true)) ?? reach[0];
+    if (upper && !marks.has(upper)) add(upper, levelOf(upper), 'BUST', bust);
   }
   const waist = row('Waist');
   if (waist) {

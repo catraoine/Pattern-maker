@@ -1,0 +1,665 @@
+/* Sewing mode (Cat's C, Nov 21): one step at a time over the whole screen, for a phone propped by the machine. Black
+   around a chalk picture window, like Style, with the edges being sewn drawn in dark ink as you watch. */
+.sewmode {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: var(--paper);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: max(16px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
+  overflow-y: auto;
+  outline: none;
+}
+
+.sewmode-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sewmode-close {
+  color: var(--ink);
+}
+
+/* How far along: one thin dash a step, filled up to this one. */
+.sewmode-bar {
+  display: flex;
+  gap: 3px;
+}
+
+.sewmode-bar i {
+  flex: 1;
+  height: 2px;
+  background: var(--disabled);
+}
+
+.sewmode-bar i.done {
+  background: var(--muted);
+}
+
+.sewmode-bar i.on {
+  background: var(--gild);
+}
+
+.sewmode-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1 0 auto;
+}
+
+.sewmode-pic {
+  background: #dcd5c7;
+  padding: 8px;
+}
+
+.sewmode-words {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1 0 auto;
+}
+
+.sewmode-title {
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.sewmode-words p {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.6;
+  max-width: 62ch;
+}
+
+.sewmode-go {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+.sewmode-go button.primary {
+  background: var(--gild);
+  color: var(--paper);
+}
+
+.sewmode-go button.ghost {
+  min-height: 52px;
+  background: transparent;
+  color: var(--gild);
+  border: var(--bw) solid var(--gild);
+  font-size: var(--caps-size);
+  cursor: pointer;
+}
+
+.sewmode-go button.ghost:disabled {
+  color: var(--disabled);
+  border-color: var(--disabled);
+  cursor: default;
+}
+
+/* The small pictures along the foot are for a computer; a phone steps with Back and Next. */
+.sewmode-strip {
+  display: none;
+}
+
+/* The pictures: ink on chalk, in the app's own line weights. */
+.sewpic {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 10;
+  color: #1d1a17;
+}
+
+.sewpic text {
+  font-family: var(--mono);
+  font-size: 3px;
+  letter-spacing: 0.14em;
+  fill: #5e5547;
+}
+
+.sewpic .sp-cloth {
+  fill: #f6f2ea;
+  stroke: #1d1a17;
+  stroke-width: 0.6;
+  stroke-linejoin: round;
+}
+
+.sewpic .sp-faint {
+  fill: none;
+  stroke: #9b927f;
+  stroke-width: 0.4;
+  stroke-dasharray: 1.2 0.9;
+}
+
+.sewpic .sp-fabric {
+  fill: #cdc5b5;
+}
+
+.sewpic .sp-paper {
+  fill: #fbf9f4;
+  stroke: #1d1a17;
+  stroke-width: 0.3;
+}
+
+.sewpic .sp-ruler {
+  fill: #efe9dd;
+  stroke: #1d1a17;
+  stroke-width: 0.3;
+}
+
+.sewpic .sp-tick,
+.sewpic .sp-mark {
+  fill: none;
+  stroke: #1d1a17;
+  stroke-width: 0.3;
+}
+
+.sewpic .sp-ghost {
+  fill: none;
+  stroke: #1d1a17;
+  stroke-width: 0.4;
+  stroke-dasharray: 1.6 1;
+}
+
+.sewpic .sp-edge {
+  fill: none;
+  stroke: #1d1a17;
+  stroke-width: 0.7;
+}
+
+.sewpic .sp-selvedge {
+  fill: none;
+  stroke: #1d1a17;
+  stroke-width: 1.1;
+}
+
+/* The line being sewn: it draws itself in, holds, then starts again, like a short clip. */
+.sewpic .sp-sew {
+  fill: none;
+  stroke: #1d1a17;
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: sew-draw 3.6s ease-in-out infinite;
+}
+
+.sewpic .sp-come {
+  animation: sew-come 3.6s ease-in-out infinite;
+}
+
+@keyframes sew-draw {
+  0% {
+    stroke-dashoffset: 1;
+  }
+  55%,
+  90% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0.2;
+  }
+}
+
+@keyframes sew-come {
+  0%,
+  10% {
+    transform: translateY(6px);
+    opacity: 0;
+  }
+  40%,
+  90% {
+    transform: none;
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.2;
+  }
+}
+
+/* Still: drawn finished, for the small pictures, and for anyone who'd rather nothing moved. */
+.sewpic.still .sp-sew,
+.sewpic.still .sp-come {
+  animation: none;
+  stroke-dashoffset: 0;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sewpic .sp-sew,
+  .sewpic .sp-come {
+    animation: none;
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+.sewpic-flat,
+.sewpic-diagram {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 16 / 10;
+}
+
+.sewpic-flat svg,
+.sewpic-diagram svg {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: 100%;
+}
+
+.sewpic-diagram svg.stepdg {
+  width: 100%;
+  height: auto;
+}
+
+/* On a computer: the picture large on the left, the words and buttons on the right, every step along the foot. */
+@media (min-width: 900px) {
+  .sewmode {
+    padding: 28px 56px;
+    gap: 18px;
+  }
+
+  .sewmode-body {
+    flex-direction: row;
+    align-items: center;
+    gap: 48px;
+  }
+
+  .sewmode-pic {
+    flex: 3 1 0;
+    padding: 18px 24px;
+  }
+
+  .sewmode-words {
+    flex: 2 1 0;
+    flex-grow: 2;
+    justify-content: center;
+  }
+
+  .sewmode-title {
+    font-size: 40px;
+  }
+
+  .sewmode-words p {
+    font-size: 18px;
+  }
+
+  .sewmode-go {
+    margin-top: 12px;
+  }
+
+  .sewmode-strip {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 6px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .sewmode-strip button {
+    display: block;
+    width: 100%;
+    padding: 2px;
+    background: #dcd5c7;
+    border: 0;
+    opacity: 0.45;
+    cursor: pointer;
+  }
+
+  .sewmode-strip button.done {
+    opacity: 0.7;
+  }
+
+  .sewmode-strip button.on {
+    opacity: 1;
+    outline: 2px solid var(--gild);
+    outline-offset: 2px;
+  }
+
+  .sewmode-strip .sewpic text {
+    display: none;
+  }
+}
+
+/* The way in, on Print: the first step's picture, one line, and Start sewing. */
+.sew-start {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 560px;
+}
+
+.sew-start .sewmode-pic {
+  padding: 6px;
+}
+
+.sew-start button.primary {
+  background: var(--gild);
+  color: var(--paper);
+}
+
+/* The full list, folded under Start sewing: a quiet line that opens it. */
+details.sew > .sew-summary > .sew-list-head {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: var(--caps-size);
+  font-weight: var(--w-body);
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--gild);
+}
+
+details.sew:not([open]) > .sew-summary > .sew-list-head::after {
+  content: ' +';
+}
+
+.card.sew-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* A seam being sewn: the edge picked out in a heavier line, with machine stitches sewn along it as you watch. */
+.sewpic .sp-seam {
+  fill: none;
+  stroke: #1d1a17;
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+
+.sewpic .sp-stitch {
+  fill: none;
+  stroke: #1d1a17;
+  stroke-width: 2.4;
+  stroke-dasharray: 1.4 1;
+  stroke-linecap: butt;
+}
+
+.sewpic .sp-reveal {
+  stroke: #fff;
+  stroke-width: 4;
+}
+
+.sewpic .sp-cloth {
+  stroke: #5e5547;
+}
+
+.sewpic.still .sp-stitch {
+  stroke-width: 1.6;
+}
+
+/* The finished garment, as on the pattern envelope: chalk ink on the chalk window. */
+.sewpic-flat {
+  --ink: #1d1a17;
+  --gild: #2a2622;
+  --gild-glow: #1d1a17;
+  --muted: #5e5547;
+  --line-strong: #2a2622;
+  --guide: #b9b2a4;
+  color: #1d1a17;
+}
+
+.sewpic-flat .techflat .flat-shape {
+  fill: var(--garment, #f6f2ea);
+}
+
+/* The Sew tab (Cat, Nov 21): Start or Carry on, then every step as a small chalk picture to jump straight to. */
+.sew-start-go {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.sew-start-go button {
+  flex: 1 1 180px;
+}
+
+.card.sew-index {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sew-index h2 {
+  margin: 0;
+}
+
+.sew-index-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 10px;
+}
+
+@media (min-width: 700px) {
+  .sew-index-list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.sew-index-list button {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  width: 100%;
+  min-height: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--ink);
+  text-align: left;
+  text-transform: none;
+  letter-spacing: normal;
+  cursor: pointer;
+}
+
+.sew-index-pic {
+  display: block;
+  background: #dcd5c7;
+  padding: 4px;
+  outline: 1px solid transparent;
+}
+
+.sew-index-list button.on .sew-index-pic,
+.sew-index-list button:hover .sew-index-pic {
+  outline-color: var(--gild);
+}
+
+.sew-index-title {
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.sewscreen h1 {
+  font-size: 28px;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.sewscreen .sew-guide {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+/* On a computer the Sew tab's start sits picture beside words, so it fills the width instead of a narrow column. */
+@media (min-width: 900px) {
+  .sewscreen .sew-start {
+    display: grid;
+    grid-template-columns: minmax(0, 560px) minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    column-gap: 28px;
+    max-width: none;
+  }
+
+  .sewscreen .sew-start .sewmode-pic {
+    grid-row: 1 / 3;
+  }
+
+  .sewscreen .sew-start p {
+    font-size: 16px;
+    max-width: 34em;
+  }
+
+  .sewscreen .sew-start-go {
+    align-self: start;
+    max-width: 420px;
+  }
+}
+
+/* The step's number and title on one line, in the heading capitals, the number in champagne (Cat's A, Nov 21). */
+.sew-num {
+  color: var(--gild);
+  margin-right: 0.45em;
+}
+
+.sewmode .sewmode-top {
+  justify-content: flex-end;
+}
+
+.sew-index-title {
+  font-family: var(--display);
+  font-stretch: var(--display-width);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+
+/* One action per line, each with a square to tick (Cat's A Tick list, Nov 21): champagne like Print's tick boxes, and
+   a ticked line fades back so the eye lands on the next one. */
+.sew-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 62ch;
+}
+
+.sew-lines label {
+  /* The reading font, not the app's spaced capitals for form labels. */
+  font-family: var(--sans);
+  font-weight: var(--w-body);
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--ink);
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 12px;
+  align-items: start;
+  font-size: 17px;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.sew-lines input[type='checkbox'] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  margin: 3px 0 0;
+  border: 1.5px solid var(--gild);
+  border-radius: 0;
+  background: transparent;
+  display: grid;
+  place-content: center;
+  cursor: pointer;
+}
+
+.sew-lines input[type='checkbox']::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  background: var(--gild);
+  transform: scale(0);
+  transition: transform 0.12s ease-out;
+}
+
+.sew-lines input[type='checkbox']:checked::before {
+  transform: scale(1);
+}
+
+.sew-lines input[type='checkbox']:focus-visible {
+  outline: 2px solid var(--gild);
+  outline-offset: 2px;
+}
+
+.sew-lines li.done span {
+  opacity: 0.45;
+  transition: opacity 0.2s;
+}
+
+/* A line that tells you something rather than asks you to do it (EA pretend-tester walk, Nov 21: they had tick boxes
+   too): no box, lined up with the words above, quieter. */
+.sew-lines li.note {
+  padding-left: 34px;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+/* The muslin note on a tester's first step: set apart from the lines to tick, a champagne rule beside it. */
+.sew-muslin {
+  margin: 16px 0 0;
+  padding-left: 14px;
+  border-left: 2px solid var(--gild);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+/* On a phone, Back and Next stay at the foot of the screen however long the step (DZ pretend-tester walk, Nov 21:
+   on long steps they were off screen until you scrolled). */
+@media (max-width: 899px) {
+  .sewmode .sewmode-go {
+    position: sticky;
+    bottom: calc(-1 * max(18px, env(safe-area-inset-bottom)));
+    margin-inline: calc(-1 * max(18px, env(safe-area-inset-left)));
+    padding: 12px max(18px, env(safe-area-inset-left)) max(18px, env(safe-area-inset-bottom));
+    background: var(--paper);
+    border-top: 1px solid #2b2720;
+    z-index: 1;
+  }
+
+  /* A fade just above Back and Next, so words running on underneath read as more to scroll to (EA walk, Nov 21). */
+  .sewmode .sewmode-go::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 100%;
+    height: 28px;
+    background: linear-gradient(to bottom, transparent, var(--paper));
+    pointer-events: none;
+  }
+}
+
+/* Sewn to the end: a finished state on the Sew tab instead of "You stopped at the last step". */
+.sew-finished {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}

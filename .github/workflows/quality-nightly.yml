@@ -3,12 +3,16 @@ name: Quality checks nightly
 # Every night, the Quality: Automated checks department's checks at full size (Cat, 2026-11-04). The same checks run on
 # every pull request at a smaller size (see e2e.yml); this run only reports. The department's nightly read takes the
 # "Summary" step's log and tells Cat only when something got worse.
-# - Pattern geometry: every option of every garment, on the example body and on random bodies (src/patternSweep.ts).
+# - Pattern geometry: every option of every garment, on the example body and on random bodies (src/patternSweep.ts), and
+#   on random men's bodies on the menswear form.
 # - Fit sweep: 300 new random bodies each night, a random design of every garment on each (src/fitSweep.ts).
 # - Print check: the sample patterns' PDFs on A4, Letter and A0, rendered and measured (src/printCheck.ts).
 # - Front drawing: every option's drawing on the form, read out of the real app and scored (src/frontCheck.ts).
 # - Screens: every screen photographed on a phone and a computer, looked over for words cut off (e2e/screenAudit.ts).
+# - Front drawing and screens on the menswear form, as the example man (Nov 22): their own jobs, report-only, so they
+#   never change the womenswear checks.
 # - DXF round trip: every option's DXF read back and held to the draft, on random bodies too (src/dxfRoundTrip.ts).
+# - Firefox: the tester walks and the laptop screen sizes in Firefox on a computer (Cat's "apply", Nov 21).
 on:
   schedule:
     - cron: '30 9 * * *'
@@ -38,14 +42,20 @@ jobs:
         env:
           PATTERN_BODIES: ${{ github.event.inputs.bodies || '20' }}
           PATTERN_BODIES_REPORT: pattern-bodies.md
+      - run: npx vitest run src/patternSweep.test.ts -t "menswear form"
+        if: ${{ !cancelled() }}
+        env:
+          PATTERN_MENSWEAR: '10'
+          PATTERN_MENSWEAR_REPORT: pattern-menswear.md
       - name: Report
         if: ${{ !cancelled() }}
-        run: cat pattern-options.md pattern-bodies.md >> "$GITHUB_STEP_SUMMARY" || true
+        run: cat pattern-options.md pattern-bodies.md pattern-menswear.md >> "$GITHUB_STEP_SUMMARY" || true
       - name: Summary
         if: ${{ !cancelled() }}
         run: |
           head -6 pattern-options.md || true
           head -8 pattern-bodies.md || true
+          head -8 pattern-menswear.md || true
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
@@ -53,6 +63,7 @@ jobs:
           path: |
             pattern-options.md
             pattern-bodies.md
+            pattern-menswear.md
 
   fit:
     name: Fit sweep on 300 new random bodies
@@ -191,3 +202,95 @@ jobs:
         with:
           name: quality-nightly-screens
           path: screens
+
+  front-menswear:
+    name: Front drawing check, menswear form
+    runs-on: ubuntu-24.04 # Playwright's browser doesn't install on later Ubuntu yet
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e -- front-drawing.spec.ts --project desktop --workers 4
+        env:
+          FRONT_CHECK: front-drawings-menswear
+          FRONT_FORM: menswear
+      - run: npx vitest run src/frontCheck.test.ts -t "menswear form"
+        if: ${{ !cancelled() }}
+        env:
+          FRONT_MENSWEAR_FROM: front-drawings-menswear
+          FRONT_MENSWEAR_REPORT: front-menswear.md
+      - name: Report
+        if: ${{ !cancelled() }}
+        run: cat front-menswear.md >> "$GITHUB_STEP_SUMMARY" || true
+      - name: Menswear summary (report only)
+        if: ${{ !cancelled() }}
+        run: head -6 front-menswear.md || true
+
+  screens-menswear:
+    name: Screen check, menswear form
+    runs-on: ubuntu-24.04 # Playwright's browser doesn't install on later Ubuntu yet
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e -- screen-check.spec.ts --workers 4
+        env:
+          SCREEN_CHECK: screens-menswear
+          SCREEN_FORM: menswear
+      - run: npx vitest run src/screenCheck.test.ts -t "menswear form"
+        if: ${{ !cancelled() }}
+        env:
+          SCREEN_MENSWEAR_FROM: screens-menswear
+          SCREEN_MENSWEAR_REPORT: screens-menswear.md
+      - name: Report
+        if: ${{ !cancelled() }}
+        run: cat screens-menswear.md >> "$GITHUB_STEP_SUMMARY" || true
+      - name: Menswear summary (report only)
+        if: ${{ !cancelled() }}
+        run: head -6 screens-menswear.md || true
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: quality-nightly-screens-menswear
+          path: screens-menswear
+
+  firefox:
+    name: Tester walks in Firefox (computer)
+    runs-on: ubuntu-24.04 # Playwright's browsers don't install on later Ubuntu yet
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install Firefox
+        run: npx playwright install --with-deps firefox
+      - run: npm run test:e2e -- --project firefox
+        env:
+          CI: true
+          E2E_FIREFOX: '1'
+      - name: Summary
+        if: ${{ !cancelled() }}
+        run: echo "Firefox tester walks finished with ${{ job.status }}"
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: quality-nightly-firefox
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14

@@ -49,7 +49,8 @@ test('signature labels: code, label sheet and open from a label', async ({ page 
   const { bytes, download: d } = await download(page, sheet, info);
   expect(bytes.subarray(0, 5).toString('latin1')).toBe('%PDF-');
   expect(d.suggestedFilename()).toBe(`labels-${code.toLowerCase()}.pdf`);
-  await expect(card.getByRole('button', { name: 'Tell me when it opens' })).toBeVisible();
+  // Woven labels are asked for in Extras' one email box, with a tick, since the declutter (Cat's E, Nov 21).
+  await expect(main.getByRole('region', { name: 'Hear when these open' }).getByRole('checkbox', { name: 'Have your labels woven' })).toBeVisible();
   await card.screenshot({ path: info.outputPath('label-card.png') });
 
   await openAccount(page);

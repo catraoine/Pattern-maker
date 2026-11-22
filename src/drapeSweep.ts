@@ -2,13 +2,14 @@
 // check, so a fault shows up on every design that shares the part that causes it rather than one look at a time
 // (Cat, 2026-11-02). drapeSweep.test.ts runs a fixed set on every change and, with DRAPE_SWEEP set, a random batch
 // nightly (.github/workflows/drape-sweep.yml), reporting the failures by the choices they share.
-import { EXAMPLE_BODY, MeasurementValues } from './measurements';
+import { EXAMPLE_BODY, FormKind, MeasurementValues } from './measurements';
 import { GARMENT_DRAFTING, DraftInputs } from './garmentDrafts';
 import { INITIAL, Saved } from './savedWork';
 import { BODICE_GROUPS, BodiceChoices, DEFAULT_BODICE, DEFAULT_COAT_CHOICES, DEFAULT_JACKET_CHOICES, DEFAULT_TEE_CHOICES, DEFAULT_TROUSERS_CHOICES, DRESS_FIT_GROUP, DressChoices, OuterChoices, TEE_GROUPS, TROUSER_GROUPS, TeeChoices, TrousersChoices, WAIST_SEAM_GROUP, outerAllowed, outerGroups, trouserAllowed, validDetails, validTrousers } from './garments';
 import { DETAIL_GROUPS, FRONT_GROUP, GATHERS_GROUP, GROUPS, RISE_GROUP, withWaist } from './skirtChoices';
 import { roundBodice, roundDress, roundOuter, roundSkirt, roundTee, roundTrousers } from './engine/allRound';
 import { DrapeJob, DrapedLite, runDrape } from './engine/drape/run';
+import { pickBody } from './engine/body';
 import type { Quality } from './engine/drape/quality';
 import type { Fibre, MyFabric } from './engine/fabrics';
 import { clothCard } from './engine/drape/clothCard';
@@ -196,9 +197,11 @@ function designLabel(d: SweepDesign): string {
 }
 
 /** One design drafted and sewn on the form: what All round draws for it (throws when it doesn't draft). */
-export function drapeDesign(d: SweepDesign, values: MeasurementValues = EXAMPLE_BODY): DrapedLite {
+export function drapeDesign(d: SweepDesign, values: MeasurementValues = EXAMPLE_BODY, form: FormKind = 'womenswear'): DrapedLite {
+  // The garment's All round shape reads the form's body too, before it is sewn: the menswear form's is a man's.
+  pickBody(form);
   const saved = { ...INITIAL, ...d.saved } as Saved;
-  const inputs: DraftInputs = { saved, form: 'womenswear', fabric: { fibre: d.fibre, ...(d.crisp ? { drape: 'crisp' as const } : {}) } };
+  const inputs: DraftInputs = { saved, form, fabric: { fibre: d.fibre, ...(d.crisp ? { drape: 'crisp' as const } : {}) } };
   const drafts = GARMENT_DRAFTING[d.garment].draft(values, inputs, undefined);
   const m = values as unknown as RoundMeasurements;
   let job: DrapeJob;
@@ -223,14 +226,14 @@ export function drapeDesign(d: SweepDesign, values: MeasurementValues = EXAMPLE_
     job = { kind: 'skirt', draft: drafts.skirt!, m, armhole: round.armhole };
   }
   const card = clothCard({ fibre: d.fibre, ...d.fabric, ...(d.crisp ? { drape: 'crisp' as const } : {}) });
-  return runDrape({ ...job, fibre: d.fibre, crisp: d.crisp, card });
+  return runDrape({ ...job, fibre: d.fibre, crisp: d.crisp, card, ...(form === 'menswear' ? { form } : {}) });
 }
 
 /** Drafts the design on the example body, sews it on the form and scores the drawing. */
-export function sewDesign(d: SweepDesign, values: MeasurementValues = EXAMPLE_BODY): SweepResult {
+export function sewDesign(d: SweepDesign, values: MeasurementValues = EXAMPLE_BODY, form: FormKind = 'womenswear'): SweepResult {
   const label = designLabel(d);
   try {
-    const out = drapeDesign(d, values);
+    const out = drapeDesign(d, values, form);
     return { design: d, label, quality: out.quality };
   } catch (e) {
     return { design: d, label, error: String(e) };

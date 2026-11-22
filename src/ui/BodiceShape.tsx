@@ -172,6 +172,10 @@ const withDarts = (c: BodiceChoices): BodiceChoices => (DARTS_FOR_FIT[c.fit].inc
  * dragged past it, the peplum fell off the drawing and the pattern, and the Ice Peplum read as a plain hip-length
  * top (demo film sweep, Nov 14). */
 export function dragDrop(m: BodiceMeasurements, c: BodiceChoices, cm: number, typed = false): BodiceChoices {
+  // A peplum's seam stops at its least drop, as the box to type it does: dragged up, the Ice Peplum's dot went on to
+  // the waist, below the 6 cm the box then refused, and the top read as "Waist-length" (DP walk, Nov 20; Cat chose to
+  // stop it at 6 cm, Nov 21). A waist-seamed peplum is still there on the Length row's Waist.
+  if ((c.peplum ?? 'none') !== 'none') cm = Math.max(DROP_MIN, cm);
   const out = dropAt(m, c, cm, typed);
   if ((c.peplum ?? 'none') === 'none' || peplumLengthOk(out) || !peplumLengthOk(c)) return out;
   const { dropCm: _d, ...rest } = c;

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
 import { trousersSpec } from '../engine/spec';
 import { FinishedTable, finishedLines } from '../ui/FinishedTable';
-import { TROUSER_EASE, TROUSER_LENGTHS, TROUSER_RUFFLE, TrousersDraft, TrousersMeasurements, lengthCmRange, trouserLength } from '../engine/trousers';
+import { RISE_PICK_CM, TROUSER_EASE, TROUSER_LENGTHS, TROUSER_RUFFLE, TrousersDraft, TrousersMeasurements, lengthCmRange, riseFor, trouserLength } from '../engine/trousers';
 import { trousersFlat, trousersView } from '../engine/flat';
 import { DrawOnForm, skirtForm } from '../ui/DrawOnForm';
 import { TROUSER_HELP, readTrouserHem, readTrouserPocket, readTrouserRise, readTrouserSide, trouserLines } from '../ui/formTrousers';
@@ -97,6 +97,9 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
   // passed, and a pair typed to 103 cm printed as "shorts" in its title, labels and booklet (pretend tester DK walk, Nov 19).
   const nearestLength = (cm: number) =>
     TROUSER_LENGTHS.reduce((a, b) => (Math.abs(trouserLength(values as unknown as TrousersMeasurements, { leg: choices.leg, length: b }) - cm) < Math.abs(trouserLength(values as unknown as TrousersMeasurements, { leg: choices.leg, length: a }) - cm) ? b : a));
+  // Where the top of the trousers sits from the waist, on a low or high rise. The length is still taken from the waist,
+  // and the skirt's from its top, so each box says where its top is (DT tester walk, Nov 21).
+  const topCm = (choices.rise && choices.rise !== 'mid') || choices.riseCm ? (draft?.riseCm ?? 0) : 0;
   const hem =
     choices.leg === 'culotte' || !values.waist_to_floor || !values.waist_to_knee || !values.crotch_depth
       ? undefined
@@ -107,7 +110,7 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
           onPick: (length: string) => onChoices(validTrousers({ ...choices, length: length as TrousersChoices['length'], lengthCm: undefined })),
           // The hem glides to any length between the named ones, measured from the waist (Cat, 2026-11-06), even on a low or
           // high rise, which the box says (pretend tester, Nov 18).
-          free: { zero: 0, ...lengthCmRange(values as unknown as TrousersMeasurements), cm: choices.lengthCm, onCm: (cm: number) => onChoices(validTrousers({ ...choices, length: nearestLength(cm), lengthCm: cm })), ...((choices.rise && choices.rise !== 'mid') || choices.riseCm ? { from: 'from your own waist, not the top of the trousers' } : {}) },
+          free: { zero: 0, ...lengthCmRange(values as unknown as TrousersMeasurements), cm: choices.lengthCm, onCm: (cm: number) => onChoices(validTrousers({ ...choices, length: nearestLength(cm), lengthCm: cm })), ...(topCm ? { from: `from your own waist; the top of the trousers sits ${Math.round(Math.abs(topCm) * 10) / 10} cm ${topCm < 0 ? 'below' : 'above'} it` } : {}) },
         };
   const elastic = choices.waist === 'elastic';
   const pockets = choices.pockets ?? 'none';
@@ -186,6 +189,7 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
           ));
   return (
     <StyleLayout
+      error={error}
       fabric={fabric}
       onEditMeasurements={onEditMeasurements}
       onPrint={onNext}
@@ -239,7 +243,21 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
                 </button>
               ))}
             </div>
-            <Explain set="trousers" group={g.id} options={g.options} pick={trouserAllowed(choices, g.id, trouserChoice(choices, g.id)) ? trouserChoice(choices, g.id) : undefined} />
+            {/* A low rise goes no lower than a quarter of your waist to hip, so say this body's drop, not the most (DR walk, Nov 20).
+                And the loops as drafted: a larger waist takes seven, not five (DS walk, Nov 21). */}
+            <Explain
+              set="trousers"
+              group={g.id}
+              options={g.options}
+              pick={trouserAllowed(choices, g.id, trouserChoice(choices, g.id)) ? trouserChoice(choices, g.id) : undefined}
+              say={
+                g.id === 'rise' && choices.rise === 'low' && values.waist_to_hip
+                  ? `The waistband sits low, on the top of your hips, about ${Math.round(-riseFor({ waist_to_hip: values.waist_to_hip }, RISE_PICK_CM.low))} cm below your waist.`
+                  : g.id === 'loops' && draft?.loops
+                    ? `${draft.loops === 7 ? 'Seven' : 'Five'} belt loops on the waistband: the centre back, each side, and one halfway across each front${draft.loops === 7 ? ' and each back' : ''}.`
+                    : undefined
+              }
+            />
             {g.id === 'leg' && choices.leg === 'culotte' && <p className="muted small">Culottes are cut to mid-calf, wide from the hip.</p>}
             {g.id === 'waist' && elastic && (
               <p className="muted small">

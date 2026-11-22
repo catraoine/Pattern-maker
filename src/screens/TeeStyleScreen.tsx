@@ -178,6 +178,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
 
   return (
     <StyleLayout
+      error={error}
       fabric={fabric}
       onEditMeasurements={onEditMeasurements}
       onPrint={onNext}

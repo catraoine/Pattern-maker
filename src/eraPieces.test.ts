@@ -82,7 +82,7 @@ describe('era pieces: the measurement table', () => {
   it('high-rise trousers are read from where they sit: waist, crotch depth and crotch length', () => {
     for (const id of ['30-trousers', '50-trousers', '70-trousers'])
       each(id, (p, b) => {
-        expect(row(p, /^Waist, 4 cm above yours$/)).toBeDefined();
+        expect(row(p, /^Top edge, 4 cm above your waist$/)).toBeDefined();
         const depth = row(p, /^Crotch depth, from where they sit$/)!;
         expect(depth.body).toBe(b.crotch_depth! + 4);
         const length = row(p, /^Crotch length, from where they sit$/)!;

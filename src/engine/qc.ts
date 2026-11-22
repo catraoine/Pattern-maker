@@ -215,7 +215,8 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
       checks.push({
         group: 'Seams',
         label: garments.length > 1 || all.length > 1 ? `${g} waist seam to finished waist` : 'Waist seam to finished waist',
-        detail: `${cm(seam)}${gather > 1 ? ` once gathered (cut ${Math.round(gather * 100) / 100} times as long)` : ' with darts closed'}, finished ${cm(opts.finishedWaist)}`,
+        // "With darts closed" only where there are darts: the Black Pleated Skirt has none (DQ walk, Nov 20).
+        detail: `${cm(seam)}${gather > 1 ? ` once gathered (cut ${Math.round(gather * 100) / 100} times as long)` : [...fronts, ...backs].some((pc) => dartsOf(pc).length) ? ' with darts closed' : ''}, finished ${cm(opts.finishedWaist)}`,
         // Up to 1.5 cm eases into a waistband or a matching seam without showing.
         ok: Math.abs(seam - opts.finishedWaist) <= 1.5,
       });
@@ -327,13 +328,16 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
   // on to the edge of a button extension), and a shirt collar against its stand.
   const neckline = pieces.filter((pc) => !pc.kind && (isFront(pc) || isBack(pc)));
   for (const c of pieces.filter((pc) => pc.kind === 'collar' && taggedLength(pc.outline, 'neck') > 0)) {
-    // A ruffle is gathered into the neckline.
-    const a = taggedLength(c.outline, 'neck') / ((c.meta.ruffle as number | undefined) ?? 1);
+    // A ruffle is gathered into the neckline. Its check says so, with its length as cut: given only gathered up, and
+    // called a collar, it read as a ruffle cut the neckline's length, against step 11's "twice as long" (DW walk, Nov 21).
+    const ruffle = (c.meta.ruffle as number | undefined) ?? 1;
+    const a = taggedLength(c.outline, 'neck') / ruffle;
     const b = sum(neckline, 'neck') + (c.meta.collarTo === 'extension' ? sum(neckline.filter(isFront), 'opening-neck') : 0);
+    const edge = ruffle > 1 ? `ruffle ${cm(a * ruffle)}, gathered to ${cm(a)}` : `collar ${cm(a)}`;
     checks.push({
       group: 'Seams',
       label: `${c.name} to neckline`,
-      detail: `collar ${cm(a)}, neckline ${cm(b)} (half), ${Math.abs(a - b) < 0.05 ? 'identical' : `${cm(Math.abs(a - b))} apart`}`,
+      detail: `${edge}, neckline ${cm(b)} (half), ${Math.abs(a - b) < 0.05 ? 'identical' : `${cm(Math.abs(a - b))} apart`}${ruffle > 1 ? ' once gathered' : ''}`,
       ok: Math.abs(a - b) <= SEAM_TOLERANCE,
     });
   }
@@ -410,19 +414,21 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
   const sleeve = pieces.find((pc) => /^sleeve$/i.test(pc.name));
   if (sleeve && front && back) checks.push(...sleeveChecks(sleeve, pieces.filter(isFront), pieces.filter(isBack)));
 
-  // Centre lines are square to the edges that cross them, so the piece mirrors without a point or dip.
+  // Centre lines are square to the edges that cross them, so the piece mirrors without a point or dip. Where two
+  // pieces meet the same centre line (a vest's back yoke and back both cross it at the yoke seam), each check names
+  // its piece: the vest's seam check listed "Yoke seam square at centre back" twice, with nothing to tell them apart
+  // (DP walk, Nov 20).
+  const cornerAt = checks.length;
+  const cornerPiece = new Map<Check, string>();
   for (const pc of pieces) {
     const where = (pc.meta.foldAt as string | undefined) ?? (isFront(pc) ? 'centre front' : 'centre back');
     for (const c of corners(pc)) {
       const centres = ['fold', 'centre', 'crotch'];
       const centre = centres.includes(c.a) ? c.b : centres.includes(c.b) ? c.a : '';
       if (!centre || !NAMES[centre] || ((pc.meta.pointedAtCentre as string[] | undefined) ?? []).includes(centre)) continue;
-      checks.push({
-        group: 'Corners',
-        label: `${cap(NAMES[centre])} square at ${where}`,
-        detail: deg(c.angle),
-        ok: Math.abs(c.angle - 90) <= SQUARE_TOLERANCE,
-      });
+      const check: Check = { group: 'Corners', label: `${cap(NAMES[centre])} square at ${where}`, detail: deg(c.angle), ok: Math.abs(c.angle - 90) <= SQUARE_TOLERANCE };
+      cornerPiece.set(check, pc.name);
+      checks.push(check);
     }
     // A whole piece has no centre edge: its edges must run straight across the centre line instead,
     // as two halves cut on the fold would once opened out.
@@ -438,6 +444,8 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
       });
     });
   }
+  const squares = checks.slice(cornerAt).filter((c) => cornerPiece.has(c));
+  for (const c of squares) if (squares.some((o) => o !== c && o.label === c.label)) c.label = `${c.label} (${cornerPiece.get(c)!.toLowerCase()})`;
   return checks;
 }
 
@@ -489,6 +497,38 @@ function raglanChecks(pieces: Piece[]): Check[] {
   return out;
 }
 
+/** A set-in sleeve's crown ease as sewn: each half of the crown, from the crown point to the underarm, against the
+ *  armhole of the pieces it sews into. */
+function crownEase(sleeve: Piece, fronts: Piece[], backs: Piece[]): { front: number; back: number } {
+  const { pts, tags } = sleeve.outline.taggedPoints(96);
+  let crownF = 0;
+  let crownB = 0;
+  let seenSeam = false;
+  tags.forEach((t, i) => {
+    if (t !== 'armhole') {
+      seenSeam = true;
+      return;
+    }
+    const d = len(sub(pts[i + 1], pts[i]));
+    if (seenSeam) crownB += d;
+    else crownF += d;
+  });
+  return { front: crownF - sum(fronts, 'armhole'), back: crownB - sum(backs, 'armhole') };
+}
+
+/** The crown ease of a pattern's set-in sleeve against its bodice as cut, as the seam check reads it. The sleeve is
+ *  drafted to the block's armhole, and princess seams can redraw the armhole's foot a little, so the pattern's note and
+ *  the steps quote this one: the Ice Peplum's said 1.3 and 1.6 cm on the pattern, 1.5 and 1.7 in the seam check and
+ *  2.9 in all in the steps (DW walk, Nov 21). Undefined without a set-in sleeve and a front and back. */
+export function sewnCrownEase(pieces: Piece[]): { front: number; back: number } | undefined {
+  const sleeve = pieces.find((pc) => /^sleeve$/i.test(pc.name));
+  const fronts = pieces.filter(isFront);
+  const backs = pieces.filter(isBack);
+  if (!sleeve || !fronts.length || !backs.length) return undefined;
+  const e = crownEase(sleeve, fronts, backs);
+  return { front: Math.round(e.front * 10) / 10, back: Math.round(e.back * 10) / 10 };
+}
+
 /** Most crown ease a set-in sleeve can take without puckering, in cm per half. */
 const MAX_CROWN_EASE = 3.5;
 
@@ -507,22 +547,7 @@ function sleeveChecks(sleeve: Piece, fronts: Piece[], backs: Piece[]): Check[] {
     detail: `front ${cm(f)}, back ${cm(b)}${sleeve.lines.length ? ' with the elbow dart closed' : ''}, ${Math.abs(f - b) < 0.05 ? 'identical' : `${cm(Math.abs(f - b))} apart`}`,
     ok: Math.abs(f - b) <= SEAM_TOLERANCE,
   });
-  // The crown's halves: from the crown point to each underarm.
-  const { pts, tags } = sleeve.outline.taggedPoints(96);
-  let crownF = 0;
-  let crownB = 0;
-  let seenSeam = false;
-  tags.forEach((t, i) => {
-    if (t !== 'armhole') {
-      seenSeam = true;
-      return;
-    }
-    const d = len(sub(pts[i + 1], pts[i]));
-    if (seenSeam) crownB += d;
-    else crownF += d;
-  });
-  const easeF = crownF - sum(fronts, 'armhole');
-  const easeB = crownB - sum(backs, 'armhole');
+  const { front: easeF, back: easeB } = crownEase(sleeve, fronts, backs);
   const gathered = !!sleeve.meta.gatheredCrown;
   out.push({
     group: 'Seams',

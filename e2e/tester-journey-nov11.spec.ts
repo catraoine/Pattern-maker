@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { expect, fillStepPages, measureMe, openAccount, openFold, openFresh, openGroup, startWithExample, stepButton, test } from './fixtures';
+import { expect, fillStepPages, headerBack, measureMe, openAccount, openFold, openFresh, openGroup, startWithExample, stepButton, test } from './fixtures';
 
 // The tester journey check (Nov 11, 2026): what a fit tester would trip on, and Cat's "fix all".
 
@@ -24,8 +24,10 @@ test('What would you like to make? opens the collection first', async ({ page })
   await main(page).getByRole('button', { name: 'Choose what to make' }).click();
   await main(page).getByRole('button', { name: 'The collection ›' }).click();
   await expect(main(page).getByRole('heading', { name: 'The collection' })).toBeVisible();
-  // Back returns to the list it came from.
-  await main(page).getByRole('button', { name: 'Back', exact: true }).click();
+  // Back returns to the list it came from: the header's arrow, the one way back (a second Back link in the page did
+  // the same thing until Cat's apply, Nov 21).
+  await expect(main(page).getByRole('button', { name: 'Back', exact: true })).toHaveCount(0);
+  await headerBack(page).click();
   await expect(main(page).getByRole('heading', { name: 'What would you like to make?' })).toBeVisible();
 });
 
@@ -85,6 +87,9 @@ test('a collection top below the waist asks for the hip first, so Style drafts i
 // Fit-test walk, Nov 15: the Black Vest was called a jacket while measuring, on Your look and on Print, and asked for
 // the arm length and upper arm, which a vest isn't drafted from.
 test('the Black Vest is called a vest throughout and asks for no arm measurements', async ({ page }) => {
+  // It measures, makes and prints the vest, as tester-pieces.spec.ts does, so it gets that walk's time: on a slow Safari
+  // runner it took 1.5 to 1.7 minutes, past the usual 90 seconds (Nov 21), and 1.1 on a quick one.
+  test.setTimeout(180_000);
   const m = main(page);
   await openFresh(page);
   await m.getByRole('button', { name: 'Begin' }).click();

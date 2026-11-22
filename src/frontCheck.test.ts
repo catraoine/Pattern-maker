@@ -28,6 +28,22 @@ describe.skipIf(!FROM)('Front drawing: every option', () => {
   });
 });
 
+// The menswear form's Front drawings (FRONT_MENSWEAR_FROM=<folder>, taken with FRONT_FORM=menswear): scored the same
+// way, but report-only: its "new faults" are the ones the womenswear form's drawings don't have (src/frontKnown.json).
+// The menswear form is In testing, and this is kept apart from the launch
+// pieces' check above, so nothing here can turn it red.
+const MEN_FROM = process.env.FRONT_MENSWEAR_FROM;
+describe.skipIf(!MEN_FROM)('Front drawing: every option on the menswear form', () => {
+  it('reports every option drawn on the menswear form', () => {
+    const drawings: Record<string, FrontDrawing> = {};
+    for (const f of readdirSync(MEN_FROM!).filter((f) => /^front-.*\.json$/.test(f))) Object.assign(drawings, JSON.parse(readFileSync(`${MEN_FROM}/${f}`, 'utf8')));
+    const results = patternDesigns().map((d) => (drawings[d.key] ? { key: d.key, problems: frontProblems(d.key, drawings[d.key]) } : { key: d.key, problems: [], error: 'not captured' }));
+    const c = checkPatterns(results, existsSync(file) ? (JSON.parse(readFileSync(file, 'utf8')) as Record<string, string[]>) : {});
+    writeFileSync(process.env.FRONT_MENSWEAR_REPORT ?? 'front-menswear.md', patternReport(results, c, 'Front drawing, menswear form'));
+    expect(results.length).toBeGreaterThan(0);
+  });
+});
+
 describe('the Front drawing check', () => {
   const box = (x: number, y: number, w: number, h: number) => `M${x} ${y} L${x + w} ${y} L${x + w} ${y + h} L${x} ${y + h} Z`;
   const vb = '0 0 40 100';

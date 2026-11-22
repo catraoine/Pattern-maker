@@ -117,7 +117,10 @@ test('moves a dart by drawing from its point to an edge, and All round follows',
   // Put back: as drafted again.
   await sheet.getByRole('button', { name: 'Put it back' }).click();
   await expect(darts).toHaveCount(2);
-  await draw(page, tip, { x: tip.x, y: b.y + b.height - 1 });
+  // (Found again: the page scrolled to bring the sheet into view, so the pieces stand elsewhere on screen now.)
+  const b2 = await boxOf(page, 'Skirt front');
+  const tip2 = (await darts.evaluateAll((els) => els.map((el) => { const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; }))).sort((p, q) => p.x - q.x)[0];
+  await draw(page, tip2, { x: tip2.x, y: b2.y + b2.height - 1 });
   await page.getByRole('group', { name: 'What should this line do?' }).getByRole('button', { name: 'Move the dart here' }).click();
   await page.getByRole('group', { name: 'Dart moved' }).getByRole('button', { name: 'Done' }).click();
   await expect(page.getByRole('group', { name: 'Dart moved' })).toHaveCount(0);
@@ -130,6 +133,11 @@ test('moves a dart by drawing from its point to an edge, and All round follows',
   await page.mouse.click(m0.x, m0.y);
   await expect(page.getByRole('group', { name: 'Dart moved' })).toBeVisible();
   await still(page, '5b-dart-mark-tapped');
+  // (Read again once its sheet is open: the page may have scrolled to bring the sheet into view.)
+  await page.waitForTimeout(300);
+  const m1 = await centre(page, 'rect.pe-cut[data-dart]');
+  m0.x = m1.x;
+  m0.y = m1.y;
   await page.mouse.move(m0.x, m0.y);
   await page.mouse.down();
   for (let k = 1; k <= 8; k++) await page.mouse.move(m0.x + k * 3, m0.y);

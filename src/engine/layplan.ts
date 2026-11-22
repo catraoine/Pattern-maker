@@ -88,7 +88,7 @@ function foldTimes(pc: Piece): number {
 const pocketing = (pc: Piece) => /pocketing/i.test(pc.fabric ?? '');
 
 /** Which lays a piece is cut in. `lined` says the garment has a lining lay of its own. */
-function fabricsOf(pc: Piece, lined = false): LayFabric[] {
+export function fabricsOf(pc: Piece, lined = false): LayFabric[] {
   const f = (pc.fabric ?? '').toLowerCase();
   if (pocketing(pc)) return lined ? ['lining'] : ['self'];
   if (f === 'lining') return ['lining'];

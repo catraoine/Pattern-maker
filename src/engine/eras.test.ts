@@ -20,7 +20,8 @@ describe('era looks', () => {
       for (const look of LOOKS) {
         try {
           const d = draftSkirt(body, look);
-          const waist = 2 * (taggedLength(d.pieces[0].outline, 'waist') + taggedLength(d.pieces[1].outline, 'waist'));
+          // Halves are cut twice (on the fold or as a pair); a bias look is cut whole, once.
+          const waist = (d.halves ? 1 : 2) * (taggedLength(d.pieces[0].outline, 'waist') + taggedLength(d.pieces[1].outline, 'waist'));
           if (Math.abs(waist - (body.waist + FIT_EASE[look.fit].waist)) > 1) failures.push(`seed ${seed} ${look.id}: waist ${waist}`);
           if (!sewingGuide(d, look, 2).steps.length) failures.push(`seed ${seed} ${look.id}: no steps`);
         } catch (e) {

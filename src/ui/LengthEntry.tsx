@@ -34,8 +34,9 @@ export function useSaid() {
 }
 
 const half = (v: number) => Math.round(v * 2) / 2;
-/** In the sewist's unit, as she would type it: cm to the half, inches to the eighth ("20⅞"). */
-const shown = (cm: number, unit: Unit) => (unit === 'in' ? toInches(cm).replace(/ in$/, '') : String(half(cm)));
+/** In the sewist's unit, as she would type it: cm to the millimetre, inches to the eighth ("20⅞"). A dragged 53.8 cm
+ *  opened as 54, against the 53.8 on the label and in the table (pretend tester DO walk, Nov 20). */
+const shown = (cm: number, unit: Unit) => (unit === 'in' ? toInches(cm).replace(/ in$/, '') : String(Math.round(cm * 10) / 10));
 const word = (unit: Unit) => (unit === 'in' ? 'in' : 'cm');
 
 /** The length label's tap area, laid over the label's words on the drawing. Width and height are the words' own. */
@@ -81,7 +82,9 @@ export function LengthBox({ ask, unit, onClose }: { ask: LengthAsk; unit: Unit; 
     input.current?.focus();
     input.current?.select();
   }, []);
-  const range = `${fmtLength(half(ask.min), unit)} to ${fmtLength(half(ask.max), unit)} ${ask.from}`;
+  // "From the top of the skirt, 5 cm below your waist" in the sewist's unit.
+  const from = unit === 'in' ? inInches(ask.from) : ask.from;
+  const range = `${fmtLength(half(ask.min), unit)} to ${fmtLength(half(ask.max), unit)} ${from}`;
   const set = (e: FormEvent) => {
     e.preventDefault();
     // Set with the number as it opened leaves the length alone: the box opens rounded (49 for 49.1, 23⅝ for a knee at
@@ -97,7 +100,7 @@ export function LengthBox({ ask, unit, onClose }: { ask: LengthAsk; unit: Unit; 
   return (
     <form className="length-box" data-keep-cm onSubmit={set} aria-label={ask.name}>
       <label htmlFor="length-box-input">
-        {ask.name}, {ask.from}
+        {ask.name}, {from}
       </label>
       <div className="length-box-row">
         <input

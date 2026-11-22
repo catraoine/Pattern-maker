@@ -201,7 +201,9 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
     ).map((g) => ({
       id: g.id,
       label: g.label,
-      options: g.options as [string, string][],
+      // A shift keeps its back waist darts whatever the front has, so "Bust only" read wrong there (DQ walk, Nov 20). Cat
+      // chose "Bust (front)" on Nov 20, then for the label to name the back too: "Front bust, back waist" (Nov 21).
+      options: (g.id === 'darts' && noSeam === 'shift' ? g.options.map(([id, label]) => [id, id === 'bust' ? 'Front bust, back waist' : label]) : g.options) as [string, string][],
     })),
     // A sheath can be ruched at the sides below the hip.
     ...(noSeam === 'sheath' ? [{ id: 'ruched', label: 'Sides', options: SHEATH_SIDES }] : []),
@@ -557,6 +559,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   ) : undefined;
   return (
     <StyleLayout
+      error={error}
       fabric={fabric}
       onEditMeasurements={onEditMeasurements}
       onPrint={onNext}
@@ -598,6 +601,11 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                 </button>
               </p>
             )}
+            {/* A dress cut in one greys the choices that need a waist seam; without the reason they read as broken
+                (desktop review, Nov 21). */}
+            {noSeam && g.id !== 'noSeam' && g.options.some(([id]) => !cutAllows(g.id, id)) && (
+              <p className="muted small sleeve-why">The greyed ones need a waist seam. This dress is cut in one piece.</p>
+            )}
             <div className={chipsClass((['noSeam', 'silhouette', 'length', 'asymHem', 'slit', 'gathers'].includes(g.id) ? 'skirt' : 'bodice'), g.id)}>
               {g.options.map(([id, label]) => (
                 <button
@@ -620,7 +628,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                 </button>
               ))}
             </div>
-            <Explain set={['noSeam', 'silhouette', 'length', 'asymHem', 'slit', 'gathers', 'volume', 'pockets', 'belt'].includes(g.id) ? 'skirt' : 'bodice'} group={g.id} options={g.options} pick={value(g.id)} />
+            <Explain set={['noSeam', 'silhouette', 'length', 'asymHem', 'slit', 'gathers', 'volume', 'pockets', 'belt'].includes(g.id) ? 'skirt' : 'bodice'} group={g.id} options={g.options} pick={value(g.id)} say={g.id === 'darts' && noSeam === 'shift' && value(g.id) === 'bust' ? 'Darts at the bust on the front, and the back keeps its two waist darts, so it follows your back.' : undefined} />
             {g.id === 'sleeveCut' && SLEEVE_CUTS.map(([c]) => sleeveCutBlocked({ ...choices.bodice, closure }, c)).find(Boolean) && (
               <p className="muted small">{SLEEVE_CUTS.map(([c]) => sleeveCutBlocked({ ...choices.bodice, closure }, c)).find(Boolean)}</p>
             )}

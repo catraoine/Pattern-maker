@@ -27,7 +27,9 @@ describe('shaping the bodice by hand', () => {
     const peplum = { ...DEFAULT_BODICE, fit: 'fitted' as const, length: 'waist' as const, dropCm: 6, peplum: 'flared' as const };
     for (const cm of [14, 16, 19, 40]) expect(dragDrop(m, peplum, cm)).toMatchObject({ dropCm: 12, peplum: 'flared' });
     expect(dragDrop(m, peplum, 7).dropCm).toBe(7);
-    expect(dragDrop(m, peplum, 1).length).toBe('waist');
+    // Dragged up, it stops at the peplum's least drop, as its box does, rather than going on to the waist (Cat, Nov 21).
+    expect(dragDrop(m, peplum, 1)).toMatchObject({ dropCm: 6, peplum: 'flared' });
+    expect(dragDrop(m, peplum, 4)).toMatchObject({ dropCm: 6, peplum: 'flared' });
   });
 
   it('snaps a dragged fit to the nearest fit, and brings darts back for a closer one', () => {

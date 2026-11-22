@@ -2,7 +2,37 @@
 // average, trimmed to a dress form's torso, read as rings at every height of the app's form (bodyShape.ts) and scaled
 // so each ring measures the example body's girths. All round draws its cloth on it, the 3D body export is built from
 // it and the Form/Draw figure follows it. The welcome screen and the measuring pages keep the form in form.ts.
+// The menswear form has its own body (Nov 22): MakeHuman's young male average, read
+// the same way at the same heights (bodyShapeMenswear.ts), with a man's chest, shoulders and seat in place of the bust.
 import { BODY_ANGLES, BODY_HALF, BODY_SHAPE, BODY_YS } from './bodyShape';
+import { BODY_HALF_MENSWEAR, BODY_SHAPE_MENSWEAR } from './bodyShapeMenswear';
+import type { FormKind } from '../measurements';
+
+interface Table {
+  half: number[];
+  shape: number[][];
+  fineHalf?: Float32Array;
+  fineShape?: Float32Array;
+}
+const TABLES: Record<FormKind, Table> = {
+  womenswear: { half: BODY_HALF, shape: BODY_SHAPE },
+  menswear: { half: BODY_HALF_MENSWEAR, shape: BODY_SHAPE_MENSWEAR },
+};
+// The body every reading below comes from. One person is open at a time, so the app picks their form's body once as it
+// draws (App.tsx), and the drape worker picks the job's (run.ts); everything else reads whichever is picked, so the
+// womenswear body is the one in use unless a menswear form asks.
+let body = TABLES.womenswear;
+let bodyKind: FormKind = 'womenswear';
+
+/** Uses the body of this form from now on (missing: womenswear). */
+export function pickBody(kind: FormKind = 'womenswear') {
+  // (A form this version doesn't know, from newer saved work, draws on the womenswear body rather than on nothing.)
+  bodyKind = kind in TABLES ? kind : 'womenswear';
+  body = TABLES[bodyKind];
+}
+
+/** The form whose body is in use. */
+export const pickedBody = (): FormKind => bodyKind;
 
 /** Where on the table a height falls: the row below it and how far toward the next. */
 function rowAt(y: number): [number, number] {
@@ -36,7 +66,7 @@ function smoothAt(v: number[], i: number, u: number): number {
 
 function halfExact(y: number): number {
   const [i, u] = rowAt(y);
-  return smoothAt(BODY_HALF, i, u);
+  return smoothAt(body.half, i, u);
 }
 
 // The smooth curves are read into fine tables once (FINE steps to each sample) and read between their entries after,
@@ -45,8 +75,6 @@ const FINE = 4;
 const ROWS = BODY_YS.length;
 const FINE_ROWS = (ROWS - 1) * FINE + 1;
 const FINE_ANGLES = (BODY_ANGLES - 1) * FINE + 1;
-let fineHalf: Float32Array | undefined;
-let fineShape: Float32Array | undefined;
 function fineRow(y: number): [number, number] {
   if (y <= BODY_YS[0]) return [0, 0];
   if (y >= BODY_YS[ROWS - 1]) return [FINE_ROWS - 1, 0];
@@ -58,10 +86,12 @@ function fineRow(y: number): [number, number] {
 /** Half-width of the body from the neck (top) to below the hip (bottom), in the form's own units (waist at 0.1):
  *  the neck rising out of the trapezius, shoulders sloping to the tip, the chest, the waist and the hip. */
 export function bodyHalf(y: number): number {
-  if (!fineHalf) {
-    fineHalf = new Float32Array(FINE_ROWS);
-    for (let r = 0; r < FINE_ROWS; r++) fineHalf[r] = halfExact(BODY_YS[0] + ((BODY_YS[ROWS - 1] - BODY_YS[0]) * r) / (FINE_ROWS - 1));
+  if (!body.fineHalf) {
+    const fine = new Float32Array(FINE_ROWS);
+    for (let r = 0; r < FINE_ROWS; r++) fine[r] = halfExact(BODY_YS[0] + ((BODY_YS[ROWS - 1] - BODY_YS[0]) * r) / (FINE_ROWS - 1));
+    body.fineHalf = fine;
   }
+  const fineHalf = body.fineHalf;
   const [i, u] = fineRow(y);
   return u ? fineHalf[i] + (fineHalf[i + 1] - fineHalf[i]) * u : fineHalf[i];
 }
@@ -88,11 +118,11 @@ function shapeExact(a: number, y: number): number {
     const after = k < BODY_ANGLES - 2 ? smoothAt(row, k + 1, v) : here;
     return 0.5 * here + 0.25 * (before + after);
   };
-  const s0 = ring(BODY_SHAPE[i]);
+  const s0 = ring(body.shape[i]);
   if (!u) return s0;
-  const s1 = ring(BODY_SHAPE[i + 1]);
+  const s1 = ring(body.shape[i + 1]);
   // Between rows, the same smooth curve down the body: the rows above and below lend their rise and fall.
-  const col = (r: number) => (r < 0 || r >= BODY_SHAPE.length ? NaN : ring(BODY_SHAPE[r]));
+  const col = (r: number) => (r < 0 || r >= body.shape.length ? NaN : ring(body.shape[r]));
   const vals = [col(i - 1), s0, s1, col(i + 2)];
   if (Number.isNaN(vals[0])) vals[0] = 2 * s0 - s1;
   if (Number.isNaN(vals[3])) vals[3] = 2 * s1 - s0;
@@ -105,8 +135,8 @@ function shapeExact(a: number, y: number): number {
 const SWAY_FILL = (globalThis as { __swayFill?: number }).__swayFill ?? 0.5;
 
 export function shapeAt(a: number, y: number): number {
-  if (!fineShape) {
-    fineShape = new Float32Array(FINE_ROWS * FINE_ANGLES);
+  if (!body.fineShape) {
+    const fineShape = new Float32Array(FINE_ROWS * FINE_ANGLES);
     const ys: number[] = [];
     for (let r = 0; r < FINE_ROWS; r++) {
       const y0 = BODY_YS[0] + ((BODY_YS[ROWS - 1] - BODY_YS[0]) * r) / (FINE_ROWS - 1);
@@ -121,7 +151,7 @@ export function shapeAt(a: number, y: number): number {
         const ang = (Math.PI * k) / (FINE_ANGLES - 1);
         const fill = SWAY_FILL * Math.max(0, -Math.cos(ang)) ** 2;
         if (fill <= 0) continue;
-        const at = (r: number) => fineShape![r * FINE_ANGLES + k] * bodyHalf(ys[r]);
+        const at = (r: number) => fineShape[r * FINE_ANGLES + k] * bodyHalf(ys[r]);
         let top = 0;
         let seat = 0;
         for (let r = 0; r < FINE_ROWS; r++) {
@@ -138,12 +168,14 @@ export function shapeAt(a: number, y: number): number {
         }
       }
     }
+    body.fineShape = fineShape;
   }
+  const fineShape = body.fineShape;
   const [i, u] = fineRow(y);
   const t = (Math.abs(Math.atan2(Math.sin(a), Math.cos(a))) / Math.PI) * (FINE_ANGLES - 1);
   const k = Math.min(FINE_ANGLES - 2, Math.floor(t));
   const v = t - k;
-  const row = (r: number) => fineShape![r * FINE_ANGLES + k] * (1 - v) + fineShape![r * FINE_ANGLES + k + 1] * v;
+  const row = (r: number) => fineShape[r * FINE_ANGLES + k] * (1 - v) + fineShape[r * FINE_ANGLES + k + 1] * v;
   const s0 = row(i);
   return u ? s0 + (row(i + 1) - s0) * u : s0;
 }
