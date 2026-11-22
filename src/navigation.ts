@@ -14,20 +14,10 @@ export const STEPS: { id: Step; label: string }[] = [
 /** Which of the three steps each screen belongs to, lit in the header. Account and the legal pages belong to none. */
 export const STEP_OF: Partial<Record<View, Step>> = { steps: 'measure', measure: 'measure', style: 'style', photo: 'style', export: 'export', fitting: 'export', scale: 'export' };
 
-/** Side screens name where they hang off, under the header, so you can see where you are. */
-export const SIDE: Partial<Record<View, [string, string]>> = {
-  photo: ['Style', 'From a photo'],
-  fitting: ['Print', 'Fitting'],
-  scale: ['Print', 'True size'],
-  client: ['Account', 'Client book'],
-  arrive: ['Account', 'Client book'],
-  check: ['Account', 'Check a file'],
-  form: ['Account', 'Body Double'],
-  formprint: ['Body Double', 'Cover pattern'],
-  brands: ['Account', 'For brands'],
-  nights: ['Account', 'Atelier Nights'],
-  help: ['Account', 'Help & feedback'],
-};
+/** Side screens of Account. They light the account square in the header, as Measure, Style and Print light their
+ *  step: the trail under the header that named them ("Account › Client book") went in the declutter (Cat's E, Nov 21),
+ *  since the lit step, the back arrow and each page's own title already said where you are. */
+export const UNDER_ACCOUNT: View[] = ['client', 'arrive', 'check', 'form', 'formprint', 'brands', 'nights', 'help', 'tester', 'news', 'imported'];
 
 /** This tab's last screen, in sessionStorage, so a reload opens there again (journey review, Nov 10). */
 export const PLACE_KEY = 'maison-trace-place';

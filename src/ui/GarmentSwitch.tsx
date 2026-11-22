@@ -32,11 +32,11 @@ export function GarmentSwitch({ onChoose, label = 'Choose another garment' }: { 
 }
 
 /** The Style title's drop-down. It was the list of garments (Cat applied, 2026-10-24); since Cat's pick on Nov 12 it
- *  is the four ways to start or find a piece: "Start a new garment", the Maison Tracé collection, a photo, and Saved
- *  patterns. Without the app's context, a new garment opens the full list with pictures. */
+ *  is the ways to start or find a piece: "Start a new garment", a photo, and Saved patterns. The collection left it in
+ *  the declutter (Cat's E, Nov 21): its own link sits right under the name. Without the app's context, a new garment
+ *  opens the full list with pictures. */
 export function GarmentDrop({ label, onChoose, onPhoto }: { label?: string; onChoose: () => void; onPhoto?: () => void }) {
   const pick = useContext(GarmentPick);
-  const openCollection = useContext(CollectionLink);
   return (
     <DropMenu
       name="Garment"
@@ -44,11 +44,10 @@ export function GarmentDrop({ label, onChoose, onPhoto }: { label?: string; onCh
       value={label}
       items={[
         { id: 'new', text: 'Start a new garment ›' },
-        ...(openCollection ? [{ id: 'collection', text: 'The collection ›' }] : []),
         ...(onPhoto ? [{ id: 'photo', text: 'Start from a photo ›' }] : []),
         ...(pick ? [{ id: 'saved', text: 'Saved patterns ›' }] : []),
       ]}
-      onPick={(id) => (id === 'collection' ? openCollection?.() : id === 'photo' ? onPhoto?.() : id === 'saved' ? pick?.onSaved() : pick ? pick.onNew() : onChoose())}
+      onPick={(id) => (id === 'photo' ? onPhoto?.() : id === 'saved' ? pick?.onSaved() : pick ? pick.onNew() : onChoose())}
     />
   );
 }

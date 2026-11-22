@@ -1,4 +1,4 @@
-import { expect, openCollection, startWithExample, test } from './fixtures';
+import { expect, openCollection, openLengthStep, startWithExample, test } from './fixtures';
 import type { Page } from '@playwright/test';
 
 /** From the collection to the look's length step on a computer, where the dot is dragged with the mouse. */
@@ -9,6 +9,7 @@ async function lengthDot(page: Page, look: string, make: RegExp) {
   await main.getByRole('listitem').filter({ hasText: look }).first().getByRole('button', { name: make }).first().click();
   const change = main.getByRole('button', { name: 'Change a detail' });
   if (await change.count()) await change.click();
+  await openLengthStep(page);
   await expect(main.getByText('Drag the dot, or tap the length to type it.')).toBeVisible({ timeout: 30_000 });
   return main.getByRole('slider', { name: /length/i }).first();
 }
