@@ -387,6 +387,9 @@ async function openNumbers(page: Page) {
 
 /** From a style screen (or its Review page) to Print. */
 export async function goPrint(page: Page) {
+  // Style opened from Print's Choose fabric goes straight back to Print (Cat, Nov 21).
+  const back = main(page).getByRole('button', { name: /^Back to Print/ }).first();
+  if (await back.isVisible()) return back.click();
   const print = main(page).getByRole('button', { name: 'Print my pattern' });
   if (!(await print.isVisible())) await openReview(page);
   await print.click();

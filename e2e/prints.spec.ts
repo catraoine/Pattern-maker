@@ -32,8 +32,8 @@ test('picking a print sets the lay and draws it under the pieces', async ({ page
 
   await goPrint(page);
   // Placed motifs are cut every piece the same way up.
-  await expect(main.getByRole('checkbox', { name: /Nap or one-way print/ })).toBeChecked();
-  await expect(main.getByRole('checkbox', { name: /Nap or one-way print/ })).toBeDisabled();
+  await expect(main.getByRole('checkbox', { name: /Pile or one-way print/ })).toBeChecked();
+  await expect(main.getByRole('checkbox', { name: /Pile or one-way print/ })).toBeDisabled();
   await expect(main.locator('.layplan pattern[id^="print"] image').first()).toHaveAttribute('href', /prints\/motif\.jpg$/);
   await expect(main.getByText('The front is centred on a motif.', { exact: false })).toBeVisible();
   await main.locator('.lay').first().screenshot({ path: test.info().outputPath('lay-motif.png') });
