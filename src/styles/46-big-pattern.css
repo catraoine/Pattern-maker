@@ -28,15 +28,37 @@ section.live-big .preview > .pattern-pane:not(:has(> .point-editor)) > .paper-sh
   min-height: 0;
 }
 
-/* Undo and Redo come inside the window, on one row with Watch it draft, instead of a row of their own in the black. */
+/* Undo and Redo come inside the window, on one row with Watch it draft, instead of a row of their own in the black.
+   They stay in the window's flow, straight after it (a look's "Drafted to your measurements" line goes under them),
+   and are drawn up into the window's bottom row, which is kept for them even where there is no Watch it draft. */
 section.live-big:has(> .preview > .pattern-pane):not(:has(.point-editor)) > .big-undo {
-  position: absolute;
-  left: 30px;
-  bottom: calc(max(12px, env(safe-area-inset-bottom, 0px)) + 4px);
-  width: auto;
+  order: 1;
+  position: relative;
   z-index: 10;
+  align-self: flex-start;
+  width: auto;
+  margin: -48px 0 0 14px;
+}
+section.live-big:has(> .preview > .pattern-pane):not(:has(.point-editor)) > .preview ~ :not(.big-undo, .preview) {
+  order: 2;
 }
 section.live-big .preview > .pattern-pane:not(:has(> .point-editor)) > .watch-draft {
   min-height: 40px;
   align-items: center;
+  /* Clear of Undo and Redo at its left, so the two never touch on a narrow phone. */
+  padding-left: 170px;
+}
+section.live-big .preview > .pattern-pane:not(:has(> .point-editor)):not(:has(> .watch-draft)) {
+  padding-bottom: 46px;
+}
+/* A narrow phone: Watch it draft keeps to one line beside Redo, a little smaller, as Undo and Redo are. */
+@media (max-width: 420px) {
+  section.live-big .preview > .pattern-pane:not(:has(> .point-editor)) > .watch-draft {
+    padding-left: 160px;
+  }
+  section.live-big .preview > .pattern-pane:not(:has(> .point-editor)) > .watch-draft .link.small {
+    white-space: nowrap;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+  }
 }
