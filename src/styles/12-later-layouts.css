@@ -217,6 +217,12 @@ input.inline:focus,
 
 .all-round-feel-row {
   display: flex;
+  gap: 4px 12px;
+}
+/* Each pair is one choice (Softer or Stiffer, Lighter or Heavier), set apart from the other, so one lit in each reads
+   as two choices made, not two buttons stuck on (Cat, Nov 22). */
+.all-round-feel-pair {
+  display: flex;
   gap: 4px;
 }
 

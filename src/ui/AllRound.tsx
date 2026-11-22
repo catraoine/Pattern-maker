@@ -13,7 +13,7 @@ import { FabricPaint, fabricPaint } from './FabricFill';
 import { useFabricPhoto } from '../fabricPhoto';
 import { ClothQuad, ClothTiles, clothLayers, clothTiles, lightOf, paintCloth } from './allRoundCloth';
 import { RoundGarment, RoundPt, RoundSeam, stripesMeet } from '../engine/allRound';
-import { bodyHalf as formHalfWidth, reach as bodyReach, shapeAt } from '../engine/body';
+import { bodyHalf as formHalfWidth, pickedBody, reach as bodyReach, shapeAt } from '../engine/body';
 import { FORM_CROTCH, FORM_DEPTH, FORM_FLOOR, FORM_LEG, FORM_LEG_X, paintFigure } from './ContourForm';
 import { BUST_Y, FORM_HIP, NECK_Y, RoundMeasurements, WAIST, roundShape } from './allRoundShape';
 import type { DrapedView, Pick, PickPart, RoundView } from './allRoundMesh';
@@ -196,18 +196,25 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
   const [feelOpen, setFeelOpen] = useState(false);
   const fabricWho = `${fabric?.fibre}|${fabric?.weight}|${fabric?.drape}|${fabric?.special}|${fabric?.knit}|${fabric?.shop}|${fabric?.photo?.id}`;
   useEffect(() => setFeel({}), [fabricWho]);
+  // The form whose body this view draws (picked by the app for the person open).
+  const form = pickedBody();
   const job = useMemo<DrapeJob | undefined>(
     () => {
       if (!drape) return undefined;
       // The cloth behaves as the fabric picked does: its stiffness, weight and give (clothCard.ts).
       const fibre = drape.fibre ?? fabric?.fibre;
       const card = clothCard({ fibre, weight: fabric?.weight, drape: drape.crisp ? 'crisp' : fabric?.drape, special: fabric?.special, knit: fabric?.knit, feel });
-      return { ...drape, m, armhole: round.armhole, fibre, crisp: drape.crisp ?? fabric?.drape === 'crisp', card } as DrapeJob;
+      // (On the menswear form, sewn on the man's body: see body.ts. Left out for womenswear, so its jobs are as before.)
+      return { ...drape, m, armhole: round.armhole, fibre, crisp: drape.crisp ?? fabric?.drape === 'crisp', card, ...(form === 'menswear' ? { form } : {}) } as DrapeJob;
     },
-    [drape, m, round.armhole, fabric?.fibre, fabric?.drape, fabric?.weight, fabric?.special, fabric?.knit, feel],
+    [drape, m, round.armhole, fabric?.fibre, fabric?.drape, fabric?.weight, fabric?.special, fabric?.knit, feel, form],
   );
   const jobKey = useMemo(() => (job ? drapeKey(job) : ''), [job]);
-  const [draped, setDraped] = useState<{ key: string; view: DrapedView } | undefined>();
+  // The same garment on the same form, whatever its cloth: a Feel step changes only the cloth's card, and while that is
+  // re-sewn the last sewn garment stays on screen with the settling line under it, rather than the shape preview
+  // jumping in for a second and out again (Cat, Nov 22: "how come this weird jump in fabric").
+  const shapeKey = useMemo(() => (job ? drapeKey({ ...job, card: undefined } as DrapeJob) : ''), [job]);
+  const [draped, setDraped] = useState<{ key: string; shape: string; view: DrapedView } | undefined>();
   // (Drawn at the wearer's shoulder width only under a sleeveless garment, as the drape worker's form is: see makeSpace.)
   const widenForm = !drape || widensForm(drape);
   // (A top cut below the shoulders leaves the form's shoulder bare without the form being drawn out.)
@@ -215,7 +222,9 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
     const d = drape?.draft as { top?: unknown; bodice?: { top?: unknown } } | undefined;
     return !!(drape?.kind === 'dress' ? d?.bodice?.top : drape?.kind === 'bodice' ? d?.top : undefined);
   }, [drape]);
-  const spaceOf = useMemo(() => makeSpace(placeOnForm(round, m), m, { widen: widenForm }), [round, m, widenForm]);
+  // (Made again when the form changes: makeSpace reads the picked body.)
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- form is not read inside, but the body it picked is
+  const spaceOf = useMemo(() => makeSpace(placeOnForm(round, m), m, { widen: widenForm }), [round, m, widenForm, form]);
   // The form stands at the wearer's shoulder width, as the body the cloth is sewn on does.
   const formX = useMemo(() => (x: number, y: number, z: number) => {
     const s = spaceOf.scale(y);
@@ -246,14 +255,14 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
     let live = true;
     const hit = cachedDrape(jobKey);
     let late: ReturnType<typeof setTimeout> | undefined;
-    if (hit) setDraped({ key: jobKey, view: { d: hit, toForm: toFormOf } });
+    if (hit) setDraped({ key: jobKey, shape: shapeKey, view: { d: hit, toForm: toFormOf } });
     else {
       late = setTimeout(() => live && setUnsewn(jobKey), SEW_LIMIT_MS);
       requestDrape(job, jobKey).then(
         (d) => {
           if (!live) return;
           clearTimeout(late);
-          setDraped({ key: jobKey, view: { d, toForm: toFormOf } });
+          setDraped({ key: jobKey, shape: shapeKey, view: { d, toForm: toFormOf } });
         },
         () => {
           if (!live) return;
@@ -270,7 +279,8 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
     // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the job's contents
   }, [jobKey, toFormOf]);
   const gaveUp = !!job && unsewn === jobKey && draped?.key !== jobKey;
-  const sewnNow = job ? (draped?.key === jobKey ? draped.view : gaveUp ? undefined : 'pending') : undefined;
+  const resewing = !!job && !gaveUp && draped?.key !== jobKey && draped?.shape === shapeKey;
+  const sewnNow = job ? (draped?.key === jobKey || resewing ? draped?.view : gaveUp ? undefined : 'pending') : undefined;
   // A drawing that failed its quality check (see engine/drape/quality.ts) isn't shown turning in cloth: the shape
   // preview stands in, with a line saying the cloth view for this design is still in testing (Cat, 2026-11-02).
   const inTesting = gaveUp || (!!sewnNow && sewnNow !== 'pending' && sewnNow.d.quality?.ok === false && !sewnAnyway());
@@ -1463,15 +1473,15 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
           ))}
         </div>
       )}
-      <canvas ref={ref} className={`all-round-canvas${round.legs ? ' all-round-tall' : ''}${drawing ? ' drawing' : ''}`} data-sewn={drapedNow === 'pending' ? 'pending' : inTesting ? 'testing' : drapedNow ? 'ready' : undefined} role="img" aria-label={label} hidden={standIn} />
+      <canvas ref={ref} className={`all-round-canvas${round.legs ? ' all-round-tall' : ''}${drawing ? ' drawing' : ''}`} data-sewn={drapedNow === 'pending' ? 'pending' : inTesting ? 'testing' : resewing ? 'resewing' : drapedNow ? 'ready' : undefined} role="img" aria-label={label} hidden={standIn} />
       {!drawing && (
         <div className="all-round-quiet">
           {!standIn && (
             <div className="all-round-tools">
               {/* While the pieces are sewn and the cloth settles, a thin line fills along the window's foot, with no words
                   (Cat, Nov 14: "why 'sewing your pattern'"); then Drag to turn, until the garment is first turned. */}
-              {!film && drapedNow === 'pending' && <span className="all-round-settling" aria-hidden="true" />}
-              {!film && drapedNow !== 'pending' && !turned && (
+              {!film && (drapedNow === 'pending' || (resewing && !inTesting)) && <span className="all-round-settling" aria-hidden="true" />}
+              {!film && drapedNow !== 'pending' && !(resewing && !inTesting) && !turned && (
                 <span className="all-round-hint" aria-hidden="true">
                   Drag to turn
                 </span>
@@ -1551,11 +1561,17 @@ function FeelControl({ feel, onFeel, open }: { feel: Feel; onFeel: (f: Feel) => 
         {/* (Opened from the Feel button on a short phone, the button already says it: see 30-steady-view.css.) */}
         <span className="all-round-feel-word">Feel</span> <TestingTag tool="fabric_feel" />
       </p>
+      {/* Two pairs, each one choice: Softer or Stiffer, and Lighter or Heavier. Laid as four in a run they read as one
+          choice, so one lit in each pair looked like two buttons stuck on (Cat, Nov 22: "how come both buttons stay lit"). */}
       <div className="all-round-feel-row">
-        {btn('stiff', -1, 'Softer')}
-        {btn('stiff', 1, 'Stiffer')}
-        {btn('weight', -1, 'Lighter')}
-        {btn('weight', 1, 'Heavier')}
+        <span className="all-round-feel-pair" role="group" aria-label="Stiffness">
+          {btn('stiff', -1, 'Softer')}
+          {btn('stiff', 1, 'Stiffer')}
+        </span>
+        <span className="all-round-feel-pair" role="group" aria-label="Weight">
+          {btn('weight', -1, 'Lighter')}
+          {btn('weight', 1, 'Heavier')}
+        </span>
       </div>
       <p className="visually-hidden" aria-live="polite">
         {words.length > 0 ? `Adjusted: ${words.join(', ')}.` : ''}

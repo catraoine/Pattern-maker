@@ -18,6 +18,7 @@ import { LayPlanView } from '../ui/LayPlanView';
 import type { Flat } from '../engine/flat';
 import { TechFlatView } from '../ui/TechFlatView';
 import { StepDiagram } from '../ui/StepDiagram';
+import { takeFabricReturn } from '../ui/printReturn';
 import { CLOTHS, seamFinish } from '../engine/couture';
 import { FIBRES, Fibre, MyFabric, FabricStyle, adviceFor, checkFabric, clothFor, pickTag, printRepeat } from '../engine/fabrics';
 import { colourWords } from '../engine/houseColours';
@@ -166,6 +167,17 @@ const FRACTION_WORDS: Record<string, string> = { '⅛': '1-8', '¼': '1-4', '⅜
 
 export function ExportScreen({ example, onMeasureMe, onEditMeasurements, unit = 'cm', paper: savedPaper, onPaper, sendLink, profile, title, lookName, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, onFitNotes, tester, emailTo, fitNote, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label, full }: Props) {
   const can = (t: ProTool) => shows(mode, t);
+  // Back from choosing the fabric in Style: open on the fabric, where they left Print (Cat, Nov 21).
+  useEffect(() => {
+    if (!takeFabricReturn()) return;
+    requestAnimationFrame(() => {
+      const fabric = document.querySelector('.yourfabric');
+      if (!fabric) return;
+      // Clear of the top bar, which stays at the top as the page scrolls, with a little room above the heading.
+      const bar = document.querySelector('.topbar')?.getBoundingClientRect().bottom ?? 0;
+      window.scrollTo(0, fabric.getBoundingClientRect().top + window.scrollY - bar - 16);
+    });
+  }, []);
   /** Knits fit by their stretch: tested in a spare knit, not a calico toile. */
   const knit = isKnit(garment);
   // The paper starts on what was picked before, else on US Letter for a sewist measuring in inches or on a
@@ -681,8 +693,13 @@ export function ExportScreen({ example, onMeasureMe, onEditMeasurements, unit = 
             <label className="check">
               <input type="checkbox" checked={nap} disabled={napFixed} onChange={(e) => onFinish({ ...finish, nap: e.target.checked })} />
               <span>
-                Nap or one-way print{' '}
-                <span className="muted small">{napFixed ? `always on for ${needsNap(special) ? SPECIALS[special!].label.toLowerCase() : print === 'motif' ? 'placed motifs' : 'a one-way print'}` : 'every piece the same way up'}</span>
+                {/* Its purpose in plain words: "nap" alone meant nothing to Cat (Nov 21). */}
+                Pile or one-way print{' '}
+                <span className="muted small">
+                  {napFixed
+                    ? `Always on for ${needsNap(special) ? SPECIALS[special!].label.toLowerCase() : print === 'motif' ? 'placed motifs' : 'a one-way print'}: every piece is laid the same way up.`
+                    : 'Tick it if your fabric has a pile, like velvet or corduroy, or a print that points one way. Every piece is then laid the same way up, so it takes a little more fabric.'}
+                </span>
               </span>
             </label>
           </div>

@@ -1,14 +1,17 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { startWithExample, test } from './fixtures';
+import { asMan, startWithExample, test } from './fixtures';
 import { patternDesigns } from '../src/patternSweep';
 import { INITIAL } from '../src/savedWork';
+import { EXAMPLE_MAN } from '../src/engine/randomBodies';
 
 // Not part of the ordinary end-to-end run: the Front drawing check's capture (Quality: Automated checks, Cat 2026-11-04).
 // Every option of every garment is saved as the app saves it, the Style page is opened in the real app, and the Front
 // drawing it shows (the garment's cloth over the form, which also stands in for All round when that fails) is read out
 // of the page: its frame and every piece of cloth. src/frontCheck.test.ts scores what this writes, as All round's
 // quality check scores a sewn drawing. FRONT_CHECK=<folder> takes it; FRONT_SHARD=i/n takes one share of the designs.
+// FRONT_FORM=menswear takes them on the menswear form, as the example man (the nightly menswear check, Nov 22).
 const OUT = process.env.FRONT_CHECK;
+const MEN = process.env.FRONT_FORM === 'menswear';
 test.skip(!OUT, 'Set FRONT_CHECK to a folder to capture the Front drawings');
 
 const CHUNKS = 4;
@@ -23,6 +26,7 @@ for (let chunk = 0; chunk < CHUNKS; chunk++) {
     consoleErrors.allow(/.*/);
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await startWithExample(page);
+    if (MEN) await asMan(page, EXAMPLE_MAN as Record<string, number>);
     const main = page.getByRole('main');
     const base = await page.evaluate(() => JSON.parse(localStorage.getItem('pattern-maker:skirt') ?? '{}'));
     const out: Record<string, unknown> = {};
