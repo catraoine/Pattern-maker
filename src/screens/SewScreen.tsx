@@ -10,6 +10,13 @@ import { inCm } from '../units';
 // Sew, the fourth step after Print (Cat, Nov 21): Sewing mode's start, where you left off, and every step as a picture to
 // jump straight to. The written list, with what you'll need and the couture route, stays on Print where testers know it.
 
+/** A short mark of the step titles, so a changed list of steps keeps its own place. */
+const stepsMark = (steps: { title: string }[]) => {
+  let h = 0;
+  for (const ch of steps.map((st) => st.title).join('|')) h = (h * 31 + ch.charCodeAt(0)) | 0;
+  return `${steps.length}.${(h >>> 0).toString(36)}`;
+};
+
 const SewingMode = lazy(() => import('../ui/SewingMode').then((m) => ({ default: m.SewingMode })));
 
 interface Props {
@@ -25,15 +32,21 @@ interface Props {
   tester?: boolean;
 }
 
-export function SewScreen({ made, title, keep, onPrint, onStyle, tester }: Props) {
-  useEffect(() => {
-    window.scrollTo(0, 0);
-    // From Print's Start sewing: straight into Sewing mode.
-    if (takeOpenSewing()) setOpen({});
-  }, []);
+export function SewScreen({ made, title, keep: owner, onPrint, onStyle, tester }: Props) {
   // Sewing mode, open on the kept step (undefined) or on one picked from the list.
   const [open, setOpen] = useState<{ from?: number }>();
   const steps = useMemo(() => made?.guide.steps ?? [], [made]);
+  // The place is kept for these very steps: a style change that adds or drops a step starts afresh, so ticks never
+  // land on the wrong step and a garment with new steps isn't called finished.
+  const keep = useMemo(() => `${owner}#${stepsMark(steps)}`, [owner, steps]);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+  // From Print's Start sewing: straight into Sewing mode, once there are steps. A garment already sewn to the end shows
+  // its finished state instead of reopening on the last step.
+  useEffect(() => {
+    if (steps.length && takeOpenSewing() && !readDone(keep)) setOpen({});
+  }, [steps.length, keep]);
   const pictures = useMemo(() => (made ? steps.map((st) => stepPicture(st, made.pieces)) : []), [made, steps]);
   // Read again each time Sewing mode closes, so "Carry on" names the step you stopped at.
   const at = useMemo(() => (open ? 0 : readAt(keep, steps.length)), [open, keep, steps.length]);

@@ -21,7 +21,8 @@ const readAll = (): Record<string, Place> => {
 };
 
 const read = (keep: string): Place => {
-  const p = readAll()[keep];
+  const p = readAll()[keep] as Place | number | undefined;
+  if (typeof p === 'number') return { at: p };
   return p && typeof p === 'object' && typeof p.at === 'number' ? p : { at: 0 };
 };
 

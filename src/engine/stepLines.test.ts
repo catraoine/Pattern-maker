@@ -9,4 +9,7 @@ describe('a step as one action per line', () => {
   it("doesn't split a measurement or a one-sentence step", () => {
     expect(stepLines('Sew 1.5 cm from the edge, then press.')).toEqual(['Sew 1.5 cm from the edge, then press.']);
   });
+  it('ends a sentence inside a closing quote', () => {
+    expect(stepLines('Mark it "WAIST." Then sew the seam.')).toEqual(['Mark it "WAIST."', 'Then sew the seam.']);
+  });
 });

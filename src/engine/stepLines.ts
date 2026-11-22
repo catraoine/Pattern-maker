@@ -5,5 +5,5 @@
 export const stepLines = (text: string): string[] =>
   text
     .trim()
-    .split(/(?<=[.!?])\s+(?=[A-Z0-9"‘“(])/)
+    .split(/(?<=[.!?]["’”)]?)\s+(?=[A-Z0-9"‘“(])/)
     .filter((s) => s.length > 0);

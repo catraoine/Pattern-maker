@@ -78,7 +78,7 @@ export function stepPicture(step: SewStep, pieces: Piece[]): StepPicture {
   const all = `${title} ${step.text.toLowerCase()}`;
   if (/prepare your fabric|pre-?wash/.test(title)) return { kind: 'prep' };
   if (/print and check|test square/.test(title)) return { kind: 'print' };
-  const pocketPart = (pc: Piece) => /pocket|welt/i.test(pc.name);
+  const pocketPart = (pc: Piece) => /pocket|welt|flap|jet/i.test(pc.name);
   // Cutting the lining does cut the pocket bags from it, so the cut picture keeps them.
   const named = (words: string, cutting = false) =>
     NAMED.filter(([w]) => w.test(words)).flatMap(([, name, own]) =>
@@ -109,7 +109,7 @@ export function stepPicture(step: SewStep, pieces: Piece[]): StepPicture {
   // don't stitch anything, so their words aren't searched for seams.
   if (!edges.length && !these.length && /^(sew|neaten|stitch|join|bind|stay|close|zigzag|overlock)\b/.test(title)) edges = edgesIn(all);
   // A step that sews onto the facings or the lining ("the upper collar to the facings") leaves the garment itself out.
-  const inside = these.some((i) => pieces[i].kind === 'facing' || pieces[i].kind === 'lining');
+  const inside = /\bto the (front |neck )?(facings?|lining)\b/.test(title);
   const carrying = inside ? [] : pieces.map((pc, i) => (isGarment(pc) && edges.some((t) => tagsOf(pc).has(t)) ? i : -1)).filter((i) => i >= 0);
   const shown = [...new Set([...these, ...carrying])];
   // A small piece the step makes (a pocket, a loop, a tie) is sewn all the way round.
