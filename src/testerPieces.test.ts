@@ -204,6 +204,8 @@ describe('the page cut lines', () => {
   // seam names and the finished measurement words keep off the cut lines where they have room: 74 of them crossed one
   // across these pieces and bodies, and the 37 left have nowhere else to go on their seam, or would land on a diamond
   // (taped, they read whole).
+  // 38 since the Ice Peplum's sheer sleeve head (Cat allowed one more, Nov 21): its slightly smaller sleeve moves the
+  // pieces on the pages, and one more "PEPLUM SEAM" name lands across a cut line.
   it('have few piece words across them', () => {
     const hit = ['blush-shift', 'ice-peplum', 'black-pleated-skirt', 'chocolate-barrel', 'black-vest'].flatMap((id) =>
       Object.values(BODIES).flatMap((values) => {
@@ -211,7 +213,7 @@ describe('the page cut lines', () => {
         return cutCollisions(layout(print.pieces, `Maison Tracé: ${id}`, print.notes, { pattern: id })).filter((h) => /ALLOWANCE|^FINISHED |^YOU /.test(h.text));
       }),
     );
-    expect(hit.length).toBeLessThanOrEqual(37);
+    expect(hit.length).toBeLessThanOrEqual(38);
   });
 });
 
