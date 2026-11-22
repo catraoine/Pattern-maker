@@ -1,5 +1,5 @@
 // The foot of a one-piece dress: the side seam on from the hip to the hem, and the hem across to the centre.
-// (Fit audit, Nov 22: the hems of the Blush Shift and the Ivory Bias Slip dipped between the centre and the side seam.)
+// (Fit audit, Nov 21: the hems of the Blush Shift and the Ivory Bias Slip dipped between the centre and the side seam.)
 import { P, Path, add, mul, p, sub, unit } from './geometry';
 
 /** A dress's side seam on from the hip to the hem. The hip curve arrives straight down, so a seam running straight out

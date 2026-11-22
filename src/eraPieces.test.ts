@@ -158,7 +158,7 @@ describe('era pieces: the shopping list and the steps', () => {
       else expect(note).toBeUndefined();
     });
     // The middle and large bodies are the ones it used to fail silently on. (The large one still needs the wider cloth.
-    // The middle one fits the usual width since Nov 22: a flared side seam's foot is raised to level the hem, dressHem.ts,
+    // The middle one fits the usual width since Nov 21: a flared side seam's foot is raised to level the hem, dressHem.ts,
     // which makes the piece a little narrower across the bias.)
     expect(made('90-dress', BODIES.large).lays.find((l) => l.fabric === 'self')!.width).toBe(150);
     expect(made('90-dress', BODIES.middle).lays.find((l) => l.fabric === 'self')!.width).toBe(DEFAULT_FINISH.fabricWidth);

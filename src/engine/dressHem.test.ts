@@ -5,7 +5,7 @@ import { Path, p, taggedLength } from './geometry';
 import type { Piece } from './piece';
 import { randomBody, rng } from './randomBodies';
 
-// A one-piece dress's hem (fit audit, Nov 22): the Blush Shift and the Ivory Bias Slip printed a hem that dipped 1 to
+// A one-piece dress's hem (fit audit, Nov 21): the Blush Shift and the Ivory Bias Slip printed a hem that dipped 1 to
 // 3 cm between the centre and the side seam on every body, because it left the flared side seam square on a long
 // handle and came back up to the centre's level.
 const shift = (m: Parameters<typeof draftDress>[0]) =>
