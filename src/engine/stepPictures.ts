@@ -94,6 +94,12 @@ export function stepPicture(step: SewStep, pieces: Piece[]): StepPicture {
     const withDarts = pieces.map((pc, i) => (isGarment(pc) && hasDarts(pc) ? i : -1)).filter((i) => i >= 0);
     if (withDarts.length) return { kind: 'sew', pieces: withDarts, edges: [], darts: true };
   }
+  // Marking, folding or stitching pleats: the pieces with their pleat lines, where the work is (EA walk, Nov 21: these
+  // steps showed only the finished skirt).
+  if (/\bpleats?\b/.test(title)) {
+    const pleated = pieces.map((pc, i) => (isGarment(pc) && pc.lines.some((ln) => !isDart(ln)) ? i : -1)).filter((i) => i >= 0);
+    if (pleated.length) return { kind: 'sew', pieces: pleated, edges: [], darts: false };
+  }
   if (/^finish$|try it on|put it on|final press/.test(title)) return { kind: 'flat' };
   // The edges the title names, else the ones its words name.
   const edgesIn = (words: string) => [...new Set(EDGES.filter(([w]) => w.test(words)).flatMap(([, t]) => t))];

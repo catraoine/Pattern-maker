@@ -49,9 +49,6 @@ export const saveTicks = (keep: string, ticks: Record<number, number[]>) => writ
 export const readDone = (keep: string) => !!read(keep).done;
 export const saveDone = (keep: string) => write(keep, { done: true });
 
-/** Sewing it again: back to the first step with nothing ticked. */
-export const startAgain = (keep: string) => write(keep, { at: 0, ticks: {}, done: false });
-
 /** Print's Start sewing goes straight into Sewing mode on the Sew tab, not to a second Start sewing button (DZ
  *  pretend-tester walk, Nov 21). One-time, like Print's way back from Fabric. */
 let openNext = false;

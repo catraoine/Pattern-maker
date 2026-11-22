@@ -3,7 +3,7 @@ import type { Printable } from './ExportScreen';
 import { stepPicture } from '../engine/stepPictures';
 import { SewPicture } from '../ui/SewPicture';
 import { TechFlatView } from '../ui/TechFlatView';
-import { readAt, readDone, startAgain, takeOpenSewing } from '../ui/sewPlace';
+import { readAt, readDone, takeOpenSewing } from '../ui/sewPlace';
 import { TesterReport } from '../ui/TesterReport';
 import { inCm } from '../units';
 
@@ -77,22 +77,10 @@ export function SewScreen({ made, title, keep: owner, onPrint, onStyle, tester }
             <div className="sewmode-pic">
               <SewPicture picture={{ kind: 'flat' }} pieces={made.pieces} lays={made.lays} flat={flat} />
             </div>
-            <p className="small">
-              You've sewn all {steps.length} steps. Try it on, and look over the fit in front of a mirror.
-            </p>
+            {/* Just the fact: the last step already says to try it on (Cat, Nov 21: "over explaining"). Any step's
+                picture below opens it again. */}
+            <p className="small">All {steps.length} steps sewn.</p>
             {tester && <TesterReport lead="Tried it on?" />}
-            <div className="sew-start-go">
-              <button
-                type="button"
-                className="ghost"
-                onClick={() => {
-                  startAgain(keep);
-                  setOpen({ from: 0 });
-                }}
-              >
-                Sew it again
-              </button>
-            </div>
           </div>
         ) : (
         <div className="sew-start">
@@ -142,7 +130,7 @@ export function SewScreen({ made, title, keep: owner, onPrint, onStyle, tester }
       </section>
       {open && (
         <Suspense fallback={null}>
-          <SewingMode steps={steps} pieces={made.pieces} lays={made.lays} flat={flat} title={title} keep={keep} inCm={inCm} from={open.from} onClose={() => setOpen(undefined)} />
+          <SewingMode steps={steps} pieces={made.pieces} lays={made.lays} flat={flat} title={title} keep={keep} inCm={inCm} from={open.from} muslin={tester ? made.guide.fabric?.find((l) => l.startsWith('Sewing in muslin')) : undefined} onClose={() => setOpen(undefined)} />
         </Suspense>
       )}
     </>
