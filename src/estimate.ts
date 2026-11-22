@@ -90,13 +90,15 @@ function menswearEstimates(v: MeasurementValues): MeasurementValues {
 /**
  * How much longer a man's front runs, from the neck over the chest to the waist, the fuller he is in front (cm). With
  * the same front length on every size, the front hem rode up over the stomach on a 116 cm chest and the back neck
- * stood away (CLO toiles and the menswear fit audit, Nov 22). Read off the open body the menswear form is built from
- * (scripts/body-table), at builds from slim to heavy: a taut tape down the front grows on the one down the back by
- * about 1 cm for every 10 cm of waist past 80 cm. A big chest on a small waist stands forward too, so the chest less
- * 14 cm counts where it is more than the waist. The length is left at the centre front, where the hem then dips to
- * hang level. A front length the maker measured is never changed.
+ * stood away (CLO toiles and the menswear fit audit, Nov 22). A taut tape down the front of the open body the menswear
+ * form is built from grows on the one down the back by about 1 cm for every 10 cm of waist past 80 cm, but cloth
+ * stands away from a stomach and hangs from its fullest point: draped in CLO on the 116 cm chest (waist 104), 2.4 cm
+ * took out half the rise and 4.8 cm brought the shirt's hem close to level without drooping. So 2 cm for every 10 cm.
+ * A big chest on a small waist stands forward too, so the chest less 14 cm counts where it is more than the waist. The
+ * length is left at the centre front, where the hem then dips to hang level. A front length the maker measured is
+ * never changed.
  */
-const STOMACH = { from: 80, share: 0.1, most: 6, chestLess: 14 };
+const STOMACH = { from: 80, share: 0.2, most: 8, chestLess: 14 };
 function stomachLength(chest: number, waist: number | undefined): number {
   const full = Math.max(waist ?? 0, chest - STOMACH.chestLess);
   return Math.min(STOMACH.most, Math.max(0, (full - STOMACH.from) * STOMACH.share));

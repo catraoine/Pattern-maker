@@ -172,13 +172,13 @@ describe('the menswear fit audit (Nov 22)', () => {
 
   it('gives a fuller man more front length, so the front hem hangs level over the stomach', () => {
     // The toiles rode up at the front on a 116 cm chest with the same front length on every size.
-    expect(front(MAN)).toBeCloseTo(2.1, 5);
-    expect(front({ ...MAN, full_bust: 96, waist: 78 })).toBeCloseTo(1.7, 5);
-    expect(front({ ...MAN, full_bust: 116, waist: 104 })).toBeCloseTo(3.9, 5);
+    expect(front(MAN)).toBeCloseTo(2.7, 5);
+    expect(front({ ...MAN, full_bust: 96, waist: 78 })).toBeCloseTo(1.9, 5);
+    expect(front({ ...MAN, full_bust: 116, waist: 104 })).toBeCloseTo(6.3, 5);
     // A big chest on a small waist stands forward too.
     expect(front({ ...MAN, full_bust: 110, waist: 82 })).toBeGreaterThan(front({ ...MAN, full_bust: 96, waist: 82 }));
-    // Never more than 6 cm on top of the 1.5, however full.
-    expect(front({ ...MAN, full_bust: 150, waist: 160 })).toBeCloseTo(7.5, 5);
+    // Never more than 8 cm on top of the 1.5, however full.
+    expect(front({ ...MAN, full_bust: 150, waist: 160 })).toBeCloseTo(9.5, 5);
     // A front length the maker measured is kept as it is, and the womenswear form's estimate is as it was.
     expect(withEstimates({ ...MAN, waist: 110, front_hps_to_waist: 47 }, 'menswear').front_hps_to_waist).toBe(47);
     expect(withEstimates({ ...MAN, waist: 110 }).front_hps_to_waist).toBe(withEstimates({ ...MAN, waist: 90 }).front_hps_to_waist);
@@ -189,14 +189,14 @@ describe('the menswear fit audit (Nov 22)', () => {
     for (const waist of [74, 104, 130]) expect(failing(draft(waist).pieces)).toEqual([]);
   });
 
-  it('sets a shirt sleeve in with no more than 1 cm of crown ease, where the womenswear form keeps its own', () => {
-    // 2.5 cm eased into a shirt with no pad stood up as a bump at each shoulder tip on the toiles.
+  it('cuts a shirt sleeve wide and flat, with no more than 1 cm of crown ease, where the womenswear form keeps its own', () => {
+    // The blouse's tall head, eased 2.5 cm, stood up in peaks at the shoulder tips on the toiles.
     const values = withEstimates({ ...MAN, ...ARMS }, 'menswear');
     const saved = { ...INITIAL, bodice: { ...INITIAL.bodice, sleeve: 'long' as const } };
-    const crown = (form: 'menswear' | 'womenswear') => {
-      const sl = GARMENT_DRAFTING.bodice.draft(values, { saved, form }, undefined).sleeve!;
-      return sl.crownEase.front + sl.crownEase.back;
-    };
+    const sleeve = (form: 'menswear' | 'womenswear') => GARMENT_DRAFTING.bodice.draft(values, { saved, form }, undefined).sleeve!;
+    const crown = (form: 'menswear' | 'womenswear') => sleeve(form).crownEase.front + sleeve(form).crownEase.back;
+    expect(sleeve('menswear').bicep).toBeCloseTo(sleeve('womenswear').bicep + 4.5, 1);
+    expect(sleeve('menswear').capHeight).toBeLessThan(sleeve('womenswear').capHeight - 2);
     expect(crown('menswear')).toBeGreaterThan(0.5);
     expect(crown('menswear')).toBeLessThanOrEqual(1.1);
     expect(crown('womenswear')).toBeGreaterThan(2);

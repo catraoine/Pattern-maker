@@ -49,12 +49,13 @@ export interface DraftInputs {
 }
 
 /**
- * A man's shirt sleeve goes in nearly flat: its crown takes at most this much ease (cm), where a blouse's takes up to
- * 3. With no pad or gathers to hold it, the blouse's ease stood up as a small bump at each shoulder tip on the
- * menswear toiles (CLO, Nov 22), as it did on unpadded jackets (UNPADDED_CROWN in sleeve.ts). The bicep keeps the fit's own.
+ * A man's shirt sleeve is cut wide and flat: its head takes at most `crown` cm of ease (a blouse's takes up to 3) and
+ * the sleeve is `wider` cm bigger round the upper arm than a blouse's, which lowers the head by about 3 cm. The
+ * blouse's tall, eased head stood up in peaks at the shoulder tips on the menswear toiles (CLO, Nov 22): less ease
+ * alone left them, the wider, flatter sleeve took them away.
  */
-const MENSWEAR_CROWN = 1;
-const menswearSleeveEase = (fit: BodiceChoices['fit']) => ({ bicep: SLEEVE_EASE[fit].bicep, crown: Math.min(SLEEVE_EASE[fit].crown, MENSWEAR_CROWN) });
+const MENSWEAR_SLEEVE = { crown: 1, wider: 4.5 };
+const menswearSleeveEase = (fit: BodiceChoices['fit']) => ({ bicep: SLEEVE_EASE[fit].bicep + MENSWEAR_SLEEVE.wider, crown: Math.min(SLEEVE_EASE[fit].crown, MENSWEAR_SLEEVE.crown) });
 
 /** The sleeve for a bodice, drafted to its armhole with its allowances, when one is chosen and the arms are measured. */
 function sleeveFor(bodice: BodiceDraft, choices: BodiceChoices, values: MeasurementValues, form?: FormKind): SleeveDraft | undefined {
