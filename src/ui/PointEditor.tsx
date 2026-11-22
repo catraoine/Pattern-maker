@@ -113,13 +113,8 @@ export function PatternPane({ children, onPlay }: { children: ReactNode; onPlay?
               <span className="tool-word">Move points</span>
             </button>
           </InCorner>
-          {ctx.edits.length > 0 && (
-            <div className="row between wrap point-switch">
-              <p className="muted small pe-edited">
-                Edited by you <TestingTag tool="pattern_tools" />
-              </p>
-            </div>
-          )}
+          {/* No "Edited by you" row above the pieces once Move points closes (Cat, Nov 22: "What's the point of this"):
+              it took a whole row to say what Undo under the drawing already shows. In testing is said inside the tool. */}
         </>
       )}
       {on ? <PointEditor {...ctx} setEdits={history.change} undo={history} /> : children}
@@ -128,7 +123,9 @@ export function PatternPane({ children, onPlay }: { children: ReactNode; onPlay?
           pieces (Cat, Nov 8: tidy the open tool's top). */}
       {on && (
         <div className="demo-inline">
-          <p className="muted small pe-howto">Drag a point, draw a line across a piece to cut it, or tap a cut to change it.</p>
+          <p className="muted small pe-howto">
+            Drag a point, draw a line across a piece to cut it, or tap a cut to change it. <TestingTag tool="pattern_tools" />
+          </p>
           <DemoButton demo="patterns" />
         </div>
       )}

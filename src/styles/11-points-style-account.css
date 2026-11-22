@@ -114,13 +114,8 @@
 .pe-sheet input[type='text'] {
   width: 100%;
 }
-.pe-edited {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
 /* The tag hugs its words, as on a screen's heading: it isn't tapped, so it needs no tap height. */
-.pe-edited .testing-tag {
+.pe-howto .testing-tag {
   display: inline-block;
   margin: 0;
   padding: 2px 8px;
