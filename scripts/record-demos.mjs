@@ -700,7 +700,8 @@ Object.assign(DEMOS, {
     const { wait, card, cap, focus, veil, uncard, R, press, label, tapAt, f } = h;
     await card('', 'After your toile', 1200, true);
     await toPrint(h, true);
-    await press(R('button', 'I’ve tried on my test version'), 1200);
+    // Either name: the button is going back to toile (Cat, Nov 21: "I like toile").
+    await press(R('button', /^I’ve tried on (a|my) (toile|test version)$/), 1200);
     // Pulls across the hips: the first issue of the first group (by place, as React rewrites its class on a tick).
     const ISSUE = 'main fieldset.group:first-of-type > .issue:first-of-type';
     // Top-aligned at a fixed size, so the How much control can open below without the row moving.
