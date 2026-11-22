@@ -45,6 +45,8 @@ import { cloud } from '../cloud/api';
 import { testerHeaders } from '../ui/TesterCode';
 import { inCm, inInches } from '../units';
 import { onPhone } from '../ui/device';
+import { PartHead } from '../ui/PrintParts';
+import { ExtrasSignup } from '../ui/ExtrasSignup';
 
 /** What to print: the drafted pieces of either garment, with its notes and sewing steps. */
 export interface Printable {
@@ -360,11 +362,11 @@ export function ExportScreen({ example, onMeasureMe, onEditMeasurements, unit = 
       <div className="split">
         <section className="card grow print-top" aria-labelledby="ptitle">
           <div className="print-head">
-            {/* Where you've landed, said calmly (Cat, Nov 3): a quiet "Your summary" heading and one line on what
-                the page is for. The garment's name and who it's for are on the card below, so they aren't
-                repeated here (Cat, Nov 7: less clutter). An imported pattern still says which file it came from. */}
-            <h1 id="ptitle">Your summary</h1>
-            <p className="print-guide">Everything you picked, ready to print. Check the pieces, choose your paper, then download.</p>
+            {/* Where you've landed, said calmly (Cat, Nov 3). Part 1 of three since the declutter (Cat's E, Nov 21), with no
+                line under it: the card and the buttons say what the page is for. The garment's name and who it's for
+                are on the card below (Cat, Nov 7). An imported pattern still says which file it came from. */}
+            <p className="eyebrow print-part-no">Part 1</p>
+            <h1 id="ptitle">Print it</h1>
             {imported && (
               <p className="muted">
                 {`${imported.fileName} · ${made.pieces.length} ${made.pieces.length === 1 ? 'piece' : 'pieces'}${imported.source ? ` from ${imported.source}` : ''}`}
@@ -582,9 +584,11 @@ export function ExportScreen({ example, onMeasureMe, onEditMeasurements, unit = 
             )}
             {/* No "ask for pages 2 to N" line here: the PDF they download is what they print, cover, layout and steps
                 included (Cat, Nov 15). The cover carries the pattern code testers need for their report. */}
+            {/* One fold about the pages (declutter, Cat's E, Nov 21): on a phone "See the pages" opens with it, where it
+                was a second link of its own under it. */}
             {!projector && paper !== 'a0' && (
-              <details className="small fold-link">
-                <summary>How the pages fit together</summary>
+              <details className="small fold-link pages-fold" open={!wide && !tablet ? seePages : undefined} onToggle={(e) => !wide && !tablet && setSeePages((e.currentTarget as HTMLDetailsElement).open)}>
+                <summary>{!wide && !tablet ? 'The pages and how they fit together' : 'How the pages fit together'}</summary>
                 <p className="muted small">
                   Cut each page along the solid line marked CUT on its left and top edges, then lay it over the page before so the half diamonds make whole ones: each diamond says whether its page goes OVER or UNDER the page named.
                   Tape them down. On a phone, send the PDF to your email and print from a computer, or print straight from the
@@ -595,7 +599,7 @@ export function ExportScreen({ example, onMeasureMe, onEditMeasurements, unit = 
           </div>
           <div className="print-sheet">
             {/* On a phone the pages fold behind one line (Cat applied P3, 2026-10-24), so Print is a shorter scroll. */}
-            {!wide && !tablet && (
+            {!wide && !tablet && (projector || paper === 'a0') && (
               <button type="button" className="later go see-pages" aria-expanded={seePages} onClick={() => setSeePages(!seePages)}>
                 {seePages ? 'Hide the pages' : projector || pages === 1 ? 'See the page' : 'See the pages'} <span aria-hidden="true">{seePages ? '‹' : '›'}</span>
               </button>
@@ -639,6 +643,8 @@ export function ExportScreen({ example, onMeasureMe, onEditMeasurements, unit = 
           </p>
         </section>
       )}
+
+      <PartHead n={2} title="Cut it" />
 
       {!imported && (
         <YourFabric
@@ -704,13 +710,16 @@ export function ExportScreen({ example, onMeasureMe, onEditMeasurements, unit = 
         )}
       </section>
 
+      <PartHead n={3} title="Sew it" />
+
       {/* The toile shows in the simple view too (measuring accuracy, 2026-10-21): a calico try-on fixes what a tape at
           home can't, so a first-time sewist is offered it before cutting good fabric. */}
       {/* Not for a fit tester, who sews the pattern as drafted and reports on the tester form: redrawn first, the pattern
           and its code no longer match what was tested (pretend tester DV walk, Nov 21; Cat: hide it for testers). */}
       {!imported && !tester && (
         <section className="card" aria-labelledby="toiletitle">
-          <p className="eyebrow">Before you cut your fabric{fittingNotes.length && fitting ? ` · version ${fitting.round + 1}` : ''}</p>
+          {/* Under Sew it, "Before you cut your fabric" went (declutter, Nov 21); a corrected version still says which. */}
+          {fittingNotes.length > 0 && fitting && <p className="eyebrow">Version {fitting.round + 1}</p>}
           <h2 id="toiletitle">{knit ? 'Try it in a spare knit first' : fittingNotes.length ? 'Corrected after your toile' : 'Sew a test version first'}</h2>
           {knit ? (
             <p className="muted">
@@ -846,12 +855,14 @@ export function ExportScreen({ example, onMeasureMe, onEditMeasurements, unit = 
             <span className="extras-title">Extras for this pattern</span>
             <span className="muted small">Printed and posted roll · fabric and notions kit · {label ? 'your label and woven labels' : 'woven labels'}{hasFabric(finish.fabric) ? '' : ' · deadstock cloth'}</span>
           </summary>
-          <div className="split">
-            <InterestCard offer="printed" pattern={title} />
-            <InterestCard offer="kit" pattern={title} />
-          </div>
-          {label && <LabelCard name={label.name} code={label.code} pattern={title} onKeep={onKeep} />}
-          {!hasFabric(finish.fabric) && <Deadstock style={style} lays={lays} title={title} />}
+          <ExtrasSignup offers={['printed', 'kit', ...(label ? (['labels'] as const) : []), ...(hasFabric(finish.fabric) ? [] : (['deadstock'] as const))]} pattern={title}>
+            <div className="split">
+              <InterestCard offer="printed" pattern={title} />
+              <InterestCard offer="kit" pattern={title} />
+            </div>
+            {label && <LabelCard name={label.name} code={label.code} pattern={title} onKeep={onKeep} />}
+            {!hasFabric(finish.fabric) && <Deadstock style={style} lays={lays} title={title} />}
+          </ExtrasSignup>
         </details>
       )}
     </>

@@ -15,10 +15,15 @@ test('offers: sign up for printing by post and a founding place', async ({ page 
   await openExtras(page);
   const printed = main.getByRole('region', { name: 'Have it printed and posted' });
   await expect(printed).toContainText('$12');
-  await printed.getByRole('textbox', { name: 'Your email' }).fill('ada@example.com');
-  await printed.getByRole('button', { name: 'Tell me when it opens' }).click();
-  await expect(printed).toContainText("We'll email you when printing by post opens");
   await printed.screenshot({ path: info.outputPath('printed.png') });
+  // The extras share one email box with a tick for each (declutter, Cat's E, Nov 21): nothing ticked, nothing sent.
+  const hear = main.getByRole('region', { name: 'Hear when these open' });
+  await expect(hear.getByRole('button', { name: 'Tell me' })).toBeDisabled();
+  await hear.getByRole('checkbox', { name: 'Have it printed and posted' }).check();
+  await hear.getByRole('textbox', { name: 'Your email' }).fill('ada@example.com');
+  await hear.getByRole('button', { name: 'Tell me' }).click();
+  await expect(hear).toContainText("We'll email you when printing by post opens");
+  expect(sent).toHaveLength(1);
   expect(sent[0]).toMatchObject({ kind: 'interest', offer: 'printed', email: 'ada@example.com', website: '' });
 
   // Back climbs to Style; on a phone, Keep is on its Review page.
@@ -56,9 +61,12 @@ test('offers: hold a deadstock length, cut too, and ask for cutting', async ({ p
   await expect(deadstock).toContainText(/\d\.\d m at \d+ cm wide/);
   await deadstock.screenshot({ path: info.outputPath('deadstock.png') });
   await deadstock.getByRole('checkbox', { name: /Cut it for me too/ }).check();
-  await deadstock.getByRole('textbox', { name: 'Your email' }).fill('ada@example.com');
-  await deadstock.getByRole('button', { name: 'Hold one for me' }).click();
-  await expect(deadstock).toContainText('first deadstock drop');
+  // Sent from the one email box under the extras (declutter, Cat's E, Nov 21), with the card's own tick.
+  const hear = main.getByRole('region', { name: 'Hear when these open' });
+  await hear.getByRole('checkbox', { name: 'Deadstock cloth for this pattern' }).check();
+  await hear.getByRole('textbox', { name: 'Your email' }).fill('ada@example.com');
+  await hear.getByRole('button', { name: 'Tell me' }).click();
+  await expect(hear).toContainText('first deadstock drop');
   expect(sent[0]).toMatchObject({ kind: 'interest', offer: 'deadstock', cut: true });
 
   // C1: on the dressmaker card (all tools), for people who already have their fabric.

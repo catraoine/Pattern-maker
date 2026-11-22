@@ -1,4 +1,4 @@
-import { expect, openAccount, openCollection, openFold, startWithExample, stepButton, test } from './fixtures';
+import { expect, openAccount, openCollection, openFold, openLengthStep, startWithExample, stepButton, test } from './fixtures';
 
 // Testers tried to type their length and didn't see they had to drag the hem, and looked for the collection from
 // Style (testers, Nov 17; Cat applied both): the length label opens a box to type it, and The collection is one tap
@@ -25,6 +25,7 @@ for (const unit of ['cm', 'in'] as const)
       await pick.first().click();
       const change = main.getByRole('button', { name: 'Change a detail' });
       if (await change.count()) await change.click();
+      await openLengthStep(page);
       await expect(main.getByText('Drag the dot, or tap the length to type it.')).toBeVisible({ timeout: 30_000 });
       const slider = main.getByRole('slider', { name: /length/i }).first();
       const was = await slider.getAttribute('aria-valuetext');

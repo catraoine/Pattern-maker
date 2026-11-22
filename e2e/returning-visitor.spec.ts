@@ -37,7 +37,7 @@ test('returning visitor: a reload keeps the measurements and the saved pattern',
   await expect(main.getByText('By continuing you agree')).toHaveCount(0);
   // A saved pattern carries on to Print, ready to download (DI walk, Nov 19).
   await main.getByRole('button', { name: 'Carry on with your skirt' }).click();
-  await expect(main.getByRole('heading', { level: 1, name: 'Your summary' })).toBeVisible();
+  await expect(main.getByRole('heading', { level: 1, name: 'Print it' })).toBeVisible();
 
   // The style chosen is still there.
   await page.getByRole('navigation', { name: 'Steps' }).getByRole('button', { name: 'Style' }).click();

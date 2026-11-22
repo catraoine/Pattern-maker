@@ -87,7 +87,7 @@ import { PhotoCheck } from './ui/PhotoCheck';
 import type { PhotoSource } from './photo/check';
 import type { PhotoBody } from './photo/garments';
 import { testerHeaders } from './ui/TesterCode';
-import { NEEDS_MEASUREMENTS, PARENT, PLACE_KEY, SIDE, STEPS, STEP_OF, ladder, type Step, type View } from './navigation';
+import { NEEDS_MEASUREMENTS, PARENT, PLACE_KEY, STEPS, STEP_OF, UNDER_ACCOUNT, ladder, type Step, type View } from './navigation';
 
 
 /** The screens a reload may open again. */
@@ -927,7 +927,7 @@ export default function App() {
                 </nav>
                 <button
                   type="button"
-                  className={step === 'account' ? 'avatar on' : 'avatar'}
+                  className={step === 'account' || UNDER_ACCOUNT.includes(step) ? 'avatar on' : 'avatar'}
                   aria-label={`Your account (${owner})`}
                   aria-current={step === 'account' ? 'page' : undefined}
                   onClick={() => setStep('account')}
@@ -943,11 +943,6 @@ export default function App() {
                   )}
                 </button>
               </div>
-              {SIDE[step] && (
-                <p className="crumb">
-                  {SIDE[step]![0]} › <span>{SIDE[step]![1]}</span>
-                </p>
-              )}
             </>
           )}
         </header>
@@ -1231,8 +1226,6 @@ export default function App() {
           {step === 'collection' && (
             <CollectionScreen
               values={values}
-              onBack={lookFrom === 'steps' ? back : () => setStep('style')}
-              backLabel={lookFrom === 'steps' ? '' : undefined}
               onMake={(look) => makeLook(look)}
             />
           )}

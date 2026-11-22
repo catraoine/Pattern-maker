@@ -58,8 +58,8 @@
   fakes and reads squished (Nov 4). The Style Next button is 16px, weight 500, spaced 0.1em.
 - The three steps in the header stay **Measure, Style, Print**. Every screen says where you've landed and
   holds the sewist's hand (Cat, Nov 3: big capitals for a whole choice are "overwhelming and jarring"). Print
-  opens on a modest "Your summary" heading, one line on what the page is for, then the garment's name in
-  reading type.
+  reads in three parts, each a modest heading under a small "Part" line: Print it, Cut it, Sew it (Nov 21,
+  replacing "Your summary" and its guiding line).
 - Logo: R1 wordmark (MAISON / TRACÉ stacked, MT favicon); loading screen L1 slim-dart piece (Oct 21).
 - **Brand palette for marketing** (Oct 25): Champagne #c9b48a, Oxblood #5a1f24, Python Aqua (the
   app's one-way python print), Ink #1d2a3a, Chalk #e9e4da, labels on ivory #f3dfb7, oxblood ground #120805 (black before Nov 6).

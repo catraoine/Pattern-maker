@@ -1,0 +1,68 @@
+/* ---- Declutter (Cat's E, Nov 21): every function kept, each said once. ---- */
+
+/* B · Quiet window. All round's four Feel steps wait behind a Feel button beside Fit map and Look closer on every
+   screen, as they already did on a short phone (30-steady-view.css); they opened over the garment's left side. */
+.style-layout .style-pin > section:not(.live-big) > .preview .all-round-feel-toggle {
+  display: inline-block;
+}
+.style-layout .style-pin > section:not(.live-big) > .preview .all-round-tools .all-round-closer {
+  padding: 6px 8px;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+}
+.style-layout .style-pin > section:not(.live-big) > .preview > .all-round > .all-round-quiet > .all-round-feel:not(.open) {
+  display: none;
+}
+.style-layout .style-pin > section:not(.live-big) > .preview > .all-round > .all-round-quiet > .all-round-feel.open {
+  z-index: 5;
+  background: var(--chalk, #dcd5c7);
+  padding: 6px;
+}
+
+/* B · On a computer the window's tools are one row along its top, as on a phone: Enlarge and Draw on the left, Demo
+   in the far corner (it stood across from "Step 1 of 5" in the question panel). The row lets taps through to the
+   drawing between its words. */
+@media (min-width: 761px) {
+  .style-layout .style-pin > section:not(.live-big) > .preview > .preview-corner {
+    right: 16px;
+    flex-direction: row;
+    align-items: center;
+    gap: 0 22px;
+    pointer-events: none;
+  }
+  .style-layout .style-pin > section:not(.live-big) > .preview > .preview-corner > * {
+    pointer-events: auto;
+  }
+  .style-layout .style-pin > section:not(.live-big) > .preview > .preview-corner > .demo-play {
+    position: static;
+    order: 9;
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 0 4px;
+    font-size: var(--caps-size);
+    letter-spacing: var(--caps-track);
+  }
+}
+
+/* D · Print in three parts: Print it, Cut it, Sew it, each under a fine rule, in the order they're done. */
+.print-part {
+  margin: 36px 0 4px;
+  padding-top: 22px;
+  border-top: 1px solid var(--guide);
+}
+.print-part .eyebrow,
+.print-head .print-part-no {
+  margin: 0 0 6px;
+}
+.print-part h2 {
+  margin: 0;
+}
+
+/* D · The Extras' one email box: a tick for each offer above it. */
+.extras-signup .extras-ticks {
+  display: grid;
+  gap: 4px;
+  margin: 6px 0 14px;
+}

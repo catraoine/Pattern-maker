@@ -1,14 +1,6 @@
 /* The top of Print says where you've landed (Cat, Nov 3): "the whole choice in large font is overwhelming and
-   jarring". A modest "Your summary" heading, one guiding line. The name sits on the card below (Nov 7). */
+   jarring". A modest heading, now "Print it", Part 1 of three (Nov 21). The name sits on the card below (Nov 7). */
 .print-head h1 {
   font-size: 28px;
   line-height: 1.1;
-}
-.print-head .print-guide {
-  margin: 4px 0 0;
-  max-width: 34em;
-  font-family: var(--sans);
-  font-size: 16px;
-  line-height: 1.45;
-  color: var(--ink);
 }

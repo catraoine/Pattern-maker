@@ -234,6 +234,13 @@ export async function goTab(page: Page, name: string) {
   else await tabs.locator(`[role="tab"][data-step="${name}"]`).first().click();
 }
 
+/** The step where the length is asked (Length & hem), where the length hint shows since the declutter (Cat's E,
+ *  Nov 21); a garment with no such step asks it on its first, which is already open. */
+export async function openLengthStep(page: Page) {
+  const tab = main(page).getByRole('tablist', { name: 'Style choices', includeHidden: true }).locator('[role="tab"][data-step="Length & hem"], [role="tab"][aria-label="Length & hem"]');
+  if (await tab.count()) await goTab(page, 'Length & hem');
+}
+
 export async function addCloserFit(page: Page, g: GarmentName) {
   const add = main(page).getByRole('button', { name: 'Add them' }).first();
   await expect(await stepTabs(page)).toBeVisible();
@@ -293,8 +300,12 @@ async function fromGarmentDrop(page: Page, item: string) {
   await main(page).getByRole('menuitemradio', { name: item }).click();
 }
 
-/** From a style screen, "The collection" in the garment's drop-down. */
-export const openCollection = (page: Page) => fromGarmentDrop(page, 'The collection ›');
+/** From a style screen, the "The collection ›" link under the garment's name (the drop-down's line for it went in the
+ *  declutter, Cat's E, Nov 21). */
+export async function openCollection(page: Page) {
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await main(page).locator('button.collection-go').click();
+}
 
 /** From a style screen, "Start from a photo" in the garment's drop-down: straight to the photo page. */
 export const openPhoto = (page: Page) => fromGarmentDrop(page, 'Start from a photo ›');
