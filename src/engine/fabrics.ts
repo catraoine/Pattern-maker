@@ -5,7 +5,7 @@
 // Keep to plain ASCII punctuation: these words go into the PDF and the tech pack.
 import { rucheAllowed } from './ruche';
 import { colourWords } from './houseColours';
-import { skirtFitOf, type Fit, type Length, type Silhouette, type SkirtFitting } from './skirt';
+import { skirtFitOf, type Fit, type Length, type NoSeam, type Silhouette, type SkirtFitting } from './skirt';
 import type { AsymHem } from './asymHem';
 import type { BodiceDarts, BodiceFit, BodiceFitting, BodiceLength, Neckline } from './bodice';
 import type { Leg } from './trousers';
@@ -503,7 +503,14 @@ export function outerFabrics(style: { garment: 'jacket' | 'coat'; fit: BodiceFit
 }
 
 /** Fabrics for a dress: the skirt's suggestions that also suit the bodice come first. */
-export function dressFabrics(style: { fit: BodiceFit; neckline: Neckline; silhouette: Silhouette; length: Length; lengthCm?: number; structure?: Structure } & Partial<VolumeStyle>): FabricAdvice {
+export function dressFabrics(style: { fit: BodiceFit; neckline: Neckline; silhouette: Silhouette; length: Length; lengthCm?: number; structure?: Structure; noSeam?: NoSeam } & Partial<VolumeStyle>): FabricAdvice {
+  // A dress cut whole on the bias, with no waist seam, wants a slip's cloth from shoulder to hem: the straight skirt it
+  // is drawn from, and the darted bodice, would ask for crisp linen or twill, which stands stiff and boxy on the bias
+  // (CLO fabric check, Ivory Bias Slip, Nov 22).
+  if (style.noSeam === 'bias') {
+    const slip = skirtFabrics({ silhouette: 'slip', length: style.length, lengthCm: style.lengthCm });
+    return { ...slip, style: 'a bias-cut slip dress', avoid: SKIRT.slip.avoid, lining: BODICE_LINING };
+  }
   const skirt = skirtFabrics({ ...style, fit: skirtFitOf(style.fit) });
   const bodice = bodiceFabrics({ fit: style.fit, neckline: style.neckline, structure: style.structure });
   // The boned bodice sets the cloth: the skirt is cut from the same firm fabric.
@@ -556,7 +563,7 @@ interface FabricNote {
 export type FabricStyle =
   | ({ garment: 'skirt'; silhouette: Silhouette; length: Length; lengthCm?: number; asymHem?: AsymHem } & Partial<VolumeStyle>)
   | { garment: 'bodice'; fit: BodiceFit; neckline: Neckline; structure?: Structure }
-  | ({ garment: 'dress'; fit: BodiceFit; neckline: Neckline; silhouette: Silhouette; length: Length; lengthCm?: number; structure?: Structure } & Partial<VolumeStyle>)
+  | ({ garment: 'dress'; fit: BodiceFit; neckline: Neckline; silhouette: Silhouette; length: Length; lengthCm?: number; structure?: Structure; noSeam?: NoSeam } & Partial<VolumeStyle>)
   | { garment: 'trousers'; fit: Fit; leg: Leg }
   | TeeFabricStyle
   | LingerieFabricStyle
@@ -610,8 +617,10 @@ function styleWarnings(style: FabricStyle, { weight, drape, knit }: MyFabric): H
   // style wouldn't fix (tape it, hang it, interface it) has none.
   const push = (text: string, about?: Detail) => out.push({ text, about });
   const name = adviceFor(style).style;
+  // A dress cut whole on the bias is checked as a slip, whatever skirt shape it was drawn from.
+  const bias = style.garment === 'dress' && style.noSeam === 'bias';
   if (style.garment === 'skirt' || style.garment === 'dress') {
-    const s = style.silhouette;
+    const s = bias ? 'slip' : style.silhouette;
     if (drape === 'fluid' && (s === 'pencil' || s === 'straight')) push(`A fluid fabric on ${name} will cling and show every line underneath. Lining it helps.`, 'shape');
     if (drape === 'fluid' && s === 'a_line') push('A fluid fabric will soften the A shape so it hangs closer to the body.');
     if (weight === 'light' && s === 'pencil') push('A light fabric wrinkles and seats on a pencil skirt. Line it, or choose a medium weight.', 'shape');
@@ -626,7 +635,8 @@ function styleWarnings(style: FabricStyle, { weight, drape, knit }: MyFabric): H
   if (style.garment === 'bodice' || style.garment === 'dress') {
     if (style.neckline === 'cowl' && drape && drape !== 'fluid') push('A cowl needs a fluid fabric. A crisp or soft one stands away in ridges instead of falling into folds.', 'neckline');
     if (style.neckline === 'one_shoulder' && drape === 'fluid') push('A fluid fabric pulls at a one-shoulder edge. Stay-tape the edge firmly, and underline the bodice if it is very slippery.');
-    if (drape === 'fluid' && style.fit !== 'relaxed' && style.structure !== 'boned' && style.neckline !== 'cowl') push('A fluid fabric puckers at the darts and will not hold a fitted bodice. Underline it with cotton batiste, or choose a relaxed fit.', 'fit');
+    // (On the bias the cloth moulds to the body, so a fluid one is what holds it close.)
+    if (drape === 'fluid' && !bias && style.fit !== 'relaxed' && style.structure !== 'boned' && style.neckline !== 'cowl') push('A fluid fabric puckers at the darts and will not hold a fitted bodice. Underline it with cotton batiste, or choose a relaxed fit.', 'fit');
     if (weight === 'heavy' && style.fit !== 'relaxed') push('A heavy fabric makes thick darts and a bulky neckline. Face or line it with something light, and trim the seams well.', 'fit');
     if (drape === 'crisp' && weight === 'heavy' && style.fit === 'relaxed') push('A heavy, crisp fabric stands away from the body without darts.', 'fit');
     if (style.structure === 'boned' && (drape === 'fluid' || weight === 'light'))

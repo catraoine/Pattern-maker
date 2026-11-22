@@ -1,6 +1,7 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { showInInches } from './units';
 import { canGoBack, goBack, pushFresh, useViewHistory } from './nav';
+import { noSeamAllowed } from './engine/dress';
 import { DraftError, SkirtMeasurements } from './engine/skirt';
 import { BodiceDraft } from './engine/bodice';
 import { withAllowances } from './engine/allowances';
@@ -821,7 +822,7 @@ export default function App() {
       : garment === 'bodice'
       ? { garment, fit: saved.bodice.fit, neckline: saved.bodice.neckline, structure: validDetails(saved.bodice).structure }
       : garment === 'dress'
-        ? { garment, fit: dress.fit, neckline: dress.bodice.neckline, silhouette: dress.skirt.silhouette, length: dress.skirt.length, lengthCm: dress.skirt.lengthCm, structure: validDetails(dress.bodice).structure, asymHem: dress.skirt.asymHem, pleats: dress.skirt.pleats, godets: dress.skirt.godets, flounce: dress.skirt.flounce }
+        ? { garment, fit: dress.fit, neckline: dress.bodice.neckline, silhouette: dress.skirt.silhouette, length: dress.skirt.length, lengthCm: dress.skirt.lengthCm, structure: validDetails(dress.bodice).structure, asymHem: dress.skirt.asymHem, pleats: dress.skirt.pleats, godets: dress.skirt.godets, flounce: dress.skirt.flounce, noSeam: noSeamAllowed(dress.bodice) ? dress.skirt.noSeam : undefined }
         : garment === 'trousers'
           ? { garment, fit: trousersChoices.fit, leg: trousersChoices.leg }
           : garment === 'tee'

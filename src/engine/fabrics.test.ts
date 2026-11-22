@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { bodiceFabrics, checkFabric, outerFabrics, dressFabrics, trousersFabrics, describeFabric, fabricLines, skirtFabrics, withFabric, withFabricEase } from './fabrics';
+import { adviceFor, bodiceFabrics, checkFabric, outerFabrics, dressFabrics, trousersFabrics, describeFabric, fabricLines, skirtFabrics, withFabric, withFabricEase } from './fabrics';
 import type { Length, Silhouette } from './skirt';
 import type { BodiceFit, Neckline } from './bodice';
 import { draftSkirt } from './skirt';
 import { draftBodice } from './bodice';
 import { EXAMPLE_VALUES } from '../measurements';
+import { COLLECTION } from '../collection';
+import type { FabricStyle } from './fabrics';
+import type { DressChoices } from '../garments';
 
 const SILHOUETTES: Silhouette[] = ['pencil', 'straight', 'a_line', 'trumpet', 'half_circle', 'circle'];
 const LENGTHS: Length[] = ['mini', 'above_knee', 'knee', 'midi', 'maxi'];
@@ -148,5 +151,34 @@ describe('fabric in the sewing guide', () => {
   it('describes a fabric with no name by its traits', () => {
     expect(describeFabric({ weight: 'medium', drape: 'crisp', fibre: 'linen' })).toBe('medium, crisp linen');
     expect(describeFabric({})).toBeUndefined();
+  });
+});
+
+describe('the Ivory Bias Slip', () => {
+  // Cut whole on the bias from a straight skirt, it was checked as a straight, darted dress: linen and twill suggested,
+  // and its own fluid satin warned off twice (open findings, Nov 22).
+  const look = COLLECTION.find((l) => l.id === 'ivory-slip')!;
+  const c = look.choices as DressChoices;
+  const style: FabricStyle = { garment: 'dress', fit: c.fit, neckline: c.bodice.neckline, silhouette: c.skirt.silhouette, length: c.skirt.length, noSeam: c.skirt.noSeam };
+
+  it('suggests slip fabrics, all light and fluid', () => {
+    const a = adviceFor(style);
+    expect(a.style).toBe('a bias-cut slip dress');
+    expect(a.picks.map((p) => p.name)).toEqual(['Silk satin or charmeuse', 'Silk crepe de chine', 'Viscose or rayon crepe']);
+    expect(a.picks.every((p) => p.drape === 'fluid' && p.weight[0] === 'light')).toBe(true);
+    expect(a.avoid).toMatch(/^Crisp or stiff fabrics/);
+  });
+
+  it('calls a light, fluid satin a good match, and warns against a medium, crisp cloth', () => {
+    expect(checkFabric(style, { weight: 'light', drape: 'fluid' })).toEqual([{ level: 'ok', text: 'Good match for a bias-cut slip dress.' }]);
+    const crisp = checkFabric(style, { weight: 'medium', drape: 'crisp' });
+    expect(crisp.map((n) => n.level)).toEqual(['warn']);
+    expect(crisp[0].text).toMatch(/^A crisp fabric will not mould to the body on the bias/);
+  });
+
+  it('still checks a dress with a waist seam by its skirt and bodice', () => {
+    const seamed = { ...style, noSeam: undefined };
+    expect(adviceFor(seamed).style).not.toMatch(/slip/);
+    expect(checkFabric(seamed, { weight: 'light', drape: 'fluid' }).some((n) => /cling/.test(n.text))).toBe(true);
   });
 });
