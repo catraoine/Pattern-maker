@@ -317,8 +317,7 @@ async function fromGarmentDrop(page: Page, item: string) {
   await main(page).getByRole('menuitemradio', { name: item }).click();
 }
 
-/** From a style screen, the "The collection ›" link under the garment's name (the drop-down's line for it went in the
- *  declutter, Cat's E, Nov 21). */
+/** From a style screen, the "The collection ›" link under the garment's name (the drop-down has a line for it too). */
 export async function openCollection(page: Page) {
   await page.evaluate(() => window.scrollTo(0, 0));
   await main(page).locator('button.collection-go').click();
