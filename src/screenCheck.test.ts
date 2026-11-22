@@ -27,3 +27,20 @@ describe.skipIf(!FROM)('screens: every screen on a phone and a computer', () => 
     }
   });
 });
+
+// The menswear form's screens (SCREEN_MENSWEAR_FROM=<folder>, taken with SCREEN_FORM=menswear): report-only, its "new
+// findings" the ones the womenswear screens don't have (src/screenKnown.json). The menswear form is In testing (Nov 22);
+// kept apart from the check above, so nothing here can turn it red.
+const MEN_FROM = process.env.SCREEN_MENSWEAR_FROM;
+describe.skipIf(!MEN_FROM)('screens: every screen on the menswear form', () => {
+  it('reports every screen on the menswear form', () => {
+    const found: Record<string, string[]> = {};
+    for (const f of readdirSync(MEN_FROM!).filter((f) => /^screens-.*\.json$/.test(f))) Object.assign(found, JSON.parse(readFileSync(`${MEN_FROM}/${f}`, 'utf8')));
+    const results = Object.entries(found)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, problems]) => ({ key, problems }));
+    const c = checkPatterns(results, existsSync(file) ? (JSON.parse(readFileSync(file, 'utf8')) as Record<string, string[]>) : {});
+    writeFileSync(process.env.SCREEN_MENSWEAR_REPORT ?? 'screens-menswear.md', patternReport(results, c, 'Screens, menswear form'));
+    expect(results.length, 'screens looked at').toBeGreaterThan(0);
+  });
+});

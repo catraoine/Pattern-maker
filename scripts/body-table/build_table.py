@@ -1,7 +1,7 @@
 """Builds src/engine/bodyShape.ts from the MakeHuman base body (CC0): the torso's cross-section at each height of the
 app's form, read as the reach from the centre line at each angle round it, with the arms cut off at the armhole.
 
-python3 -I build_table.py <base.obj> <out.ts> --target f:w ... [--json dump.json]
+python3 -I build_table.py <base.obj> <out.ts> --target f:w ... [--json dump.json] [--menswear]
 """
 import json
 import math
@@ -27,12 +27,39 @@ LANDMARKS = [
 # half-width (0.61), which sets the form's scale (cm to a unit).
 GIRTHS = {-1.62: 35.0, -0.58: 92.0, 0.1: 76.0, 0.82: 102.0}
 SHOULDER_HALF_CM = 38 * 0.94 / 2
+SHOULDER_Y = -1.34
 BUST_HALF = 0.61
 # The torso's side at the armpit, and the acromion, in MakeHuman's dm: the arms are cut off beyond this.
 ARMPIT_Y = 3.78
 ARM_X = 1.5
 ZC = 0.33
 NA = 96
+# The unit the womenswear table comes out at (cm per form unit). The menswear body is read in the same unit, so
+# everything drawn in the form's units (the legs, the arms, the floor) stands the same on both.
+UNIT = None
+NAME = 'the young female average'
+EXPORT = ''
+
+# The menswear form's body (Nov 22): MakeHuman's young male average. Its landmarks
+# were found by reading where the womenswear landmarks' own mesh points move to on the male body (the same mesh, so
+# point for point), then checked against the narrowest waist and the fullest seat measured on it. The example man:
+# 40 neck, 100 chest, 86 waist, 100 hip and 44 shoulders.
+MENSWEAR = dict(
+    LANDMARKS=[(6.96, -1.75), (6.52, -1.47), (6.31, -1.34), (4.43, -0.58), (2.8, 0.1), (0.88, 0.82), (0.29, 1.3)],
+    GIRTHS={-1.62: 40.0, -0.58: 100.0, 0.1: 86.0, 0.82: 100.0},
+    SHOULDER_HALF_CM=44 * 0.94 / 2,
+    # A man's shoulder runs on out past the tip, over the top of the arm, before the armhole drops: his shoulder
+    # width is held where the body is widest above the chest, not at the tip, or the armhole stood far too wide.
+    SHOULDER_Y=-1.2,
+    # The armpit (where the arm comes free of the body) and the side of the body there.
+    ARMPIT_Y=4.79,
+    ARM_X=1.77,
+    ZC=0.1,
+    # The womenswear build's own unit, as it prints it ('cm per unit'): rebuild this table too if that one changes.
+    UNIT=24.657959821272417,
+    NAME='the young male average',
+    EXPORT='_MENSWEAR',
+)
 
 
 def mh_y(form_y):
@@ -105,6 +132,9 @@ def main():
             f, w = args[i + 1].rsplit(':', 1)
             targets.append((f, float(w)))
             i += 2
+        elif args[i] == '--menswear':
+            globals().update(MENSWEAR)
+            i += 1
         elif args[i] == '--json':
             dump = args[i + 1]
             i += 2
@@ -158,9 +188,9 @@ def main():
     at = lambda f: min(range(len(form_ys)), key=lambda k: abs(form_ys[k] - f))
     bust = at(-0.58)
     # cm of girth to a dm of MakeHuman, at the bust; and the form's unit from the bust's half-width.
-    unit = sides[bust] * (GIRTHS[-0.58] / perimeter(rows[bust])) / BUST_HALF  # cm per form unit
+    unit = UNIT or sides[bust] * (GIRTHS[-0.58] / perimeter(rows[bust])) / BUST_HALF  # cm per form unit
     print('cm per unit', unit)
-    ks = sorted([(f, (g / perimeter(rows[at(f)])) / unit) for f, g in GIRTHS.items()] + [(-1.34, (SHOULDER_HALF_CM / sides[at(-1.34)]) / unit)])
+    ks = sorted([(f, (g / perimeter(rows[at(f)])) / unit) for f, g in GIRTHS.items()] + [(SHOULDER_Y, (SHOULDER_HALF_CM / sides[at(SHOULDER_Y)]) / unit)])
     for f, k in ks:
         print(f'scale at {f}: {k:.4f}  (mh side {sides[at(f)]:.3f} -> {sides[at(f)] * k:.3f})')
     def scale(fy):
@@ -181,15 +211,15 @@ def main():
         json.dump({'ys': form_ys, 'half': halfs, 'shape': shapes}, open(dump, 'w'))
     fmt = lambda v: f'{v:.3f}'.replace('0.', '.') if abs(v) < 1 else f'{v:.3f}'
     lines = [
-        '// The body\'s shape, read off MakeHuman\'s base body (CC0, makehumancommunity.org; the young female average,',
+        f'// The body\'s shape, read off MakeHuman\'s base body (CC0, makehumancommunity.org; {NAME},',
         '// arms cut off at the armhole), at each height of the app\'s form. Generated: do not edit by hand.',
         '// BODY_YS: heights in the form\'s own units (waist at 0.1). BODY_HALF: the body\'s half-width at each.',
         '// BODY_SHAPE: at each height, how far the surface reaches from the centre line at each angle round the body,',
         '// from straight ahead (0) to straight behind, as a share of the half-width there (1 at the side).',
-        f'export const BODY_YS: number[] = [{", ".join(fmt(y) for y in form_ys)}];',
-        f'export const BODY_HALF: number[] = [{", ".join(fmt(h) for h in halfs)}];',
-        f'export const BODY_ANGLES = {half + 1};',
-        'export const BODY_SHAPE: number[][] = [',
+        f'export const BODY_YS{EXPORT}: number[] = [{", ".join(fmt(y) for y in form_ys)}];',
+        f'export const BODY_HALF{EXPORT}: number[] = [{", ".join(fmt(h) for h in halfs)}];',
+        f'export const BODY_ANGLES{EXPORT} = {half + 1};',
+        f'export const BODY_SHAPE{EXPORT}: number[][] = [',
         *[f'  [{", ".join(fmt(v) for v in row)}],' for row in shapes],
         '];',
         '',

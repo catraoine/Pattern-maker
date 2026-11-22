@@ -13,7 +13,7 @@ import { FabricPaint, fabricPaint } from './FabricFill';
 import { useFabricPhoto } from '../fabricPhoto';
 import { ClothQuad, ClothTiles, clothLayers, clothTiles, lightOf, paintCloth } from './allRoundCloth';
 import { RoundGarment, RoundPt, RoundSeam, stripesMeet } from '../engine/allRound';
-import { bodyHalf as formHalfWidth, reach as bodyReach, shapeAt } from '../engine/body';
+import { bodyHalf as formHalfWidth, pickedBody, reach as bodyReach, shapeAt } from '../engine/body';
 import { FORM_CROTCH, FORM_DEPTH, FORM_FLOOR, FORM_LEG, FORM_LEG_X, paintFigure } from './ContourForm';
 import { BUST_Y, FORM_HIP, NECK_Y, RoundMeasurements, WAIST, roundShape } from './allRoundShape';
 import type { DrapedView, Pick, PickPart, RoundView } from './allRoundMesh';
@@ -196,15 +196,18 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
   const [feelOpen, setFeelOpen] = useState(false);
   const fabricWho = `${fabric?.fibre}|${fabric?.weight}|${fabric?.drape}|${fabric?.special}|${fabric?.knit}|${fabric?.shop}|${fabric?.photo?.id}`;
   useEffect(() => setFeel({}), [fabricWho]);
+  // The form whose body this view draws (picked by the app for the person open).
+  const form = pickedBody();
   const job = useMemo<DrapeJob | undefined>(
     () => {
       if (!drape) return undefined;
       // The cloth behaves as the fabric picked does: its stiffness, weight and give (clothCard.ts).
       const fibre = drape.fibre ?? fabric?.fibre;
       const card = clothCard({ fibre, weight: fabric?.weight, drape: drape.crisp ? 'crisp' : fabric?.drape, special: fabric?.special, knit: fabric?.knit, feel });
-      return { ...drape, m, armhole: round.armhole, fibre, crisp: drape.crisp ?? fabric?.drape === 'crisp', card } as DrapeJob;
+      // (On the menswear form, sewn on the man's body: see body.ts. Left out for womenswear, so its jobs are as before.)
+      return { ...drape, m, armhole: round.armhole, fibre, crisp: drape.crisp ?? fabric?.drape === 'crisp', card, ...(form === 'menswear' ? { form } : {}) } as DrapeJob;
     },
-    [drape, m, round.armhole, fabric?.fibre, fabric?.drape, fabric?.weight, fabric?.special, fabric?.knit, feel],
+    [drape, m, round.armhole, fabric?.fibre, fabric?.drape, fabric?.weight, fabric?.special, fabric?.knit, feel, form],
   );
   const jobKey = useMemo(() => (job ? drapeKey(job) : ''), [job]);
   const [draped, setDraped] = useState<{ key: string; view: DrapedView } | undefined>();
@@ -215,7 +218,9 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
     const d = drape?.draft as { top?: unknown; bodice?: { top?: unknown } } | undefined;
     return !!(drape?.kind === 'dress' ? d?.bodice?.top : drape?.kind === 'bodice' ? d?.top : undefined);
   }, [drape]);
-  const spaceOf = useMemo(() => makeSpace(placeOnForm(round, m), m, { widen: widenForm }), [round, m, widenForm]);
+  // (Made again when the form changes: makeSpace reads the picked body.)
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- form is not read inside, but the body it picked is
+  const spaceOf = useMemo(() => makeSpace(placeOnForm(round, m), m, { widen: widenForm }), [round, m, widenForm, form]);
   // The form stands at the wearer's shoulder width, as the body the cloth is sewn on does.
   const formX = useMemo(() => (x: number, y: number, z: number) => {
     const s = spaceOf.scale(y);

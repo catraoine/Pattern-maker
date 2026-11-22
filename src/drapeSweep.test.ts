@@ -1,7 +1,8 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { SweepDesign, checkOptions, optionDesigns, optionsReport, randomDesign, sewDesign, sweepReport } from './drapeSweep';
-import { rng } from './engine/randomBodies';
+import { randomMan, rng } from './engine/randomBodies';
+import { withEstimates } from './estimate';
 import { drapeQuality } from './engine/drape/quality';
 import type { Draped } from './engine/drape/garment';
 import type { Saved } from './savedWork';
@@ -128,6 +129,25 @@ describe.skipIf(!N)('All round sweep of random designs', () => {
     const report = `Seed ${seed}\n\nBy body:\n${byBody.join('\n')}\n\n${sweepReport(results, Number(process.env.DRAPE_LIST ?? 8))}`;
     writeFileSync(process.env.DRAPE_REPORT ?? 'drape-sweep.md', report);
     expect(results.length).toBe(N);
+  }, 6 * 60 * 60_000);
+});
+
+// The menswear form's own sweep: DRAPE_MENSWEAR=<how many> sews that many random designs on random men (randomMan), on
+// the man's body (body.ts), and writes the report to DRAPE_MENSWEAR_REPORT. Report-only, like the sweep above: the
+// menswear form is In testing, and this is how its All round is held to the womenswear one's standard (Nov 22).
+// Kept apart from the launch pieces' checks, so nothing here can turn theirs red.
+const MEN = Number(process.env.DRAPE_MENSWEAR ?? 0);
+describe.skipIf(!MEN)('All round sweep on the menswear form', () => {
+  it(`sews ${MEN} random designs on random men and reports the failures`, () => {
+    const seed = Number(process.env.DRAPE_SEED ?? new Date().toISOString().slice(0, 10).replace(/-/g, ''));
+    const r = rng(seed);
+    const results = Array.from({ length: MEN }, () => {
+      const design = randomDesign(r);
+      return sewDesign(design, withEstimates(randomMan(r), 'menswear'), 'menswear');
+    });
+    const report = `Seed ${seed}, menswear form, random men\n\n${sweepReport(results, Number(process.env.DRAPE_LIST ?? 8))}`;
+    writeFileSync(process.env.DRAPE_MENSWEAR_REPORT ?? 'drape-menswear.md', report);
+    expect(results.length).toBe(MEN);
   }, 6 * 60 * 60_000);
 });
 
