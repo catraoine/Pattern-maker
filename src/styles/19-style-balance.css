@@ -208,11 +208,30 @@
   justify-content: flex-end;
   padding-top: 6px;
 }
-.watch-draft .link.small span {
-  /* Only the words are underlined: the underline broke at the gap before the arrow and ran on under it (Cat, Nov 11). */
-  display: inline-block;
-  margin-left: 6px;
-  font-size: 0.8em;
+/* Watch it draft in the Demo buttons' own look (Cat, Nov 22): mono caps, the mark after the words, no underline, the
+   same size as the Demo in the window's corner. */
+.watch-draft > .watch-play {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  font: var(--w-strong) var(--caps-size)/1 var(--mono);
+  letter-spacing: var(--caps-track);
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.watch-draft > .watch-play:hover .demo-play-words,
+.watch-draft > .watch-play:focus-visible .demo-play-words {
+  background: var(--gild);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.watch-draft > .watch-play:focus-visible {
+  outline: 1.5px solid var(--focus);
+  outline-offset: 2px;
 }
 
 /* Enlarge and Draw as words with their small icon (Cat's E, 2026-11-02, after the worded Enlarge on the Pattern

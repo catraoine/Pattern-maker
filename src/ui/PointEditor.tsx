@@ -50,8 +50,12 @@ const MAX_OPEN = 40;
 function WatchDraft({ onPlay }: { onPlay: () => void }) {
   return (
     <div className="watch-draft">
-      <button type="button" className="link small" onClick={onPlay}>
-        Watch it draft <span aria-hidden="true">▶</span>
+      {/* The same look as every Demo button, since both play a film (Cat, Nov 22: "We can't have too many different
+          styles"): its words and mark take the Demo's classes, the button its own so Demo counts stay Demo's. */}
+      <button type="button" className="watch-play" onClick={onPlay}>
+        <span className="demo-play-words">
+          Watch it draft<span className="demo-play-mark" aria-hidden="true">{'▶︎'}</span>
+        </span>
       </button>
     </div>
   );

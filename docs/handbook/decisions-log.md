@@ -239,3 +239,4 @@ something that changes how a department works. Design picks for single screens s
 - **Oct 14** Name Maison Tracé; look Contour Line in champagne; releases bundled to save Netlify credits.
 - **Oct 13** Netlify hosting; device-first accounts.
 - **Oct 12** Home sewists first; freemium; guests draft freely.
+- Nov 22: Watch it draft takes the Demo buttons' look (mono caps, ▶ after, no underline), so the app has one play style for films (Cat picked matching Demo over a ring).
