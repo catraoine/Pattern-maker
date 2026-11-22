@@ -367,10 +367,11 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     );
 
   // Something else and its answers open on the words, with no form above them (Cat, Nov 21: the small form there
-  // was decoration, not help), centred like the garment list before them.
+  // was decoration, not help), the words starting just under the steps, like a measuring page (Cat, Nov 22: no
+  // blank space above them).
   if (page.kind === 'describe')
     return (
-      <Shell eyebrow="Something else" title="Tell us what you have in mind." centred>
+      <Shell eyebrow="Something else" title="Tell us what you have in mind.">
         <div className="field plain ready">
           <label htmlFor="idea">Describe it</label>
           <textarea id="idea" rows={3} maxLength={MAX_IDEA_CHARS} value={idea} onChange={(e) => setIdea(e.target.value)} />
@@ -409,7 +410,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     const choose = () => setPage({ kind: 'choose' });
     if ((!choices || !read.start) && isSwimIntimates(read.name))
       return (
-        <Shell eyebrow="Coming next" title={`${cap(aOrAn(read.name))} ${/s$/i.test(read.name) && !/dress$/i.test(read.name) ? 'are' : 'is'} in our next drop.`} centred>
+        <Shell eyebrow="Coming next" title={`${cap(aOrAn(read.name))} ${/s$/i.test(read.name) && !/dress$/i.test(read.name) ? 'are' : 'is'} in our next drop.`}>
           <InterestCard offer="swim" pattern={read.name} />
           <button type="button" className="secondary" onClick={fullSet}>
             Take my full measurements for a dressmaker
@@ -423,7 +424,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
       );
     if (!choices || !read.start)
       return (
-        <Shell eyebrow="Not yet" title={`We can't draft ${aOrAn(read.name)} yet.`} centred>
+        <Shell eyebrow="Not yet" title={`We can't draft ${aOrAn(read.name)} yet.`}>
           {read.note && <p className="muted step-tip">{read.note}</p>}
           <p className="muted step-tip">We've noted that you asked for it.</p>
           <div className="idea-actions">
@@ -447,7 +448,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     const more = neededFor(g, values, form).length;
     const closest = read.verdict === 'closest';
     return (
-      <Shell eyebrow={closest ? 'The closest we can do' : 'We can make that'} title={`${cap(closest ? read.name : `${aOrAn(read.name)}`)}.`} centred>
+      <Shell eyebrow={closest ? 'The closest we can do' : 'We can make that'} title={`${cap(closest ? read.name : `${aOrAn(read.name)}`)}.`}>
         {read.note && <p className="muted step-tip">{read.note}</p>}
         <ul className="check-list idea-picks" aria-label={`Your ${GARMENT_NAME[g]}`}>
           {ideaRows(choices).map(([label, value]) => (
