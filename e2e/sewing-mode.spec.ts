@@ -71,5 +71,5 @@ test('the sew tab keeps your place', async ({ page }) => {
   await mode.getByRole('button', { name: /^Close/ }).click();
   // The written steps stay on Print.
   await main.getByRole('button', { name: 'Print', exact: true }).click();
-  await expect(main.getByRole('heading', { level: 1, name: 'Your summary' })).toBeVisible();
+  await expect(main.getByRole('heading', { level: 1, name: 'Print it' })).toBeVisible();
 });
