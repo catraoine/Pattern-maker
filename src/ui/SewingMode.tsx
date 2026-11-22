@@ -90,7 +90,8 @@ export function SewingMode({ steps, pieces, lays, flat, title, keep, inCm, from,
   return createPortal(
     <div className="sewmode" role="dialog" aria-modal="true" aria-label={`Sewing your ${title}`} ref={box} tabIndex={-1}>
       <div className="sewmode-top">
-        <span className="eyebrow">
+        {/* The number sits with the title now (Cat's A, Nov 21); the count stays for screen readers, and the bar shows it. */}
+        <span className="eyebrow visually-hidden">
           Step {at + 1} of {steps.length}
         </span>
         <button type="button" className="later sewmode-close" onClick={onClose}>
@@ -108,8 +109,10 @@ export function SewingMode({ steps, pieces, lays, flat, title, keep, inCm, from,
           <SewPicture picture={pictures[at]} pieces={pieces} lays={lays} flat={flat} label={step.title} />
         </div>
         <div className="sewmode-words">
+          {/* Step and title on one line in the heading capitals, the number in champagne (Cat's A, Nov 21). */}
           <h2 className="sewmode-title" aria-live="polite">
-            {step.title}
+            <span className="sew-num">{at + 1}</span>
+            <span className="sew-title-words">{step.title}</span>
           </h2>
           <p>{inCm(step.text)}</p>
           <div className="sewmode-go">

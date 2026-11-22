@@ -21,7 +21,8 @@ for (const g of ['Skirt', 'Trousers', 'Bodice', 'Dress', 'Tee', 'Jacket'] as Gar
     await expect(mode).toBeVisible();
     for (let i = 0; i < titles.length; i++) {
       await expect(mode.locator('.eyebrow').first()).toHaveText(`Step ${i + 1} of ${titles.length}`);
-      await expect(mode.locator('.sewmode-title')).toHaveText(titles[i]);
+      await expect(mode.locator('.sewmode-title .sew-title-words')).toHaveText(titles[i]);
+      await expect(mode.locator('.sewmode-title .sew-num')).toHaveText(String(i + 1));
       // Every step has its picture, and it isn't empty.
       const pic = mode.locator('.sewmode-pic > *').first();
       await expect(pic).toBeVisible();

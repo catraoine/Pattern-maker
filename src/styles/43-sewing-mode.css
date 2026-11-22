@@ -528,3 +528,21 @@ details.sew:not([open]) > .sew-summary > .sew-list-head::after {
     max-width: 420px;
   }
 }
+
+/* The step's number and title on one line, in the heading capitals, the number in champagne (Cat's A, Nov 21). */
+.sew-num {
+  color: var(--gild);
+  margin-right: 0.45em;
+}
+
+.sewmode .sewmode-top {
+  justify-content: flex-end;
+}
+
+.sew-index-title {
+  font-family: var(--display);
+  font-stretch: var(--display-width);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}

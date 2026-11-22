@@ -79,8 +79,10 @@ export function SewScreen({ made, title, keep, onPrint, onStyle }: Props) {
                 <span className="sew-index-pic">
                   <SewPicture picture={pictures[i]} pieces={made.pieces} lays={made.lays} flat={flat} still />
                 </span>
-                <span className="eyebrow">Step {i + 1}</span>
-                <span className="sew-index-title">{st.title}</span>
+                <span className="sew-index-title">
+                  <span className="sew-num">{i + 1}</span>
+                  <span className="sew-title-words">{st.title}</span>
+                </span>
               </button>
             </li>
           ))}
