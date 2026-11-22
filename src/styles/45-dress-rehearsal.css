@@ -1,0 +1,78 @@
+/* The Dec 7 dress rehearsal walk (Nov 22): the journey walked on a small phone, a phone, a tablet both ways and two
+   laptops. Each rule here is one thing that walk found cut off or too small to read. */
+
+/* 1. Measuring on a laptop: the heading stood at 72 px beside the form whatever the width, so on a 1280 to 1440 px
+   screen the longest words (SHOULDER, UNDERBUST) were wider than their column and lost their last letter. It now
+   grows with the screen and reaches 72 px only where there is room. Short laptop screens keep their own smaller size
+   (42-desktop-review.css), so this starts above their 760 px, and above the 800 px a tablet on its side keeps for
+   its own size (21-ipad.css). */
+@media (min-width: 1100px) and (min-aspect-ratio: 1/1) and (min-height: 801px), (min-width: 1100px) and (min-aspect-ratio: 1/1) and (min-height: 761px) and (pointer: fine) {
+  .measure-step.has-hero .step-words h1 {
+    font-size: clamp(48px, 4.4vw, 72px);
+  }
+}
+
+/* 2. The waitlist on a 360 px phone (many Android phones). "You're on the list" is longer than "Drafted to you" and
+   lost the end of LIST; a size down keeps it whole. */
+@media (max-width: 480px) {
+  .welcome-card.joined h1 {
+    font-size: clamp(27px, 9.2vw, 40px);
+  }
+}
+/* The tester code box kept its full width beside Use code, pushing the button and the "that isn't a tester code"
+   line past the screen's edge. */
+.waitlist-code > .field,
+.waitlist-code input {
+  min-width: 0;
+}
+.waitlist-code input {
+  width: 100%;
+}
+/* The film button is hung at 30% of the form's height. On a short phone the waitlist's form is only about 100 px tall
+   once the page has its words, so the button's "How it works" label stood above the top of the form, cut in half.
+   There the button is smaller and sits in the middle of the form, so the label and the ring both show whole. Only
+   on the waitlist: a tester's welcome has fewer words and a taller form. */
+@media (max-width: 640px) and (max-height: 700px) {
+  .waitlist-page .tour-play {
+    top: 50%;
+    gap: 6px;
+  }
+  .waitlist-page .tour-play-label {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+  .waitlist-page .tour-play-ring {
+    width: 52px;
+    height: 52px;
+  }
+  .waitlist-page .tour-play-ring::after {
+    border-left-width: 14px;
+    border-top-width: 8px;
+    border-bottom-width: 8px;
+  }
+}
+
+/* 3. Draw your lines on a 360 px phone: the card's one column took the width of the form drawing, 18 px wider than
+   the screen, so Enlarge, Demo and the last chip in each row were cut off and the page slid sideways. */
+.form-draw .card {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* 4. The enlarged drawing on a tablet or laptop: Demo sat under Draw in 8 px letters, too small to read, and on a
+   laptop it could land on top of Draw. There it now stands beside Draw at the size a phone already shows it. */
+@media (min-width: 761px) {
+  .style-layout section.live-big .preview-corner {
+    flex-direction: row;
+    align-items: center;
+    gap: 0 18px;
+    max-width: none;
+  }
+  .style-layout section.live-big .preview-corner > .demo-play {
+    position: static;
+    min-height: 32px;
+    margin: 0;
+    padding: 0 4px;
+    font-size: 13.5px;
+    letter-spacing: 0.1em;
+  }
+}
