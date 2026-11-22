@@ -4,10 +4,10 @@ _Update this page whenever a release ships or a PR is queued._
 
 ## Now (Nov 21, 2026): how a ship works
 
-Live: **release EB** (Nov 22, Cat's 8:04 am "ship"): Sewing mode's quieter finished state and walk fixes (the muslin
-note on a tester's first step, pleat pictures, Back and Next clear on a phone), and small-screen fixes from the dress
-rehearsal walk (headings, the waitlist and Draw your lines at 360 wide; a returning waitlist member stays on the list),
-on top of EA (the Sew step, a Demo for each Style view). Rollback = release EA. Releases CW to EB went out Nov 17 to 22;
+Live: **release EC** (Nov 22, Cat's 1:20 pm "ship"): the enlarged Pattern view tidy (the window takes the screen width,
+pieces fill it whole, Undo and Redo inside it), the empire seam no longer steps at the opened under-bust dart (empire
+dresses only, not launch patterns), and the film's "Something else" screens and demos tidied, on top of EB (Sewing mode
+follow-ups, small-screen fixes). Rollback = release EB. Releases CW to EC went out Nov 17 to 22;
 every release's commit, deploy id and rollback is in project memory (pattern-maker-releases-nov14), and the running list of what is
 ready is `/mnt/project-files/releases/ready-to-ship.md`.
 
