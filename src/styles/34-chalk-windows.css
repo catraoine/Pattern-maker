@@ -129,6 +129,10 @@ svg.stepdg .dg-cloth {
 .tour.demo-fade > * {
   animation: demo-show 450ms ease-out 600ms both;
 }
+/* A demo's top holds only Close, at the right (Cat, Nov 21: the clip's name over it was clutter). */
+.tour-top.demo-top {
+  justify-content: flex-end;
+}
 .tour.demo-fade.demo-leaving {
   animation: demo-dark-out 800ms ease-in-out 300ms both;
   pointer-events: none;

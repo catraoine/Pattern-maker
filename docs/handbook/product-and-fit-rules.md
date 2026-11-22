@@ -469,7 +469,7 @@ Cat applied all seven fixes from the app journey review ("Do all fixes"), plus E
 - **Back returns to where you came from**: Measure opened from Style or Print hangs off that screen, so back
   (gesture, browser or ←) goes back there, not to the welcome. The rest of the fixed ladder (Oct 24) stays. `ladder`
   in `src/navigation.ts`.
-- **A reload keeps your place**: this tab's screen (Measure, Style, Print or Your account) is kept in sessionStorage
+- **A reload keeps your place**: this tab's screen (Measure, Style, Print, Sew or Your account) is kept in sessionStorage
   and opened again on a reload, or when a phone drops the page in the background. A new visit still starts at the
   welcome; `?fresh` clears it. `PLACE_KEY`, `RESTORABLE` in `src/App.tsx`.
 - **Home-screen icon**: the tester code stays in the address once it lets a device in, so an iPhone home-screen icon

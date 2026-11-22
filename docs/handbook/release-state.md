@@ -4,10 +4,10 @@ _Update this page whenever a release ships or a PR is queued._
 
 ## Now (Nov 21, 2026): how a ship works
 
-Live: **release DZ** (Nov 21, Cat's 9:38 pm "ship"): the whole app decluttered with "toile" for the trial garment, Print's Change fabric opening Fabric straight away,
-the Ice Peplum booklet's inch folds, sleeve band and ease figures, and menswear jackets starting Long, on top of DY
-(menswear All round, the pile box on Print, smoother Feel steps). Rollback = release DY. Releases CW to DZ went out Nov
-17 to 21; every release's commit, deploy id and rollback is in project memory (pattern-maker-releases-nov14), and the running list of what is
+Live: **release EA** (Nov 21, Cat's 10:29 pm "ship"): Sew as a fourth step with Sewing mode drawn from your own
+pieces as a tick list, each Style view's Demo playing its own clip, and the Black Pleated Skirt's Neaten the edges
+naming the panel seams, on top of DZ (the whole app decluttered, "toile", the Ice Peplum booklet). Rollback = release
+DZ. Releases CW to EA went out Nov 17 to 21; every release's commit, deploy id and rollback is in project memory (pattern-maker-releases-nov14), and the running list of what is
 ready is `/mnt/project-files/releases/ready-to-ship.md`.
 
 The ship rule (Cat, Nov 17, 7:47 pm):
