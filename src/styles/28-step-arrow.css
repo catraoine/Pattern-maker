@@ -38,6 +38,23 @@
   .chapter:has(.style-tabs.open) > .chapter-more {
     display: none;
   }
+  /* The page under the open list holds still, and what shows of the drawing above the list is veiled: a tap there
+     closes the list (Cat, Nov 22: it scrolled under the list and offered nothing). */
+  html.steps-open,
+  html.steps-open body {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+  .style-steps-veil {
+    position: fixed;
+    inset: 0 0 var(--style-bar-h, 0px);
+    z-index: 28;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: rgb(0 0 0 / 0.6);
+    cursor: pointer;
+  }
 }
 
 /* A dragged hem catches on each named length, and its name pops on the handle (Cat, 2026-11-06). */
