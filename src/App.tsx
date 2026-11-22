@@ -536,9 +536,9 @@ export default function App() {
   // The trousers' full style (toile corrections and all), so a lining is drafted to the same legs.
   const trousersStyle = useMemo(() => (garment === 'trousers' ? trousersStyleOf(inputs, fitting) : undefined), [garment, inputs, fitting]);
   const drafted = useMemo(
-    () => printableFor({ result, values, finish, fabric, garment, ownFitting, carriedNotes, saved, dress, skirtStyle, trousersChoices, trousersStyle }),
+    () => printableFor({ result, values, finish, fabric, garment, ownFitting, carriedNotes, saved, dress, skirtStyle, trousersChoices, trousersStyle, form }),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only the saved and finish fields the printable reads, so it is not rebuilt on every unrelated change
-    [result, saved.choices, saved.bodice, dress, skirtStyle, values, finish.allowances, finish.skirtLined, finish.bodiceEdges, finish.fabricWidth, finish.nap, finish.route, finish.cloth, fabric, fitting, ownFitting, carriedNotes, garment, trousersStyle],
+    [result, saved.choices, saved.bodice, dress, skirtStyle, values, finish.allowances, finish.skirtLined, finish.bodiceEdges, finish.fabricWidth, finish.nap, finish.route, finish.cloth, fabric, fitting, ownFitting, carriedNotes, garment, trousersStyle, form],
   );
   // An Archive cut keeps its credit while it's the same garment; its details can still be changed.
   const fromArchive = [archiveCut(saved.archive)].find((c) => c?.garment === garment);

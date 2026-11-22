@@ -10,7 +10,10 @@ import { bodiceFlat, outerFlat } from './engine/flat';
 import { outerGuide } from './engine/outerGuide';
 import { checkPattern } from './engine/qc';
 import { randomMan, rng } from './engine/randomBodies';
-import { patternDesigns, walkDesign } from './patternSweep';
+import { patternDesigns, printedPattern, walkDesign } from './patternSweep';
+import { formWords } from './menswearWords';
+import { GARMENT_DRAFTING } from './garmentDrafts';
+import { INITIAL } from './savedWork';
 
 // The menswear form (Cat's B2 Two Forms, 2026-10-18): the chest instead of the bust, none of the bust
 // measurements asked, and tops drafted with no bust dart.
@@ -149,5 +152,56 @@ describe('the menswear follow-ups', () => {
       return Math.sign(top.reduce((a, q) => a + q.x, 0) / top.length - v.at.x);
     };
     expect(topSide(jacket)).toBe(-topSide(plain));
+  });
+});
+
+describe('the menswear fit audit (Nov 22)', () => {
+  const front = (v: MeasurementValues) => withEstimates(v, 'menswear').front_hps_to_waist! - v.nape_to_waist!;
+
+  it('gives a fuller man more front length, so the front hem hangs level over the stomach', () => {
+    // The toiles rode up at the front on a 116 cm chest with the same front length on every size.
+    expect(front(MAN)).toBeCloseTo(2.1, 5);
+    expect(front({ ...MAN, full_bust: 96, waist: 78 })).toBeCloseTo(1.7, 5);
+    expect(front({ ...MAN, full_bust: 116, waist: 104 })).toBeCloseTo(3.9, 5);
+    // A big chest on a small waist stands forward too.
+    expect(front({ ...MAN, full_bust: 110, waist: 82 })).toBeGreaterThan(front({ ...MAN, full_bust: 96, waist: 82 }));
+    // Never more than 6 cm on top of the 1.5, however full.
+    expect(front({ ...MAN, full_bust: 150, waist: 160 })).toBeCloseTo(7.5, 5);
+    // A front length the maker measured is kept as it is, and the womenswear form's estimate is as it was.
+    expect(withEstimates({ ...MAN, waist: 110, front_hps_to_waist: 47 }, 'menswear').front_hps_to_waist).toBe(47);
+    expect(withEstimates({ ...MAN, waist: 110 }).front_hps_to_waist).toBe(withEstimates({ ...MAN, waist: 90 }).front_hps_to_waist);
+  });
+
+  it('leaves the extra front length at the centre front hem, the side seams still matching', () => {
+    const draft = (waist: number) => draftBodice(withEstimates({ ...MAN, full_bust: waist + 12, waist }, 'menswear') as BodiceMeasurements, { fit: 'regular', neckline: 'crew', length: 'hip', darts: 'none', fitting: { flatFront: true } });
+    for (const waist of [74, 104, 130]) expect(failing(draft(waist).pieces)).toEqual([]);
+  });
+
+  it('sets a shirt sleeve in with no more than 1 cm of crown ease, where the womenswear form keeps its own', () => {
+    // 2.5 cm eased into a shirt with no pad stood up as a bump at each shoulder tip on the toiles.
+    const values = withEstimates({ ...MAN, ...ARMS }, 'menswear');
+    const saved = { ...INITIAL, bodice: { ...INITIAL.bodice, sleeve: 'long' as const } };
+    const crown = (form: 'menswear' | 'womenswear') => {
+      const sl = GARMENT_DRAFTING.bodice.draft(values, { saved, form }, undefined).sleeve!;
+      return sl.crownEase.front + sl.crownEase.back;
+    };
+    expect(crown('menswear')).toBeGreaterThan(0.5);
+    expect(crown('menswear')).toBeLessThanOrEqual(1.1);
+    expect(crown('womenswear')).toBeGreaterThan(2);
+  });
+
+  it('says chest, never bust, on the printed shirt and jacket, and leaves the womenswear pattern as it was', () => {
+    const values = withEstimates({ ...MAN, ...ARMS }, 'menswear');
+    const words = (p: ReturnType<typeof printedPattern>['made']) =>
+      [...p.notes, ...p.guide.notions, ...p.guide.steps.flatMap((st) => [st.title, st.text]), ...p.spec.map((r) => r.label), ...p.pieces.flatMap((pc) => [...(pc.finished ?? []).flatMap((f) => [f.title, f.note]), ...(pc.draft?.points ?? []).map((pt) => pt.note)])].join(' ');
+    for (const design of [{ garment: 'bodice' as const, saved: { bodice: { ...INITIAL.bodice, sleeve: 'long' as const } } }, { garment: 'jacket' as const, saved: {} }]) {
+      const { made } = printedPattern(design, values, 'menswear');
+      expect(words(made)).toMatch(/bust/i);
+      const his = formWords(made, 'menswear');
+      expect(words(his)).not.toMatch(/bust/i);
+      expect(words(his)).toMatch(/FINISHED CHEST \d+ CM/);
+      expect(his.spec.map((r) => r.label)).toContain('Chest');
+      expect(formWords(made, 'womenswear')).toBe(made);
+    }
   });
 });

@@ -77,7 +77,7 @@ function menswearEstimates(v: MeasurementValues): MeasurementValues {
     shoulder_length: (sw / 2 - neck / 5 + 0.2) / Math.cos((20 * Math.PI) / 180),
     across_back: ab,
     across_front: ab - 1.5,
-    front_hps_to_waist: nw + 1.5,
+    front_hps_to_waist: nw + 1.5 + stomachLength(chest, v.waist),
     bust_depth: h * 0.15,
     apex_separation: 17 + (chest - 96) * 0.1,
     armscye: 42 + (chest - 96) * 0.3,
@@ -85,6 +85,21 @@ function menswearEstimates(v: MeasurementValues): MeasurementValues {
   const out = { ...v, high_bust: chest };
   for (const id of ESTIMATED) if (out[id] === undefined) out[id] = round(id, guess[id]!);
   return bustAboveWaist(out, v);
+}
+
+/**
+ * How much longer a man's front runs, from the neck over the chest to the waist, the fuller he is in front (cm). With
+ * the same front length on every size, the front hem rode up over the stomach on a 116 cm chest and the back neck
+ * stood away (CLO toiles and the menswear fit audit, Nov 22). Read off the open body the menswear form is built from
+ * (scripts/body-table), at builds from slim to heavy: a taut tape down the front grows on the one down the back by
+ * about 1 cm for every 10 cm of waist past 80 cm. A big chest on a small waist stands forward too, so the chest less
+ * 14 cm counts where it is more than the waist. The length is left at the centre front, where the hem then dips to
+ * hang level. A front length the maker measured is never changed.
+ */
+const STOMACH = { from: 80, share: 0.1, most: 6, chestLess: 14 };
+function stomachLength(chest: number, waist: number | undefined): number {
+  const full = Math.max(waist ?? 0, chest - STOMACH.chestLess);
+  return Math.min(STOMACH.most, Math.max(0, (full - STOMACH.from) * STOMACH.share));
 }
 
 const LOWER = /hip|thigh|knee|calf|ankle|seat|crotch|rise/;

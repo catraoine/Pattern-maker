@@ -37,7 +37,8 @@ import { FABRIC_WIDTHS, type FabricWidth, layPlans } from './engine/layplan';
 import { MyFabric, clothFor, withFabric } from './engine/fabrics';
 import { SPECIALS, needsNap, withCheckMarks, withSpecialAllowances } from './engine/specialFabrics';
 import { printNap, printOf } from './engine/prints';
-import { Garment, MeasurementValues } from './measurements';
+import { FormKind, Garment, MeasurementValues } from './measurements';
+import { formWords } from './menswearWords';
 import { BodiceChoices, COLLAR_WORDS, TrousersChoices, DressChoices, describeBodice } from './garments';
 import { fabricMetres } from './skirtChoices';
 import { bindingMetres, bodiceFabricMetres } from './fabricAmounts';
@@ -93,6 +94,8 @@ interface PrintInputs {
   trousersChoices: TrousersChoices;
   /** The trousers' full style, toile corrections and all, so a lining is drafted to match. Else their choices. */
   trousersStyle?: Partial<TrousersStyle>;
+  /** The person's form: on the menswear form the pattern's words say chest for bust (menswearWords.ts). */
+  form?: FormKind;
 }
 
 /** The printed pattern, its front pieces marked with the finished bust, waist and hip (F5, 2026-10-28). */
@@ -106,7 +109,7 @@ const asSewn = (sl: SleeveDraft, pieces: Piece[]): SleeveDraft => {
 
 export function printableFor(inputs: PrintInputs): Printable | undefined {
   const made = drafted(inputs);
-  return made && { ...made, pieces: withFinishedMarks(made.pieces, made.spec) };
+  return made && formWords({ ...made, pieces: withFinishedMarks(made.pieces, made.spec) }, inputs.form);
 }
 
 function drafted({ result, values, finish, fabric, garment, ownFitting, carriedNotes, saved, dress, skirtStyle, trousersChoices, trousersStyle }: PrintInputs): Printable | undefined {

@@ -406,6 +406,19 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    how the empire option cuts the bodice, not the look. Not built yet: it is a pattern change, so it starts Dec 7 when
    the freeze ends (no launch piece uses the empire seam).
 
+## Menswear fit (fit audit, Nov 22)
+
+The menswear form drafts on the womenswear blocks with the bust shaping left out. Three things are its own; they wait
+for Cat's "ship" and a CLO before and after.
+
+1. **Front length grows with the stomach.** An estimated front length is the back length plus 1.5 cm, plus 1 cm for
+   every 10 cm of waist past 80 cm (or of chest less 14 cm, where that is more), up to 6 cm. The extra stays at the
+   centre front hem, so it hangs level; side seams still match. A measured front length is never changed. Sized on the
+   open body the form is built from, so it is a first estimate until toiles confirm it.
+2. **A shirt sleeve has at most 1 cm of crown ease** on the menswear form (the blouse's 2 to 3 cm stood up as bumps at
+   the shoulder tips with no pad or gathers). Jackets keep theirs: they are drafted for a shoulder pad.
+3. **The printed pattern says chest, never bust**, on the menswear form (`src/menswearWords.ts`).
+
 ## Style steps
 
 - **No repeated names** (Oct 30): a question never carries its step's name (no "Details" question on the
