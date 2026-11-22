@@ -1081,6 +1081,12 @@ export default function App() {
                 const added = addPerson(account, name);
                 setAccount(updatePerson(added, added.active!, { form: f }));
               }}
+              onAskThem={(name, f) => {
+                const added = addPerson(account, name);
+                setAccount(updatePerson(added, added.active!, { form: f }));
+                setStep('client');
+              }}
+              onKeepSafe={cloud.usable && !cloud.user ? () => setStep('account') : undefined}
               theirs={person.id !== ME}
               theirName={person.id !== ME ? personName(account, person) : undefined}
               form={form}

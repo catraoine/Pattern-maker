@@ -41,6 +41,9 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
   line stays (its removal was reversed).
 - No placeholder text in boxes, no time estimates, the name field is just "Name".
 - Measuring someone else has a helper mode. Cat rejected "measure twice".
+- Someone who isn't in the room (Nov 22): "Who it is for" offers "Send them a measuring link", which adds them and opens the
+  ask link in their client book. With sign-in on and nobody signed in, the check page offers to keep the numbers in an account.
+- The skirt is the "Good first make" on "What would you like to make?" (Nov 22): one quiet mark, on one tile, womenswear only.
 
 ## Drawings and the form
 
