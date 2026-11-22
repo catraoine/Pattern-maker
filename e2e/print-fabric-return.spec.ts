@@ -23,6 +23,20 @@ test('Choose fabric on Print comes back to the same place', async ({ page }) => 
   expect(top).toBeLessThan(page.viewportSize()!.height / 2);
 });
 
+// Someone who reached Print without going through Style's questions (a look from the collection, a tester link) hasn't
+// seen How styling works: Change fabric still opens Fabric straight away, not the intro (DY pretend-tester walk, Nov 21).
+test('Choose fabric skips how styling works', async ({ page }) => {
+  await startWithExample(page);
+  await goPrint(page);
+  await page.evaluate(() => localStorage.removeItem('maison-trace-style-intro'));
+  const main = page.getByRole('main');
+  await main.locator('.yourfabric').scrollIntoViewIfNeeded();
+  await main.getByRole('button', { name: /^Choose fabric/ }).click();
+  await expect(main.getByRole('tab', { name: 'Fabric', exact: true, includeHidden: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(main.getByRole('heading', { name: /How styling works/ })).toHaveCount(0);
+  await expect(main.getByRole('button', { name: /^Back to Print/ }).first()).toBeVisible();
+});
+
 // The tick box says what it is for in plain words (Cat, Nov 21: "what is the intention of this rounded box?").
 test('the pile or one-way print box says what it does', async ({ page }) => {
   await startWithExample(page);

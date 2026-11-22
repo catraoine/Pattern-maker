@@ -74,6 +74,6 @@ test('carrying on with a printed look opens on Print', async ({ page }, info) =>
   await page.goto('/');
   await skipLoading(page);
   await main(page).getByRole('button', { name: 'Carry on with your Blush Shift' }).click();
-  await expect(main(page).getByRole('heading', { name: 'Your summary' })).toBeVisible();
+  await expect(main(page).getByRole('heading', { name: 'Print it' })).toBeVisible();
   await expect(main(page).getByRole('button', { name: /^Download pattern \(\d+ pages?\)$/ })).toBeVisible();
 });

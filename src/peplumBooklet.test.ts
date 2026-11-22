@@ -59,7 +59,9 @@ describe('the Ice Peplum booklet agrees with its pattern', () => {
       const [f, b] = [...c.detail.matchAll(/([\d.]+) cm/g)].map((m) => num(m[1]));
       const note = print.notes.find((n) => /crown ease/.test(n))!;
       expect(note).toContain(`crown ease ${f} cm front, ${b} cm back`);
-      expect(step(/^Ease the sleeve heads$/)).toContain(`The crown is ${Math.round((f + b) * 10) / 10} cm longer than the armhole`);
+      // Front and back, as the note says, with no total: in inches a total rounded on its own read 1-1/4 in beside 1/2 +
+      // 5/8 in (pretend tester DX walk, Nov 22).
+      expect(step(/^Ease the sleeve heads$/)).toContain(`longer than the armhole by its ease, ${f} cm at the front and ${b} cm at the back`);
     });
 
     it(`${name}: the French seam's fold is the 0.6 cm between its two rows of stitching`, () => {

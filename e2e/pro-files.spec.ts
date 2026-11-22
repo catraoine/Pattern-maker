@@ -35,7 +35,7 @@ test('pro files: toile alterations for a pattern cutter', async ({ page }, info)
   await goPrint(page);
   const all = await showAllTools(page);
   if (await all.count()) await all.click();
-  await main.getByRole('button', { name: 'I’ve tried on my test version' }).click();
+  await main.getByRole('button', { name: 'I’ve tried on my toile' }).click();
   await main.getByText('Pulls across the hips').click();
   await main.getByRole('button', { name: /^Save as version 2$/ }).click();
   if (!(await main.getByText('More files').isVisible())) await goPrint(page);

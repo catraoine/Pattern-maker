@@ -1,17 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { NightCity, OFFERS, OfferId } from '../offers';
-
-type Sent = 'idle' | 'sending' | 'sent' | 'failed' | 'busy';
-
-/** Posts an "I'd like this" sign-up to the signup function, which keeps it in Netlify Blobs. */
-async function send(body: object): Promise<Sent> {
-  try {
-    const res = await fetch('/.netlify/functions/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    return res.ok ? 'sent' : res.status === 429 ? 'busy' : 'failed';
-  } catch {
-    return 'failed';
-  }
-}
+import { sendSignup, useSharedCut, type Sent } from './ExtrasSignup';
 
 interface Props {
   offer: OfferId;
@@ -36,11 +25,13 @@ export function InterestCard({ offer, pattern, city, inset, children, choice }: 
   const [state, setState] = useState<Sent>('idle');
   const [picked, setPicked] = useState(false);
   const id = `offer-${offer}${city ? `-${city}` : ''}`;
+  // In Print's Extras the email box is shared: this card keeps its words, prices and tick box, and no box of its own.
+  const one = useSharedCut(offer, !!choice);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setState('sending');
-    setState(await send({ kind: 'interest', offer, email, pattern: pattern || undefined, cut: choice ? picked : undefined, city, website }));
+    setState(await sendSignup({ kind: 'interest', offer, email, pattern: pattern || undefined, cut: choice ? picked : undefined, city, website }));
   };
 
   const body = (
@@ -59,7 +50,19 @@ export function InterestCard({ offer, pattern, city, inset, children, choice }: 
           ))}
         </dl>
       )}
-      {state === 'sent' ? (
+      {one ? (
+        <>
+          {choice && (
+            <label className="check">
+              <input type="checkbox" checked={!!one.cut[offer]} onChange={(e) => one.setCut(offer, e.target.checked)} />
+              <span>
+                {choice.label} <span className="muted small">{choice.hint}</span>
+              </span>
+            </label>
+          )}
+          {o.fine && <p className="muted small">{o.fine}</p>}
+        </>
+      ) : state === 'sent' ? (
         <p className="msg">{o.thanks}</p>
       ) : (
         <>
