@@ -1107,7 +1107,6 @@ function sleeveSteps(sl: SleeveDraft, seam: string, curve: string, lined: boolea
   const puff = gatheredHead !== undefined;
   const band = !sl.cuff && sl.pieces.length > (sl.cut === 'raglan' ? 2 : 1);
   const cuff = sl.cuff;
-  const ease = Math.round((sl.crownEase.front + sl.crownEase.back) * 10) / 10;
   const hemAllowance = sl.pieces[0].allowances.hem ?? 2.5;
   return [
     ...(sl.elbowDart
@@ -1132,7 +1131,7 @@ function sleeveSteps(sl: SleeveDraft, seam: string, curve: string, lined: boolea
       : band
       ? {
           title: 'Attach the sleeve bands',
-          text: `Sew two rows of long gathering stitches round each sleeve hem, inside the seam allowance. Join each band's short ends into a ring, ${seam} from the edge, and press the seam open. Pin one edge of the band to the sleeve hem, right sides together, with its seam at the underarm and its notch at the middle of the sleeve, pull up the gathers to fit (${sl.gathers!.hem} cm is gathered into each band), and sew ${seam} from the edge. Fold the band in half to the inside along its fold line, turn its raw edge under ${seam}, and stitch it down over the seam.`,
+          text: `Sew two rows of long gathering stitches round each sleeve hem, inside the seam allowance. Join each band's short ends into a ring, ${seam} from the edge, and press the seam open. Pin one edge of the band to the sleeve hem, right sides together, with its seam at the underarm and its notch at the middle of the sleeve, pull up the gathers to fit (the ${Math.round((sl.gathers!.hem + sl.hemCm) * 10) / 10} cm sleeve hem is drawn up to the ${sl.hemCm} cm band), and sew ${seam} from the edge. Fold the band in half to the inside along its fold line, turn its raw edge under ${seam}, and stitch it down over the seam.`,
         }
       : sl.pieces[0].meta.flutter
         ? {
@@ -1154,7 +1153,7 @@ function sleeveSteps(sl: SleeveDraft, seam: string, curve: string, lined: boolea
         }
       : {
           title: 'Ease the sleeve heads',
-          text: `Sew two rows of long machine stitches round each crown between the front and back notches, one just inside the seam line and one 0.5 cm further out. The crown is ${ease} cm longer than the armhole, a little more at the back: draw the threads up just enough to cup it to the armhole's shape, with no gathers or tucks. Steam it over a ham and let it cool.`,
+          text: `Sew two rows of long machine stitches round each crown between the front and back notches, one just inside the seam line and one 0.5 cm further out. The crown is longer than the armhole by its ease, ${sl.crownEase.front} cm at the front and ${sl.crownEase.back} cm at the back: draw the threads up just enough to cup it to the armhole's shape, with no gathers or tucks. Steam it over a ham and let it cool.`,
         },
     {
       title: 'Set in the sleeves',

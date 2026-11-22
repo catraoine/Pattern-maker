@@ -104,7 +104,7 @@ export function edgeLabels(pc: Piece): EdgeLabel[] {
     shoulder: 'SHOULDER',
     neck: 'NECKLINE',
     armhole: 'ARMHOLE',
-    centre: front ? 'CENTRE FRONT SEAM' : 'CENTRE BACK SEAM',
+    centre: (pc.meta.centreLabel as string | undefined) ?? (front ? 'CENTRE FRONT SEAM' : 'CENTRE BACK SEAM'),
     fold: (pc.meta.foldLabel as string | undefined) ?? (/gusset/i.test(pc.name) ? 'CENTRE' : front ? 'CENTRE FRONT' : 'CENTRE BACK'),
     facing: 'NEATEN THIS EDGE',
     flounce: 'FLOUNCE SEAM',
