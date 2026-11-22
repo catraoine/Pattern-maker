@@ -1196,6 +1196,28 @@ await wait(WIDE ? 3600 : 4100);
 await stop('projector');
 await p.keyboard.press('Escape');
 await wait(600);
+// sew: the fourth step after Print (Cat, Nov 22: "Yes, add a Sew ending"). Start sewing on the Sew tab, Sewing mode
+// opening on the first step with its picture stitching in, one line ticked, then on to the next step. Topbar hidden.
+{
+  await p.getByRole('navigation', { name: 'Steps' }).getByRole('button', { name: /^Sew$/ }).click();
+  const startSew = main.getByRole('button', { name: /^(Start|Carry on) sewing/ });
+  await startSew.waitFor({ timeout: 20000 });
+  const sewTop = await p.addStyleTag({ content: captionRoom });
+  await wait(1500);
+  await start();
+  await wait(900);
+  await press(startSew, 0);
+  await p.locator('.sewmode').waitFor({ timeout: 10000 });
+  await wait(2600);
+  await press(p.locator('.sewmode .sew-lines li:not(.note) label').first(), 0);
+  await wait(1300);
+  await press(p.locator('.sewmode').getByRole('button', { name: /^Next step/ }), 0);
+  await wait(2400);
+  await stop('sew');
+  await p.locator('.sewmode .sewmode-close').click();
+  await sewTop.evaluate((el) => el.remove());
+  await wait(600);
+}
 await extras();
 
 await b.close();

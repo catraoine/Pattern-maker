@@ -469,6 +469,8 @@ const COLLECTION = WIDE ? { from: 4.7, dur: 3.2, speed: 0.65, zoom: [1, 1.03], a
 // (Cat, Nov 18: bigger, less empty black); then the Style page's drawing window alone, for the dress the pick opens.
 const CHOOSE_IN = WIDE ? { zoom: [1.12, 1.12], at: [0.5, 0.462], frame: [0.18, 1.1, -1, 2, 0.02, 0.03] } : { zoom: [1.08, 1.08], at: [0.5, 0.463], frame: [0.17, 1.1, -1, 2, 0.02, 0.03] };
 const DRESS_WINDOW = WIDE ? [0.22, 0.9, 0.05, 0.665, 0.02, 0.02] : [0.205, 0.655, -1, 2, 0.02, 0.02];
+// The Sew take (record-tour-shots.mjs): from just before Start sewing is tapped to the second step coming up.
+const SEW = WIDE ? { from: 0.6, dur: 5.0, speed: 1.6, drop: 0.1 } : { from: 0.6, dur: 5.0, speed: 1.6, drop: 0.14 };
 // A computer has no Review page to scroll (Print my pattern sits beside the drawing), so its projector runs longer.
 // Print opens straight on the pattern pieces' sideways scroll, no Review page first (Cat, 2026-11-06), so on a phone
 // too there is nothing here; REVIEW=1 brings the scroll down the Review page back.
@@ -667,6 +669,10 @@ const CUTS = {
       ...(REVIEW ? [await piece({ shot: 'review', ...REVIEW, fadeIn: f })] : []),
       await pages(5.4, { fadeIn: f, fadeOut: f, notes: [[await note('Print your pattern,', 'low'), 0.3, 5.1]] }),
       await piece({ shot: 'projector', ...PROJECTOR, fadeIn: f, fadeOut: f, notes: [[await note(WIDE ? 'or project it, true size.' : 'or project it,<br>true size.', 'low', !WIDE), 0.3, PROJECTOR.dur - 0.3]] /* on a computer no dark band, which hid the piece's shoulder */ }),
+      // Sew, the step after Print (Cat, Nov 22: "Yes, add a Sew ending"): Start sewing tapped, Sewing mode opening on the
+      // first step as its picture draws itself in, a line ticked, then on to the next step. Sped up a little so the line
+      // still holds 5 s; set lower so the words' band at the top never covers the picture.
+      await piece({ shot: 'sew', ...SEW, fadeIn: f, fadeOut: f, notes: [[await note('Then sew it,<br>one step at a time.', 'low'), 0.2, SEW.dur - 0.2]] }),
       // REAL_END=1 closes on her real dress instead (the dress turning dissolving into it), once the shoot's clip is in.
       ...(process.env.REAL_END === '1'
         ? [beats.end = await dissolve(await piece({ shot: 'round', from: 9.6, dur: 3.4, speed: 0.6, fadeIn: 0.8, ...(WIDE ? { zoom: [1.05, 1.08], at: [0.62, 0.5] } : { zoom: [1.12, 1.16], at: [0.5, 0.38] }) }), await realDress(), 1.4)]

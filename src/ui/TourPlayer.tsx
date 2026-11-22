@@ -26,9 +26,9 @@ const PARTS: FilmPart[] = [
   { name: 'Measure', from: 0, says: 'Enter your measurements just once, taken with a soft tape: every pattern is drafted from your numbers.' },
   { name: 'Choose', from: 15.8, says: 'Then what to make: design your own garment by describing it, choose from a collection, or start with a photo of a piece you love.' },
   { name: 'Style', from: 37.8, says: 'Select your style details: its cut, darts, neckline and your own cloth, step by step on the drawing. Or design straight from your pattern, moving a dart or cutting off a new piece. All round turns the dress, drawing closer, to check the seams meet and the hem sits level before you cut.' },
-  { name: 'Print', from: 65.8, says: 'Print your pattern at home on ordinary paper or full size at a copy shop, or project it true size onto your fabric. Drafted to your body.' },
+  { name: 'Print', from: 65.8, says: 'Print your pattern at home on ordinary paper or full size at a copy shop, or project it true size onto your fabric. Then sew it, one step at a time, ticking off each line as you go. Drafted to your body.' },
 ];
-export const TOUR_LABEL = '1:27';
+export const TOUR_LABEL = '1:31';
 
 export type FilmPart = { name: string; from: number; says: string };
 
