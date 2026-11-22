@@ -39,9 +39,13 @@ export function SewingMode({ steps, pieces, lays, flat, title, keep, inCm, from,
     box.current?.scrollTo(0, 0);
   };
   const box = useRef<HTMLDivElement>(null);
-  // The keys a computer has: arrows step, Escape closes. Focus starts inside, for keyboards and screen readers.
+  // Focus starts inside once, on opening, for keyboards and screen readers (not on every step, which would pull it off
+  // the Next button just pressed).
   useEffect(() => {
     box.current?.focus();
+  }, []);
+  // The keys a computer has: arrows step, Escape closes.
+  useEffect(() => {
     const on = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
       if (e.key === 'ArrowRight') go(at + 1);
@@ -51,11 +55,26 @@ export function SewingMode({ steps, pieces, lays, flat, title, keep, inCm, from,
     return () => window.removeEventListener('keydown', on);
   });
   // The screen stays on while you sew, where the browser allows it.
+  // The phone lets go of it whenever the page is hidden, so it is asked for again on coming back; one granted after
+  // closing is let go at once.
   useEffect(() => {
     let lock: { release: () => Promise<void> } | undefined;
+    let open = true;
     const nav = navigator as Navigator & { wakeLock?: { request: (t: 'screen') => Promise<{ release: () => Promise<void> }> } };
-    nav.wakeLock?.request('screen').then((l) => (lock = l), () => undefined);
-    return () => void lock?.release().catch(() => undefined);
+    const ask = () => {
+      if (document.visibilityState !== 'visible') return;
+      nav.wakeLock?.request('screen').then(
+        (l) => (open ? (lock = l) : void l.release().catch(() => undefined)),
+        () => undefined,
+      );
+    };
+    ask();
+    document.addEventListener('visibilitychange', ask);
+    return () => {
+      open = false;
+      document.removeEventListener('visibilitychange', ask);
+      void lock?.release().catch(() => undefined);
+    };
   }, []);
   // The page underneath doesn't scroll while this is open.
   useEffect(() => {

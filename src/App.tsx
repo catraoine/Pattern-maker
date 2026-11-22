@@ -679,7 +679,7 @@ export default function App() {
   const switchGarment = (g: Garment, next: Partial<Saved> = {}, to: View = step, using: MeasurementValues = measured, also: MeasurementId[] = []): boolean => {
     const after = { ...saved, ...plainCloth(g), ...next, garment: g };
     setSaved(after);
-    const stays = to === 'style' || to === 'export';
+    const stays = to === 'style' || to === 'export' || to === 'sew';
     if (stays && (!ready(using, saved.unit, g, form, skipFor(g, after)) || also.length)) {
       measureFor(g, using, form, also, after);
       return false;
@@ -729,7 +729,7 @@ export default function App() {
   // tester, Nov 17). So Print, however it is reached, asks for the arms first.
   const armsToAsk = lookArmsMissing({ choices: current }, measured);
   useEffect(() => {
-    if (step !== 'export' || !armsToAsk.length) return;
+    if ((step !== 'export' && step !== 'sew') || !armsToAsk.length) return;
     openSteps({ kind: 'for', garment, also: armsToAsk });
     setStepsNote('Your sleeves are drafted from your arms: add them to print.');
     // eslint-disable-next-line react-hooks/exhaustive-deps -- asks once each time Print is opened without the arms
@@ -739,7 +739,7 @@ export default function App() {
   const switchPerson = (id: string, to: View = step) => {
     const who = account.people.find((p) => p.id === id) ?? person;
     setAccount({ ...account, active: who.id });
-    if ((to === 'style' || to === 'export') && !ready(who.values, saved.unit, garment, formOf(who), skipFor(garment, saved))) measureFor(garment, who.values, formOf(who));
+    if ((to === 'style' || to === 'export' || to === 'sew') && !ready(who.values, saved.unit, garment, formOf(who), skipFor(garment, saved))) measureFor(garment, who.values, formOf(who));
     else setStep(to);
   };
 
@@ -1521,7 +1521,7 @@ export default function App() {
           )}
           {step === 'sew' && !hasGarment(account, garment) && <UnlockGarment garment={garment} onPlans={openPlans} onBack={() => setStep('style')} />}
           {step === 'sew' && hasGarment(account, garment) && (
-            <SewScreen made={printable} title={title} keep={`${garment}:${lookName ?? title}`} onPrint={() => setStep('export')} onStyle={() => setStep('style')} />
+            <SewScreen made={printable} title={title} keep={`${person.id}:${garment}`} onPrint={() => setStep('export')} onStyle={() => setStep('style')} />
           )}
           {step === 'check' && (
             <CheckFileScreen

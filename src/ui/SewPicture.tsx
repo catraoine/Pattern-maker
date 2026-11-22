@@ -2,7 +2,7 @@ import { ReactNode, useId } from 'react';
 import type { P } from '../engine/geometry';
 import type { Piece } from '../engine/piece';
 import type { Lay } from '../engine/layplan';
-import type { StepPicture } from '../engine/stepPictures';
+import { type StepPicture, isDart } from '../engine/stepPictures';
 import { StepDiagram } from './StepDiagram';
 
 // A sewing step's picture (Cat's C, Nov 21), on its own so Print can show one without loading the whole of Sewing mode.
@@ -156,7 +156,7 @@ export function SewPicture({ picture, pieces, lays, flat, label, still }: { pict
             <path d={outline} className="sp-cloth" />
             {fold && <path d={fold} className="sp-ghost" />}
             {!picture.darts && a.pc.lines.map((ln, j) => <path key={j} d={line(f(ln.points(8)))} className="sp-mark" />)}
-            {picture.darts && a.pc.lines.map((ln, j) => <Stitch key={j} d={line(f(ln.points(8)))} delay={j * 0.2} />)}
+            {picture.darts && a.pc.lines.map((ln, j) => (isDart(ln) ? <Stitch key={j} d={line(f(ln.points(8)))} delay={j * 0.2} /> : <path key={j} d={line(f(ln.points(8)))} className="sp-mark" />))}
             {picture.around?.includes(picture.pieces[k]) && <Stitch d={outline} delay={k * 0.3} />}
             {runs(a.pc, picture.edges).map((r, j) => (
               <Stitch key={j} d={line(f(r))} delay={k * 0.3} />

@@ -51,4 +51,8 @@ describe('the picture for each sewing step', () => {
   it('interfaces or presses a piece without stitching anything', () => {
     expect(step('Interface the waistband')).toEqual({ kind: 'sew', pieces: [2], edges: [], darts: false });
   });
+  it('sews darts only, not a roll line or fold line', () => {
+    const lapel = piece('Jacket front', ['neck', 'side', 'hem', 'centre'], { lines: [new Path(p(2, 2)).line(p(10, 30))] });
+    expect(stepPicture({ title: 'Sew the darts', text: '' }, [front, lapel])).toEqual({ kind: 'sew', pieces: [0], edges: [], darts: true });
+  });
 });

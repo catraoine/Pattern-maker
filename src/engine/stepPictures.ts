@@ -60,7 +60,10 @@ const NAMED: [RegExp, RegExp][] = [
 
 const isGarment = (pc: Piece) => !pc.kind || pc.kind === 'collar' || pc.kind === 'pocket';
 const tagsOf = (pc: Piece) => new Set(pc.outline.tags);
-const hasDarts = (pc: Piece) => pc.lines.length > 0;
+/** A dart has two legs meeting at a point (or four, round a fish-eye). A piece's other inner lines (a roll line, a
+ *  fold line, a button mark) are one straight stroke, and aren't sewn as darts. */
+export const isDart = (ln: Piece['lines'][number]) => ln.segs.length >= 2;
+const hasDarts = (pc: Piece) => pc.lines.some(isDart);
 
 /** The picture for one step, from its title first, then its words. */
 export function stepPicture(step: SewStep, pieces: Piece[]): StepPicture {

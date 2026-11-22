@@ -147,7 +147,7 @@ const PAPERS: { id: Paper | 'projector'; label: string }[] = [
 
 const isProjector = (o: Output): o is 'projector' | 'projectorDark' => o === 'projector' || o === 'projectorDark';
 
-// Projector mode loads only when it is opened.
+// Projector mode and Sewing mode load only when they are opened.
 const SewingMode = lazy(() => import('../ui/SewingMode').then((m) => ({ default: m.SewingMode })));
 const ProjectorMode = lazy(() => import('../ui/ProjectorMode').then((m) => ({ default: m.ProjectorMode })));
 
