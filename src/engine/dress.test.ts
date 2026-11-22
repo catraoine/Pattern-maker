@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { taggedLength } from './geometry';
+import { len, sub, taggedLength } from './geometry';
+import { cutLine } from './piece';
+import { selfCrossing } from '../patternSweep';
 import { DRESS_ZIPS, ZIP_BELOW_WAIST, draftDress, waistDartAt } from './dress';
 import { roundDress } from './allRound';
 import { checkPattern } from './qc';
@@ -150,6 +152,34 @@ describe('the dress', () => {
       const b = randomBody(rng(3));
       expect(draftDress(b, { fit: 'regular', princess: 'armhole' }, { silhouette: 'a_line', length: 'knee' }, 'empire').seamDrop).toBe(0);
       expect(draftDress(b, { fit: 'regular', neckline: 'cowl' }, { silhouette: 'a_line', length: 'knee' }, 'empire').seamDrop).toBe(0);
+    });
+
+    it('opens the under-bust darts with the seam running into each leg, so the cutting line never crosses itself', () => {
+      // Opened at the seam, a dart trued at its old width left a step a millimetre or so high beside a leg's foot, and
+      // the cutting line, an even width out from it, crossed itself there on about half of all bodies (random bodies, Nov 22).
+      const failures: string[] = [];
+      let darts = 0;
+      for (let seed = 1; seed <= 40; seed++) {
+        const b = randomBody(rng(seed));
+        const d = draftDress({ ...b, ...randomArms(b, rng(seed)) }, { fit: 'regular', darts: 'bust_waist' }, { fit: 'regular', silhouette: 'a_line', length: 'mini' }, 'empire');
+        for (const pc of d.pieces.filter((x) => /^Bodice/.test(x.name))) {
+          if (selfCrossing(cutLine(pc))) failures.push(`${seed} ${pc.name}: the cutting line crosses itself`);
+          // Each leg the same length from the point, and the seam either side of its foot carrying on level with it.
+          const { pts, tags } = pc.outline.taggedPoints();
+          const feet = pts.map((q, i) => ({ q, i })).filter(({ i }) => (tags[i - 1] === 'waist' && tags[i] === 'dart') || (tags[i - 1] === 'dart' && tags[i] === 'waist'));
+          const tip = pc.lines.find((l) => l.segs.length === 2 && feet.some(({ q }) => len(sub(l.start, q)) < 1e-6))?.segs[0].to;
+          // (A dart too narrow to cross the seam open is closed before it gets there.)
+          if (feet.length !== 2 || !tip) continue;
+          darts++;
+          if (Math.abs(len(sub(feet[0].q, tip)) - len(sub(feet[1].q, tip))) > 0.05) failures.push(`${seed} ${pc.name}: dart legs differ`);
+          for (const { q, i } of feet) {
+            const beside = tags[i - 1] === 'waist' ? pts[i - 1] : pts[i + 1];
+            if (Math.abs(beside.y - q.y) > 0.3 * Math.abs(beside.x - q.x) + 0.01) failures.push(`${seed} ${pc.name}: a step at the dart's foot`);
+          }
+        }
+      }
+      expect(failures.slice(0, 10)).toEqual([]);
+      expect(darts).toBeGreaterThan(60);
     });
 
     for (const [from, to, which] of batches(sweep(60), 20)) it(`passes the seam check for 60 random bodies at empire, raised and low seams${which}`, () => {
