@@ -486,6 +486,21 @@ interface BodyInfo {
   form?: FormKind;
 }
 
+/**
+ * A number typed in inches while the form is in cm, caught by a cross-check rather than by its own range: a 48 in waist
+ * typed as 48 cm passes the waist's range (from 45 cm) and only reads as small next to the bust, and the check then said
+ * to breathe out and keep the tape snug (DW walk, Nov 21). When the number read as inches fits the other measurement,
+ * the check says so instead, with the number in cm. Undefined when that isn't the likely slip.
+ */
+function inchSlip(v: MeasurementValues, unit: Unit, c: CrossCheck): string | undefined {
+  const x = v[c.id];
+  if (unit !== 'cm' || !x) return undefined;
+  const asInches = { ...v, [c.id]: x * 2.54 };
+  if (crossChecks(asInches).some((o) => o.id === c.id && o.with === c.with)) return undefined;
+  const label = (id: MeasurementId) => ([...BODICE_ALL, ...SKIRT_FIELDS, ...TROUSERS_FIELDS].find((f) => f.id === id)?.label ?? id.replace(/_/g, ' ')).toLowerCase();
+  return `Just checking your ${label(c.id)}: ${x} cm is small next to your ${label(c.with)}. Was it measured in inches? ${x} in is ${Math.round(x * 2.54)} cm, so type that if so.`;
+}
+
 export function checkMeasurements(v: MeasurementValues, unit: Unit, garment: Garment = 'skirt', form: FormKind = 'womenswear', body: BodyInfo = {}): Check[] {
   if (form === 'menswear') return checkMeasurements(v, unit, garment, 'womenswear', { ...body, form }).filter((c) => !MENSWEAR_SKIPS.includes(c.id)).map((c) => ({ ...c, message: worded(c.message, form) }));
   const out: Check[] = [];
@@ -511,8 +526,9 @@ export function checkMeasurements(v: MeasurementValues, unit: Unit, garment: Gar
   // Measurements checked against each other, after each has passed on its own.
   // A cross-check names what to look at, so it replaces the plain "is unusual" on the same measurement.
   const crossed = () => {
-    for (const c of crossChecks(v)) {
-      if (!asked.has(c.id) || !asked.has(c.with)) continue;
+    for (const c0 of crossChecks(v)) {
+      if (!asked.has(c0.id) || !asked.has(c0.with)) continue;
+      const c = { ...c0, message: inchSlip(v, unit, c0) ?? c0.message };
       const at = out.findIndex((o) => o.id === c.id);
       if (at < 0) out.push({ id: c.id, level: 'warning', message: c.message });
       else if (out[at].level === 'warning' && out[at].message.startsWith('Just checking your ') && out[at].message.endsWith(JUST_CHECKING_END)) out[at] = { id: c.id, level: 'warning', message: c.message };

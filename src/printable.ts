@@ -29,7 +29,9 @@ import { bodiceFacings, liningPieces, waistPieces } from './engine/finishing';
 import { edgesFor, topNotes } from './engine/corsetGuide';
 import { drapeFacings, drapeLined, drapeNote, zipSide } from './engine/drape';
 import { bodiceSpec, dressSpec, outerSpec, skirtSpec, sleeveSpec, teeSpec, trousersSpec, lingerieSpec } from './engine/spec';
-import { SleeveMeasurements, sleeveNote } from './engine/sleeve';
+import { SleeveDraft, SleeveMeasurements, sleeveNote } from './engine/sleeve';
+import { sewnCrownEase } from './engine/qc';
+import type { Piece } from './engine/piece';
 import { Fitting, describeFitting } from './engine/fitting';
 import { FABRIC_WIDTHS, type FabricWidth, layPlans } from './engine/layplan';
 import { MyFabric, clothFor, withFabric } from './engine/fabrics';
@@ -94,6 +96,14 @@ interface PrintInputs {
 }
 
 /** The printed pattern, its front pieces marked with the finished bust, waist and hip (F5, 2026-10-28). */
+
+/** The sleeve with its crown ease as sewn into the bodice as cut (see qc.ts sewnCrownEase), so the pattern's note,
+ *  the steps and the seam check give one number. */
+const asSewn = (sl: SleeveDraft, pieces: Piece[]): SleeveDraft => {
+  const e = sewnCrownEase(pieces);
+  return e ? { ...sl, crownEase: e } : sl;
+};
+
 export function printableFor(inputs: PrintInputs): Printable | undefined {
   const made = drafted(inputs);
   return made && { ...made, pieces: withFinishedMarks(made.pieces, made.spec) };
@@ -340,7 +350,7 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
           : `Seam allowance ${fmtCm(seams.seam)} included, ${fmtCm(seams.curve)} at the neck and armholes, ${fmtCm(pieces.find((pc) => /^(Skirt|Flounce|Dress) front/.test(pc.name) && pc.allowances.hem !== undefined)?.allowances.hem ?? (d.skirt.volume?.tiers ? 2 : 4))} at the hem. Dashed line = stitching line.`,
         `${d.noSeam === 'bias' ? 'Cut in one on the bias, with no waist seam: front and back each one whole piece from the shoulder to the hem, cut single layer.' : d.noSeam ? `Cut with no waist seam, as a ${d.noSeam}: front and back each one piece from the shoulder to the hem${d.noSeam === 'sheath' ? ', shaped at the waist by darts pointed at both ends' : ''}.` : 'The skirt is drafted to the bodice: waist seams the same length and darts in one line.'} ${d.skirtButtons ? `${(d.bodice.buttons?.count ?? 0) + d.skirtButtons.count} buttons down the centre front, from the neck through the waist,` : d.noSeam === 'bias' || d.pullOn ? 'No zip: it goes on over your head,' : d.bodice.wrap ? `Wrap fronts that cross over and tie at the waist, with no zip (ties ${d.bodice.wrap.ties.outer} cm and ${d.bodice.wrap.ties.inner} cm, cut ${d.bodice.wrap.ties.cutWidth} cm wide),` : `A ${d.zipCm} cm ${d.zipSide ? `zip in the ${zipSide(d.bodice)} side seam` : 'centre back zip'}`}${d.bodice.collar !== 'none' ? `${nothingBound ? ' and' : ','} a ${COLLAR_WORDS[d.bodice.collar]}` : ''}${nothingBound ? '' : ` and ${edgeWords}`}${pocketWords(d.skirt.pocket ? 'inseam' : 'none')}. Sewing steps are in the instructions booklet.`,
         ...(drapeNote(d.bodice) ? [drapeNote(d.bodice)!] : []),
-        ...(sleeve ? [sleeveNote(sleeve)] : []),
+        ...(sleeve ? [sleeveNote(asSewn(sleeve, pieces))] : []),
         ...(sleeve?.cuff ? [cuffNote(sleeve.cuff)] : []),
         ...topNotes(d.bodice),
         ...(d.skirt.slit && !d.noSeam ? [slitNote(d.skirt.slit)] : []),
@@ -361,7 +371,7 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
           width: clothWidth,
           liningM: metres('lining'),
           coutilM: d.bodice.top?.boned ? metres('interlining') : undefined,
-          sleeve,
+          sleeve: sleeve && asSewn(sleeve, pieces),
         }), belt, { band: false, sideZip: !!d.zipSide }))),
         { garment: 'dress', lined: edges === 'lined', zipCm: d.zipCm },
       ),
@@ -401,7 +411,7 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
     const sheer = fabric?.special === 'sheer' && finish.route !== 'couture' && edges === 'binding' && !bodice.top;
     const sheerTop = (g: SewingGuide) => {
       const s0 = saved.bodice.shirtCut === 'house' && finish.route !== 'couture' && edges !== 'lined' ? withHouseShirtSeams(g, fmtCm(seams.seam)) : g;
-      const s1 = sheer ? withSheerTop(s0, bodice, fmtCm(seams.seam)) : s0;
+      const s1 = sheer ? withSheerTop(s0, bodice, fmtCm(seams.seam), fmtCm(seams.curve)) : s0;
       return bodice.backLoops ? withBackLoops(s1, bodice, fmtCm(seams.seam)) : s1;
     };
     return {
@@ -414,7 +424,7 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
         `${sleeveWords}, ${bodice.closure === 'front_buttons' ? `${bodice.buttons?.count ?? 5} buttons down the centre front` : bodice.wrap ? `wrap fronts that tie at the waist (ties ${bodice.wrap.ties.outer} cm and ${bodice.wrap.ties.inner} cm, cut ${bodice.wrap.ties.cutWidth} cm wide)` : bodice.pullOn ? 'no opening (it goes on over the head)' : bodice.backLoops ? `${loopsFor(bodice)} small buttons and loops down the centre back` : `a ${bodice.zipCm} cm ${bodice.drape?.kind === 'one_shoulder' ? `zip in the ${zipSide(bodice)} side seam` : 'centre back zip'}`}${bodice.collar !== 'none' ? `, a ${COLLAR_WORDS[bodice.collar]}` : ''}${bound ? ` and ${edgeWords}` : ''}. Sewing steps are in the instructions booklet.`,
         ...(drapeNote(bodice) ? [drapeNote(bodice)!] : []),
         ...(bodice.peplum ? [`A ${bodice.peplum.kind} peplum, ${bodice.peplum.depthCm} cm deep, ${bodice.peplum.hemCm} cm round the hem.`] : []),
-        ...(sleeve ? [sleeveNote(sleeve)] : []),
+        ...(sleeve ? [sleeveNote(asSewn(sleeve, pieces))] : []),
         ...(sleeve?.cuff ? [cuffNote(sleeve.cuff)] : []),
         ...topNotes(bodice),
         ...fittingNotes,
@@ -427,7 +437,7 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
             width: finish.fabricWidth,
             liningM: metres('lining'),
             coutilM: bodice.top?.boned ? metres('interlining') : undefined,
-            sleeve,
+            sleeve: sleeve && asSewn(sleeve, pieces),
           }),
         ),
         { garment: 'bodice', lined: edges === 'lined', zipCm: bodice.zipCm },

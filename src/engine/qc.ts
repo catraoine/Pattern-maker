@@ -328,13 +328,16 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
   // on to the edge of a button extension), and a shirt collar against its stand.
   const neckline = pieces.filter((pc) => !pc.kind && (isFront(pc) || isBack(pc)));
   for (const c of pieces.filter((pc) => pc.kind === 'collar' && taggedLength(pc.outline, 'neck') > 0)) {
-    // A ruffle is gathered into the neckline.
-    const a = taggedLength(c.outline, 'neck') / ((c.meta.ruffle as number | undefined) ?? 1);
+    // A ruffle is gathered into the neckline. Its check says so, with its length as cut: given only gathered up, and
+    // called a collar, it read as a ruffle cut the neckline's length, against step 11's "twice as long" (DW walk, Nov 21).
+    const ruffle = (c.meta.ruffle as number | undefined) ?? 1;
+    const a = taggedLength(c.outline, 'neck') / ruffle;
     const b = sum(neckline, 'neck') + (c.meta.collarTo === 'extension' ? sum(neckline.filter(isFront), 'opening-neck') : 0);
+    const edge = ruffle > 1 ? `ruffle ${cm(a * ruffle)}, gathered to ${cm(a)}` : `collar ${cm(a)}`;
     checks.push({
       group: 'Seams',
       label: `${c.name} to neckline`,
-      detail: `collar ${cm(a)}, neckline ${cm(b)} (half), ${Math.abs(a - b) < 0.05 ? 'identical' : `${cm(Math.abs(a - b))} apart`}`,
+      detail: `${edge}, neckline ${cm(b)} (half), ${Math.abs(a - b) < 0.05 ? 'identical' : `${cm(Math.abs(a - b))} apart`}${ruffle > 1 ? ' once gathered' : ''}`,
       ok: Math.abs(a - b) <= SEAM_TOLERANCE,
     });
   }
@@ -494,6 +497,38 @@ function raglanChecks(pieces: Piece[]): Check[] {
   return out;
 }
 
+/** A set-in sleeve's crown ease as sewn: each half of the crown, from the crown point to the underarm, against the
+ *  armhole of the pieces it sews into. */
+function crownEase(sleeve: Piece, fronts: Piece[], backs: Piece[]): { front: number; back: number } {
+  const { pts, tags } = sleeve.outline.taggedPoints(96);
+  let crownF = 0;
+  let crownB = 0;
+  let seenSeam = false;
+  tags.forEach((t, i) => {
+    if (t !== 'armhole') {
+      seenSeam = true;
+      return;
+    }
+    const d = len(sub(pts[i + 1], pts[i]));
+    if (seenSeam) crownB += d;
+    else crownF += d;
+  });
+  return { front: crownF - sum(fronts, 'armhole'), back: crownB - sum(backs, 'armhole') };
+}
+
+/** The crown ease of a pattern's set-in sleeve against its bodice as cut, as the seam check reads it. The sleeve is
+ *  drafted to the block's armhole, and princess seams can redraw the armhole's foot a little, so the pattern's note and
+ *  the steps quote this one: the Ice Peplum's said 1.3 and 1.6 cm on the pattern, 1.5 and 1.7 in the seam check and
+ *  2.9 in all in the steps (DW walk, Nov 21). Undefined without a set-in sleeve and a front and back. */
+export function sewnCrownEase(pieces: Piece[]): { front: number; back: number } | undefined {
+  const sleeve = pieces.find((pc) => /^sleeve$/i.test(pc.name));
+  const fronts = pieces.filter(isFront);
+  const backs = pieces.filter(isBack);
+  if (!sleeve || !fronts.length || !backs.length) return undefined;
+  const e = crownEase(sleeve, fronts, backs);
+  return { front: Math.round(e.front * 10) / 10, back: Math.round(e.back * 10) / 10 };
+}
+
 /** Most crown ease a set-in sleeve can take without puckering, in cm per half. */
 const MAX_CROWN_EASE = 3.5;
 
@@ -512,22 +547,7 @@ function sleeveChecks(sleeve: Piece, fronts: Piece[], backs: Piece[]): Check[] {
     detail: `front ${cm(f)}, back ${cm(b)}${sleeve.lines.length ? ' with the elbow dart closed' : ''}, ${Math.abs(f - b) < 0.05 ? 'identical' : `${cm(Math.abs(f - b))} apart`}`,
     ok: Math.abs(f - b) <= SEAM_TOLERANCE,
   });
-  // The crown's halves: from the crown point to each underarm.
-  const { pts, tags } = sleeve.outline.taggedPoints(96);
-  let crownF = 0;
-  let crownB = 0;
-  let seenSeam = false;
-  tags.forEach((t, i) => {
-    if (t !== 'armhole') {
-      seenSeam = true;
-      return;
-    }
-    const d = len(sub(pts[i + 1], pts[i]));
-    if (seenSeam) crownB += d;
-    else crownF += d;
-  });
-  const easeF = crownF - sum(fronts, 'armhole');
-  const easeB = crownB - sum(backs, 'armhole');
+  const { front: easeF, back: easeB } = crownEase(sleeve, fronts, backs);
   const gathered = !!sleeve.meta.gatheredCrown;
   out.push({
     group: 'Seams',

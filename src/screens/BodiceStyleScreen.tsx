@@ -459,6 +459,8 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
               <p className="muted small">{['scoop', 'v', 'keyhole'].map((b) => backBlocked(choices, b as BackNeck)).find(Boolean)}</p>
             )}
             {g.id === 'collar' && !choices.neck && choices.neckline === 'crew' && detail.closure !== 'front_buttons' && <p className="muted small">A shirt collar needs the front buttons.</p>}
+            {/* Picked as "Bust and waist" with princess seams on, it read as darts on a top that has none (DW walk, Nov 21). */}
+            {g.id === 'darts' && detail.princess !== 'none' && choices.darts === 'bust_waist' && <p className="muted small">With princess seams, this shaping is sewn into the seams: there are no darts to sew.</p>}
             {g.id === 'darts' && choices.fit !== 'relaxed' && (
               <p className="muted small">{choices.fit === 'fitted' ? 'A fitted top needs bust and waist darts.' : choices.fit === 'oversized' ? 'An oversized top has no darts: its width covers the bust.' : 'Choose a relaxed fit to go without darts.'}</p>
             )}
