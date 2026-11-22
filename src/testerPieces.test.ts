@@ -436,3 +436,13 @@ describe('a wrapped length', () => {
       expect(texts.filter((t) => /^(cm|mm|in|yd)\b/i.test(t))).toEqual([]);
     });
 });
+
+// The pleated skirt's panel seams join the front and back to the side panels: the neaten step named only the side and
+// centre back edges, so the front panel's were left raw (DZ pretend-tester walk, Nov 21; Cat: "Fix it now").
+describe('the Black Pleated Skirt neatens every seam it joins', () => {
+  it('names the panel seam edges in Neaten the edges', () => {
+    const p = made('black-pleated-skirt', BODIES.middle);
+    expect(p.guide.steps.some((s) => s.title === 'Join the side panels')).toBe(true);
+    expect(step(p, 'Neaten the edges')).toContain('Neaten the panel seam edges as well, on the front, the back and each side panel.');
+  });
+});
