@@ -500,9 +500,8 @@ await wait(1500);
 
 // collection: the Maison collection's looks, a slow scroll down through them from just under the drop alert, for
 // "start from a look" (Cat, 2026-10-29: add it back, the film longer, nothing cut). Taken before the dress is styled.
-await main.getByRole('group', { name: 'Garment' }).locator('.drop-button').click();
-// The collection is its own line in the Style title's drop-down now (Cat, Nov 12).
-await main.getByRole('menuitemradio', { name: /^The collection/ }).click();
+// Opened from the link under the garment's name: the drop-down no longer lists it (the declutter, Nov 21).
+await main.locator('.collection-go').first().click();
 await main.getByRole('heading', { level: 1, name: 'The collection' }).waitFor();
 await wait(1500);
 // From the top, so the season reads (Cat picked A, 2026-10-29), in one eased glide down to the last look. In the film
@@ -520,7 +519,8 @@ await glide(lastLook, WIDE ? 11000 : 14000);
 await wait(1400);
 await stop('collection');
 await filmOnly.evaluate((el) => el.remove());
-await main.getByRole('button', { name: 'Back to styling' }).click();
+// Back the way it came: the collection's own Back to styling went in the declutter (Nov 21).
+{ const back = main.getByRole('button', { name: 'Back to styling' }); if (await back.count()) await back.click(); else await p.goBack(); }
 await main.getByRole('heading', { level: 1, name: 'Style your dress' }).waitFor();
 await p.evaluate(() => window.scrollTo(0, 0));
 await wait(1500);
@@ -704,6 +704,11 @@ const PHONE_QS = !WIDE && (await next().count()) > 0;
 const H = process.env.TOUR_LOOK !== 'shift';
 const JADE = process.env.TOUR_CLOTH === 'jade'; // the jade python print of Nov 15, in place of her own cloth
 const [CUT, DARTS, NECK] = H ? ['Waist seam', 'Bust and waist', 'Crew'] : ['Shift', 'Bust only', 'Crew'];
+// The window's own buttons (Enlarge, Draw, Demo, the Garment and Pattern boxes, the Front / Flat / All round switch) are
+// left out of the film, so the choices under the window come up into view; the step bar under them goes clear but
+// stays there to be pressed (Cat, Nov 21: hide the buttons, show more of what's below the window).
+const styleOnly = await p.addStyleTag({ content: 'main .preview-corner, main .lookboxes, main .row.between:has(> .seg) { display: none !important; } .style-bar { opacity: 0 !important; }' });
+await wait(600);
 await start();
 t0 = Date.now();
 await wait(1600);
@@ -875,6 +880,7 @@ else if (WIDE) {
   await wait(1200);
 } else await press(main.getByRole('button', { name: 'Done', exact: true }), 1200);
 await stop('style');
+await styleOnly.evaluate((el) => el.remove());
 
 // pattern: the pattern tools on her pieces (Cat, Nov 18: "show a tool work on the actual pattern pieces instead, like
 // dragging darts and cutting pieces off"; "or design straight from your pattern"). Move points is opened off camera
@@ -1101,10 +1107,14 @@ if ((await paper.count()) && !/A4/.test(await paper.innerText())) {
 }
 await main.getByRole('button', { name: /^(Download PDF|Download pattern)/ }).waitFor({ timeout: 45000 });
 // On a phone the sheet of pages is folded away (Cat, 2026-10-24); it is opened off camera, so the film can glide to it.
+// Since the declutter (Nov 21) a paper's pages open with the fold about them; See the pages stays for projector and A0.
 const see = main.locator('button.see-pages');
+const fold = main.locator('details.pages-fold');
 if (!WIDE && (await see.count()) && (await see.getAttribute('aria-expanded')) !== 'true') await see.evaluate((el) => el.click());
+else if (!WIDE && (await fold.count()) && !(await fold.evaluate((el) => el.open))) await fold.locator('summary').evaluate((el) => el.click());
 await wait(800);
-const sheetAt = !WIDE && (await see.count()) ? await see.evaluate((el) => el.getBoundingClientRect().bottom + scrollY - 100) : 1120;
+const tiles = main.locator('.preview.tiles');
+const sheetAt = !WIDE && (await tiles.count()) ? await tiles.evaluate((el) => el.getBoundingClientRect().top + scrollY - 200) : 1120;
 await p.evaluate(() => window.scrollTo({ top: 0 }));
 await wait(800);
 await start();
