@@ -37,7 +37,7 @@ updatePerson,
 recordMeasurements,
 withPeople,
 } from './account';
-import { validDetails, PatternChoices, outerWord, unusedFor } from './garments';
+import { MENSWEAR_JACKET_CHOICES, validDetails, PatternChoices, outerWord, unusedFor } from './garments';
 import type { Printable } from './screens/ExportScreen';
 import { describePattern } from './screens/describe';
 import { WelcomeScreen } from './screens/WelcomeScreen';
@@ -415,10 +415,11 @@ export default function App() {
   const finish = finishFor(storedFinish, mode, saved.house?.garment === garment ? saved.house.finish : undefined);
   const setFinish = (f: Finish) => setSaved({ ...saved, finish: keepFinish(storedFinish, f, mode) });
   const fabric = finish.fabric;
-  // What every garment drafts from (see garmentDrafts.ts), and the open garment's entry in the catalogue.
+  // What every garment drafts from (see garmentDrafts.ts), and the open garment's entry in the catalogue. A jacket not
+  // yet styled starts Long on the menswear form (garments.ts).
   const inputs = useMemo(
     (): DraftInputs => ({
-      saved: { choices: saved.choices, bodice: saved.bodice, dress: saved.dress, trousers: saved.trousers, tee: saved.tee, knitDress: saved.knitDress, hoodie: saved.hoodie, jumpsuit: saved.jumpsuit, lingerie: saved.lingerie, jacket: saved.jacket, coat: saved.coat },
+      saved: { choices: saved.choices, bodice: saved.bodice, dress: saved.dress, trousers: saved.trousers, tee: saved.tee, knitDress: saved.knitDress, hoodie: saved.hoodie, jumpsuit: saved.jumpsuit, lingerie: saved.lingerie, jacket: saved.jacket ?? (form === 'menswear' ? MENSWEAR_JACKET_CHOICES : undefined), coat: saved.coat },
       form,
       fabric,
     }),

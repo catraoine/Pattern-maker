@@ -11,6 +11,7 @@ import { outerGuide } from './engine/outerGuide';
 import { checkPattern } from './engine/qc';
 import { randomMan, rng } from './engine/randomBodies';
 import { patternDesigns, walkDesign } from './patternSweep';
+import { DEFAULT_JACKET_CHOICES, MENSWEAR_JACKET_CHOICES } from './garments';
 
 // The menswear form (Cat's B2 Two Forms, 2026-10-18): the chest instead of the bust, none of the bust
 // measurements asked, and tops drafted with no bust dart.
@@ -74,6 +75,17 @@ describe('drafting on the menswear form', () => {
       const d = draftOuter(m, { kind, fitting: { flatFront: true } });
       expect(d.pieces.length).toBeGreaterThan(3);
     }
+  });
+
+  it('starts its jacket Long, over the seat, longer than the shirt-length Hip', () => {
+    const m = withEstimates({ ...MAN, ...ARMS, waist_to_knee: 60 }, 'menswear') as OuterMeasurements;
+    const back = (c: typeof DEFAULT_JACKET_CHOICES) => {
+      const p = draftOuter(m, { ...c, kind: 'jacket', fitting: { flatFront: true } }).pieces.find((pc) => /back/i.test(pc.name) && !pc.kind)!;
+      const ys = p.outline.points().map((q) => q.y);
+      return Math.max(...ys) - Math.min(...ys);
+    };
+    expect(MENSWEAR_JACKET_CHOICES.length).toBe('long');
+    expect(back(MENSWEAR_JACKET_CHOICES)).toBeGreaterThan(back(DEFAULT_JACKET_CHOICES) + 5);
   });
 });
 
