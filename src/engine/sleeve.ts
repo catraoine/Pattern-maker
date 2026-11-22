@@ -59,6 +59,8 @@ export interface SleeveStyle {
   /** A set-in bishop sleeve only (set by a look): its crown cut this many cm longer than the armhole and softly
    * gathered in over the shoulder, a soft head and not a puff's standing one. */
   headGather?: number;
+  /** The most crown ease the cloth takes (sleeveHeadEase.ts): a sheer's head can't be shrunk in, so it is cut with less. */
+  crownEase?: number;
 }
 
 /** Bicep and crown ease for jacket and coat sleeves, by fit. */
@@ -260,7 +262,8 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
   const back = armholeOf(bb);
   const depth = (front.depth + back.depth) / 2;
   const outerEase = s.outer ? OUTER_SLEEVE_EASE[s.outer][s.fit] : undefined;
-  const ease0 = s.ease ?? (outerEase ? (s.unpadded ? { ...outerEase, crown: Math.min(outerEase.crown, UNPADDED_CROWN) } : outerEase) : SLEEVE_EASE[s.fit]);
+  const fitEase = s.ease ?? (outerEase ? (s.unpadded ? { ...outerEase, crown: Math.min(outerEase.crown, UNPADDED_CROWN) } : outerEase) : SLEEVE_EASE[s.fit]);
+  const ease0 = s.crownEase === undefined ? fitEase : { ...fitEase, crown: Math.min(fitEase.crown, s.crownEase) };
   // A dropped shoulder or raglan sleeve sews in with next to no ease; a dropped shoulder's sleeve starts
   // past the shoulder point, so it is that much shorter.
   const sleeveCut = s.cut === 'drop' || (s.cut === 'raglan' && s.raglan) ? s.cut : undefined;

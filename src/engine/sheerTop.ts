@@ -6,6 +6,7 @@
 import type { SewStep, SewingGuide } from './instructions';
 import type { BodiceDraft } from './bodice';
 import { KEYHOLE } from './backNeck';
+import { easeSheerHead } from './sleeveHeadEase';
 
 /** The space between the buttons down a looped back, in cm: close enough that the edges never gape between them. */
 export const LOOP_GAP = 2.5;
@@ -71,6 +72,9 @@ export function withSheerTop(g: SewingGuide, d: Pick<BodiceDraft, 'peplum' | 'zi
         // Sewn on the neck's own stitching line and then trimmed: sewn 0.5 cm from an untrimmed edge, the seam sat 0.5 cm
         // outside the drafted neckline, a smaller, higher neck than the one the fit test checks (DW walk, Nov 21).
         steps.push({ ...st, text: `Cut 2.5 cm bias strips from the same sheer. Pin a strip to the neckline right sides together, 1 cm extra at each end, and sew it on the neck's stitching line, ${neck} from the edge. Trim the seam to 0.5 cm, wrap the strip round the raw edges and slip-stitch its fold down by hand over the stitching. Bought binding is heavier and darker than the sheer and would show as a band.` });
+        break;
+      case 'Ease the sleeve heads':
+        steps.push(easeSheerHead(st));
         break;
       case 'Finish the armhole seams':
         steps.push({ ...st, text: `${SELF_BIND} round each armhole, starting at the underarm. Let the seam turn toward the sleeve.` });

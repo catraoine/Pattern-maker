@@ -52,6 +52,20 @@ function sideEnds(pc: Piece) {
 describe.each(Object.entries(BODIES))('the Ice Peplum Top on a %s body', (_size, body) => {
   const p = made('ice-peplum', body);
 
+  it('cuts the organza sleeve head with ease that can be spread by hand, since a sheer will not shrink in', () => {
+    // 3 cm, the fitted sleeve's own, is 9 to 13 per cent more sleeve than armhole between the notches: in a wool it steams
+    // away, in silk organza it puckers along the top of the armhole (Fit: Ice Peplum sleeve deep dive, Nov 22).
+    const sleeve = piece(p.pieces, 'Sleeve');
+    const armhole = taggedLength(piece(p.pieces, 'Bodice side front').outline, 'armhole') + taggedLength(piece(p.pieces, 'Bodice side back').outline, 'armhole');
+    const ease = taggedLength(sleeve.outline, 'armhole') - armhole;
+    expect(ease).toBeGreaterThan(1.2);
+    expect(ease).toBeLessThan(1.8);
+    // The step says what the piece is, and does not ask for steam the cloth will not answer to.
+    expect(step(p, 'Ease the sleeve heads')).toMatch(/by its ease, 0\.[6-8] cm at the front and 0\.[7-9] cm at the back/);
+    expect(step(p, 'Ease the sleeve heads')).toContain('A sheer does not shrink in under steam');
+    expect(step(p, 'Ease the sleeve heads')).not.toContain('Steam it over a ham');
+  });
+
   it('cuts the bodice edge and the sleeve edge with the seam allowance their steps sew, not the sheer hem', () => {
     for (const name of ['Bodice centre front', 'Bodice side front', 'Bodice centre back', 'Bodice side back', 'Sleeve']) expect(piece(p.pieces, name).allowances.hem, name).toBe(1.5);
     expect(step(p, 'Attach the peplum')).toContain('Sew 1.5 cm from the edge');
@@ -218,6 +232,8 @@ describe('the page cut lines', () => {
   // seam names and the finished measurement words keep off the cut lines where they have room: 74 of them crossed one
   // across these pieces and bodies, and the 37 left have nowhere else to go on their seam, or would land on a diamond
   // (taped, they read whole).
+  // 38 since the Ice Peplum's sheer sleeve head (Cat allowed one more, Nov 21): its slightly smaller sleeve moves the
+  // pieces on the pages, and one more "PEPLUM SEAM" name lands across a cut line.
   it('have few piece words across them', () => {
     const hit = ['blush-shift', 'ice-peplum', 'black-pleated-skirt', 'chocolate-barrel', 'black-vest'].flatMap((id) =>
       Object.values(BODIES).flatMap((values) => {
@@ -225,7 +241,7 @@ describe('the page cut lines', () => {
         return cutCollisions(layout(print.pieces, `Maison Tracé: ${id}`, print.notes, { pattern: id })).filter((h) => /ALLOWANCE|^FINISHED |^YOU /.test(h.text));
       }),
     );
-    expect(hit.length).toBeLessThanOrEqual(37);
+    expect(hit.length).toBeLessThanOrEqual(38);
   });
 });
 
