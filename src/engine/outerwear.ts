@@ -15,6 +15,7 @@ import { DraftError } from './skirt';
 import { patchPocket, spanAt, weltPieces } from './pocketPieces';
 import { ChestPlace, ChestPocket, FLAP, chestWelt, flapPieces } from './jacketPockets';
 import { straightSidePair } from './straightSides';
+import { MENS_STANCE } from './menswearTailoring';
 
 export type OuterKind = 'jacket' | 'coat';
 export type OuterFit = 'fitted' | 'regular' | 'relaxed' | 'oversized';
@@ -1062,6 +1063,10 @@ const HOUSE_BREAK_ABOVE_SEAM = 2;
 /** And its welt pockets sit this much lower than a jacket's, cm, three quarters of the way down as in the picture. */
 const HOUSE_POCKETS_LOWER = 5;
 const highLapel = (s: Pick<OuterStyle, 'lapel' | 'collar'>) => s.lapel === 'high' && lapelled(s.collar);
+/** The menswear form's two-button stance (menswearTailoring.ts): a single-breasted jacket with a classic or wide lapel,
+ *  where no photo or look has set its own break or buttons. */
+const mensStance = (s: OuterStyle) =>
+  !!s.fitting?.flatFront && s.kind === 'jacket' && s.front === 'single' && lapelled(s.collar) && !highLapel(s) && !plunges(s) && !s.houseCut && s.breakCm === undefined && s.buttons === undefined && s.buttonGapCm === undefined;
 
 /** Buttons down the front: from the break point (or just below the neck) to above the hem, about 10 cm apart. */
 function buttonsFor(s: OuterStyle, ext: number, first: number, last: number): OuterDraft['buttons'] {
@@ -1070,8 +1075,9 @@ function buttonsFor(s: OuterStyle, ext: number, first: number, last: number): Ou
   const size = s.buttonSizeCm !== undefined && Number.isFinite(s.buttonSizeCm) ? Math.min(4, Math.max(1, s.buttonSizeCm)) : high ? HIGH_LAPEL.buttonSize : OUTER_BUTTON[s.kind];
   if (s.front === 'zip') return { at: [], sizeCm: size, columns: [0] };
   const minCount = s.front === 'double' ? 2 : 1;
-  const nButtons = s.buttons ?? (high ? HIGH_LAPEL.buttons : undefined);
-  const nGap = s.buttonGapCm ?? (high ? HIGH_LAPEL.gap : undefined);
+  const mens = mensStance(s);
+  const nButtons = s.buttons ?? (high ? HIGH_LAPEL.buttons : mens ? MENS_STANCE.buttons : undefined);
+  const nGap = s.buttonGapCm ?? (high ? HIGH_LAPEL.gap : mens ? MENS_STANCE.gap : undefined);
   const given = nButtons !== undefined && Number.isFinite(nButtons) ? Math.round(Math.min(8, Math.max(minCount, nButtons))) : undefined;
   const givenGap = nGap !== undefined && Number.isFinite(nGap) ? Math.min(20, Math.max(5, nGap)) : undefined;
   const gap = givenGap ?? (s.kind === 'coat' ? 11 : 10);
@@ -1300,7 +1306,9 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
           // does, rising from there to its peak at the shoulder: breaking above the bust, it was short and lay almost flat
           // across the chest, Cat Nov 10.)
           waistY - 4
-        : apexY + (big ? OVERSIZED_LAPEL.lower : 2)
+        : mensStance(s)
+          ? waistY - MENS_STANCE.aboveWaist
+          : apexY + (big ? OVERSIZED_LAPEL.lower : 2)
       : neckY + (s.collar === 'stand' || s.collar === 'funnel' ? 2 : 1.8);
   const lastY = s.kind === 'coat' ? Math.min(foot - 15, waistY + (m.waist_to_hip ?? 20) + 12) : foot - (length === 'cropped' ? 3.5 : 9);
   // A cutaway front curves back from below the last button, so the buttons stop above it.

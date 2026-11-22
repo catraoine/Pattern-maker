@@ -418,6 +418,11 @@ for Cat's "ship" and a CLO before and after.
 2. **A shirt sleeve has at most 1 cm of crown ease** on the menswear form (the blouse's 2 to 3 cm stood up as bumps at
    the shoulder tips with no pad or gathers). Jackets keep theirs: they are drafted for a shoulder pad.
 3. **The printed pattern says chest, never bust**, on the menswear form (`src/menswearWords.ts`).
+4. **Trousers are cut as a man's** (Cat, Nov 22: "Build both"; In testing): a flat front with no dart, up to 1.5 cm of
+   its shaping moved to one dart on each back, over the back pocket. Pleated fronts keep the dart in the pleat. Trousers
+   not yet styled start with slant pockets, back welt pockets and belt loops (`src/engine/menswearTailoring.ts`).
+5. **A single-breasted jacket has two buttons** 11 cm apart, the lapel breaking 2 cm above the waist (same decision, In
+   testing). Double-breasted fronts, coats and looks with their own buttons keep theirs.
 
 ## Style steps
 
