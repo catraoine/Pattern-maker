@@ -9,6 +9,7 @@ import { waistPieces } from './engine/finishing';
 import { SleeveDraft, SleeveMeasurements, draftSleeve, needsArms } from './engine/sleeve';
 import { Fitting, toFitting } from './engine/fitting';
 import { MyFabric, withFabricEase } from './engine/fabrics';
+import { crownEaseFor } from './engine/sleeveHeadEase';
 import { FormKind, Garment, MeasurementValues } from './measurements';
 import { DEFAULT_LINGERIE_CHOICES, describeLingerie } from './garments';
 import { BodiceChoices, DEFAULT_BODICE, DEFAULT_COAT_CHOICES, DEFAULT_JACKET_CHOICES, DEFAULT_TEE_CHOICES, DEFAULT_TROUSERS_CHOICES, OuterChoices, validDetails, DressChoices, PatternChoices, describeBodice, describeOuter, describeTee, describeTrousers, sleeveOf } from './garments';
@@ -49,9 +50,10 @@ export interface DraftInputs {
 }
 
 /** The sleeve for a bodice, drafted to its armhole with its allowances, when one is chosen and the arms are measured. */
-function sleeveFor(bodice: BodiceDraft, choices: BodiceChoices, values: MeasurementValues): SleeveDraft | undefined {
+function sleeveFor(bodice: BodiceDraft, choices: BodiceChoices, values: MeasurementValues, fabric: MyFabric | undefined): SleeveDraft | undefined {
   const { length, shape, cm, cuff, fullness, headGather } = sleeveOf(choices);
   if (length === 'none' || needsArms(values as SleeveMeasurements)) return undefined;
+  const crownEase = crownEaseFor(fabric);
   return draftSleeve(bodice, values as SleeveMeasurements, {
     length,
     shape,
@@ -59,6 +61,7 @@ function sleeveFor(bodice: BodiceDraft, choices: BodiceChoices, values: Measurem
     ...(cuff ? { cuff } : {}),
     ...(fullness ? { fullness } : {}),
     ...(headGather ? { headGather } : {}),
+    ...(crownEase !== undefined ? { crownEase } : {}),
     fit: choices.fit,
     seamAllowance: bodice.pieces[0].seamAllowance,
     armholeAllowance: bodice.pieces[0].allowances.armhole ?? 1,
@@ -153,13 +156,13 @@ export const GARMENT_DRAFTING: Record<Garment, GarmentDrafting> = {
     draft: (values, i, f) => {
       const style = bodiceStyleOf(i, f);
       const bodice = draftBodice(values as BodiceMeasurements, style);
-      return { bodice, sleeve: sleeveFor(bodice, style, values) };
+      return { bodice, sleeve: sleeveFor(bodice, style, values, i.fabric) };
     },
     piecesWith: (values, i, f) => draftBodice(values as BodiceMeasurements, { ...i.saved.bodice, fitting: bodiceFitting(i, f) }).pieces,
     graded: (m, i, f, allow) => {
       const style = bodiceStyleOf(i, f);
       const b = draftBodice(m as BodiceMeasurements, style);
-      return allow([...b.pieces, ...(sleeveFor(b, style, m)?.pieces ?? [])]);
+      return allow([...b.pieces, ...(sleeveFor(b, style, m, i.fabric)?.pieces ?? [])]);
     },
     reset: { bodice: DEFAULT_BODICE },
   },
@@ -169,7 +172,7 @@ export const GARMENT_DRAFTING: Record<Garment, GarmentDrafting> = {
     draft: (values, i, f) => {
       const st = dressStylesOf(i, f);
       const d = draftDress(values as DressMeasurements, st.bodice, st.skirt, st.seam);
-      return { dress: d, sleeve: sleeveFor(d.bodice, st.bodice, values) };
+      return { dress: d, sleeve: sleeveFor(d.bodice, st.bodice, values, i.fabric) };
     },
     piecesWith: (values, i, f) => {
       const st = dressStylesOf(i, f);
@@ -178,7 +181,7 @@ export const GARMENT_DRAFTING: Record<Garment, GarmentDrafting> = {
     graded: (m, i, f, allow) => {
       const st = dressStylesOf(i, f);
       const d = draftDress(m as DressMeasurements, st.bodice, st.skirt, st.seam);
-      return allow([...d.pieces, ...(sleeveFor(d.bodice, st.bodice, m)?.pieces ?? [])]);
+      return allow([...d.pieces, ...(sleeveFor(d.bodice, st.bodice, m, i.fabric)?.pieces ?? [])]);
     },
     reset: { dress: undefined, choices: INITIAL.choices, bodice: DEFAULT_BODICE },
   },

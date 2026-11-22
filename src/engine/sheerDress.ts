@@ -5,6 +5,7 @@ import type { DressDraft } from './dress';
 import type { SewingGuide } from './instructions';
 import type { SleeveDraft } from './sleeve';
 import { asFrenchSeam } from './sheerTop';
+import { easeSheerHead } from './sleeveHeadEase';
 
 /**
  * The dresses these steps are written for: a waist seam, a centre back zip, and set-in sleeves or none. The others (cut in
@@ -27,6 +28,7 @@ export function withSheerDress(g: SewingGuide, seam: string, o: { plainSides: bo
       french = true;
       return asFrenchSeam(st, seam);
     }
+    if (st.title === 'Ease the sleeve heads') return easeSheerHead(st);
     if (o.narrowHem && (st.title === 'Hem' || st.title === 'Hem the sleeves')) return { ...st, text: st.text.replace(/ress up [\d.]+ cm( [^,.]*)?, then [\d.]+ cm more/, (_, where: string | undefined) => `ress up 0.5 cm${where ?? ''}, then 0.5 cm more`) };
     return st;
   });

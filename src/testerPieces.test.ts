@@ -51,6 +51,20 @@ function sideEnds(pc: Piece) {
 describe.each(Object.entries(BODIES))('the Ice Peplum Top on a %s body', (_size, body) => {
   const p = made('ice-peplum', body);
 
+  it('cuts the organza sleeve head with ease that can be spread by hand, since a sheer will not shrink in', () => {
+    // 3 cm, the fitted sleeve's own, is 9 to 13 per cent more sleeve than armhole between the notches: in a wool it steams
+    // away, in silk organza it puckers along the top of the armhole (Fit: Ice Peplum sleeve deep dive, Nov 22).
+    const sleeve = piece(p.pieces, 'Sleeve');
+    const armhole = taggedLength(piece(p.pieces, 'Bodice side front').outline, 'armhole') + taggedLength(piece(p.pieces, 'Bodice side back').outline, 'armhole');
+    const ease = taggedLength(sleeve.outline, 'armhole') - armhole;
+    expect(ease).toBeGreaterThan(1.2);
+    expect(ease).toBeLessThan(1.8);
+    // The step says what the piece is, and does not ask for steam the cloth will not answer to.
+    expect(step(p, 'Ease the sleeve heads')).toMatch(/The crown is 1\.[4-6] cm longer than the armhole/);
+    expect(step(p, 'Ease the sleeve heads')).toContain('A sheer does not shrink in under steam');
+    expect(step(p, 'Ease the sleeve heads')).not.toContain('Steam it over a ham');
+  });
+
   it('cuts the bodice edge and the sleeve edge with the seam allowance their steps sew, not the sheer hem', () => {
     for (const name of ['Bodice centre front', 'Bodice side front', 'Bodice centre back', 'Bodice side back', 'Sleeve']) expect(piece(p.pieces, name).allowances.hem, name).toBe(1.5);
     expect(step(p, 'Attach the peplum')).toContain('Sew 1.5 cm from the edge');
