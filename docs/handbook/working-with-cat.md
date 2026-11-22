@@ -53,13 +53,12 @@ phone, in short bursts, often by voice dictation. Everything here is a standing 
 - Paste-ready text goes in its own copy box, one per field, labelled above.
 - Dates in drafts Cat sends: her style, "Nov 8", "from Nov 16 to Dec 6" (no "th", weekday only if needed).
 - Never sign Cat as "Founder". Sign "Cat Buckley, Maison Tracé".
-- **Links in emails (Nov 2, raised by Cat since Oct 22, every thread).** Claude's Gmail connector
-  turns every link it writes into a long `google.com/url?q=...` link. This happens in plain text,
-  HTML and bare `forms.gle/...` text alike, in drafts and direct sends. So Claude never sends an
-  email that has a link in it. It makes a draft, says so, and gives the clean link in a copy box
-  for Cat to paste over the long one before she sends. Before saying a draft's link is clean, read
-  the draft back. The 45 tester outreach emails of Nov 1 all went out with long links because of
-  this.
+- **Every email draft comes with its draft link** (Cat, Nov 21: "Always paste draft links because
+  sometimes I want to conveniently edit"). Each draft is a Gmail draft Cat can open and edit; the thread
+  gives its link and the full text. Links inside tester emails: since Nov 19 those go from hello@ with
+  working links (one tester per email, app and form links only), sent from the text in Cat's draft
+  after her named send word. Other emails with links still go through Gmail, where the connector
+  wraps every link Claude writes, so Cat pastes the clean link in; read every draft and sent copy back.
 - Netlify steps always include the direct app.netlify.com link to the exact settings page, opened
   in her browser, not inside the Claude app. Live site and previews likewise.
 - Model pick: say whether a job needs Fable (hard checks where mistakes cost money or fit) or
