@@ -612,6 +612,25 @@ details.sew:not([open]) > .sew-summary > .sew-list-head::after {
   transition: opacity 0.2s;
 }
 
+/* A line that tells you something rather than asks you to do it (EA pretend-tester walk, Nov 21: they had tick boxes
+   too): no box, lined up with the words above, quieter. */
+.sew-lines li.note {
+  padding-left: 34px;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+/* The muslin note on a tester's first step: set apart from the lines to tick, a champagne rule beside it. */
+.sew-muslin {
+  margin: 16px 0 0;
+  padding-left: 14px;
+  border-left: 2px solid var(--gild);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
 /* On a phone, Back and Next stay at the foot of the screen however long the step (DZ pretend-tester walk, Nov 21:
    on long steps they were off screen until you scrolled). */
 @media (max-width: 899px) {
@@ -623,6 +642,18 @@ details.sew:not([open]) > .sew-summary > .sew-list-head::after {
     background: var(--paper);
     border-top: 1px solid #2b2720;
     z-index: 1;
+  }
+
+  /* A fade just above Back and Next, so words running on underneath read as more to scroll to (EA walk, Nov 21). */
+  .sewmode .sewmode-go::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 100%;
+    height: 28px;
+    background: linear-gradient(to bottom, transparent, var(--paper));
+    pointer-events: none;
   }
 }
 

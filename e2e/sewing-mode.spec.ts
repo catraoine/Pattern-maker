@@ -33,7 +33,7 @@ for (const g of ['Skirt', 'Trousers', 'Bodice', 'Dress', 'Tee', 'Jacket'] as Gar
     await mode.getByRole('button', { name: 'Done' }).click();
     await expect(mode).toHaveCount(0);
     // Sewn to the end: a finished state, not "You stopped at the last step".
-    await expect(main.getByText(/^You've sewn all \d+ steps\./)).toBeVisible();
+    await expect(main.getByText(/^All \d+ steps sewn\.$/)).toBeVisible();
   });
 }
 
