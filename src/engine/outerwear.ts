@@ -200,6 +200,9 @@ export interface OuterDraft {
   buttons: { at: number[]; sizeCm: number; columns: number[]; holes?: 'horizontal' | 'vertical'; show?: { y: number; columns: number[] } };
   /** Buttoned left over right, as menswear is; right over left when missing. */
   lapsLeft?: boolean;
+  /** The lapel rolls from near the waist (the menswear two-button stance), so the steps fuse the whole front and tape
+   *  the roll line: without them the long lapel creased across the chest and fell open (CLO, Nov 22). */
+  tapedRoll?: boolean;
   lapel?: Lapel;
   /** Where the pockets sit on the front, as drafted: a patch pocket's outline, or a welt's opening. */
   pocket?: { x: number; y: number; w: number; h: number; kind: 'patch' | 'welt' | 'flap' };
@@ -1497,6 +1500,7 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     ext,
     buttons,
     ...(s.fitting?.flatFront ? { lapsLeft: true } : {}),
+    ...(mensStance(s) ? { tapedRoll: true } : {}),
     lapel: opening.lapel,
     ...(opening.piece.meta.cutaway ? { cutaway: opening.piece.meta.cutaway as { up: number; along: number } } : {}),
     pocket,

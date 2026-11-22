@@ -251,6 +251,11 @@ describe('menswear tailoring (Nov 22, In testing)', () => {
     expect(his.lapel!.breakPt.y).toBeCloseTo(his.buttons.at[0], 1);
     expect(his.lapel!.breakPt.y).toBeGreaterThan(hers.lapel!.breakPt.y + 10);
     expect(failing(his.pieces).filter((c) => !/shoulder seams/.test(c.label))).toEqual([]);
+    // A lapel that long needs the whole front fused and its roll line taped (it creased and fell open in CLO without).
+    const steps = (d: typeof his) => outerGuide(d, 2);
+    expect(steps(his).steps.find((st) => st.title === 'Interface')!.text).toMatch(/whole of each front.*stay tape along each roll line/);
+    expect(steps(his).notions.join(' ')).toMatch(/stay tape, for the roll lines/);
+    expect(steps(hers).steps.find((st) => st.title === 'Interface')!.text).not.toMatch(/roll line/);
     // A double-breasted front, a coat and a look with its own buttons keep theirs.
     expect(draftOuter(m, { ...MENSWEAR_JACKET_CHOICES, kind: 'jacket', buttons: 4, fitting: { flatFront: true } }).buttons.at).toHaveLength(4);
     expect(draftOuter(m, { ...MENSWEAR_JACKET_CHOICES, kind: 'jacket', front: 'double', fitting: { flatFront: true } }).buttons).toEqual(draftOuter(m, { ...MENSWEAR_JACKET_CHOICES, kind: 'jacket', front: 'double' }).buttons);
