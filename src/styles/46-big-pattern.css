@@ -62,3 +62,9 @@ section.live-big .preview > .pattern-pane:not(:has(> .point-editor)):not(:has(> 
     letter-spacing: 0.08em;
   }
 }
+
+/* Move points names the pieces it doesn't show, on a line of its own under the how-to. */
+.pe-howto > .pe-fixed {
+  display: block;
+  margin-top: 4px;
+}

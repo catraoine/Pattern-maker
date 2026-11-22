@@ -147,6 +147,9 @@ export function PatternPreview({ sheet, label, play = 0, names = [], paper = fal
   const drawing = (
       <svg key={playing ? `play-${play}` : 'still'} viewBox={viewBox} role="img" aria-label={label} className="preview-svg">
         {sheet.prims.map((pr, i) => {
+          // On paper only the pieces are drawn: the sheet's title card and test square sat beside them, inside the
+          // pieces' box, sliced off at its edge (pretend tester EC walk, Nov 22). The PDF still prints them.
+          if (box && pr.piece === undefined) return null;
           const a = anim(pr);
           if (pr.kind === 'poly') {
             const Tag = pr.closed ? 'polygon' : 'polyline';
