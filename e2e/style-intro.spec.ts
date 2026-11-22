@@ -1,4 +1,4 @@
-import { expect, expectStyle, openFresh, skipToExample, test } from './fixtures';
+import { expect, expectStyle, openFresh, openLengthStep, skipToExample, test } from './fixtures';
 
 // How styling works (Cat's A, Nov 14): a screen of its own the first time Style's questions open, then never again.
 test('the first Style shows how styling works once, then the questions', async ({ page }) => {
@@ -29,5 +29,7 @@ test('after how styling works, the length hint shows', async ({ page }) => {
   await expectStyle(page, 'Skirt');
   for (let i = 0; i < 8 && !(await main.getByRole('button', { name: 'Type the skirt length' }).count()); i++) await main.getByRole('button', { name: /^Next/ }).first().click();
   await expect(main.getByRole('button', { name: 'Type the skirt length' })).toBeAttached();
+  // Shown where the length is asked, not over every question (declutter, Cat's E, Nov 21).
+  await openLengthStep(page);
   await expect(main.getByText('Drag the dot, or tap the length to type it.')).toBeVisible();
 });
