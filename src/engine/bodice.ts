@@ -9,6 +9,7 @@
 import { wrapFront, wrapStyle, wrapTies } from './wrap';
 import { P, Path, add, len, lerp, mul, p, sub, taggedLength, unit } from './geometry';
 import { finishDart } from './darts';
+import { hipToHem, levelSideHem, squareHem } from './dressHem';
 import { Piece, withAlternate } from './piece';
 import { DraftError, Side, cm } from './skirt';
 import type { DartPlace, PrincessLine } from './manipulate';
@@ -840,21 +841,6 @@ function hipCurve(path: Path, from: P, to: P, tag: string, leaving?: P): Path {
 }
 const hipCurveLength = (from: P, to: P, leaving?: P) => hipCurve(new Path(from), from, to, '', leaving).length();
 
-/** A dress's side seam on from the hip to the hem. The hip curve arrives straight down, so a seam running straight out
- *  to a flared hem turned a corner at the hip, a kick that shows on the body (SS27 Blush Shift, Nov 12: "to a 10"): it
- *  leaves the hip straight down and bends into the hem's line instead, ending on that same line, so the hem still meets
- *  it square and the hem is as wide as before. */
-function hipToHem(path: Path, hip: P, hem: P, tag: string): Path {
-  if (Math.abs(hem.x - hip.x) <= 0.3) return path.line(hem, tag);
-  return path.curve(p(hip.x, hip.y + (hem.y - hip.y) * 0.3), add(hip, mul(sub(hem, hip), 0.55)), hem, tag);
-}
-
-/** The hem's first control point leaving the foot of a sloping side seam square to it, toward the centre. */
-function squareHem(hip: P, hem: P): P {
-  const d = unit(sub(hem, hip));
-  return add(hem, mul(p(-d.y, d.x), hem.x * 0.35));
-}
-
 /** A waist dart carried on below the waist (a fish-eye dart), for tops longer than the waist. */
 const fishEye = (top: P, left: P, right: P, bottom: P) => new Path(top).line(left).line(bottom).line(right).line(top);
 
@@ -1190,6 +1176,8 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   const dartTipB = p(dartXB, scye - dropShoulder + 2.5);
   let hipB = swB;
   let hemB = swB;
+  // The hem's level at the centre back: the side seam's foot, but for a flared dress, whose seam ends a little higher.
+  let backHem: number | undefined;
   if (!below) {
     // Waist darts are pressed toward the centre, trued, and the waist seam is peaked over them.
     const waistB = squaredWaist(wb, swB.x, wb, unit(sub(swB, sideB)));
@@ -1210,11 +1198,14 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     }
     // A dress with no waist seam carries the side seam on from the hip, straight to its hem.
     if (s.dressHem) {
-      hemB = p(hipB.x + (s.dressHem.shape === 'shift' && s.dressHem.flare !== undefined ? s.dressHem.flare : DRESS_HEM_TAPER[s.dressHem.shape]), wb + Math.max(drop + 2, s.dressHem.belowWaist));
+      backHem = wb + Math.max(drop + 2, s.dressHem.belowWaist);
+      // The foot of a flared seam is raised a little, so the seam is no longer than the drop at the centre and the
+      // hem hangs level (dressHem.ts).
+      hemB = levelSideHem(hipB, p(hipB.x + (s.dressHem.shape === 'shift' && s.dressHem.flare !== undefined ? s.dressHem.flare : DRESS_HEM_TAPER[s.dressHem.shape]), backHem), !!s.dressHem.straightSide);
       if (s.dressHem.straightSide) back.line(hemB, 'side');
       else hipToHem(back, hipB, hemB, 'side');
       // Square off the tapered (or flared) side seam, then level to the centre back.
-      back.curve(squareHem(hipB, hemB), p(hemB.x * 0.35, hemB.y), p(0, hemB.y), 'hem');
+      back.curve(squareHem(hipB, hemB, backHem), p(hemB.x * 0.35, backHem), p(0, backHem), 'hem');
     } else back.line(p(0, hemB.y), 'hem');
   }
   if (key) {
@@ -1222,7 +1213,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     back.line(p(0, bd + key), 'centre').curve(p(KEYHOLE.width * 1.3, bd + key - 1.5), p(KEYHOLE.width * 1.1, bd + 2), p(0, bd), 'keyhole');
   } else back.line(p(0, bd), 'centre');
   back.closed = true;
-  const backHem = hemB.y;
+  backHem ??= hemB.y;
   // A sheath past the knee opens at the centre back hem, so you can walk in it.
   const slitCm = s.dressHem?.shape === 'sheath' && s.dressHem.belowWaist - drop > 25 ? SHEATH_SLIT_CM : 0;
 
@@ -1421,10 +1412,13 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
       else hipToHem(front, hipF, hemF, 'side');
     }
     // The hem runs parallel to the waist, so the front keeps the length the bust needs.
-    cfHem = wf + dy + (hemF.y - hipF.y);
-    // Square to the side seam and to the centre front, even where the front hangs longer at the centre.
+    // (Measured from the hem's own level, not from a flared seam's raised foot.)
+    const sideLevel = hemF.y + (backHem ?? hemB.y) - hemB.y;
+    cfHem = wf + dy + (sideLevel - hipF.y);
+    // Square to the side seam and to the centre front, even where the front hangs longer at the centre. (No lower than
+    // the hem's level at the side, nor than the centre front where that is the higher of the two.)
     const k = hemF.x * 0.35;
-    front.curve(s.dressHem ? squareHem(hipF, hemF) : sub(hemF, p(k, 0)), p(k, cfHem), p(0, cfHem), 'hem');
+    front.curve(s.dressHem ? squareHem(hipF, hemF, Math.min(sideLevel, cfHem)) : sub(hemF, p(k, 0)), p(k, cfHem), p(0, cfHem), 'hem');
   }
   front.line(cfNeck, 'fold');
   front.closed = true;
