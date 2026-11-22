@@ -1,11 +1,11 @@
-// Sewing a test version in muslin (calico in the UK) first. The booklets are written for the look's own cloth (wool
+// Sewing a toile in muslin (calico in the UK) first. The booklets are written for the look's own cloth (wool
 // steamed at 150°C, a sheer cut between tissue paper and sewn in French seams, a peplum on horsehair braid), while
 // the fit testers are asked to sew in muslin (pretend tester DM walk, Nov 19; Cat, Nov 20: "Add sewing in calico",
 // called muslin first since that is the North American word, with calico beside it). One line says what changes.
 
 import type { SewingGuide } from './instructions';
 
-/** The things the steps ask for that a muslin test version can leave out, each with what to do in its place. */
+/** The things the steps ask for that a muslin toile can leave out, each with what to do in its place. */
 const SKIPS: [RegExp, string][] = [
   [/tissue paper/i, 'the tissue paper (fold the muslin and cut pairs as the cutting step says)'],
   [/French seam/i, 'the French seams (sew plain seams and zigzag the edges)'],
@@ -59,6 +59,6 @@ export function muslinLine(guide: SewingGuide, fabricLines: string[], isMuslin: 
   // fit report shows how the pattern itself fits (DU walk, Nov 21).
   const alter = /take (it )?in or let (it )?out/i.test(steps);
   return [
-    `Sewing in muslin (calico): for a test version, buy about the same length of muslin as the fabric above. Wash and dry it first, as it shrinks${unwashed ? ', even where the first step says not to wash the fabric above' : ''}, and press it with a hot, steamy iron. The steps are written for the fabric above${list ? `; in muslin, leave out ${list}` : ''}. Sew everything else the same way, so the fit is the fit of the real one, with a long machine stitch so the seams unpick easily if the fit needs changing.${alter ? ' For the fit test, where a step says to take it in or let it out, try it on but leave the seams as they are, and note what you would change for your fit report.' : ''}${may.length ? ` If you like, you can also leave out ${and(may)}: either way is fine for the fit test.` : ''}`,
+    `Sewing in muslin (calico): for a toile, buy about the same length of muslin as the fabric above. Wash and dry it first, as it shrinks${unwashed ? ', even where the first step says not to wash the fabric above' : ''}, and press it with a hot, steamy iron. The steps are written for the fabric above${list ? `; in muslin, leave out ${list}` : ''}. Sew everything else the same way, so the fit is the fit of the real one, with a long machine stitch so the seams unpick easily if the fit needs changing.${alter ? ' For the fit test, where a step says to take it in or let it out, try it on but leave the seams as they are, and note what you would change for your fit report.' : ''}${may.length ? ` If you like, you can also leave out ${and(may)}: either way is fine for the fit test.` : ''}`,
   ];
 }

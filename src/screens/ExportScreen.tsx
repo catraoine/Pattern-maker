@@ -720,7 +720,7 @@ export function ExportScreen({ example, onMeasureMe, onEditMeasurements, unit = 
         <section className="card" aria-labelledby="toiletitle">
           {/* Under Sew it, "Before you cut your fabric" went (declutter, Nov 21); a corrected version still says which. */}
           {fittingNotes.length > 0 && fitting && <p className="eyebrow">Version {fitting.round + 1}</p>}
-          <h2 id="toiletitle">{knit ? 'Try it in a spare knit first' : fittingNotes.length ? 'Corrected after your toile' : 'Sew a test version first'}</h2>
+          <h2 id="toiletitle">{knit ? 'Try it in a spare knit first' : fittingNotes.length ? 'Corrected after your toile' : 'Sew a toile first'}</h2>
           {knit ? (
             <p className="muted">
               {garment === 'lingerie'
@@ -742,7 +742,7 @@ export function ExportScreen({ example, onMeasureMe, onEditMeasurements, unit = 
           <div className="row wrap">
             {!knit && (
               <button type="button" className="secondary" onClick={onFitting}>
-                {fittingNotes.length ? 'Fit another toile' : 'I’ve tried on my test version'}
+                {fittingNotes.length ? 'Fit another toile' : 'I’ve tried on my toile'}
               </button>
             )}
             {onTrueScale && made && can('toile') && (
