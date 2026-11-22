@@ -94,7 +94,7 @@ test('Clear every correction can be undone', async ({ page }) => {
   await goPrint(page);
   const all = await showAllTools(page);
   if (await all.count()) await all.click();
-  await main(page).getByRole('button', { name: 'I’ve tried on my test version' }).click();
+  await main(page).getByRole('button', { name: 'I’ve tried on my toile' }).click();
   await main(page).getByText('Pulls across the hips').click();
   await expect(main(page).getByRole('button', { name: /^Save as version 2$/ })).toBeEnabled();
   await main(page).getByRole('button', { name: 'Clear every correction' }).click();

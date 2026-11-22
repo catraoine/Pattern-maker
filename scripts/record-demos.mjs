@@ -14,7 +14,7 @@ const PAGE = `<html><head><meta name="viewport" content="width=device-width,init
 html,body{margin:0;background:#000000;overflow:hidden}
 #app{position:fixed;left:0;top:0;width:432px;height:672px;border:0;border-bottom:1px solid rgba(239,228,204,.3)}
 #cap{position:fixed;left:0;right:0;bottom:0;height:96px;box-sizing:border-box;padding:16px 20px;background:#000000;color:#efe4cc;font:500 16px/1.35 'Instrument Sans',sans-serif;transition:opacity .35s;opacity:0}
-#cap small{display:block;font:400 10px/1 'Chakra Petch',monospace;letter-spacing:.22em;text-transform:uppercase;opacity:.7;margin-bottom:6px}
+#cap small{display:none}
 #tap,#pen{position:fixed;z-index:9;border-radius:50%;pointer-events:none;opacity:0}
 #tap{width:44px;height:44px;margin:-22px 0 0 -22px;border:2px solid #efe4cc;background:rgba(239,228,204,.25)}
 #pen{width:18px;height:18px;margin:-9px 0 0 -9px;background:rgba(239,228,204,.55);transition:opacity .3s}
@@ -22,7 +22,6 @@ html,body{margin:0;background:#000000;overflow:hidden}
 #card .k{font:400 11px/1 'Chakra Petch',monospace;letter-spacing:.3em;text-transform:uppercase;opacity:.75}
 body.focus #app{height:768px;border:0;transform-origin:0 0;transition:opacity .35s}
 body.focus #cap{top:56px;bottom:auto;height:auto;background:none;text-align:center;padding:0 28px;z-index:8}
-body.focus #cap small{color:#c9b48a;opacity:1;margin-bottom:12px;font-size:12px}
 body.focus #cap span{font-size:22px;line-height:1.3}
 #top{display:none;position:fixed;left:0;right:0;top:0;height:200px;z-index:7;background:#000000}
 body.focus #top{display:block}
@@ -42,6 +41,8 @@ async function record(name, script, before) {
   const wait = (ms) => p.waitForTimeout(ms);
   const frames = [];
   const marks = [];
+  /** Stretches of black under a veil taken out of the clip, as [from, to] in seconds. */
+  const cuts = [];
   if (before) await before(ctx);
   // From the app's own address, so the iframe shares its storage (and the tester pass above).
   await p.goto(`${APP}/manifest.webmanifest`).catch(() => {});
@@ -51,7 +52,8 @@ async function record(name, script, before) {
   // The example skirt, before recording starts.
   await wait(1200);
   await main.getByRole('button', { name: 'Begin' }).click();
-  await main.getByRole('button', { name: 'Measure later' }).click();
+  // "Measure later" is now "Try it with an example body" (the same example measurements).
+  await main.getByRole('button', { name: 'Try it with an example body' }).click();
   await main.getByRole('heading', { level: 1, name: 'Style your skirt' }).waitFor();
   await wait(1500);
   // Set up before the clip starts (for a wait the clip shouldn't hold a card through).
@@ -97,7 +99,9 @@ async function record(name, script, before) {
   const cap = async (ch, t) => {
     if (shown) {
       const need = Math.max(5000, 2400 + shown.words * 300);
-      const left = need - (Date.now() - shown.at);
+      // Time cut from under a veil (see veil) doesn't count as reading time.
+      const cut = cuts.reduce((s, [a, b]) => s + Math.max(0, b - Math.max(a, shown.at / 1000)), 0) * 1000;
+      const left = need - (Date.now() - shown.at - cut);
       if (left > 0) await wait(left);
     }
     shown = t ? { at: Date.now(), words: t.split(/\s+/).length } : null;
@@ -254,8 +258,12 @@ async function record(name, script, before) {
   const veil = async (fn) => {
     await p.evaluate(() => (document.getElementById('app').style.opacity = 0));
     await wait(400);
+    const t0 = Date.now() / 1000;
     await fn();
     await wait(300);
+    // A long wait under the veil (All round sewing the garment again) is cut down to a short beat of black.
+    const t1 = Date.now() / 1000;
+    if (t1 - t0 > 1.6) cuts.push([t0 + 0.8, t1]);
     await p.evaluate(() => (document.getElementById('app').style.opacity = 1));
     await wait(500);
   };
@@ -295,7 +303,12 @@ async function record(name, script, before) {
   await script({ main, wait, card, cap, tap, draw, point, tapAt, show, ctx, f, p, fit, focus, veil, uncard, R, press, label, drag, M });
   await cdp.send('Page.stopScreencast');
   frames.sort((a, c) => a.t - c.t);
-  const endT = Date.now() / 1000;
+  // Every time on the clip's own clock, with the cut stretches taken out.
+  const less = (t) => t - cuts.reduce((s, [a, b]) => s + Math.max(0, Math.min(t, b) - a), 0);
+  const kept = frames.filter((fr) => !cuts.some(([a, b]) => fr.t > a && fr.t < b)).map((fr) => ({ ...fr, t: less(fr.t) }));
+  frames.length = 0;
+  frames.push(...kept);
+  const endT = less(Date.now() / 1000);
   let list = 'ffconcat version 1.0\n';
   frames.forEach((fr, i) => {
     const n = `frames/${String(i).padStart(5, '0')}.jpg`;
@@ -309,9 +322,8 @@ async function record(name, script, before) {
   execFileSync('ffmpeg', [...input, '-c:v', 'libx264', '-crf', '24', '-preset', 'medium', '-movflags', '+faststart', `../${name}.mp4`], { cwd: work, stdio: 'inherit' });
   execFileSync('ffmpeg', [...input, '-c:v', 'libvpx-vp9', '-crf', '38', '-b:v', '0', '-row-mt', '1', `../${name}.webm`], { cwd: work, stdio: 'inherit' });
   rmSync(work, { recursive: true, force: true });
-  const lead = started / 1000 - frames[0].t;
   console.log(`${name}: length ${(endT - frames[0].t).toFixed(1)}s`);
-  for (const m of marks) console.log(`  ${m.ch} from ${(m.at + lead).toFixed(1)}`);
+  for (const m of marks) console.log(`  ${m.ch} from ${(less(started / 1000 + m.at) - frames[0].t).toFixed(1)}`);
 }
 
 // The sketch on Style, larger than its box allows: the length marks and drag handles (cut off at that size) hidden.
@@ -324,46 +336,26 @@ const DEMOS = {
   // Every clip is in the Draw clip's look (A, Just the form; Cat said yes for all seven on 2026-11-05): the drawing,
   // the pattern or the tool's own picture, big, under one caption; what is picked shows in the line over it.
   style: async (h) => {
-    const { wait, card, cap, focus, veil, uncard, R, press, label, drag, f, p } = h;
+    const { wait, card, cap, focus, veil, uncard, R, press, drag, f } = h;
     const pick = async (c, ms = 1700) => {
       // The line over the caption keeps the chapter's name (Cat, 2026-11-09: skirt names popping up above the
       // narration were confusing); the drawing shows what was picked.
       await press(R('button', c), 0);
       await wait(ms);
     };
-    await card('', 'Styling, in thirty seconds', 1200, true);
+    await card('', 'Styling', 1200, true);
     await focus('svg.preview-svg', SKETCH);
     await uncard();
     await cap('Shape', 'Pick a shape. Your pattern redraws to fit you.');
     await wait(1200);
-    await pick('Half circle');
     await pick('Pencil');
     await pick('A-line');
     await cap('Length', 'Drag the hem up or down to set the length.');
     await f.locator('body').evaluate((b, L) => (b.ownerDocument.getElementById('demo-focus').textContent += ` ${L}:not(#_),${L}:not(#_) *{visibility:visible!important}`), LENGTH);
-    await wait(900);
-    const svg = f.locator('svg.preview-svg');
-    // Straight down, to the height of the (hidden) Midi mark.
-    const handle = svg.locator('circle.hit[aria-label="Skirt length"]');
-    // The named lengths are no longer drawn (the hem glides and catches on each): step the slider down to Midi to
-    // learn where it sits, step back up, then drag there for the camera.
-    // It steps 2 cm at a time now, so Midi can be a good way down: up to 40 steps.
-    const hb = await handle.boundingBox();
-    await handle.focus();
-    let steps = 0;
-    while ((await handle.getAttribute('aria-valuetext')) !== 'Midi' && steps < 40) { await p.keyboard.press('ArrowDown'); steps++; await wait(150); }
-    if ((await handle.getAttribute('aria-valuetext')) !== 'Midi') throw new Error('Style clip: no Midi length on the hem slider');
-    const mb = await handle.boundingBox();
-    for (let i = 0; i < steps; i++) { await p.keyboard.press('ArrowUp'); await wait(80); }
-    await wait(400);
-    await drag(handle, [0, mb.y + mb.height / 2 - (hb.y + hb.height / 2)], 1800);
-    await cap('Hem', 'Pick a hem shape. Here, high-low.');
-    await wait(1000);
-    await pick('High-low', 2000);
-    await cap('Details', 'Add details. Here, pleats and a tie sash.');
-    await wait(900);
-    await pick('Knife pleats');
-    await pick('Tie sash', 2000);
+    await wait(700);
+    // Straight down to Midi, found before the clip started (PREP), so no time goes on finding it.
+    const svgH = (await f.locator('svg.preview-svg').boundingBox()).height;
+    await drag(f.locator('svg.preview-svg circle.hit[aria-label="Skirt length"]'), [0, midiDrop * svgH], 1800);
     // No Undo part: the style screen's questions have no Undo now, only the draw and drag tools (Cat, Nov 14).
     await cap('Pattern', 'Tap Pattern to see the pieces you will cut.');
     await veil(async () => {
@@ -448,9 +440,31 @@ const READING = {
   extras: { volume: 'none', asymHem: 'none', pockets: false, elasticWaist: false },
   details: 'This 1970s-style floral maxi looks like a gored A-line with soft folds at the hem.',
 };
+// How far down the skirt's hem handle is dragged to reach Midi, found before the Style clip starts.
+let midiDrop = 0;
 const PREP = {
+  // The Front tab's Style clip is short (Cat, Nov 21: a demo for each tab): the hem slider is stepped down to Midi to
+  // learn where it sits, and back, before recording, instead of on camera.
+  style: async ({ f, main, wait }) => {
+    const handle = main.locator('svg.preview-svg circle.hit[aria-label="Skirt length"]');
+    const hb = await handle.boundingBox();
+    await handle.focus();
+    let steps = 0;
+    // It reads "Midi · 81.6 cm": the name, then the length.
+    const midi = async () => (await handle.getAttribute('aria-valuetext'))?.startsWith('Midi');
+    while (!(await midi()) && steps < 40) { await handle.press('ArrowDown'); steps++; await wait(150); }
+    if (!(await midi())) throw new Error('Style clip: no Midi length on the hem slider');
+    const mb = await handle.boundingBox();
+    // As a share of the drawing's height: the clip shows the drawing bigger.
+    midiDrop = (mb.y + mb.height / 2 - (hb.y + hb.height / 2)) / (await main.locator('svg.preview-svg').boundingBox()).height;
+    for (let i = 0; i < steps; i++) { await handle.press('ArrowUp'); await wait(40); }
+    await wait(1500);
+  },
   // All round sews the garment from its pattern a few seconds after it opens: done before the clip starts.
   allround: async ({ f, main, wait }) => {
+    // A half circle, so the cloth's feel shows in how the skirt falls.
+    await main.getByRole('button', { name: 'Half circle', includeHidden: true }).first().dispatchEvent('click');
+    await wait(1500);
     await main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round', exact: true }).click();
     await f.locator('canvas.all-round-canvas[data-sewn="ready"]').waitFor({ state: 'attached', timeout: 120000 });
     await wait(1500);
@@ -524,7 +538,7 @@ Object.assign(DEMOS, {
   },
   fabric: async (h) => {
     const { wait, card, cap, focus, veil, uncard, R, press, label, f } = h;
-    await card('', 'Fabric and the lay plan', 1200, true);
+    await card('', 'Fabric and the cutting layout', 1200, true);
     await press(R('tab', 'Fabric'), 700);
     // A first fabric under the card, so its palette card stands beside the drawing from the start.
     await press(R('radio', 'Cotton'), 1200);
@@ -546,7 +560,7 @@ Object.assign(DEMOS, {
     await press(f.locator('.printtile').filter({ hasText: 'Checks' }).first(), 0);
     await label('Checks, stripes');
     await wait(2000);
-    await cap('Lay plan', 'On Print, the lay plan shows where each piece goes on your fabric.');
+    await cap('Cutting layout', 'On Print, the cutting layout shows where each piece goes on your fabric.');
     await veil(async () => {
       // Quick, as the screen is dark meanwhile.
       await toPrint(h, false, true);
@@ -557,7 +571,7 @@ Object.assign(DEMOS, {
       label(await f.locator('svg.layplan').evaluate((el) => (el.getAttribute('aria-label') ?? '').replace(/^Cutting layout on /, '').replace(/ fabric, /, ' · ').replace(/ metres?.*$/, ' m')));
     await metres();
     await wait(2600);
-    await cap('Width', 'Set your fabric’s width. The plan moves the pieces to fit.');
+    await cap('Width', 'Set your fabric’s width. The layout moves the pieces to fit.');
     await wait(900);
     for (const w of ['150 cm wide', '115 cm wide']) {
       await pickFrom(h, 'Fabric width', w, 300);
@@ -686,7 +700,8 @@ Object.assign(DEMOS, {
     const { wait, card, cap, focus, veil, uncard, R, press, label, tapAt, f } = h;
     await card('', 'After your toile', 1200, true);
     await toPrint(h, true);
-    await press(R('button', 'I’ve tried on a toile'), 1200);
+    // Either name: the button is going back to toile (Cat, Nov 21: "I like toile").
+    await press(R('button', /^I’ve tried on (a|my) (toile|test version)$/), 1200);
     // Pulls across the hips: the first issue of the first group (by place, as React rewrites its class on a tick).
     const ISSUE = 'main fieldset.group:first-of-type > .issue:first-of-type';
     // Top-aligned at a fixed size, so the How much control can open below without the row moving.
@@ -795,34 +810,66 @@ Object.assign(DEMOS, {
     await cap('', '');
     await card('', 'Find the cloth. Buy just what you need.', 2200, true);
   },
-  // All round and the fit map (Cat, 2026-11-07: a demo once the fit map is in): the garment sewn from its pattern,
-  // turning on the form, then the fit map's colours and the pattern's ease at the waist and hip.
+  // The All round tab's own demo (Cat, Nov 21: each tab's Demo shows that tab's tools): turning the garment, the fit
+  // map, the cloth's feel and Look closer, each as the tab has them.
   allround: async (h) => {
-    const { wait, card, cap, focus, veil, uncard, R, press, label } = h;
-    const ROUND = { w: 392, h: 500, top: 210 };
-    await card('', 'All round and the fit map', 1200, true);
-    await focus(['canvas.all-round-canvas'], ROUND);
+    const { wait, card, cap, focus, veil, uncard, R, press, drag, f } = h;
+    const ROUND = { w: 392, h: 470, top: 210 };
+    const canvas = f.locator('canvas.all-round-canvas');
+    // By the window's own buttons: the style steps have a Fabric too.
+    const tool = (n) => f.locator('.all-round-tools button').filter({ hasText: new RegExp(`^${n}$`) }).first();
+    // A change sews the garment again, which is slow in the recording browser: done under the veil, so the clip
+    // shows no black gap while it settles.
+    const settled = async () => {
+      await f.locator('canvas.all-round-canvas[data-sewn="ready"]').waitFor({ state: 'attached', timeout: 120000 });
+      await wait(1200);
+    };
+    await card('', 'All round', 1200, true);
+    // Under a veil, so the slow first frame of the turning garment is cut from the time the card stands.
+    await veil(() => focus(['canvas.all-round-canvas'], ROUND));
     await uncard();
-    await cap('All round', 'Your garment, sewn from your pattern, on your form. It turns so you see every side.');
-    await wait(5200);
-    await cap('Fit map', 'Tap Fit map to see the room it leaves you. Blue is roomy, red is close.');
-    await label('Fit map');
+    await cap('Turn', 'Drag to turn it, and see every side.');
+    await wait(900);
+    // Few steps: each turn redraws the sewn garment, slow in the recording browser.
+    await drag(canvas, [320, 0], 2600, 4);
+    await cap('Fit map', 'Tap Fit map to see the room your pattern leaves around you.');
     await veil(async () => {
-      await press(R('button', 'Fit map'), 1200);
+      await press(tool('Fit map'), 1200);
+      await settled();
       await focus(['canvas.all-round-canvas', '.all-round-key'], ROUND);
+      await wait(1500);
     });
-    await wait(4200);
-    await cap('Ease', 'The ease at the waist and hip, in cm, straight from your pattern.');
-    await wait(4400);
-    await cap('Fabric', 'Tap Fabric to see the cloth again.');
-    await label('Fabric');
+    await wait(3000);
+    // The garment alone, big: the Feel buttons are too small to read in the frame, so the caption names them.
+    await cap('Feel', 'Tap Feel to make the cloth softer or stiffer, lighter or heavier. Here, softer, then stiffer.');
+    // Two looks, each settled under the veil: softer, then stiffer (two taps, from softer).
     await veil(async () => {
-      await press(R('button', 'Fabric'), 1200);
+      await press(tool('Fabric'), 600);
+      if (!(await f.locator('.all-round-feel.open').count())) await press(tool('Feel'), 600);
+      await press(R('button', 'Softer'), 600);
+      await settled();
       await focus(['canvas.all-round-canvas'], ROUND);
+      await wait(1500);
     });
-    await wait(2600);
+    await wait(3600);
+    await veil(async () => {
+      await press(R('button', 'Stiffer'), 400);
+      await press(R('button', 'Stiffer'), 600);
+      await settled();
+      await focus(['canvas.all-round-canvas'], ROUND);
+      await wait(1500);
+    });
+    await wait(3600);
+    await cap('Closer', 'Tap Look closer to zoom in on it.');
+    await veil(async () => {
+      await press(tool('Look closer'), 1200);
+      await settled();
+      await focus(['canvas.all-round-canvas'], ROUND);
+      await wait(2500);
+    });
+    await wait(3200);
     await cap('', '');
-    await card('', 'See it fit before you cut.', 2200, true);
+    await card('', 'See it all round before you cut.', 2200, true);
   },
 
 });
@@ -840,16 +887,17 @@ const KINDS = {
   bodice: {
     // Starts from Regular, so picking Relaxed widens it only a little and the drawing keeps its frame (from the
     // look's Fitted the drawing jumped bigger). The hem goes up: dragged down past the hip, the peplum top became a
-    // plain hip-length top on screen. Fewer steps on the drag: the peplum redraws slowly at each one, so the full
+    // plain hip-length top on screen. Down a little now (Nov 21): the look starts at its shortest peplum, so up no longer moves it. Fewer steps on the drag: the peplum redraws slowly at each one, so the full
     // drag took near twenty seconds.
-    look: 'Ice Peplum Top', fit: 'Relaxed', from: 'Regular', length: 'Bodice length below the waist', drop: -15, steps: 4, front: 'Peplum front', back: 'Bodice centre back',
+    look: 'Ice Peplum Top', fit: 'Relaxed', from: 'Regular', length: 'Bodice length below the waist', drop: 36, steps: 4, front: 'Peplum front', back: 'Bodice centre back',
     spread: [[0.5, 0.1], [0.5, 0.5], [0.5, 0.92]], fuller: 'The peplum gets fuller.',
     // Framed smaller: the peplum front opens wide and high once spread.
     zoom: { w: 190, h: 290, top: 300 },
     cut: [[0.04, 0.3], [0.5, 0.31], [0.96, 0.32]], cutSays: 'Or draw across a piece and cut it off as a new piece. Here, a back yoke.',
   },
   trousers: {
-    look: 'Chocolate Barrel Trouser', fit: 'Regular', length: 'Trouser length', drop: -60, front: 'Trousers front', back: 'Trousers back',
+    // Now sold in The Lilac Lace Set, so its own button is Make the trouser.
+    look: 'Chocolate Barrel Trouser', make: 'Make the trouser', fit: 'Regular', length: 'Trouser length', drop: -60, front: 'Trousers front', back: 'Trousers back',
     spread: [[0.5, 0.6], [0.5, 0.78], [0.5, 0.97]], fuller: 'The leg gets wider at the hem.',
     cut: [[0.1, 0.12], [0.5, 0.13], [0.9, 0.14]], cutSays: 'Or draw across the hip and cut it off as a new piece. Here, a yoke.',
   },
@@ -860,7 +908,7 @@ for (const [kind, k] of Object.entries(KINDS)) {
     await main.getByRole('group', { name: 'Garment' }).locator('.drop-button').click();
     await main.getByRole('menuitemradio', { name: /collection/ }).click();
     await wait(1500);
-    await main.getByRole('listitem').filter({ has: f.getByRole('heading', { name: k.look, exact: true }) }).getByRole('button', { name: 'Make this look' }).click();
+    await main.getByRole('listitem').filter({ has: f.getByRole('heading', { name: k.look, exact: true }) }).getByRole('button', { name: k.make ?? 'Make this look' }).click();
     // A look opens on itself, ready to print (Nov 14); Change a detail goes on to the style screen the clips show.
     await main.getByRole('button', { name: 'Change a detail' }).click();
     await main.getByRole('heading', { level: 1, name: new RegExp(k.look, 'i') }).waitFor({ timeout: 20000 });
@@ -876,11 +924,9 @@ for (const [kind, k] of Object.entries(KINDS)) {
   DEMOS[`style-${kind}`] = async (h) => {
     const { wait, card, cap, focus, veil, uncard, R, press, drag, f } = h;
     const handle = `.preview-svg .handle:has([aria-label="${k.length}"])`;
-    await card('', 'Styling, in thirty seconds', 1200, true);
+    await card('', 'Styling', 1200, true);
     await focus('svg.preview-svg', SKETCH);
     await uncard();
-    await cap('Shape', 'Your garment, drafted to your body. Change any part of it.');
-    await wait(1500);
     await cap('Fit', `Pick how close it fits. Here, ${k.fit.toLowerCase()}. The pattern redraws to fit you.`);
     await wait(1000);
     await press(R('button', new RegExp(`^${k.fit}`)), 0);

@@ -389,6 +389,9 @@ export interface OuterChoices {
 }
 
 export const DEFAULT_JACKET_CHOICES: OuterChoices = { garment: 'jacket', fit: 'regular', length: 'hip', shaping: 'darts', front: 'single', collar: 'notched', pockets: 'patch', sleeve: 'tailored', flare: 'straight', pads: 'soft', vent: 'centre', trim: 'none' };
+/** The menswear form's jacket starts Long, over the seat, as a man's tailored jacket does: at Hip it came out shorter than
+ *  the menswear shirt under it (the CLO menswear drape, Nov 22; Cat's pick). Only where nothing is chosen yet. */
+export const MENSWEAR_JACKET_CHOICES: OuterChoices = { ...DEFAULT_JACKET_CHOICES, length: 'long' };
 export const DEFAULT_COAT_CHOICES: OuterChoices = { garment: 'coat', fit: 'regular', length: 'knee', shaping: 'princess', front: 'single', collar: 'notched', pockets: 'welt', sleeve: 'tailored', flare: 'straight', pads: 'soft', vent: 'centre', trim: 'none' };
 
 type OuterGroupId = 'fit' | 'length' | 'shaping' | 'front' | 'collar' | 'lapel' | 'sleeve' | 'pads' | 'pockets' | 'chest' | 'vent' | 'trim' | 'flare';

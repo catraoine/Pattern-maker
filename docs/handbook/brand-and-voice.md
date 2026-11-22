@@ -23,7 +23,7 @@
 - Measurement wording is about the tape, never the body (no BMI or weight-judging words).
 - Every caption, bio and post is checked against the "Meet the sewist" research and the AI stance
   word list (both linked from the business plan).
-- App wording (copy review, Nov 14): plain and specific, no filler, no reassurance lines, no app internals. One name per thing: Top (not Bodice) for the garment, "style detail" for a Style question, "Save this pattern" and "Saved patterns", "cutting layout", "a test version (a toile, or muslin)". No colour names.
+- App wording (copy review, Nov 14): plain and specific, no filler, no reassurance lines, no app internals. One name per thing: Top (not Bodice) for the garment, "style detail" for a Style question, "Save this pattern" and "Saved patterns", "cutting layout", "toile" (Cat, Nov 21: "I like toile"; it was "a test version" from Nov 14). No colour names.
 - Never promote on r/sewing or r/femalefashionadvice (they ban it).
 
 ## Naming (Oct 29)
@@ -56,10 +56,10 @@
   (Nov 4, B Taller Type); "Your trousers" wraps to two lines on a phone rather than shrinking.
 - Buttons in Chakra Petch use only the loaded weights, 400 and 500; a heavier weight is a bold the phone
   fakes and reads squished (Nov 4). The Style Next button is 16px, weight 500, spaced 0.1em.
-- The three steps in the header stay **Measure, Style, Print**. Every screen says where you've landed and
+- The four steps in the header are **Measure, Style, Print, Sew** (Sew added Nov 21, Cat's pick; before it was three). Every screen says where you've landed and
   holds the sewist's hand (Cat, Nov 3: big capitals for a whole choice are "overwhelming and jarring"). Print
-  opens on a modest "Your summary" heading, one line on what the page is for, then the garment's name in
-  reading type.
+  reads in three parts, each a modest heading under a small "Part" line: Print it, Cut it, Sew it (Nov 21,
+  replacing "Your summary" and its guiding line).
 - Logo: R1 wordmark (MAISON / TRACÉ stacked, MT favicon); loading screen L1 slim-dart piece (Oct 21).
 - **Brand palette for marketing** (Oct 25): Champagne #c9b48a, Oxblood #5a1f24, Python Aqua (the
   app's one-way python print), Ink #1d2a3a, Chalk #e9e4da, labels on ivory #f3dfb7, oxblood ground #120805 (black before Nov 6).

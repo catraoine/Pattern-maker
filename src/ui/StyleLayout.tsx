@@ -5,6 +5,7 @@ import type { Garment } from '../measurements';
 import { canGoBack, goBack, usePageHistory } from '../nav';
 import type { Flat } from '../engine/flat';
 import { DemoButton } from './DemoButton';
+import { ShownView } from './PreviewSwitch';
 import { EnlargeSketch, useEnlarged } from './EnlargeSketch';
 import { Envelope } from './Envelope';
 import { GarmentFabric } from './FabricFill';
@@ -514,7 +515,9 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
     if (lookNext) lookReview();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only on opening
   }, []);
-  const [intro, setIntro] = useState(() => !introSeen());
+  // Not when Print's Change fabric opened Style: that's one quick change, so Fabric opens straight away, without an intro
+  // about fits and necklines in between (DY pretend-tester walk, Nov 21). It still shows on the next ordinary visit.
+  const [intro, setIntro] = useState(() => !fromPrint && !introSeen());
   const [tabs, setTabs] = useState<string[]>([]);
   const root = useRef<HTMLDivElement>(null);
   // The first time Style opens in a visit, its picture window lights up from black to chalk (Cat, Nov 11), easing the
@@ -757,6 +760,11 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   const at = steps.indexOf(active ?? '');
   // The drawing's corner for its tools, made inside the drawing's area.
   const [corner, setCorner] = useState<HTMLElement | null>(null);
+  // The Demo plays the clip for the view the drawing shows (Cat, Nov 21: "specific to the tools on the style window
+  // the user is on"): Front, the styling clip; All round, its own; Pattern, drawing a line on the pattern. Flat is
+  // only a drawing to look at, so it has none.
+  const [shown, setShown] = useState<string>();
+  const demo = shown === 'pattern' ? 'patterns' : shown === 'round' ? 'allround' : shown === 'flat' ? undefined : 'style';
   // Each step's picks, for the list of steps on a phone (Cat's P3, 2026-11-06, in place of "Your picks"): its first
   // two questions' picks, such as "Regular · At the waist".
   const [stepPicks, setStepPicks] = useState<Record<string, string>>({});
@@ -945,6 +953,11 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
         }}
       />
     );
+  // The length hint shows once, where the length is asked: the Length & hem step, or the first step for a garment that
+  // has none (trousers, T-shirt); on a phone only on that step's first question. Over every question it repeated the
+  // dot's own label (Cat's E, declutter, Nov 21).
+  const hintStep = steps.includes(LENGTH) ? LENGTH : steps[0];
+  const hintHere = active === hintStep && (wide || qAt < 0 || qs[qAt - 1]?.tab !== hintStep);
   // The step after this one: the bar's Next goes there, and says only "Next" (Cat, 2026-11-06).
   const next = steps[at + 1];
   // Back a step names the step it goes to, to the left of the way on (Cat's B, 2026-11-02, after a plain arrow from
@@ -998,7 +1011,9 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           <ActiveTab.Provider value={active}>
             <Sections.Provider value={sections}>
               <Corner.Provider value={corner}>
-                <TypeLength.Provider value={setAsking}>{preview}</TypeLength.Provider>
+                <ShownView.Provider value={setShown}>
+                  <TypeLength.Provider value={setAsking}>{preview}</TypeLength.Provider>
+                </ShownView.Provider>
               </Corner.Provider>
             </Sections.Provider>
           </ActiveTab.Provider>
@@ -1039,22 +1054,11 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           {/* A garment matched to a photo says so above its first question, with a way to try another; the way in
               is "Start from a photo" in the name's drop-down (Cat, Nov 12). */}
           {active === steps[0] && (wide || qAt <= 0) && (matched ?? (photo && <PhotoEntry onPhoto={onPhoto} photo={photo} />))}
-          {!asking && lengthOn && <p className="length-hint">Drag the dot, or tap the length to type it.</p>}
+          {!asking && lengthOn && hintHere && <p className="length-hint">Drag the dot, or tap the length to type it.</p>}
           {jump && !wide && <button type="button" className="style-steps-veil" aria-label="Close the list of steps" onClick={() => setJump(false)} />}
           <div className="chapter" ref={chapter}>
-            {/* Watch demo sits across from the step on a computer (Cat's D3, 2026-10-29). On a phone the step bars are
-                gone and Watch demo is a link at the end of the step (Cat's P1, 2026-10-31): "Step 1 of 5" opens the
-                list of steps instead, to jump to one. */}
-            <div className="chapter-top">
-              {wide ? (
-                at >= 0 && (
-                  <p className="chapter-step">
-                    Step <b>{at + 1}</b> of {steps.length}
-                  </p>
-                )
-              ) : null}
-              {wide && <DemoButton demo="style" />}
-            </div>
+            {/* No "Step 1 of 5" on a computer: the bars under the step's name say the same and are tapped to jump (Cat's E,
+                declutter, Nov 21). Demo is in the drawing's corner on every screen, as on a phone. */}
             {wide ? (
               <h2 className="chapter-name">{active}</h2>
             ) : (
@@ -1154,9 +1158,9 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
                 <ModeLink mode={mode} onMode={onMode} />
               </TabPanel>
             ) : (
-              // Once, on the last tab, so it isn't repeated under every choice.
-              // On a computer under every step; on a phone it is on the Review page (Cat, 2026-10-31).
-              wide && <ModeLink mode={mode} onMode={onMode} />
+              // Once, on the last tab, so it isn't repeated under every choice. On a phone it is on the Review page (Cat, 2026-10-31).
+              // On a computer once, under the last step, as on a phone (declutter, Cat's E, Nov 21): it stood under all five.
+              wide && at === steps.length - 1 && <ModeLink mode={mode} onMode={onMode} />
             )}
             </Sections.Provider>
           </ActiveTab.Provider>
@@ -1184,18 +1188,24 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
               holds one button, and Watch demo. */}
           {/* On a phone the list of questions holds every pick, so Review comes after the last question, and Watch
               demo stands with the drawing's tools, under Enlarge and Draw (Cat's B combo and K, 2026-11-08). */}
-          {!wide && corner && createPortal(<DemoButton demo="style" />, corner)}
+          {/* On a computer too since the declutter (Cat's E, Nov 21): one Demo, in the window's corner, on every screen. */}
+          {corner && demo && createPortal(<DemoButton demo={demo} />, corner)}
         </div>
         {wide ? (
+          // The side holds Print, then the rest folded under one line (declutter, Cat's E, Nov 21): the finished
+          // measurements stood open under every step, so the page ran on well past the drawing.
           <div className="style-side">
-            <p className="eyebrow">{name}</p>
-            {finished}
             {onPrint && (
               <button type="button" className="primary review-print" disabled={!ready} onClick={toPrint}>
                 Print my pattern
               </button>
             )}
-            {folded}
+            <p className="eyebrow">{name}</p>
+            <details className="review-fold">
+              <summary>Finished measurements, pieces and fabric</summary>
+              {finished}
+              {summary}
+            </details>
             {onEditMeasurements && (
               <p className="review-edits side-edits">
                 <button type="button" className="later" onClick={onEditMeasurements}>

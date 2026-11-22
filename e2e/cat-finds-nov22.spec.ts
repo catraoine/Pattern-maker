@@ -14,6 +14,8 @@ test('a Feel step keeps the sewn skirt on screen while it sews again, and its st
   await main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round', exact: true }).click();
   const cv = main.locator('canvas.all-round-canvas');
   await expect(cv).toHaveAttribute('data-sewn', 'ready', { timeout: 90_000 });
+  // The Feel steps sit behind the Feel button on every screen since the declutter (Cat's E, Nov 21).
+  await main.locator('button.all-round-feel-toggle').click();
   const feel = main.getByRole('group', { name: 'How the cloth feels' });
   await expect(feel.getByRole('group', { name: 'Stiffness' }).getByRole('button')).toHaveText(['Softer', 'Stiffer']);
   await expect(feel.getByRole('group', { name: 'Weight' }).getByRole('button')).toHaveText(['Lighter', 'Heavier']);
@@ -66,6 +68,9 @@ test('a line drawn on the pattern brings its question into view, clear of the Ne
 
 test('the open list of steps holds the page still, and a tap above it closes it', async ({ page }, info) => {
   test.skip(info.project.name !== 'phone', 'the list of steps opens over the drawing on a phone only');
+  // A shorter phone, so the page is taller than the screen: since the declutter the first step fits a 390 x 844 screen
+  // exactly, and a page that fits has nothing to scroll after the list closes.
+  await page.setViewportSize({ width: 390, height: 560 });
   await startWithExample(page);
   const main = page.getByRole('main');
   await main.locator('button.q-head').click();

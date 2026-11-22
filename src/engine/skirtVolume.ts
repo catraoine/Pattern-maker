@@ -1319,6 +1319,10 @@ export function volumeSteps(steps: SewStep[], draft: SkirtDraft, sw: VolumeSewin
         text: `Before you lift the pattern, mark every pleat: snip the notches at the top and bottom of each solid fold line and each dashed placement line, then chalk or thread-trace the lines on the right side, with the stitching lines above the hip. There are ${pl.count} pleats round the ${thing}.`,
       },
     ]);
+    // The panel seams join the front and back to the side panels, so their edges are neatened with the rest: the step
+    // named only the side and centre back edges, and the front panel's were left raw (DZ pretend-tester walk, Nov 21;
+    // Cat: "Fix it now").
+    if (pl.split) append('Neaten the edges', 'Neaten the panel seam edges as well, on the front, the back and each side panel.');
     if (pl.split)
       insert(['Sew the side seams', 'Join the bodice to the skirt'], [
         {

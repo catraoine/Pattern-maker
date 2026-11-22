@@ -9,7 +9,7 @@ type Line = readonly [text: string, skill?: Skill];
 export const SKILL_WORDS: Record<Skill, string> = { easy: 'Easy', skill: 'More skill' };
 
 const FIT: Record<string, Line> = {
-  fitted: ['Close to the body, with just enough room to move. Fit matters more, so make a test version first.', 'skill'],
+  fitted: ['Close to the body, with just enough room to move. Fit matters more, so make a toile first.', 'skill'],
   regular: ['The everyday fit: room to sit, reach and breathe without looking loose.', 'easy'],
   relaxed: ['Loose and easy to wear, and the most forgiving to fit.', 'easy'],
 };

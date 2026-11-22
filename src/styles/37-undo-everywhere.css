@@ -42,7 +42,8 @@ section.live-big .pattern-pane > .point-editor > .point-svg {
 }
 
 /* Move points open: one Watch demo, its own, beside the how-to line under the pieces; the style's Watch demo in the
-   corner is put away until Done, so there aren't two (Cat, Nov 12, "add"). */
+   corner is put away until Done, so there aren't two (Cat, Nov 12, "add"). Since the declutter
+   the computer's Demo sits in the corner too, so this one rule covers both (Nov 21). */
 .preview:has(.point-editor) .preview-corner > .demo-play {
   display: none;
 }
