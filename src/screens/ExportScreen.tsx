@@ -831,6 +831,7 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
             title={title}
             keep={code ?? title}
             inCm={inCm}
+            muslin={tester ? guide.fabric?.find((l) => l.startsWith('Sewing in muslin')) : undefined}
             onClose={() => setSewing(false)}
           />
         </Suspense>

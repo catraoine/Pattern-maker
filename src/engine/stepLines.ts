@@ -7,3 +7,7 @@ export const stepLines = (text: string): string[] =>
     .trim()
     .split(/(?<=[.!?]["’”)]?)\s+(?=[A-Z0-9"‘“(])/)
     .filter((s) => s.length > 0);
+
+/** A line that says how things are rather than what to do ("The facing is left soft.", "Do not wash it.") has nothing
+ *  to tick off, so it reads as a note (EA walk, Nov 21). */
+export const isNote = (line: string) => /^(The|This|These|That|It|It's|Its|They|There|Your|Do not|Don't|Never|Note)\b/.test(line);
