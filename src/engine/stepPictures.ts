@@ -25,7 +25,11 @@ const EDGES: [RegExp, string[]][] = [
   // A sleeve's crown is tagged with the armhole it is sewn into.
   [/\bset (in )?the sleeves?\b|\bsleeves? in\b|\bsew in the (raglan )?sleeves\b|\braglan seams\b/, ['armhole']],
   [/\bsleeve seams?\b|\boverarm seams?\b/, ['sleeve-front', 'sleeve-back']],
-  [/\bside seams?\b|\bthe sides\b|\bthe side (and|edges)\b|\bside panels?\b/, ['side']],
+  // A pleated skirt's side panels join along their panel seams, on the front and back as well as the side panels.
+  [/\bpanel seams?\b|\bside panels?\b/, ['panel']],
+  // A seam across the chest joins the yoke to the body below it.
+  [/\bchest seams?\b|\byoke seams?\b/, ['yoke']],
+  [/\bside seams?\b|\bthe sides\b|\bthe side (and|edges)\b/, ['side']],
   [/\bshoulders?\b/, ['shoulder']],
   [/\bhem\b|\bhems\b/, ['hem']],
   [/\bcentre back\b|\bcentre front\b|\bzip\b|\bvent\b/, ['centre']],
@@ -36,8 +40,11 @@ const EDGES: [RegExp, string[]][] = [
   [/\bcrotch\b/, ['crotch']],
 ];
 
-/** Pieces a step can name, matched against the piece's own name or kind. */
-const NAMED: [RegExp, RegExp][] = [
+/** Pieces a step can name, matched against the piece's own name or kind. A third `true` matches by name only and
+ *  leaves out the pocket's own pieces: a welt is cut as a facing and a pocket bag as lining, but "the facings" and
+ *  "the lining" of a sewing step mean the garment's. */
+const NAMED: [RegExp, RegExp, boolean?][] = [
+  [/\bwelts?\b/, /^welt\b/i],
   [/\bwaistband\b|\bband\b/, /waistband|\bband\b/i],
   [/\bneckband\b/, /neckband|mock neck/i],
   [/\bcollar\b/, /collar/i],
@@ -47,8 +54,8 @@ const NAMED: [RegExp, RegExp][] = [
   [/\bruffle\b/, /ruffle/i],
   [/\bflounce\b/, /flounce/i],
   [/\bsleeves?\b/, /sleeve/i],
-  [/\blining\b/, /lining/i],
-  [/\bfacings?\b/, /facing/i],
+  [/\blining\b/, /lining/i, true],
+  [/\bfacings?\b/, /facing/i, true],
   [/\bbelt loops?\b/, /loop/i],
   [/\bhood\b/, /hood/i],
   [/\btiers?\b/, /tier/i],
@@ -71,10 +78,14 @@ export function stepPicture(step: SewStep, pieces: Piece[]): StepPicture {
   const all = `${title} ${step.text.toLowerCase()}`;
   if (/prepare your fabric|pre-?wash/.test(title)) return { kind: 'prep' };
   if (/print and check|test square/.test(title)) return { kind: 'print' };
-  const named = (words: string) =>
-    NAMED.filter(([w]) => w.test(words)).flatMap(([, name]) => pieces.map((pc, i) => (name.test(pc.name) || (pc.kind && name.test(pc.kind)) ? i : -1)).filter((i) => i >= 0));
+  const pocketPart = (pc: Piece) => /pocket|welt/i.test(pc.name);
+  // Cutting the lining does cut the pocket bags from it, so the cut picture keeps them.
+  const named = (words: string, cutting = false) =>
+    NAMED.filter(([w]) => w.test(words)).flatMap(([, name, own]) =>
+      pieces.map((pc, i) => (own && !cutting ? name.test(pc.name) && !pocketPart(pc) : name.test(pc.name) || (pc.kind && name.test(pc.kind))) ? i : -1).filter((i) => i >= 0),
+    );
   if (/^cut\b/.test(title)) {
-    const these = named(title);
+    const these = named(title, true);
     // "Cut out": the garment's own pieces; "Cut the lining" or "Cut the waistband": just those.
     const cut = these.length ? these : pieces.map((pc, i) => (isGarment(pc) ? i : -1)).filter((i) => i >= 0);
     return { kind: 'cut', names: [...new Set(cut.map((i) => pieces[i].name))] };
@@ -97,10 +108,12 @@ export function stepPicture(step: SewStep, pieces: Piece[]): StepPicture {
   // A step that only says "sew" or "neaten" in its title names its edges in its words. Others (press the creases)
   // don't stitch anything, so their words aren't searched for seams.
   if (!edges.length && !these.length && /^(sew|neaten|stitch|join|bind|stay|close|zigzag|overlock)\b/.test(title)) edges = edgesIn(all);
-  const carrying = pieces.map((pc, i) => (isGarment(pc) && edges.some((t) => tagsOf(pc).has(t)) ? i : -1)).filter((i) => i >= 0);
+  // A step that sews onto the facings or the lining ("the upper collar to the facings") leaves the garment itself out.
+  const inside = these.some((i) => pieces[i].kind === 'facing' || pieces[i].kind === 'lining');
+  const carrying = inside ? [] : pieces.map((pc, i) => (isGarment(pc) && edges.some((t) => tagsOf(pc).has(t)) ? i : -1)).filter((i) => i >= 0);
   const shown = [...new Set([...these, ...carrying])];
   // A small piece the step makes (a pocket, a loop, a tie) is sewn all the way round.
-  const around = edges.length ? [] : these.filter((i) => /pocket|loop|tie|sash|strap|flap|cuff|tab/i.test(pieces[i].name));
+  const around = edges.length ? [] : these.filter((i) => /pocket|welt|loop|tie|sash|strap|flap|cuff|tab/i.test(pieces[i].name));
   if (shown.length) return { kind: 'sew', pieces: shown, edges, darts: false, ...(around.length ? { around } : {}) };
   if (step.diagram) return { kind: 'diagram', id: step.diagram };
   return { kind: 'flat' };

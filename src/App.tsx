@@ -39,6 +39,7 @@ withPeople,
 } from './account';
 import { validDetails, PatternChoices, outerWord, unusedFor } from './garments';
 import type { Printable } from './screens/ExportScreen';
+import { openSewingNext } from './ui/sewPlace';
 import { describePattern } from './screens/describe';
 import { WelcomeScreen } from './screens/WelcomeScreen';
 import { CODE_MESSAGE, checkCode, hasAccess, rememberAccess, testerFromLink, withoutTester } from './access';
@@ -1478,7 +1479,10 @@ export default function App() {
           {step === 'export' && hasGarment(account, garment) && (
             <ExportScreen
               example={!!person.example?.length}
-              onSew={() => setStep('sew')}
+              onSew={() => {
+                openSewingNext();
+                setStep('sew');
+              }}
               onMeasureMe={measureMe}
               onEditMeasurements={() => setStep('measure')}
               unit={saved.unit}
@@ -1521,7 +1525,7 @@ export default function App() {
           )}
           {step === 'sew' && !hasGarment(account, garment) && <UnlockGarment garment={garment} onPlans={openPlans} onBack={() => setStep('style')} />}
           {step === 'sew' && hasGarment(account, garment) && (
-            <SewScreen made={printable} title={title} keep={`${person.id}:${garment}`} onPrint={() => setStep('export')} onStyle={() => setStep('style')} />
+            <SewScreen made={printable} title={title} keep={`${person.id}:${garment}`} onPrint={() => setStep('export')} onStyle={() => setStep('style')} tester={!!account.testerCode} />
           )}
           {step === 'check' && (
             <CheckFileScreen

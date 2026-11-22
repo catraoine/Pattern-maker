@@ -1,22 +1,64 @@
-// The step you were on in Sewing mode, kept per pattern in this browser, so the Sew tab and Sewing mode both open where
-// you left off, even after a day away from the machine.
+// Where you are in Sewing mode, kept per pattern in this browser, so the Sew tab and Sewing mode both open where you left
+// off, even after a day away from the machine: the step you were on, the lines you've ticked (Cat's A Tick list, Nov 21)
+// and whether you've sewn it all.
 
 const KEY = 'maison-trace-sewing';
 
-export const readAt = (keep: string, n: number) => {
+interface Place {
+  at: number;
+  /** Ticked lines, by step. */
+  ticks?: Record<number, number[]>;
+  /** Done pressed on the last step. */
+  done?: boolean;
+}
+
+const readAll = (): Record<string, Place> => {
   try {
-    const at = (JSON.parse(localStorage.getItem(KEY) ?? '{}') as Record<string, number>)[keep];
-    return typeof at === 'number' && at >= 0 && at < n ? at : 0;
+    return JSON.parse(localStorage.getItem(KEY) ?? '{}') as Record<string, Place>;
   } catch {
-    return 0;
+    return {};
   }
 };
 
-export const saveAt = (keep: string, at: number) => {
+const read = (keep: string): Place => {
+  const p = readAll()[keep];
+  return p && typeof p === 'object' && typeof p.at === 'number' ? p : { at: 0 };
+};
+
+const write = (keep: string, change: Partial<Place>) => {
   try {
-    const all = JSON.parse(localStorage.getItem(KEY) ?? '{}') as Record<string, number>;
-    localStorage.setItem(KEY, JSON.stringify({ ...all, [keep]: at }));
+    const all = readAll();
+    localStorage.setItem(KEY, JSON.stringify({ ...all, [keep]: { ...read(keep), ...change } }));
   } catch {
     // Private browsing: the place just isn't kept.
   }
+};
+
+export const readAt = (keep: string, n: number) => {
+  const { at } = read(keep);
+  return at >= 0 && at < n ? at : 0;
+};
+
+/** Moving to a step: a finished garment you go back into isn't finished any more. */
+export const saveAt = (keep: string, at: number) => write(keep, { at, done: false });
+
+export const readTicks = (keep: string): Record<number, number[]> => read(keep).ticks ?? {};
+export const saveTicks = (keep: string, ticks: Record<number, number[]>) => write(keep, { ticks });
+
+export const readDone = (keep: string) => !!read(keep).done;
+export const saveDone = (keep: string) => write(keep, { done: true });
+
+/** Sewing it again: back to the first step with nothing ticked. */
+export const startAgain = (keep: string) => write(keep, { at: 0, ticks: {}, done: false });
+
+/** Print's Start sewing goes straight into Sewing mode on the Sew tab, not to a second Start sewing button (DZ
+ *  pretend-tester walk, Nov 21). One-time, like Print's way back from Fabric. */
+let openNext = false;
+export const openSewingNext = () => {
+  openNext = true;
+};
+export const takeOpenSewing = () => {
+  const open = openNext;
+  openNext = false;
+  return open;
 };

@@ -5,7 +5,8 @@ import type { Lay } from '../engine/layplan';
 import type { SewStep } from '../engine/instructions';
 import { stepPicture } from '../engine/stepPictures';
 import { SewPicture } from './SewPicture';
-import { readAt, saveAt } from './sewPlace';
+import { readAt, readTicks, saveAt, saveDone, saveTicks } from './sewPlace';
+import { stepLines } from '../engine/stepLines';
 
 // Sewing mode (Cat's C, Nov 21): the steps one at a time, each with a drawing of the garment's own pieces where the
 // edges being sewn draw themselves in, so it reads at arm's length beside the machine. The words are the steps' own.
@@ -31,6 +32,19 @@ export function SewingMode({ steps, pieces, lays, flat, title, keep, inCm, from,
     saveAt(keep, from);
     return from;
   });
+  // The lines ticked off so far, by step (Cat's A Tick list, Nov 21): each one fades back once done, so after looking
+  // down at the machine your eye lands on the next.
+  const [ticks, setTicks] = useState(() => readTicks(keep));
+  const tick = (line: number) => {
+    const these = ticks[at] ?? [];
+    const next = { ...ticks, [at]: these.includes(line) ? these.filter((l) => l !== line) : [...these, line] };
+    setTicks(next);
+    saveTicks(keep, next);
+  };
+  const finish = () => {
+    saveDone(keep);
+    onClose();
+  };
   const go = (n: number) => {
     const to = Math.max(0, Math.min(steps.length - 1, n));
     setAt(to);
@@ -114,13 +128,26 @@ export function SewingMode({ steps, pieces, lays, flat, title, keep, inCm, from,
             <span className="sew-num">{at + 1}</span>
             <span className="sew-title-words">{step.title}</span>
           </h2>
-          <p>{inCm(step.text)}</p>
+          {/* One action per line, split at each full stop: the step's own words, nothing reworded (Cat's A, Nov 21). */}
+          <ul className="sew-lines" aria-label="Tick each one as you do it">
+            {stepLines(inCm(step.text)).map((line, i) => {
+              const on = (ticks[at] ?? []).includes(i);
+              return (
+                <li key={`${at}-${i}`} className={on ? 'done' : undefined}>
+                  <label>
+                    <input type="checkbox" checked={on} onChange={() => tick(i)} />
+                    <span>{line}</span>
+                  </label>
+                </li>
+              );
+            })}
+          </ul>
           <div className="sewmode-go">
             <button type="button" className="ghost" disabled={at === 0} onClick={() => go(at - 1)}>
               <span aria-hidden="true">‹</span> Back
             </button>
             {last ? (
-              <button type="button" className="primary" onClick={onClose}>
+              <button type="button" className="primary" onClick={finish}>
                 Done
               </button>
             ) : (

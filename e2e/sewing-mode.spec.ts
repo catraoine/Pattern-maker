@@ -14,8 +14,7 @@ for (const g of ['Skirt', 'Trousers', 'Bodice', 'Dress', 'Tee', 'Jacket'] as Gar
     await list.locator('> summary').click();
     const titles = await list.locator('.sewsteps strong').allTextContents();
     expect(titles.length).toBeGreaterThan(3);
-    await main.getByRole('button', { name: /^Start sewing/ }).click();
-    await expect(main.getByRole('heading', { level: 1, name: 'Sew it' })).toBeVisible();
+    // Print's Start sewing goes straight into Sewing mode, on the Sew tab.
     await main.getByRole('button', { name: /^Start sewing/ }).click();
     const mode = page.getByRole('dialog', { name: /^Sewing your / });
     await expect(mode).toBeVisible();
@@ -33,6 +32,8 @@ for (const g of ['Skirt', 'Trousers', 'Bodice', 'Dress', 'Tee', 'Jacket'] as Gar
     }
     await mode.getByRole('button', { name: 'Done' }).click();
     await expect(mode).toHaveCount(0);
+    // Sewn to the end: a finished state, not "You stopped at the last step".
+    await expect(main.getByText(/^You've sewn all \d+ steps\./)).toBeVisible();
   });
 }
 
@@ -42,10 +43,14 @@ test('the sew tab keeps your place', async ({ page }) => {
   await goPrint(page);
   const main = page.getByRole('main');
   await main.getByRole('button', { name: /^Start sewing/ }).click();
-  await expect(main.getByRole('heading', { level: 1, name: 'Sew it' })).toBeVisible();
-  await expect(page.getByRole('navigation', { name: 'Steps' }).getByRole('button', { name: 'Sew' })).toHaveAttribute('aria-current', 'step');
-  await main.getByRole('button', { name: /^Start sewing/ }).click();
   const mode = page.getByRole('dialog', { name: /^Sewing your / });
+  await expect(mode).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Steps' }).getByRole('button', { name: 'Sew' })).toHaveAttribute('aria-current', 'step');
+  // Each line of a step ticks off, and stays ticked when you come back to it.
+  const lines = mode.getByRole('list', { name: 'Tick each one as you do it' }).getByRole('checkbox');
+  expect(await lines.count()).toBeGreaterThan(1);
+  await lines.first().check();
+  await expect(lines.first()).toBeChecked();
   await mode.getByRole('button', { name: /^Next step/ }).click();
   await mode.getByRole('button', { name: /^Next step/ }).click();
   await expect(mode.locator('.eyebrow').first()).toHaveText(/^Step 3 of /);
@@ -56,6 +61,9 @@ test('the sew tab keeps your place', async ({ page }) => {
   await expect(mode.locator('.eyebrow').first()).toHaveText(/^Step 3 of /);
   await mode.getByRole('button', { name: /^Back/ }).click();
   await expect(mode.locator('.eyebrow').first()).toHaveText(/^Step 2 of /);
+  await mode.getByRole('button', { name: /^Back/ }).click();
+  await expect(lines.first()).toBeChecked();
+  await expect(main.getByRole('heading', { level: 1, name: 'Sew it' })).toBeAttached();
   await mode.getByRole('button', { name: /^Close/ }).click();
   // A step picked from its picture opens there.
   await main.getByRole('list').filter({ has: page.locator('.sew-index-pic') }).getByRole('button').nth(4).click();

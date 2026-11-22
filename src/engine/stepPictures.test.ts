@@ -55,4 +55,24 @@ describe('the picture for each sewing step', () => {
     const lapel = piece('Jacket front', ['neck', 'side', 'hem', 'centre'], { lines: [new Path(p(2, 2)).line(p(10, 30))] });
     expect(stepPicture({ title: 'Sew the darts', text: '' }, [front, lapel])).toEqual({ kind: 'sew', pieces: [0], edges: [], darts: true });
   });
+  it("keeps a pocket's own pieces out of the facings and lining, and draws the welt with its pocket", () => {
+    const yoke = piece('Vest front yoke', ['neck', 'shoulder', 'armhole', 'yoke']);
+    const collar = piece('Collar', ['neck', 'collar', 'fold', 'gorge'], { kind: 'collar' });
+    const facing = piece('Front facing', ['neck', 'opening', 'hem', 'shoulder'], { kind: 'facing' });
+    const welt = piece('Welt', ['welt', 'welt-end', 'welt', 'welt-end'], { kind: 'facing' });
+    const pf = piece('Pocket facing', ['pocket', 'pocket-end', 'pocket', 'pocket-end'], { kind: 'facing' });
+    const bag = piece('Pocket bag', ['bag', 'bag', 'bag', 'bag-top'], { kind: 'lining' });
+    const lining = piece('Front lining', ['armhole', 'side', 'hem', 'lining'], { kind: 'lining' });
+    const vest = [yoke, collar, facing, welt, pf, bag, lining];
+    const at = (title: string) => stepPicture({ title, text: '' }, vest);
+    expect(at('Sew the upper collar to the facings')).toEqual({ kind: 'sew', pieces: [1, 2], edges: ['neck'], darts: false });
+    expect(at('Make the welt pockets')).toMatchObject({ pieces: [3, 4, 5], around: [3, 4, 5] });
+    expect(at('Bag the lining')).toMatchObject({ pieces: [6] });
+    expect(stepPicture({ title: 'Cut the lining', text: '' }, vest)).toEqual({ kind: 'cut', names: ['Pocket bag', 'Front lining'] });
+  });
+  it('joins side panels along their panel seams, front and back too', () => {
+    const fr = piece('Skirt front', ['waist', 'panel', 'hem', 'fold']);
+    const sf = piece('Skirt side front', ['waist', 'side', 'hem', 'panel']);
+    expect(stepPicture({ title: 'Join the side panels', text: '' }, [fr, sf])).toEqual({ kind: 'sew', pieces: [0, 1], edges: ['panel'], darts: false });
+  });
 });

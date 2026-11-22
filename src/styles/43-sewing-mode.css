@@ -546,3 +546,89 @@ details.sew:not([open]) > .sew-summary > .sew-list-head::after {
   text-transform: uppercase;
   letter-spacing: 0.01em;
 }
+
+/* One action per line, each with a square to tick (Cat's A Tick list, Nov 21): champagne like Print's tick boxes, and
+   a ticked line fades back so the eye lands on the next one. */
+.sew-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 62ch;
+}
+
+.sew-lines label {
+  /* The reading font, not the app's spaced capitals for form labels. */
+  font-family: var(--sans);
+  font-weight: var(--w-body);
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--ink);
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 12px;
+  align-items: start;
+  font-size: 17px;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.sew-lines input[type='checkbox'] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  margin: 3px 0 0;
+  border: 1.5px solid var(--gild);
+  border-radius: 0;
+  background: transparent;
+  display: grid;
+  place-content: center;
+  cursor: pointer;
+}
+
+.sew-lines input[type='checkbox']::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  background: var(--gild);
+  transform: scale(0);
+  transition: transform 0.12s ease-out;
+}
+
+.sew-lines input[type='checkbox']:checked::before {
+  transform: scale(1);
+}
+
+.sew-lines input[type='checkbox']:focus-visible {
+  outline: 2px solid var(--gild);
+  outline-offset: 2px;
+}
+
+.sew-lines li.done span {
+  opacity: 0.45;
+  transition: opacity 0.2s;
+}
+
+/* On a phone, Back and Next stay at the foot of the screen however long the step (DZ pretend-tester walk, Nov 21:
+   on long steps they were off screen until you scrolled). */
+@media (max-width: 899px) {
+  .sewmode .sewmode-go {
+    position: sticky;
+    bottom: calc(-1 * max(18px, env(safe-area-inset-bottom)));
+    margin-inline: calc(-1 * max(18px, env(safe-area-inset-left)));
+    padding: 12px max(18px, env(safe-area-inset-left)) max(18px, env(safe-area-inset-bottom));
+    background: var(--paper);
+    border-top: 1px solid #2b2720;
+    z-index: 1;
+  }
+}
+
+/* Sewn to the end: a finished state on the Sew tab instead of "You stopped at the last step". */
+.sew-finished {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
