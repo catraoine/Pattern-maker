@@ -5,6 +5,8 @@ name: All round sweep
 # fail and the choices they share, so each fix covers every design with that part. It doesn't block anything; the
 # locked designs and the option check in drapeSweep.test.ts do that on every PR. The All round quality department's
 # nightly read takes the summary from the "Summary" step's log and tells Cat only when something got worse.
+# The menswear form has its own job beside it: 100 random designs on random men, on the man's body (Nov 22), so it never
+# slows or changes the womenswear sweep.
 on:
   schedule:
     - cron: '0 9 * * *'
@@ -52,3 +54,30 @@ jobs:
             drape-sweep.md
             drape-options.md
             drape-options.json
+
+  menswear:
+    name: Sew and score random designs on the menswear form
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx vitest run src/drapeSweep.test.ts -t "sweep on the menswear form"
+        env:
+          DRAPE_MENSWEAR: '100'
+          DRAPE_MENSWEAR_REPORT: drape-menswear.md
+      - name: Report
+        if: ${{ !cancelled() }}
+        run: cat drape-menswear.md >> "$GITHUB_STEP_SUMMARY" || true
+      - name: Menswear summary (report only)
+        if: ${{ !cancelled() }}
+        run: head -12 drape-menswear.md || true
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: drape-menswear
+          path: drape-menswear.md

@@ -86,6 +86,31 @@ export const sweep = (n: number) => (FULL_SWEEP ? n : Math.max(3, Math.ceil(n / 
 export const batches = (n: number, size: number): [number, number, string][] =>
   n <= size ? [[1, n, '']] : Array.from({ length: Math.ceil(n / size) }, (_, i): [number, number, string] => [i * size + 1, Math.min(n, (i + 1) * size), ` (bodies ${i * size + 1} to ${Math.min(n, (i + 1) * size)})`]);
 
+/** A man to try the menswear form on, as the example body is for the womenswear one (the man the menswear body in
+ *  All round was built to: scripts/body-table/build_table.py): what he would measure, with
+ *  the rest (the shoulder length, across the front, the armhole) estimated as the app does (estimate.ts). The nightly
+ *  menswear Front drawing and screen checks open the app as him. */
+export const EXAMPLE_MAN: MeasurementValues = {
+  height: 178,
+  waist: 86,
+  full_hip: 100,
+  waist_to_hip: 21,
+  waist_to_knee: 60,
+  waist_to_floor: 108,
+  crotch_depth: 27,
+  crotch_length: 72,
+  full_bust: 100,
+  neck: 40,
+  shoulder_width: 44,
+  across_back: 38,
+  nape_to_waist: 46,
+  underbust: 92,
+  torso_loop: 166,
+  arm_length: 64,
+  upper_arm: 31,
+  wrist: 17,
+};
+
 /** A random man's measurements for the menswear form, linked roughly the way bodies are (cm): the menswear checks
  *  and the nightly menswear pass. */
 export function randomMan(r: () => number): MeasurementValues {

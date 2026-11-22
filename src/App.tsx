@@ -4,6 +4,7 @@ import { canGoBack, goBack, pushFresh, useViewHistory } from './nav';
 import { DraftError, SkirtMeasurements } from './engine/skirt';
 import { BodiceDraft } from './engine/bodice';
 import { withAllowances } from './engine/allowances';
+import { pickBody } from './engine/body';
 import { Fitting, carriedFitting, describeCarried, describeFitting, saveVersion, alterationSheet } from './engine/fitting';
 import { layPlans } from './engine/layplan';
 import { FabricStyle, clothFor } from './engine/fabrics';
@@ -155,6 +156,9 @@ export default function App() {
   const measuredKey = JSON.stringify(measured);
   // The dress form their patterns are drafted on: the menswear form drafts with no bust shaping.
   const form = formOf(person);
+  // Every 3D view draws their form's body (body.ts): on the menswear form, a man's. Picked as the app draws, before
+  // any view below reads it.
+  pickBody(form);
   // Keyed on the numbers, as the account (and so the person) is rebuilt on every render.
   // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the numbers (measuredKey), not the rebuilt object
   const values = useMemo(() => withEstimates(measured, form), [measuredKey, form]);

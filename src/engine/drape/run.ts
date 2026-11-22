@@ -34,8 +34,10 @@ import { layLapelFoot } from './lapelFoot';
 import { fairStraps } from './strapFair';
 import { fairCowl } from './cowlFair';
 import { fairTorsoHem } from './hemFair';
+import { pickBody } from '../body';
+import type { FormKind } from '../../measurements';
 
-export type DrapeJob = { m: RoundMeasurements; armhole: RoundGarment['armhole']; fibre?: Fibre; crisp?: boolean; /** How the cloth behaves (clothCard.ts); without it, the card of the fibre and crisp fields. */ card?: ClothCard; /** A side tie knotted at the left side seam at the waist (belt.ts). */ sideTie?: SideTieSpec } & (
+export type DrapeJob = { m: RoundMeasurements; armhole: RoundGarment['armhole']; fibre?: Fibre; crisp?: boolean; /** How the cloth behaves (clothCard.ts); without it, the card of the fibre and crisp fields. */ card?: ClothCard; /** A side tie knotted at the left side seam at the waist (belt.ts). */ sideTie?: SideTieSpec; /** The form it is sewn on: the menswear form has a man's body (body.ts). Missing means womenswear. */ form?: FormKind } & (
   | { kind: 'skirt'; draft: SkirtDraft }
   | { kind: 'dress'; draft: DressDraft; sleeve?: SleeveDraft }
   | { kind: 'bodice'; draft: BodiceDraft; sleeve?: SleeveDraft }
@@ -107,6 +109,8 @@ export function rehydrate<T>(v: T): T {
  *  cut) where the second passed (the bug hunt, Nov 12). Whichever passes is drawn; a design that fails both shows its
  *  Front drawing as before. No hold suited every design: each moved some passes to fails. */
 export function runDrape(job: DrapeJob): DrapedLite {
+  // Every job picks its body, so a menswear job never leaves the man's body under the next one.
+  pickBody(job.form);
   const first = sewDrape(job);
   if (first.quality?.ok !== false || knob('__noSecondTry')) return first;
   // (A cape is shown as its drawing whatever the sewing: no second try can pass it, see sewDrape.)
