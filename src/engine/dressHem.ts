@@ -1,21 +1,25 @@
 // The foot of a one-piece dress: the side seam on from the hip to the hem, and the hem across to the centre.
 // (Fit audit, Nov 21: the hems of the Blush Shift and the Ivory Bias Slip dipped between the centre and the side seam.)
-import { P, Path, add, mul, p, sub, unit } from './geometry';
+import { P, Path, add, len, lerp, mul, p, sub, unit } from './geometry';
 
 /** A dress's side seam on from the hip to the hem. The hip curve arrives straight down, so a seam running straight out
  *  to a flared hem turned a corner at the hip, a kick that shows on the body (SS27 Blush Shift, Nov 12: "to a 10"): it
  *  leaves the hip straight down and bends into the hem's line instead, ending on that same line, so the hem still meets
  *  it square and the hem is as wide as before. */
-export function hipToHem(path: Path, hip: P, hem: P, tag: string): Path {
+export function hipToHem(path: Path, hip: P, hem: P, tag: string, straight = 0, from?: P): Path {
   if (Math.abs(hem.x - hip.x) <= 0.3) return path.line(hem, tag);
-  return path.curve(p(hip.x, hip.y + (hem.y - hip.y) * 0.3), add(hip, mul(sub(hem, hip), 0.55)), hem, tag);
+  const down = p(hip.x, hip.y + (hem.y - hip.y) * 0.3);
+  // (A shift cut as an A-line, aLineSide.ts: its seam arrives at the hip on a straight line from `from`, not straight
+  // down, so it leaves the hip along that line, `straight` of the way, and is one line with it where the two agree.)
+  const on = straight > 0 && from ? lerp(down, add(hip, mul(unit(sub(hip, from)), len(sub(hem, hip)) * 0.3)), straight) : down;
+  return path.curve(on, add(hip, mul(sub(hem, hip), 0.55)), hem, tag);
 }
 
 /** How long the seam from the hip to the hem is, straight or bent as hipToHem bends it. */
-function seamLength(hip: P, hem: P, straight: boolean): number {
+function seamLength(hip: P, hem: P, straight: boolean, aLine: number, from?: P): number {
   const path = new Path(hip);
   if (straight) path.line(hem, 'side');
-  else hipToHem(path, hip, hem, 'side');
+  else hipToHem(path, hip, hem, 'side', aLine, from);
   return path.length();
 }
 
@@ -26,7 +30,7 @@ function seamLength(hip: P, hem: P, straight: boolean): number {
  * hip to the hem, the way a flared seam is trued by hand; the hem stays as wide. A straight or tapered seam is left
  * where it is.
  */
-export function levelSideHem(hip: P, hem: P, straight: boolean): P {
+export function levelSideHem(hip: P, hem: P, straight: boolean, aLine = 0, from?: P): P {
   const drop = hem.y - hip.y;
   if (hem.x - hip.x <= 0.3 || drop <= 0) return hem;
   // The seam only gets shorter as its foot rises, so halve the range until it measures the drop. It can't rise past
@@ -35,7 +39,7 @@ export function levelSideHem(hip: P, hem: P, straight: boolean): P {
   let hi = drop * 0.25;
   for (let i = 0; i < 30; i++) {
     const mid = (lo + hi) / 2;
-    if (seamLength(hip, p(hem.x, hem.y - mid), straight) > drop) lo = mid;
+    if (seamLength(hip, p(hem.x, hem.y - mid), straight, aLine, from) > drop) lo = mid;
     else hi = mid;
   }
   return p(hem.x, hem.y - (lo + hi) / 2);

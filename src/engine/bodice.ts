@@ -10,6 +10,7 @@ import { wrapFront, wrapStyle, wrapTies } from './wrap';
 import { P, Path, add, len, lerp, mul, p, sub, taggedLength, unit } from './geometry';
 import { finishDart } from './darts';
 import { hipToHem, levelSideHem, squareHem } from './dressHem';
+import { aLineFlare, aLineShare, straighter } from './aLineSide';
 import { Piece, withAlternate } from './piece';
 import { DraftError, Side, cm } from './skirt';
 import type { DartPlace, PrincessLine } from './manipulate';
@@ -833,13 +834,15 @@ const THROUGH_ZIPS = [...ZIPS, 65, 70, 75];
 const zipFor = (opening: number) => [...ZIPS].reverse().find((z) => z <= opening) ?? ZIPS[0];
 
 /** Side seam below the waist: out from the waist and straight down at the hem, like a skirt's hip curve. */
-function hipCurve(path: Path, from: P, to: P, tag: string, leaving?: P): Path {
+function hipCurve(path: Path, from: P, to: P, tag: string, leaving?: P, straight = 0): Path {
   const dy = to.y - from.y;
   // Coming in toward a narrower hip, it leaves the waist the way the seam above arrives, so it doesn't turn a corner.
   const first = leaving && to.x < from.x ? add(from, mul(leaving, dy * 0.3 / Math.max(leaving.y, 0.3))) : p(from.x + (to.x - from.x) * 0.5, from.y + dy * 0.3);
-  return path.curve(first, p(to.x, to.y - dy * 0.4), to, tag);
+  // (`straight`: the share of the way to one straight line, for a shift cut as an A-line; see aLineSide.ts.)
+  const [c1, c2] = straighter(from, first, p(to.x, to.y - dy * 0.4), to, straight);
+  return path.curve(c1, c2, to, tag);
 }
-const hipCurveLength = (from: P, to: P, leaving?: P) => hipCurve(new Path(from), from, to, '', leaving).length();
+const hipCurveLength = (from: P, to: P, leaving?: P, straight = 0) => hipCurve(new Path(from), from, to, '', leaving, straight).length();
 
 /** A waist dart carried on below the waist (a fish-eye dart), for tops longer than the waist. */
 const fishEye = (top: P, left: P, right: P, bottom: P) => new Path(top).line(left).line(bottom).line(right).line(top);
@@ -1009,11 +1012,18 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   // Without waist darts the side seams take their share and the rest is left as ease.
   const low = Math.min(suppB, suppF);
   const easySide = low > 0 ? Math.min(2.5, 0.4 * low) : low;
-  // A shift hangs straight from the bust: no waist shaping at all.
-  const sideSupp = shiftDress ? 0 : waistDarts ? Math.max(easySide, suppF - FRONT_DART_MAX, suppB - BACK_DART_MAX) : easySide;
+  // A shift hangs straight from the bust: no waist shaping at all. But where the hip is much bigger than the bust its
+  // side seam is one straight line from the underarm to the hip (aLineSide.ts), so the waist is let out to lie on it.
+  const aLineOut = (hemFull / 2 - backW - frontW) / 2;
+  const aLine = shiftDress && s.dressHem && !s.dressHem.straightSide ? aLineShare(aLineOut) : 0;
+  const underarmToWaist = wb - (scye - dropShoulder);
+  // (The bust's extra width is all on the front, so the back's seam has further to go out to the hip than the front's:
+  // the waist is let out a little more on the back and less on the front, by `aLineBack`, so each lies on its own line.)
+  const aLineBack = (aLine * (frontW - backW - 1) * underarmToWaist) / (2 * (underarmToWaist + drop));
+  const sideSupp = shiftDress ? (-aLine * aLineOut * underarmToWaist) / (underarmToWaist + drop) : waistDarts ? Math.max(easySide, suppF - FRONT_DART_MAX, suppB - BACK_DART_MAX) : easySide;
   const dartB = waistDarts ? Math.max(0, suppB - sideSupp) : shiftDress && s.shiftBack === 'shaped' ? Math.max(0, Math.min(SHIFT_BACK.dart, backW + frontW - (W + SHIFT_BACK.room) / 2)) : 0;
   const dartF = waistDarts ? Math.max(0, suppF - sideSupp) : 0;
-  const swB0 = p(backW - sideSupp, wb);
+  const swB0 = p(backW - sideSupp + aLineBack, wb);
   // A hem below the waist is never cut narrower than the bodice at the waist, so it doesn't pull in.
   if (below) hemFull = Math.max(hemFull, 2 * (backW + frontW - 2 * sideSupp - dartB - dartF));
   // A boxy or oversized hem is no narrower than the bust: it hangs straight down, or eases out over a fuller hip.
@@ -1139,7 +1149,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   }
   const { bustX, underF: sideF, underB: sideB0, swB } = sideAt(forward);
   // The front's side waist, moved forward with the seam.
-  const waistXF = frontW - sideSupp - forward;
+  const waistXF = frontW - sideSupp - aLineBack - forward;
 
   // Straight sides (a house cut, the SS27 vest): the hem's width is shared out as the waist's is, each side seam going
   // straight down, rather than evenly front and back; split evenly, a big bust's wider front bowed in below the waist
@@ -1191,7 +1201,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   } else {
     hipB = p(straightSides || evenSides ? swB.x + straightOut : hemFull / 4 - 0.5 + forward, wb + drop);
     hemB = hipB;
-    hipCurve(back, swB, hipB, 'side');
+    hipCurve(back, swB, hipB, 'side', undefined, aLine);
     if (dartB > 0.3) {
       const depth = Math.max(2, Math.min(12, shallowest - 3));
       backLines.push(fishEye(p(dartXB, scye - dropShoulder + 2.5), p(dartXB - dartB / 2, wb), p(dartXB + dartB / 2, wb), p(dartXB, wb + depth)));
@@ -1201,9 +1211,10 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
       backHem = wb + Math.max(drop + 2, s.dressHem.belowWaist);
       // The foot of a flared seam is raised a little, so the seam is no longer than the drop at the centre and the
       // hem hangs level (dressHem.ts).
-      hemB = levelSideHem(hipB, p(hipB.x + (s.dressHem.shape === 'shift' && s.dressHem.flare !== undefined ? s.dressHem.flare : DRESS_HEM_TAPER[s.dressHem.shape]), backHem), !!s.dressHem.straightSide);
+      const flare = s.dressHem.shape === 'shift' && s.dressHem.flare !== undefined ? s.dressHem.flare : DRESS_HEM_TAPER[s.dressHem.shape];
+      hemB = levelSideHem(hipB, p(hipB.x + aLineFlare(flare, swB, hipB, backHem, aLine), backHem), !!s.dressHem.straightSide, aLine, swB);
       if (s.dressHem.straightSide) back.line(hemB, 'side');
-      else hipToHem(back, hipB, hemB, 'side');
+      else hipToHem(back, hipB, hemB, 'side', aLine, swB);
       // Square off the tapered (or flared) side seam, then level to the centre back.
       back.curve(squareHem(hipB, hemB, backHem), p(hemB.x * 0.35, backHem), p(0, backHem), 'hem');
     } else back.line(p(0, hemB.y), 'hem');
@@ -1254,7 +1265,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
       {
         n: '7',
         at: swB,
-        note: `Side waist: a quarter of the waist with ease less 0.5 cm is ${cm(backWq)}; the side seam comes in ${cm(sideSupp)}${dartB > 0.3 ? ` and the dart takes ${cm(dartB)}` : ''}${forward > 0.05 ? `, then out ${cm(forward)} with the side seam moved forward` : ''}.`,
+        note: `Side waist: a quarter of the waist with ease less 0.5 cm is ${cm(backWq)}; the side seam ${sideSupp - aLineBack < 0 ? `goes out ${cm(-(sideSupp - aLineBack))} toward the hip` : `comes in ${cm(sideSupp - aLineBack)}`}${dartB > 0.3 ? ` and the dart takes ${cm(dartB)}` : ''}${forward > 0.05 ? `, then out ${cm(forward)} with the side seam moved forward` : ''}.`,
       },
       ...(dartB > 0.3 ? [{ n: 'D', at: dartTipB, note: `Waist dart: ${cm(dartB)} wide, ending 2.5 cm below the underarm line.` }] : []),
     ],
@@ -1384,20 +1395,20 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     } else waistRun(front, waistY, 0);
   } else {
     // Drop the front side seam below the waist by whatever makes it the back's length.
-    const target = hipCurveLength(swB, hipB);
+    const target = hipCurveLength(swB, hipB, undefined, aLine);
     const hx = straightSides || evenSides ? waistXF + straightOut : hemFull / 4 + 0.5 - forward;
     let lo = 0;
     let hi = target;
     for (let i = 0; i < 40; i++) {
       const mid = (lo + hi) / 2;
-      if (hipCurveLength(swF, p(hx, swF.y + mid), sideIn) < target) lo = mid;
+      if (hipCurveLength(swF, p(hx, swF.y + mid), sideIn, aLine) < target) lo = mid;
       else hi = mid;
     }
     const dy = (lo + hi) / 2;
     hipF = p(hx, swF.y + dy);
     // Below the waist a big bust dart's fish-eye takes the waist in, so the hem's side can sit inside the waist's: the
     // seam ran on in toward it from a corner at the waist, which the Ice Peplum's tester printed as a step (Nov 12).
-    hipCurve(front, swF, hipF, 'side', sideIn);
+    hipCurve(front, swF, hipF, 'side', sideIn, aLine);
     if (dartF > 0.3) {
       const depth = Math.max(2, Math.min(12, shallowest - 3));
       frontLines.push(
@@ -1409,7 +1420,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     if (s.dressHem) {
       hemF = p(hipF.x + (hemB.x - hipB.x), hipF.y + (hemB.y - hipB.y));
       if (s.dressHem.straightSide) front.line(hemF, 'side');
-      else hipToHem(front, hipF, hemF, 'side');
+      else hipToHem(front, hipF, hemF, 'side', aLine, swF);
     }
     // The hem runs parallel to the waist, so the front keeps the length the bust needs.
     // (Measured from the hem's own level, not from a flared seam's raised foot.)
@@ -1449,7 +1460,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
       {
         n: '8',
         at: swF,
-        note: `Side waist: a quarter of the waist with ease plus 0.5 cm is ${cm(frontWq)}; the side seam comes in ${cm(sideSupp)}${forward > 0.05 ? `, and ${cm(forward)} more with the side seam moved forward,` : ''} and is made the back's length.`,
+        note: `Side waist: a quarter of the waist with ease plus 0.5 cm is ${cm(frontWq)}; the side seam ${sideSupp + aLineBack < 0 ? `goes out ${cm(-(sideSupp + aLineBack))} toward the hip` : `comes in ${cm(sideSupp + aLineBack)}`}${forward > 0.05 ? `, and ${cm(forward)} more with the side seam moved forward,` : ''} and is made the back's length.`,
       },
       ...(bustDart > 0.3 ? [{ n: 'B', at: bustTip, note: `Bust dart: ${cm(sideDart)}, the extra length the front needs over the bust, pointing at the bust point and ending 2.5 cm short of it.${swung ? ` The bust needs ${cm(bustDart)}, too wide for one dart to sew smooth: the piece below it swings up about the bust point and the rest opens in the waist dart.` : ''}` }] : []),
       ...(dartF > 0.3 ? [{ n: 'D', at: p(apex.x, apex.y + 2.5), note: `Waist dart: ${cm(waistDartF)} wide, under the bust point and ending 2.5 cm below it${swung ? `, ${cm(waistDartF - dartF)} of it bust shaping from the side dart` : ''}.` }] : []),
