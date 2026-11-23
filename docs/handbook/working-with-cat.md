@@ -16,27 +16,33 @@ phone, in short bursts, often by voice dictation. Everything here is a standing 
   Measure), the device and size, and "NOW" on today's version. Add a one-line "what changes" caption
   per option, and use the same codes in the message and the decision card. Show every step Cat would
   need to judge it (how you get to the next step, not just the hero screen).
-- **Card taps are often accidental.** Echo a decision-card pick in one line before building; a
-  typed message always beats a tap.
+- **Only garments that pass go on option sheets** (Nov 1, merged Nov 20). Leave anything not usable
+  or "nearly" off the sheet, and say in one plain line which ones were left out and why.
+- **Card taps can be accidental** (Oct 16, narrowed Nov 20). Echo a decision-card pick in one line
+  and start; Cat stops it if it was a slip. A typed message always beats a tap. Steps that can't be
+  undone still wait for her typed word.
 - **Heads-up before a likely mistake.** If she asks for something that looks wrong, especially
   removing something important, say what it does and what the change costs, then wait.
-- **Better way first** (Oct 28). On a second fix to the same thing, or any build over about a day,
-  open with whether a smarter approach exists, and give approaches with Claude's time for each.
+- **Better way first** (Oct 28 and Nov 16, merged Nov 20). On a second fix to the same thing, or the
+  same failure a second time, stop and fix the cause or name the smarter approach and recommend it.
+  For any build over about a day, give approaches first, with Claude's time for each.
+- **No unasked extras** (Nov 7, narrowed Nov 20). Never add an app feature or control Cat didn't ask
+  for; mention it in one line instead.
 - **Estimates:** give Claude's own time. Label any hired-developer estimate separately.
 
 ## The words
 
 - **"apply"** = build it and open a green PR. Nothing goes into the app before "apply".
 - **"bye"** = "apply" (dictation mishears it; she never says bye to Claude).
-- **"ship"** = merge every green PR in the repo as one release (not only the asking thread's).
-  "Ship" must be written in the working thread; one sent only in the project chat should be
-  confirmed there.
+- **"ship"** = Cat writes it only in the current Releases thread; Releases then ships every ready,
+  green change together (Nov 17). Fixes that land close together go out with one ship.
 - **"send me the draft"** = show it in the thread. Only email someone when Cat says to send it to them.
 
 ## Films, stills and visuals
 
-- **Stills before clips.** Show still frames of any visual change before recording or cutting a
-  film. Small late tweaks can skip this if Claude checks the frames itself.
+- **Stills before clips** (Oct 24, narrowed Nov 20). For films and demo clips recorded from the app,
+  show still frames of any visual change before recording or cutting. Small late tweaks can skip this
+  if Claude checks the frames itself. Not a standing rule for camera-shoot edits.
 - **Send each file the moment it's ready**, phone version first; never hold one back to bundle.
 - **Film layout** (Oct 29): captions at one height on every screen, pictures balanced, a smooth
   journey. Check a contact sheet before sending.
@@ -47,23 +53,20 @@ phone, in short bursts, often by voice dictation. Everything here is a standing 
 - Paste-ready text goes in its own copy box, one per field, labelled above.
 - Dates in drafts Cat sends: her style, "Nov 8", "from Nov 16 to Dec 6" (no "th", weekday only if needed).
 - Never sign Cat as "Founder". Sign "Cat Buckley, Maison Tracé".
-- **Links in emails (Nov 2, raised by Cat since Oct 22, every thread).** Claude's Gmail connector
-  turns every link it writes into a long `google.com/url?q=...` link. This happens in plain text,
-  HTML and bare `forms.gle/...` text alike, in drafts and direct sends. So Claude never sends an
-  email that has a link in it. It makes a draft, says so, and gives the clean link in a copy box
-  for Cat to paste over the long one before she sends. Before saying a draft's link is clean, read
-  the draft back. The 45 tester outreach emails of Nov 1 all went out with long links because of
-  this.
+- **Every email draft comes with its draft link** (Cat, Nov 21: "Always paste draft links because
+  sometimes I want to conveniently edit"). Each draft is a Gmail draft Cat can open and edit; the thread
+  gives its link and the full text. Links inside tester emails: since Nov 19 those go from hello@ with
+  working links (one tester per email, app and form links only), sent from the text in Cat's draft
+  after her named send word. Other emails with links still go through Gmail, where the connector
+  wraps every link Claude writes, so Cat pastes the clean link in; read every draft and sent copy back.
 - Netlify steps always include the direct app.netlify.com link to the exact settings page, opened
   in her browser, not inside the Claude app. Live site and previews likewise.
 - Model pick: say whether a job needs Fable (hard checks where mistakes cost money or fit) or
   whether Opus is enough.
-- Don't resolve a thread until Cat has seen its result.
+- Don't resolve a thread until Cat has replied (the full rule is in the project instructions).
 - Don't propose recurring digests unless she asks (the Friday digest was paused as not useful).
-- Never suggest turning on Netlify credit recharge or API auto-reload.
 
 ## Rules from Cat, Nov 17 (all departments)
 
-- One ship line: any deploy goes to Cat as ONE combined line, which she writes in the Releases thread: "Deploy <change> to maisontrace.co". Ship items in the 6 pm batch use that same line, and her "all" for the batch does not cover them.
 - Every check and walkthrough covers phone AND laptop/desktop (1280, 1366, 1440 and 1920 wide). Testers use computers too. On Nov 17 the collection and the Measure list were found broken on a laptop after every walk had been done at iPhone size.
 - Before any file or draft link reaches Cat, open that exact file or draft and confirm it is the new version.

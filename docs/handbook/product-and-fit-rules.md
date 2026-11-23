@@ -7,9 +7,15 @@ measure, pick or photograph a style, and print a pattern drafted to their measur
 on the device; real sign-in (Supabase, email code or Continue with Google) is built and hidden behind `?signin=preview`, to be
 switched on in the fix week (Dec 7 to 11). Code map: [HOW-IT-FITS-TOGETHER.md](../HOW-IT-FITS-TOGETHER.md).
 
-## The feature freeze (to Jan 18, 2027)
+## The feature freeze (new features, to Jan 18, 2027)
 
 Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
+
+Two freezes, not one (labelled Nov 22, rules review):
+- **Feature freeze, to Jan 18, 2027** (this section): no new garment types, features or revenue streams.
+- **Tester pattern freeze, Nov 16 to Dec 6, 2026**: no change to a launch piece's pattern (Blush Shift, Ice Peplum
+  Top, Black Pleated Skirt, Chocolate Barrel Trouser, Black Vest, Ivory Slip) except a fit fix testers asked for.
+  Fit fix week is Dec 7 to 11.
 
 - **Ships:** fit fixes and bugs, tester tools, the waitlist, real sign-in.
 - **Carries on without a flag** (Cat, Oct 20): UX/UI fixes and polish to screens that exist
@@ -21,7 +27,8 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
 - **Still breaks the freeze:** a whole new garment type with its own block (wired bras, say), a new
   feature or revenue stream, or anything that would push the Jan 18 fit gate or the Feb 11 launch.
   Say so in one line with the cost before starting, then do what Cat decides.
-- **Launch garments:** skirt, bodice, dress. Everything else usable carries an **In testing** tag,
+- **Launch garment types** (no In testing tag): skirt, Top (`bodice` in the code) and dress. These are garment
+  types, not the six launch pieces above; trousers and vests stay tagged until the Jan 18 fit gate. Everything else usable carries an **In testing** tag,
   listed in the registry in `src/launch.ts` (a test fails if a tag is unregistered). Tags come off only
   with their proof; the fit gate release on Jan 18 does the batch. List tagged items in ship replies.
 - **Oversized and Long tops** (Oct 31, freeze broken for the big Parma Shirt, In testing): Oversized is a top's own fit, 26 cm
