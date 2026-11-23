@@ -13,6 +13,7 @@ Last full rebuild: Oct 30, 2026, from project memory, the department threads and
 | --- | --- |
 | [Working with Cat](working-with-cat.md) | How Cat decides: mock-ups, "apply", "ship", stills first, message rules |
 | [Brand and voice](brand-and-voice.md) | Name, pitch, words to use and avoid, look, palette, naming of collections and drops |
+| [Design system](design-system.md) | One style per role: buttons, links, tags, headings, type sizes and margins, drawn one way everywhere |
 | [Product and fit rules](product-and-fit-rules.md) | Garments, measuring, drawing rules, the feature freeze and "In testing" |
 | [Release state](release-state.md) | What is live, what is queued for "ship", how a release is done |
 | [Testers](testers.md) | The fit test: dates, rounds, gate, how tester mail is handled |

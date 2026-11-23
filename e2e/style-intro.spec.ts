@@ -9,7 +9,10 @@ test('the first Style shows how styling works once, then the questions', async (
   const main = page.getByRole('main');
   await expect(main.getByRole('heading', { level: 1, name: /How styling works/ })).toBeVisible();
   await expect(main.getByRole('listitem')).toHaveCount(4);
-  await expect(main.getByText('Tap an option card', { exact: true })).toBeVisible();
+  await expect(main.getByText('Tap a choice', { exact: true })).toBeVisible();
+  // Only details a skirt has, in words that are on the screens (clarity review A3, Nov 22).
+  await expect(main.getByText(/covers one detail of your skirt, such as the fit, the length and the waist/)).toBeVisible();
+  await expect(main.getByText(/neckline|option card|styling window/)).toHaveCount(0);
   await expect(main.getByText('The next screens take you through styling your skirt, one choice at a time.')).toBeVisible();
   const start = main.getByRole('button', { name: 'Start styling' });
   await expect(start).toBeInViewport();

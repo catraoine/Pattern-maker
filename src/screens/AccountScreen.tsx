@@ -325,8 +325,8 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
           <TesterCode code={account.testerCode} unit={unit} onCode={onTesterCode} />
         </Fold>
 
-        <Fold id="intesttitle" title="Still in testing" summary={`${left.length} new features`}>
-          <p className="muted small">These work now. Each keeps its In testing label until sewists have tested it.</p>
+        <Fold id="intesttitle" title="In testing" summary={`${left.length} new options and tools`}>
+          <p className="muted small">You can use these now. Each keeps its In testing label until our fit testers have sewn it.</p>
           <ul className="muted small testing-list">
             {left.map((t) => (
               <li key={t.name}>

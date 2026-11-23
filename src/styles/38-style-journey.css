@@ -37,7 +37,7 @@
 
   /* A look's Review (and the style intro): Print, or Start styling, in the gold bar at the foot of the screen, as Next is on every question, until the page
      scrolls down to where it sits. */
-  :is(.style-review, .style-intro) > .review-print-bar {
+  :is(.style-review, .style-intro, .review-left, .review-right) > .review-print-bar {
     position: sticky;
     bottom: 0;
     z-index: 6;
@@ -47,7 +47,7 @@
     background: var(--paper);
   }
   /* The same champagne button as Next on the questions. */
-  :is(.style-review, .style-intro) > .review-print-bar > .review-print {
+  :is(.style-review, .style-intro, .review-left, .review-right) > .review-print-bar > .review-print {
     width: 100%;
     min-height: 58px;
     background: var(--gild);
@@ -60,7 +60,7 @@
 }
 
 /* Under the look's drawing, Change a detail sits close, as the way to the questions. */
-.style-review > .review-change {
+:is(.style-review, .review-left) > .review-change {
   margin-top: -8px;
 }
 

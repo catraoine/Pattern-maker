@@ -910,7 +910,9 @@ export function FormSketch({ body, m, legs, bottom, arms, lines, outline = [], c
   const narrow = useNarrow();
   const top = narrow && worn?.length ? Math.max(frame.top, Math.min(...worn.flat().map((q) => q.y)) - 13) : frame.top;
   const view = big ? { top: Math.max(body.top + 2, highest - 10), bottom: Math.min(frame.bottom + 6, lowest + 12) } : { top, bottom: cropped };
-  const k = (view.bottom - view.top) / 110;
+  // On a phone the window is shorter (clarity review C8, Nov 22), so the dot's name is drawn a little larger to stay
+  // readable.
+  const k = (view.bottom - view.top) / (narrow && !big ? 85 : 110);
   // A little room either side for the dot's handle. Only the dot shows the length, so the form keeps its width on
   // every step (Cat, 2026-11-06: the named lengths beside it were too much clutter).
   const side = hem ? 3 * k : 0;

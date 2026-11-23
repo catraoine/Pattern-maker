@@ -10,7 +10,7 @@ section.live-big:has(.point-editor) > .big-undo {
   display: none;
 }
 
-/* Move points: Undo and Redo at the left under the pieces, Back to drafted across from them. */
+/* Move points: Undo and Redo at the left under the pieces, Start again across from them. */
 .pe-undo-row {
   align-items: center;
   gap: 8px;

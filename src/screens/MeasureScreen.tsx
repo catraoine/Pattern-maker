@@ -35,6 +35,9 @@ const show = (id: string, cm: number, unit: Unit) => fmtMeasure(id, cm, unit);
 // The Measure step once measuring is done: just this garment's measurements, like the check page, and a
 // tap on one opens its own page with the drawing and how-to. One button goes on; the garment sits in a small
 // label above the title with a quiet way to make something else, and a closer fit is the list's last row.
+/** "a", "a and b", "a, b and c". */
+const andList = (names: string[]) => (names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`);
+
 export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, garment, onChooseGarment, unit, values, checks, canContinue, onNext, onMeasure, notice, onChangeForm, name = GARMENT_NAME[garment], unused = [] }: Props) {
   const form = formOf(account.people.find((p) => p.id === account.active)!);
   // A Black Vest tester was sent to measure her arms, and the list was headed Jacket (pretend-tester walk, Nov 18).
@@ -88,9 +91,8 @@ export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, g
           {extra.length > 0 && !missing.length && (
             <li className="closer">
               <button type="button" onClick={() => onMeasure(extra.map((f) => f.id))}>
-                <span>
-                  Add {extra.length} more for a closer fit
-                </span>
+                {/* Which ones, by name (clarity review A5, Nov 22: "Add 2 more" left readers hunting for the two). */}
+                <span>Add {andList(extra.map((f) => worded(f.label, form).toLowerCase()))} for a closer fit</span>
               </button>
             </li>
           )}

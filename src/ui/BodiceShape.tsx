@@ -31,6 +31,7 @@ import { fingerTravel } from './HemMarks';
 import { FormArm, formWidth } from './DrawOnForm';
 import { FormLayers, SQUEEZE, clothReach, drawnPointBack, formFrame, neckLift, squeezeX, wornCloth, wornFolds, wornMapper } from './FormSketch';
 import { landmarks } from './formLines';
+import { useNarrow } from './StyleLayout';
 
 interface Worn {
   /** One half from the centre neck round the shoulder and armhole, down the side to the centre hem. */
@@ -316,6 +317,11 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
   }, [m, hip, choices.fit, choices.length, choices.shirtCut, draft.front.waistCentre.y, draft.back.waistCentre.y, body, arms, cloth]);
 
   const k = (frame.bottom - frame.top) / 80; // handle and label size, in proportion to the sketch
+  // On a phone the top is cropped like a lookbook photo, from mid-head down, as the other Front drawings are, so the
+  // garment fills its window (clarity review C8, Nov 22). The frame below stays put for dragging.
+  const narrow = useNarrow();
+  const clothTop = Math.min(...cloth.flat().map((q) => q.y));
+  const top = narrow && Number.isFinite(clothTop) ? Math.max(frame.top, clothTop - 13) : frame.top;
   // The handles sit on the top as drawn: its hem at the centre, and its side under the arm.
   const piece = cloth[0] ?? [];
   const hemCentre = piece.length ? piece.reduce((a, b) => (b.y > a.y ? b : a)) : { x: 0, y: waistY };
@@ -461,7 +467,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
   return (
     <svg
       ref={svg}
-      viewBox={`0 ${frame.top} ${2 * cx} ${frame.bottom - frame.top}`}
+      viewBox={`0 ${top} ${2 * cx} ${frame.bottom - top}`}
       // A group, not an image: an image hides the length and flare handles inside it from screen readers.
       role="group"
       aria-label={label}

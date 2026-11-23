@@ -123,7 +123,7 @@
 }
 /* Print is the one thing to do on this page, so it is the filled champagne button on a computer too, as it already is
    in the bar at the foot of a phone. */
-.style-review > .review-print-bar > .review-print:not(:disabled) {
+:is(.style-review, .review-left) > .review-print-bar > .review-print:not(:disabled) {
   background: var(--gild);
   border-color: var(--gild);
   color: var(--paper);

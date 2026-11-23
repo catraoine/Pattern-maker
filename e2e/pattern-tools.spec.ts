@@ -3,7 +3,7 @@ import type { Page } from '@playwright/test';
 
 // Draw a line on the pattern (Design: Pattern tools, Cat's pick P2, 2026-11-07): a line drawn across a skirt piece
 // spreads it open from where it was started, and dragging the handle at its far end opens it more; a line across the
-// hip makes a yoke, a new piece; and Back to drafted undoes it all.
+// hip makes a yoke, a new piece; and Start again undoes it all.
 // With STILLS=<folder> in the environment, a phone still of each step is saved there for Cat.
 
 const still = async (page: Page, name: string) => {
@@ -87,11 +87,11 @@ test('draws a line on the skirt to spread it, opens it more, cuts a yoke, and go
   await expect(main.locator('.pe-edited')).toHaveCount(0);
   await still(page, '5-edited-by-you');
 
-  // Back to drafted takes every cut out. (From the top of the page: scrolled near its end, the pinned drawing eases
+  // Start again takes every cut out. (From the top of the page: scrolled near its end, the pinned drawing eases
   // smaller and larger as the page settles, and the button under it won't hold still to be clicked.)
   await page.evaluate(() => window.scrollTo(0, 0));
   await main.getByRole('button', { name: 'Move points' }).click();
-  await page.getByRole('button', { name: 'Back to drafted' }).click();
+  await page.getByRole('button', { name: 'Start again' }).click();
   await expect(page.locator('path.pe-piece[data-piece="Skirt back yoke"]')).toHaveCount(0);
   await expect(page.locator('.pe-ghost')).toHaveCount(0);
 });

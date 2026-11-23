@@ -7,6 +7,9 @@ export const LAUNCH_GARMENTS: Garment[] = ['skirt', 'bodice', 'dress'];
 
 export const IN_TESTING = 'In testing';
 
+/** What the tag means, said once under a question that has one (clarity review A1, Nov 22). */
+export const TESTING_WHY = 'In testing: you can use it now, but our fit testers haven\'t sewn it yet.';
+
 /** True for a garment that hasn't passed its fit test yet. */
 export const inTesting = (g: Garment | undefined) => !!g && !LAUNCH_GARMENTS.includes(g);
 
@@ -16,7 +19,7 @@ export function testingNote(name: (g: Garment) => string, garments: readonly Gar
   const names = garments.filter(inTesting).map(name);
   if (!names.length) return undefined;
   const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
-  return `New, and not fit-tested yet: ${list}.`;
+  return `In testing, not yet sewn by our fit testers: ${list}.`;
 }
 
 /** Every tool that carries the "In testing" tag, and what takes the tag off. One list, so nothing built stays tagged by

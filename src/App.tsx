@@ -598,6 +598,15 @@ export default function App() {
     setSaved({ ...saved, ...firstVisit(garment) });
     return () => setSaved({ ...latestSaved.current, ...before });
   };
+  /** Whether this garment's style differs from a first visit's, so "Back to the original style" has something to undo
+   *  (clarity review A6, Nov 22: it was offered before anything had changed). */
+  const styledSinceStart = () => {
+    const first = firstVisit(garment);
+    const key = garment === 'skirt' ? 'choices' : garment === 'bodice' ? 'bodice' : garment === 'dress' ? 'dress' : SLOT[garment];
+    if (!key) return false;
+    const now = key === 'dress' ? (saved.dress ?? dressOf(saved)) : saved[key];
+    return !sameValue(now ?? null, first[key] ?? null);
+  };
   /** A garment's choices as a first visit has them, as a patch to the saved work. */
   const firstVisit = (g: Garment): Partial<Saved> => {
     // A dress not yet styled on its own is drawn from the skirt and bodice picks: it keeps them when those start over,
@@ -893,7 +902,7 @@ export default function App() {
       <DemoGarment.Provider value={garment}>
       <FabricStyleOf.Provider value={fabricStyle}>
       <PointEditContext.Provider value={pointEditing}>
-      <StartOver.Provider value={startOver}>
+      <StartOver.Provider value={styledSinceStart() ? startOver : undefined}>
       <div className="app" {...{ inert: opening ? '' : undefined }}>
         <header className={step === 'welcome' || step === 'link' || gated ? 'topbar' : 'topbar steady'}>
           {gated && step !== 'welcome' ? (
@@ -1634,4 +1643,16 @@ export default function App() {
       </DemoGarment.Provider>
     </>
   );
+}
+
+/** Whether two saved values hold the same picks, whatever order their keys were written in: saved work filled in by
+ *  fillMissing adds newer keys at the end, so comparing the JSON said a garment was styled when nothing had changed
+ *  (code review, Nov 22). A key the first visit doesn't have counts only when it holds a value. */
+function sameValue(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (!a || !b || typeof a !== 'object' || typeof b !== 'object') return false;
+  if (Array.isArray(a) || Array.isArray(b)) return Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((x, i) => sameValue(x, b[i]));
+  const x = a as Record<string, unknown>;
+  const y = b as Record<string, unknown>;
+  return Object.keys(y).every((k) => sameValue(x[k], y[k])) && Object.keys(x).every((k) => k in y || x[k] === undefined);
 }
