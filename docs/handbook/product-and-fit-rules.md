@@ -411,6 +411,25 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    how the empire option cuts the bodice, not the look. Not built yet: it is a pattern change, so it starts Dec 7 when
    the freeze ends (no launch piece uses the empire seam).
 
+## Menswear fit (fit audit, Nov 22)
+
+The menswear form drafts on the womenswear blocks with the bust shaping left out. Three things are its own; they wait
+for Cat's "ship" and a CLO before and after.
+
+1. **Front length grows with the stomach.** An estimated front length is the back length plus 1.5 cm, plus 2 cm for
+   every 10 cm of waist past 80 cm (or of chest less 14 cm, where that is more), up to 8 cm. The extra stays at the
+   centre front hem, so it hangs level; side seams still match. A measured front length is never changed. Sized in
+   CLO on the 116 cm chest (1 cm per 10 took out only half the rise); real toiles may still move it.
+2. **A shirt sleeve is cut wide and flat** on the menswear form: at most 1 cm of crown ease and 4.5 cm more round the
+   upper arm than a blouse's, which lowers the sleeve head about 3 cm (the blouse's tall, eased head stood up in peaks
+   at the shoulder tips; less ease alone did not clear them in CLO). Jackets keep theirs: they are drafted for a pad.
+3. **The printed pattern says chest, never bust**, on the menswear form (`src/menswearWords.ts`).
+4. **Trousers are cut as a man's** (Cat, Nov 22: "Build both"; In testing): a flat front with no dart, up to 1.5 cm of
+   its shaping moved to one dart on each back, over the back pocket. Pleated fronts keep the dart in the pleat. Trousers
+   not yet styled start with slant pockets, back welt pockets and belt loops (`src/engine/menswearTailoring.ts`).
+5. **A single-breasted jacket has two buttons** 11 cm apart, the lapel breaking 2 cm above the waist (same decision, In
+   testing). Double-breasted fronts, coats and looks with their own buttons keep theirs.
+
 ## Style steps
 
 - **No repeated names** (Oct 30): a question never carries its step's name (no "Details" question on the

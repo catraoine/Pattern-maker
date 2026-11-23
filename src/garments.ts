@@ -178,6 +178,9 @@ export interface TrousersChoices {
 }
 
 export const DEFAULT_TROUSERS_CHOICES: TrousersChoices = { garment: 'trousers', fit: 'regular', leg: 'straight', length: 'full', closure: 'fly', pleats: 'none', loops: 'none' };
+/** The menswear form's trousers start with slant pockets, a welt pocket on each back and belt loops, as a man's trousers
+ *  are made (the menswear fit audit, Nov 22; Cat: "Build both"). Only where nothing is chosen yet. */
+export const MENSWEAR_TROUSERS_CHOICES: TrousersChoices = { ...DEFAULT_TROUSERS_CHOICES, pockets: 'slant', backPockets: 'welt', loops: 'loops' };
 
 type TrouserGroupId = 'fit' | 'leg' | 'length' | 'waist' | 'closure' | 'pockets' | 'backPockets' | 'pleats' | 'loops' | 'rise';
 

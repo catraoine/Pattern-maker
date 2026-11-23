@@ -10,8 +10,11 @@ import { bodiceFlat, outerFlat } from './engine/flat';
 import { outerGuide } from './engine/outerGuide';
 import { checkPattern } from './engine/qc';
 import { randomMan, rng } from './engine/randomBodies';
-import { patternDesigns, walkDesign } from './patternSweep';
-import { DEFAULT_JACKET_CHOICES, MENSWEAR_JACKET_CHOICES } from './garments';
+import { patternDesigns, printedPattern, walkDesign } from './patternSweep';
+import { formWords } from './menswearWords';
+import { GARMENT_DRAFTING } from './garmentDrafts';
+import { INITIAL } from './savedWork';
+import { DEFAULT_JACKET_CHOICES, MENSWEAR_JACKET_CHOICES, MENSWEAR_TROUSERS_CHOICES } from './garments';
 
 // The menswear form (Cat's B2 Two Forms, 2026-10-18): the chest instead of the bust, none of the bust
 // measurements asked, and tops drafted with no bust dart.
@@ -161,5 +164,100 @@ describe('the menswear follow-ups', () => {
       return Math.sign(top.reduce((a, q) => a + q.x, 0) / top.length - v.at.x);
     };
     expect(topSide(jacket)).toBe(-topSide(plain));
+  });
+});
+
+describe('the menswear fit audit (Nov 22)', () => {
+  const front = (v: MeasurementValues) => withEstimates(v, 'menswear').front_hps_to_waist! - v.nape_to_waist!;
+
+  it('gives a fuller man more front length, so the front hem hangs level over the stomach', () => {
+    // The toiles rode up at the front on a 116 cm chest with the same front length on every size.
+    expect(front(MAN)).toBeCloseTo(2.7, 5);
+    expect(front({ ...MAN, full_bust: 96, waist: 78 })).toBeCloseTo(1.9, 5);
+    expect(front({ ...MAN, full_bust: 116, waist: 104 })).toBeCloseTo(6.3, 5);
+    // A big chest on a small waist stands forward too.
+    expect(front({ ...MAN, full_bust: 110, waist: 82 })).toBeGreaterThan(front({ ...MAN, full_bust: 96, waist: 82 }));
+    // Never more than 8 cm on top of the 1.5, however full.
+    expect(front({ ...MAN, full_bust: 150, waist: 160 })).toBeCloseTo(9.5, 5);
+    // A front length the maker measured is kept as it is, and the womenswear form's estimate is as it was.
+    expect(withEstimates({ ...MAN, waist: 110, front_hps_to_waist: 47 }, 'menswear').front_hps_to_waist).toBe(47);
+    expect(withEstimates({ ...MAN, waist: 110 }).front_hps_to_waist).toBe(withEstimates({ ...MAN, waist: 90 }).front_hps_to_waist);
+  });
+
+  it('leaves the extra front length at the centre front hem, the side seams still matching', () => {
+    const draft = (waist: number) => draftBodice(withEstimates({ ...MAN, full_bust: waist + 12, waist }, 'menswear') as BodiceMeasurements, { fit: 'regular', neckline: 'crew', length: 'hip', darts: 'none', fitting: { flatFront: true } });
+    for (const waist of [74, 104, 130]) expect(failing(draft(waist).pieces)).toEqual([]);
+  });
+
+  it('cuts a shirt sleeve wide and flat, with no more than 1 cm of crown ease, where the womenswear form keeps its own', () => {
+    // The blouse's tall head, eased 2.5 cm, stood up in peaks at the shoulder tips on the toiles.
+    const values = withEstimates({ ...MAN, ...ARMS }, 'menswear');
+    const saved = { ...INITIAL, bodice: { ...INITIAL.bodice, sleeve: 'long' as const } };
+    const sleeve = (form: 'menswear' | 'womenswear') => GARMENT_DRAFTING.bodice.draft(values, { saved, form }, undefined).sleeve!;
+    const crown = (form: 'menswear' | 'womenswear') => sleeve(form).crownEase.front + sleeve(form).crownEase.back;
+    expect(sleeve('menswear').bicep).toBeCloseTo(sleeve('womenswear').bicep + 4.5, 1);
+    expect(sleeve('menswear').capHeight).toBeLessThan(sleeve('womenswear').capHeight - 2);
+    expect(crown('menswear')).toBeGreaterThan(0.5);
+    expect(crown('menswear')).toBeLessThanOrEqual(1.1);
+    expect(crown('womenswear')).toBeGreaterThan(2);
+  });
+
+  it('says chest, never bust, on the printed shirt and jacket, and leaves the womenswear pattern as it was', () => {
+    const values = withEstimates({ ...MAN, ...ARMS }, 'menswear');
+    const words = (p: ReturnType<typeof printedPattern>['made']) =>
+      [...p.notes, ...p.guide.notions, ...p.guide.steps.flatMap((st) => [st.title, st.text]), ...p.spec.map((r) => r.label), ...p.pieces.flatMap((pc) => [...(pc.finished ?? []).flatMap((f) => [f.title, f.note]), ...(pc.draft?.points ?? []).map((pt) => pt.note)])].join(' ');
+    for (const design of [{ garment: 'bodice' as const, saved: { bodice: { ...INITIAL.bodice, sleeve: 'long' as const } } }, { garment: 'jacket' as const, saved: {} }]) {
+      const { made } = printedPattern(design, values, 'menswear');
+      expect(words(made)).toMatch(/bust/i);
+      const his = formWords(made, 'menswear');
+      expect(words(his)).not.toMatch(/bust/i);
+      expect(words(his)).toMatch(/FINISHED CHEST \d+ CM/);
+      expect(his.spec.map((r) => r.label)).toContain('Chest');
+      expect(formWords(made, 'womenswear')).toBe(made);
+    }
+  });
+});
+
+describe('menswear tailoring (Nov 22, In testing)', () => {
+  it('cuts the trouser front flat and darts the back, every seam still matching, and leaves the womenswear cut alone', () => {
+    const r = rng(11);
+    let backDarts = 0;
+    for (let i = 0; i < 30; i++) {
+      const m = randomMan(r) as TrousersMeasurements;
+      for (const style of [{ fit: 'regular' as const, leg: 'straight' as const }, { fit: 'regular' as const, leg: 'straight' as const, pockets: 'slant' as const, backPockets: 'welt' as const, loops: 'loops' as const }]) {
+        const men = draftTrousers(m, { ...style, cut: 'menswear' });
+        expect(men.dartsPerSide.front).toBe(0);
+        expect(failing(men.pieces).filter((c) => c.label !== 'Crotch seam to your crotch length')).toEqual([]);
+        backDarts += men.dartsPerSide.back;
+        // The waist is the same size: what the front dart took is in the back's now.
+        expect(men.finishedWaist).toBeCloseTo(draftTrousers(m, style).finishedWaist, 5);
+      }
+      // A pleated front keeps its dart, which goes into the pleat.
+      expect(failing(draftTrousers(m, { fit: 'regular', leg: 'straight', pleats: 'single', cut: 'menswear' }).pieces).filter((c) => c.label !== 'Crotch seam to your crotch length')).toEqual([]);
+    }
+    expect(backDarts).toBeGreaterThan(20);
+    expect(draftTrousers(EXAMPLE_BODY as TrousersMeasurements, { fit: 'regular', leg: 'straight' }).dartsPerSide.front).toBe(1);
+    expect(MENSWEAR_TROUSERS_CHOICES).toMatchObject({ pockets: 'slant', backPockets: 'welt', loops: 'loops' });
+  });
+
+  it('gives a single-breasted jacket two buttons with the lapel breaking near the waist, on the menswear form only', () => {
+    const m = withEstimates({ ...MAN, ...ARMS }, 'menswear') as OuterMeasurements;
+    const his = draftOuter(m, { ...MENSWEAR_JACKET_CHOICES, kind: 'jacket', fitting: { flatFront: true } });
+    const hers = draftOuter(m, { ...MENSWEAR_JACKET_CHOICES, kind: 'jacket' });
+    expect(his.buttons.at).toHaveLength(2);
+    expect(his.buttons.at[1] - his.buttons.at[0]).toBeCloseTo(11, 1);
+    expect(hers.buttons.at.length).toBeGreaterThan(3);
+    // The lapel rolls to the top button, well below where it broke at the chest.
+    expect(his.lapel!.breakPt.y).toBeCloseTo(his.buttons.at[0], 1);
+    expect(his.lapel!.breakPt.y).toBeGreaterThan(hers.lapel!.breakPt.y + 10);
+    expect(failing(his.pieces).filter((c) => !/shoulder seams/.test(c.label))).toEqual([]);
+    // A lapel that long needs the whole front fused and its roll line taped (it creased and fell open in CLO without).
+    const steps = (d: typeof his) => outerGuide(d, 2);
+    expect(steps(his).steps.find((st) => st.title === 'Interface')!.text).toMatch(/whole of each front.*stay tape along each roll line/);
+    expect(steps(his).notions.join(' ')).toMatch(/stay tape, for the roll lines/);
+    expect(steps(hers).steps.find((st) => st.title === 'Interface')!.text).not.toMatch(/roll line/);
+    // A double-breasted front, a coat and a look with its own buttons keep theirs.
+    expect(draftOuter(m, { ...MENSWEAR_JACKET_CHOICES, kind: 'jacket', buttons: 4, fitting: { flatFront: true } }).buttons.at).toHaveLength(4);
+    expect(draftOuter(m, { ...MENSWEAR_JACKET_CHOICES, kind: 'jacket', front: 'double', fitting: { flatFront: true } }).buttons).toEqual(draftOuter(m, { ...MENSWEAR_JACKET_CHOICES, kind: 'jacket', front: 'double' }).buttons);
   });
 });

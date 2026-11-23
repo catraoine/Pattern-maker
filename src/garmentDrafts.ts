@@ -6,7 +6,7 @@ import { TeeDraft, TeeMeasurements, draftTee } from './engine/tee';
 import { LingerieDraft, LingerieMeasurements, draftLingerie } from './engine/lingerie';
 import { OuterDraft, OuterMeasurements, draftOuter } from './engine/outerwear';
 import { waistPieces } from './engine/finishing';
-import { SleeveDraft, SleeveMeasurements, draftSleeve, needsArms } from './engine/sleeve';
+import { SLEEVE_EASE, SleeveDraft, SleeveMeasurements, draftSleeve, needsArms } from './engine/sleeve';
 import { Fitting, toFitting } from './engine/fitting';
 import { MyFabric, withFabricEase } from './engine/fabrics';
 import { FormKind, Garment, MeasurementValues } from './measurements';
@@ -48,11 +48,21 @@ export interface DraftInputs {
   fabric?: MyFabric;
 }
 
+/**
+ * A man's shirt sleeve is cut wide and flat: its head takes at most `crown` cm of ease (a blouse's takes up to 3) and
+ * the sleeve is `wider` cm bigger round the upper arm than a blouse's, which lowers the head by about 3 cm. The
+ * blouse's tall, eased head stood up in peaks at the shoulder tips on the menswear toiles (CLO, Nov 22): less ease
+ * alone left them, the wider, flatter sleeve took them away.
+ */
+const MENSWEAR_SLEEVE = { crown: 1, wider: 4.5 };
+const menswearSleeveEase = (fit: BodiceChoices['fit']) => ({ bicep: SLEEVE_EASE[fit].bicep + MENSWEAR_SLEEVE.wider, crown: Math.min(SLEEVE_EASE[fit].crown, MENSWEAR_SLEEVE.crown) });
+
 /** The sleeve for a bodice, drafted to its armhole with its allowances, when one is chosen and the arms are measured. */
-function sleeveFor(bodice: BodiceDraft, choices: BodiceChoices, values: MeasurementValues): SleeveDraft | undefined {
+function sleeveFor(bodice: BodiceDraft, choices: BodiceChoices, values: MeasurementValues, form?: FormKind): SleeveDraft | undefined {
   const { length, shape, cm, cuff, fullness, headGather } = sleeveOf(choices);
   if (length === 'none' || needsArms(values as SleeveMeasurements)) return undefined;
   return draftSleeve(bodice, values as SleeveMeasurements, {
+    ...(form === 'menswear' ? { ease: menswearSleeveEase(choices.fit) } : {}),
     length,
     shape,
     ...(cm !== undefined ? { lengthCm: cm } : {}),
@@ -153,13 +163,13 @@ export const GARMENT_DRAFTING: Record<Garment, GarmentDrafting> = {
     draft: (values, i, f) => {
       const style = bodiceStyleOf(i, f);
       const bodice = draftBodice(values as BodiceMeasurements, style);
-      return { bodice, sleeve: sleeveFor(bodice, style, values) };
+      return { bodice, sleeve: sleeveFor(bodice, style, values, i.form) };
     },
     piecesWith: (values, i, f) => draftBodice(values as BodiceMeasurements, { ...i.saved.bodice, fitting: bodiceFitting(i, f) }).pieces,
     graded: (m, i, f, allow) => {
       const style = bodiceStyleOf(i, f);
       const b = draftBodice(m as BodiceMeasurements, style);
-      return allow([...b.pieces, ...(sleeveFor(b, style, m)?.pieces ?? [])]);
+      return allow([...b.pieces, ...(sleeveFor(b, style, m, i.form)?.pieces ?? [])]);
     },
     reset: { bodice: DEFAULT_BODICE },
   },
@@ -169,7 +179,7 @@ export const GARMENT_DRAFTING: Record<Garment, GarmentDrafting> = {
     draft: (values, i, f) => {
       const st = dressStylesOf(i, f);
       const d = draftDress(values as DressMeasurements, st.bodice, st.skirt, st.seam);
-      return { dress: d, sleeve: sleeveFor(d.bodice, st.bodice, values) };
+      return { dress: d, sleeve: sleeveFor(d.bodice, st.bodice, values, i.form) };
     },
     piecesWith: (values, i, f) => {
       const st = dressStylesOf(i, f);
@@ -178,7 +188,7 @@ export const GARMENT_DRAFTING: Record<Garment, GarmentDrafting> = {
     graded: (m, i, f, allow) => {
       const st = dressStylesOf(i, f);
       const d = draftDress(m as DressMeasurements, st.bodice, st.skirt, st.seam);
-      return allow([...d.pieces, ...(sleeveFor(d.bodice, st.bodice, m)?.pieces ?? [])]);
+      return allow([...d.pieces, ...(sleeveFor(d.bodice, st.bodice, m, i.form)?.pieces ?? [])]);
     },
     reset: { dress: undefined, choices: INITIAL.choices, bodice: DEFAULT_BODICE },
   },

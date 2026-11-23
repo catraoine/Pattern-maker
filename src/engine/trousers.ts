@@ -11,6 +11,7 @@ import { DraftError, Elastic, Fit, PULL_ON_EASE, SkirtFitting, WaistStyle, Waist
 import { PocketStyle, inseamPocket, markSeam, notchesAlong, slantPocket } from './pockets';
 import { casingPiece } from './finishing';
 import { BACK_WELT, BackPockets, BackWeltPlace, backWelts } from './trouserBack';
+import { MENS_TROUSER } from './menswearTailoring';
 import { PleatedFront, loopCountFor, TrouserLoops, TrouserPleats, beltLoopsPiece, pleatedFront } from './trouserPleats';
 
 export interface TrousersMeasurements {
@@ -284,7 +285,7 @@ interface Half {
 
 /** Darts for the waist suppression: the side takes up to 2 cm, the darts the rest, the side again past their most. */
 function suppression(supp: number, n: number, dartMax: number) {
-  if (supp <= 0.6) return { side: supp, darts: [] as number[] };
+  if (supp <= 0.6 || !n) return { side: supp, darts: [] as number[] };
   let side = Math.min(2, supp * 0.4);
   let each = (supp - side) / n;
   if (each > dartMax) {
@@ -595,10 +596,18 @@ export function draftTrousers(body: TrousersMeasurements, style: Partial<Trouser
   // for room at the front, a shorter back one, which with the higher back waist gives a steeper seat seam.
   const fork0 = men ? { front: 0.065 * H, back: 0.105 * H } : { front: 0.05 * H, back: 0.12 * H };
 
+  const flatFront = men && !elastic && !s.joinTo && (s.pleats ?? 'none') === 'none';
+  const dartsOf = (h: Half) => (h.piece.meta.dartsCm as number[]).reduce((t, d) => t + d, 0);
   const build = (k: number, f: Frame) => {
-    const frontArgs: HalfArgs = { isFront: true, hipQ: H / 4 - 1, waistQ: s.joinTo?.front ?? W / 4 - 0.5, centreIn: frontIn, centreUp: frontUp, fork: fork0.front * k, legShift: 0, forkDrop: 0, dartMax: 2.5, dartLens: [9], zipCm: fly ? zipCm : 0 };
+    const frontArgs0: HalfArgs = { isFront: true, hipQ: H / 4 - 1, waistQ: s.joinTo?.front ?? W / 4 - 0.5, centreIn: frontIn, centreUp: frontUp, fork: fork0.front * k, legShift: 0, forkDrop: 0, dartMax: 2.5, dartLens: [9], zipCm: fly ? zipCm : 0 };
+    // Menswear: a flat front, its dart's share moved to the back (see menswearTailoring.ts). Pleated fronts keep the
+    // dart, which goes into the first pleat.
+    const toBack = flatFront ? Math.min(MENS_TROUSER.toBack, dartsOf(half(f, frontArgs0))) : 0;
+    const frontArgs: HalfArgs = flatFront ? { ...frontArgs0, waistQ: frontArgs0.waistQ + toBack, dartLens: [] } : frontArgs0;
     const front = half(f, frontArgs);
-    const base = { isFront: false, hipQ: H / 4 + 1, waistQ: s.joinTo?.back ?? W / 4 + 0.5, centreIn: backIn, centreUp: backUp, fork: fork0.back * k, legShift: 0, forkDrop: 0.75, dartMax: 3, dartLens: s.backPockets === 'welt' ? BACK_WELT.darts : [13, 11], zipCm: 0 };
+    const base0 = { isFront: false, hipQ: H / 4 + 1, waistQ: (s.joinTo?.back ?? W / 4 + 0.5) - toBack, centreIn: backIn, centreUp: backUp, fork: fork0.back * k, legShift: 0, forkDrop: 0.75, dartMax: 3, dartLens: s.backPockets === 'welt' ? BACK_WELT.darts : [13, 11], zipCm: 0 };
+    const oneDart = { ...base0, dartLens: [s.backPockets === 'welt' ? MENS_TROUSER.weltDart : MENS_TROUSER.dart] };
+    const base = flatFront && dartsOf(half(f, oneDart)) < base0.dartMax - 1e-6 ? oneDart : base0;
     // A wide back fork pulls the inside leg long: set the back crease so it runs as the front's does,
     // then true the side seams by moving the back leg up or down, then the inside legs by dropping the
     // back fork the last few millimetres.

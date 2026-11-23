@@ -38,7 +38,7 @@ updatePerson,
 recordMeasurements,
 withPeople,
 } from './account';
-import { MENSWEAR_JACKET_CHOICES, validDetails, PatternChoices, outerWord, unusedFor } from './garments';
+import { MENSWEAR_JACKET_CHOICES, MENSWEAR_TROUSERS_CHOICES, validDetails, PatternChoices, outerWord, unusedFor } from './garments';
 import type { Printable } from './screens/ExportScreen';
 import { openSewingNext } from './ui/sewPlace';
 import { describePattern } from './screens/describe';
@@ -419,10 +419,10 @@ export default function App() {
   const setFinish = (f: Finish) => setSaved({ ...saved, finish: keepFinish(storedFinish, f, mode) });
   const fabric = finish.fabric;
   // What every garment drafts from (see garmentDrafts.ts), and the open garment's entry in the catalogue. A jacket not
-  // yet styled starts Long on the menswear form (garments.ts).
+  // yet styled starts Long on the menswear form, and trousers with their pockets and belt loops (garments.ts).
   const inputs = useMemo(
     (): DraftInputs => ({
-      saved: { choices: saved.choices, bodice: saved.bodice, dress: saved.dress, trousers: saved.trousers, tee: saved.tee, knitDress: saved.knitDress, hoodie: saved.hoodie, jumpsuit: saved.jumpsuit, lingerie: saved.lingerie, jacket: saved.jacket ?? (form === 'menswear' ? MENSWEAR_JACKET_CHOICES : undefined), coat: saved.coat },
+      saved: { choices: saved.choices, bodice: saved.bodice, dress: saved.dress, trousers: saved.trousers ?? (form === 'menswear' ? MENSWEAR_TROUSERS_CHOICES : undefined), tee: saved.tee, knitDress: saved.knitDress, hoodie: saved.hoodie, jumpsuit: saved.jumpsuit, lingerie: saved.lingerie, jacket: saved.jacket ?? (form === 'menswear' ? MENSWEAR_JACKET_CHOICES : undefined), coat: saved.coat },
       form,
       fabric,
     }),
@@ -431,7 +431,7 @@ export default function App() {
   const drafting = GARMENT_DRAFTING[garment];
   const skirtStyle = useMemo(() => skirtStyleOf(inputs, fitting), [inputs, fitting]);
   const dress = useMemo(() => dressOf(inputs.saved), [inputs]);
-  const trousersChoices = trousersChoicesOf(saved);
+  const trousersChoices = trousersChoicesOf(inputs.saved);
   const teeChoices = teeChoicesOf(saved);
   const lingerieChoices = lingerieChoicesOf(saved);
   const rangeChoices = garment === 'knit_dress' ? knitDressChoicesOf(saved) : garment === 'hoodie' ? hoodieChoicesOf(saved) : jumpsuitChoicesOf(saved);
@@ -543,9 +543,9 @@ export default function App() {
   // The trousers' full style (toile corrections and all), so a lining is drafted to the same legs.
   const trousersStyle = useMemo(() => (garment === 'trousers' ? trousersStyleOf(inputs, fitting) : undefined), [garment, inputs, fitting]);
   const drafted = useMemo(
-    () => printableFor({ result, values, finish, fabric, garment, ownFitting, carriedNotes, saved, dress, skirtStyle, trousersChoices, trousersStyle }),
+    () => printableFor({ result, values, finish, fabric, garment, ownFitting, carriedNotes, saved, dress, skirtStyle, trousersChoices, trousersStyle, form }),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only the saved and finish fields the printable reads, so it is not rebuilt on every unrelated change
-    [result, saved.choices, saved.bodice, dress, skirtStyle, values, finish.allowances, finish.skirtLined, finish.bodiceEdges, finish.fabricWidth, finish.nap, finish.route, finish.cloth, fabric, fitting, ownFitting, carriedNotes, garment, trousersStyle],
+    [result, saved.choices, saved.bodice, dress, skirtStyle, values, finish.allowances, finish.skirtLined, finish.bodiceEdges, finish.fabricWidth, finish.nap, finish.route, finish.cloth, fabric, fitting, ownFitting, carriedNotes, garment, trousersStyle, form],
   );
   // An Archive cut keeps its credit while it's the same garment; its details can still be changed.
   const fromArchive = [archiveCut(saved.archive)].find((c) => c?.garment === garment);
