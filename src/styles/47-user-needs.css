@@ -1,11 +1,16 @@
 /* The unmet needs review (Cat's picks A, C and D, Nov 22): three quiet lines on screens that exist. */
 
-/* C. "Good first make" under the skirt's name: small capitals, never a box, so the tile stays a tile. */
+/* C. "Good first make" under the skirt's name: small capitals, never a box, so the tile stays a tile. At the app's
+   own caps size and in champagne it reads (the Nov 22 walk measured it at 10 px grey). On a phone it takes two lines,
+   so the tiles start their drawing at the top rather than centring it: then the skirt's drawing and name sit level
+   with the dress's and the top's beside it, and only the empty space under those two grows. */
+.make-grid button:not(.make-looks) {
+  justify-content: flex-start;
+}
 .make-grid .make-first {
   margin: -2px 0 0;
-  color: var(--muted);
-  /* Smaller and closer than the app's capitals, so the three words take two lines on a phone tile, never three. */
-  font-size: 0.62rem;
+  color: var(--gild);
+  font-size: 11px;
   letter-spacing: 0.08em;
   line-height: 1.3;
   text-align: center;
