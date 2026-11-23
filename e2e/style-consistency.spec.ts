@@ -50,8 +50,9 @@ test('the garment drop-down offers a new garment, the collection, a photo and sa
     await drop.locator('.drop-button').click();
   };
   await open();
-  // The collection is the link under the name, not a line in the menu (declutter, Cat's E, Nov 21).
-  await expect(drop.getByRole('menuitemradio')).toHaveText(['Start a new garment ›', 'Start from a photo ›', 'Saved patterns ›']);
+  // The collection is both the link under the name and a line in the menu: the open menu covers the link, and Cat
+  // looked for it here (Nov 22).
+  await expect(drop.getByRole('menuitemradio')).toHaveText(['Start a new garment ›', 'The collection ›', 'Start from a photo ›', 'Saved patterns ›']);
   await page.keyboard.press('Escape');
   await main.getByRole('button', { name: 'The collection ›' }).click();
   await expect(main.getByRole('heading', { name: 'Leopard Shirt Dress' })).toBeVisible();

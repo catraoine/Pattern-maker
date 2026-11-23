@@ -20,23 +20,50 @@
   gap: 8px;
   padding: 14px 8px 12px;
 }
+/* The garment's own flat (Cat's B House Flats, Nov 22): the outline in champagne, seams and darts finer, stitching a
+   hairline dash. Strokes keep one width whatever the drawing's size, so a coat and a top read the same. The box is wide
+   enough that a jacket with its sleeves out draws as large as a dress. */
 .make-pic {
-  width: 40px;
-  height: 48px;
+  width: 78px;
+  height: 62px;
   fill: none;
   stroke: var(--gild);
-  stroke-width: 1.1;
   stroke-linejoin: round;
   stroke-linecap: round;
 }
-.make-pic .pic-faint {
+.make-pic path {
+  vector-effect: non-scaling-stroke;
+}
+.make-pic .pic-edge {
+  fill: color-mix(in srgb, var(--gild) 5%, transparent);
+  stroke-width: 1.05;
+}
+.make-pic .pic-seam,
+.make-pic .pic-dart {
+  stroke-width: 0.6;
+  opacity: 0.85;
+}
+.make-pic .pic-stitch,
+.make-pic .pic-zip {
+  stroke: var(--muted);
+  stroke-width: 0.5;
+  stroke-dasharray: 1.6 1.6;
+}
+.make-pic .pic-plus {
+  stroke-width: 1.1;
+}
+.make-pic.other .pic-edge {
+  fill: none;
   stroke: var(--muted);
   stroke-dasharray: 2 2;
   stroke-width: 0.8;
 }
 .make-grid button.on .make-pic,
-.make-grid button.on .make-pic .pic-faint {
+.make-grid button.on .make-pic path {
   stroke: var(--paper);
+}
+.make-grid button.on .make-pic .pic-edge {
+  fill: none;
 }
 @media (min-width: 900px) and (min-aspect-ratio: 1/1) {
   .measure-step.centred:has(.make-grid) {
@@ -47,8 +74,8 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
   .make-pic {
-    width: 50px;
-    height: 60px;
+    width: 104px;
+    height: 84px;
   }
 }
 
