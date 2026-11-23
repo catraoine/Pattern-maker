@@ -263,7 +263,8 @@ async function record(name, script, before) {
     await wait(300);
     // A long wait under the veil (All round sewing the garment again) is cut down to a short beat of black.
     const t1 = Date.now() / 1000;
-    if (t1 - t0 > 1.6) cuts.push([t0 + 0.8, t1]);
+    // Kept to a short beat, so no blank second sits before the next caption (the EC tester walk, Nov 22).
+    if (t1 - t0 > 1.0) cuts.push([t0 + 0.3, t1]);
     await p.evaluate(() => (document.getElementById('app').style.opacity = 1));
     await wait(500);
   };
@@ -889,7 +890,9 @@ const KINDS = {
     // look's Fitted the drawing jumped bigger). The hem goes up: dragged down past the hip, the peplum top became a
     // plain hip-length top on screen. Down a little now (Nov 21): the look starts at its shortest peplum, so up no longer moves it. Fewer steps on the drag: the peplum redraws slowly at each one, so the full
     // drag took near twenty seconds.
-    look: 'Ice Peplum Top', fit: 'Relaxed', from: 'Regular', length: 'Bodice length below the waist', drop: 36, steps: 4, front: 'Peplum front', back: 'Bodice centre back',
+    look: 'Ice Peplum Top', fit: 'Relaxed', from: 'Regular', length: 'Bodice length below the waist',
+    // The dot on the peplum top moves the seam the peplum hangs from, not the hem (the EC tester walk, Nov 22).
+    lengthSays: 'Drag the dot to move the peplum seam up or down.', drop: 36, steps: 4, front: 'Peplum front', back: 'Bodice centre back',
     spread: [[0.5, 0.1], [0.5, 0.5], [0.5, 0.92]], fuller: 'The peplum gets fuller.',
     // Framed smaller: the peplum front opens wide and high once spread.
     zoom: { w: 190, h: 290, top: 300 },
@@ -905,8 +908,8 @@ const KINDS = {
 for (const [kind, k] of Object.entries(KINDS)) {
   // Opened from the collection before the clip starts, as a tester's own look is.
   const open = async ({ f, main, wait }) => {
-    await main.getByRole('group', { name: 'Garment' }).locator('.drop-button').click();
-    await main.getByRole('menuitemradio', { name: /collection/ }).click();
+    // From the link under the garment's name: the drop-down no longer lists the collection (the declutter, Nov 21).
+    await main.locator('.collection-go').first().click();
     await wait(1500);
     await main.getByRole('listitem').filter({ has: f.getByRole('heading', { name: k.look, exact: true }) }).getByRole('button', { name: k.make ?? 'Make this look' }).click();
     // A look opens on itself, ready to print (Nov 14); Change a detail goes on to the style screen the clips show.
@@ -931,7 +934,7 @@ for (const [kind, k] of Object.entries(KINDS)) {
     await wait(1000);
     await press(R('button', new RegExp(`^${k.fit}`)), 0);
     await wait(2600);
-    await cap('Length', 'Drag the hem up or down to set the length.');
+    await cap('Length', k.lengthSays ?? 'Drag the hem up or down to set the length.');
     await f.locator('body').evaluate((b, L) => (b.ownerDocument.getElementById('demo-focus').textContent += ` ${L}:not(#_),${L}:not(#_) *{visibility:visible!important}`), handle);
     await wait(900);
     await drag(f.locator(`svg.preview-svg circle.hit[aria-label="${k.length}"]`), [0, k.drop], 2200, k.steps);

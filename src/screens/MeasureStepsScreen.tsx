@@ -488,7 +488,8 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
 
   if (page.kind === 'saved')
     return (
-      <Shell eyebrow="Full set" title="Every measurement is saved." hero={<TapeDemo id="waist" name="" mode="all" kind={form} />}>
+      // No small form over the words here either (Cat, Nov 22: take it off).
+      <Shell eyebrow="Full set" title="Every measurement is saved.">
         <p className="muted step-tip">Pick something to make whenever you're ready. A dressmaker can work from these too.</p>
         <button type="button" className="primary" onClick={() => setPage({ kind: 'choose' })}>
           Choose what to make

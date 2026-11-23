@@ -24,11 +24,11 @@ const WIDE_SCREEN = '(min-width: 900px) and (min-aspect-ratio: 1/1)';
 /** says: what the part shows, in words, for anyone who can't see the film (the accessibility review, 2026-10-30). */
 const PARTS: FilmPart[] = [
   { name: 'Measure', from: 0, says: 'Enter your measurements just once, taken with a soft tape: every pattern is drafted from your numbers.' },
-  { name: 'Choose', from: 13.7, says: 'Then what to make: design your own garment, choose from a collection, or start with a photo of a piece you love.' },
-  { name: 'Style', from: 29.5, says: 'Select your style details: its cut, darts, neckline and your own cloth, step by step on the drawing. Or design straight from your pattern, moving a dart or cutting off a new piece. All round turns the dress to check the seams meet and the hem sits level before you cut.' },
-  { name: 'Print', from: 57.7, says: 'Print your pattern at home on ordinary paper or full size at a copy shop, or project it true size onto your fabric. Drafted to your body: your pattern, ready to sew.' },
+  { name: 'Choose', from: 15.8, says: 'Then what to make: design your own garment by describing it, choose from a collection, or start with a photo of a piece you love.' },
+  { name: 'Style', from: 37.8, says: 'Select your style details: its cut, darts, neckline and your own cloth, step by step on the drawing. Or design straight from your pattern, moving a dart or cutting off a new piece. All round turns the dress, drawing closer, to check the seams meet and the hem sits level before you cut.' },
+  { name: 'Print', from: 65.8, says: 'Print your pattern at home on ordinary paper or full size at a copy shop, or project it true size onto your fabric. Then sew it, one step at a time, ticking off each line as you go. Drafted to your body.' },
 ];
-export const TOUR_LABEL = '1:17';
+export const TOUR_LABEL = '1:31';
 
 export type FilmPart = { name: string; from: number; says: string };
 
@@ -70,6 +70,9 @@ function filmFit(shape: 'tall' | 'wide', b: Box) {
   return { k, x: b.left + (b.width - f.vw * k) / 2, y: b.top + (b.height - f.vh * k) / 2 };
 }
 
+// How long the last frame holds before the film closes by itself.
+const END_HOLD_MS = 1800;
+
 export function TourPlayer({ onClose, from }: { onClose: () => void; from?: HTMLCanvasElement | null }) {
   const video = useRef<HTMLVideoElement>(null);
   const standIn = useRef<HTMLCanvasElement>(null);
@@ -77,6 +80,8 @@ export function TourPlayer({ onClose, from }: { onClose: () => void; from?: HTML
   // Chosen once, as the tour opens, so turning a tablet doesn't restart it.
   const [shape] = useState<'tall' | 'wide'>(() => (matchMedia(WIDE_SCREEN).matches ? 'wide' : 'tall'));
   const film = useFilm(video);
+  const ending = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(ending.current), []);
   const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const [arriving, setArriving] = useState(() => !!from && !reduced);
   // Read once: the film's frame keeps easing back after the player is in (arriving is false by then).
@@ -223,9 +228,10 @@ export function TourPlayer({ onClose, from }: { onClose: () => void; from?: HTML
         aria-describedby="tour-words"
         // Our own controls, not the phone's (FilmControls): a tap on the film pauses or plays it.
         onClick={film.toggle}
-        // It stays open at the end (the accessibility review, 2026-10-30), so nothing vanishes from under a viewer;
-        // the focus goes to Skip tour, to close it.
-        onEnded={() => close.current?.focus()}
+        // At the end it holds the wordmark a moment, then closes on its own, as the demos do (the EC tester walk,
+        // Nov 22: it sat on near black with only Skip tour as the way out). Playing it again stops the close.
+        onEnded={() => { ending.current = window.setTimeout(onClose, END_HOLD_MS); }}
+        onPlay={() => window.clearTimeout(ending.current)}
       >
         {SOURCES[shape].map((v) => (
           <source key={v.src} src={v.src} type={v.type} />
