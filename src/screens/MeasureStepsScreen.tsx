@@ -43,6 +43,10 @@ interface Props {
   opening?: boolean;
   /** Measuring someone else: their name, given on the first page, before any measurement is taken, with the form picked for them. */
   onSomeoneElse?: (name: string, form: FormKind) => void;
+  /** Someone who isn't here to be measured: add them, and go to the link that asks them to measure themselves. */
+  onAskThem?: (name: string, form: FormKind) => void;
+  /** Sign-in is on and nobody is signed in: the check page offers to keep the numbers in an account. */
+  onKeepSafe?: () => void;
   /** The measurements in use are someone else's, so every page is worded for the person holding the tape. */
   theirs?: boolean;
   /** Their name, for the line over the first measurement. */
@@ -112,7 +116,7 @@ const aOrAn = (name: string) => (/(s|wear|lingerie)$/i.test(name) && !/dress$/i.
 // There is no first page (Fable's concept A, Cat's apply, Nov 15): Begin opens on the waist. Who you are designing
 // for, and the form, sit in one quiet line above the first measurement, with Change for the few who need it;
 // "Someone else" words every page for the person holding the tape and asks their name before any number is taken.
-export function MeasureStepsScreen({ testerCode, garment: current, unit, values, onUnit, onValues, helped = [], weight, onWeight, onDone, start, opening, onSomeoneElse, theirs, theirName, onSkip, onLater, form = 'womenswear', onForm, onIdea, onPhoto, onLooks, onMade, onNews, onPage, unused = () => [], named = (g) => GARMENT_NAME[g] }: Props) {
+export function MeasureStepsScreen({ testerCode, garment: current, unit, values, onUnit, onValues, helped = [], weight, onWeight, onDone, start, opening, onSomeoneElse, onAskThem, onKeepSafe, theirs, theirName, onSkip, onLater, form = 'womenswear', onForm, onIdea, onPhoto, onLooks, onMade, onNews, onPage, unused = () => [], named = (g) => GARMENT_NAME[g] }: Props) {
   const aimed = start?.kind === 'for' ? start.garment : undefined;
   // Opened afresh for a garment, a redo, the form or the garments (not a reload, and not stepped back into): its own
   // first page, not the one this history entry remembers from before.
@@ -340,6 +344,15 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
             Choose what to make
           </button>
         )}
+        {onKeepSafe && (
+          // Measurements live on the device until someone signs in, and testers lost theirs moving from phone to computer.
+          <p className="muted small keep-safe">
+            Kept on this device only.{' '}
+            <button type="button" className="later go" onClick={onKeepSafe}>
+              Keep them safe with your email ›
+            </button>
+          </p>
+        )}
       </Shell>
     );
 
@@ -359,6 +372,8 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
             <button key={g} type="button" aria-current={picked === g || undefined} className={picked === g ? 'on' : ''} onClick={() => tapToMake(g)}>
               <MakePic garment={g} />
               <span className="make-name">{g === 'other' ? 'Something else' : cap(GARMENT_NAME[g])}</span>
+              {/* The simplest piece to sew: two pieces, darts and a zip. Eleven equal tiles gave a beginner nowhere to start. */}
+              {g === 'skirt' && form !== 'menswear' && <span className="eyebrow make-first">Good first make</span>}
             </button>
           ))}
         </div>
@@ -560,6 +575,23 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
             <label htmlFor="who-name">Name</label>
             <input id="who-name" autoComplete="off" autoFocus value={name} onChange={(e) => setName(e.target.value)} />
           </div>
+        )}
+        {helper && !theirs && onAskThem && (
+          // A gift, or a client across town: the link that lets them measure themselves was only in the client book.
+          <p className="muted small ask-them">
+            Not with you?{' '}
+            <button
+              type="button"
+              className="later go"
+              disabled={!name.trim()}
+              onClick={() => {
+                setWho(false);
+                onAskThem(name.trim(), chosen);
+              }}
+            >
+              Send them a measuring link ›
+            </button>
+          </p>
         )}
         <button type="button" className="primary" disabled={helper && !theirs && !name.trim()} onClick={pickWho}>
           Done

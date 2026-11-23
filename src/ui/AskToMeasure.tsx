@@ -14,6 +14,8 @@ interface Props {
   onAccount: (a: Account) => void;
   /** A reply link pasted in, for when it opened outside the home-screen app. */
   onReply: (reply: MeasureReply) => void;
+  /** The simple view: someone sewing for a friend or family, so no talk of clients or a studio. */
+  simple?: boolean;
 }
 
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
@@ -22,7 +24,7 @@ const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
  * Ask a client to measure themselves (Cat's pick L1 Reply Link with L4 studio branding, 2026-10-18): pick the
  * garment, and the link asks only what it needs. The studio name and note show on the client's first page.
  */
-export function AskToMeasure({ account, person, garment: start, onAccount, onReply }: Props) {
+export function AskToMeasure({ account, person, garment: start, onAccount, onReply, simple }: Props) {
   const own = person.id === ME;
   const [garment, setGarment] = useState<Garment>(start);
   const [client, setClient] = useState('');
@@ -74,7 +76,7 @@ export function AskToMeasure({ account, person, garment: start, onAccount, onRep
       </p>
 
       <button type="button" className="link quiet" aria-expanded={studioOpen} onClick={() => setStudioOpen(!studioOpen)}>
-        {studio.name.trim() ? `How clients see you: ${studio.name.trim()}` : 'How clients see you'}
+        {simple ? 'Your name and a note for them' : studio.name.trim() ? `How clients see you: ${studio.name.trim()}` : 'How clients see you'}
       </button>
       {studioOpen && (
         <div className="stack studio-setup">
@@ -82,12 +84,14 @@ export function AskToMeasure({ account, person, garment: start, onAccount, onRep
             <label htmlFor="ask-from">Your name</label>
             <input id="ask-from" autoComplete="name" value={account.name} onChange={(e) => onAccount({ ...account, name: e.target.value })} />
           </div>
-          <div className="field plain ready">
-            <label htmlFor="ask-studio">Studio name, shown big on their first page</label>
-            <input id="ask-studio" autoComplete="organization" value={studio.name} onChange={(e) => onAccount({ ...account, studio: { ...studio, name: e.target.value } })} />
-          </div>
+          {!simple && (
+            <div className="field plain ready">
+              <label htmlFor="ask-studio">Studio name, shown big on their first page</label>
+              <input id="ask-studio" autoComplete="organization" value={studio.name} onChange={(e) => onAccount({ ...account, studio: { ...studio, name: e.target.value } })} />
+            </div>
+          )}
           <label className="field plain ready">
-            <span className="small">A note on every link</span>
+            <span className="small">{simple ? 'A note for them' : 'A note on every link'}</span>
             <textarea id="ask-note" rows={2} maxLength={400} placeholder="Wear something close-fitting, and ask someone to help with the back." value={studio.note} onChange={(e) => onAccount({ ...account, studio: { ...studio, note: e.target.value } })} />
           </label>
         </div>
@@ -113,7 +117,7 @@ export function AskToMeasure({ account, person, garment: start, onAccount, onRep
             setPasted('');
             setPasteNote('');
             onReply(got.reply);
-          } else setPasteNote(got?.kind === 'ask' ? "That's a link for a client to measure with, not their reply." : "That doesn't look like a whole reply link. Ask them to send it again.");
+          } else setPasteNote(got?.kind === 'ask' ? (simple ? "That's the link they measure with, not their reply." : "That's a link for a client to measure with, not their reply.") : "That doesn't look like a whole reply link. Ask them to send it again.");
         }}
       >
         <div className="field plain ready">
