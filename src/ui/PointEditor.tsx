@@ -22,6 +22,8 @@ import { pairs } from '../engine/qc';
 interface PointEditing {
   /** The garment's own pieces as drafted, before any point is moved. */
   base: Piece[];
+  /** The pieces that print but aren't moved here (sleeves, bands, collars, facings, waistbands), by name. */
+  fixed?: string[];
   edits: PatternEdit[];
   setEdits: (e: PatternEdit[]) => void;
 }
@@ -48,8 +50,12 @@ const MAX_OPEN = 40;
 function WatchDraft({ onPlay }: { onPlay: () => void }) {
   return (
     <div className="watch-draft">
-      <button type="button" className="link small" onClick={onPlay}>
-        Watch it draft <span aria-hidden="true">▶</span>
+      {/* The same look as every Demo button, since both play a film (Cat, Nov 22: "We can't have too many different
+          styles"): its words and mark take the Demo's classes, the button its own so Demo counts stay Demo's. */}
+      <button type="button" className="watch-play" onClick={onPlay}>
+        <span className="demo-play-words">
+          Watch it draft<span className="demo-play-mark" aria-hidden="true">{'▶︎'}</span>
+        </span>
       </button>
     </div>
   );
@@ -79,6 +85,9 @@ function useCornerRoom(shown: boolean) {
 }
 
 /** The pattern view with a Move points switch: the pattern preview, or the editor in its place. */
+/** "A", "A and B", "A, B and C". */
+const listed = (names: string[]) => (names.length < 2 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`);
+
 export function PatternPane({ children, onPlay }: { children: ReactNode; onPlay?: () => void }) {
   const ctx = useContext(PointEditContext);
   const [on, setOn] = useState(false);
@@ -125,6 +134,9 @@ export function PatternPane({ children, onPlay }: { children: ReactNode; onPlay?
         <div className="demo-inline">
           <p className="muted small pe-howto">
             Drag a point, draw a line across a piece to cut it, or tap a cut to change it. <TestingTag tool="pattern_tools" />
+            {/* Said, so a piece missing here isn't taken for a piece missing from the pattern (pretend tester EC walk,
+                Nov 22: the Ice Peplum showed 6 of its 9 pieces with no word why). */}
+            {!!ctx.fixed?.length && <span className="pe-fixed">Not moved here: {listed(ctx.fixed)}. They print as drafted.</span>}
           </p>
           <DemoButton demo="patterns" />
         </div>
@@ -668,7 +680,9 @@ function PointEditor({ base, edits: saved, setEdits: save, undo }: PointEditing 
             {pc.lines.map((ln, i) => (
               <polyline key={i} points={ln.points(8).map((q) => `${q.x + place[pc.name].x},${q.y + place[pc.name].y}`).join(' ')} className="pe-line" vectorEffect="non-scaling-stroke" />
             ))}
-            <text x={place[pc.name].x + (pc.labels[0]?.at.x ?? 0)} y={place[pc.name].y + (pc.labels[0]?.at.y ?? 0)} fontSize={r * 2.45} textAnchor="middle" className="pe-name">
+            {/* Turned along a narrow piece, as the printed label is: across it, the name ran over the outlines and off the
+                window's edge ("DICE CENTRE FRONT", pretend tester EC walk, Nov 22). */}
+            <text x={place[pc.name].x + (pc.labels[0]?.at.x ?? 0)} y={place[pc.name].y + (pc.labels[0]?.at.y ?? 0)} transform={pc.labels[0]?.rotate ? `rotate(${pc.labels[0].rotate} ${place[pc.name].x + pc.labels[0].at.x} ${place[pc.name].y + pc.labels[0].at.y})` : undefined} fontSize={r * 2.45} textAnchor="middle" className="pe-name">
               {pc.name.toUpperCase()}
             </text>
           </g>

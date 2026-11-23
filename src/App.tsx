@@ -475,8 +475,11 @@ export default function App() {
   }, [drafts, moved]);
   const pointEditing = useMemo(() => {
     const { skirt, bodice, dress: d, trousers, tee, knitDress, hoodie, jumpsuit, lingerie, outer } = drafts;
-    const base = (bodice ?? d ?? trousers ?? tee ?? knitDress ?? hoodie ?? jumpsuit ?? lingerie ?? outer ?? skirt)?.pieces.filter((pc) => !pc.kind) ?? [];
-    return { base, edits: moved ?? [], setEdits: (e: PatternEdit[]) => setPointEdits({ ...pointEdits, [garment]: e }) };
+    const all = (bodice ?? d ?? trousers ?? tee ?? knitDress ?? hoodie ?? jumpsuit ?? lingerie ?? outer ?? skirt)?.pieces ?? [];
+    const base = all.filter((pc) => !pc.kind);
+    // Named in Move points, which shows only the garment's own block: the rest still print, as drafted.
+    const fixed = [...new Set([...(drafts.sleeve?.pieces ?? []), ...all.filter((pc) => pc.kind)].map((pc) => pc.name))];
+    return { base, fixed, edits: moved ?? [], setEdits: (e: PatternEdit[]) => setPointEdits({ ...pointEdits, [garment]: e }) };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- setPointEdits is the saved-work setter, the same on every render
   }, [drafts, moved, garment, pointEdits]);
 
