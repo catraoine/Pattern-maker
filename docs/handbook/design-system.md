@@ -10,7 +10,7 @@ inventing a new one. The shared rules live in `src/styles/47-clarity.css`.
 
 | Role | The one style | In code |
 | --- | --- | --- |
-| Main button | Champagne fill, 16 px Chakra Petch 500, spaced 0.1em, 56 px tall. One per screen, in view. | `button.primary` |
+| Main button | Champagne fill, 16 px Chakra Petch 500, spaced 0.1em, 56 px tall (52 px on phones under 480 px tall). One per screen, in view. | `button.primary` |
 | Second button | 1 px champagne outline, 13.5 px capitals, 44 px tall. | `button.secondary` |
 | Action link | 13.5 px champagne capitals; › only when it leaves the screen. | `.later`, `.link` |
 | Link in a sentence | The sentence's own type, underlined. | `a`, `.link.quiet` |

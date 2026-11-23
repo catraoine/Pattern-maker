@@ -57,7 +57,7 @@ const PLAIN: Record<string, string> = { 'Hem circumference': 'Hem, all the way r
 const fmtIn = (unit: 'cm' | 'in') => (v: number) => (unit === 'cm' ? `${Math.round(v * 10) / 10}` : toInches(v).replace(/ in$/, ''));
 
 /** The fit word as it reads after the ease: "close fit", "comfy", "stretches on". */
-const fitWords = (fit: string) => (fit === 'Close' ? 'close fit' : fit.toLowerCase());
+const fitWords = (fit: string) => (fit === 'Close' ? 'Close fit' : fit);
 
 /** The finished measurements table: You, the garment, and the ease with its fit word. */
 export function FinishedTable({ lines, noun, children }: { lines: FinishedLine[]; noun: string; children?: ReactNode }) {

@@ -62,6 +62,13 @@ button.primary {
   letter-spacing: 0.1em;
   white-space: normal;
 }
+/* On the shortest phones (an iPhone SE's 454px with Safari's bars) the main button keeps its old 52px, so the measuring
+   pages still fit the screen with nothing to scroll (fold check). */
+@media (max-height: 480px) {
+  button.primary {
+    min-height: 52px;
+  }
+}
 @media (hover: hover) {
   button.primary:hover:not(:disabled) {
     background: var(--gild-glow);
