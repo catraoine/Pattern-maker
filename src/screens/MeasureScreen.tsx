@@ -118,6 +118,12 @@ export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, g
           <button type="button" className="primary" onClick={() => onMeasure(missing.map((f) => f.id))}>
             Continue measuring
           </button>
+        ) : problem ? (
+          // A number out of range was kept so it can be mended, but the list went on past it: the button takes you
+          // straight to it, rather than sitting greyed out (pretend-tester walk, Nov 24).
+          <button type="button" className="primary" onClick={() => onMeasure([problem.id])}>
+            Check {worded(rows.find((f) => f.id === problem.id)!.label, form).toLowerCase()}
+          </button>
         ) : (
           <button type="button" className="primary" disabled={!canContinue} onClick={onNext}>
             Style your {name}
