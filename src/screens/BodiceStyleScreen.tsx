@@ -140,7 +140,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
   const [onForm, setOnForm] = useState<BodiceChoices>();
   const m = values as BodiceMeasurements;
   const pieces = useMemo(() => (draft ? [...draft.pieces, ...(sleeve?.pieces ?? [])] : []), [draft, sleeve]);
-  const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
+  const sheet = useMemo(() => (draft ? layout(pieces, '', [], undefined, { upright: true }) : undefined), [draft, pieces]);
   const valid = validDetails(choices);
   const ease = bodiceEase(valid);
   const top = isTop(choices.neckline);

@@ -71,7 +71,7 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
   const [drawing, setDrawing] = useState<TrousersChoices>();
   const canFit = !!easeMap?.length && can('easeMap');
   const pieces = useMemo(() => draft?.pieces ?? [], [draft]);
-  const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
+  const sheet = useMemo(() => (draft ? layout(pieces, '', [], undefined, { upright: true }) : undefined), [draft, pieces]);
   const title = describeTrousers(choices);
   const round = useMemo(() => (draft ? roundTrousers(draft, values) : undefined), [draft, values]);
   // All round sews the trousers from their own pattern pieces on the form (All round quality, Cat 2026-11-07), the

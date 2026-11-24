@@ -405,7 +405,8 @@ export function useNarrow() {
   return useMedia('(max-width: 760px)');
 }
 
-function useMedia(q: string) {
+/** Whether a media query matches, kept up to date as the window turns or resizes. */
+export function useMedia(q: string) {
   const query = () => typeof window !== 'undefined' && !!window.matchMedia?.(q).matches;
   const [wide, setWide] = useState(query);
   useEffect(() => {
@@ -877,6 +878,39 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
     window.addEventListener('scroll', check, { passive: true });
     return () => window.removeEventListener('scroll', check);
   }, [wide, page]);
+
+  // A short step (Fit's three words and one line) left a band of nothing between its words and Next on a phone (Cat's
+  // phone, Nov 23), while a step of picture tiles needs the shorter window C8 gave it. So the window grows into
+  // whatever room the open step leaves, up to the tall height it had before C8, and a long step keeps it short.
+  useEffect(() => {
+    const el = root.current;
+    const box = panel.current;
+    if (wide || page !== 'edit' || !el || !box) return;
+    const fit = () => {
+      // (Where the step's words end on the page, unscrolled, so a scrolled page measures the same.)
+      const end = box.lastElementChild?.getBoundingClientRect().bottom;
+      const last = end === undefined ? undefined : end + window.scrollY;
+      const bar = document.querySelector('.style-bar')?.getBoundingClientRect().top ?? window.innerHeight;
+      if (last === undefined) return;
+      // The height the window should be: as tall as it is now plus the room left under the step. Measured from the
+      // window itself, not from the last value set, so a capped, switched-off or half-grown window never adds up.
+      const view = pin.current?.querySelector<HTMLElement>(':scope > section:not(.live-big) > .preview');
+      if (!view) return;
+      const target = Math.round(view.getBoundingClientRect().height + bar - 24 - last);
+      if (el.style.getPropertyValue('--view-target') !== `${target}px`) el.style.setProperty('--view-target', `${target}px`);
+    };
+    fit();
+    const watch = new ResizeObserver(fit);
+    watch.observe(box);
+    // An open tool (Move points' nudges) makes the pinned part taller, and that takes the room back.
+    if (pin.current) watch.observe(pin.current);
+    window.addEventListener('resize', fit);
+    return () => {
+      watch.disconnect();
+      window.removeEventListener('resize', fit);
+      el.style.removeProperty('--view-target');
+    };
+  }, [wide, page, active]);
 
   const Name = name.charAt(0).toUpperCase() + name.slice(1);
   // The summary folded under one line, with its own Print and Edit measurements hidden (they're drawn here instead).

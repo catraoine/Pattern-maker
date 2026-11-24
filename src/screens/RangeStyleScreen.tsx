@@ -151,7 +151,7 @@ export function RangeStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const a = about(choices);
   const c = isJumpsuit(choices) ? validJumpsuit(choices) : choices;
   const pieces = useMemo(() => draft?.pieces ?? [], [draft]);
-  const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
+  const sheet = useMemo(() => (draft ? layout(pieces, '', [], undefined, { upright: true }) : undefined), [draft, pieces]);
   const flat = useMemo(() => {
     if (!draft) return undefined;
     if ('trousers' in draft) return jumpsuitFlat(draft, values as unknown as TrousersMeasurements);

@@ -1,4 +1,4 @@
-import { CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
+import { CSSProperties, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { P } from '../engine/geometry';
 import { DraftStep, Sheet, textWidth } from '../engine/export';
 
@@ -77,6 +77,63 @@ function piecesBox(sheet: Sheet): { x: number; y: number; w: number; h: number }
   return { x: x0 - 1, y: y0 - 1, w: x1 - x0 + 2, h: y1 - y0 + 2 };
 }
 
+/** Each piece's extent on a sheet, labels included, by piece number. */
+function eachPieceBox(sheet: Sheet): Map<number, { x: number; y: number; w: number; h: number }> {
+  const out = new Map<number, { x0: number; y0: number; x1: number; y1: number }>();
+  for (const pr of sheet.prims) {
+    if (pr.piece === undefined) continue;
+    const b = out.get(pr.piece) ?? { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity };
+    for (const q of pr.kind === 'poly' ? pr.pts : textEnds(pr)) {
+      b.x0 = Math.min(b.x0, q.x);
+      b.y0 = Math.min(b.y0, q.y);
+      b.x1 = Math.max(b.x1, q.x);
+      b.y1 = Math.max(b.y1, q.y);
+    }
+    out.set(pr.piece, b);
+  }
+  return new Map([...out].map(([k, b]) => [k, { x: b.x0, y: b.y0, w: b.x1 - b.x0, h: b.y1 - b.y0 }]));
+}
+
+const PIECE_GAP = 3; // cm between pieces on screen
+
+/**
+ * The pieces in the rows that show them biggest in a window of this shape (width over height): in a row on a wide
+ * computer window, one above the other in a tall phone window (clarity review C1 and C7, Nov 22: on a phone the
+ * enlarged pieces used 41% of the window, on a computer they sat in its middle third). Each piece's move, and the
+ * drawing's size.
+ */
+function fitPieces(boxes: Map<number, { x: number; y: number; w: number; h: number }>, aspect: number) {
+  // Tallest first, so each row's pieces are of a height, filled to a row width; every row width that changes the rows
+  // is tried, and the one that draws the pieces biggest in the window wins.
+  const ids = [...boxes.keys()].sort((a, b) => boxes.get(b)!.h - boxes.get(a)!.h);
+  const widths = new Set<number>();
+  let run = -PIECE_GAP;
+  for (const id of [...ids].sort((a, b) => boxes.get(b)!.w - boxes.get(a)!.w)) widths.add((run += boxes.get(id)!.w + PIECE_GAP));
+  for (const id of ids) widths.add(boxes.get(id)!.w);
+  const widest = Math.max(...ids.map((id) => boxes.get(id)!.w));
+  let best: { move: Map<number, P>; w: number; h: number; scale: number } | undefined;
+  for (const target of widths) {
+    if (target < widest - 0.01) continue;
+    const move = new Map<number, P>();
+    let [x, y, rowH, w] = [0, 0, 0, 0];
+    for (const id of ids) {
+      const b = boxes.get(id)!;
+      if (x > 0 && x + b.w > target + 0.01) {
+        y += rowH + PIECE_GAP;
+        [x, rowH] = [0, 0];
+      }
+      move.set(id, { x: x - b.x, y: y - b.y });
+      x += b.w + PIECE_GAP;
+      rowH = Math.max(rowH, b.h);
+      w = Math.max(w, x - PIECE_GAP);
+    }
+    const h = y + rowH;
+    const scale = Math.min(aspect / w, 1 / h);
+    if (!best || scale > best.scale * 1.001) best = { move, w, h, scale };
+  }
+  return best;
+}
+
 /**
  * The real pattern pieces, drawn from the same sheet the PDF is printed from. Each time `play` changes
  * (from 0), the pattern draws itself step by step, the way it is drafted, with a caption for each step.
@@ -95,7 +152,8 @@ export function PatternPreview({ sheet, label, play = 0, names = [], paper = fal
       }),
     [sheet, steps],
   );
-  const [tip, setTip] = useState<P>();
+  // The pencil's point, and the piece its line is on (that piece's move on screen is the pencil's too).
+  const [tip, setTip] = useState<{ at: P; piece: number }>();
   const frame = useRef<number>();
 
   useEffect(() => {
@@ -105,7 +163,7 @@ export function PatternPreview({ sheet, label, play = 0, names = [], paper = fal
     timers.push(setTimeout(() => setNow(steps.length), steps.length * STEP_MS));
     timers.push(setTimeout(() => setNow(undefined), steps.length * STEP_MS + 1600));
     const start = performance.now();
-    let last: P | undefined;
+    let last: { at: P; piece: number } | undefined;
     const tick = (t: number) => {
       const elapsed = t - start;
       const k = Math.floor(elapsed / STEP_MS);
@@ -116,7 +174,7 @@ export function PatternPreview({ sheet, label, play = 0, names = [], paper = fal
       const route = routes[k];
       if (route) {
         const f = Math.min(1, Math.max(0, (elapsed - k * STEP_MS) / 1000));
-        last = along(route, f * f * (3 - 2 * f));
+        last = { at: along(route, f * f * (3 - 2 * f)), piece: steps[k].piece };
       }
       setTip(last);
       frame.current = requestAnimationFrame(tick);
@@ -142,7 +200,25 @@ export function PatternPreview({ sheet, label, play = 0, names = [], paper = fal
   // and the title card, empty here, and with its margins took a fifth of the box, so the pieces sat small in the middle
   // (Cat's film notes, Nov 18).
   const box = useMemo(() => (paper ? piecesBox(sheet) : undefined), [paper, sheet]);
-  const viewBox = box ? `${box.x} ${box.y} ${box.w} ${box.h}` : `0 0 ${sheet.width} ${sheet.height}`;
+  // On paper the pieces are laid out again for the window's shape, read from the window itself.
+  const holder = useRef<HTMLDivElement>(null);
+  const [aspect, setAspect] = useState<number>();
+  useLayoutEffect(() => {
+    const el = holder.current;
+    if (!el) return;
+    const read = () => {
+      if (el.clientWidth > 0 && el.clientHeight > 0) setAspect(Math.round((el.clientWidth / el.clientHeight) * 10) / 10);
+    };
+    read();
+    const watch = new ResizeObserver(read);
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, [paper]);
+  const fit = useMemo(() => (paper && aspect ? fitPieces(eachPieceBox(sheet), aspect) : undefined), [paper, aspect, sheet]);
+  const m = 1;
+  const viewBox = fit ? `${-m} ${-m} ${fit.w + 2 * m} ${fit.h + 2 * m}` : box ? `${box.x} ${box.y} ${box.w} ${box.h}` : `0 0 ${sheet.width} ${sheet.height}`;
+  const moveOf = (piece?: number) => (fit && piece !== undefined ? fit.move.get(piece) : undefined);
+  const tipMove = moveOf(tip?.piece);
 
   const drawing = (
       <svg key={playing ? `play-${play}` : 'still'} viewBox={viewBox} role="img" aria-label={label} className="preview-svg">
@@ -151,6 +227,8 @@ export function PatternPreview({ sheet, label, play = 0, names = [], paper = fal
           // pieces' box, sliced off at its edge (pretend tester EC walk, Nov 22). The PDF still prints them.
           if (box && pr.piece === undefined) return null;
           const a = anim(pr);
+          const mv = moveOf(pr.piece);
+          const shift = mv ? `translate(${mv.x} ${mv.y})` : undefined;
           if (pr.kind === 'poly') {
             const Tag = pr.closed ? 'polygon' : 'polyline';
             const stroke = pr.style === 'stitch' ? 'var(--muted)' : 'var(--ink)';
@@ -165,6 +243,7 @@ export function PatternPreview({ sheet, label, play = 0, names = [], paper = fal
                 strokeWidth={width}
                 strokeDasharray={pr.style === 'stitch' ? '0.5 0.3' : undefined}
                 strokeLinejoin="round"
+                transform={shift}
               />
             );
           }
@@ -177,19 +256,26 @@ export function PatternPreview({ sheet, label, play = 0, names = [], paper = fal
               textAnchor={pr.anchor}
               className={a.className}
               style={{ fontFamily: 'var(--mono)', fill: 'var(--ink)', ...a.style }}
-              transform={pr.rotate ? `rotate(${pr.rotate} ${pr.at.x} ${pr.at.y})` : undefined}
+              transform={[shift, pr.rotate ? `rotate(${pr.rotate} ${pr.at.x} ${pr.at.y})` : undefined].filter(Boolean).join(' ') || undefined}
             >
               {pr.text}
             </text>
           );
         })}
-        {playing && tip && <Pencil at={tip} size={Math.max(sheet.width, sheet.height) / 9} />}
+        {/* Sized to the drawing shown: the screen's sheet lays every piece in one row, far wider than the window. */}
+        {playing && tip && <Pencil at={tipMove ? { x: tip.at.x + tipMove.x, y: tip.at.y + tipMove.y } : tip.at} size={(fit ? Math.max(fit.w, fit.h) : box ? Math.max(box.w, box.h) : Math.max(sheet.width, sheet.height)) / 9} />}
       </svg>
   );
 
   return (
     <>
-      {paper ? <div className="paper-sheet">{drawing}</div> : drawing}
+      {paper ? (
+        <div className="paper-sheet" ref={holder}>
+          {drawing}
+        </div>
+      ) : (
+        drawing
+      )}
       {playing && (
         <p className="draft-caption" role="status">
           {current ? (

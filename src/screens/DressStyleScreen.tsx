@@ -137,7 +137,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
     const skirt = new Set(draft.skirt.pieces.map((pc) => pc.name));
     return [...draft.pieces.filter((pc) => !skirt.has(pc.name)), ...(sleeve?.pieces ?? []), ...draft.pieces.filter((pc) => skirt.has(pc.name)), ...beltPieces(dressBelt(choices.skirt.belt, draft), 1.5)];
   }, [draft, sleeve, choices.skirt.belt]);
-  const sheet = useMemo(() => (pieces.length ? layout(pieces, '', []) : undefined), [pieces]);
+  const sheet = useMemo(() => (pieces.length ? layout(pieces, '', [], undefined, { upright: true }) : undefined), [pieces]);
   const flat = useMemo(() => (draft ? dressFlat(draft, 'binding', { sleeve, belt: dressBelt(choices.skirt.belt, draft) }) : undefined), [draft, sleeve, choices.skirt]);
   const title = describePattern(choices);
   const round = useMemo(() => (draft ? roundDress(draft, values, sleeve) : undefined), [draft, values, sleeve]);

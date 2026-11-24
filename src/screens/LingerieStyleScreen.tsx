@@ -66,7 +66,7 @@ export function LingerieStyleScreen({ onPhoto, photo, choices, onChoices: setCho
   const undo = useUndo(choices, setChoices);
   const onChoices = undo.change;
   const pieces = useMemo(() => draft?.pieces ?? [], [draft]);
-  const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
+  const sheet = useMemo(() => (draft ? layout(pieces, '', [], undefined, { upright: true }) : undefined), [draft, pieces]);
   const title = describeLingerie(choices);
   const swim = isSwim(choices.piece);
   const missing = lingerieMissing(values as Partial<LingerieMeasurements>, choices.piece);

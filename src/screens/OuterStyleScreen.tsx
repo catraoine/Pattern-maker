@@ -82,7 +82,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   // reason above them, as on a top (code review, Nov 15: picking one drew nothing and asked for nothing).
   const arms = !needsArms(values as OuterMeasurements);
   const pieces = useMemo(() => draft?.pieces ?? [], [draft]);
-  const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
+  const sheet = useMemo(() => (draft ? layout(pieces, '', [], undefined, { upright: true }) : undefined), [draft, pieces]);
   const flat = useMemo(() => (draft ? outerFlat(draft) : undefined), [draft]);
   const title = describeOuter(choices);
   const round = useMemo(() => (draft ? roundOuter(draft, values) : undefined), [draft, values]);
