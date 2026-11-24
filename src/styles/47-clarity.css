@@ -418,9 +418,10 @@ body .watch-draft > .watch-play .demo-play-words {
 }
 
 /* The window takes the room a short step leaves under it (StyleLayout sets --view-target), never taller than before C8.
-   Not on the pattern: Move points and the pattern tools open under the window and need that room. */
+   The same height in every view (Cat, Nov 7). Not while Move points is open: its tools sit under the window and need
+   the room. */
 @media (max-width: 760px) {
-  .style-layout:not(.compact) .style-pin:not(:has(.paper-sheet, .point-svg)) > section:not(.live-big) > .preview {
+  .style-layout:not(.compact) .style-pin:not(:has(.point-svg)) > section:not(.live-big) > .preview {
     height: max(calc(var(--view-h) + 6px), min(var(--view-target, 0px), calc(44dvh + 6px)));
   }
 }
