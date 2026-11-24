@@ -1131,7 +1131,11 @@ function sleeveSteps(sl: SleeveDraft, seam: string, curve: string, lined: boolea
       : band
       ? {
           title: 'Attach the sleeve bands',
-          text: `Sew two rows of long gathering stitches round each sleeve hem, inside the seam allowance. Join each band's short ends into a ring, ${seam} from the edge, and press the seam open. Pin one edge of the band to the sleeve hem, right sides together, with its seam at the underarm and its notch at the middle of the sleeve, pull up the gathers to fit (the ${Math.round((sl.gathers!.hem + sl.hemCm) * 10) / 10} cm sleeve hem is drawn up to the ${sl.hemCm} cm band), and sew ${seam} from the edge. Fold the band in half to the inside along its fold line, turn its raw edge under ${seam}, and stitch it down over the seam.`,
+          text: `Sew two rows of long gathering stitches round each sleeve hem, inside the seam allowance. Join each band's short ends into a ring, ${seam} from the edge${
+            // The band closes round the wrist, so a hand has to go through it: worth a try before it is sewn on (Ice
+            // Peplum fit audit, Nov 22).
+            sl.pieces.some((pc) => pc.meta.overHand) ? '. Before you press it, slip the ring over your closed hand. It should pass easily. If it is tight, cut the band a little longer and join it again. Then press the seam open' : ', and press the seam open'
+          }. Pin one edge of the band to the sleeve hem, right sides together, with its seam at the underarm and its notch at the middle of the sleeve, pull up the gathers to fit (the ${Math.round((sl.gathers!.hem + sl.hemCm) * 10) / 10} cm sleeve hem is drawn up to the ${sl.hemCm} cm band), and sew ${seam} from the edge. Fold the band in half to the inside along its fold line, turn its raw edge under ${seam}, and stitch it down over the seam.`,
         }
       : sl.pieces[0].meta.flutter
         ? {

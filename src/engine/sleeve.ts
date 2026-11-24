@@ -562,7 +562,7 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
       warnings,
     };
   }
-  const band = gathered && !cuff ? bandPiece(shape === 'puff' ? m.upper_arm + 4 : hand + 1, s.seamAllowance) : undefined;
+  const band = gathered && !cuff ? bandPiece(shape === 'puff' ? m.upper_arm + 4 : hand + 1, s.seamAllowance, shape !== 'puff') : undefined;
   // A raglan: the sleeve cut in two along the top of the arm, the shoulders cut off the bodice joined on.
   const own: Piece[] = sleeveCut === 'raglan' ? toRaglan(sleeve, { crown: c.crown, frontCap: cubicPts(c.crown, c.front.c1, c.front.c2, Uf, 400), backCap: cubicPts(Ub, c.back.c1, c.back.c2, c.crown, 400), Uf, Ub, Wf, Wb, hem: cubicPts(Wf, hemC1, hemC2, Wb, 60), h, L, w, yokes: s.raglan!, s }) : [sleeve];
   const cutOf = sleeveCut ? { cut: sleeveCut } : {};
@@ -1042,8 +1042,9 @@ function twoPiece(o: {
   return [top, under];
 }
 
-/** A straight band, folded in half lengthwise, that a gathered sleeve's hem is sewn into. */
-function bandPiece(round: number, sa: number): Piece {
+/** A straight band, folded in half lengthwise, that a gathered sleeve's hem is sewn into. `overHand`: a bishop's band,
+ *  sized to slip over the closed hand rather than round the upper arm. */
+function bandPiece(round: number, sa: number, overHand = false): Piece {
   const W = 2 * BAND_CM;
   const L = round;
   const outline = new Path(p(0, 0)).line(p(W, 0), 'end').line(p(W, L), 'band').line(p(0, L), 'end').line(p(0, 0), 'band');
@@ -1067,6 +1068,6 @@ function bandPiece(round: number, sa: number): Piece {
     cut,
     seamAllowance: sa,
     allowances: {},
-    meta: { finishedWidth: BAND_CM, lengthCm: r1(L) },
+    meta: { finishedWidth: BAND_CM, lengthCm: r1(L), ...(overHand ? { overHand: true } : {}) },
   };
 }
