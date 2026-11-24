@@ -449,3 +449,12 @@ section[aria-label='Preview'] > .preview .all-round-tools {
   background: transparent;
   color: rgb(42, 38, 34);
 }
+
+/* Grown taller, the window let the garment fill its height, and its waist met the corner's Enlarge and Draw (screen
+   check, Nov 24). On a phone the drawing starts under the corner's row, as Flat's already does. */
+@media (max-width: 760px) {
+  .style-layout .style-pin > section:not(.live-big) > .preview > svg.preview-svg {
+    box-sizing: border-box;
+    padding-top: 34px;
+  }
+}
