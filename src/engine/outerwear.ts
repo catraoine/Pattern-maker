@@ -15,7 +15,7 @@ import { DraftError } from './skirt';
 import { patchPocket, spanAt, weltPieces } from './pocketPieces';
 import { ChestPlace, ChestPocket, FLAP, chestWelt, flapPieces } from './jacketPockets';
 import { straightSidePair } from './straightSides';
-import { MENS_STANCE } from './menswearTailoring';
+import { MENS_POINTS, MENS_STANCE } from './menswearTailoring';
 
 export type OuterKind = 'jacket' | 'coat';
 export type OuterFit = 'fitted' | 'regular' | 'relaxed' | 'oversized';
@@ -1395,6 +1395,8 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     shape: s.sleeve === 'raglan' || s.sleeve === 'none' ? ('straight' as const) : s.sleeve,
     fit: s.fit,
     outer: s.kind,
+    // A man's jacket sleeve stops at the wrist bone, so the shirt cuff shows.
+    ...(s.fitting?.flatFront && s.kind === 'jacket' ? { shorter: MENS_POINTS.sleeveShorter } : {}),
     unpadded: pad === 0,
     seamAllowance: sa,
     armholeAllowance: 1,

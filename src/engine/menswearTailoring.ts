@@ -16,3 +16,12 @@ export const MENS_TROUSER = { toBack: 1.5, dart: 11, weltDart: 9.5 };
  * `buttons` buttons `gap` cm apart, the classic two-button stance, where it broke at the chest and buttoned to the hem.
  */
 export const MENS_STANCE = { aboveWaist: 2, buttons: 2, gap: 11 };
+
+/**
+ * The smaller points of the menswear fit audit (Nov 22), each a tailor's habit the womenswear cut does not share.
+ * A jacket sleeve stops `sleeveShorter` cm sooner, at the wrist bone, so a little shirt cuff shows below it. A shirt's
+ * neck seam is drafted `neckCloser` cm smaller, so a buttoned collar sits 2 cm bigger than the neck and not 3. A shirt
+ * has `shirtEase` cm more room round the chest, waist and hem than a blouse of the same fit (Regular is then 10 cm, where a
+ * blouse's 7 read as a slim fit on a man). And the sleeve is pleated into its cuff, not gathered.
+ */
+export const MENS_POINTS = { sleeveShorter: 1.5, neckCloser: 0.9, shirtEase: 3 };

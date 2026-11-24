@@ -225,13 +225,15 @@ export function placketStep(c: CuffDraft): Step {
 const PLEATS_TAKE_UP = 10;
 
 /** Making and sewing on the cuffs, once the sleeve seams are sewn. */
-export function cuffStep(c: CuffDraft, sl: { gathers?: { hem: number } }, seam: string): Step {
+export function cuffStep(c: CuffDraft, sl: { gathers?: { hem: number }; pleated?: boolean }, seam: string): Step {
   const gathers = sl.gathers?.hem ?? 0;
+  // A man's shirt: the fullness folded into two pleats beside the placket, each taking up half of it.
+  const pleats = `Fold the sleeve hem's fullness into two pleats on the back of the sleeve, the first 2 cm from the placket and the second 2 cm past it, each taking up ${r1(gathers / 2)} cm and folded toward the placket, and tack them inside the seam allowance`;
   const gather = `Sew two rows of long gathering stitches round each sleeve hem, inside the seam allowance${gathers > 0 ? `, and draw them up by ${gathers} cm to fit the cuff` : ''}, spreading the gathers evenly`;
   if (c.kind === 'shirt') {
     return {
       title: 'Attach the cuffs',
-      text: `Fuse the interfacing to the wrong side of each cuff. Press under ${seam} along the long edge without the notch. ${gather}${gathers <= PLEATS_TAKE_UP ? ', or fold the fullness into two pleats toward the placket' : ''}. Pin the cuff's notched edge to the sleeve hem, right sides together, with the BUTTON end at the back of the placket and the BUTTONHOLE end at the front: the back of the placket laps under by the cuff's ${CUFF.shirt.overlap} cm extension. Sew ${seam} from the edge and press the seam into the cuff. Fold the cuff right sides together along its fold line and sew across each end ${seam} in. Trim, turn it right side out and press. Stitch the pressed edge down over the seam inside, then topstitch round the cuff 0.3 cm from the edge. ${c.oversized ? `Work ${c.oversized.buttons} buttonholes evenly up the BUTTONHOLE end, the first 1.5 cm from each long edge, and sew the buttons to match on the BUTTON end. The cuff closes loosely, ${c.round} cm round, and falls over the back of the hand.` : `Work a buttonhole at BUTTONHOLE and sew a button at BUTTON. The cuff closes ${c.round} cm round.`}`,
+      text: `Fuse the interfacing to the wrong side of each cuff. Press under ${seam} along the long edge without the notch. ${sl.pleated ? pleats : `${gather}${gathers <= PLEATS_TAKE_UP ? ', or fold the fullness into two pleats toward the placket' : ''}`}. Pin the cuff's notched edge to the sleeve hem, right sides together, with the BUTTON end at the back of the placket and the BUTTONHOLE end at the front: the back of the placket laps under by the cuff's ${CUFF.shirt.overlap} cm extension. Sew ${seam} from the edge and press the seam into the cuff. Fold the cuff right sides together along its fold line and sew across each end ${seam} in. Trim, turn it right side out and press. Stitch the pressed edge down over the seam inside, then topstitch round the cuff 0.3 cm from the edge. ${c.oversized ? `Work ${c.oversized.buttons} buttonholes evenly up the BUTTONHOLE end, the first 1.5 cm from each long edge, and sew the buttons to match on the BUTTON end. The cuff closes loosely, ${c.round} cm round, and falls over the back of the hand.` : `Work a buttonhole at BUTTONHOLE and sew a button at BUTTON. The cuff closes ${c.round} cm round.`}`,
     };
   }
   if (c.kind === 'ruffle') {
