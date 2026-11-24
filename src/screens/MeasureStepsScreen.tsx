@@ -34,8 +34,8 @@ interface Props {
   /** Their weight in kg, if given, and giving it: asked with the height, and only read against it to double-check the girths. */
   weight?: number;
   onWeight?: (kg: number | undefined) => void;
-  /** Measured for this garment: on to styling it. */
-  onDone: (garment: Garment) => void;
+  /** Measured for this garment: on to styling it, or back to Print or Sew when they asked for the measurements. */
+  onDone: (garment: Garment, then?: AfterMeasuring) => void;
   /** Where to open. By default the start (or the check, once the base set is in). "choose" opens the list of what
    * to make; a garment opens on the first measurement it still needs; "redo" opens one measurement and comes back. */
   start?: StepsStart;
@@ -74,7 +74,10 @@ interface Props {
   onPage?: (kind: PageKind) => void;
 }
 
-export type StepsStart = { kind: 'resume' } | { kind: 'choose' } | { kind: 'check' } | { kind: 'form' } | { kind: 'for'; garment: Garment; also?: MeasurementId[] } | { kind: 'redo'; garment: Garment; ids: MeasurementId[] };
+export type StepsStart = { kind: 'resume' } | { kind: 'choose' } | { kind: 'check' } | { kind: 'form' } | { kind: 'for'; garment: Garment; also?: MeasurementId[]; then?: AfterMeasuring } | { kind: 'redo'; garment: Garment; ids: MeasurementId[] };
+
+/** Where measuring for a garment goes once its last page is done, when not to Style: Print or Sew asked for them. */
+export type AfterMeasuring = 'export' | 'sew';
 
 type Page =
   | { kind: 'form' }
@@ -82,7 +85,7 @@ type Page =
   | { kind: 'weight'; back?: 'check' }
   | { kind: 'check' }
   | { kind: 'choose' }
-  | { kind: 'extra'; garment: Garment | 'other'; ids: MeasurementId[]; at: number; redo?: boolean }
+  | { kind: 'extra'; garment: Garment | 'other'; ids: MeasurementId[]; at: number; redo?: boolean; then?: AfterMeasuring }
   | { kind: 'saved' }
   | { kind: 'describe' }
   | { kind: 'idea'; idea: IdeaReading };
@@ -140,7 +143,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     // `also`: more the design needs beyond the garment's own list (a collection top's sleeves need the arms).
     const also = start?.kind === 'for' ? (start.also ?? []).filter((id) => values[id] === undefined) : [];
     const ids = aimed ? [...neededFor(aimed, values, form).map((f) => f.id), ...also].filter((id, i, a) => a.indexOf(id) === i && !unused(aimed).includes(id)) : [];
-    return ids.length ? { kind: 'extra', garment: aimed!, ids, at: 0 } : { kind: 'check' };
+    return ids.length ? { kind: 'extra', garment: aimed!, ids, at: 0, ...(start?.kind === 'for' && start.then ? { then: start.then } : {}) } : { kind: 'check' };
     // A remembered first page (from before Nov 15, when there was one) opens as if afresh. So does a remembered base
     // page once the base measurements are in (back from the collection, Nov 11): this screen's first entry is the
     // waist, and coming back to it opens on the list or the check instead. Mending one from the check is kept.
@@ -505,7 +508,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   const g = page.kind === 'extra' ? page.garment : null;
   const eyebrow = `${page.kind === 'base' ? '' : g === 'other' ? 'Full set · ' : `${cap(named(g!))} · `}${at + 1} of ${ids.length}`;
   const label =
-    (page.kind === 'base' && page.back === 'check') || (page.kind === 'extra' && page.redo && last) ? 'Save' : page.kind === 'extra' && page.redo ? 'Next' : page.kind === 'base' ? (last && !onWeight ? 'Done' : 'Next') : g === 'other' ? (last ? 'Done' : 'Next') : last ? `Next: style your ${named(g!)}` : 'Next';
+    (page.kind === 'base' && page.back === 'check') || (page.kind === 'extra' && page.redo && last) ? 'Save' : page.kind === 'extra' && page.redo ? 'Next' : page.kind === 'base' ? (last && !onWeight ? 'Done' : 'Next') : g === 'other' ? (last ? 'Done' : 'Next') : last ? (page.kind === 'extra' && page.then ? (page.then === 'sew' ? 'Next: sew it' : 'Next: print your pattern') : `Next: style your ${named(g!)}`) : 'Next';
   const next = () => {
     // A redo from the check returns to it, the same as going back.
     if (page.kind === 'base' && page.back === 'check' && canGoBack()) goBack();
@@ -514,7 +517,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     else if (page.kind === 'base') setPage(last ? (onWeight ? { kind: 'weight' } : { kind: 'check' }) : { ...page, at: at + 1 });
     else if (last) {
       if (page.garment === 'other') setPage({ kind: 'saved' });
-      else onDone(page.garment);
+      else onDone(page.garment, page.then);
     }
     else setPage({ ...page, at: at + 1 });
   };
