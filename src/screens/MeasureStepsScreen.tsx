@@ -601,6 +601,10 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
         <button type="button" className="primary" disabled={helper && !theirs && !name.trim()} onClick={pickWho}>
           Done
         </button>
+        {/* A way out without choosing: tapping outside the window was the only one (cold read EE, Nov 24). */}
+        <button type="button" className="later who-cancel" onClick={dropWho}>
+          Cancel
+        </button>
       </div>
     </div>
   );

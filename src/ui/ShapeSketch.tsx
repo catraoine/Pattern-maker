@@ -366,7 +366,8 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
       onPointerCancel={end}
     >
       <FormLayers body={body} m={m} legs cx={cx} top={frame.top} bottom={frame.bottom} lines={lines} worn={cloth} folds={folds} />
-      {guide(m.waist_to_floor, 'FLOOR')}
+      {/* Its word steps aside when the length's own label comes down beside it (cold read EE, Nov 24: "96 CM" on "FLOOR"). */}
+      {guide(m.waist_to_floor, !drawing && Math.abs(m.waist_to_floor - hemCentre.y) < 6 * k ? '' : 'FLOOR')}
       {!drawing && handle({ x: cx + SQUEEZE * hemCentre.x, y: hemCentre.y }, 'hem', lengthLabel)}
       {!drawing && !circle && choices.silhouette !== 'gathered' && handle({ x: cx + SQUEEZE * hemSide.x, y: hemSide.y }, 'side', flareLabel)}
       {drawing && !stroke && (

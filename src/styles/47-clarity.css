@@ -453,8 +453,40 @@ section[aria-label='Preview'] > .preview .all-round-tools {
 /* Grown taller, the window let the garment fill its height, and its waist met the corner's Enlarge and Draw (screen
    check, Nov 24). On a phone the drawing starts under the corner's row, as Flat's already does. */
 @media (max-width: 760px) {
-  .style-layout .style-pin > section:not(.live-big) > .preview > svg.preview-svg {
+  /* (Also inside the fabric's wrapper: a collection look in its own cloth, like the Chocolate Barrel Trouser, missed it.) */
+  .style-layout .style-pin > section:not(.live-big) > .preview > svg.preview-svg,
+  .style-layout .style-pin > section:not(.live-big) > .preview svg.preview-svg.sketch {
     box-sizing: border-box;
     padding-top: 34px;
   }
+}
+
+/* Cold read EE, Nov 24: "Drag to turn" under All round was about 6 px on a phone. Nothing reads under 11 px. */
+.style-layout .all-round-hint {
+  font-size: 11px;
+}
+/* Who it is for: Cancel sits centred under Done, as a quiet way out. */
+.who-panel > .who-cancel {
+  align-self: center;
+  min-height: 44px;
+}
+
+/* Cold read EE, Nov 24: Undo and Redo showed, greyed, under the enlarged Flat drawing, where nothing can be changed. */
+section[aria-label='Preview']:has(.techflat) > .big-undo {
+  display: none;
+}
+
+/* "OVERSIZED" and its In testing tag sat so close they read as one phrase (cold read EE, Nov 24). */
+/* (As specific as the chip's own tag rule at the top of this file, or its margin wins.) */
+.chips button.chip > .testing-tag.chip {
+  margin-left: 10px;
+}
+
+/* At 360 "Add fullness · gathers or pleats" lost its last letter at the button's edge (cold read EE, Nov 24): the
+   choices wrap their words instead. */
+.pe-ask button.ghost {
+  white-space: normal;
+  text-align: left;
+  height: auto;
+  line-height: 1.25;
 }

@@ -17,18 +17,23 @@ export function TechFlatView({ flat, title, labelCm, style, part }: { flat: Flat
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const look = useFabricLook();
   // Enlarged on a tall phone, front and back side by side filled only a third of the window (Cat's phone, Nov 23), so
-  // there the back goes under the front and each is drawn twice as big.
+  // there the back goes under the front, each drawn bigger.
   const big = useEnlarged();
   // (Watched, so turning the phone while it is enlarged lays the two views out again.)
   const tall = useMedia('(max-aspect-ratio: 3/4)');
-  const stack = big && flat.views.length === 2 && tall;
   const spans = flat.views.map((v) => {
     const xs = v.shapes.flat().map((q) => q.x);
     return [Math.min(...xs), Math.max(...xs)];
   });
   const rowH = flat.height + size * 2 + pad;
+  const stackW = flat.views.length === 2 ? Math.max(spans[0][1], spans[0][0] + spans[1][1] - spans[1][0]) : flat.width;
+  // Only when it draws them bigger: a wide garment (the peplum top, sleeves out) stacked into a narrow column, no larger
+  // than side by side and with black either side (pretend tester EE walk, Nov 24).
+  const aspect = typeof window !== 'undefined' && window.innerHeight ? window.innerWidth / window.innerHeight : 1;
+  const scaleOf = (w: number, h: number) => Math.min(aspect / (w + 2 * pad), 1 / (h + 2 * pad));
+  const stack = big && tall && flat.views.length === 2 && scaleOf(stackW, flat.height + size * 2 + rowH) > 1.2 * scaleOf(flat.width, flat.height + size * 2);
   const shift = (k: number) => (stack && k === 1 ? `translate(${(spans[0][0] - spans[1][0]).toFixed(2)} ${rowH.toFixed(2)})` : undefined);
-  const width = stack ? Math.max(spans[0][1], spans[0][0] + spans[1][1] - spans[1][0]) : flat.width;
+  const width = stack ? stackW : flat.width;
   return (
     <svg
       viewBox={`${-pad} ${-pad} ${width + 2 * pad} ${flat.height + 2 * pad + size * 2 + (stack ? rowH : 0)}`}

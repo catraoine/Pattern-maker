@@ -115,6 +115,10 @@ export function HemMarks({ name, marks, value, onPick, svg, cx, k, hemAt, bare, 
   const label = at ? at.label : cmNow;
   const under = held?.end ?? (at && free && !held ? cmNow : undefined);
   const wordsW = Math.max(label.length, under ? under.length * 0.8 : 0) * 2.6 * k * 0.85;
+  // Two lines are lifted so the number ends level with the dot: at full length the dot sits at the window's foot, and
+  // "108 CM" under it was cut in half (pretend tester EE walk, Nov 24). Lifted whenever a second line can show, so the
+  // name doesn't jump under the finger as the drag starts and the number goes.
+  const lift = free ? 3 * k : 0;
   return (
     <g className="hem-marks">
       <g className={held ? 'handle on' : 'handle'}>
@@ -125,7 +129,7 @@ export function HemMarks({ name, marks, value, onPick, svg, cx, k, hemAt, bare, 
             it across the legs (Cat, Nov 11: "move words"). */}
         {/* Caught on a named length, its name pops (a new key starts the pop again for each one). A clear gap from the
             disc so it never sits on a letter (Cat, Nov 11 sweep: "NEE", "FULL LENG"). */}
-        <text key={held?.on ?? ''} className={[held?.on ? 'caught' : '', free ? 'typeable' : ''].filter(Boolean).join(' ') || undefined} x={bare ? nameEnd : dot.x + r + 3.2 * k} y={dot.y + 0.9 * k} fontSize={2.6 * k} textAnchor={bare ? 'end' : undefined}>
+        <text key={held?.on ?? ''} className={[held?.on ? 'caught' : '', free ? 'typeable' : ''].filter(Boolean).join(' ') || undefined} x={bare ? nameEnd : dot.x + r + 3.2 * k} y={dot.y + 0.9 * k - lift} fontSize={2.6 * k} textAnchor={bare ? 'end' : undefined}>
           {label.toUpperCase()}
           {under && (
             <tspan x={bare ? nameEnd : dot.x + r + 3.2 * k} dy={3 * k} fontSize={2.1 * k}>
@@ -138,7 +142,7 @@ export function HemMarks({ name, marks, value, onPick, svg, cx, k, hemAt, bare, 
         {free && (
           <LengthTap
             x={bare ? nameEnd - wordsW : dot.x + r + 3.2 * k}
-            y={dot.y - 3 * k}
+            y={dot.y - 3 * k - lift}
             width={wordsW}
             height={under ? 8 * k : 5 * k}
             ask={{ name, from: free.from ?? 'from the waist', cm: typedAt, min: free.min, max: free.max, onCm: free.onCm }}
