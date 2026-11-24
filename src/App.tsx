@@ -707,7 +707,7 @@ export default function App() {
    * Not ready for this garment: take the measurements it still needs, one page each. When none are missing,
    * one of them fails a check, so open the list with the reason rather than going round the guided pages again.
    */
-  const measureFor = (g: Garment, using: MeasurementValues, on: FormKind = form, also: MeasurementId[] = [], s: Pick<Saved, 'jacket'> = saved) => {
+  const measureFor = (g: Garment, using: MeasurementValues, on: FormKind = form, also: MeasurementId[] = [], s: Pick<Saved, 'jacket' | 'dress'> = saved) => {
     const skip = skipFor(g, s);
     const wrong = isComplete(using, g, on, skip) && checksFor(using, saved.unit, g, on, skip).find((c) => c.level === 'error');
     if (wrong) sendToMeasure(`Check your ${g === 'tee' ? 'T-shirt' : vestOf(g, s) ? 'vest' : g} measurements: ${wrong.message}`);

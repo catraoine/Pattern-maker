@@ -13,9 +13,11 @@ describe('a dress and its bust point', () => {
     expect(asked()).toEqual(expect.arrayContaining(['front_hps_to_waist', 'bust_depth']));
     expect(unusedFor(shift)).toEqual([]);
   });
-  it('leaves them to the guess on a dress with no bust dart, or the boxy cut', () => {
-    expect(unusedFor({ ...shift, bodice: { ...shift.bodice, darts: 'none' } })).toEqual(['front_hps_to_waist', 'bust_depth']);
-    expect(unusedFor({ ...shift, fit: 'boxy' })).toEqual(['front_hps_to_waist', 'bust_depth']);
+  it('leaves them to the guess on a dress with no bust dart, but not on a shift, which always has one', () => {
+    const seamed = { ...shift, skirt: { ...shift.skirt, noSeam: undefined } } as DressChoices;
+    expect(unusedFor({ ...seamed, bodice: { ...seamed.bodice, darts: 'none' } })).toEqual(['front_hps_to_waist', 'bust_depth']);
+    expect(unusedFor({ ...seamed, fit: 'boxy' })).toEqual([]);
+    expect(unusedFor({ ...shift, bodice: { ...shift.bodice, darts: 'none' } })).toEqual([]);
   });
   it('asks neither on the menswear form, which has no bust shaping', () => {
     expect(asked('menswear')).not.toContain('front_hps_to_waist');

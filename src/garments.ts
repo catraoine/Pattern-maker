@@ -481,9 +481,10 @@ export const outerWord = (c: Pick<OuterChoices, 'garment' | 'sleeve'>): 'jacket'
  *  guessed for it, as they were for every dress before Nov 24). One place for the rule, used by the measuring pages,
  *  the checks and the collection. */
 export const unusedFor = (c: PatternChoices | undefined): MeasurementId[] =>
-  c && isOuter(c) && outerWord(c) === 'vest' ? ['arm_length', 'upper_arm'] : c && isDress(c) && !dartedDress(c) ? TOP_NEEDS : [];
-/** A dress with a bust dart: darted, and not the straight boxy cut, which takes none. */
-const dartedDress = (c: DressChoices) => c.bodice.darts !== 'none' && c.fit !== 'boxy';
+  c && isOuter(c) && outerWord(c) === 'vest' ? ['arm_length', 'upper_arm'] : c && isDress(c) && !dartedDress(c) ? [...TOP_NEEDS] : [];
+/** A dress with a bust dart, as the engine drafts it: any darts picked (the boxy cut has them too), and a shift always,
+ *  which is cut with its bust dart whatever its darts say (engine/dress.ts). */
+const dartedDress = (c: DressChoices) => c.bodice.darts !== 'none' || (c.skirt as { noSeam?: string }).noSeam === 'shift';
 
 /** A plain name, such as "Hip-length single-breasted jacket with notched lapels". */
 export function describeOuter(c: OuterChoices) {
