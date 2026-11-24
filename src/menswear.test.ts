@@ -261,3 +261,45 @@ describe('menswear tailoring (Nov 22, In testing)', () => {
     expect(draftOuter(m, { ...MENSWEAR_JACKET_CHOICES, kind: 'jacket', front: 'double', fitting: { flatFront: true } }).buttons).toEqual(draftOuter(m, { ...MENSWEAR_JACKET_CHOICES, kind: 'jacket', front: 'double' }).buttons);
   });
 });
+
+describe('the menswear small points (Nov 22, In testing)', () => {
+  const values = withEstimates({ ...MAN, ...ARMS }, 'menswear');
+  const saved = { ...INITIAL, bodice: { ...INITIAL.bodice, sleeve: 'long' as const, sleeveShape: 'straight' as const, sleeveCuff: 'shirt' as const, closure: 'front_buttons' as const, collar: 'shirt' as const } };
+  const shirt = (form: 'menswear' | 'womenswear') => GARMENT_DRAFTING.bodice.draft(values, { saved, form }, undefined);
+
+  it('gives a shirt 3 cm more room than a blouse of the same fit and a neck 0.9 cm closer, every seam matching', () => {
+    const his = shirt('menswear').bodice!;
+    const hers = shirt('womenswear').bodice!;
+    expect(his.finishedBust).toBeCloseTo(hers.finishedBust + 3, 1);
+    expect(his.neck).toBeCloseTo(hers.neck - 0.9, 1);
+    expect(failing(his.pieces)).toEqual([]);
+    // With no collar to button, the neck is the block's own.
+    const open = (form: 'menswear' | 'womenswear') => GARMENT_DRAFTING.bodice.draft(values, { saved: { ...saved, bodice: { ...saved.bodice, closure: INITIAL.bodice.closure, collar: 'none' as const } }, form }, undefined).bodice!.neck;
+    expect(open('menswear')).toBeCloseTo(open('womenswear'), 1);
+  });
+
+  it('pleats the sleeve into its cuff, the hem tapered to the cuff and 6 cm, where a blouse is gathered', () => {
+    const his = shirt('menswear').sleeve!;
+    const hers = shirt('womenswear').sleeve!;
+    expect(his.pleated).toBe(true);
+    expect(his.gathers!.hem).toBeCloseTo(6, 0);
+    expect(hers.pleated).toBeUndefined();
+    const label = (sl: typeof his) => sl.pieces[0].labels.map((l) => l.text).join(' ');
+    expect(label(his)).toMatch(/PLEAT TO FIT THE CUFF/);
+    expect(label(hers)).toMatch(/GATHER TO FIT THE CUFF/);
+    // A bishop sleeve keeps its fullness, gathered.
+    const bishop = GARMENT_DRAFTING.bodice.draft(values, { saved: { ...saved, bodice: { ...saved.bodice, sleeveShape: 'bishop' as const } }, form: 'menswear' }, undefined).sleeve!;
+    expect(bishop.pleated).toBeUndefined();
+    expect(bishop.gathers!.hem).toBeGreaterThan(10);
+  });
+
+  it('stops a jacket sleeve 1.5 cm sooner, so the shirt cuff shows, on the menswear form only', () => {
+    const m = values as OuterMeasurements;
+    const his = draftOuter(m, { ...MENSWEAR_JACKET_CHOICES, kind: 'jacket', fitting: { flatFront: true } });
+    const hers = draftOuter(m, { ...MENSWEAR_JACKET_CHOICES, kind: 'jacket' });
+    expect(his.sleeve!.lengthCm).toBeCloseTo(hers.sleeve!.lengthCm - 1.5, 1);
+    // A coat is worn over the jacket, so its sleeve stays long.
+    const coat = (fitting?: { flatFront: boolean }) => draftOuter({ ...m, waist_to_knee: 58 }, { ...MENSWEAR_JACKET_CHOICES, kind: 'coat', ...(fitting ? { fitting } : {}) }).sleeve!.lengthCm;
+    expect(coat({ flatFront: true })).toBe(coat());
+  });
+});

@@ -213,6 +213,8 @@ export interface BodiceFitting {
   frontSlope?: number;
   backSlope?: number;
   neckGape?: number;
+  /** The neck drafted this many cm bigger round (negative is closer), for a collar that buttons at the throat. */
+  neck?: number;
   backLength?: number;
   bustPoint?: number;
   acrossBack?: number;
@@ -915,7 +917,8 @@ export const MIN_BUST_TO_WAIST = 4;
 function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLine = {}): BodiceDraft & { inner: { bustDart: number; lower: number; upper: number; forward: number; pin: number; turn: number } } {
   const dropShoulder = side.drop ?? 0;
   const fit = s.fitting ?? {};
-  const { full_bust: B, waist: W, neck: N, shoulder_length: SL, shoulder_width: SW } = m;
+  const { full_bust: B, waist: W, shoulder_length: SL, shoulder_width: SW } = m;
+  const N = m.neck + (fit.neck ?? 0);
   const { across_front: AF, apex_separation: AS } = m;
   // Lengths the toile corrected.
   const AB = m.across_back + (fit.acrossBack ?? 0);
