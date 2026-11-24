@@ -14,6 +14,7 @@ import { DraftError, Side, cm } from './skirt';
 import type { DartPlace, PrincessLine } from './manipulate';
 import { moveFrontDart, princessPieces } from './shaping';
 import { blendWaist } from './waistBlend';
+import { eyeDepth, openDarts } from './peplumDarts';
 import { BackNeck, KEYHOLE, backDepthFor, backNeckOf } from './backNeck';
 import { Buttons, CAPE_NECKS, Closure, Collar, EXTENSION_CM, ShirtCut, RUFFLE_NECKS, capeDepth, backNeckFacing, poloSlit, backOnFold, buttonPlaces, collarPieces, frontFacing, isBandCollar, openFront } from './collar';
 import { DrapeInfo, Peplum, PeplumHem, PeplumInfo, PeplumSize, drapeBodice, drapeStyle, isDraped } from './drape';
@@ -511,8 +512,11 @@ function shape(d: BodiceDraft, s: BodiceStyle): BodiceDraft {
     // manipulate.ts fairSide.)
     const pp = princessPieces(front, back, d.front.apex, princess, s.lineAt, flat, !s.outer);
     if (!pp) return d;
+    // A dart left open at a peplum seam: the seam round the body is the panels' hems as cut (trued in shaping.ts).
+    const openHem = front.meta.dartOpenAtHem || back.meta.dartOpenAtHem;
     return {
       ...d,
+      ...(openHem ? { finishedHem: r(2 * pp.pieces.reduce((t, pc) => t + taggedLength(pc.outline, 'hem'), 0), 1) } : {}),
       block: [front, back],
       // A peplum top's seams run on below the waist to the peplum seam, and are blended through it (see waistBlend.ts).
       pieces: d.drop > 0 && s.peplum && s.peplum !== 'none' ? pp.pieces.map((pc) => blendWaist(pc, ['side', 'princess'])) : pp.pieces,
@@ -1165,6 +1169,13 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   // on the back and none on the front, so the front side seam hooked in toward the hem (3.2 cm at a 136 cm hip on the Ice
   // Peplum) while the back's ran out, and the seam swung forward (tester pattern review, Nov 13).
   const evenSides = below && !!s.peplum && s.peplum !== 'none' && !s.dressHem;
+  // A princess peplum top leaves part of each waist dart open at the peplum seam and runs its side seams straight down,
+  // rather than closing the darts just under the waist and turning the side seams in (see peplumDarts.ts). Only where
+  // shape() cuts the princess panels, which end their seams on the open dart's legs; a darted top keeps its fish-eyes.
+  // (With bust darts, a top below the waist always has one of at least MIN_BUST_DART, so shape() cuts them; a shaped
+  // hem comes up at the darts, and its own depth there isn't the seam's.)
+  const open = evenSides && !hemShape && !!s.princess && s.princess !== 'none' && s.darts === 'bust_waist' && !fit.lowShoulder && s.fit !== 'oversized' ? openDarts(straightOut, dartB, dartF) : undefined;
+  const sideOut = open ? open.out : straightOut;
 
   // ---- back, below the across back -----------------------------------------
   // A lower shoulder's back underarm moves straight up or down, keeping its width, to where the side
@@ -1201,11 +1212,11 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
       waistRun(back, waistB, 0, undefined, undefined, { from: d.near });
     } else waistRun(back, waistB, 0);
   } else {
-    hipB = p(straightSides || evenSides ? swB.x + straightOut : hemFull / 4 - 0.5 + forward, wb + drop);
+    hipB = p(straightSides || evenSides ? swB.x + sideOut : hemFull / 4 - 0.5 + forward, wb + drop);
     hemB = hipB;
     hipCurve(back, swB, hipB, 'side');
     if (dartB > 0.3) {
-      const depth = Math.max(2, Math.min(12, shallowest - 3));
+      const depth = open?.back ? eyeDepth(drop, dartB, open.back) : Math.max(2, Math.min(12, shallowest - 3));
       backLines.push(fishEye(p(dartXB, scye - dropShoulder + 2.5), p(dartXB - dartB / 2, wb), p(dartXB + dartB / 2, wb), p(dartXB, wb + depth)));
     }
     // A dress with no waist seam carries the side seam on from the hip, straight to its hem.
@@ -1290,7 +1301,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     cut: backCut,
     seamAllowance: s.seamAllowance,
     allowances: { neck: s.neckArmholeAllowance, armhole: s.neckArmholeAllowance, hem: s.hemAllowance, ...(key ? { keyhole: KEYHOLE.allowance } : {}) },
-    meta: { ...(slitCm ? { slitCm } : {}), ...(backStyle !== 'plain' ? { backNeck: backStyle } : {}), ...(backStyle === 'v' ? { pointedAtCentre: ['neck'] } : {}), ...((plunging && cutIn) || strap !== undefined ? { shoulderEase: 0 } : {}) },
+    meta: { ...(open?.back ? { dartOpenAtHem: true } : {}), ...(slitCm ? { slitCm } : {}), ...(backStyle !== 'plain' ? { backNeck: backStyle } : {}), ...(backStyle === 'v' ? { pointedAtCentre: ['neck'] } : {}), ...((plunging && cutIn) || strap !== undefined ? { shoulderEase: 0 } : {}) },
   };
 
   // ---- front, below the across front -----------------------------------------
@@ -1394,7 +1405,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   } else {
     // Drop the front side seam below the waist by whatever makes it the back's length.
     const target = hipCurveLength(swB, hipB);
-    const hx = straightSides || evenSides ? waistXF + straightOut : hemFull / 4 + 0.5 - forward;
+    const hx = straightSides || evenSides ? waistXF + sideOut : hemFull / 4 + 0.5 - forward;
     let lo = 0;
     let hi = target;
     for (let i = 0; i < 40; i++) {
@@ -1408,7 +1419,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     // seam ran on in toward it from a corner at the waist, which the Ice Peplum's tester printed as a step (Nov 12).
     hipCurve(front, swF, hipF, 'side', sideIn);
     if (dartF > 0.3) {
-      const depth = Math.max(2, Math.min(12, shallowest - 3));
+      const depth = open?.front ? eyeDepth(dy, dartF, open.front) : Math.max(2, Math.min(12, shallowest - 3));
       frontLines.push(
         fishEye(p(apex.x, apex.y + 2.5), p(nearX, waistY(nearX)), p(farX, waistY(farX)), p(apex.x, waistY(apex.x) + depth)),
       );
@@ -1479,7 +1490,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     allowances: { neck: s.neckArmholeAllowance, armhole: s.neckArmholeAllowance, fold: 0, hem: s.hemAllowance },
     // A V neck comes to a point at the centre front on purpose. A plunge to the waist is a narrow V the drape leaves to
     // settle (see the stay-tape pass in drape/garment.ts).
-    meta: { ...(pointed ? { pointedAtCentre: ['neck'] } : {}), ...(plunge && s.plungeDepth === 'waist' ? { narrowPlunge: true } : {}), ...(plunge ? { plungeTape: true } : {}) },
+    meta: { ...(open?.front ? { dartOpenAtHem: true } : {}), ...(pointed ? { pointedAtCentre: ['neck'] } : {}), ...(plunge && s.plungeDepth === 'waist' ? { narrowPlunge: true } : {}), ...(plunge ? { plungeTape: true } : {}) },
   };
 
   // ---- shaped hem ---------------------------------------------------------
@@ -1521,7 +1532,8 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     finishedBust: r(2 * (backW + frontW), 1),
     // Round the body: the waist seam with darts closed (it slopes, so it is longer than the pieces are wide).
     finishedWaist: r(below ? 2 * (swB.x - dartB + swF.x - dartF) : 2 * (taggedLength(front, 'waist') + taggedLength(back, 'waist')), 1),
-    finishedHem: below ? r(2 * (hemB.x + hemF.x), 1) : undefined,
+    // Less any waist dart left open at a peplum seam (measured again on the panels as cut, in shape()).
+    finishedHem: below ? r(2 * (hemB.x + hemF.x - (open?.back ?? 0) - (open?.front ?? 0)), 1) : undefined,
     ...(s.dressHem ? { finishedHip: r(2 * (hipB.x + hipF.x), 1) } : {}),
     backLength: r(backHem + hemAt.back - bd, 1),
     zipCm,

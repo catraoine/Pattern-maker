@@ -117,6 +117,63 @@ function insertAtX(r: Ring, tag: string, x0: number): number | undefined {
   }
   return undefined;
 }
+/** The edges of the run tagged `tag`, each from its point to the next. */
+const edgesOf = (r: Ring, tag: string): [number, P, P][] => {
+  const run = runOf(r, tag);
+  if (!run) return [];
+  const out: [number, P, P][] = [];
+  for (let i = run[0]; i <= run[1]; i++) out.push([i % r.pts.length, r.pts[i % r.pts.length], r.pts[(i + 1) % r.pts.length]]);
+  return out;
+};
+/** Where the line from a through b crosses the run tagged `tag` (the crossing nearest a, ahead of it). */
+function onLine(r: Ring, tag: string, a: P, b: P): P | undefined {
+  const d = sub(b, a);
+  let best: { q: P; t: number } | undefined;
+  for (const [, q0, q1] of edgesOf(r, tag)) {
+    const e = sub(q1, q0);
+    const den = e.x * d.y - e.y * d.x;
+    if (Math.abs(den) < 1e-12) continue;
+    const w = sub(a, q0);
+    const u = (w.x * d.y - w.y * d.x) / den;
+    const t = (w.x * e.y - w.y * e.x) / den;
+    if (u < 0 || u > 1 || t < 0) continue;
+    if (!best || t < best.t) best = { q: lerp(q0, q1, u), t };
+  }
+  return best?.q;
+}
+/** Where an open fish-eye's two sides cross the hem, centre's then side's; undefined if either misses it. */
+function openEnds(r: Ring, [, left, bottom, right]: P[]): [P, P] | undefined {
+  const c = onLine(r, 'hem', left, bottom);
+  const s = onLine(r, 'hem', right, bottom);
+  return c && s ? [c, s] : undefined;
+}
+/** A seam's end on the hem (point i) moved `by` cm toward `from`, and the hem on one side of it (`before` it, toward
+ *  the side seam, or `after` it, toward the centre) eased to follow, the more the nearer it is. */
+function raiseEnd(r: Ring, i: number, from: P, by: number, side: 'before' | 'after'): void {
+  const run = runOf(r, 'hem')!;
+  const v = mul(unit(sub(from, r.pts[i])), by);
+  const idx: number[] = [];
+  const n = r.pts.length;
+  if (side === 'before') for (let k = run[0]; k <= i; k++) idx.push(k % n);
+  else for (let k = run[1] + 1; k >= i; k--) idx.push(k % n);
+  // Weighted by the way along from the far end, which stays put.
+  const at = [0];
+  for (let k = 1; k < idx.length; k++) at.push(at[k - 1] + len(sub(r.pts[idx[k]], r.pts[idx[k - 1]])));
+  const total = at[at.length - 1] || 1;
+  idx.forEach((k, j) => (r.pts[k] = add(r.pts[k], mul(v, at[j] / total))));
+}
+/** A point on the run tagged `tag` put into the ring, on the edge it lies on; its index. */
+function insertPoint(r: Ring, tag: string, q: P): number {
+  let best = { i: -1, u: 0, d: Infinity };
+  for (const [i, q0, q1] of edgesOf(r, tag)) {
+    const e = sub(q1, q0);
+    const A = e.x * e.x + e.y * e.y;
+    const u = A < 1e-12 ? 0 : Math.max(0, Math.min(1, ((q.x - q0.x) * e.x + (q.y - q0.y) * e.y) / A));
+    const d = len(sub(lerp(q0, q1, u), q));
+    if (d < best.d) best = { i, u, d };
+  }
+  return insertAt(r, best.i, best.u);
+}
 function dartAfter(r: Ring, after: string): [number, number, number] | undefined {
   const n = r.tags.length;
   for (let i = 0; i < n; i++)
@@ -140,6 +197,7 @@ interface Split {
  *  smoothly over a full bust; more would gather. */
 const PRINCESS_EASE_MAX = 1;
 
+const withoutOpen = ({ dartOpenAtHem: _, ...rest }: Piece['meta']) => rest; // the flag is the block's, not the panel's
 /** Cut a piece along a princess line into its centre and side panels. */
 export function panels(pc: Piece, s: Split, names: [string, string], cuts: [string, string], meta: Record<string, unknown>): { centre: Piece; side: Piece; line: P[] } {
   const r = s.ring;
@@ -154,6 +212,24 @@ export function panels(pc: Piece, s: Split, names: [string, string], cuts: [stri
     [iFar, , iNear] = wd;
     lowC = [r.pts[iNear]];
     lowS = [r.pts[iFar]];
+  } else if (eye && pc.meta.dartOpenAtHem && openEnds(r, eye.map(s.move))) {
+    // A dart left part open at a peplum seam (see peplumDarts.ts), its point past the hem: each seam follows its own
+    // side of the dart and ends where that side crosses the hem, the two ends apart as at a waist seam. The side's end
+    // is put in first: it comes first along the hem, so putting the centre's in after it leaves its place in the ring.
+    const [, left, bottom, right] = eye.map(s.move);
+    const [endC, endS] = openEnds(r, [left, left, bottom, right])!;
+    iFar = insertPoint(r, 'hem', endS);
+    iNear = insertPoint(r, 'hem', endC);
+    // The dart trued at the seam, as any dart is: its two sides the same length from the point. On a front the waist
+    // slopes down to the side where the bust dart was, so the side's seam ran longer to the waist; with the dart closed
+    // below the waist that came back on the way down, but left open its seam came out up to 6 mm longer (eased in over
+    // the bust). The longer one's end comes up its own side of the dart instead, the panel's hem eased up to it.
+    const over = polyLen([r.pts[s.i2], s.pivot, right, endS]) - polyLen([r.pts[s.i1], s.pivot, left, endC]);
+    if (over > 0.02) raiseEnd(r, iFar, right, over, 'before');
+    else if (over < -0.02) raiseEnd(r, iNear, left, -over, 'after');
+    lowC = [left, r.pts[iNear]];
+    lowS = [right, r.pts[iFar]];
+    extra.push(2);
   } else if (eye) {
     // A dart carried below the waist: the seams follow its two sides, then run on together to the hem.
     const [, left, bottom, right] = eye.map(s.move);
@@ -218,7 +294,7 @@ export function panels(pc: Piece, s: Split, names: [string, string], cuts: [stri
     cut: cuts[0],
     alternate: undefined,
     draft: pc.draft ? { frame: pc.draft.frame, points: points(cOwn) } : undefined,
-    meta: { ...pc.meta, ...meta, waistSeamAt: (lowC[0].x + lowS[0].x) / 2 },
+    meta: { ...withoutOpen(pc.meta), ...meta, waistSeamAt: (lowC[0].x + lowS[0].x) / 2 },
   };
   const sOwn = own(sPts);
   const side: Piece = {
@@ -237,8 +313,10 @@ export function panels(pc: Piece, s: Split, names: [string, string], cuts: [stri
     meta: { ...meta, ...(eased ? { princessEase: ease } : {}) },
   };
   delete side.meta.pointedAtCentre;
-  // The seam on the garment as sewn: from the top, through the pivot, down the closed waist dart.
-  const line = [s.top, s.pivot, ...(lowC.length > 1 ? lowC.slice(1) : [lerp(lowC[0], lowS[0], 0.5)])];
+  // The seam on the garment as sewn: from the top, through the pivot, down the closed waist dart (or, left open at a
+  // peplum seam, to halfway between its two ends there).
+  const apart = iNear !== iFar && lowC.length === 2;
+  const line = [s.top, s.pivot, ...(apart ? [lerp(lowC[1], lowS[1], 0.5)] : lowC.length > 1 ? lowC.slice(1) : [lerp(lowC[0], lowS[0], 0.5)])];
   return { centre, side, line };
 }
 
