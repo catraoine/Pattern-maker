@@ -28,7 +28,7 @@ const PARTS: FilmPart[] = [
   { name: 'Style', from: 37.8, says: 'Select your style details: its cut, darts, neckline and your own cloth, step by step on the drawing. Or design straight from your pattern, moving a dart or cutting off a new piece. All round turns the dress, drawing closer, to check the seams meet and the hem sits level before you cut.' },
   { name: 'Print', from: 65.8, says: 'Print your pattern at home on ordinary paper or full size at a copy shop, or project it true size onto your fabric. Then sew it, one step at a time, ticking off each line as you go. Drafted to your body.' },
 ];
-export const TOUR_LABEL = '1:31';
+export const TOUR_LABEL = '1:32';
 
 export type FilmPart = { name: string; from: number; says: string };
 
