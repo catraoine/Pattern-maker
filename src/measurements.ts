@@ -286,7 +286,7 @@ export const BODICE_FIELDS: MeasurementField[] = BODICE_ALL.map((f) => (ESTIMATE
 
 
 /** A dress takes the bodice's measurements and the skirt's lengths. */
-const DRESS_FIELDS: MeasurementField[] = [...BODICE_FIELDS, ...SKIRT_FIELDS.filter((f) => !BODICE_FIELDS.some((b) => b.id === f.id))].map((f) =>
+const DRESS_BASE: MeasurementField[] = [...BODICE_FIELDS, ...SKIRT_FIELDS.filter((f) => !BODICE_FIELDS.some((b) => b.id === f.id))].map((f) =>
   // The dress skirt needs the hip, which the bodice only asks for below the waist.
   f.id === 'full_hip' || f.id === 'waist_to_hip' ? { ...f, optional: undefined } : f,
 );
@@ -379,16 +379,20 @@ const KNIT_DRESS_FIELDS: MeasurementField[] = [
   ...TEE_FIELDS.filter((f) => f.fit),
 ];
 const JUMPSUIT_FIELDS: MeasurementField[] = [
-  ...DRESS_FIELDS.filter((f) => !f.fit),
-  ...TROUSERS_FIELDS.filter((f) => !f.fit && !DRESS_FIELDS.some((d) => d.id === f.id)),
-  ...DRESS_FIELDS.filter((f) => f.fit),
+  ...DRESS_BASE.filter((f) => !f.fit),
+  ...TROUSERS_FIELDS.filter((f) => !f.fit && !DRESS_BASE.some((d) => d.id === f.id)),
+  ...DRESS_BASE.filter((f) => f.fit),
 ];
 
 /** A top's front length and bust depth place its bust shaping and its waist seam (the Ice Peplum's princess seams
  *  and peplum seam), so a top asks for them in its standard steps rather than estimating them (Cat, Nov 13: testers
- *  were drafted from guesses for both). Dresses and jackets keep estimating them until they're taken. */
-const TOP_NEEDS: MeasurementId[] = ['front_hps_to_waist', 'bust_depth'];
-const TOP_FIELDS: MeasurementField[] = BODICE_FIELDS.map((f) => (TOP_NEEDS.includes(f.id) ? { ...f, optional: undefined } : f));
+ *  were drafted from guesses for both). A dress asks for them too (Cat, Nov 24: a shift tester's guessed bust point
+ *  put her dart about 8 cm above her own), except one with no bust dart, which leaves them out (garments.ts,
+ *  unusedFor) and keeps the guess. Jackets keep estimating them until they're taken. */
+export const TOP_NEEDS: MeasurementId[] = ['front_hps_to_waist', 'bust_depth'];
+const asked = (fields: MeasurementField[]) => fields.map((f) => (TOP_NEEDS.includes(f.id) ? { ...f, optional: undefined } : f));
+const TOP_FIELDS: MeasurementField[] = asked(BODICE_FIELDS);
+const DRESS_FIELDS: MeasurementField[] = asked(DRESS_BASE);
 
 export const FIELDS: Record<Garment, MeasurementField[]> = { skirt: SKIRT_FIELDS, bodice: TOP_FIELDS, dress: DRESS_FIELDS, trousers: TROUSERS_FIELDS, tee: TEE_FIELDS, knit_dress: KNIT_DRESS_FIELDS, hoodie: TEE_FIELDS, jumpsuit: JUMPSUIT_FIELDS, jacket: JACKET_FIELDS, coat: COAT_FIELDS, lingerie: LINGERIE_FIELDS };
 
@@ -401,8 +405,8 @@ export type FormKind = 'womenswear' | 'menswear';
 export const MENSWEAR_SKIPS: MeasurementId[] = ['high_bust', 'bust_depth', 'apex_separation'];
 /** A garment's measurements on this form. */
 export const fieldsFor = (garment: Garment, form: FormKind = 'womenswear') =>
-  // (The menswear form has no bust shaping to place, so its top keeps estimating the front length.)
-  form === 'menswear' ? (garment === 'bodice' ? BODICE_FIELDS : FIELDS[garment]).filter((f) => !MENSWEAR_SKIPS.includes(f.id)) : FIELDS[garment];
+  // (The menswear form has no bust shaping to place, so its top and dress keep estimating the front length.)
+  form === 'menswear' ? (garment === 'bodice' ? BODICE_FIELDS : garment === 'dress' ? DRESS_BASE : FIELDS[garment]).filter((f) => !MENSWEAR_SKIPS.includes(f.id)) : FIELDS[garment];
 /** Copy about the bust, said of the chest for the menswear form. */
 export const worded = (s: string, form: FormKind = 'womenswear') =>
   form === 'menswear' ? s.replace(/\b([Ff])ull bust\b/g, (_, f: string) => (f === 'F' ? 'Chest' : 'chest')).replace(/\bbust\b/g, 'chest').replace(/\bBust\b/g, 'Chest') : s;

@@ -139,7 +139,7 @@ const ready = (values: MeasurementValues, unit: Unit, garment: Garment, form?: F
 /** A vest (a jacket without sleeves) isn't drafted from the arms, so they're neither asked nor needed: the Black Vest
  *  asked arm length and upper arm (fit-test walk, Nov 15). Saved jackets without a sleeve setting have sleeves. */
 const vestOf = (g: Garment, s: Pick<Saved, 'jacket'>) => g === 'jacket' && !!s.jacket && outerWord(s.jacket) === 'vest';
-const skipFor = (g: Garment, s: Pick<Saved, 'jacket'>): MeasurementId[] => (g === 'jacket' ? unusedFor(s.jacket) : []);
+const skipFor = (g: Garment, s: Pick<Saved, 'jacket' | 'dress'>): MeasurementId[] => (g === 'jacket' ? unusedFor(s.jacket) : g === 'dress' ? unusedFor(s.dress) : []);
 
 export default function App() {
   const [saved, setSaved] = usePersistent<Saved>('skirt', INITIAL);
