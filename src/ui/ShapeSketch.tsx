@@ -192,12 +192,14 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
     const pts = cloth.flat();
     const wide = SQUEEZE * Math.max(...pts.map((q) => Math.abs(q.x)), m.waist / 4) + 6;
     const low = Math.max(...pts.map((q) => q.y), m.waist_to_hip ?? 20);
-    held.current = crop ? { half: frame.half, left: cx - wide, width: 2 * wide, top: -16, bottom: Math.min(frame.bottom, low + 9) } as typeof frame : frame;
+    // On a phone's length step the figure still reaches the floor, so every length can be dragged to, but starts just
+    // above the waist: with the head in, its labels were about 6 px and the drawing ran into Draw (pretend tester, Nov 22).
+    held.current = crop ? { half: frame.half, left: cx - wide, width: 2 * wide, top: -16, bottom: Math.min(frame.bottom, low + 9) } as typeof frame : narrow && !big ? { ...frame, top: -32 } : frame;
   }
   const shown = held.current as typeof frame & { left?: number; width?: number };
   // Handle and label size, in proportion to the sketch. Cropped on a phone the sketch is shorter, so they are scaled
   // back up to the size they had beside the whole figure, or the names under the dots were too small to read.
-  const k = (shown.bottom - shown.top) / (crop && !big ? 75 : 110);
+  const k = (shown.bottom - shown.top) / (narrow && !big ? 75 : 110);
   // The handles sit on the skirt as drawn: its hem at the centre, and the hem's outer corner.
   const skirt = cloth[0] ?? [];
   const hemCentre = skirt.length ? skirt.reduce((a, b) => (b.y > a.y ? b : a)) : { x: 0, y: draft.lengthCm };
@@ -263,7 +265,7 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
   const guide = (y: number, text: string) => (
     <g className="guide">
       <line x1={0} x2={2 * cx} y1={y} y2={y} strokeWidth={0.15} strokeDasharray={`${k} ${k}`} />
-      <text x={1} y={y - 0.8} fontSize={2 * k}>
+      <text x={1} y={y - 0.8} fontSize={2.4 * k}>
         {text}
       </text>
     </g>
@@ -278,6 +280,10 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
     const active = drag?.kind === kind;
     // A named length is its own word for what the dot sets ("↕ Knee · 56.6 cm"), and short enough on a phone.
     const words = kind === 'hem' ? (text.includes(' · ') ? `↕ ${text}` : `↕ Length · ${text}`) : `↔ Width · ${text}`;
+    // Cropped close on a phone, "Width · A-line" ran off the drawing's right edge ("A-LIN", Nov 23): when it won't fit
+    // beside the disc it sits just above it instead, ending at the edge.
+    const right = shown.width ? shown.left! + shown.width : 2 * cx + MARGIN * k;
+    const above = kind === 'side' && at.x + r + 3.2 * k + words.length * 2.6 * k * 0.85 > right;
     return (
       <g className={active ? 'handle on' : 'handle'}>
         <circle cx={at.x} cy={at.y} r={r} strokeWidth={0.22} />
@@ -290,10 +296,10 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
           key={active && kind === 'hem' && !choices.lengthCm ? choices.length : ''}
           className={[active && kind === 'hem' && !choices.lengthCm ? 'caught' : '', kind === 'hem' && !drawing ? 'typeable' : ''].filter(Boolean).join(' ') || undefined}
           // A clear gap from the disc (Cat, Nov 11 sweep: the disc sat on the last letter, "KNE").
-          x={kind === 'hem' ? at.x - r - 3.2 * k : at.x + r + 3.2 * k}
-          y={at.y + 0.9 * k}
+          x={kind === 'hem' ? at.x - r - 3.2 * k : above ? right - k : at.x + r + 3.2 * k}
+          y={above ? at.y - r - 2.4 * k : at.y + 0.9 * k}
           fontSize={2.6 * k}
-          textAnchor={kind === 'hem' ? 'end' : 'start'}
+          textAnchor={kind === 'hem' || above ? 'end' : 'start'}
         >
           {words.toUpperCase()}
         </text>
@@ -345,7 +351,7 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
     <svg
       ref={svg}
       // Room either side for the handles' names, keeping the form centred.
-      viewBox={shown.width ? `${shown.left} ${shown.top} ${shown.width} ${shown.bottom - shown.top}` : `${-MARGIN * k} ${frame.top} ${2 * cx + 2 * MARGIN * k} ${frame.bottom - frame.top}`}
+      viewBox={shown.width ? `${shown.left} ${shown.top} ${shown.width} ${shown.bottom - shown.top}` : `${-MARGIN * k} ${shown.top} ${2 * cx + 2 * MARGIN * k} ${shown.bottom - shown.top}`}
       // A group, not an image: an image hides the length and flare handles inside it from screen readers.
       role="group"
       aria-label={label}

@@ -12,6 +12,7 @@ import { CLOSENESS, ShopFabric, buyAmount, buyLink, closestShopColours, colourHe
 import { catalogueVersion, loadCatalogue, matchesSearch, rememberPicked, subscribeCatalogue } from '../engine/shopCatalogue';
 import { FabricMetres } from './FabricCard';
 import { FabricHeadsUp } from './FabricHeadsUp';
+import { colourWords } from '../engine/houseColours';
 import { ExactColour } from './ExactColour';
 import { TestingTag } from './TestingTag';
 import { FabricLook, FabricLookContext } from './ClothLook';
@@ -399,6 +400,7 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
   const colour = fabric?.photo ? (chosen ? ids.find((i) => i.id === chosen)?.label : undefined) : printed ? (printed === 'checks' ? (fabric?.checks?.stripes ? 'Stripes' : fabric?.checks?.gingham ? 'Gingham' : 'Checks') : PRINTS[printed].label) : fabric?.colour?.trim();
   const colours = coloursFor(fabric);
   const picked = isHex(fabric?.colour) ? fabric!.colour!.trim().toUpperCase() : undefined;
+  const houseName = picked && colourWords(picked);
   const [anyOpen, setAnyOpen] = useState(!!picked);
   // A photo of the maker's own fabric carries its own colour, so no colours are offered under it.
   const photoOn = !!fabric?.photo;
@@ -410,7 +412,9 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
         {label ? (
           <>
             <em>{label}</em>
-            {colour && <span className="muted"> · {picked ? <span className="hexname">{picked}</span> : colour}</span>}
+            {/* A house colour is stored as its code, and "Sheer · #9CC3E6" read as computer talk (cold read, Nov 22), so
+                it shows its name. A colour picked by its code in Any colour keeps the code, which is what was typed. */}
+            {colour && <span className="muted"> · {houseName ?? (picked ? <span className="hexname">{picked}</span> : colour)}</span>}
           </>
         ) : (
           <span className="muted">See it in your fabric</span>
