@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { describe, expect, it } from 'vitest';
 import { PRINT_SAMPLES, piecesOffThePages, printProblems, printSample } from './printCheck';
 import type { Paper } from './engine/export';
@@ -22,6 +23,14 @@ describe('print check: every piece is on a printed page', () => {
 });
 
 describe.skipIf(!process.env.PRINT_CHECK)('print check: the printed pages', () => {
+  it('tidies away the pages it renders', async () => {
+    // Each run renders hundreds of big page images; left behind, they once filled a 250 GB disk.
+    const left = () => readdirSync(tmpdir()).filter((f) => f.startsWith('print-check-'));
+    const before = left();
+    await printProblems(PRINT_SAMPLES[0], 'a4', 30);
+    expect(left().filter((f) => !before.includes(f))).toEqual([]);
+  }, 120_000);
+
   it('measures the test square and lines up every page with its neighbours, no worse than src/printKnown.json', async () => {
     // No silent pass: with PRINT_CHECK set, the pages must render.
     execFileSync('pdftoppm', ['-v'], { stdio: 'ignore' });
