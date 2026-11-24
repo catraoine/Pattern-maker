@@ -106,6 +106,12 @@ describe('the couture route', () => {
         expect(qt).toContain('Set in the sleeves');
         expect(qt).toContain(sleeve.gathers ? 'Attach the sleeve bands' : 'Hem the sleeves');
         expect(qt).toContain(shape === 'puff' ? 'Gather the sleeve heads' : 'Ease the sleeve heads');
+        // A bishop's band closes round the wrist, so the hand is tried through the ring before it goes on; a puff's
+        // band sits on the upper arm (Ice Peplum fit audit, Nov 22).
+        const band = quick.steps.find((s) => s.title === 'Attach the sleeve bands')?.text ?? '';
+        if (shape === 'bishop') expect(band).toContain('from the edge. Before you press it, slip the ring over your closed hand. It should pass easily. If it is tight, cut the band a little longer and join it again. Then press the seam open.');
+        else expect(band).not.toContain('closed hand');
+        if (shape === 'puff') expect(band).toContain('from the edge, and press the seam open.');
         if (sleeve.elbowDart) expect(qt).toContain('Sew the elbow darts');
         // The bodice is closed and its neck finished before the sleeves go in.
         expect(qt.indexOf('Sew the shoulders')).toBeLessThan(qt.indexOf('Set in the sleeves'));
