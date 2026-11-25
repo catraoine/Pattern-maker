@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { chooseChip, expect, expectStyle, fillStepPages, goPrint, measureMe, openAccount, openFold, openFresh, openReview, pickToMake, startWithExample, stepButton, test } from './fixtures';
+import { chooseChip, expect, expectStyle, fillStepPages, goPrint, measureMe, openAccount, openFold, openFresh, openReview, pickToMake, reloadAsPerson, startWithExample, stepButton, test } from './fixtures';
 
 // The app journey review (Nov 10, 2026): what testers hit going back, reloading, saving and printing, and the fixes Cat
 // applied ("do all fixes").
@@ -29,19 +29,7 @@ test('a reload keeps your place, and back still climbs from there', async ({ pag
   await startWithExample(page);
   await goPrint(page);
   await expect(main(page).getByRole('group', { name: 'Paper' })).toBeVisible();
-  await page.addInitScript(() => { (window as unknown as { __first: string }).__first = JSON.stringify({ nav: performance.getEntriesByType('navigation').map((e) => (e as PerformanceNavigationTiming).type), state: history.state, place: sessionStorage.getItem('maison-trace-place') }); });
-  const first = () => page.evaluate(() => (window as unknown as { __first: string }).__first);
-  await page.evaluate(() => location.reload()).catch(() => {});
-  await page.waitForTimeout(1500);
-  await page.waitForLoadState('load');
-  console.log('DIAG location.reload', await first());
-  await goPrint(page).catch(() => {});
-  await page.keyboard.press('F5');
-  await page.waitForTimeout(1500);
-  console.log('DIAG F5', await first());
-  await goPrint(page).catch(() => {});
-  await page.reload();
-  console.log('DIAG page.reload', await first());
+  await reloadAsPerson(page);
   await expect(main(page).getByRole('group', { name: 'Paper' })).toBeVisible();
   await page.goBack();
   await expectStyle(page, 'Skirt');
