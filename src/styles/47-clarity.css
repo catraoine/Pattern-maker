@@ -575,3 +575,67 @@ section[aria-label='Preview']:has(.techflat) > .big-undo {
 .garment-fabric.dark-cloth .techflat .flat-shape {
   stroke: #2a2622;
 }
+
+/* Comfort review (Nov 25): on a phone, Download pattern rides in the gold bar at the foot of the screen, as Print my
+   pattern does on Your look, so the main way on sits under the thumb until the page scrolls down to where it lives. */
+@media (max-width: 760px) {
+  .print-top .print-go {
+    position: sticky;
+    bottom: 0;
+    z-index: 6;
+    margin: 0 -18px;
+    padding: 8px 18px calc(8px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--guide);
+    background: var(--paper);
+  }
+  .print-top .print-go > button.primary {
+    min-height: 58px;
+  }
+}
+
+/* Comfort review (Nov 25): on a touch screen the drawing's view tabs (26 px tall) and its corner tools (32 px) were
+   smaller than a fingertip. Each now has a bigger tap area, invisible, so nothing on the screen moves: the tabs reach
+   past their own frame, and the borderless tools take padding with the same negative margin. */
+@media (hover: none), (pointer: coarse) {
+  .seg[aria-label='Garment view'] > button {
+    position: relative;
+  }
+  .seg[aria-label='Garment view'] > button::after {
+    content: '';
+    position: absolute;
+    inset: -9px 0;
+  }
+  .preview-corner > button {
+    padding-top: 6px;
+    padding-bottom: 6px;
+    margin-top: -6px;
+    margin-bottom: -6px;
+  }
+}
+
+/* The small links at the foot of Account sat 20 px apart, line on line: on a touch screen the lines open out, so each
+   link is a fingertip tall. */
+@media (hover: none), (pointer: coarse) {
+  .account .fineprint.plain {
+    line-height: 2.4;
+  }
+  .account .fineprint.plain .inline-link {
+    line-height: inherit;
+  }
+}
+
+/* The cloth's name under each collection look was 11 px capitals (comfort review, Nov 25): 12 reads at arm's length. */
+.cloth-swatch figcaption {
+  font-size: 12px;
+}
+
+/* Under What would you like to make, the In testing line names seven garments: in spaced capitals it read as small
+   print to squint at (comfort review, Nov 25). It is a sentence, so it reads as one, in the body face. */
+.testing-note,
+.measure-step.has-hero .step-words .testing-note {
+  font-family: inherit;
+  font-size: 14px;
+  letter-spacing: normal;
+  text-transform: none;
+  line-height: 1.45;
+}

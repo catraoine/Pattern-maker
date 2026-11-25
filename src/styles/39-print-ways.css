@@ -1,7 +1,7 @@
 /* Print my pattern, easier to scan (Cat picked A1 Quiet list, Nov 14): every way to get the PDF used to be the same
    gold capitals, so nothing stood out. Download is now the one filled button, and the other ways are a plain list
    in ordinary words under a small "Other ways" label, each row ruled off with an arrow, like a menu. */
-.print-controls .stack > button.primary:not(:disabled) {
+.print-controls .print-go > button.primary:not(:disabled) {
   background: var(--gild);
   color: var(--paper);
   border-color: var(--gild);
@@ -11,7 +11,7 @@
 /* The pattern and its instructions are two downloads (Cat, Nov 15). Both take the column's full width, so "Download
    pattern (17 pages)" stays on one line on a phone instead of wrapping its count; a little less side padding gives it
    room up to a hundred-odd pages. */
-.print-controls .stack > button.primary,
+.print-controls .print-go > button.primary,
 .print-controls .stack > button.secondary {
   width: 100%;
   padding-left: 12px;
