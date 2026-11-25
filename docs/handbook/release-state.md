@@ -4,11 +4,11 @@ _Update this page whenever a release ships or a PR is queued._
 
 ## Now (Nov 21, 2026): how a ship works
 
-Live: **release EF** (Nov 24, Cat's 7:18 pm "ship"): an out-of-range measurement gets a button that opens it, Print
-asks for the arms then returns to Print, testers no longer see "Be a fit tester", Style window walk fixes (enlarged Flat,
-trouser waistband clear of the corner tools, length label, Who it is for Cancel), bigger demo clips, "Good first make" on
-the Skirt tile's edge with truer In testing words, and a crash guard when a release lands mid-print, on top of EE.
-Rollback = release EE. Releases CW to EF went out Nov 17 to 24;
+Live: **release EG** (Nov 24, Cat's 9:00 pm "ship"): Ice Peplum tester fit fix (side seams run straight into the
+peplum seam, waist darts left part open there), a darted dress asks front length and bust depth and a top asks across
+back and armhole when the high bust is at or over the bust, the Ice Peplum ruffle shows in its drawings, and "Good first
+make" sits inside the Skirt tile again, on top of EF.
+Rollback = release EF. Releases CW to EG went out Nov 17 to 24;
 every release's commit, deploy id and rollback is in project memory (pattern-maker-releases-nov14), and the running list of what is
 ready is `/mnt/project-files/releases/ready-to-ship.md`.
 
