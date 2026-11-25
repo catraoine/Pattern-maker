@@ -559,3 +559,13 @@ section[aria-label='Preview']:has(.techflat) > .big-undo {
 .account section.card:has(> #codetitle) > h2 {
   font-size: var(--caps-size, 12px);
 }
+
+/* The pleats on the Black Pleated Skirt's flat didn't show (Cat, Nov 24): on chalk, the seams, pleats and stitching
+   are drawn in dark ink, which vanished into a black cloth. A dark cloth's inner lines are pale, as on the collection's
+   house flats; its outline stays dark, to stand out from the chalk. */
+.garment-fabric.dark-cloth .techflat {
+  --gild: #a89c86;
+}
+.garment-fabric.dark-cloth .techflat .flat-shape {
+  stroke: #2a2622;
+}
