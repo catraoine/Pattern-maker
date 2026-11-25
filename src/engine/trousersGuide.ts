@@ -33,6 +33,9 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
   const seam = n1(sw.seam);
   const waist = n1(sw.waist);
   const fly = d.closure === 'fly';
+  // The crotch is always sewn at 1 cm. A tester sewed it at 1.5 cm like every other seam and only saw at the fly that it
+  // differs (fit audit, findings row 161), so it says so when the other seams are wider.
+  const narrower = sw.seam === 1 ? '' : ', narrower than the other seams,';
   // (Only a fly's band runs on past the opening, as its underlap. A side zip's ends stop level with it and a hook and eye
   // closes them, so its steps name no extension: they sent the sewist looking for one; era pattern review, Nov 14.)
   // A low rise's band is cut curved, a band and its facing: not folded (trouserBand.ts).
@@ -146,8 +149,8 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
     {
       title: 'Sew the crotch seam',
       text: fly
-        ? 'Turn one leg right side out and slip it inside the other, so they are right sides together. Match the inside leg seams and pin the crotch seam from the ZIP ENDS notch on the front, round under, and up to the centre back waist. Sew it 1 cm from the edge twice, the second row just inside the first through the curve. Clip the curve below the back hip and press the upper part open.'
-        : `Turn one leg right side out and slip it inside the other, so they are right sides together. Match the inside leg seams and pin the crotch seam from the centre front waist, round under, and up to the centre back waist. Sew it 1 cm from the edge twice, the second row just inside the first through the curve. Clip the curve below the hip and press the upper parts open.`,
+        ? `Turn one leg right side out and slip it inside the other, so they are right sides together. Match the inside leg seams and pin the crotch seam from the ZIP ENDS notch on the front, round under, and up to the centre back waist. Sew it 1 cm from the edge${narrower} twice, the second row just inside the first through the curve. Clip the curve below the back hip and press the upper part open.`
+        : `Turn one leg right side out and slip it inside the other, so they are right sides together. Match the inside leg seams and pin the crotch seam from the centre front waist, round under, and up to the centre back waist. Sew it 1 cm from the edge${narrower} twice, the second row just inside the first through the curve. Clip the curve below the hip and press the upper parts open.`,
     },
     ...(fly
       ? [
