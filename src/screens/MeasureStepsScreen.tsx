@@ -85,7 +85,7 @@ type Page =
   | { kind: 'weight'; back?: 'check' }
   | { kind: 'check' }
   | { kind: 'choose' }
-  | { kind: 'extra'; garment: Garment | 'other'; ids: MeasurementId[]; at: number; redo?: boolean; then?: AfterMeasuring }
+  | { kind: 'extra'; garment: Garment | 'other'; ids: MeasurementId[]; at: number; redo?: boolean; then?: AfterMeasuring; added?: MeasurementId[] }
   | { kind: 'saved' }
   | { kind: 'describe' }
   | { kind: 'idea'; idea: IdeaReading };
@@ -506,8 +506,9 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   const id = ids[at];
   const g = page.kind === 'extra' ? page.garment : null;
   // What has been typed can ask for more: a top asks a broad upper body (high bust at or over the bust) for its across
-  // back and armhole (Cat, Nov 24), and the high bust is taken on these same pages. They follow on after the last one.
-  const more = page.kind === 'extra' && !page.redo && g !== 'other' && at === ids.length - 1 ? neededFor(g!, values, form).map((f) => f.id).filter((m) => !ids.includes(m) && !unused(g!).includes(m)) : [];
+  // back and armhole (Cat, Nov 24), and the high bust is taken on these same pages. They come straight after the page
+  // that asked for them, with a line saying why: added at the end, the count jumped with no reason given (EG walk, #4).
+  const more = page.kind === 'extra' && !page.redo && g !== 'other' ? neededFor(g!, values, form).map((f) => f.id).filter((m) => !ids.includes(m) && !unused(g!).includes(m)) : [];
   const last = at === ids.length - 1 && !more.length;
   const eyebrow = `${page.kind === 'base' ? '' : g === 'other' ? 'Full set · ' : `${cap(named(g!))} · `}${at + 1} of ${ids.length}`;
   const label =
@@ -518,7 +519,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     // A redo from the measurements list goes back to the list, past every page it took.
     else if (page.kind === 'extra' && page.redo && last && canGoBack()) window.history.go(-(at + 1));
     else if (page.kind === 'base') setPage(last ? (onWeight ? { kind: 'weight' } : { kind: 'check' }) : { ...page, at: at + 1 });
-    else if (more.length) setPage({ ...page, ids: [...ids, ...more], at: at + 1 });
+    else if (more.length) setPage({ ...page, ids: [...ids.slice(0, at + 1), ...more, ...ids.slice(at + 1)], at: at + 1, added: more });
     else if (last) {
       if (page.garment === 'other') setPage({ kind: 'saved' });
       else onDone(page.garment, page.then);
@@ -619,7 +620,11 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   return (
     <MeasurePage
       key={`${page.kind}-${id}`}
-      who={whoLine || (page.kind === 'extra' && !page.redo && at === 0 && g && g !== 'other' && (
+      who={whoLine || (page.kind === 'extra' && page.added?.[0] === id && (
+        <p className="extra-intro">
+          Your high bust is as big as your full bust, so your {named(g as Garment)} also takes your {page.added.map((m) => labelOf(m, form).toLowerCase()).join(' and ')}: {page.added.length === 1 ? 'one more measurement' : `${page.added.length} more measurements`}.
+        </p>
+      )) || (page.kind === 'extra' && !page.redo && at === 0 && g && g !== 'other' && (
         // Back to measuring after What to make, said plainly on every size (clarity review A4, Nov 22: readers thought
         // measuring was over, and the computer showed no count at all).
         <p className="extra-intro">
