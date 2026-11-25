@@ -116,6 +116,14 @@ const aOrAn = (name: string) => (/(s|wear|lingerie)$/i.test(name) && !/dress$/i.
 // There is no first page (Fable's concept A, Cat's apply, Nov 15): Begin opens on the waist. Who you are designing
 // for, and the form, sit in one quiet line above the first measurement, with Change for the few who need it;
 // "Someone else" words every page for the person holding the tape and asks their name before any number is taken.
+/** A base measurement still to take: not given, or given out of range (Finish later keeps a number Next refused, and
+ *  Begin carried on past it without a word, EF walk, Nov 24). */
+const toTake = (values: MeasurementValues, id: MeasurementId) => {
+  const x = values[id];
+  const f = fieldOf(id);
+  return x === undefined || Number.isNaN(x) || (!!f?.hard && (x < f.hard[0] || x > f.hard[1]));
+};
+
 export function MeasureStepsScreen({ testerCode, garment: current, unit, values, onUnit, onValues, helped = [], weight, onWeight, onDone, start, opening, onSomeoneElse, onAskThem, onKeepSafe, theirs, theirName, onSkip, onLater, form = 'womenswear', onForm, onIdea, onPhoto, onLooks, onMade, onNews, onPage, unused = () => [], named = (g) => GARMENT_NAME[g] }: Props) {
   const aimed = start?.kind === 'for' ? start.garment : undefined;
   // Opened afresh for a garment, a redo, the form or the garments (not a reload, and not stepped back into): its own
@@ -131,11 +139,11 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     // (tester journey, Nov 11). Every number typed so far is already kept.
     if (start?.kind === 'resume') {
       if (baseDone(values)) return { kind: 'check' };
-      return { kind: 'base', at: Math.max(0, BASE.findIndex((m) => values[m] === undefined)) };
+      return { kind: 'base', at: Math.max(0, BASE.findIndex((m) => toTake(values, m))) };
     }
     // Choosing another garment, or measuring for one, never goes back to the base measurements once anything is
     // measured: straight to the garments, or to the pages that garment still needs (Cat's A, 2026-10-24).
-    if (!baseDone(values) && !(begun(values) && (start?.kind === 'choose' || aimed))) return { kind: 'base', at: Math.max(0, BASE.findIndex((m) => values[m] === undefined)) };
+    if (!baseDone(values) && !(begun(values) && (start?.kind === 'choose' || aimed))) return { kind: 'base', at: Math.max(0, BASE.findIndex((m) => toTake(values, m))) };
     if (start?.kind === 'choose') return { kind: 'choose' };
     // `also`: more the design needs beyond the garment's own list (a collection top's sleeves need the arms).
     const also = start?.kind === 'for' ? (start.also ?? []).filter((id) => values[id] === undefined) : [];
@@ -205,7 +213,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   const [ideaError, setIdeaError] = useState<PhotoError>();
 
   /** Back after Finish later: on at the first base measurement still to take. */
-  const firstToTake = () => Math.max(0, BASE.findIndex((m) => values[m] === undefined));
+  const firstToTake = () => Math.max(0, BASE.findIndex((m) => toTake(values, m)));
   /** Every measurement still to take, for a dressmaker. */
   const fullSet = () => {
     const ids = fullSetMissing(values, form).map((f) => f.id);
@@ -939,7 +947,9 @@ export function MeasurePage({
     if (!shownError || unit !== 'cm' || value === undefined) return undefined;
     const f = FIELDS[checkAs].find((x) => x.id === id);
     const cm = Math.round(value * 2.54 * 10) / 10;
-    return f && value < f.hard[0] && cm >= f.hard[0] && cm <= f.hard[1] ? cm : undefined;
+    // Offered only when the other unit gives a usual number, not merely a possible one: 196.9 in as cm is still a
+    // waist no one has, and the offer read as a fix (EF walk, Nov 24).
+    return f && value < f.hard[0] && cm >= f.typical[0] && cm <= f.typical[1] ? cm : undefined;
   })();
   // And the other way: a number taken in cm while the app is in inches is too big, and fits read as cm (the pretend
   // tester's inch walk, Nov 18, where only the cm pages offered the switch).
@@ -947,7 +957,7 @@ export function MeasurePage({
     if (!shownError || unit !== 'in' || value === undefined) return undefined;
     const f = FIELDS[checkAs].find((x) => x.id === id);
     const cm = Math.round((value / 2.54) * 10) / 10;
-    return f && value > f.hard[1] && cm >= f.hard[0] && cm <= f.hard[1] ? cm : undefined;
+    return f && value > f.hard[1] && cm >= f.typical[0] && cm <= f.typical[1] ? cm : undefined;
   })();
   const note = shownError ?? (tried && value === undefined ? { level: 'error', message: `Enter ${helper ? 'their' : 'your'} ${fieldLabel.toLowerCase()} to carry on.` } : undefined);
 
