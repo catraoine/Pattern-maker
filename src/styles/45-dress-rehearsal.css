@@ -4,9 +4,10 @@
 /* 1. Measuring on a laptop: the heading stood at 72 px beside the form whatever the width, so on a 1280 to 1440 px
    screen the longest words (SHOULDER, UNDERBUST) were wider than their column and lost their last letter. It now
    grows with the screen and reaches 72 px only where there is room. Short laptop screens keep their own smaller size
-   (42-desktop-review.css), so this starts above their 760 px, and above the 800 px a tablet on its side keeps for
-   its own size (21-ipad.css). */
-@media (min-width: 1100px) and (min-aspect-ratio: 1/1) and (min-height: 801px), (min-width: 1100px) and (min-aspect-ratio: 1/1) and (min-height: 761px) and (pointer: fine) {
+   (42-desktop-review.css), so this starts above their 820 px (760 until cold read EH, Nov 25, when a 768 tall
+   laptop still had 72 px here and Next cut off), and above the 800 px a tablet on its side keeps for its own size
+   (21-ipad.css). */
+@media (min-width: 1100px) and (min-aspect-ratio: 1/1) and (min-height: 801px) and (not (pointer: fine)), (min-width: 1100px) and (min-aspect-ratio: 1/1) and (min-height: 821px) {
   .measure-step.has-hero .step-words h1 {
     font-size: clamp(48px, 4.4vw, 72px);
   }

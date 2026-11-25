@@ -544,11 +544,21 @@ section[aria-label='Preview']:has(.techflat) > .big-undo {
 
 /* Cold read EF, Nov 24: enlarged on a computer, the flat kept the column's 760px cap, so Enlarge drew it no bigger.
    Enlarged, it fills the window, and the drawing keeps its own proportions inside. */
-.style-pin > section.live-big .preview > svg.techflat {
+/* A look in its own cloth draws its flat inside the cloth's wrapper, which the rule missed: the Ice Peplum Top stayed
+   small in a beige field on a laptop and in a narrow column on a phone (cold read EH, Nov 25). The wrapper fills too. */
+.style-pin > section.live-big .preview > svg.techflat,
+.style-pin > section.live-big .preview > .garment-fabric > svg.techflat {
   width: 100%;
   height: 100%;
   max-width: none;
   max-height: none;
+}
+.style-pin > section.live-big .preview > .garment-fabric:has(> svg.techflat) {
+  flex: 1 1 auto;
+  align-self: stretch;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
 }
 
 /* "Open from a label" sat in a light box on the black account page, the brightest thing on it (pretend tester EF walk,
@@ -590,6 +600,21 @@ section[aria-label='Preview']:has(.techflat) > .big-undo {
   }
   .print-top .print-go > button.primary {
     min-height: 58px;
+  }
+  /* And the list of pieces comes after the ways to download, not before: a top's nine pieces pushed Print on (the
+     paper) under the bar, so Download could be tapped before the paper was seen (cold read EH, Nov 25). Now the
+     card, the paper, then Download in reach on opening; the pieces and the printing steps follow. */
+  .print-top .print-cover {
+    display: contents;
+  }
+  .print-top .print-cover > .eyebrow,
+  .print-top .print-cover > .pieces {
+    order: 1;
+  }
+  .print-top .print-controls > .print-steps,
+  .print-top .print-controls > .pages-fold,
+  .print-top .print-more > * {
+    order: 2;
   }
 }
 
@@ -638,4 +663,21 @@ section[aria-label='Preview']:has(.techflat) > .big-undo {
   letter-spacing: normal;
   text-transform: none;
   line-height: 1.45;
+}
+
+/* "Do these look right?" with something to check: the note and its Check button came under the bottom edge at 360,
+   390 and 1366, so the list looked fine on opening (cold read EH, Nov 25). With a note the words start near the top,
+   so the note and its button are in view with the list. */
+.measure-step:not(.has-hero):not(.centred):has(.check-list:not(.idea-picks)):has(> .step-words > :is(.msg, .double-checks)),
+.measure-step:not(.has-hero):not(.centred):has(.check-list:not(.idea-picks)):has(> :is(.msg, .double-checks)) {
+  padding-top: 8px;
+}
+/* On a short screen the rows close up a little too (48 px, still a fingertip), and the note sits nearer the list. */
+@media (max-height: 820px) {
+  .measure-step:not(.has-hero):not(.centred):has(.check-list:not(.idea-picks)):has(:is(.msg, .double-checks)) .check-list button {
+    min-height: 48px;
+  }
+  .measure-step:not(.has-hero):not(.centred):has(.check-list:not(.idea-picks)):has(:is(.msg, .double-checks)) .check-list + * {
+    margin-top: 16px;
+  }
 }
