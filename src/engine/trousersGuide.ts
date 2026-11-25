@@ -35,7 +35,7 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
   const fly = d.closure === 'fly';
   // The crotch is always sewn at 1 cm. A tester sewed it at 1.5 cm like every other seam and only saw at the fly that it
   // differs (fit audit, findings row 161), so it says so when the other seams are wider.
-  const narrower = sw.seam === 1 ? '' : ', narrower than the other seams,';
+  const narrower = sw.seam > 1 ? ', narrower than the other seams,' : '';
   // (Only a fly's band runs on past the opening, as its underlap. A side zip's ends stop level with it and a hook and eye
   // closes them, so its steps name no extension: they sent the sewist looking for one; era pattern review, Nov 14.)
   // A low rise's band is cut curved, a band and its facing: not folded (trouserBand.ts).
