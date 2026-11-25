@@ -8,6 +8,7 @@ import { OuterDraft, OuterMeasurements, draftOuter } from './engine/outerwear';
 import { waistPieces } from './engine/finishing';
 import { SLEEVE_EASE, SleeveDraft, SleeveMeasurements, draftSleeve, needsArms } from './engine/sleeve';
 import { Fitting, toFitting } from './engine/fitting';
+import { MENS_POINTS } from './engine/menswearTailoring';
 import { MyFabric, withFabricEase } from './engine/fabrics';
 import { FormKind, Garment, MeasurementValues } from './measurements';
 import { DEFAULT_LINGERIE_CHOICES, describeLingerie } from './garments';
@@ -62,7 +63,7 @@ function sleeveFor(bodice: BodiceDraft, choices: BodiceChoices, values: Measurem
   const { length, shape, cm, cuff, fullness, headGather } = sleeveOf(choices);
   if (length === 'none' || needsArms(values as SleeveMeasurements)) return undefined;
   return draftSleeve(bodice, values as SleeveMeasurements, {
-    ...(form === 'menswear' ? { ease: menswearSleeveEase(choices.fit) } : {}),
+    ...(form === 'menswear' ? { ease: menswearSleeveEase(choices.fit), cuffPleats: true } : {}),
     length,
     shape,
     ...(cm !== undefined ? { lengthCm: cm } : {}),
@@ -82,7 +83,15 @@ const bodiceFitting = ({ fabric, form }: DraftInputs, f: Fitting | undefined) =>
 const skirtFitting = ({ fabric }: DraftInputs, f: Fitting | undefined) => withFabricEase(toFitting(f, 'skirt'), fabric, 'skirt');
 
 export const skirtStyleOf = (i: DraftInputs, f: Fitting | undefined) => ({ ...i.saved.choices, fitting: skirtFitting(i, f) });
-const bodiceStyleOf = (i: DraftInputs, f: Fitting | undefined) => ({ ...validDetails(i.saved.bodice), fitting: bodiceFitting(i, f) });
+/** A man's shirt on the menswear form: more room than a blouse of the same fit, and, under a collar that buttons at
+ * the throat, a neck drafted closer. An open or collarless neck keeps the block's. */
+const shirtFitting = (i: DraftInputs, f: Fitting | undefined) => {
+  const fit = bodiceFitting(i, f);
+  if (i.form !== 'menswear') return fit;
+  const buttoned = i.saved.bodice.collar === 'shirt' || i.saved.bodice.collar === 'mandarin';
+  return { ...fit, bustEase: (fit.bustEase ?? 0) + MENS_POINTS.shirtEase, waistEase: (fit.waistEase ?? 0) + MENS_POINTS.shirtEase, hipEase: (fit.hipEase ?? 0) + MENS_POINTS.shirtEase, ...(buttoned ? { neck: (fit.neck ?? 0) - MENS_POINTS.neckCloser } : {}) };
+};
+const bodiceStyleOf = (i: DraftInputs, f: Fitting | undefined) => ({ ...validDetails(i.saved.bodice), fitting: shirtFitting(i, f) });
 /** The dress's choices; until it is styled, it starts from the bodice and the skirt. */
 export const dressOf = (saved: DraftInputs['saved']): DressChoices =>
   saved.dress ?? { garment: 'dress', fit: saved.bodice.fit, bodice: { ...saved.bodice, length: 'waist' }, skirt: saved.choices };
@@ -165,7 +174,7 @@ export const GARMENT_DRAFTING: Record<Garment, GarmentDrafting> = {
       const bodice = draftBodice(values as BodiceMeasurements, style);
       return { bodice, sleeve: sleeveFor(bodice, style, values, i.form) };
     },
-    piecesWith: (values, i, f) => draftBodice(values as BodiceMeasurements, { ...i.saved.bodice, fitting: bodiceFitting(i, f) }).pieces,
+    piecesWith: (values, i, f) => draftBodice(values as BodiceMeasurements, { ...i.saved.bodice, fitting: shirtFitting(i, f) }).pieces,
     graded: (m, i, f, allow) => {
       const style = bodiceStyleOf(i, f);
       const b = draftBodice(m as BodiceMeasurements, style);

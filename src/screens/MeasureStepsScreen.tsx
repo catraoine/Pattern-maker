@@ -577,8 +577,12 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
         )}
         {helper && !theirs && (
           <div className="field plain ready">
-            <label htmlFor="who-name">Name</label>
-            <input id="who-name" autoComplete="off" autoFocus value={name} onChange={(e) => setName(e.target.value)} />
+            <label htmlFor="who-name">Their name</label>
+            <input id="who-name" autoComplete="off" autoFocus value={name} aria-describedby="who-name-why" onChange={(e) => setName(e.target.value)} />
+            {/* Done stayed grey with nothing saying why (pretend tester, Nov 22). */}
+            <p id="who-name-why" className="muted small">
+              So the pages speak to them, and their measurements are kept apart from yours.
+            </p>
           </div>
         )}
         {helper && !theirs && onAskThem && (

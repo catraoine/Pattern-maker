@@ -76,7 +76,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
   const form = useMemo(() => (draft ? teeForm(m, choices, draft) : undefined), [draft, m, choices]);
   const formLines = useMemo(() => (draft && form ? teeLines(draft, form) : {}), [draft, form]);
   const pieces = useMemo(() => draft?.pieces ?? [], [draft]);
-  const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
+  const sheet = useMemo(() => (draft ? layout(pieces, '', [], undefined, { upright: true }) : undefined), [draft, pieces]);
   const flat = useMemo(() => (draft ? teeFlat(draft) : undefined), [draft]);
   const clothShapes = useMemo(() => (flat ? wornShapes(flat) : undefined), [flat]);
   const flatLines = useMemo(() => (flat ? wornLines(flat) : undefined), [flat]);

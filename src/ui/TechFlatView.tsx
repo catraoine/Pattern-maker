@@ -2,6 +2,8 @@ import { CSSProperties, useId } from 'react';
 import type { Flat } from '../engine/flat';
 import { SHADE_STOPS } from './FormSketch';
 import { ClothDefs, ClothOverlay, throughOpacity, borderHems, useFabricLook } from './ClothLook';
+import { useEnlarged } from './EnlargeSketch';
+import { useMedia } from './StyleLayout';
 
 const d = (pts: { x: number; y: number }[], close = false) =>
   pts.map((q, i) => `${i ? 'L' : 'M'}${q.x.toFixed(2)},${q.y.toFixed(2)}`).join('') + (close ? 'Z' : '');
@@ -14,9 +16,22 @@ export function TechFlatView({ flat, title, labelCm, style, part }: { flat: Flat
   const size = labelCm ?? Math.max(1.8, flat.width / 45);
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const look = useFabricLook();
+  // Enlarged on a tall phone, front and back side by side filled only a third of the window (Cat's phone, Nov 23), so
+  // there the back goes under the front and each is drawn twice as big.
+  const big = useEnlarged();
+  // (Watched, so turning the phone while it is enlarged lays the two views out again.)
+  const tall = useMedia('(max-aspect-ratio: 3/4)');
+  const stack = big && flat.views.length === 2 && tall;
+  const spans = flat.views.map((v) => {
+    const xs = v.shapes.flat().map((q) => q.x);
+    return [Math.min(...xs), Math.max(...xs)];
+  });
+  const rowH = flat.height + size * 2 + pad;
+  const shift = (k: number) => (stack && k === 1 ? `translate(${(spans[0][0] - spans[1][0]).toFixed(2)} ${rowH.toFixed(2)})` : undefined);
+  const width = stack ? Math.max(spans[0][1], spans[0][0] + spans[1][1] - spans[1][0]) : flat.width;
   return (
     <svg
-      viewBox={`${-pad} ${-pad} ${flat.width + 2 * pad} ${flat.height + 2 * pad + size * 2}`}
+      viewBox={`${-pad} ${-pad} ${width + 2 * pad} ${flat.height + 2 * pad + size * 2 + (stack ? rowH : 0)}`}
       className="techflat"
       style={style}
       // (One view of several, drawn apart: the group they are in carries the name.)
@@ -31,7 +46,7 @@ export function TechFlatView({ flat, title, labelCm, style, part }: { flat: Flat
         const shade = `flatshade${uid}${k}`;
         const hems = look?.border ? borderHems(v.shapes) : [];
         return (
-          <g key={v.label}>
+          <g key={v.label} transform={shift(k)}>
             <ClothDefs uid={`${uid}${k}`} x1={left + (right - left) * 0.1} x2={right - (right - left) * 0.1} look={look} flat />
             <defs>
               <linearGradient id={shade} gradientUnits="userSpaceOnUse" x1={(left + (right - left) * 0.1).toFixed(2)} x2={(right - (right - left) * 0.1).toFixed(2)} y1="0" y2="0">

@@ -214,6 +214,8 @@ export interface BodiceFitting {
   frontSlope?: number;
   backSlope?: number;
   neckGape?: number;
+  /** The neck drafted this many cm bigger round (negative is closer), for a collar that buttons at the throat. */
+  neck?: number;
   backLength?: number;
   bustPoint?: number;
   acrossBack?: number;
@@ -919,7 +921,8 @@ export const MIN_BUST_TO_WAIST = 4;
 function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLine = {}): BodiceDraft & { inner: { bustDart: number; lower: number; upper: number; forward: number; pin: number; turn: number } } {
   const dropShoulder = side.drop ?? 0;
   const fit = s.fitting ?? {};
-  const { waist: W, neck: N, shoulder_length: SL, shoulder_width: SW } = m;
+  const { waist: W, shoulder_length: SL, shoulder_width: SW } = m;
+  const N = m.neck + (fit.neck ?? 0);
   // The ease goes round the bigger of the bust and the high bust: on a broad upper body (high bust over the bust) it was
   // added to the bust alone, leaving less room across the upper chest than the fit means (tester report, row 158, Nov 24).
   // Its cup terms below (B - HB) are floored already, so a high bust over the bust drafts like an even one there.

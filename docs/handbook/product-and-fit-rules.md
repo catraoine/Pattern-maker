@@ -436,6 +436,12 @@ for Cat's "ship" and a CLO before and after.
    not yet styled start with slant pockets, back welt pockets and belt loops (`src/engine/menswearTailoring.ts`).
 5. **A single-breasted jacket has two buttons** 11 cm apart, the lapel breaking 2 cm above the waist (same decision, In
    testing). Double-breasted fronts, coats and looks with their own buttons keep theirs.
+6. **The smaller points** (Cat, Nov 23: "Apply"; In testing; `MENS_POINTS` in `src/engine/menswearTailoring.ts`). A
+   shirt has 3 cm more ease than a blouse of the same fit at the chest, waist and hem, so Regular is 10 cm. Its neck
+   seam is drafted 0.9 cm closer, so the collar buttons 2 cm over the neck. Its sleeve tapers to the cuff and 6 cm,
+   folded into two pleats, where a blouse is gathered. A jacket sleeve is 1.5 cm shorter, ending at the wrist bone, so
+   the shirt cuff shows; a coat's is not. Checked in CLO on the 96 and 116 cm chests, except the collar (the CLO shirt
+   had none). The 3 cm of ease is a tailoring habit, not yet a toile's finding.
 
 ## Style steps
 

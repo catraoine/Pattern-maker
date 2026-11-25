@@ -97,10 +97,11 @@ export function AskToMeasure({ account, person, garment: start, onAccount, onRep
         </div>
       )}
 
+      {/* Above the button, not under it: below, it sat out of sight and Send link looked broken (pretend tester, Nov 22). */}
+      {!from && <p className="muted small">Add your name first, so they know who's asking.</p>}
       <button type="button" className="primary" disabled={!to || !from} onClick={send}>
         Send link
       </button>
-      {!from && <p className="muted small">Add your name first, so they know who's asking.</p>}
       {sent?.result === 'copied' && (
         <p className="msg" role="status">
           Link copied. Paste it into a message to {sent.to}.

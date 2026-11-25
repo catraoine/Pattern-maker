@@ -92,7 +92,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
   /** The choices before drawing on the form, while it is open. */
   const [onForm, setOnForm] = useState<Choices>();
 
-  const sheet = useMemo(() => (draft ? layout(draft.pieces, '', []) : undefined), [draft]);
+  const sheet = useMemo(() => (draft ? layout(draft.pieces, '', [], undefined, { upright: true }) : undefined), [draft]);
   const round = useMemo(() => (draft ? roundSkirt(draft) : undefined), [draft]);
   const sideTie = useMemo(() => (draft ? skirtBelt(choices.belt, draft)?.ties : undefined), [draft, choices.belt]);
   const drapeJob = useMemo(() => (draft ? ({ kind: 'skirt', draft, ...(sideTie ? { sideTie } : {}) } as const) : undefined), [draft, sideTie]);

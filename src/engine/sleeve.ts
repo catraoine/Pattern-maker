@@ -52,6 +52,10 @@ export interface SleeveStyle {
   unpadded?: boolean;
   /** A cuff at the hem: a shirt cuff, elastic, or a tie band (see cuffs.ts). */
   cuff?: Cuff;
+  /** A shirt cuff's fullness folded into two pleats, as on a man's shirt, in place of gathers. */
+  cuffPleats?: boolean;
+  /** A jacket sleeve this many cm shorter, so a shirt cuff shows below it. */
+  shorter?: number;
   /** Set from the bodice (see sleeveCut.ts): a dropped shoulder's flatter crown, or a raglan's
    * shoulders, cut off the bodice, to go onto the sleeve. */
   cut?: SleeveCut;
@@ -84,6 +88,9 @@ export const SLEEVE_EASE: Record<BodiceFit, { bicep: number; crown: number }> = 
 
 /** Share of the crown ease that goes into the back half. */
 const BACK_SHARE = 0.55;
+/** A pleated shirt cuff: the sleeve tapers to its cuff and this much more, which two pleats 1.5 cm deep take up. Left as
+ * wide as the arm, the hem had 14 cm to lose, more than pleats can press flat. */
+const PLEATED_HEM = 6;
 /** A full bishop sleeve's hem is cut no more than this many times the cuff or band it is gathered into. */
 const FULL_BISHOP_GATHER = 5;
 /** Width of a puff or bishop sleeve's band when finished, in cm. */
@@ -123,6 +130,8 @@ export interface SleeveDraft {
   vent?: { lengthCm: number; at: 'back seam' };
   /** The cuff, when it has one; `hemCm` is then round the cuff. */
   cuff?: CuffDraft;
+  /** Its fullness is pleated into the cuff, not gathered. */
+  pleated?: boolean;
   /** A sleeve that isn't set in: a dropped shoulder's, a raglan's (cut in two along the top of the
    * arm, the shoulders on it), or a kimono's, cut on with the bodice so it has no pieces of its own. */
   cut?: Exclude<SleeveCut, 'set_in'>;
@@ -273,9 +282,11 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
   const gathered = shape === 'puff' || shape === 'bishop';
   // A cuff takes the hem in, on a straight or bishop sleeve of a length that can have one.
   const cuff = s.cuff && s.cuff !== 'none' && !tailored && !s.outer && cuffAllowed(s.cuff, s.length, shape) ? cuffOf(s.cuff, s.length as Named, wrist, m.upper_arm) : undefined;
+  // Only a straight sleeve: a bishop's fullness is the point of it, and more than pleats can take.
+  const pleated = !!s.cuffPleats && cuff?.kind === 'shirt' && shape === 'straight';
 
   // Length from the crown point for each named length, and the hem width before any shaping.
-  const longCm = arm + 1 + (s.outer === 'coat' ? 2.5 : s.outer ? 1.5 : 0);
+  const longCm = arm + 1 + (s.outer === 'coat' ? 2.5 : s.outer ? 1.5 : 0) - (s.shorter ?? 0);
   const namedAt = (h: number): Record<Named, number> => ({ short: h + 6, elbow: Math.max(elbowY + 2, h + 6), three_quarter: Math.max(arm * 0.8, h + 6), long: Math.max(longCm, h + 6) });
   const cap_ = shape === 'cap';
   const flutter = shape === 'flutter';
@@ -364,7 +375,7 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
   };
   // Into a cuff, the hem is a little fuller than the cuff, to gather or pleat into it; elastic needs a
   // hem the hand passes through.
-  const cuffHem = (plain: number) => (!cuff || cuff.kind === 'ruffle' || cuff.kind === 'turnback' ? plain : cuff.kind === 'elastic' ? Math.max(plain, hand + 4) : Math.max(plain, cuff.round + 6));
+  const cuffHem = (plain: number) => (!cuff || cuff.kind === 'ruffle' || cuff.kind === 'turnback' ? plain : cuff.kind === 'elastic' ? Math.max(plain, hand + 4) : pleated ? cuff.round + PLEATED_HEM : Math.max(plain, cuff.round + 6));
   const hemAt = (length: Named) => {
     if (shape === 'puff' || cap_ || flutter) return w;
     // A full bishop on a full arm and a small wrist came to nearly seven times its cuff, too much to gather in evenly
@@ -526,7 +537,7 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
       { at: place(add(notchB, p(2.6, 1.6))), text: 'BACK', size: 0.6 },
       ...(shape === 'puff' || headGather ? [{ at: p(cx, h * 0.45), text: 'GATHER BETWEEN NOTCHES', size: 0.55 }] : []),
       ...(cuff && cuff.kind !== 'elastic' && cuff.kind !== 'ruffle' && cuff.kind !== 'turnback'
-        ? [{ at: p(0, L - 3), text: `GATHER TO FIT THE ${cuff.kind === 'shirt' ? 'CUFF' : 'TIE CUFF'}`, size: 0.55 }]
+        ? [{ at: p(0, L - 3), text: `${pleated ? 'PLEAT' : 'GATHER'} TO FIT THE ${cuff.kind === 'shirt' ? 'CUFF' : 'TIE CUFF'}`, size: 0.55 }]
         : gathered && !cuff
           ? [{ at: p(0, L - 3), text: 'GATHER TO FIT THE BAND', size: 0.55 }]
           : []),
@@ -562,7 +573,7 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
       warnings,
     };
   }
-  const band = gathered && !cuff ? bandPiece(shape === 'puff' ? m.upper_arm + 4 : hand + 1, s.seamAllowance) : undefined;
+  const band = gathered && !cuff ? bandPiece(shape === 'puff' ? m.upper_arm + 4 : hand + 1, s.seamAllowance, shape !== 'puff') : undefined;
   // A raglan: the sleeve cut in two along the top of the arm, the shoulders cut off the bodice joined on.
   const own: Piece[] = sleeveCut === 'raglan' ? toRaglan(sleeve, { crown: c.crown, frontCap: cubicPts(c.crown, c.front.c1, c.front.c2, Uf, 400), backCap: cubicPts(Ub, c.back.c1, c.back.c2, c.crown, 400), Uf, Ub, Wf, Wb, hem: cubicPts(Wf, hemC1, hemC2, Wb, 60), h, L, w, yokes: s.raglan!, s }) : [sleeve];
   const cutOf = sleeveCut ? { cut: sleeveCut } : {};
@@ -598,6 +609,7 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
       hemCm: cuff.round,
       gathers: { ...(headGather ? { head: r1(crownLen - front.length - back.length) } : {}), hem: r1(hemLen - cuff.round) },
       cuff,
+      ...(pleated ? { pleated } : {}),
       ...(ventTop ? { vent: { lengthCm: ventCm!, at: 'back seam' as const } } : {}),
       ...cutOf,
       warnings,
@@ -1042,8 +1054,9 @@ function twoPiece(o: {
   return [top, under];
 }
 
-/** A straight band, folded in half lengthwise, that a gathered sleeve's hem is sewn into. */
-function bandPiece(round: number, sa: number): Piece {
+/** A straight band, folded in half lengthwise, that a gathered sleeve's hem is sewn into. `overHand`: a bishop's band,
+ *  sized to slip over the closed hand rather than round the upper arm. */
+function bandPiece(round: number, sa: number, overHand = false): Piece {
   const W = 2 * BAND_CM;
   const L = round;
   const outline = new Path(p(0, 0)).line(p(W, 0), 'end').line(p(W, L), 'band').line(p(0, L), 'end').line(p(0, 0), 'band');
@@ -1067,6 +1080,6 @@ function bandPiece(round: number, sa: number): Piece {
     cut,
     seamAllowance: sa,
     allowances: {},
-    meta: { finishedWidth: BAND_CM, lengthCm: r1(L) },
+    meta: { finishedWidth: BAND_CM, lengthCm: r1(L), ...(overHand ? { overHand: true } : {}) },
   };
 }

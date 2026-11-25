@@ -197,6 +197,10 @@ interface LayoutOptions {
   atelier?: boolean;
   /** The paper it prints on: on A0 the pieces are packed onto the fewest big sheets (Cat, Nov 12). */
   paper?: Paper;
+  /** For the screen, not for printing: every piece the way up it is drafted (as Move points shows it), side by side.
+   *  The printed sheet turns some end to end to save paper, so the Pattern view showed the skirt waist down and Move
+   *  points showed it waist up (clarity review A7, Nov 22). The screen lays them out again to fit its window. */
+  upright?: boolean;
 }
 
 // ---- Text extents, estimated for keeping labels clear of each other. The labels are drawn at 0.857
@@ -666,6 +670,17 @@ export function pack(outlines: P[][], boxes: [number, number, number, number][],
   return best!;
 }
 
+/** Pieces in one row, none turned: for the screen, which lays them out again to fit its window. */
+function sideBySide(boxes: [number, number, number, number][]): Packed {
+  let x = 0;
+  const at = boxes.map(([x0, , x1]) => {
+    const here = p(x, 0);
+    x += x1 - x0 + GAP;
+    return here;
+  });
+  return { at, turned: boxes.map(() => false), width: Math.max(0, x - GAP), height: Math.max(0, ...boxes.map(([, y0, , y1]) => y1 - y0)) };
+}
+
 export function layout(pieces: Piece[], title: string, notes: string[], info?: SheetInfo, opts: LayoutOptions = {}): Sheet {
   const prims: Prim[] = [];
   let order: Order = {};
@@ -686,7 +701,7 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
   // Title block: the code card, the 10 cm test square and the title card across the top. The pieces are nested
   // by their cutting lines beside and below it, the way they are drawn.
   const boxes = pieces.map((pc) => bounds(pc));
-  const packed = pack(pieces.map((pc) => cutLine(pc)), boxes, opts.paper);
+  const packed = opts.upright ? sideBySide(boxes) : pack(pieces.map((pc) => cutLine(pc)), boxes, opts.paper);
   pieces.forEach((pc, piece) => {
     const [x0, y0] = boxes[piece];
     const at = add(packed.at[piece], p(MARGIN, MARGIN));

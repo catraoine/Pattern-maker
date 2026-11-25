@@ -116,10 +116,12 @@ body .demo-play.demo-play :is(.demo-play-words, .demo-play-mark) {
 /* B5: the drawing's Smaller is square like every other control, and while Move points is open, Done is the one way
    out (A7: two exits read as two different things). */
 section.live-big .enlarge,
-section.live-big .enlarge[aria-pressed='true'] {
+section.live-big .enlarge[aria-pressed='true'],
+.style-pin > section.live-big .preview-corner > .enlarge.enlarge {
   border-radius: 0;
 }
-section.live-big:has(.pe-open-tool.on) .enlarge[aria-pressed='true'] {
+section.live-big:has(.pe-open-tool.on) .enlarge[aria-pressed='true'],
+.style-pin > section.live-big:has(.pe-open-tool.on) .preview-corner > .enlarge.enlarge {
   display: none;
 }
 
@@ -329,5 +331,130 @@ body .shopfab-text,
   .card.welcome-card.measure-list {
     padding-left: 0;
     padding-right: 0;
+  }
+}
+
+/* Release walk, Nov 22 (#5): "Good first make" at the 11px floor, and the tiles' names line up across a row: centred
+   up and down, the skirt's name sat higher than Dress and Top beside it. A picked tile is an outline, as every picked
+   choice is (design system), not a champagne fill. The line sits along the tile's top edge, so the skirt's tile is the
+   same height as the others and its name lines up with theirs. */
+.make-grid > button {
+  position: relative;
+}
+.make-grid .make-first {
+  position: absolute;
+  top: 4px;
+  left: 2px;
+  right: 2px;
+  margin: 0;
+  font: 400 11px/1 var(--sans);
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+}
+.make-grid > button.on {
+  background: transparent;
+  border-color: var(--gild);
+  box-shadow: inset 0 0 0 1px var(--gild);
+  color: var(--gild-glow);
+}
+
+/* Release walk (#7): Change beside "For me · Womenswear" is a 44px tall tap target, its words where they were. */
+.who-line button.later.who-change {
+  min-height: 44px;
+  margin: -14px 0;
+}
+
+/* Release walk (#18): Undo and Redo look switched off when there is nothing to undo or redo. */
+.big-undo button:disabled,
+.undotools button:disabled {
+  color: var(--disabled);
+  opacity: 0.6;
+}
+
+/* Release walk (#19): Watch it draft at the one play-mark size. */
+body .watch-draft > .watch-play,
+body .watch-draft > .watch-play .demo-play-words {
+  font-size: 13.5px;
+}
+
+/* Cold read, Nov 22: on a 360 phone, when the back arrow shows, "SEW" ran under the account button. The steps keep
+   their size and lose a little spacing, so all four words fit between the arrow and the account. */
+@media (max-width: 400px) {
+  .steady-row {
+    gap: 6px;
+  }
+  .steady-row .step {
+    padding: 0 2px;
+    letter-spacing: 0.06em;
+  }
+}
+
+/* Cold read, Nov 22: a set's pieces (Black Vest, Black Pleated Skirt) were named in small sentence-case type beside
+   the other looks' big capitals, so one role was drawn two ways. Every garment's name in the collection is now the
+   same heading. */
+.collection .set-piece h3 {
+  font-family: var(--display);
+  font-stretch: var(--display-width);
+  font-weight: 600;
+  letter-spacing: var(--head-tracking);
+  line-height: 1.05;
+  text-transform: uppercase;
+  font-size: 30px;
+}
+@media (min-width: 900px) {
+  .collection .set-piece h3 {
+    font-size: 24px;
+  }
+}
+
+/* Cat's phone, Nov 23: under the garment's name, "The collection ›" and "Example body · Measure me" sat on two
+   different heights, so the head read as four loose lines. On a phone they now share one row, level. */
+@media (max-width: 760px) {
+  .main:has(.style-layout) .style-layout > .collection-go + .example-tag {
+    height: 32px;
+    margin-top: -40px;
+  }
+}
+
+/* The window takes the room a short step leaves under it (StyleLayout sets --view-target), never taller than before C8.
+   The same height in every view (Cat, Nov 7). Not while Move points is open: its tools sit under the window and need
+   the room. */
+@media (max-width: 760px) {
+  .style-layout:not(.compact) .style-pin:not(:has(.point-svg)) > section:not(.live-big) > .preview {
+    height: max(calc(var(--view-h) + 6px), min(var(--view-target, 0px), calc(44dvh + 6px)));
+  }
+}
+
+/* Cat's phone, Nov 23: All round's Fit map, Feel and Look closer were three boxed buttons over the foot of the
+   drawing, drawn unlike the window's other tools (Enlarge, Draw, Demo are plain words). They are now plain words in the
+   same type, and the one switched on takes the picked outline, as every picked choice does. */
+section[aria-label='Preview'] > .preview .all-round-tools {
+  gap: 14px;
+}
+.style-layout .style-pin > section > .preview .all-round-tools .all-round-closer.all-round-closer {
+  min-height: 32px;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: rgb(42, 38, 34);
+  font: 500 13.5px/1 var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.style-layout .style-pin > section > .preview .all-round-tools .all-round-closer.all-round-closer[aria-pressed='true'] {
+  padding: 4px 8px;
+  outline: 2px solid var(--gild);
+  outline-offset: -2px;
+  background: transparent;
+  color: rgb(42, 38, 34);
+}
+
+/* Grown taller, the window let the garment fill its height, and its waist met the corner's Enlarge and Draw (screen
+   check, Nov 24). On a phone the drawing starts under the corner's row, as Flat's already does. */
+@media (max-width: 760px) {
+  .style-layout .style-pin > section:not(.live-big) > .preview > svg.preview-svg {
+    box-sizing: border-box;
+    padding-top: 34px;
   }
 }
