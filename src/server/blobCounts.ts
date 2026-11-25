@@ -15,7 +15,7 @@ export interface EtagStore {
 
 /**
  * A rush, not a full day: the count kept changing under us on every try. Thrown rather than answered as "at the cap",
- * so a crowd arriving in the same minute (founding members on Feb 9) hears "try again in a moment", not "come back
+ * so a crowd arriving in the same minute (founding members on Mar 16) hears "try again in a moment", not "come back
  * tomorrow". Every caller already refuses on a thrown error, so the cap still fails closed.
  */
 export class CountRush extends Error {

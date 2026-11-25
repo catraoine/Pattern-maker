@@ -228,7 +228,7 @@ export default function App() {
   // Sign-in (Cat's plan, 2026-10-23): held behind ?signin=preview until the December fix week.
   const cloud = useCloud(makeBackup(saved, account, pointEdits), applyBackup, signinShown, () => makeBackup(INITIAL, NEW_ACCOUNT));
   const [founding, retryFounding] = useFounding(cloud.user);
-  // Early access opens at midnight on Feb 9: a page left open across it lets a signed-in member in without a reload.
+  // Early access opens at midnight on Mar 16: a page left open across it lets a signed-in member in without a reload.
   const [earlyOpen, setEarlyOpen] = useState(earlyAccessOpen);
   useEffect(() => {
     const wait = EARLY_ACCESS_FROM.getTime() - Date.now();
@@ -296,7 +296,7 @@ export default function App() {
     setAccess(true);
     if (!storedAccount.testerCode) setAccount({ ...storedAccount, testerCode: code });
   };
-  // Founding members come past the waitlist from Feb 9, two days before launch, by signing in with the email on the
+  // Founding members come past the waitlist from Mar 16, two days before launch, by signing in with the email on the
   // founding list (Nov 12 promise; src/founding.ts).
   useEffect(() => {
     if (!gated || founding.state !== 'member' || !earlyOpen) return;

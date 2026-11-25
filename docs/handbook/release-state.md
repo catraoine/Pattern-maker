@@ -205,7 +205,7 @@ no Tests run on GitHub, so merge main in first.
 
 ## Dates
 
-- Feature freeze and fit gate: Mon Jan 18, 2027. Launch: Thu Feb 11, 2027.
+- Feature freeze and fit gate: Mon Jan 18, 2027. Launch: Thu Mar 18, 2027 (moved from Feb 11 by Cat on Nov 25, 2026).
 - Sign-in switch-on: fix week, Dec 7 to 11, 2026.
 - Paid developer code review: post the job ~Nov 23, report by Dec 11.
 - Re-record the How it works film and tool demos once more when the app is declared final.
