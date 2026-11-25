@@ -1,22 +1,26 @@
 /* The unmet needs review (Cat's picks A, C and D, Nov 22): three quiet lines on screens that exist. */
 
-/* C. "Good first make" under the skirt's name: small capitals, never a box, so the tile stays a tile. At the app's
-   own caps size and in champagne it reads (the Nov 22 walk measured it at 10 px grey). On a phone it takes two lines,
-   so the tiles start their drawing at the top rather than centring it: then the skirt's drawing and name sit level
-   with the dress's and the top's beside it, and only the empty space under those two grows. */
+/* C. "Good first make" sits on the skirt tile's top edge, breaking the line like a tab. Under the name it made that
+   one tile taller, which left empty space under Dress and Top beside it (Cat, Nov 24); on the edge it takes no room.
+   In champagne and as large as one line on a 360 phone's tile allows: smaller and grey, it was hard to read (the Nov 22
+   walk). */
 .make-grid button:not(.make-looks) {
-  justify-content: flex-start;
+  position: relative;
 }
 .make-grid .make-first {
-  margin: -2px 0 0;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  padding: 0 3px;
+  background: var(--paper);
   color: var(--gild);
-  font-size: 11px;
-  letter-spacing: 0.08em;
+  /* Small and close enough that the three words stay on one line inside a 360 phone's tile. */
+  font-size: 9px;
+  letter-spacing: 0.03em;
   line-height: 1.3;
-  text-align: center;
-}
-.make-grid button.on .make-first {
-  color: inherit;
+  white-space: nowrap;
 }
 
 /* A and D. A sentence with its quiet link, under the check page's button and under the name in "Who it is for". */
@@ -32,4 +36,11 @@
 .ask-them button.later {
   min-height: 40px;
   padding: 6px 0;
+}
+
+/* The label made the Skirt tile's content taller, and a tile centres its content, so the skirt's drawing sat higher
+   than Dress and Top beside it (seen on the live site, Nov 24; "Something else" on two lines did the same). Every tile
+   starts from the top now, so drawings and names line up along a row whatever sits under the name. */
+.make-grid button:not(.make-looks) {
+  justify-content: flex-start;
 }
