@@ -10,7 +10,7 @@ import { CloudAccount } from './CloudAccount';
 import { FOUNDING_LINE } from '../founding';
 import { keepSigninSent, signinSent } from '../cloud/sent';
 
-/** Founding members' way in, from Feb 9: sign in with the email on the founding list. */
+/** Founding members' way in, from Mar 16: sign in with the email on the founding list. */
 export interface FoundingSignIn {
   cloud: Cloud;
   founding: Founding;
@@ -77,7 +77,7 @@ export function WaitlistForm({ onJoined, onCode, linkMessage, onRetry, founding 
   if (founding && (signingIn || founding.cloud.user))
     return (
       <div className="stack waitlist waitlist-founding">
-        <p className="waitlist-line">Founding members come in from Feb 9. Sign in with the email you joined the waitlist with.</p>
+        <p className="waitlist-line">Founding members come in from Mar 16. Sign in with the email you joined the waitlist with.</p>
         {FOUNDING_MESSAGE[founding.founding.state] && (
           <p className="msg small" role="status">
             {FOUNDING_MESSAGE[founding.founding.state]}

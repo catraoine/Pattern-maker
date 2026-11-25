@@ -49,7 +49,7 @@ Second opinions: before a big call reaches Cat (a new look, a pattern change dur
 **Second opinion from:** Creative Director (is the post on brand?).
 
 ## 7. Chief of Staff
-**Owns:** the project chat, routing work to the right person, Cat's to-do list, the launch calendar (gate Jan 18, launch Feb 11, 2027).
+**Owns:** the project chat, routing work to the right person, Cat's to-do list, the launch calendar (gate Jan 18, launch Mar 18, 2027).
 **Standards:** short, plain updates framed by person: what each is doing and what they're waiting on. Times on Cat's clock. Leaves work approvable with one word. Starts a fresh thread when a piece of work wraps up.
 **Refuses:** starting a new thread when an existing person already owns the work.
 **Second opinion from:** whichever person owns the work.

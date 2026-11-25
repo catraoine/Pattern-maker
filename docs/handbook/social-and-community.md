@@ -24,16 +24,16 @@ a little at the start of the season only. No AI people.
   Each post ends on "in the SS27 collection, join the waitlist".
 - Pieces (Oct 30, W2), all SS27 house looks: Look 09 Sheer Sash Skirt by Nov 8 (white cotton organza;
   replaces the ivory A-line midi), Look 01 Parma Shirt by Nov 29, Look 06 Scoop Column (white linen) by Dec 13,
-  Look 04 Red Trouser by Jan 10. Four pieces (coat dropped Oct 30); full reveal Feb 11. The Sewing Lead sews each piece to her
+  Look 04 Red Trouser by Jan 10. Four pieces (coat dropped Oct 30); full reveal Mar 18. The Sewing Lead sews each piece to her
   own body as the fit check. No new designs: each season's preview only pulls looks from that
   season's collection.
 - Shoot 1: Sun Nov 8 (Nov 7 backup), ~3 hours at home, Evan filming. Episode 01 out Thu Nov 19. The "mastering measuring" film close-ups are shot the same day.
-  Finale on launch night, Thu Feb 11. Same plain dark outfit for solo and Evan shots.
+  Finale on launch night, Thu Mar 18. Same plain dark outfit for solo and Evan shots.
 - Social launch Mon Nov 2 (Cat films week-one posts solo on her phone).
 
 ## Calendar anchors
 
-Tester call Nov 4 to 8; launch week Feb 11 (SS27 collection intro post Sat Feb 13); Open Call 01
+Tester call Nov 4 to 8; launch week Mar 18 (SS27 collection intro post Sat Mar 20); Open Call 01
 announced Apr 1, 2027 (entries close Apr 30, winner May 7, Drop 01 Jun 24); new open call each season
 from ~Aug 1; AW27 collection post Sep 9, 2027. Projector mode gets its own post only after a real
 projector test.
@@ -53,6 +53,7 @@ only IG + FB after Nov 2, ask weekly "what worked and why", paste to Claude; no 
 
 ## Targets
 
-1,000 waitlist sign-ups by Feb 11 (checkpoint ~830 on Jan 25). The plan's firm kill rule: under
-1,000 by **Feb 11, 2027** (launch day) ends stage 2. Cat confirmed Feb 11 on Oct 30; the old Jan 25
-date is now only the ~830 checkpoint.
+1,000 waitlist sign-ups by Mar 18 (checkpoint ~830 on Jan 25). The plan's firm kill rule: under
+1,000 by **Mar 18, 2027** (launch day) ends stage 2. Cat moved launch from Feb 11 to Mar 18 on Nov 25;
+stage 2's active-user checks move with it to May 6, seven weeks after launch as before. The old Jan 25
+date is still only the ~830 checkpoint.
