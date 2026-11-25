@@ -4,7 +4,7 @@
 // The geometry is checked from the sheet; the square and the tiles from the PDF's pages rendered to pixels
 // (pdftoppm), as a printer would print them. printCheck.test.ts runs it on every pull request and nightly.
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { OVERLAP, PAGE_MARGIN, Paper, TEST_SQUARE_X, Sheet, joinMarks, layout, pageName, pageSize, tileGrid, usedTiles } from './engine/export';
@@ -86,13 +86,18 @@ function readPgm(file: string): Gray {
 /** Every page of a PDF rendered at `dpi`, in page order. Needs pdftoppm (poppler-utils). */
 function renderPages(pdf: Uint8Array, dpi: number, first = 1, last?: number): Gray[] {
   const dir = mkdtempSync(join(tmpdir(), 'print-check-'));
-  const file = join(dir, 'p.pdf');
-  writeFileSync(file, pdf);
-  execFileSync('pdftoppm', ['-r', String(dpi), '-gray', '-f', String(first), ...(last ? ['-l', String(last)] : []), file, join(dir, 'page')]);
-  return readdirSync(dir)
-    .filter((f) => f.endsWith('.pgm'))
-    .sort((a, b) => Number(/(\d+)\.pgm$/.exec(a)![1]) - Number(/(\d+)\.pgm$/.exec(b)![1]))
-    .map((f) => readPgm(join(dir, f)));
+  // The rendered pages are big (a run left 24 GB behind and filled the disk, Nov 24), so the folder goes once they are read.
+  try {
+    const file = join(dir, 'p.pdf');
+    writeFileSync(file, pdf);
+    execFileSync('pdftoppm', ['-r', String(dpi), '-gray', '-f', String(first), ...(last ? ['-l', String(last)] : []), file, join(dir, 'page')]);
+    return readdirSync(dir)
+      .filter((f) => f.endsWith('.pgm'))
+      .sort((a, b) => Number(/(\d+)\.pgm$/.exec(a)![1]) - Number(/(\d+)\.pgm$/.exec(b)![1]))
+      .map((f) => readPgm(join(dir, f)));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 const INK = 100;

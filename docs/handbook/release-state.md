@@ -4,11 +4,11 @@ _Update this page whenever a release ships or a PR is queued._
 
 ## Now (Nov 21, 2026): how a ship works
 
-Live: **release EE** (Nov 24, Cat's 7:09 am "ship"): clarity follow-ups and the fixes from Cat's phone screenshots
-(Pattern view fills its window, tidier Style head, plain-word All round tools, SEW at 360), the How it works films
-re-recorded to match ED, the Ice Peplum sleeve band "try it over your hand" sentence, the menswear small points (menswear
-form only) and the weekly shop catalogue refresh, on top of ED. Rollback = release ED. Releases CW to EE went out Nov 17
-to 24;
+Live: **release EF** (Nov 24, Cat's 7:18 pm "ship"): an out-of-range measurement gets a button that opens it, Print
+asks for the arms then returns to Print, testers no longer see "Be a fit tester", Style window walk fixes (enlarged Flat,
+trouser waistband clear of the corner tools, length label, Who it is for Cancel), bigger demo clips, "Good first make" on
+the Skirt tile's edge with truer In testing words, and a crash guard when a release lands mid-print, on top of EE.
+Rollback = release EE. Releases CW to EF went out Nov 17 to 24;
 every release's commit, deploy id and rollback is in project memory (pattern-maker-releases-nov14), and the running list of what is
 ready is `/mnt/project-files/releases/ready-to-ship.md`.
 

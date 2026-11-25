@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { InterestCard } from './InterestCard';
 import { canShareFiles, download } from './download';
 import { labelName } from '../labels';
+import { partFile } from '../screens/load';
 
 interface Props {
   /** Whose name goes on the label. */
@@ -28,7 +29,7 @@ export function LabelCard({ name, code, pattern, onKeep }: Props) {
   useEffect(() => {
     if (!code) return;
     let live = true;
-    import('../engine/pdf')
+    partFile(import('../engine/pdf'))
       .then(({ toLabelSheetPdf }) => toLabelSheetPdf(who, code, { mirror }))
       .then((bytes) => live && setPdf({ key, bytes }));
     return () => {

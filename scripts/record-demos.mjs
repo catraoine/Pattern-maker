@@ -10,6 +10,10 @@ const OUT = process.argv[2] ?? 'public/demos';
 const ONLY = process.argv[3];
 const APP = process.env.APP ?? 'http://127.0.0.1:5173';
 
+// Where the subject sits under the caption: from just under a three-line caption to just above the player's progress
+// bar, so the garment fills about 85% of that height (Cat applied C2 of the clarity review, Nov 22: the demo was a small
+// box in a black screen). The black band over the app (#top) ends 24px into it, as before.
+const STAGE = { top: 150, h: 575 };
 const PAGE = `<html><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500&family=Chakra+Petch&display=swap"><style>
 html,body{margin:0;background:#000000;overflow:hidden}
 #app{position:fixed;left:0;top:0;width:432px;height:672px;border:0;border-bottom:1px solid rgba(239,228,204,.3)}
@@ -23,7 +27,7 @@ html,body{margin:0;background:#000000;overflow:hidden}
 body.focus #app{height:768px;border:0;transform-origin:0 0;transition:opacity .35s}
 body.focus #cap{top:56px;bottom:auto;height:auto;background:none;text-align:center;padding:0 28px;z-index:8}
 body.focus #cap span{font-size:22px;line-height:1.3}
-#top{display:none;position:fixed;left:0;right:0;top:0;height:200px;z-index:7;background:#000000}
+#top{display:none;position:fixed;left:0;right:0;top:0;height:174px;z-index:7;background:#000000}
 body.focus #top{display:block}
 #card h2{font-weight:400;font-size:28px;margin:0 32px}#card .r{width:120px;height:1px;background:#efe4cc;opacity:.6}
 </style></head><body><iframe id="app" src="${APP}/?fresh"></iframe><div id="top"></div><div id="cap"><small></small><span></span></div><div id="tap"></div><div id="pen"></div><div id="card" style="display:none"></div></body></html>`;
@@ -210,7 +214,7 @@ async function record(name, script, before) {
   // Look A, Just the form (Cat, 2026-11-04): only the thing in use shows, big, under one caption at the top. The
   // rest of the app is hidden (so its controls are pressed with dispatchEvent, found with includeHidden) and the
   // app frame is scaled onto the subject's box.
-  const fit = async (sels, { top = 176, h = 520, w = 392, s: fixed, align } = {}) => {
+  const fit = async (sels, { top = STAGE.top, h = STAGE.h, w = 392, s: fixed, align } = {}) => {
     const list = [].concat(sels);
     const r = await f.locator('body').evaluate((b, list) => {
       let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
@@ -331,7 +335,7 @@ async function record(name, script, before) {
 const LENGTH = '.preview-svg .handle:has([aria-label="Skirt length"])';
 // The style screen's picture window: chalk, with dark ink lines (34-chalk-windows.css).
 const WINDOW = 'section[aria-label="Preview"] > .preview';
-const SKETCH = { h: 470, top: 196, w: 1e9, hide: '.preview-svg .handle,.preview-svg .hem-marks', ground: WINDOW };
+const SKETCH = { h: 560, top: 160, w: 1e9, hide: '.preview-svg .handle,.preview-svg .hem-marks', ground: WINDOW };
 
 const DEMOS = {
   // Every clip is in the Draw clip's look (A, Just the form; Cat said yes for all seven on 2026-11-05): the drawing,
@@ -364,7 +368,7 @@ const DEMOS = {
       // The pieces as the Pattern window shows them to work on (Cat's screen, Nov 13), big and on chalk; the whole
       // cutting sheet was too small to read.
       if (!(await f.locator('svg.point-svg').count())) await press(R('button', 'Move points'), 1200);
-      await focus('svg.point-svg', { h: 440, top: 230, w: 330, ground: WINDOW });
+      await focus('svg.point-svg', { h: 540, top: 170, w: 380, ground: WINDOW });
     });
     await wait(2800);
     await cap('', '');
@@ -396,8 +400,8 @@ const DEMOS = {
       const b = el.getBoundingClientRect();
       return { x: b.x, y: b.y, w: b.width, h: b.height };
     });
-    const top = 176;
-    const s = 520 / r.h;
+    const { top } = STAGE;
+    const s = STAGE.h / r.h;
     await p.evaluate(([s, tx, ty]) => {
       document.getElementById('app').style.transform = `translate(${tx}px,${ty}px) scale(${s})`;
     }, [s, 216 - s * (r.x + r.w / 2), top - s * r.y]);
@@ -600,8 +604,15 @@ Object.assign(DEMOS, {
     };
     await card('', 'Printing your pattern', 1200, true);
     await toPrint(h, false);
-    // On a phone the pages fold behind one line.
-    await press(R('button', /^See the (\d+ )?pages?/), 800);
+    // On a phone the pages fold behind one line. Since the declutter (Nov 21) a paper's pages open with a fold about
+    // them instead; See the pages stays for projector and A0.
+    const seePages = R('button', /^See the (\d+ )?pages?/);
+    if (await seePages.count()) await press(seePages, 800);
+    else {
+      const fold = f.locator('details.pages-fold');
+      if ((await fold.count()) && !(await fold.evaluate((el) => el.open))) await fold.locator('summary').evaluate((el) => el.click());
+      await wait(800);
+    }
     await focus('.preview.tiles', TILES);
     await uncard();
     await cap('Paper', 'Pick your paper size. The pattern splits into pages to fit.');
@@ -733,7 +744,7 @@ Object.assign(DEMOS, {
   patterns: async (h) => {
     const { wait, card, cap, focus, veil, uncard, R, press, label, drag, draw, f } = h;
     // Narrower than the frame, so the front still fits once it is spread open.
-    const PIECES = { h: 440, top: 230, w: 330, ground: WINDOW };
+    const PIECES = { h: 540, top: 170, w: 380, ground: WINDOW };
     const piece = (n) => f.locator(`path.pe-piece[data-piece="${n}"]`);
     await card('', 'Draw a line on your pattern', 1200, true);
     await press(R('group', 'Preview view').getByRole('button', { name: /^Pattern/, includeHidden: true }), 900);
@@ -815,7 +826,7 @@ Object.assign(DEMOS, {
   // map, the cloth's feel and Look closer, each as the tab has them.
   allround: async (h) => {
     const { wait, card, cap, focus, veil, uncard, R, press, drag, f } = h;
-    const ROUND = { w: 392, h: 470, top: 210 };
+    const ROUND = { w: 432, h: 560, top: 160 };
     const canvas = f.locator('canvas.all-round-canvas');
     // By the window's own buttons: the style steps have a Fabric too.
     const tool = (n) => f.locator('.all-round-tools button').filter({ hasText: new RegExp(`^${n}$`) }).first();
@@ -943,7 +954,7 @@ for (const [kind, k] of Object.entries(KINDS)) {
     await veil(async () => {
       await press(R('button', /^Pattern/), 900);
       if (!(await f.locator('svg.point-svg').count())) await press(R('button', 'Move points'), 1200);
-      await focus('svg.point-svg', { h: 440, top: 230, w: 330, ground: WINDOW });
+      await focus('svg.point-svg', { h: 540, top: 170, w: 380, ground: WINDOW });
     });
     await wait(2800);
     await cap('', '');
@@ -951,7 +962,7 @@ for (const [kind, k] of Object.entries(KINDS)) {
   };
   DEMOS[`patterns-${kind}`] = async (h) => {
     const { wait, card, cap, focus, veil, uncard, R, press, drag, draw, f } = h;
-    const PIECES = { h: 440, top: 230, w: 330, ground: WINDOW };
+    const PIECES = { h: 540, top: 170, w: 380, ground: WINDOW };
     const piece = (n) => f.locator(`path.pe-piece[data-piece="${n}"]`);
     // All the pieces first, then only the one being changed, big (Cat, Nov 14: with every piece on screen the top and
     // the dress got busy). Narrower than the frame, so the piece still fits once it is spread open. The pieces cut

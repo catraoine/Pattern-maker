@@ -1,4 +1,4 @@
-import { expect, headerBack, openAccount, openFresh, startWithExample, test } from './fixtures';
+import { expect, headerBack, openAccount, openFold, openFresh, startWithExample, test } from './fixtures';
 
 const h1 = (page: import('@playwright/test').Page, name: string | RegExp) => page.getByRole('main').getByRole('heading', { level: 1, name });
 
@@ -84,4 +84,17 @@ test('Atelier Nights and For brands open from Your account; a city opens its own
   await expect(main.getByRole('heading', { name: 'Try it in your shop first' })).toBeVisible();
   await page.goBack();
   await expect(main.getByRole('heading', { name: 'Saved patterns' })).toBeVisible();
+});
+
+test('"Be a fit tester" is not offered once a tester code is on (pretend-tester walk, Nov 24)', async ({ page }) => {
+  await page.route('**/.netlify/functions/tester', (route) => route.fulfill({ json: { ok: true, tester: true } }));
+  await startWithExample(page);
+  const main = page.getByRole('main');
+  await openAccount(page);
+  await expect(main.getByRole('button', { name: 'Be a fit tester' })).toBeVisible();
+  const fold = await openFold(page, 'Fit testing');
+  await fold.getByLabel('Tester code').fill('example-code');
+  await fold.getByRole('button', { name: 'Use code' }).click();
+  await expect(fold).toContainText('Tester code on');
+  await expect(main.getByRole('button', { name: 'Be a fit tester' })).toHaveCount(0);
 });

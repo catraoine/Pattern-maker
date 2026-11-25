@@ -26,6 +26,7 @@ import { TestingTag } from './TestingTag';
 import { CHALK, DARK, SHADOW, type Tone } from './palette';
 import { filmDark } from './filmTape';
 import { inTestingNote } from './allRoundWhy';
+import { partFile } from '../screens/load';
 
 // Matching --gild, --gild-glow, --guide, --muted and --ok in styles.css.
 const OK = '#a9c49b';
@@ -176,7 +177,7 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
   useEffect(() => {
     if (new URLSearchParams(location.search).get('round') === '2d' || (window as Window & { __round2d?: boolean }).__round2d) return;
     let live = true;
-    import('./allRoundMesh').then(({ createRoundView }) => {
+    partFile(import('./allRoundMesh')).then(({ createRoundView }) => {
       if (!live) return;
       v3ref.current = createRoundView();
       setV3ready(true);

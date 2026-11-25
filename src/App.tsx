@@ -51,7 +51,7 @@ import { FABRIC, StartOver, openLookNext, openTabNext } from './ui/StyleLayout';
 import { leavePrintForFabric } from './ui/printReturn';
 import { KeptCount } from './ui/SaveControl';
 import { GARMENT_NAME, baseDone } from './measureFlow';
-import type { PageKind, StepsStart } from './screens/MeasureStepsScreen';
+import type { AfterMeasuring, PageKind, StepsStart } from './screens/MeasureStepsScreen';
 import { mergeBackups } from './cloud/merge';
 import { useCloud } from './cloud/useCloud';
 import { useFounding } from './cloud/useFounding';
@@ -696,7 +696,7 @@ export default function App() {
     setSaved(after);
     const stays = to === 'style' || to === 'export' || to === 'sew';
     if (stays && (!ready(using, saved.unit, g, form, skipFor(g, after)) || also.length)) {
-      measureFor(g, using, form, also, after);
+      measureFor(g, using, form, also, after, to === 'style' ? undefined : to);
       return false;
     }
     setStep(to);
@@ -707,11 +707,11 @@ export default function App() {
    * Not ready for this garment: take the measurements it still needs, one page each. When none are missing,
    * one of them fails a check, so open the list with the reason rather than going round the guided pages again.
    */
-  const measureFor = (g: Garment, using: MeasurementValues, on: FormKind = form, also: MeasurementId[] = [], s: Pick<Saved, 'jacket'> = saved) => {
+  const measureFor = (g: Garment, using: MeasurementValues, on: FormKind = form, also: MeasurementId[] = [], s: Pick<Saved, 'jacket'> = saved, then?: AfterMeasuring) => {
     const skip = skipFor(g, s);
     const wrong = isComplete(using, g, on, skip) && checksFor(using, saved.unit, g, on, skip).find((c) => c.level === 'error');
     if (wrong) sendToMeasure(`Check your ${g === 'tee' ? 'T-shirt' : vestOf(g, s) ? 'vest' : g} measurements: ${wrong.message}`);
-    else openSteps({ kind: 'for', garment: g, ...(also.length ? { also } : {}) });
+    else openSteps({ kind: 'for', garment: g, ...(also.length ? { also } : {}), ...(then ? { then } : {}) });
   };
 
   // Why Style or Print didn't open while measuring, shown over the guided pages for a moment.
@@ -745,7 +745,8 @@ export default function App() {
   const armsToAsk = lookArmsMissing({ choices: current }, measured);
   useEffect(() => {
     if ((step !== 'export' && step !== 'sew') || !armsToAsk.length) return;
-    openSteps({ kind: 'for', garment, also: armsToAsk });
+    // Back to where they were going once the arms are in, not to styling (pretend-tester walk, Nov 24).
+    openSteps({ kind: 'for', garment, also: armsToAsk, then: step });
     setStepsNote('Your sleeves are drafted from your arms: add them to print.');
     // eslint-disable-next-line react-hooks/exhaustive-deps -- asks once each time Print is opened without the arms
   }, [step, armsToAsk.length]);
@@ -1114,12 +1115,12 @@ export default function App() {
               helped={person.helped}
               weight={person.weight}
               onWeight={(weight) => setAccount(updatePerson(account, person.id, { weight }))}
-              onDone={(g) => {
+              onDone={(g, then) => {
                 countStep('measured', g);
                 const fresh = freshStart ? keepThenFresh(g) : undefined;
                 setFreshStart(false);
                 if (fresh && fresh.account !== account) setAccount(fresh.account);
-                switchGarment(g, fresh?.patch ?? {}, 'style');
+                switchGarment(g, fresh?.patch ?? {}, then ?? 'style');
               }}
               onIdea={(c) => styleChoices(c)}
               onPhoto={() => setStep('photo')}

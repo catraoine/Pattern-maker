@@ -35,4 +35,19 @@ test('Print asks for the arms before a top with sleeves', async ({ page }, info)
   await expect(page.getByText('Your sleeves are drafted from your arms: add them to print.')).toBeVisible();
   await expect(main(page).getByRole('textbox')).toBeVisible();
   await expect(main(page).locator('label:visible').first()).toHaveText(/arm length/i);
+  // Once the arms are in, back to Print, not to styling step 1 (pretend-tester walk, Nov 24).
+  for (let i = 0; i < 6; i++) {
+    const label = ((await main(page).locator('label:visible').first().innerText()) ?? '').trim();
+    const key = Object.keys(MEASUREMENTS).find((k) => k.toLowerCase() === label.toLowerCase());
+    expect(key, `a test value for "${label}"`).toBeDefined();
+    await input.fill(MEASUREMENTS[key!]);
+    const done = main(page).getByRole('button', { name: 'Next: print your pattern' });
+    if (await done.isVisible()) {
+      await done.click();
+      break;
+    }
+    await main(page).getByRole('button', { name: /^Next\b/ }).click();
+    await expect(main(page).locator('label:visible').first()).not.toHaveText(label, { ignoreCase: true });
+  }
+  await expect(main(page).getByRole('heading', { name: 'Print it', level: 1 })).toBeVisible();
 });

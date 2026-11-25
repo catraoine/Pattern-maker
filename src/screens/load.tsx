@@ -30,6 +30,20 @@ export function reloadForNewRelease(): boolean {
   return true;
 }
 
+/**
+ * A file one part of a screen loads for itself (the label sheet, the 3D view). When a release went out while the page
+ * was open, main.tsx starts the reload and the file comes back empty: this then waits for the reload, rather than
+ * failing on the empty file (a tester's Print screen reported that as a crash, Nov 23). An empty file with no reload
+ * under way is still an error.
+ */
+export function partFile<M>(load: Promise<M>): Promise<M> {
+  return load.then((m) => {
+    if (m) return m;
+    if (reloading) return new Promise<never>(() => {});
+    throw new Error('A file the page needs came back empty');
+  });
+}
+
 function fresh<M>(load: Promise<M>): Promise<M> {
   return load.catch((e) => {
     if (!reloadForNewRelease()) throw e;

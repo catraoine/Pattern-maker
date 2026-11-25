@@ -52,7 +52,7 @@ Two freezes, not one (labelled Nov 22, rules review):
   ask link in their client book. With sign-in on and nobody signed in, the check page offers to keep the numbers in an account. In the
   simple view that page is worded for a friend or family member ("Sewing for", "A note for them", no studio name); All tools keeps
   the client book wording.
-- The skirt is the "Good first make" on "What would you like to make?" (Nov 22): one quiet mark, on one tile, womenswear only.
+- The skirt is the "Good first make" on "What would you like to make?" (Nov 22): one quiet mark, on one tile, womenswear only. It sits on the tile's top edge and takes no room, so every tile in a row is the same height (Cat, Nov 24).
 
 ## Drawings and the form
 

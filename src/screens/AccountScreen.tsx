@@ -401,10 +401,15 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
         <button type="button" className="inline-link" onClick={() => onLegal('terms')}>
           Terms of Use
         </button>
-        {' · '}
-        <button type="button" className="inline-link" onClick={() => onLegal('tester')}>
-          Be a fit tester
-        </button>
+        {/* Not offered to someone who already is one (pretend-tester walk, Nov 24). */}
+        {!account.testerCode && (
+          <>
+            {' · '}
+            <button type="button" className="inline-link" onClick={() => onLegal('tester')}>
+              Be a fit tester
+            </button>
+          </>
+        )}
         {' · '}
         <button type="button" className="inline-link" onClick={() => onLegal('news')}>
           News
