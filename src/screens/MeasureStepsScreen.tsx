@@ -788,7 +788,9 @@ function FormLabels({ ids, at, values, unit, form }: { ids: MeasurementId[]; at:
         const x = edgeX(p.top);
         if (Number.isFinite(x)) p.right = Math.max(p.right, box.right - (c.left + x) + 18);
         p.li.style.top = `${p.top}px`;
-        p.li.style.right = `${Math.min(p.right, box.width - 40)}px`;
+        // Never past the picture's left edge: with its number beside it, "Shoulder width 38 cm" lost its first letters at
+        // 1366 wide (cold read EG, Nov 24). A long name may come in over the form's edge rather than off the page.
+        p.li.style.right = `${Math.max(0, Math.min(p.right, box.width - p.li.offsetWidth - 4))}px`;
       }
     };
     place();
