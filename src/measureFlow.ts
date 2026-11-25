@@ -23,13 +23,13 @@ export const fieldOf = (id: MeasurementId) => ALL.get(id)!;
 const has = (v: MeasurementValues, id: MeasurementId) => typeof v[id] === 'number' && !Number.isNaN(v[id]);
 
 /** The measurements a garment needs beyond the base set, on this form. */
-export const extrasFor = (garment: Garment, form?: FormKind) => fieldsFor(garment, form).filter((f) => !f.optional && !BASE.includes(f.id));
+export const extrasFor = (garment: Garment, form?: FormKind, v?: MeasurementValues) => fieldsFor(garment, form, v).filter((f) => !f.optional && !BASE.includes(f.id));
 /** The extras still to take. */
-export const missingFor = (garment: Garment, v: MeasurementValues, form?: FormKind) => extrasFor(garment, form).filter((f) => !has(v, f.id));
+export const missingFor = (garment: Garment, v: MeasurementValues, form?: FormKind) => extrasFor(garment, form, v).filter((f) => !has(v, f.id));
 /** Everything a garment still needs when measuring for it again: any of the base set it uses that's missing, in the
  * tape's order, then its own extras. Asked on the garment's own pages, never by starting over (Cat's A, 2026-10-24). */
 export const neededFor = (garment: Garment, v: MeasurementValues, form?: FormKind) => [
-  ...BASE.map((id) => fieldsFor(garment, form).find((f) => f.id === id && !f.optional && !has(v, id))).filter((f): f is MeasurementField => !!f),
+  ...BASE.map((id) => fieldsFor(garment, form, v).find((f) => f.id === id && !f.optional && !has(v, id))).filter((f): f is MeasurementField => !!f),
   ...missingFor(garment, v, form),
 ];
 /** Whether anything has been measured yet: until then, measuring opens on the first-visit page. */

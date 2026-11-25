@@ -41,7 +41,7 @@ const andList = (names: string[]) => (names.length < 2 ? names.join('') : `${nam
 export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, garment, onChooseGarment, unit, values, checks, canContinue, onNext, onMeasure, notice, onChangeForm, name = GARMENT_NAME[garment], unused = [] }: Props) {
   const form = formOf(account.people.find((p) => p.id === account.active)!);
   // A Black Vest tester was sent to measure her arms, and the list was headed Jacket (pretend-tester walk, Nov 18).
-  const fields = fieldsFor(garment, form).filter((f) => !unused.includes(f.id));
+  const fields = fieldsFor(garment, form, values).filter((f) => !unused.includes(f.id));
   // The height always has a row (Add, until it is taken), but a draft doesn't wait for it: older profiles have none.
   const rows = fields.filter((f) => f.id === 'height' || !f.optional || values[f.id] !== undefined);
   const extra = fields.filter((f) => f.id !== 'height' && f.optional && values[f.id] === undefined);
