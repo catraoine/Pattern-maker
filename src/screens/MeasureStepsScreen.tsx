@@ -322,6 +322,18 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   // Check, the reason shows under the list, and the button opens it (cold read of release EF, Nov 24).
   const baseChecks = checkMeasurements(values, unit, 'dress', form, { weight }).filter((c) => BASE.includes(c.id) && values[c.id] !== undefined);
   const baseWrong = baseChecks.find((c) => c.level === 'error');
+  // A garment's own measurement out of range (waist to hip 40 in) isn't on this list, and Welcome back said nothing of
+  // it (EF walk, Nov 24): its reason shows here too, and the button opens its page.
+  const otherWrong = baseWrong
+    ? undefined
+    : (Object.keys(values) as MeasurementId[])
+        .filter((id) => !BASE.includes(id) && toTake(values, id) && values[id] !== undefined)
+        .map((id) => {
+          const g = GARMENTS.find((x) => FIELDS[x].some((f) => f.id === id));
+          const c = g && checkMeasurements(values, unit, g, form).find((x) => x.id === id && x.level === 'error');
+          return g && c ? { garment: g, check: c } : undefined;
+        })
+        .find(Boolean);
   if (page.kind === 'check')
     return (
       <Shell eyebrow={returning ? 'Welcome back' : undefined} title="Do these look right?">
@@ -346,10 +358,14 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
             </li>
           )}
         </ul>
-        {baseWrong ? <p className="msg error">{baseWrong.message}</p> : <DoubleChecks checks={baseChecks.filter((c) => c.level === 'warning')} />}
+        {baseWrong || otherWrong ? <p className="msg error">{(baseWrong ?? otherWrong!.check).message}</p> : <DoubleChecks checks={baseChecks.filter((c) => c.level === 'warning')} />}
         {baseWrong ? (
           <button type="button" className="primary" onClick={() => setPage({ kind: 'base', at: BASE.indexOf(baseWrong.id), back: 'check' })}>
             Check {titleOf(baseWrong.id, false, form).replace(/^Your /, '').toLowerCase()}
+          </button>
+        ) : otherWrong ? (
+          <button type="button" className="primary" onClick={() => setPage({ kind: 'extra', garment: otherWrong.garment, ids: [otherWrong.check.id], at: 0, redo: true })}>
+            Check {fieldOf(otherWrong.check.id).label.toLowerCase()}
           </button>
         ) : aimed ? (
           <button type="button" className="primary" onClick={() => go(aimed)}>
