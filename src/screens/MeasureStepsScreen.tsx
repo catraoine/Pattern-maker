@@ -310,6 +310,10 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     );
   }
 
+  // A number out of range can be kept (Finish later leaves it), and the check read as fine to carry on: its row says
+  // Check, the reason shows under the list, and the button opens it (cold read of release EF, Nov 24).
+  const baseChecks = checkMeasurements(values, unit, 'dress', form, { weight }).filter((c) => BASE.includes(c.id) && values[c.id] !== undefined);
+  const baseWrong = baseChecks.find((c) => c.level === 'error');
   if (page.kind === 'check')
     return (
       <Shell eyebrow={returning ? 'Welcome back' : undefined} title="Do these look right?">
@@ -321,7 +325,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
             <li key={id}>
               <button type="button" onClick={() => setPage({ kind: 'base', at, back: 'check' })}>
                 <span>{cap(titleOf(id, false, form).replace(/^Your /, ''))}</span>
-                {values[id] === undefined ? <em className="add">Add</em> : <span>{shown(values[id], unit)}</span>}
+                {values[id] === undefined ? <em className="add">Add</em> : baseChecks.some((c) => c.id === id && c.level === 'error') ? <em className="add">Check</em> : <span>{shown(values[id], unit)}</span>}
               </button>
             </li>
           ))}
@@ -334,8 +338,12 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
             </li>
           )}
         </ul>
-        <DoubleChecks checks={checkMeasurements(values, unit, 'dress', form, { weight }).filter((c) => c.level === 'warning' && BASE.includes(c.id))} />
-        {aimed ? (
+        {baseWrong ? <p className="msg error">{baseWrong.message}</p> : <DoubleChecks checks={baseChecks.filter((c) => c.level === 'warning')} />}
+        {baseWrong ? (
+          <button type="button" className="primary" onClick={() => setPage({ kind: 'base', at: BASE.indexOf(baseWrong.id), back: 'check' })}>
+            Check {titleOf(baseWrong.id, false, form).replace(/^Your /, '').toLowerCase()}
+          </button>
+        ) : aimed ? (
           <button type="button" className="primary" onClick={() => go(aimed)}>
             Continue measuring
           </button>
