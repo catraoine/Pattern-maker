@@ -341,13 +341,19 @@ body .shopfab-text,
 .make-grid > button {
   position: relative;
 }
+/* The words sit ON the top line, breaking it like a tab (Cat applied that placing, Nov 24): 4px inside the tile they
+   ran into the skirt's waistband. This is the only rule that places them. 47-user-needs.css once placed them too, and
+   the two together pushed the words off the tile's left side on the live site. Champagne, since grey was hard to read. */
 .make-grid .make-first {
   position: absolute;
-  top: 4px;
-  left: 2px;
-  right: 2px;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -50%);
   margin: 0;
-  font: 400 11px/1 var(--sans);
+  padding: 0 2px;
+  background: var(--paper);
+  color: var(--gild);
+  font: 400 11px/1.2 var(--sans);
   letter-spacing: 0;
   text-transform: none;
   white-space: nowrap;

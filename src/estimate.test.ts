@@ -10,8 +10,9 @@ import { randomArms, randomBody, rng } from './engine/randomBodies';
 const drop = (v: MeasurementValues) => Object.fromEntries(Object.entries(v).filter(([id]) => !ESTIMATED.includes(id as never))) as MeasurementValues;
 
 describe('estimated upper-body measurements', () => {
+  // A dress asks for its front length and bust depth too, as a top does (Cat, Nov 24).
   it('asks only the essentials before a first dress', () => {
-    expect(extrasFor('dress').map((f) => f.id)).toEqual(['high_bust', 'shoulder_width', 'nape_to_waist', 'waist_to_hip', 'waist_to_knee']);
+    expect(extrasFor('dress').map((f) => f.id)).toEqual(['high_bust', 'shoulder_width', 'nape_to_waist', 'front_hps_to_waist', 'bust_depth', 'waist_to_hip', 'waist_to_knee']);
   });
 
   it('never changes a measurement that was taken', () => {
@@ -43,10 +44,14 @@ describe('estimated upper-body measurements', () => {
       const b = { ...randomBody(r) } as MeasurementValues;
       Object.assign(b, randomArms(b as never, r));
       const v = drop(b);
-      for (const g of ['dress', 'jacket', 'coat'] as const) expect(isComplete(v, g)).toBe(true);
-      // A top asks for its front length and bust depth in the standard steps (Cat, Nov 13).
-      expect(isComplete(v, 'bodice')).toBe(false);
-      expect(isComplete({ ...v, front_hps_to_waist: b.front_hps_to_waist, bust_depth: b.bust_depth }, 'bodice')).toBe(true);
+      for (const g of ['jacket', 'coat'] as const) expect(isComplete(v, g)).toBe(true);
+      // A top asks for its front length and bust depth in the standard steps (Cat, Nov 13), and a dress with a bust
+      // dart does too (Cat, Nov 24); a dress without one still guesses them.
+      for (const g of ['bodice', 'dress'] as const) {
+        expect(isComplete(v, g)).toBe(false);
+        expect(isComplete({ ...v, front_hps_to_waist: b.front_hps_to_waist, bust_depth: b.bust_depth }, g)).toBe(true);
+      }
+      expect(isComplete(v, 'dress', undefined, ['front_hps_to_waist', 'bust_depth'])).toBe(true);
       const m = withEstimates(v);
       expect(() => draftBodice(m as BodiceMeasurements, {})).not.toThrow();
       expect(() => draftDress(m as DressMeasurements, {}, {})).not.toThrow();

@@ -1009,6 +1009,18 @@ function offsetRun(run: P[], d: (i: number) => number, from: P): P[] {
   });
 }
 
+/** A run set out again with a point every `step` cm or closer, keeping every corner it had. */
+function spaced(run: P[], step: number): P[] {
+  const out: P[] = [run[0]];
+  for (let i = 1; i < run.length; i++) {
+    const a = run[i - 1];
+    const b = run[i];
+    const n = Math.max(1, Math.ceil(len(sub(b, a)) / step));
+    for (let k = 1; k <= n; k++) out.push(add(a, mul(sub(b, a), k / n)));
+  }
+  return out;
+}
+
 /** The collar as seen on the flat, half of it from the centre: a band standing up from the neck, a
  * Peter Pan lying on the body, or a shirt collar's points over its stand. */
 function collarHalf(neck: P[], kind: BodiceDraft['collar'], front: boolean): { a: P[]; b: P[] }[] {
@@ -1029,8 +1041,14 @@ function collarHalf(neck: P[], kind: BodiceDraft['collar'], front: boolean): { a
     });
     return [{ a: neck, b: offsetRun(neck, (i) => w[i], p(0, -100)) }];
   }
-  // A ruffle: falling from the neck seam, its outer edge rippling.
-  if (kind === 'ruffle') return [{ a: neck, b: offsetRun(neck, (i) => 3.4 + 0.6 * Math.sin(i * 1.7), p(0, -100)) }];
+  // A ruffle: falling from the neck seam, its outer edge rippling in small, close waves, as gathered cloth does. Rippled
+  // once per point of the neck seam, a few wide waves read as a scalloped Peter Pan collar (EF walk, Nov 24: the Ice
+  // Peplum Top's ruffle didn't show as one), so the seam is set out every few millimetres and the edge waves every 1.3 cm.
+  if (kind === 'ruffle') {
+    const fine = spaced(neck, 0.25);
+    const at = fine.map((_, i) => (i ? fine.slice(0, i + 1).reduce((s2, q, j) => (j ? s2 + len(sub(q, fine[j - 1])) : 0), 0) : 0));
+    return [{ a: fine, b: offsetRun(fine, (i) => 3.4 + 0.7 * Math.abs(Math.sin((Math.PI * at[i]) / 1.3)), p(0, -100)) }];
+  }
   // A pussy bow: the folded strip lying round the neck, and at the front its loops and the ties hanging.
   if (kind === 'bow') {
     const parts = [{ a: neck, b: offsetRun(neck, () => 2, p(0, -100)) }];

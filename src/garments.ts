@@ -2,7 +2,7 @@
 import { CUFFS, Cuff, cuffAllowed } from './engine/cuffs';
 import { BACK_NECKS, BackNeck, backBlocked } from './engine/backNeck';
 import type { Choices } from './savedWork';
-import type { MeasurementId } from './measurements';
+import { TOP_NEEDS, type MeasurementId } from './measurements';
 import type { BodiceDarts, BodiceFit, BodiceLength, DrawnNeck, Neckline, UnevenNeck } from './engine/bodice';
 import { SHAPES_FOR_LENGTH, SleeveLength, SleeveShape } from './engine/sleeve';
 import { SLEEVE_CUTS, SleeveCut, sleeveCutBlocked, sleeveCutOf } from './engine/sleeveCut';
@@ -477,8 +477,14 @@ export function oversizeOuter(c: OuterChoices): OuterChoices {
 export const outerWord = (c: Pick<OuterChoices, 'garment' | 'sleeve'>): 'jacket' | 'coat' | 'vest' => (c.garment === 'jacket' && c.sleeve === 'none' ? 'vest' : c.garment);
 
 /** The measurements a design doesn't draft from, so they're neither asked nor needed: a vest's arms, which a jacket
- *  uses only for its sleeves. One place for the rule, used by the measuring pages, the checks and the collection. */
-export const unusedFor = (c: PatternChoices | undefined): MeasurementId[] => (c && isOuter(c) && outerWord(c) === 'vest' ? ['arm_length', 'upper_arm'] : []);
+ *  uses only for its sleeves, and a dress's bust point and front length when it has no bust dart to place (they're
+ *  guessed for it, as they were for every dress before Nov 24). One place for the rule, used by the measuring pages,
+ *  the checks and the collection. */
+export const unusedFor = (c: PatternChoices | undefined): MeasurementId[] =>
+  c && isOuter(c) && outerWord(c) === 'vest' ? ['arm_length', 'upper_arm'] : c && isDress(c) && !dartedDress(c) ? [...TOP_NEEDS] : [];
+/** A dress with a bust dart, as the engine drafts it: any darts picked (the boxy cut has them too), and a shift always,
+ *  which is cut with its bust dart whatever its darts say (engine/dress.ts). */
+const dartedDress = (c: DressChoices) => c.bodice.darts !== 'none' || (c.skirt as { noSeam?: string }).noSeam === 'shift';
 
 /** A plain name, such as "Hip-length single-breasted jacket with notched lapels". */
 export function describeOuter(c: OuterChoices) {

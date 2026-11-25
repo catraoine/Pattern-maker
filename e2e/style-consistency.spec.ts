@@ -102,8 +102,9 @@ test('a wrong measurement is explained, not looped', async ({ page }) => {
   await expect(main.getByRole('status').filter({ hasText: /Waist to knee should be shorter than waist to floor/ })).toBeVisible();
 });
 
-// A first dress asks only the essentials; the harder upper-body measurements wait for "a closer fit".
-test('a first dress asks five more measurements, not thirteen', async ({ page }) => {
+// A first dress asks only the essentials; the harder upper-body measurements wait for "a closer fit". A darted dress
+// also asks front length and bust depth, since a guessed bust point lands off on fuller busts (Cat, Nov 24).
+test('a first dress asks seven more measurements, not thirteen', async ({ page }) => {
   await openFresh(page);
   const main = page.getByRole('main');
   await main.getByRole('button', { name: 'Begin' }).click();
@@ -112,7 +113,7 @@ test('a first dress asks five more measurements, not thirteen', async ({ page })
   await main.getByRole('button', { name: 'Choose what to make' }).click();
   await pickToMake(page, 'Dress');
   await expect(main.getByRole('heading', { level: 1, name: 'Your high bust' })).toBeVisible();
-  expect(await fillStepPages(page)).toBe(5);
+  expect(await fillStepPages(page)).toBe(7);
   await expectStyle(page, 'Dress');
   await openReview(page);
   await main.getByRole('button', { name: 'Edit measurements' }).click();

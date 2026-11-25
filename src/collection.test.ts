@@ -76,7 +76,7 @@ describe('the Maison collection', () => {
     const basics = { waist: 64, full_bust: 82, full_hip: 88, waist_to_floor: 94, height: 152 };
     expect(lookValues(shift, basics).own).toBe(false);
     const made = lookPatch(shift, lookValues(shift, basics).values) as unknown as { dress: PatternChoices };
-    const all = { ...basics, high_bust: 78, shoulder_width: 35, nape_to_waist: 37, waist_to_hip: 20.5, waist_to_knee: 52 };
+    const all = { ...basics, high_bust: 78, shoulder_width: 35, nape_to_waist: 37, front_hps_to_waist: 40, bust_depth: 23, waist_to_hip: 20.5, waist_to_knee: 52 };
     expect(lookValues(shift, all).own).toBe(true);
     // Its name holds either way: only the length differs (testers, Nov 17).
     expect(lookNameOf('dress', made.dress, all)).toBe('Blush Shift');
