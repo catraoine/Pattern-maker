@@ -26,6 +26,10 @@ The ship rule (Cat, Nov 17, 7:47 pm):
    "Apply", Nov 21). Each release reloads testers' open app and costs Netlify credits.
 7. From Nov 16 to Dec 6 no tester piece's pattern shape changes unless Cat approves it as a fit fix; each release
    checks this.
+8. Pattern fixes from the bug hunt and fit threads apply themselves once their checks pass (and CLO, when the shape
+   changes), with no "apply" from Cat (Cat, Nov 25: "start auto applying these pattern fixes", then "add"). They still
+   go live only on her "ship", and each one is listed in plain words on the ready list. Cat still decides any change
+   to an active tester's pattern, to a launch pattern during the freeze, and any judgment of how a look looks.
 
 Each release still runs the full checks on the joined code, checks the live site after, pushes main to match live and
 saves a bundle to code-backup/.
