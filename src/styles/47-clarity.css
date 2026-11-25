@@ -342,15 +342,10 @@ body .shopfab-text,
   position: relative;
 }
 .make-grid .make-first {
-  /* On the tile's top edge like a tab, centred (Cat, Nov 24). Left and right pinned with the centring's shift from
-     47-user-needs.css slid it half out of the tile ("od first make", cold read EF), so it is set whole here. */
   position: absolute;
-  top: 0;
-  left: 50%;
-  right: auto;
-  transform: translate(-50%, -50%);
-  padding: 0 4px;
-  background: var(--paper);
+  top: 4px;
+  left: 2px;
+  right: 2px;
   margin: 0;
   font: 400 11px/1 var(--sans);
   letter-spacing: 0;
@@ -556,4 +551,19 @@ section[aria-label='Preview']:has(.techflat) > .big-undo {
   height: 100%;
   max-width: none;
   max-height: none;
+}
+
+/* "Open from a label" sat in a light box on the black account page, the brightest thing on it (pretend tester EF walk,
+   Nov 24). Inside Saved patterns it is a quiet line with its box, like the rest of the fold. */
+.account section.card:has(> #codetitle) {
+  background: transparent;
+  color: inherit;
+  border: none;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 12px 0 0;
+}
+.account section.card:has(> #codetitle) > h2 {
+  font-size: var(--caps-size, 12px);
 }

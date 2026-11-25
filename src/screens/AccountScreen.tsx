@@ -340,7 +340,7 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
               .filter((t) => t.where)
               .map((t) => (
                 <li key={t.name} title={`The tag comes off when ${t.proof}.`}>
-                  <b>{t.name}</b> · in {t.where}
+                  <b>{t.name}</b> · {/^(in|under|inside)\b/.test(t.where!) ? t.where : `in ${t.where}`}
                 </li>
               ))}
           </ul>

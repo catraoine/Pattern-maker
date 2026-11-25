@@ -183,6 +183,8 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   // Not when stepping back into it during this visit: only on opening it afresh.
   const [returning] = useState(() => !start && baseDone(values) && (window.history.state as { sub?: unknown } | null)?.sub === undefined);
   const [helper, setHelper] = useState(!!theirs);
+  // The window's own pick, kept apart until Done: the page behind changed to "Their waist" at the tap (EF walk, Nov 24).
+  const [helperPick, setHelperPick] = useState(!!theirs);
   const [who, setWho] = useState(false);
   // The who line shows on a first waist page opened with nothing measured, and stays while the waist is typed (the
   // values change on every key, Nov 15 code review).
@@ -530,13 +532,14 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   const fresh = page.kind === 'base' && !page.back && at === 0 && freshStart;
   const pickWho = () => {
     // Someone else is added once; after that the window only changes their form.
-    if (helper && !theirs && onSomeoneElse) onSomeoneElse(name.trim(), chosen);
+    setHelper(helperPick);
+    if (helperPick && !theirs && onSomeoneElse) onSomeoneElse(name.trim(), chosen);
     else if (chosen !== form) onForm?.(chosen);
     setWho(false);
   };
   // Closed without Done: nothing picked in the window stays, so the pages never word for someone not added.
   const dropWho = () => {
-    setHelper(!!theirs);
+    setHelperPick(helper);
     setChosen(form);
     setName('');
     setWho(false);
@@ -546,7 +549,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
       <span>
         {theirs ? `For ${theirName || 'someone else'}` : helper ? `For ${name.trim() || 'someone else'}` : 'For me'} · {form === 'menswear' ? 'Menswear' : 'Womenswear'}
       </span>
-      <button type="button" className="later go who-change" aria-expanded={who} onClick={() => setWho(true)}>
+      <button type="button" className="later go who-change" aria-expanded={who} onClick={() => { setHelperPick(helper); setWho(true); }}>
         Change
       </button>
     </p>
@@ -569,15 +572,15 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
         )}
         {!theirs && (
           <div className="switch two-part" role="radiogroup" aria-label="Who are you designing for?">
-            <button type="button" role="radio" aria-checked={!helper} onClick={() => setHelper(false)}>
+            <button type="button" role="radio" aria-checked={!helperPick} onClick={() => setHelperPick(false)}>
               For me
             </button>
-            <button type="button" role="radio" aria-checked={helper} onClick={() => setHelper(true)}>
+            <button type="button" role="radio" aria-checked={helperPick} onClick={() => setHelperPick(true)}>
               Someone else
             </button>
           </div>
         )}
-        {helper && !theirs && (
+        {helperPick && !theirs && (
           <div className="field plain ready">
             <label htmlFor="who-name">Their name</label>
             <input id="who-name" autoComplete="off" autoFocus value={name} aria-describedby="who-name-why" onChange={(e) => setName(e.target.value)} />
@@ -587,7 +590,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
             </p>
           </div>
         )}
-        {helper && !theirs && onAskThem && (
+        {helperPick && !theirs && onAskThem && (
           // A gift, or a client across town: the link that lets them measure themselves was only in the client book.
           <p className="muted small ask-them">
             Not with you?{' '}
@@ -604,7 +607,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
             </button>
           </p>
         )}
-        <button type="button" className="primary" disabled={helper && !theirs && !name.trim()} onClick={pickWho}>
+        <button type="button" className="primary" disabled={helperPick && !theirs && !name.trim()} onClick={pickWho}>
           Done
         </button>
         {/* A way out without choosing: tapping outside the window was the only one (cold read EE, Nov 24). */}

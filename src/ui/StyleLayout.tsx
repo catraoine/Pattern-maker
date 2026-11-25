@@ -223,6 +223,7 @@ export function Group({ label, tab, children, className, shaped }: { label: stri
   });
   const folds = !!fold && !solo && t !== PRO;
   const open = !folds || fold.open[t] === label;
+  const look = useContext(LookName);
   // A pick opens the next question on the step, after a beat to see it land on the drawing.
   const timer = useRef<number>();
   useEffect(() => () => window.clearTimeout(timer.current), []);
@@ -271,7 +272,9 @@ export function Group({ label, tab, children, className, shaped }: { label: stri
       </legend>
       <div className="fold-body" hidden={!open}>
         {children}
-        {testing && <p className="testing-why">{TESTING_WHY}</p>}
+        {/* On a collection look its In testing tags are the point: it is what the fit testers are sewing now, and the
+            general line read as a warning about the tester's own piece (pretend tester EF walk, Nov 24). */}
+        {testing && <p className="testing-why">{look ? `In testing: the ${look} is what our fit testers are sewing now.` : TESTING_WHY}</p>}
       </div>
     </fieldset>
   );
