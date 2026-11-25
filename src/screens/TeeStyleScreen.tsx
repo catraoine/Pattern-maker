@@ -259,7 +259,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
           <InCorner>
             {draft && (
               <button type="button" className="link small" aria-label="Draw on your form" onClick={() => setOnForm(choices)}>
-                <span className="tool-word">Draw</span>
+                <span className="tool-word">Draw on it</span>
               </button>
             )}
           </InCorner>

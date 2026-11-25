@@ -92,7 +92,7 @@ test('"Be a fit tester" is not offered once a tester code is on (pretend-tester 
   const main = page.getByRole('main');
   await openAccount(page);
   await expect(main.getByRole('button', { name: 'Be a fit tester' })).toBeVisible();
-  const fold = await openFold(page, 'Fit testing');
+  const fold = await openFold(page, 'Tester');
   await fold.getByLabel('Tester code').fill('example-code');
   await fold.getByRole('button', { name: 'Use code' }).click();
   await expect(fold).toContainText('Tester code on');

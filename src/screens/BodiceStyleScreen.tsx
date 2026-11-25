@@ -364,7 +364,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
     >
       <section className="card numbered" aria-labelledby="opts">
         {BODICE_GROUPS.filter((g) => shown(g.id)).map((g) => (
-          <Group key={g.id} label={g.label} tab={PRO_GROUPS.includes(g.id) ? PRO : undefined} shaped={g.id === 'length' && setDrop > 0 ? `${draft?.peplum ? 'Peplum seam ' : ''}${Math.round(setDrop * 10) / 10} cm below the waist` : handShaped(choices, g.id) ? g.options.find(([id]) => id === valueOf(g.id))?.[1] : undefined}>
+          <Group key={g.id} label={g.id === 'length' && draft?.peplum ? 'Peplum seam' : g.label} tab={PRO_GROUPS.includes(g.id) ? PRO : undefined} shaped={g.id === 'length' && setDrop > 0 ? `${Math.round(setDrop * 10) / 10} cm below the waist` : handShaped(choices, g.id) ? g.options.find(([id]) => id === valueOf(g.id))?.[1] : undefined}>
             {/* Above the pictures, not under them: greyed sleeves read as locked until the reason is seen (cold read, Nov 14). */}
             {g.id === 'sleeve' && !arms && (
               <p className="muted small sleeve-why">
@@ -535,7 +535,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
                 </>
               ) : top ? (
                 <button type="button" className="link small" aria-label="Draw on your form" onClick={() => setOnForm(choices)}>
-                  <span className="tool-word">Draw</span>
+                  <span className="tool-word">Draw on it</span>
                 </button>
               ) : (
                 <DrawMenu>

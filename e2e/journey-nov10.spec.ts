@@ -92,7 +92,7 @@ test('Email me the files sends the pattern and its instructions the app made, an
   await startWithExample(page);
   // A fit tester types any address, sent with their code (weekly review, Nov 16); signed in, it goes to their own email.
   await page.getByRole('banner').getByRole('button', { name: /account/i }).click();
-  const fold = await openFold(page, 'Fit testing');
+  const fold = await openFold(page, 'Tester');
   await fold.getByLabel('Tester code').fill('atelier26');
   await fold.getByRole('button', { name: 'Use code' }).click();
   await expect(fold).toContainText('Tester code on');

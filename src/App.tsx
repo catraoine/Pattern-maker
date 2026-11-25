@@ -319,7 +319,7 @@ export default function App() {
     if (!code) return;
     if (access) {
       // A device let in earlier can hold an old code that no longer works (Cat's phone, Nov 14: the body scan turned
-      // it away while Fit testing still said "Tester code on"). A newer link's code replaces it, once it's checked.
+      // it away while the Tester fold still said "Tester code on"). A newer link's code replaces it, once it's checked.
       // Compared as codes are matched (case and stray characters aside), so a typed code kept in capitals isn't
       // checked again on every visit by a link in small letters (code review, Nov 15).
       if (cleanCode(code).toLowerCase() !== cleanCode(storedAccount.testerCode ?? '').toLowerCase()) void checkCode(code).then((r) => r === 'tester' && setAccount({ ...latestAccount.current, testerCode: code }));
@@ -805,7 +805,8 @@ export default function App() {
     // measurements are in, so "once your measurements are in" read as wrong, and Print seemed to do nothing (DP walk, Nov 20).
     const choosing = (step === 'collection' && lookFrom === 'steps') || (step === 'steps' && (stepsPage === 'check' || stepsPage === 'choose'));
     if (choosing && baseDone(measured)) {
-      if (to === 'measure') return step === 'steps' ? undefined : openSteps({ kind: 'check' });
+      // On the list Style is lit (cold read EE, Nov 24), so Measure is a way back to the measurements, as from the collection.
+      if (to === 'measure') return step === 'steps' && stepsPage === 'check' ? undefined : openSteps({ kind: 'check' });
       if (!canLeaveMeasure) {
         if (!(step === 'steps' && stepsPage === 'choose')) openSteps({ kind: 'choose' });
         setStepsNote('Choose what to make first: Style and Print open for it.');
@@ -931,7 +932,8 @@ export default function App() {
                 )}
                 <nav aria-label="Steps" className="steps">
                   {STEPS.map((s) => {
-                    const on = STEP_OF[step] === s.id;
+                    // Choosing what to make is the start of styling, so Style is lit there, not Measure (cold read EE, Nov 24).
+                    const on = (step === 'steps' && stepsPage === 'choose' ? 'style' : STEP_OF[step]) === s.id;
                     const locked = s.id !== 'measure' && !canLeaveMeasure;
                     return (
                       <button
@@ -939,7 +941,7 @@ export default function App() {
                         type="button"
                         className={on ? 'step on' : locked ? 'step locked' : 'step'}
                         aria-current={on ? 'step' : undefined}
-                        title={locked ? 'Measure first' : undefined}
+                        title={locked && !on ? 'Measure first' : undefined}
                         onClick={() => openStep(s.id)}
                       >
                         {s.label}
@@ -1263,7 +1265,7 @@ export default function App() {
             <div className="form-leave" role="dialog" aria-modal="true" aria-labelledby="look-leave-title" onKeyDown={(e) => e.key === 'Escape' && setLookLeave(undefined)}>
               <div className="form-leave-box">
                 <h2 id="look-leave-title">Change the {lookName}?</h2>
-                <p>For fit testing, the style is set and only the length is yours. This change makes it a different {GARMENT_NAME[garment]}, so it would no longer be the {lookName} you're testing.</p>
+                <p>On your tester look, the style is set and only the length is yours. This change makes it a different {GARMENT_NAME[garment]}, so it would no longer be the {lookName} you're testing.</p>
                 <button type="button" className="primary done" onClick={() => setLookLeave(undefined)} autoFocus>
                   Keep the {lookName}
                 </button>

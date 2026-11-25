@@ -164,9 +164,9 @@ export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; p
 export const GARMENT_PROOF = 'sewists score it 4 of 5 or better';
 
 /** Everything still tagged, for the Account page and the ship list: garments first, then tools. */
-export function stillInTesting(name: (g: Garment) => string, garments: readonly Garment[]): { name: string; proof: string }[] {
+export function stillInTesting(name: (g: Garment) => string, garments: readonly Garment[]): { name: string; proof: string; where?: string }[] {
   const gs = garments.filter(inTesting).map((g) => ({ name: `${name(g)[0].toUpperCase()}${name(g).slice(1)}`, proof: GARMENT_PROOF }));
-  const ts = (Object.keys(TESTING_TOOLS) as TestingTool[]).map((k) => ({ name: TESTING_TOOLS[k].name, proof: TESTING_TOOLS[k].proof }));
+  const ts = (Object.keys(TESTING_TOOLS) as TestingTool[]).map((k) => ({ name: TESTING_TOOLS[k].name, proof: TESTING_TOOLS[k].proof, where: TESTING_TOOLS[k].where }));
   return [...gs, ...ts];
 }
 

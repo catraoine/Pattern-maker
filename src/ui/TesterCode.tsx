@@ -10,7 +10,7 @@ import { CODE_MESSAGE, checkCode } from '../access';
 export const testerHeaders = (code: string | undefined): Record<string, string> => (code ? { 'x-tester-code': code } : {});
 
 /**
- * Your account > Fit testing: type the code from the tester email. It's checked once, then kept on this device
+ * Your account > Tester: type the code from the tester email. It's checked once, then kept on this device
  * and sent with each photo, so testers get more readings a day than everyone else.
  */
 export function TesterCode({ code, unit, onCode }: { code?: string; unit: Unit; onCode: (code: string | undefined) => void }) {

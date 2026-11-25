@@ -2,7 +2,7 @@
 // garment's Form view. Drag the hem to change the length, drag the side seam to change the flare, or
 // draw a new hemline across the bottom with a finger.
 import { skirtBelt } from '../engine/belt';
-import { PointerEvent, useMemo, useRef, useState } from 'react';
+import { PointerEvent, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useEnlarged } from './EnlargeSketch';
 import type { Choices } from '../savedWork';
 import { skirtFlat, wornLines, wornShapes } from '../engine/flat';
@@ -199,7 +199,23 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
   const shown = held.current as typeof frame & { left?: number; width?: number };
   // Handle and label size, in proportion to the sketch. Cropped on a phone the sketch is shorter, so they are scaled
   // back up to the size they had beside the whole figure, or the names under the dots were too small to read.
-  const k = (shown.bottom - shown.top) / (narrow && !big ? 75 : 110);
+  // Never under 11 px on the screen, whatever the window's size: on a 360 phone the length and width words came out
+  // about 6 px, sitting on the leg (pretend tester EF walk, Nov 24). The screen's pixels per drawing unit are measured.
+  const [ppu, setPpu] = useState(0);
+  useLayoutEffect(() => {
+    const el = svg.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const read = () => {
+      const a = el.getScreenCTM()?.a ?? 0;
+      // (Only a real change: the drawing's frame can shift by a hair as the words grow.)
+      setPpu((was) => (a > 0 && Math.abs(a - was) > was * 0.05 ? a : was));
+    };
+    read();
+    const watch = new ResizeObserver(read);
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, []);
+  const k = Math.max((shown.bottom - shown.top) / (narrow && !big ? 75 : 110), ppu ? 11 / (2.6 * ppu) : 0);
   // The handles sit on the skirt as drawn: its hem at the centre, and the hem's outer corner.
   const skirt = cloth[0] ?? [];
   const hemCentre = skirt.length ? skirt.reduce((a, b) => (b.y > a.y ? b : a)) : { x: 0, y: draft.lengthCm };

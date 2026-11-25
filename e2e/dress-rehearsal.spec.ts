@@ -85,7 +85,7 @@ test('Draw your lines fits a 360 px phone, with Enlarge and Demo on the screen',
   await openFresh(page);
   await main(page).getByRole('button', { name: 'Begin' }).click();
   await main(page).getByRole('button', { name: 'Try it with an example body' }).click();
-  await main(page).getByText('Draw', { exact: true }).first().click();
+  await main(page).getByText('Draw on it', { exact: true }).first().click();
   const tool = main(page).getByRole('button', { name: 'Draw on your form', exact: true });
   if (await tool.isVisible().catch(() => false)) await tool.click();
   await expect(main(page).locator('.form-draw')).toBeVisible();
