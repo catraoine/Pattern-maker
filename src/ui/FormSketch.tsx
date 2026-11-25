@@ -8,6 +8,7 @@
 // on the welcome screen, while measuring and while styling.
 import { useId, useMemo, useRef } from 'react';
 import type { P } from '../engine/geometry';
+import { isBishop } from '../engine/sleeve';
 import type { SkirtMeasurements } from '../engine/skirt';
 import { bodyOutline } from './bodyOutline';
 import { CM_PER_UNIT, HEAD_CHIN, HEAD_TOP, headLines } from './ContourForm';
@@ -287,7 +288,11 @@ function sleeveRun(arm: FormArm, sleeve: WornSleeve) {
   // The hem before it is gathered into its band; a flared hem (a flutter or bell) shows more of its width.
   const fullHem = sleeve.hemCm + (g?.hem ?? 0);
   const flared = !g && sleeve.hemCm > sleeve.bicep * 1.2;
-  const share = g ? GATHERED_EASE : flared ? FLARED_EASE : SLEEVE_EASE;
+  // A bishop: cut much wider at the hem than its band, its fullness falls to the wrist and blouses over the band, rather
+  // than hanging in toward it, and more of it shows. Hung in, the Ice Peplum Top's bishop sleeves were drawn as narrow
+  // tubes (EG cold read, Nov 24).
+  const bishop = !puff && !!band && isBishop(sleeve);
+  const share = bishop ? BISHOP_EASE : g ? GATHERED_EASE : flared ? FLARED_EASE : SLEEVE_EASE;
   // Half of what the sewn sleeve is wider than the arm at y, bicep to hem (or to the top of the band).
   const extra = (y: number) => {
     const t = Math.min(1, Math.max(0, (y - arm.under.y) / Math.max(1, bandTop - arm.under.y)));
@@ -297,7 +302,7 @@ function sleeveRun(arm: FormArm, sleeve: WornSleeve) {
   };
   // Over the band the width drops to the band's in a short step: the gathers.
   const bandShare = (y: number) => (band && y >= bandTop ? SLEEVE_EASE : share);
-  return { end, puff, band, bandTop, extra, bandShare, crownGathers: g?.crown ?? 0 };
+  return { end, puff, band, bandTop, extra, bandShare, bishop, crownGathers: g?.crown ?? 0 };
 }
 
 /** The band a gathered sleeve ends in when it has no cuff of its own, as drawn on the form, in cm. */
@@ -311,7 +316,7 @@ const BAND_ON_FORM = 3;
 /** `over`: the sleeve hangs in front of a body wider than the arms (a boxy, dropped-shoulder hoodie), so it neither
  *  meets the body's side seam nor tucks under it: its seam runs up the arm's inner edge to the crown. */
 function sleeveShape(arm: FormArm, sleeve: WornSleeve, head: P = arm.tip, cloth?: P[][], body?: FormBody, over = false): P[] {
-  const { end, puff, bandTop, extra, bandShare, crownGathers } = sleeveRun(arm, sleeve);
+  const { end, puff, bandTop, extra, bandShare, bishop, crownGathers } = sleeveRun(arm, sleeve);
   const ys = (a: number, b: number) => Array.from({ length: 33 }, (_, i) => a + ((b - a) * i) / 32);
   // The crown sits at the garment's shoulder point. Worn, the sleeve falls close to the arm: its ease hangs
   // in soft folds rather than standing out flat, and from a shoulder set out past the arm it drops to the arm.
@@ -320,14 +325,17 @@ function sleeveShape(arm: FormArm, sleeve: WornSleeve, head: P = arm.tip, cloth?
   const puffEnd = Math.min(end, arm.under.y + 5);
   const swell = Math.min(6, 2 + crownGathers / 4);
   const bulge = (y: number) => (puff ? swell * Math.sin(Math.PI * Math.min(1, Math.max(0, (y - crown.y) / Math.max(1, puffEnd - crown.y)))) : 0);
-  // Into the band: the width steps down over a centimetre, the gathers' edge.
-  const step = (y: number, wide: number, narrow: number) => (bandTop < end && y > bandTop - 1 && y < bandTop ? narrow + (wide - narrow) * (bandTop - y) : y >= bandTop ? narrow : wide);
-  // Below the underarm the ease hangs in toward the hem: a sleeve that falls, not a tube that stands.
-  const hang = (y: number) => 1 - 0.4 * Math.min(1, Math.max(0, y - arm.under.y) / Math.max(1, end - arm.under.y));
+  // Into the band: the width steps down over a centimetre, the gathers' edge; a bishop's rounds in over a few, blousing.
+  const rounds = bishop ? BISHOP_BLOUSE : 1;
+  const into = (t: number) => (bishop ? Math.sin((t * Math.PI) / 2) : t);
+  const step = (y: number, wide: number, narrow: number) => (bandTop < end && y > bandTop - rounds && y < bandTop ? narrow + (wide - narrow) * into((bandTop - y) / rounds) : y >= bandTop ? narrow : wide);
+  // Below the underarm the ease hangs in toward the hem: a sleeve that falls, not a tube that stands. Not a bishop's,
+  // whose fullness is at the wrist.
+  const hang = (y: number) => (bishop ? 1 : 1 - 0.4 * Math.min(1, Math.max(0, y - arm.under.y) / Math.max(1, end - arm.under.y)));
   const onArm = (y: number) => {
     const t = Math.min(1, Math.max(0.35, (y - arm.tip.y) / Math.max(1, arm.under.y - arm.tip.y)));
     const base = armAt(arm, Math.max(y, arm.tip.y)).outer + 0.5;
-    const wide = base + bandShare(Math.min(y, bandTop - 1.01)) * extra(Math.min(y, bandTop - 1.01)) * t * hang(y) + bulge(y);
+    const wide = base + bandShare(Math.min(y, bandTop - rounds - 0.01)) * extra(Math.min(y, bandTop - rounds - 0.01)) * t * hang(y) + bulge(y);
     const narrow = base + SLEEVE_EASE * extra(Math.max(y, bandTop));
     return step(y, wide, narrow);
   };
@@ -344,7 +352,7 @@ function sleeveShape(arm: FormArm, sleeve: WornSleeve, head: P = arm.tip, cloth?
   const inner = ys(arm.under.y, end)
     .map((y) => {
       const base = armAt(arm, y).inner - 0.3;
-      const wide = base - bandShare(Math.min(y, bandTop - 1.01)) * extra(Math.min(y, bandTop - 1.01)) - 0.5 * bulge(y);
+      const wide = base - bandShare(Math.min(y, bandTop - rounds - 0.01)) * extra(Math.min(y, bandTop - rounds - 0.01)) - 0.5 * bulge(y);
       const narrow = base - SLEEVE_EASE * extra(Math.max(y, bandTop));
       const x = step(y, wide, narrow);
       const at = side?.(y) ?? -Infinity;
@@ -388,6 +396,8 @@ function sleeveShape(arm: FormArm, sleeve: WornSleeve, head: P = arm.tip, cloth?
   return [...outer, ...hem, ...inner, { x: arm.under.x, y: arm.under.y }, ...back];
 }
 
+/** How far above its band a bishop sleeve rounds in to it, blousing over it, in cm. */
+const BISHOP_BLOUSE = 3;
 /** How far down the arm a sleeve set out past the arm takes to fall to it, in cm, at the least. */
 const CAP_CM = 5;
 /** How far a sleeve's hem falls at its middle, as a share of its width. */
@@ -460,17 +470,20 @@ const PUFF_RISE = 1.4;
 /** How much of a gathered sleeve's fullness and a flared sleeve's flare shows in its width when worn. */
 const GATHERED_EASE = 0.6;
 const FLARED_EASE = 0.7;
+const BISHOP_EASE = 0.9;
 
 /** The gathers on a sleeve on the form: short strokes fanning into its band or cuff, and over a puff's crown.
  *  For the right sleeve; mirror for the left. Drawn as folds, over the cloth. */
 function sleeveMarks(arm: FormArm, sleeve: WornSleeve, head: P = arm.tip): P[][] {
-  const { puff, band, bandTop, extra, bandShare } = sleeveRun(arm, sleeve);
+  const { puff, band, bandTop, extra, bandShare, bishop } = sleeveRun(arm, sleeve);
   const out: P[][] = [];
   if (band) {
     const y = bandTop - 1.2;
     const a = armAt(arm, y);
-    const left = a.inner - 0.3 - bandShare(y) * extra(y) + 0.5;
-    const right = a.outer + 0.5 + bandShare(y) * extra(y) - 0.5;
+    // A bishop is still rounding in to its band here (see sleeveShape): the strokes keep inside it.
+    const into = bishop ? 0.85 * Math.sin(((1.2 / BISHOP_BLOUSE) * Math.PI) / 2) : 1;
+    const left = a.inner - 0.3 - into * bandShare(y) * extra(y) + 0.5;
+    const right = a.outer + 0.5 + into * bandShare(y) * extra(y) - 0.5;
     const n = Math.max(3, Math.round((right - left) / 1.4));
     for (let i = 0; i < n; i++) {
       const x = left + ((right - left) * (i + 0.5)) / n;

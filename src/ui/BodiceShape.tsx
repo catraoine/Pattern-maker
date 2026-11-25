@@ -277,6 +277,16 @@ interface Props {
 
 type Drag = { kind: 'hem' | 'side'; start: P; before: BodiceChoices; drop: number; ease: number; touch: boolean };
 
+/** Words set out on as few lines as fit, each line as long as `fits` allows; undefined when a single word doesn't fit. */
+function wrapWords(text: string, fits: (t: string) => boolean): string[] | undefined {
+  const lines: string[] = [];
+  for (const w of text.split(' ')) {
+    if (lines.length && fits(`${lines[lines.length - 1]} ${w}`)) lines[lines.length - 1] += ` ${w}`;
+    else lines.push(w);
+  }
+  return lines.every(fits) ? lines : undefined;
+}
+
 export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, arms, onLive, onDone }: Props) {
   const said = useSaid();
   const svg = useRef<SVGSVGElement>(null);
@@ -373,6 +383,8 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
     }
   };
 
+  // Says below what: on a phone the description isn't on screen, and the WAIST guide's word is across the drawing, so
+  // "6 cm below" alone meant nothing (EG cold read, Nov 24).
   const lengthLabel = choices.dropCm !== undefined ? `${Math.round(draft.drop * 10) / 10} cm below waist` : lengthName(choices.length);
   const easeLabel = easeWords;
   const guide = (y: number, text: string) => (
@@ -398,9 +410,17 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
     // garment at all, it stays beside the disc.
     const past = kind === 'hem' ? cx + Math.max(...[-1.8, 0, 1.8].map((d) => squeezeX(body, clothReach(at.y + d * k, body, cloth, arms, sleeve), at.y + d * k))) + 1.6 * k : 0;
     const fitsPast = (t: string) => past + t.length * 2.6 * k * 0.85 < 2 * cx - k;
-    const out = kind === 'hem' && past > at.x + r + 3.2 * k && (fitsPast(text) || (!!halves && halves.every(fitsPast)));
+    // Past the garment the words wrap to as many lines as they need, up to three ("6 CM" / "BELOW" / "WAIST"): on two,
+    // "6 cm below waist" didn't fit, and fell back on to the cloth beside the disc.
+    const pastLines = kind === 'hem' ? wrapWords(text, fitsPast) : undefined;
+    const out = kind === 'hem' && past > at.x + r + 3.2 * k && !!pastLines && pastLines.length <= 3;
     const x = out ? past : at.x + r + 3.2 * k;
-    const two = out ? (fitsPast(text) ? undefined : halves) : kind !== 'hem' && !fits(text) && halves && halves.every(fits) ? halves : undefined;
+    // With no room past the garment the length's words wrap beside the disc the same way, rather than run off the edge.
+    const besideLines = kind === 'hem' && !out ? wrapWords(text, fits) : undefined;
+    const lines = out ? pastLines : besideLines && besideLines.length <= 3 ? besideLines : undefined;
+    const two = kind === 'hem' ? (lines && lines.length > 1 ? lines : undefined) : !fits(text) && halves && halves.every(fits) ? halves : undefined;
+    // How far the first line sits above the disc's middle, and the box round them all, so the lines centre on the disc.
+    const rise = two ? (two.length - 1) * 1.55 - 0.15 : 0;
     const roomRight = fits(text) || !!two;
     const arrows =
       kind === 'hem'
@@ -422,7 +442,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
           className={kind === 'hem' && !drawing ? 'typeable' : undefined}
         >
           {two ? two.map((line, i) => (
-                <tspan key={line} x={x} dy={i ? 3.1 * k : -1.4 * k}>
+                <tspan key={i} x={x} dy={i ? 3.1 * k : -rise * k}>
                   {line.toUpperCase()}
                 </tspan>
               ))
@@ -433,9 +453,9 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
         {kind === 'hem' && !drawing && (
           <LengthTap
             x={x}
-            y={at.y - (two ? 4.4 : 3) * k}
+            y={at.y - (3 + rise) * k}
             width={Math.max(...(two ?? [text]).map((t) => t.length)) * 2.6 * k * 0.85}
-            height={(two ? 8 : 5) * k}
+            height={(5 + (two ? two.length - 1 : 0) * 3) * k}
             // On a peplum top the dot is the peplum's seam, not its hem: a tester typed her real length, 20 cm, and was told
             // "This one goes 6 cm to 12 cm" (pretend tester, Nov 18). So it's asked as the seam, with the peplum's own depth.
             ask={{ name: draft.peplum ? 'Peplum seam' : 'Top length', from: 'below the waist', cm: draft.drop, ...dropLimits(m, choices), onCm: (cm) => onDone(choices, dragDrop(m, choices, cm, true)), ...(draft.peplum ? { below: { what: 'The peplum', cm: draft.peplum.depthCm } } : {}) }}

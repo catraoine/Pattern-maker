@@ -10,9 +10,9 @@ import { WAISTBAND_CM } from './skirt';
 import { HIGH } from './skirtWaist';
 import { BodiceDraft, DRAWSTRING, blockOf } from './bodice';
 import { slantStart } from './seams';
-import { BANDS, EXTENSION_CM, isBandCollar } from './collar';
+import { BANDS, EXTENSION_CM, RUFFLE, isBandCollar } from './collar';
 import type { BodiceEdges } from './instructions';
-import { BAND_CM, SleeveDraft } from './sleeve';
+import { BAND_CM, SleeveDraft, isBishop } from './sleeve';
 import type { DressDraft } from './dress';
 import type { TrousersDraft } from './trousers';
 import { loopPlaces, loopShape } from './trouserPleats';
@@ -963,8 +963,29 @@ function sleeveSide(h: Half, sl: SleeveDraft, yoke?: RaglanYoke): { shape: P[]; 
   const Bi = add(mid, mul(n, w / 2));
   const puff = sl.gathers?.crown !== undefined;
   const swell = puff ? 2.5 : 4;
-  const outer = [...head.slice(0, -1), ...quad(top, add(add(top, mul(a, L * (puff ? 0.45 : 0.7))), mul(n, -swell)), Bo)];
-  const inner = quad(Bi, add(add(U, mul(sub(Bi, U), puff ? 0.55 : 0.75)), mul(n, swell)), U);
+  // A bishop's fullness is at the wrist: cut much wider at the hem than the band, it widens all the way down the arm and
+  // blouses out over the band. Drawn as a slim sleeve that only drew in at the band, the Ice Peplum Top's read as a
+  // plain long sleeve beside All round's full one (EG cold read, Nov 24).
+  const blouse = isBishop(sl) ? (sl.gathers?.hem ?? 0) : 0;
+  const outer = blouse ? [] : [...head.slice(0, -1), ...quad(top, add(add(top, mul(a, L * (puff ? 0.45 : 0.7))), mul(n, -swell)), Bo)];
+  const inner = blouse ? [] : quad(Bi, add(add(U, mul(sub(Bi, U), puff ? 0.55 : 0.75)), mul(n, swell)), U);
+  if (blouse) {
+    // Half the sleeve's width just above the band, as the flat shows a round: a quarter of the hem's whole round, the band
+    // and all that is gathered into it, and never narrower than the sleeve at the bicep.
+    const W = Math.max((half * k) / 2, w / 2 + (k * blouse) / 4);
+    const lift = Math.min(6, L * 0.1);
+    const Wo = add(add(mid, mul(a, -lift)), mul(n, -W));
+    const Wi = add(add(mid, mul(a, -lift)), mul(n, W));
+    // Widening evenly down the arm, then rounding in over the band: the fullness droops over it, a bishop, not a bell.
+    outer.push(...head.slice(0, -1), ...quad(top, lerp(top, Wo, 0.5), Wo).slice(0, -1), ...quad(Wo, add(mid, mul(n, -W * 1.08)), Bo));
+    inner.push(...quad(Bi, add(mid, mul(n, W * 1.08)), Wi).slice(0, -1), ...quad(Wi, lerp(U, Wi, 0.5), U));
+    // The folds the gathers fall in, running up from the band and fading out up the arm.
+    for (let i = 1; i < 5; i++) {
+      const u = i / 5 - 0.5;
+      const q = add(mid, mul(n, u * w));
+      lines.push({ pts: [q, add(add(mid, mul(a, -L * 0.42)), mul(n, u * W * 1.25))], kind: 'seam' });
+    }
+  }
   const shape = [...outer, ...inner, ...[...hole].reverse().slice(1, -1)];
   const bandShape = [Bo, Bi, add(Bi, mul(a, band)), add(Bo, mul(a, band))];
   // Gathering: short strokes fanning into the band, and over the crown of a puff sleeve.
@@ -1021,6 +1042,57 @@ function spaced(run: P[], step: number): P[] {
   return out;
 }
 
+/** How much wider a standing neck ruffle is at its top edge than at the seam. */
+const RUFFLE_FLARE = 1.18;
+/** A neck ruffle's flutes: how far apart, and how deep, in cm. */
+const RUFFLE_WAVE = 2;
+const RUFFLE_FLUTE = 0.9;
+/** How far the back neck dips below the neck points, as the ruffle's back half is seen through a front view's neck. */
+const BACK_NECK_DIP = 1.6;
+
+/** How deep a neckline can be cut below its neck points, and how far out its neck points can sit from the centre, in cm,
+ *  for a ruffle in it to stand up round the neck (a crew); round a scoop, V, square or wide boat neck it falls on to the
+ *  body. */
+const RUFFLE_STANDS_CM = 10;
+const RUFFLE_STANDS_WIDE = 11;
+const ruffleStands = (neck: P[]) => Math.max(...neck.map((q) => q.y)) - Math.min(...neck.map((q) => q.y)) <= RUFFLE_STANDS_CM && Math.max(...neck.map((q) => q.x)) <= RUFFLE_STANDS_WIDE;
+
+/**
+ * A neck ruffle standing up round the neck, half of it from the centre: the folded strip gathered into the neck seam,
+ * flaring out a little, its top edge fluted in close waves, with the folds the gathers fall in running up it. On a front
+ * view its back half shows too, standing behind the neck, so it reads as the ring of frill it is: drawn falling on to
+ * the body it read as a scalloped Peter Pan collar, and as a front band alone as a ribbed neckband (EF walk and EG cold
+ * read, Nov 24). All round, which sews it, has it standing.
+ */
+function ruffleHalf(neck: P[], front: boolean): { parts: { a: P[]; b: P[] }[]; folds: P[][] } {
+  const np = neck.reduce((m, q) => (q.x > m.x ? q : m), neck[0]);
+  const behind = front ? Array.from({ length: 13 }, (_, i) => p((np.x * (12 - i)) / 12, np.y + BACK_NECK_DIP * (1 - ((12 - i) / 12) ** 2))).reverse() : undefined;
+  const parts: { a: P[]; b: P[] }[] = [];
+  const folds: P[][] = [];
+  for (const [run, lean] of [...(behind ? [[behind, 1] as const] : []), [neck, front ? 0.8 : 1] as const]) {
+    const fine = spaced(run, 0.25);
+    const at = [0];
+    for (let i = 1; i < fine.length; i++) at.push(at[i - 1] + len(sub(fine[i], fine[i - 1])));
+    // How far up the ruffle a share u of its depth is, at a point of the seam: flaring out as it rises.
+    const up = (q: P, u: number) => p(q.x * (1 + (RUFFLE_FLARE - 1) * u), q.y - RUFFLE.width * lean * u);
+    const flute = (d: number) => RUFFLE_FLUTE * 0.5 * (1 - Math.cos((2 * Math.PI * d) / RUFFLE_WAVE));
+    const edge = fine.map((q, i) => p(up(q, 1).x, up(q, 1).y - flute(at[i])));
+    // The back half reaches down to the front neckline: the inside of the ring fills the neck. Its folds are left out:
+    // drawn over everything, they crossed the front half beside the neck points.
+    if (run === behind) {
+      parts.push({ a: spaced(neck, 0.25), b: edge });
+      continue;
+    }
+    parts.push({ a: fine, b: edge });
+    // A long fold up to each crest of the edge, and a shorter one under each hollow.
+    for (let k = 1; k * RUFFLE_WAVE * 0.5 < at[at.length - 1] - 0.4; k++) {
+      const q = fine[at.findIndex((d) => d >= k * RUFFLE_WAVE * 0.5)];
+      folds.push(k % 2 ? [up(q, 0.45), up(q, 1)] : [up(q, 0.12), up(q, 0.9)]);
+    }
+  }
+  return { parts, folds };
+}
+
 /** The collar as seen on the flat, half of it from the centre: a band standing up from the neck, a
  * Peter Pan lying on the body, or a shirt collar's points over its stand. */
 function collarHalf(neck: P[], kind: BodiceDraft['collar'], front: boolean): { a: P[]; b: P[] }[] {
@@ -1041,9 +1113,8 @@ function collarHalf(neck: P[], kind: BodiceDraft['collar'], front: boolean): { a
     });
     return [{ a: neck, b: offsetRun(neck, (i) => w[i], p(0, -100)) }];
   }
-  // A ruffle: falling from the neck seam, its outer edge rippling in small, close waves, as gathered cloth does. Rippled
-  // once per point of the neck seam, a few wide waves read as a scalloped Peter Pan collar (EF walk, Nov 24: the Ice
-  // Peplum Top's ruffle didn't show as one), so the seam is set out every few millimetres and the edge waves every 1.3 cm.
+  // A ruffle round a lower neckline (one round a crew stands: see ruffleHalf) falls on to the body from the seam, its
+  // edge rippling in small, close waves.
   if (kind === 'ruffle') {
     const fine = spaced(neck, 0.25);
     const at = fine.map((_, i) => (i ? fine.slice(0, i + 1).reduce((s2, q, j) => (j ? s2 + len(sub(q, fine[j - 1])) : 0), 0) : 0));
@@ -1307,6 +1378,10 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
   // A shaped hem hangs as drafted, the front's centre as far from its side seams as its shape says.
   const front = sewn(bf, backFoot, style?.skip, d.hem ? d.hem.front[0] - d.hem.front[d.hem.front.length - 1] : 0);
   const hps = (h: Half) => h.run[h.tags.indexOf('shoulder')];
+  // A neck ruffle stands up round a neckline that rings the neck close (a crew), and falls round a lower one: judged by
+  // the front, so the back view agrees with it.
+  const frontNeck = along(front, 'neck')[0];
+  const ruffleUp = d.collar === 'ruffle' && !!frontNeck && ruffleStands(frontNeck);
   return ([front, back] as const).map((h, i) => {
     if (d.drape?.kind === 'one_shoulder') return withPeplumView(d, h, oneShoulderView(d, h, i, edges), i === 1);
     // An uneven front: both halves to the neck points, and the neckline as drafted across them.
@@ -1432,7 +1507,8 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
     // A halter's ties are wider bands, rising from the strap ends round the neck.
     if (st) shapes.push(...both(strap([h.move(st[0]), h.move(st[1])], d.top?.ties ? 2 : 0.7)));
     const neckRun = uneven ? undefined : along(h, 'neck')[0];
-    const collar = neckRun ? collarHalf(neckRun, d.collar, i === 0) : [];
+    const ruffle = ruffleUp && neckRun ? ruffleHalf(neckRun, i === 0) : undefined;
+    const collar = ruffle ? ruffle.parts : neckRun ? collarHalf(neckRun, d.collar, i === 0) : [];
     const sleeves: number[] = [];
     if (sleeve?.cut === 'kimono') {
       for (const run of along(h, 'sleeve-hem')) for (const pts of [run, mirror(run)]) for (const r of inset(pts, 2, shape)) lines.push({ pts: r, kind: 'stitch' });
@@ -1447,8 +1523,10 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
       }
     }
     // The collar goes on last, over the sleeves' heads.
-    // In one piece across the centre back on a button front; meeting at the zip or the centre front otherwise.
-    for (const c of collar) shapes.push(...collarShapes(c, i === 1 && d.closure === 'front_buttons'));
+    // In one piece across the centre back on a button front, and a ruffle (cut on the fold there) across the centre front;
+    // meeting at the zip or the centre front otherwise.
+    for (const c of collar) shapes.push(...collarShapes(c, (i === 1 && d.closure === 'front_buttons') || (i === 0 && ruffleUp && d.closure !== 'front_buttons')));
+    for (const f of ruffle?.folds ?? []) lines.push({ pts: f, kind: 'seam' }, { pts: mirror(f), kind: 'seam' });
     // A cape over it all, from the neck seam out along the shoulder seam and down over the arm.
     const capeCm = d.collar === 'cape' ? (d.pieces.find((pc) => pc.meta.cape)?.meta.cape as number | undefined) : undefined;
     const shoulderRun = along(h, 'shoulder')[0];
