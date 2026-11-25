@@ -315,12 +315,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     );
   }
 
-  if (page.kind === 'check') {
-    const checked = checkMeasurements(values, unit, 'dress', form, { weight });
-    // A number outside what a tape can give (66 cm tall) is said first, on its own row too: the notes that weigh other
-    // lengths against it only sent people to re-measure the wrong thing (cold read EF, Nov 24: "Waist to floor looks long").
-    const wrong = checked.filter((c) => c.level === 'error' && BASE.includes(c.id) && values[c.id] !== undefined);
-    const off = new Set(wrong.map((c) => c.id));
+  if (page.kind === 'check')
     return (
       <Shell eyebrow={returning ? 'Welcome back' : undefined} title="Do these look right?">
         <p className="muted step-tip">
@@ -329,9 +324,9 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
         <ul className="check-list" aria-label="Tap one to change it">
           {BASE.map((id, at) => (
             <li key={id}>
-              <button type="button" className={off.has(id) ? 'off' : undefined} onClick={() => setPage({ kind: 'base', at, back: 'check' })}>
+              <button type="button" onClick={() => setPage({ kind: 'base', at, back: 'check' })}>
                 <span>{cap(titleOf(id, false, form).replace(/^Your /, ''))}</span>
-                {values[id] === undefined ? <em className="add">Add</em> : <span>{shown(values[id], unit)}{off.has(id) && <em className="check-off"> · check this</em>}</span>}
+                {values[id] === undefined ? <em className="add">Add</em> : <span>{shown(values[id], unit)}</span>}
               </button>
             </li>
           ))}
@@ -344,7 +339,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
             </li>
           )}
         </ul>
-        <DoubleChecks checks={wrong.length ? wrong : checked.filter((c) => c.level === 'warning' && BASE.includes(c.id))} />
+        <DoubleChecks checks={checkMeasurements(values, unit, 'dress', form, { weight }).filter((c) => c.level === 'warning' && BASE.includes(c.id))} />
         {aimed ? (
           <button type="button" className="primary" onClick={() => go(aimed)}>
             Continue measuring
@@ -365,7 +360,6 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
         )}
       </Shell>
     );
-  }
 
   if (page.kind === 'choose')
     return (

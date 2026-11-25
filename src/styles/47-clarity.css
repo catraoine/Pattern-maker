@@ -535,14 +535,6 @@ section[aria-label='Preview']:has(.techflat) > .big-undo {
     text-decoration: none;
   }
 }
-/* A number a tape can't give (66 cm tall) is marked on its own row, in the gold the app's notes use. */
-.check-list button.off span:last-child,
-.check-list button.off .check-off {
-  color: var(--gild);
-}
-.check-list button.off .check-off {
-  font-style: normal;
-}
 
 /* Cold read EF, Nov 24: enlarged on a computer, the flat kept the column's 760px cap, so Enlarge drew it no bigger.
    Enlarged, it fills the window, and the drawing keeps its own proportions inside. */
