@@ -85,7 +85,7 @@ type Page =
   | { kind: 'weight'; back?: 'check' }
   | { kind: 'check' }
   | { kind: 'choose' }
-  | { kind: 'extra'; garment: Garment | 'other'; ids: MeasurementId[]; at: number; redo?: boolean; then?: AfterMeasuring }
+  | { kind: 'extra'; garment: Garment | 'other'; ids: MeasurementId[]; at: number; redo?: boolean; then?: AfterMeasuring; grew?: number }
   | { kind: 'saved' }
   | { kind: 'describe' }
   | { kind: 'idea'; idea: IdeaReading };
@@ -518,7 +518,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     // A redo from the measurements list goes back to the list, past every page it took.
     else if (page.kind === 'extra' && page.redo && last && canGoBack()) window.history.go(-(at + 1));
     else if (page.kind === 'base') setPage(last ? (onWeight ? { kind: 'weight' } : { kind: 'check' }) : { ...page, at: at + 1 });
-    else if (more.length) setPage({ ...page, ids: [...ids, ...more], at: at + 1 });
+    else if (more.length) setPage({ ...page, ids: [...ids, ...more], at: at + 1, grew: at + 1 });
     else if (last) {
       if (page.garment === 'other') setPage({ kind: 'saved' });
       else onDone(page.garment, page.then);
@@ -619,7 +619,12 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   return (
     <MeasurePage
       key={`${page.kind}-${id}`}
-      who={whoLine || (page.kind === 'extra' && !page.redo && at === 0 && g && g !== 'other' && (
+      who={whoLine || (page.kind === 'extra' && page.grew === at && g && g !== 'other' && (
+        // The count grew from what was typed ("Top 5 of 5" became "6 of 7" with no word, cold read EG, Nov 24): say why.
+        <p className="extra-intro">
+          {values.high_bust !== undefined && values.full_bust !== undefined && values.high_bust >= values.full_bust ? 'Your high bust is at or over your bust, so your' : 'Your'} {named(g)} also needs {ids.length - at === 1 ? 'one more measurement' : `${ids.length - at} more measurements`}
+        </p>
+      )) || (page.kind === 'extra' && !page.redo && at === 0 && g && g !== 'other' && (
         // Back to measuring after What to make, said plainly on every size (clarity review A4, Nov 22: readers thought
         // measuring was over, and the computer showed no count at all).
         <p className="extra-intro">
