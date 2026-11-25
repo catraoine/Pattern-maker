@@ -385,7 +385,9 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
                   onClick={() => choose({ ...choices, [g.id]: id }, g.id)}
                 >
                   <ChoicePic set="bodice" group={g.id} id={id} />
-                  {label}
+                  {/* The Ice Peplum closes with buttons and loops where the zip would go: Style said Back zip, and a tester
+                      buying notions from it would buy a zip (EG walk, Nov 24). */}
+                  {g.id === 'closure' && id === 'back_zip' && draft?.backLoops ? 'Back buttons and loops' : label}
                   {optionInTesting(g.id, id) && <TestingTag tool="new_details" />}
                   {oversizedInTesting(g.id, id) && <TestingTag tool="oversized" />}
                   {/* One In testing tag: the balloon carries its own. */}
