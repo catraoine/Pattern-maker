@@ -620,9 +620,14 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   return (
     <MeasurePage
       key={`${page.kind}-${id}`}
-      who={whoLine || (page.kind === 'extra' && page.added?.[0] === id && (
+      who={whoLine || (page.kind === 'extra' && page.added?.includes(id) && (
+        // On each page it added, with a way back to the high bust: a high bust typed for the full bust by mistake also
+        // asks for these, and the EH cold read found no way back to fix it from here (Nov 25).
         <p className="extra-intro">
-          Your high bust is as big as your full bust, so your {named(g as Garment)} also takes your {page.added.map((m) => labelOf(m, form).toLowerCase()).join(' and ')}: {page.added.length === 1 ? 'one more measurement' : `${page.added.length} more measurements`}.
+          Your high bust is {(values.high_bust ?? 0) > (values.full_bust ?? 0) ? 'bigger than' : 'the same as'} your full bust, so your {named(g as Garment)} also takes your {page.added.map((m) => labelOf(m, form).toLowerCase()).join(' and ')}.{' '}
+          <button type="button" className="link" onClick={() => window.history.go(-(page.added!.indexOf(id) + 1))}>
+            Change your high bust
+          </button>
         </p>
       )) || (page.kind === 'extra' && !page.redo && at === 0 && g && g !== 'other' && (
         // Back to measuring after What to make, said plainly on every size (clarity review A4, Nov 22: readers thought

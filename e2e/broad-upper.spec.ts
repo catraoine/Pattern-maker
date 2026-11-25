@@ -21,8 +21,16 @@ for (const [high, asked] of [['93', true], ['86', false]] as const) {
       seen.push(label);
       // The two come straight after the high bust, with a line saying why (EG walk, #4).
       if (label === 'Across back') {
-        await expect(main.getByText(/Your high bust is as big as your full bust, so your top also takes your across back and armhole/)).toBeVisible();
+        await expect(main.getByText(/Your high bust is bigger than your full bust, so your top also takes your across back and armhole/)).toBeVisible();
         expect(seen[seen.length - 2]).toBe('High bust');
+      }
+      if (label === 'Armhole') {
+        // The line stays on the second page too, and goes back to the high bust to change it.
+        await main.getByRole('button', { name: 'Change your high bust' }).click();
+        await expect(main.getByRole('heading', { level: 1, name: 'Your high bust' })).toBeVisible();
+        await page.goForward();
+        await page.goForward();
+        await expect(main.getByRole('heading', { level: 1, name: 'Your armhole' })).toBeVisible();
       }
       await input.fill(label === 'High bust' ? high : MEASUREMENTS[label]);
       const next = main.getByRole('button', { name: /^Next\b/ });
