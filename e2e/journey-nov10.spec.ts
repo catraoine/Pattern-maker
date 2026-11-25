@@ -29,7 +29,12 @@ test('a reload keeps your place, and back still climbs from there', async ({ pag
   await startWithExample(page);
   await goPrint(page);
   await expect(main(page).getByRole('group', { name: 'Paper' })).toBeVisible();
+  const diag = () => page.evaluate(() => JSON.stringify({ nav: performance.getEntriesByType('navigation').map((e) => (e as PerformanceNavigationTiming).type), legacy: (performance as unknown as { navigation?: { type: number } }).navigation?.type, store: Object.fromEntries(Object.keys(sessionStorage).map((k) => [k, (sessionStorage.getItem(k) ?? '').slice(0, 80)])), hist: history.state, url: location.href }));
+  console.log('DIAG before', await diag());
   await page.reload();
+  console.log('DIAG after', await diag());
+  await page.waitForTimeout(500);
+  console.log('DIAG after500', await diag());
   await expect(main(page).getByRole('group', { name: 'Paper' })).toBeVisible();
   await page.goBack();
   await expectStyle(page, 'Skirt');
