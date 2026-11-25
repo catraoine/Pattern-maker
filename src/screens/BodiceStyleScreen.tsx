@@ -87,7 +87,8 @@ interface Props {
 /** The engine's warnings are written for the pattern cutter; this turns the common ones into a nudge. */
 function friendly(w: string) {
   if (w.startsWith('shoulder width')) return 'Your shoulder width and shoulder length don’t quite agree. The pattern still drafts, but re-measuring both will make the shoulders fit better.';
-  if (w.startsWith('front length')) return 'Your front length came out shorter than your back length, which usually means a tape slip. It’s drafted with a little extra; please re-measure it.';
+  // Also said when the two are equal, so "shorter" was wrong for them (EG walk, Nov 24).
+  if (w.startsWith('front length')) return 'Your front length is no longer than your back length. It’s usually a few cm longer, as it goes over the bust, so this often means a tape slip. It’s drafted with a little extra; please re-measure it.';
   // The closer-fit measurements, named, so the person knows which page to go back to (the readiness check, 2026-11-02).
   if (w.startsWith('front shoulder slope')) return 'Your front shoulder slope doesn’t agree with your front length and shoulder width, so the shoulder is drafted at a standard slope. Please re-measure the front shoulder slope.';
   if (w.startsWith('back shoulder slope')) return 'Your back shoulder slope doesn’t agree with your back length and shoulder width, so the shoulder is drafted at a standard slope. Please re-measure the back shoulder slope.';
