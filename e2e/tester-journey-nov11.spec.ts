@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { expect, fillStepPages, headerBack, measureMe, openAccount, openFold, openFresh, openGroup, startWithExample, stepButton, test } from './fixtures';
+import { expect, fillStepPages, headerBack, measureMe, openAccount, openFold, openFresh, openGroup, reloadAsPerson, startWithExample, stepButton, test } from './fixtures';
 
 // The tester journey check (Nov 11, 2026): what a fit tester would trip on, and Cat's "fix all".
 
@@ -40,7 +40,7 @@ test('a reload while measuring opens on the page still to take', async ({ page }
   await main(page).getByRole('textbox').fill('92');
   await main(page).getByRole('button', { name: 'Next' }).click();
   await expect(main(page).getByRole('heading', { name: 'Your hips' })).toBeVisible();
-  await page.reload();
+  await reloadAsPerson(page);
   await expect(main(page).getByRole('heading', { name: 'Your hips' })).toBeVisible();
 });
 

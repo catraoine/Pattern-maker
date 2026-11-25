@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { chooseChip, expect, expectStyle, fillStepPages, goPrint, measureMe, openAccount, openFold, openFresh, openReview, pickToMake, startWithExample, stepButton, test } from './fixtures';
+import { chooseChip, expect, expectStyle, fillStepPages, goPrint, measureMe, openAccount, openFold, openFresh, openReview, pickToMake, reloadAsPerson, startWithExample, stepButton, test } from './fixtures';
 
 // The app journey review (Nov 10, 2026): what testers hit going back, reloading, saving and printing, and the fixes Cat
 // applied ("do all fixes").
@@ -29,7 +29,7 @@ test('a reload keeps your place, and back still climbs from there', async ({ pag
   await startWithExample(page);
   await goPrint(page);
   await expect(main(page).getByRole('group', { name: 'Paper' })).toBeVisible();
-  await page.reload();
+  await reloadAsPerson(page);
   await expect(main(page).getByRole('group', { name: 'Paper' })).toBeVisible();
   await page.goBack();
   await expectStyle(page, 'Skirt');
