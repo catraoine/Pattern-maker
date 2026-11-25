@@ -36,7 +36,7 @@ jobs:
       - run: npm ci
       - name: Install Firefox
         run: npx playwright install --with-deps firefox
-      - run: npm run test:e2e -- --project firefox journey-nov10.spec.ts tester-journey-nov11.spec.ts --retries 0
+      - run: npm run test:e2e -- journey-nov10.spec.ts tester-journey-nov11.spec.ts --retries 0 --project firefox
         continue-on-error: true
         env:
           CI: true
