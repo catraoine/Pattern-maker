@@ -342,10 +342,15 @@ body .shopfab-text,
   position: relative;
 }
 .make-grid .make-first {
+  /* On the tile's top edge like a tab, centred (Cat, Nov 24). Left and right pinned with the centring's shift from
+     47-user-needs.css slid it half out of the tile ("od first make", cold read EF), so it is set whole here. */
   position: absolute;
-  top: 4px;
-  left: 2px;
-  right: 2px;
+  top: 0;
+  left: 50%;
+  right: auto;
+  transform: translate(-50%, -50%);
+  padding: 0 4px;
+  background: var(--paper);
   margin: 0;
   font: 400 11px/1 var(--sans);
   letter-spacing: 0;
@@ -526,4 +531,29 @@ section[aria-label='Preview']:has(.techflat) > .big-undo {
 }
 .chapter .style-tabs button.pro.pro.on {
   background-image: linear-gradient(var(--gild), var(--gild));
+}
+
+/* Cold read EF, Nov 24: on a phone the underline a tap leaves behind (hover sticks after a touch) marked a different
+   row in each still, and read as a warning. Only a pointer that really hovers underlines now. */
+@media (hover: none), (pointer: coarse) {
+  .check-list button:hover span:first-child {
+    text-decoration: none;
+  }
+}
+/* A number a tape can't give (66 cm tall) is marked on its own row, in the gold the app's notes use. */
+.check-list button.off span:last-child,
+.check-list button.off .check-off {
+  color: var(--gild);
+}
+.check-list button.off .check-off {
+  font-style: normal;
+}
+
+/* Cold read EF, Nov 24: enlarged on a computer, the flat kept the column's 760px cap, so Enlarge drew it no bigger.
+   Enlarged, it fills the window, and the drawing keeps its own proportions inside. */
+.style-pin > section.live-big .preview > svg.techflat {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
 }

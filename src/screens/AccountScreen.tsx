@@ -327,13 +327,22 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
         </Fold>
 
         <Fold id="intesttitle" title="In testing" summary={`${left.length} options still in testing`}>
-          <p className="muted small">You can use these now. Each keeps its In testing label until our fit testers have sewn it.</p>
+          {/* Where to find each, not our own test for taking the tag off: "comes off when drop 01 published" was in-house
+              wording a newcomer couldn't use (cold read EF, Nov 24). The test stays in the tooltip. */}
+          <p className="muted small">You can use all of these now. Each shows an In testing tag until our fit testers have sewn it.</p>
+          {left.some((t) => !t.where) && (
+            <p className="muted small">
+              <b>Garments:</b> {left.filter((t) => !t.where).map((t) => t.name).join(', ')}.
+            </p>
+          )}
           <ul className="muted small testing-list">
-            {left.map((t) => (
-              <li key={t.name}>
-                <b>{t.name}</b> · comes off when {t.proof}
-              </li>
-            ))}
+            {left
+              .filter((t) => t.where)
+              .map((t) => (
+                <li key={t.name} title={`The tag comes off when ${t.proof}.`}>
+                  <b>{t.name}</b> · in {t.where}
+                </li>
+              ))}
           </ul>
         </Fold>
 
