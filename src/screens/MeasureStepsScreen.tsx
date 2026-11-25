@@ -501,8 +501,11 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   const ids = page.kind === 'base' ? BASE : page.ids;
   const at = page.at;
   const id = ids[at];
-  const last = at === ids.length - 1;
   const g = page.kind === 'extra' ? page.garment : null;
+  // What has been typed can ask for more: a top asks a broad upper body (high bust at or over the bust) for its across
+  // back and armhole (Cat, Nov 24), and the high bust is taken on these same pages. They follow on after the last one.
+  const more = page.kind === 'extra' && !page.redo && g !== 'other' && at === ids.length - 1 ? neededFor(g!, values, form).map((f) => f.id).filter((m) => !ids.includes(m) && !unused(g!).includes(m)) : [];
+  const last = at === ids.length - 1 && !more.length;
   const eyebrow = `${page.kind === 'base' ? '' : g === 'other' ? 'Full set · ' : `${cap(named(g!))} · `}${at + 1} of ${ids.length}`;
   const label =
     (page.kind === 'base' && page.back === 'check') || (page.kind === 'extra' && page.redo && last) ? 'Save' : page.kind === 'extra' && page.redo ? 'Next' : page.kind === 'base' ? (last && !onWeight ? 'Done' : 'Next') : g === 'other' ? (last ? 'Done' : 'Next') : last ? `Next: style your ${named(g!)}` : 'Next';
@@ -512,6 +515,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     // A redo from the measurements list goes back to the list, past every page it took.
     else if (page.kind === 'extra' && page.redo && last && canGoBack()) window.history.go(-(at + 1));
     else if (page.kind === 'base') setPage(last ? (onWeight ? { kind: 'weight' } : { kind: 'check' }) : { ...page, at: at + 1 });
+    else if (more.length) setPage({ ...page, ids: [...ids, ...more], at: at + 1 });
     else if (last) {
       if (page.garment === 'other') setPage({ kind: 'saved' });
       else onDone(page.garment);

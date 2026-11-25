@@ -403,10 +403,19 @@ export type MeasurementValues = Partial<Record<MeasurementId, number>>; // alway
 export type FormKind = 'womenswear' | 'menswear';
 /** The menswear form has no bust shaping, so these are never asked: the chest stands in for the high bust. */
 export const MENSWEAR_SKIPS: MeasurementId[] = ['high_bust', 'bust_depth', 'apex_separation'];
-/** A garment's measurements on this form. */
-export const fieldsFor = (garment: Garment, form: FormKind = 'womenswear') =>
+/** A top's across back and armhole are guessed from the bust, which suits most people. Where the high bust is as big as
+ *  the bust or bigger (a broad, athletic upper body), the guesses come out an average back and armhole for that bust,
+ *  and a tester shaped that way found the upper back and armholes tight (row 158, Nov 24). So a top asks for both from
+ *  those makers only, and everyone else measures as before (Cat, Nov 24: "Ask only those makers"). They are asked on the measuring
+ *  pages and shown on the list, never made a must: saved work and "Estimate it for me" still draft from the guess. */
+const UPPER_NEEDS: MeasurementId[] = ['across_back', 'armscye'];
+const broadUpper = (v: MeasurementValues = {}) => v.high_bust !== undefined && v.full_bust !== undefined && v.high_bust >= v.full_bust;
+const askUpper = (fields: MeasurementField[]) => fields.map((f) => (UPPER_NEEDS.includes(f.id) ? { ...f, optional: undefined } : f));
+
+/** The measurements a garment takes on a form, as asked of someone measured `v` (a top asks more of a broad upper body). */
+export const fieldsFor = (garment: Garment, form: FormKind = 'womenswear', v?: MeasurementValues) =>
   // (The menswear form has no bust shaping to place, so its top and dress keep estimating the front length.)
-  form === 'menswear' ? (garment === 'bodice' ? BODICE_FIELDS : garment === 'dress' ? DRESS_BASE : FIELDS[garment]).filter((f) => !MENSWEAR_SKIPS.includes(f.id)) : FIELDS[garment];
+  form === 'menswear' ? (garment === 'bodice' ? BODICE_FIELDS : garment === 'dress' ? DRESS_BASE : FIELDS[garment]).filter((f) => !MENSWEAR_SKIPS.includes(f.id)) : garment === 'bodice' && broadUpper(v) ? askUpper(FIELDS.bodice) : FIELDS[garment];
 /** Copy about the bust, said of the chest for the menswear form. */
 export const worded = (s: string, form: FormKind = 'womenswear') =>
   form === 'menswear' ? s.replace(/\b([Ff])ull bust\b/g, (_, f: string) => (f === 'F' ? 'Chest' : 'chest')).replace(/\bbust\b/g, 'chest').replace(/\bBust\b/g, 'Chest') : s;

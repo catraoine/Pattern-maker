@@ -919,7 +919,11 @@ export const MIN_BUST_TO_WAIST = 4;
 function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLine = {}): BodiceDraft & { inner: { bustDart: number; lower: number; upper: number; forward: number; pin: number; turn: number } } {
   const dropShoulder = side.drop ?? 0;
   const fit = s.fitting ?? {};
-  const { full_bust: B, waist: W, neck: N, shoulder_length: SL, shoulder_width: SW } = m;
+  const { waist: W, neck: N, shoulder_length: SL, shoulder_width: SW } = m;
+  // The ease goes round the bigger of the bust and the high bust: on a broad upper body (high bust over the bust) it was
+  // added to the bust alone, leaving less room across the upper chest than the fit means (tester report, row 158, Nov 24).
+  // Its cup terms below (B - HB) are floored already, so a high bust over the bust drafts like an even one there.
+  const B = Math.max(m.full_bust, m.high_bust ?? 0);
   const { across_front: AF, apex_separation: AS } = m;
   // Lengths the toile corrected.
   const AB = m.across_back + (fit.acrossBack ?? 0);
