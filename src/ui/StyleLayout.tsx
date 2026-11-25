@@ -245,6 +245,9 @@ export function Group({ label, tab, children, className, shaped }: { label: stri
       className={['group', solo ? 'solo' : '', folds ? (open ? 'fold open' : 'fold') : '', className].filter(Boolean).join(' ')}
       data-tab={t}
       data-label={label}
+      // The hand-shaped value's words, so the phone's list of every choice says the same (a typed peplum length showed
+      // blank there: cold read EE, Nov 24). Straight from the prop: `pick` lands a render later, after the list has read.
+      data-pick={shaped || undefined}
       aria-label={label}
       hidden={active !== t}
       onClick={folds ? onPick : undefined}
@@ -820,8 +823,9 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
     const found: Question[] = [];
     for (const t of steps) {
       const groups = [...el.querySelectorAll<HTMLElement>(`fieldset.group.fold[data-tab="${CSS.escape(t)}"]`)];
-      if (el.querySelector(`.tab-part[data-tab="${CSS.escape(t)}"]`) || !groups.length) found.push({ tab: t, label: t, pick: stepPicks[t] ?? '' });
-      else for (const g of groups) found.push({ tab: t, label: g.dataset.label!, pick: pickIn(g.querySelector<HTMLElement>('.fold-body') ?? g) });
+      // (A step of its own page, Fabric, says the fabric shown when it has no picks to list.)
+      if (el.querySelector(`.tab-part[data-tab="${CSS.escape(t)}"]`) || !groups.length) found.push({ tab: t, label: t, pick: stepPicks[t] || el.querySelector(`[data-tab="${CSS.escape(t)}"] .fabric-now em`)?.textContent || '' });
+      else for (const g of groups) found.push({ tab: t, label: g.dataset.label!, pick: pickIn(g.querySelector<HTMLElement>('.fold-body') ?? g) || g.dataset.pick || '' });
     }
     // In the order of the Style choices index (Cat's K, Nov 8): shape, then neck and sleeves, length and hem,
     // the details, and the fabric last, whatever step the question sits on.
