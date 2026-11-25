@@ -1488,7 +1488,9 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
               )}
               {canFit && (
                 <button type="button" className="all-round-closer" aria-pressed={fitOn} onClick={() => setFitOn(!fitOn)}>
-                  {fitOn ? 'Fabric' : 'Fit map'}
+                  {/* Its own name while on, with the picked outline: it read "Fabric", taken for the mode now showing
+                      (cold read EE, Nov 24; Cat applied). */}
+                  Fit map
                 </button>
               )}
               {(drape?.kind === 'skirt' || drape?.kind === 'dress') && (
@@ -1560,6 +1562,11 @@ function FeelControl({ feel, onFeel, open }: { feel: Feel; onFeel: (f: Feel) => 
       <p className="all-round-feel-head">
         {/* (Opened from the Feel button on a short phone, the button already says it: see 30-steady-view.css.) */}
         <span className="all-round-feel-word">Feel</span> <TestingTag tool="fabric_feel" />
+      </p>
+      {/* "Feel" alone said nothing (cold read EE, Nov 24; Cat applied). Skirts and dresses only: they hang free. */}
+      {/* On a phone only the first words: the column beside the garment is narrow, and the buttons say the rest. */}
+      <p className="all-round-feel-why">
+        How the cloth hangs<span className="feel-why-more">: try it softer or stiffer, lighter or heavier</span>.
       </p>
       {/* Two pairs, each one choice: Softer or Stiffer, and Lighter or Heavier. Laid as four in a run they read as one
           choice, so one lit in each pair looked like two buttons stuck on (Cat, Nov 22: "how come both buttons stay lit"). */}

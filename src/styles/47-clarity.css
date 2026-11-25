@@ -422,7 +422,9 @@ body .watch-draft > .watch-play .demo-play-words {
    the room. */
 @media (max-width: 760px) {
   .style-layout:not(.compact) .style-pin:not(:has(.point-svg)) > section:not(.live-big) > .preview {
-    height: max(calc(var(--view-h) + 6px), min(var(--view-target, 0px), calc(44dvh + 6px)));
+    /* Never under 216 px (Cat, Nov 24: "Floor of about 210 px"): on a short phone 25% of the screen was 166 px, and
+       the pattern pieces were a grey strip, Look closer a sliver. */
+    height: max(216px, calc(var(--view-h) + 6px), min(var(--view-target, 0px), calc(44dvh + 6px)));
   }
 }
 
@@ -456,8 +458,11 @@ section[aria-label='Preview'] > .preview .all-round-tools {
   /* (Also inside the fabric's wrapper: a collection look in its own cloth, like the Chocolate Barrel Trouser, missed it.) */
   .style-layout .style-pin > section:not(.live-big) > .preview > svg.preview-svg,
   .style-layout .style-pin > section:not(.live-big) > .preview svg.preview-svg.sketch {
-    box-sizing: border-box;
-    padding-top: 34px;
+    /* A margin, not padding: the drawing's own box then ends where it is cut, so the form's head, cut off at the top
+       of the drawing, can't show under the longer "Draw on it" (cold read EE, Nov 24). */
+    margin-top: 34px;
+    height: calc(100% - 34px);
+    max-height: calc(100% - 34px);
   }
 }
 
@@ -489,4 +494,36 @@ section[aria-label='Preview']:has(.techflat) > .big-undo {
   text-align: left;
   height: auto;
   line-height: 1.25;
+}
+
+/* Feel's one line on what it does (Cat applied, Nov 24). */
+.all-round-feel-why {
+  margin: 0 0 6px;
+  font: 13px/1.35 var(--sans);
+  color: var(--muted);
+}
+@media (max-width: 760px) {
+  .all-round-feel-why {
+    font-size: 11px;
+    line-height: 1.3;
+  }
+  .all-round-feel-why .feel-why-more {
+    display: none;
+  }
+}
+
+/* The Pro step is a dash like the others, its name in its tooltip and read out: the word "PRO" after the dashes read
+   as a paid step (cold read EE, Nov 24; Cat applied). */
+.chapter .style-tabs button.pro.pro {
+  flex: 1;
+  padding: 0;
+  font-size: 0;
+  letter-spacing: 0;
+  background: linear-gradient(var(--guide), var(--guide)) center / 100% 2px no-repeat;
+}
+.chapter .style-tabs button.pro.pro .tab-full {
+  display: none;
+}
+.chapter .style-tabs button.pro.pro.on {
+  background-image: linear-gradient(var(--gild), var(--gild));
 }

@@ -240,7 +240,7 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
           </div>
         </Fold>
 
-        <Fold id="settitle" title="Settings" summary={[unit, onMode ? (mode === 'simple' ? 'Simple' : 'All tools') : ''].filter(Boolean).join(' · ')}>
+        <Fold id="settitle" title="Settings" summary={[unit, onMode ? (mode === 'simple' ? 'Simple mode' : 'All tools') : ''].filter(Boolean).join(' · ')}>
           <fieldset className="group">
             <legend>Units</legend>
             <div className="seg" role="group" aria-label="Units">
@@ -321,11 +321,12 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
           )}
         </Fold>
 
-        <Fold id="testtitle" title="Fit testing" summary={account.testerCode ? 'Tester code on' : 'For testers'}>
+        {/* "Tester" for the testers' own things, "In testing" only for options not yet sewn: the two read as one (cold read EE, Nov 24). */}
+        <Fold id="testtitle" title="Tester" summary={account.testerCode ? 'Tester code on' : 'For testers'}>
           <TesterCode code={account.testerCode} unit={unit} onCode={onTesterCode} />
         </Fold>
 
-        <Fold id="intesttitle" title="In testing" summary={`${left.length} new options and tools`}>
+        <Fold id="intesttitle" title="In testing" summary={`${left.length} options still in testing`}>
           <p className="muted small">You can use these now. Each keeps its In testing label until our fit testers have sewn it.</p>
           <ul className="muted small testing-list">
             {left.map((t) => (
@@ -355,7 +356,7 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
         </Fold>
 
         {onBodyDouble && (
-          <Fold id="bdtitle" title="Body Double" summary="A dress form in your shape">
+          <Fold id="bdtitle" title="Body Double" summary="Pad a real dress form to your shape">
             <p className="muted small">Pad a store form to your measurements and cover it with a pattern drafted to your body, so you can fit on yourself.</p>
             <button type="button" className="secondary" onClick={onBodyDouble}>
               Make my form
@@ -401,7 +402,7 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
         </button>
         {' · '}
         <button type="button" className="inline-link" onClick={() => onLegal('nights')}>
-          Atelier Nights
+          Atelier Nights (sewing evenings)
         </button>
         {' · '}
         <button type="button" className="inline-link" onClick={() => onLegal('brands')}>

@@ -373,7 +373,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
     }
   };
 
-  const lengthLabel = choices.dropCm !== undefined ? `${Math.round(draft.drop * 10) / 10} cm below` : lengthName(choices.length);
+  const lengthLabel = choices.dropCm !== undefined ? `${Math.round(draft.drop * 10) / 10} cm below waist` : lengthName(choices.length);
   const easeLabel = easeWords;
   const guide = (y: number, text: string) => (
     <g className="guide">

@@ -77,15 +77,15 @@ test('look closer zooms in on the garment and back', async ({ page }) => {
 
 // The fit map (Cat's D, 2026-11-07): once the garment is sewn, its button colours it by the room it leaves the body,
 // with a key, and Fabric puts the cloth back.
-test('the fit map shows the room the garment leaves, and Fabric puts the cloth back', async ({ page }) => {
+test('the fit map shows the room the garment leaves, and a second tap puts the cloth back', async ({ page }) => {
   await startWithExample(page);
   const main = page.getByRole('main');
   await main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round', exact: true }).click();
   await expect(main.locator('canvas.all-round-canvas')).toHaveAttribute('data-sewn', 'ready', { timeout: 90_000 });
   await main.getByRole('button', { name: 'Fit map' }).click();
   await expect(main.getByRole('note').filter({ hasText: "The room your pattern leaves around you." })).toBeVisible();
-  await expect(main.getByRole('button', { name: 'Fabric' })).toHaveAttribute('aria-pressed', 'true');
-  await main.getByRole('button', { name: 'Fabric' }).click();
-  await expect(main.getByRole('button', { name: 'Fit map' })).toBeVisible();
+  await expect(main.getByRole('button', { name: 'Fit map' })).toHaveAttribute('aria-pressed', 'true');
+  await main.getByRole('button', { name: 'Fit map' }).click();
+  await expect(main.getByRole('button', { name: 'Fit map' })).toHaveAttribute('aria-pressed', 'false');
   await expect(main.locator('.all-round-key')).toHaveCount(0);
 });

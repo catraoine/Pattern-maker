@@ -14,7 +14,7 @@ test('the Ice Peplum Top keeps its peplum: the longer lengths are greyed', async
   await change.click();
   const hip = main.getByRole('button', { name: /^Hip\b/ });
   for (let i = 0; i < 20 && !(await hip.isVisible()); i++) {
-    const length = main.getByRole('button', { name: /^Length\b/ });
+    const length = main.getByRole('button', { name: /^(Length|Peplum seam)\b/ });
     if (info.project.name !== 'phone' && (await length.count())) await length.first().click();
     else await page.getByRole('button', { name: /^Next\b/ }).last().click();
   }

@@ -149,6 +149,8 @@ const SECTIONS: Record<string, string> = {
   Hem: LENGTH,
   Slit: LENGTH,
   Peplum: LENGTH,
+  // On a peplum top the length step moves the peplum's seam, so it is named for that (Cat applied, Nov 24).
+  'Peplum seam': LENGTH,
   // The jacket's rib bands sit with its length and hem, not on a step of their own (Cat, 2026-10-31).
   'Hem and cuffs': LENGTH,
   'Below the hip': LENGTH,
@@ -1063,11 +1065,12 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           phone lifts itself onto the line above. */}
       {testerLook && (
         <p className="tester-look">
-          Fit testing the {testerLook.name}?{' '}
+          {/* "Tester" for the tester's own look, so it never reads as the In testing label (cold read EE, Nov 24). */}
+          Sewing the {testerLook.name} for us?{' '}
           {/* Made on the same garment, Style stays open rather than opening afresh, so the look's Review is opened here;
               sent to measure first, Style opens afresh afterwards and does it itself. */}
           <button type="button" onClick={() => testerLook.open() && lookNext && lookReview()}>
-            Open it ›
+            Open your tester look ›
           </button>
           {testerLook.lengthStays && <span className="tester-look-note">It has its own length, so the length you set here won't come across. You can change it there.</span>}
         </p>
