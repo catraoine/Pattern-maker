@@ -31,7 +31,8 @@ test('a reload keeps your place, and back still climbs from there', async ({ pag
   await expect(main(page).getByRole('group', { name: 'Paper' })).toBeVisible();
   await page.addInitScript(() => { (window as unknown as { __first: string }).__first = JSON.stringify({ nav: performance.getEntriesByType('navigation').map((e) => (e as PerformanceNavigationTiming).type), state: history.state, place: sessionStorage.getItem('maison-trace-place') }); });
   const first = () => page.evaluate(() => (window as unknown as { __first: string }).__first);
-  await page.evaluate(() => location.reload());
+  await page.evaluate(() => location.reload()).catch(() => {});
+  await page.waitForTimeout(1500);
   await page.waitForLoadState('load');
   console.log('DIAG location.reload', await first());
   await goPrint(page).catch(() => {});
