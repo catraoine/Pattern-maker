@@ -403,7 +403,7 @@ export const explainGroups = (set: ExplainSet) => EXPLAIN[set];
 // a choice, so where the full line runs long it gets a short one here. Keyed by group and choice, or by garment
 // first where the same choice means something else. The computer keeps the full line.
 const SHORT: Record<string, string> = {
-  'fit.fitted': 'Close fit. Sew a test version (toile) first.',
+  'fit.fitted': 'Close fit. Sew a test toile first.',
   'tee.fit.fitted': 'Cut smaller, so the knit skims you.',
   'tee.fit.regular': 'About your own size: close but easy.',
   'tee.fit.relaxed': 'Roomy, the shoulder a little dropped.',
