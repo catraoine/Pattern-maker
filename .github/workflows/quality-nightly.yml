@@ -38,12 +38,12 @@ jobs:
         run: npx playwright install --with-deps firefox
       - run: npm run test:e2e -- --project firefox journey-nov10.spec.ts tester-journey-nov11.spec.ts --retries 0
         continue-on-error: true
-      - name: Page at failure
-        if: ${{ !cancelled() }}
-        run: for f in test-results/*/error-context.md; do echo "=== $f"; head -80 "$f"; done
         env:
           CI: true
           E2E_FIREFOX: '1'
+      - name: Page at failure
+        if: ${{ !cancelled() }}
+        run: for f in test-results/*/error-context.md; do echo "=== $f"; head -80 "$f"; done
       - name: Summary
         if: ${{ !cancelled() }}
         run: echo "Firefox tester walks finished with ${{ job.status }}"
