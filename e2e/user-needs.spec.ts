@@ -17,6 +17,12 @@ test('the skirt is marked as a good first make, and only the skirt', async ({ pa
   const grid = main.getByRole('group', { name: 'What would you like to make?' });
   await expect(grid.getByRole('button', { name: /^Skirt\b/ })).toContainText('Good first make');
   await expect(grid.getByText('Good first make')).toHaveCount(1);
+  // The words stay within the tile's width. Two style rules once placed them at the same time, and on the live site
+  // they ran off the tile's left side with the first letters cut off (Nov 24).
+  const tile = (await grid.getByRole('button', { name: /^Skirt\b/ }).boundingBox())!;
+  const words = (await grid.getByText('Good first make').boundingBox())!;
+  expect(words.x).toBeGreaterThanOrEqual(tile.x);
+  expect(words.x + words.width).toBeLessThanOrEqual(tile.x + tile.width);
   if (SHOTS) await page.screenshot({ path: `${SHOTS}/C-first-make-${info.project.name}.png` });
 });
 
