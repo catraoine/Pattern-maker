@@ -220,6 +220,11 @@ function cap(w: number, h: number, cx: number, uf: P, ub: P): Cap {
   };
 }
 
+/** A sleeve drawn as a bishop: gathered into its band or cuff at the wrist, about its round again or more (a bishop's
+ *  fullness), and not a puff. A straight sleeve gathered into a shirt cuff takes in about half the cuff's round, and keeps
+ *  its own shape. One rule for the Flat and the Front drawings, so the two agree (EG cold read, Nov 24). */
+export const isBishop = (sl: { hemCm: number; gathers?: { crown?: number; hem: number } }) => sl.gathers?.crown === undefined && (sl.gathers?.hem ?? 0) > 0.9 * sl.hemCm;
+
 export function needsArms(m: SleeveMeasurements): boolean {
   return !(m.arm_length && m.upper_arm);
 }

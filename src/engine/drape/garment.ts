@@ -6,7 +6,7 @@ import type { TierBand } from '../skirtVolume';
 import { Piece } from '../piece';
 import type { BodiceDraft } from '../bodice';
 import type { OuterDraft } from '../outerwear';
-import type { SleeveDraft } from '../sleeve';
+import { isBishop, type SleeveDraft } from '../sleeve';
 import type { DressDraft } from '../dress';
 import type { SkirtDraft } from '../skirt';
 import type { TrousersDraft } from '../trousers';
@@ -23,6 +23,7 @@ import { closeHemCorners } from './hemCorners';
 import { Space, boxed } from './space';
 import { fairBiasSkirt } from './biasFair';
 import { knob, setKnob } from './knob';
+import { bishopRound } from './bishopRound';
 import { frontPins, tapeRollLines } from './rollLine';
 import { boxCreases, boxPoint } from './boxPleats';
 import { fairFrontCentre } from './fairFront';
@@ -742,7 +743,7 @@ function cowlFront(pc: Piece, bustY: number): Piece {
   return { ...half, outline: path, lines: half.lines.filter((l) => l.points(2).every((q) => q.y >= Y0 - 0.01)), meta: { ...half.meta, cowl: { L: N.x, top: Y0, bustY } } };
 }
 
-export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: number; cropped?: boolean; slitCm?: number; sleeve?: Piece[]; collars?: CollarPart[]; trousers?: TrousersDraft; tiers?: TierBand[]; under?: Piece[]; puff?: number; cuff?: number; cuffBand?: Piece; cuffRuffle?: Piece; cuffTurn?: Piece }, o: DrapeOptions): Draped {
+export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: number; cropped?: boolean; slitCm?: number; sleeve?: Piece[]; collars?: CollarPart[]; trousers?: TrousersDraft; tiers?: TierBand[]; under?: Piece[]; puff?: number; cuff?: number; cuffBand?: Piece; cuffRuffle?: Piece; cuffTurn?: Piece; bishop?: boolean }, o: DrapeOptions): Draped {
   if (o.boxy) sp = boxed(sp);
   // (Not a skirt to be sewn whole, a diagonal hem's: wholeSkirt.ts.)
   if (extra.skirt) extra = { ...extra, skirt: extra.skirt.map((pc) => (pc.meta.sewWhole ? pc : halfPiece(pc))).map(narrowed) };
@@ -2139,6 +2140,8 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
   };
   // A sleeve keeps its tube round the arm: the radius at each height is its own girth there (top and under sleeve
   // together), less the cloth's give, so a wide coat sleeve stands round as wool does rather than folding flat.
+  // A bishop sleeve's own hold round the arm and blouse above its band (bishopRound.ts).
+  const bishopHere = bishopRound(!!extra.bishop, B.panels.some((p) => p.role === 'sleeve' && !!(p.pc.meta.gatheredCrown || p.pc.meta.full || p.pc.meta.knit)));
   const roundOf = () => {
     const sl = B.panels.filter((p) => p.role === 'sleeve' && p !== cuffPanel);
     if (!sl.length || knob("__noRound")) return undefined;
@@ -2170,7 +2173,9 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
         // tee's: jersey holds its round, and drawn in a relaxed silk tee's sleeve bunched at its hem, 2026-11-07. Drawn in to 0.72 of
         // its round, an elbow cap sleeve went jagged and a three-quarter one folded into fins in silk; 0.85 still lets it
         // fall close, 2026-11-07.)
-        let r = (widthAt(q.y) / TAU) * 0.92 * ((o.bendK ?? 0.05) < 0.04 && !p.pc.meta.full && !p.pc.meta.gatheredCrown && !p.pc.meta.knit ? knob('__silkR') ?? 0.85 : 1);
+        // (A bishop's own hold stands in for the silk's rather than adding to it: together, 0.68, it would sit below the
+        // 0.75 that creased it.)
+        let r = (widthAt(q.y) / TAU) * 0.92 * (bishopHere ? bishopHere.r : (o.bendK ?? 0.05) < 0.04 && !p.pc.meta.full && !p.pc.meta.gatheredCrown && !p.pc.meta.knit ? knob('__silkR') ?? 0.85 : 1);
         if (cuffR && !knob('__noCuffDraw')) {
           const t = Math.min(1, Math.max(0, (yHem - q.y) / zone));
           const s2 = t * t * (3 - 2 * t);
@@ -5609,12 +5614,13 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
       const ys = p.mesh.pts.map((q) => q.y);
       const y0 = Math.min(...ys);
       const H = Math.max(...ys) - y0;
-      // (A bishop sleeve blouses out above its band by as much as the fullness gathered into it: half again its width.)
+      // (A bishop sleeve blouses out above its band by the fullness gathered into it, or its own share of it, see
+      // bishopRound.)
       const hemW = (() => {
         const hx = (p.mesh.runs.hem ?? []).flat().map((i) => p.mesh.pts[i].x);
         return hx.length ? Math.max(...hx) - Math.min(...hx) : 0;
       })();
-      const S = Math.max(1.6, (hemW / TAU - rc) * (knob('__bishopK') ?? 1));
+      const S = Math.max(1.6, (hemW / TAU - rc) * (knob('__bishopK') ?? bishopHere?.swell ?? 1));
       // (Drawn in over the last tenth of the sleeve, or over about one and a half times its swell when that is longer: a
       // full bishop, 2.3 times the arm at its hem, swells 8 cm and drawn in over 7 cm stretched the cloth above the band
       // to 2.9 times its cut, 2026-11-06.)
@@ -6743,7 +6749,7 @@ export function drapeBodice(sp: Space, d: BodiceDraft, sleeve?: SleeveDraft, o: 
   if ((d as { peplum?: { backCm?: number } }).peplum?.backCm && !o.shapedHem) o = { ...o, shapedHem: true };
   const buttons = d.closure === 'front_buttons' && d.buttons ? { y: d.buttons.at.filter((y) => (o.openBelowY === undefined || y < o.openBelowY) && (o.openAboveY === undefined || y > o.openAboveY)), r: d.buttons.sizeCm / 2, waistY: d.front.waistCentre.y } : undefined;
   // (A cropped top's peplum hangs from its edge under the bust, as a dress's skirt hangs from an empire seam.)
-  return drape(sp, torso, { skirt: skirt.length ? skirt : undefined, drop: extra.drop ?? (d.raiseCm ? -d.raiseCm : undefined), cropped: !!d.raiseCm, tiers: extra.tiers, under: under.length ? under : undefined, ...(extra.slitCm ? { slitCm: extra.slitCm } : {}), puff: sleeve?.gathers?.crown, cuff: sleeve?.gathers?.hem ? (((pc) => (pc?.meta.roundCm ?? pc?.meta.lengthCm) as number | undefined)(sleeve.pieces.find((pc) => /band|cuff/i.test(pc.name)))) : undefined, cuffBand: sleeve?.pieces.find((pc) => pc.name === 'Cuff' || (pc.name === 'Tie cuff' && !knob('__noTieCuff'))), cuffRuffle: knob('__noCuffRuffle') ? undefined : sleeve?.pieces.find((pc) => pc.name === 'Sleeve ruffle'), cuffTurn: sleeve?.pieces.find((pc) => pc.name === 'Turned-back cuff'), sleeve: sleeve?.pieces.filter(isShell), collars: collarsOf(pieces) }, { buttons, closedFront: true, curtain: d.finishedWaist >= d.finishedBust - 2 && !extra.skirt?.length, ...o });
+  return drape(sp, torso, { skirt: skirt.length ? skirt : undefined, drop: extra.drop ?? (d.raiseCm ? -d.raiseCm : undefined), cropped: !!d.raiseCm, tiers: extra.tiers, under: under.length ? under : undefined, ...(extra.slitCm ? { slitCm: extra.slitCm } : {}), puff: sleeve?.gathers?.crown, cuff: sleeve?.gathers?.hem ? (((pc) => (pc?.meta.roundCm ?? pc?.meta.lengthCm) as number | undefined)(sleeve.pieces.find((pc) => /band|cuff/i.test(pc.name)))) : undefined, cuffBand: sleeve?.pieces.find((pc) => pc.name === 'Cuff' || (pc.name === 'Tie cuff' && !knob('__noTieCuff'))), cuffRuffle: knob('__noCuffRuffle') ? undefined : sleeve?.pieces.find((pc) => pc.name === 'Sleeve ruffle'), cuffTurn: sleeve?.pieces.find((pc) => pc.name === 'Turned-back cuff'), bishop: !!sleeve && isBishop(sleeve), sleeve: sleeve?.pieces.filter(isShell), collars: collarsOf(pieces) }, { buttons, closedFront: true, curtain: d.finishedWaist >= d.finishedBust - 2 && !extra.skirt?.length, ...o });
 }
 
 export function drapeDress(sp: Space, d: DressDraft, sleeve?: SleeveDraft, o: DrapeOptions = {}): Draped {

@@ -19,7 +19,8 @@ Tester names, emails and codes live there and in Cat's Gmail, never in this repo
 | Dec 7 to 11 | Fix week (sign-in switches on) |
 | Jan 4 to 17 | Round 2 |
 | **Mon Jan 18, 2027** | **Fit gate**: 20 sewists averaging 4 of 5 on a skirt or bodice toile |
-| Thu Feb 11, 2027 | Launch |
+| Tue Mar 16, 2027 | Early access for founding members and testers |
+| Thu Mar 18, 2027 | Launch (moved from Feb 11 by Cat on Nov 25, 2026); testers' free year of Premium runs to Mar 18, 2028 |
 
 ## Recruiting (Nov 1)
 

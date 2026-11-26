@@ -428,7 +428,9 @@ body .watch-draft > .watch-play .demo-play-words {
    the room. */
 @media (max-width: 760px) {
   .style-layout:not(.compact) .style-pin:not(:has(.point-svg)) > section:not(.live-big) > .preview {
-    height: max(calc(var(--view-h) + 6px), min(var(--view-target, 0px), calc(44dvh + 6px)));
+    /* Never under 216 px (Cat, Nov 24: "Floor of about 210 px"): on a short phone 25% of the screen was 166 px, and
+       the pattern pieces were a grey strip, Look closer a sliver. */
+    height: max(216px, calc(var(--view-h) + 6px), min(var(--view-target, 0px), calc(44dvh + 6px)));
   }
 }
 
@@ -462,8 +464,11 @@ section[aria-label='Preview'] > .preview .all-round-tools {
   /* (Also inside the fabric's wrapper: a collection look in its own cloth, like the Chocolate Barrel Trouser, missed it.) */
   .style-layout .style-pin > section:not(.live-big) > .preview > svg.preview-svg,
   .style-layout .style-pin > section:not(.live-big) > .preview svg.preview-svg.sketch {
-    box-sizing: border-box;
-    padding-top: 34px;
+    /* A margin, not padding: the drawing's own box then ends where it is cut, so the form's head, cut off at the top
+       of the drawing, can't show under the longer "Draw on it" (cold read EE, Nov 24). */
+    margin-top: 34px;
+    height: calc(100% - 34px);
+    max-height: calc(100% - 34px);
   }
 }
 
@@ -495,4 +500,142 @@ section[aria-label='Preview']:has(.techflat) > .big-undo {
   text-align: left;
   height: auto;
   line-height: 1.25;
+}
+
+/* Feel's one line on what it does (Cat applied, Nov 24). */
+.all-round-feel-why {
+  margin: 0 0 6px;
+  font: 13px/1.35 var(--sans);
+  color: var(--muted);
+}
+@media (max-width: 760px) {
+  .all-round-feel-why {
+    font-size: 11px;
+    line-height: 1.3;
+  }
+  .all-round-feel-why .feel-why-more {
+    display: none;
+  }
+}
+
+/* The Pro step is a dash like the others, its name in its tooltip and read out: the word "PRO" after the dashes read
+   as a paid step (cold read EE, Nov 24; Cat applied). */
+.chapter .style-tabs button.pro.pro {
+  flex: 1;
+  padding: 0;
+  font-size: 0;
+  letter-spacing: 0;
+  background: linear-gradient(var(--guide), var(--guide)) center / 100% 2px no-repeat;
+}
+.chapter .style-tabs button.pro.pro .tab-full {
+  display: none;
+}
+.chapter .style-tabs button.pro.pro.on {
+  background-image: linear-gradient(var(--gild), var(--gild));
+}
+
+/* Cold read EF, Nov 24: on a phone the underline a tap leaves behind (hover sticks after a touch) marked a different
+   row in each still, and read as a warning. Only a pointer that really hovers underlines now. */
+@media (hover: none), (pointer: coarse) {
+  .check-list button:hover span:first-child {
+    text-decoration: none;
+  }
+}
+
+/* Cold read EF, Nov 24: enlarged on a computer, the flat kept the column's 760px cap, so Enlarge drew it no bigger.
+   Enlarged, it fills the window, and the drawing keeps its own proportions inside. */
+.style-pin > section.live-big .preview > svg.techflat {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+}
+
+/* "Open from a label" sat in a light box on the black account page, the brightest thing on it (pretend tester EF walk,
+   Nov 24). Inside Saved patterns it is a quiet line with its box, like the rest of the fold. */
+.account section.card:has(> #codetitle) {
+  background: transparent;
+  color: inherit;
+  border: none;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 12px 0 0;
+}
+.account section.card:has(> #codetitle) > h2 {
+  font-size: var(--caps-size, 12px);
+}
+
+/* The pleats on the Black Pleated Skirt's flat didn't show (Cat, Nov 24): on chalk, the seams, pleats and stitching
+   are drawn in dark ink, which vanished into a black cloth. A dark cloth's inner lines are pale, as on the collection's
+   house flats; its outline stays dark, to stand out from the chalk. */
+.garment-fabric.dark-cloth .techflat {
+  --gild: #a89c86;
+}
+.garment-fabric.dark-cloth .techflat .flat-shape {
+  stroke: #2a2622;
+}
+
+/* Comfort review (Nov 25): on a phone, Download pattern rides in the gold bar at the foot of the screen, as Print my
+   pattern does on Your look, so the main way on sits under the thumb until the page scrolls down to where it lives. */
+@media (max-width: 760px) {
+  .print-top .print-go {
+    position: sticky;
+    bottom: 0;
+    z-index: 6;
+    margin: 0 -18px;
+    padding: 8px 18px calc(8px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--guide);
+    background: var(--paper);
+  }
+  .print-top .print-go > button.primary {
+    min-height: 58px;
+  }
+}
+
+/* Comfort review (Nov 25): on a touch screen the drawing's view tabs (26 px tall) and its corner tools (32 px) were
+   smaller than a fingertip. Each now has a bigger tap area, invisible, so nothing on the screen moves: the tabs reach
+   past their own frame, and the borderless tools take padding with the same negative margin. */
+@media (hover: none), (pointer: coarse) {
+  .seg[aria-label='Garment view'] > button {
+    position: relative;
+  }
+  .seg[aria-label='Garment view'] > button::after {
+    content: '';
+    position: absolute;
+    inset: -9px 0;
+  }
+  .preview-corner > button {
+    padding-top: 6px;
+    padding-bottom: 6px;
+    margin-top: -6px;
+    margin-bottom: -6px;
+  }
+}
+
+/* The small links at the foot of Account sat 20 px apart, line on line: on a touch screen the lines open out, so each
+   link is a fingertip tall. */
+@media (hover: none), (pointer: coarse) {
+  .account .fineprint.plain {
+    line-height: 2.4;
+  }
+  .account .fineprint.plain .inline-link {
+    line-height: inherit;
+  }
+}
+
+/* The cloth's name under each collection look was 11 px capitals (comfort review, Nov 25): 12 reads at arm's length. */
+.cloth-swatch figcaption {
+  font-size: 12px;
+}
+
+/* Under What would you like to make, the In testing line names seven garments: in spaced capitals it read as small
+   print to squint at (comfort review, Nov 25). It is a sentence, so it reads as one, in the body face. */
+.testing-note,
+.measure-step.has-hero .step-words .testing-note {
+  font-family: inherit;
+  font-size: 14px;
+  letter-spacing: normal;
+  text-transform: none;
+  line-height: 1.45;
 }

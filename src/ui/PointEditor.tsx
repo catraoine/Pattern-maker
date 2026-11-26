@@ -54,7 +54,7 @@ function WatchDraft({ onPlay }: { onPlay: () => void }) {
           styles"): its words and mark take the Demo's classes, the button its own so Demo counts stay Demo's. */}
       <button type="button" className="watch-play" onClick={onPlay}>
         <span className="demo-play-words">
-          Watch it draft<span className="demo-play-mark" aria-hidden="true">{'▶︎'}</span>
+          Draft it<span className="demo-play-mark" aria-hidden="true">{'▶︎'}</span>
         </span>
       </button>
     </div>
@@ -136,7 +136,7 @@ export function PatternPane({ children, onPlay }: { children: ReactNode; onPlay?
             Drag a point, draw a line across a piece to cut it, or tap a cut to change it. <TestingTag tool="pattern_tools" />
             {/* Said, so a piece missing here isn't taken for a piece missing from the pattern (pretend tester EC walk,
                 Nov 22: the Ice Peplum showed 6 of its 9 pieces with no word why). */}
-            {!!ctx.fixed?.length && <span className="pe-fixed">Not moved here: {listed(ctx.fixed)}. They print as drafted.</span>}
+            {!!ctx.fixed?.length && <span className="pe-fixed">Move points doesn&rsquo;t move: {listed(ctx.fixed)}. They print as drafted.</span>}
           </p>
           <DemoButton demo="patterns" />
         </div>
@@ -908,8 +908,9 @@ function PointEditor({ base, edits: saved, setEdits: save, undo }: PointEditing 
             closeAll();
           }}
         >
-          {/* A quiet link, not the loudest button in the window (clarity review A7, Nov 22). */}
-          Start again
+          {/* A quiet link, not the loudest button in the window (clarity review A7, Nov 22). It says what it does, as it
+              gave no warning (cold read EE, Nov 24; Cat applied); Undo still brings it all back. */}
+          Start again (puts every point back)
         </button>
       </div>
     </div>

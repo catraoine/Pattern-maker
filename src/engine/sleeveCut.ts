@@ -199,7 +199,11 @@ export function dropPiece(pc: Piece, lower = DROP.down): Piece {
   const H = U2.y - SP2.y;
   const c1 = add(SP2, mul(down, H * 0.45));
   // Square to the side seam, so the underarm runs on smoothly into the other piece's.
-  const sd = unit(sub(r.pts[j + 1], U2));
+  // (Where the lowered underarm lands right on the side seam's next point, the way on was nothing and the armhole came
+  // into the side at a corner, about 120° where the back's was square, on big straight bodies (the menswear check,
+  // Nov 21): then the seam's way is read from the point before.)
+  const ahead = sub(r.pts[j + 1], U2);
+  const sd = len(ahead) > 1e-6 ? unit(ahead) : unit(sub(U2, r.pts[j]));
   let inward = p(-sd.y, sd.x);
   if (inward.x > 0) inward = mul(inward, -1);
   const c2 = add(U2, mul(inward, Math.max(2.5, Math.min(6, SP2.x - U2.x + 3))));

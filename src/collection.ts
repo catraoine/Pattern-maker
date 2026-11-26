@@ -60,7 +60,8 @@ export function lookFabric(words: string): MyFabric {
   const colour = COLOURS.map((c) => c.name).find((c) => w.includes(c.toLowerCase())) ?? HOUSE_COLOURS.find(([n]) => w.includes(n))?.[1];
   // A python (or any animal skin) is a one-way print: its scales run one way down the cloth.
   const print = /python|snake|leopard|zebra/.test(w) ? 'oneway' : undefined;
-  const crisp = /crisp|sateen|gabardine|poplin|taffeta/.test(cloth);
+  // (Silk organza is a crisp cloth: read as soft, the Ice Peplum Top's big peplum hung limp in All round, EG cold read, Nov 24.)
+  const crisp = /crisp|sateen|gabardine|poplin|taffeta|organza/.test(cloth);
   const photo = HOUSE_PRINTS.find(([k]) => w.includes(k))?.[1];
   return {
     ...(fibre ? { fibre } : {}),

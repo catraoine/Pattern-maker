@@ -5,7 +5,9 @@ import { draftDress } from './dress';
 import { draftSleeve } from './sleeve';
 import type { SleeveStyle } from './sleeve';
 import { checkPattern } from './qc';
-import { randomArms, randomBody, rng } from './randomBodies';
+import { EXAMPLE_MAN, randomArms, randomBody, rng } from './randomBodies';
+import { draftOuter } from './outerwear';
+import { withEstimates } from '../estimate';
 import { DROP, KIMONO, sleeveCutBlocked } from './sleeveCut';
 import { bodiceGuide, dressGuide } from './instructions';
 import { edgesFor } from './corsetGuide';
@@ -145,5 +147,21 @@ describe('sleeve cuts', () => {
     expect(sleeveOf({ ...c, sleeveCut: 'kimono', sleeveCuff: 'elastic' })).toEqual({ length: 'elbow', shape: 'straight', cut: 'kimono' });
     expect(describeBodice({ ...c, sleeveCut: 'raglan' })).toMatch(/elbow-length raglan sleeves/);
     expect(describeBodice({ ...c, sleeveCut: 'drop' })).toMatch(/dropped-shoulder sleeves/);
+  });
+});
+
+// An oversized jacket or coat on a big, straight body (a man's chest of 113 cm and up): its underarm, lowered to give
+// the arm room, landed right on a point of the front's side seam, and the armhole met the side at about 120° where the
+// back's was square (open findings row 123, the nightly menswear check, Nov 21).
+describe('a dropped shoulder lowered onto a point of the side seam', () => {
+  it('still meets the side seam square, front and back alike', () => {
+    for (const form of ['menswear', 'womenswear'] as const)
+      for (const chest of [113, 116, 122, 129, 140])
+        for (const kind of ['jacket', 'coat'] as const) {
+          const v = withEstimates({ ...EXAMPLE_MAN, full_bust: chest, waist: chest * 0.97, full_hip: chest }, form);
+          const d = draftOuter(v as Parameters<typeof draftOuter>[0], { kind, fit: 'oversized', fitting: form === 'menswear' ? { flatFront: true } : {} });
+          const corners = checkPattern(d.pieces).filter((c) => /armhole blends across the side seam/.test(c.label) && !c.ok);
+          expect(corners.map((c) => `${form} ${chest} ${kind}: ${c.detail}`)).toEqual([]);
+        }
   });
 });

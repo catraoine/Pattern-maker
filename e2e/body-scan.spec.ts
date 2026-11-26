@@ -11,7 +11,7 @@ test('body scan: only testers see it, and it opens the scanner from a pass our s
   });
   await startWithExample(page);
   await page.getByRole('banner').getByRole('button', { name: /account/i }).click();
-  const fold = await openFold(page, 'Fit testing');
+  const fold = await openFold(page, 'Tester');
   // Not a tester yet: no scan.
   await expect(fold.getByRole('button', { name: 'Start a body scan' })).toHaveCount(0);
 
@@ -33,7 +33,7 @@ test('body scan: says plainly when today\'s scans are used up', async ({ page, c
   await page.route('**/.netlify/functions/body-scan', (route) => route.fulfill({ status: 429, json: { ok: false, error: 'limit_reached' } }));
   await startWithExample(page);
   await page.getByRole('banner').getByRole('button', { name: /account/i }).click();
-  const fold = await openFold(page, 'Fit testing');
+  const fold = await openFold(page, 'Tester');
   await fold.getByLabel('Tester code').fill('example-code');
   await fold.getByRole('button', { name: 'Use code' }).click();
   await fold.getByRole('button', { name: 'Start a body scan' }).click();
@@ -47,7 +47,7 @@ test('body scan: a code the server no longer knows says so, not just "couldn\'t 
   await page.route('**/.netlify/functions/body-scan', (route) => route.fulfill({ status: 403, json: { ok: false, error: 'not_tester' } }));
   await startWithExample(page);
   await page.getByRole('banner').getByRole('button', { name: /account/i }).click();
-  const fold = await openFold(page, 'Fit testing');
+  const fold = await openFold(page, 'Tester');
   await fold.getByLabel('Tester code').fill('example-code');
   await fold.getByRole('button', { name: 'Use code' }).click();
   await fold.getByRole('button', { name: 'Start a body scan' }).click();

@@ -16,6 +16,7 @@ import { colourWords } from '../engine/houseColours';
 import { ExactColour } from './ExactColour';
 import { TestingTag } from './TestingTag';
 import { FabricLook, FabricLookContext } from './ClothLook';
+import { darkCloth } from './clothTone';
 import { fabricPhotoUrl, isHousePhoto, photoTurn, saveFabricPhoto, useFabricPhoto } from '../fabricPhoto';
 
 /** One tile, in the sketch's own centimetres: larger than life, so ribs and twill read on a phone. */
@@ -301,7 +302,9 @@ export function GarmentFabric({ fabric, children }: { fabric: MyFabric | undefin
     </pattern>
   );
   return (
-    <div className="garment-fabric" style={{ '--garment': `url(#${body})`, '--garment-band': `url(#${band})` } as CSSProperties}>
+    // Marked when the cloth is dark: on the chalk windows a flat's seams and pleat lines are dark ink, which vanished
+    // into a black or chocolate cloth (the Black Pleated Skirt showed no pleats at all, Cat, Nov 24).
+    <div className={darkCloth(fabric) ? 'garment-fabric dark-cloth' : 'garment-fabric'} style={{ '--garment': `url(#${body})`, '--garment-band': `url(#${band})` } as CSSProperties}>
       <svg key={ready ? 'l' : 'p'} className="fabric-defs" aria-hidden="true" focusable="false">
         <defs>
           {table && <TintFilter id={tint} table={table} />}
