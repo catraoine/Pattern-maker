@@ -220,6 +220,9 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
   const skirt = cloth[0] ?? [];
   const hemCentre = skirt.length ? skirt.reduce((a, b) => (b.y > a.y ? b : a)) : { x: 0, y: draft.lengthCm };
   const hemSide = hemCorner(skirt) ?? { x: w.hem[0].x, y: w.hem[0].y };
+  // Each handle's touch area stops halfway to the other's: on a 360 phone a short skirt's two dots sat about 27 px
+  // apart, and the right half of the length dot grabbed the flare (pretend tester EH walk, Nov 25).
+  const apart = circle || choices.silhouette === 'gathered' ? Infinity : Math.hypot(SQUEEZE * (hemSide.x - hemCentre.x), hemSide.y - hemCentre.y);
 
   // Dragged, the hem catches on each named length as on every garment: a finger's few millimetres either side of it.
   const marksAt = LENGTH_IDS.map((id) => LENGTHS[id](dm)).sort((a, b) => a - b);
@@ -342,7 +345,7 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
         <circle
           cx={at.x}
           cy={at.y}
-          r={6.5 * k}
+          r={Math.max(2.4 * k, Math.min(6.5 * k, apart / 2))}
           className="hit"
           role="slider"
           aria-label={kind === 'hem' ? 'Skirt length' : 'Flare at the hem'}
