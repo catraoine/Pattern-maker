@@ -874,7 +874,7 @@ function StepList({ title, ids, at, values, unit, form }: { title: string; ids: 
             {g.map((i) => (
               <li key={i} className={i === ids[at] ? 'on' : undefined} aria-current={i === ids[at] ? 'step' : undefined}>
                 <span>{labelOf(i, form)}</span>
-                <em>{fmtMeasure(i, values[i]!, unit)}</em>
+                <em>{values[i] === undefined ? '' : fmtMeasure(i, values[i]!, unit)}</em>
               </li>
             ))}
           </ol>
