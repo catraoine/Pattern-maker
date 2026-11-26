@@ -50,7 +50,7 @@ import { preloadScreens, screen } from './screens/load';
 import { FABRIC, StartOver, openLookNext, openTabNext } from './ui/StyleLayout';
 import { leavePrintForFabric } from './ui/printReturn';
 import { KeptCount } from './ui/SaveControl';
-import { GARMENT_NAME, baseDone } from './measureFlow';
+import { GARMENT_NAME, baseDone, leftPartway } from './measureFlow';
 import type { AfterMeasuring, PageKind, StepsStart } from './screens/MeasureStepsScreen';
 import { mergeBackups } from './cloud/merge';
 import { useCloud } from './cloud/useCloud';
@@ -807,6 +807,13 @@ export default function App() {
     if (choosing && baseDone(measured)) {
       // On the list Style is lit (cold read EE, Nov 24), so Measure is a way back to the measurements, as from the collection.
       if (to === 'measure') return step === 'steps' && stepsPage === 'check' ? undefined : openSteps({ kind: 'check' });
+      // Back after leaving partway through a piece's measurements: that piece's next page, not the garments again.
+      const partway = !canLeaveMeasure && step === 'steps' && stepsPage === 'check' ? leftPartway(measured, form, (g) => skipFor(g, saved)) : undefined;
+      if (partway) {
+        measureFor(partway, measured);
+        setStepsNote('Style and Print open once your measurements are in.');
+        return;
+      }
       if (!canLeaveMeasure) {
         if (!(step === 'steps' && stepsPage === 'choose')) openSteps({ kind: 'choose' });
         setStepsNote('Choose what to make first: Style and Print open for it.');

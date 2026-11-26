@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { FIELDS, checkMeasurements, type Check, type FormKind, type Garment, type MeasurementId, type MeasurementValues, type Unit } from '../measurements';
-import { BASE, baseDone, begun, fieldOf, fullSetMissing, GARMENT_NAME, GARMENTS, labelOf, mistakesOf, neededFor, seatedOf, stepsOf, stringOf, tipOf, titleOf } from '../measureFlow';
+import { BASE, baseDone, begun, fieldOf, fullSetMissing, GARMENT_NAME, GARMENTS, labelOf, leftPartway, mistakesOf, rememberMeasuringFor, neededFor, seatedOf, stepsOf, stringOf, tipOf, titleOf } from '../measureFlow';
 import { WEIGHT_HARD, WeightEntry, fromKg, weightUnitOf } from '../ui/WeightEntry';
 import { HowClip } from '../ui/HowClip';
 import { FormPicture, HEAD_TOP, labelLevel, readCamera, TapeDemo } from '../ui/ContourForm';
@@ -129,6 +129,8 @@ const toTake = (values: MeasurementValues, id: MeasurementId) => {
 
 export function MeasureStepsScreen({ testerCode, garment: current, unit, values, onUnit, onValues, helped = [], weight, onWeight, onDone, start, opening, onSomeoneElse, onAskThem, onKeepSafe, theirs, theirName, onSkip, onLater, form = 'womenswear', onForm, onIdea, onPhoto, onLooks, onMade, onNews, onPage, unused = () => [], named = (g) => GARMENT_NAME[g] }: Props) {
   const aimed = start?.kind === 'for' ? start.garment : undefined;
+  // Opened again after leaving partway through a piece's measurements: the list carries on with that piece.
+  const carryOn = aimed ?? (!start || start.kind === 'resume' ? leftPartway(values, form, unused) : undefined);
   // Opened afresh for a garment, a redo, the form or the garments (not a reload, and not stepped back into): its own
   // first page, not the one this history entry remembers from before.
   const [newOpening] = useState(() => !!opening && !!start && start.kind !== 'resume');
@@ -158,6 +160,11 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   }, (s) => typeof s === 'object' && s !== null && 'kind' in s && (s as { kind: string }).kind !== 'intro' && !((s as Page).kind === 'base' && !(s as { back?: string }).back && baseDone(values)), newOpening);
   // eslint-disable-next-line react-hooks/exhaustive-deps -- reports each page change; the parent's callback is new every render
   useEffect(() => onPage?.(page.kind), [page.kind]);
+  // The piece being measured for, kept on this device until its measurements are in.
+  const measuringFor = page.kind === 'extra' && !page.redo && page.garment !== 'other' ? page.garment : undefined;
+  useEffect(() => {
+    if (measuringFor) rememberMeasuringFor(measuringFor);
+  }, [measuringFor]);
   // The second tap of a double tap lands on the page the first one opened, where another button may sit under the
   // finger. On the check page it opened the waist again (nightly bug hunt, Nov 21); on the measuring steps it hit Finish
   // later (home, looking like everything was lost), said "Enter your full bust to carry on" before anything was typed,
@@ -372,8 +379,8 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
           <button type="button" className="primary" onClick={() => setPage({ kind: 'extra', garment: otherWrong.garment, ids: [otherWrong.check.id], at: 0, redo: true })}>
             Check {fieldOf(otherWrong.check.id).label.toLowerCase()}
           </button>
-        ) : aimed ? (
-          <button type="button" className="primary" onClick={() => go(aimed)}>
+        ) : carryOn ? (
+          <button type="button" className="primary" onClick={() => go(carryOn)}>
             Continue measuring
           </button>
         ) : (
