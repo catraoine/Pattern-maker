@@ -53,7 +53,7 @@ import { FormSketch } from '../ui/FormSketch';
 import { armFor, formWidth } from '../ui/DrawOnForm';
 import { landmarks } from '../ui/formLines';
 import { type TeeFormMeasurements, teeForm, teeLines } from '../ui/formTops';
-import { FABRIC, Group, SHAPE, StyleLayout, TabPanel } from '../ui/StyleLayout';
+import { FABRIC, Group, OnFirstStep, SHAPE, StyleLayout, TabPanel } from '../ui/StyleLayout';
 import { PiecesList, SummaryActions } from '../ui/StyleSummary';
 import { FinishedTable, finishedLines } from '../ui/FinishedTable';
 import type { BodiceMeasurements } from '../engine/bodice';
@@ -304,11 +304,17 @@ export function RangeStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           <UndoToast undo={undo} />
         </div>
         <p className="muted small">Drafted to your measurements as you choose. In testing: tell us how it sews.</p>
-        {draft?.warnings.map((w) => (
-          <p key={w} className="msg small">
-            {friendly(w)}
-          </p>
-        ))}
+        {/* On the first step only, with the way to fix it (as on the top's Style, EH walk). */}
+        <OnFirstStep>
+          {draft?.warnings.map((w) => (
+            <p key={w} className="msg small">
+              {friendly(w)}{' '}
+              <button type="button" className="link inline-link" onClick={onEditMeasurements}>
+                Edit measurements
+              </button>
+            </p>
+          ))}
+        </OnFirstStep>
       </section>
 
       <aside className="card" aria-labelledby="sum">

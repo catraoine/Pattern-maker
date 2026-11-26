@@ -180,6 +180,14 @@ export function useLengthStep(): boolean {
   return active === undefined || active === (own.Length ?? SECTIONS.Length);
 }
 
+/** Whether the first step is open (or there are no steps): set for the drawing, where a note about the measurements sits. */
+const FirstStep = createContext(true);
+/** Shown on the first step only. A note about the measurements (the front length looks short) stood over every one of the
+ *  top's 17 steps and pushed the choices behind the Next bar on an iPhone (EH walk, Cat's call, Nov 25). */
+export function OnFirstStep({ children }: { children: ReactNode }) {
+  return useContext(FirstStep) ? <>{children}</> : null;
+}
+
 const Fold = createContext<{ open: Record<string, string>; set: (tab: string, label: string) => void; steady: boolean; one?: boolean } | undefined>(undefined);
 
 /** Set by the click-throughs, so a pick doesn't fold its question away while a test is still checking it. */
@@ -1085,7 +1093,9 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
             <Sections.Provider value={sections}>
               <Corner.Provider value={corner}>
                 <ShownView.Provider value={setShown}>
-                  <TypeLength.Provider value={setAsking}>{preview}</TypeLength.Provider>
+                  <FirstStep.Provider value={wide || qAt < 0 ? at <= 0 : qAt === 0}>
+                    <TypeLength.Provider value={setAsking}>{preview}</TypeLength.Provider>
+                  </FirstStep.Provider>
                 </ShownView.Provider>
               </Corner.Provider>
             </Sections.Provider>
