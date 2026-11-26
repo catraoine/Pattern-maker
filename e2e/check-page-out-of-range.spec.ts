@@ -18,8 +18,9 @@ test('an out-of-range number on "Do these look right?" is marked, explained and 
   await expect(main.getByText(/can be from/).first()).toBeVisible();
   await headerBack(page).click();
   await expect(main.getByRole('heading', { name: 'Do these look right?' })).toBeVisible();
-  await expect(list.getByRole('button', { name: /^Height Check$/ })).toBeVisible();
-  await expect(main.locator('.msg.error')).toContainText(/can be from/);
+  // The number typed still shows, with Check beside it, and the reason sits by its row (cold read of release EH, Nov 25).
+  await expect(list.getByRole('button', { name: /^Height 66 cm Check$/ })).toBeVisible();
+  await expect(list.getByRole('listitem').filter({ has: page.getByRole('button', { name: /^Height/ }) }).locator('.msg.error')).toContainText(/can be from/);
   await expect(main.getByRole('button', { name: 'Choose what to make' })).toHaveCount(0);
   await main.getByRole('button', { name: 'Check height' }).click();
   await expect(main.getByRole('textbox').first()).toBeVisible();
@@ -39,7 +40,7 @@ test('an impossible bust on "Do these look right?" is the one named, not the goo
   await box.fill('300');
   await box.press('Enter');
   await headerBack(page).click();
-  await expect(list.getByRole('button', { name: /^Bust Check$/ })).toBeVisible();
+  await expect(list.getByRole('button', { name: /^Bust 300 cm Check$/ })).toBeVisible();
   await expect(main.locator('.msg.error')).toContainText(/can be from/);
   await expect(main.getByText(/in inches/)).toHaveCount(0);
   await expect(main.getByRole('button', { name: 'Check bust' })).toBeVisible();

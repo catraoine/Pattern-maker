@@ -148,10 +148,11 @@ export function styleBodiceSteps(g: SewingGuide, draft: BodiceDraft, o: { seam: 
       text: `Pin each side front to the centre front, right sides together, matching the notches above and below the bust. The centre front curves in where the side front curves out: clip the centre front's seam allowance almost to the stitching line over the bust so the two lie together, and ease rather than stretch. Sew ${o.seam} from the edge, then press the seam open over a tailor's ham so the bust keeps its shape. Sew the back princess seams the same way, matching their notches, and press them open.`,
     };
     // Princess seams that run to the shoulder split the back shoulder's ease between its two panels: "1 cm longer" beside
-    // the seam check's 0.5 cm on each panel read as two figures for one ease (pretend tester DX walk, Nov 22).
+    // the seam check's 0.5 cm on each panel read as two figures for one ease (pretend tester DX walk, Nov 22). Not "0.5 cm"
+    // here: in inches the two rounded to 3/8 and 1/4, which don't add up (EH walk, Nov 25).
     const sh = steps.findIndex((s) => s.title === 'Sew the shoulders');
     if (sh >= 0 && draft.pieces.filter((pc) => /back/i.test(pc.name) && pc.outline.tags.includes('shoulder')).length > 1)
-      steps[sh] = { ...steps[sh], text: steps[sh].text.replace('The back shoulder is 1 cm longer:', 'The back shoulder is 1 cm longer, 0.5 cm on each of its two panels:') };
+      steps[sh] = { ...steps[sh], text: steps[sh].text.replace('The back shoulder is 1 cm longer:', 'The back shoulder is 1 cm longer, half of it on each of its two panels:') };
   } else if (darts >= 0 && moved) {
     steps[darts] = { ...steps[darts], text: steps[darts].text.replace('from the side seam to the point, and press it down', PRESS[moved]) };
   }

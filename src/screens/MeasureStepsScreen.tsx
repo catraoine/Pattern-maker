@@ -16,7 +16,7 @@ import { isSwimIntimates } from '../photo/swim';
 import { InterestCard } from '../ui/InterestCard';
 import { MAX_IDEA_CHARS, type IdeaReading, type IdeaResponse, type PhotoError } from '../photo/types';
 import { testerHeaders } from '../ui/TesterCode';
-import { inchWords, measureInches, typedLength } from '../units';
+import { fmtMeasure, measureInches, typedLength } from '../units';
 
 interface Props {
   /** Opens the Maison collection from "What would you like to make?": the fit testers sew a house look (Nov 11). */
@@ -106,7 +106,6 @@ const toDisplay = (cm: number | undefined, unit: Unit) =>
 /** A height in feet and inches, for the two boxes. */
 const ftOf = (cm: number) => String(Math.floor(Math.round((cm / 2.54) * 10) / 10 / 12));
 const inOf = (cm: number) => String(Math.round(((cm / 2.54) % 12) * 10) / 10 % 12);
-const shown = (cm: number | undefined, unit: Unit) => (cm === undefined ? '' : `${unit === 'in' ? inchWords(measureInches(cm)) : cm} ${unit}`);
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 /** "a slip dress", "an evening coat"; plurals ("wide-leg trousers", "shorts") take no article. */
 const aOrAn = (name: string) => (/(s|wear|lingerie)$/i.test(name) && !/dress$/i.test(name) ? name : `${/^[aeiou]/i.test(name) ? 'an' : 'a'} ${name}`);
@@ -343,15 +342,17 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     return (
       <Shell eyebrow={returning ? 'Welcome back' : undefined} title="Do these look right?">
         <p className="muted step-tip">
-          {returning ? `${helper ? 'Their' : 'Your'} measurements are saved on this device. Check they still look right, then carry on. ` : ''}Tap a number to change it.
+          {returning ? `${helper ? 'Their' : 'Your'} measurements are saved on this device. Check they still look right, then carry on. ` : ''}Choose one to change it.
         </p>
         <ul className="check-list" aria-label="Tap one to change it">
           {BASE.map((id, at) => (
             <li key={id}>
               <button type="button" onClick={() => setPage({ kind: 'base', at, back: 'check' })}>
                 <span>{cap(titleOf(id, false, form).replace(/^Your /, ''))}</span>
-                {values[id] === undefined ? <em className="add">Add</em> : baseChecks.some((c) => c.id === id && c.level === 'error') ? <em className="add">Check</em> : <span>{shown(values[id], unit)}</span>}
+                {values[id] === undefined ? <em className="add">Add</em> : baseWrong?.id === id ? <WrongValue value={fmtMeasure(id, values[id]!, unit)} /> : <span>{fmtMeasure(id, values[id]!, unit)}</span>}
               </button>
+              {/* The reason sits by its row, not under the list where Weight came between (cold read of release EH, Nov 25). */}
+              {baseWrong?.id === id && <p className="msg error check-reason">{baseWrong.message}</p>}
             </li>
           ))}
           {onWeight && (
@@ -363,7 +364,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
             </li>
           )}
         </ul>
-        {baseWrong || otherWrong ? <p className="msg error">{(baseWrong ?? otherWrong!.check).message}</p> : <DoubleChecks checks={baseChecks.filter((c) => c.level === 'warning')} />}
+        {baseWrong ? null : otherWrong ? <p className="msg error">{otherWrong.check.message}</p> : <DoubleChecks checks={baseChecks.filter((c) => c.level === 'warning')} />}
         {baseWrong ? (
           <button type="button" className="primary" onClick={() => setPage({ kind: 'base', at: BASE.indexOf(baseWrong.id), back: 'check' })}>
             Check {titleOf(baseWrong.id, false, form).replace(/^Your /, '').toLowerCase()}
@@ -842,7 +843,7 @@ function FormLabels({ ids, at, values, unit, form }: { ids: MeasurementId[]; at:
       {ids.map((i, n) => (
         <li key={i} data-y={labelLevel(i, form)} className={n === at ? 'on' : undefined}>
           {labelOf(i, form)}
-          {values[i] !== undefined && <b>{shown(values[i], unit)}</b>}
+          {values[i] !== undefined && <b>{fmtMeasure(i, values[i]!, unit)}</b>}
         </li>
       ))}
     </ol>
@@ -873,7 +874,7 @@ function StepList({ title, ids, at, values, unit, form }: { title: string; ids: 
             {g.map((i) => (
               <li key={i} className={i === ids[at] ? 'on' : undefined} aria-current={i === ids[at] ? 'step' : undefined}>
                 <span>{labelOf(i, form)}</span>
-                <em>{shown(values[i], unit)}</em>
+                <em>{fmtMeasure(i, values[i]!, unit)}</em>
               </li>
             ))}
           </ol>
@@ -1167,7 +1168,7 @@ export function MeasurePage({
                     onUnit('in');
                   }}
                 >
-                  Switch to inches <span aria-hidden="true">›</span>
+                  Read {Math.round(value! * 10) / 10} as inches <span aria-hidden="true">›</span>
                 </button>
               </>
             )}
@@ -1185,7 +1186,7 @@ export function MeasurePage({
                     onUnit('cm');
                   }}
                 >
-                  Switch to cm <span aria-hidden="true">›</span>
+                  Read {Math.round((value! / 2.54) * 10) / 10} as cm <span aria-hidden="true">›</span>
                 </button>
               </>
             )}
@@ -1251,5 +1252,15 @@ export function MeasurePage({
       )}
       {whoWindow}
     </Shell>
+  );
+}
+
+/** A number out of range on a list: still shown, so you can see what was typed, with Check beside it in the ink of an
+ *  error, not the champagne of Add (cold read of release EH, Nov 25: "Check" with no number looked just like "Add"). */
+export function WrongValue({ value }: { value: string }) {
+  return (
+    <span className="wrong-value">
+      {value} <em>Check</em>
+    </span>
   );
 }
