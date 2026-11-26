@@ -433,6 +433,8 @@ export interface BuildOptions {
   draped?: DrapedView | 'pending';
   /** The form drawn out at the shoulders to the wearer's width, as the cloth's body is (Space.widen, in form units). */
   formX?: (x: number, y: number, z: number) => number;
+  /** The form drawn out where the body the cloth was sewn on is (a full cup: see engine/drape/cupForm.ts). */
+  formK?: (a: number, y: number) => number;
   /** The fit map: the sewn garment coloured by the room it leaves the body (fitMap.ts) instead of its cloth. */
   fit?: boolean;
   /** The window's colours: its ground and the ink its lines are drawn in. */
@@ -1083,7 +1085,7 @@ export function createRoundView(): RoundView | undefined {
     // The body: the satin form from the top of its neck to below the hip, its neck cut flat across, and its legs.
     const bodyAt = (a: number, y: number): V3 => {
       const yy = Math.max(y, NECK_TOP);
-      const q = P(a, bodyReach(bodyHalf(Math.min(yy, 1.3)), a, yy), y);
+      const q = P(a, bodyReach(bodyHalf(Math.min(yy, 1.3)), a, yy) * (o.formK?.(Math.abs(Math.atan2(Math.sin(a), Math.cos(a))), yy) ?? 1), y);
       if (o.formX) q[0] = o.formX(q[0], yy, q[2]);
       return q;
     };

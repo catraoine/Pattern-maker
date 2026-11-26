@@ -351,7 +351,7 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
     const v3 = through ? undefined : v3ref.current;
     const sewnIn = drapedNow && drapedNow !== 'pending' ? drapedNow : undefined;
     const fitNow = fitOn && !!sewnIn?.d.fit;
-    if (v3) v3.build({ round, sh, cloth, film, striped: !!striped, draped: drapedNow, formX, fit: fitNow, tone });
+    if (v3) v3.build({ round, sh, cloth, film, striped: !!striped, draped: drapedNow, formX, formK: spaceOf.formK, fit: fitNow, tone });
     const { hemY, topY, wh, yAt, yOf, kY, N, krB, krW, krH, longest, highest, bandTop, arm, yS, yU, sl, ra, rh, neckOnly, radius, foldTilt, depthAt, shell, zAcross, clothDown, yE, yCap, axisX, capDepth, sleeveR, lg, yC, yH, legHemR, legR, legAxis, rAt, reach } = sh;
     // The sewn cloth's own lowest point: a full sleeve or a soft hem hangs lower than the pattern's length says, and the
     // Lilac Lace Blouse's hem and cuffs ran off the bottom of the view (Cat, Nov 12, "Fix").
@@ -1459,7 +1459,7 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
       cv.removeEventListener('pointerup', up);
       cv.removeEventListener('pointercancel', up);
     };
-  }, [round, m, striped, tiles, layers, v3ready, drawing, drapedNow, formX, fitOn, tone]);
+  }, [round, m, striped, tiles, layers, v3ready, drawing, drapedNow, formX, spaceOf, fitOn, tone]);
 
   return (
     <div className={`all-round${standIn ? ' all-round-stand-in' : ''}`}>
