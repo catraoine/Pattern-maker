@@ -505,3 +505,16 @@ export async function openSew(page: Page) {
   if (!(await fold.evaluate((el) => (el as HTMLDetailsElement).open))) await fold.locator('> summary').click();
   await expect(fold).toHaveAttribute('open', '');
 }
+
+/** Reloads the page the way a person does. In Firefox the test browser's own reload is reported to the page as a new
+ *  visit, not a reload (seen in the nightly Firefox walk, Nov 25), so the app rightly starts at the welcome; the
+ *  page's own reload is a true reload there, as the reload button is for a person. Other browsers report their own reload
+ *  correctly. */
+export async function reloadAsPerson(page: Page) {
+  if (page.context().browser()?.browserType().name() !== 'firefox') {
+    await page.reload();
+    return;
+  }
+  // The page goes away mid-call, which can end the call with an error; the load after it is what counts.
+  await Promise.all([page.waitForEvent('load'), page.evaluate(() => location.reload()).catch(() => {})]);
+}

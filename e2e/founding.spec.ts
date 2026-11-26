@@ -1,6 +1,6 @@
 import { expect, openAccount, openFold, skipLoading, test } from './fixtures';
 
-// Founding Atelier (promised Nov 12 2026): from Feb 9 a founding member comes past the waitlist by signing in with the
+// Founding Atelier (promised Nov 12 2026): from Mar 16 a founding member comes past the waitlist by signing in with the
 // email on the founding list, and Your account shows their number and what they were promised. Against the
 // development stand-in for the account service (emailed code 123456) and its stand-in founding list.
 test.use({ waitlist: true });
@@ -24,16 +24,16 @@ async function signIn(page: import('@playwright/test').Page, email: string) {
   await main.getByRole('button', { name: 'Sign in' }).click();
 }
 
-test('before Feb 9 the waitlist has no founding sign-in', async ({ page }) => {
-  await page.clock.setFixedTime(new Date('2027-02-08T23:30:00-08:00'));
+test('before Mar 16 the waitlist has no founding sign-in', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2027-03-15T23:30:00-07:00'));
   await page.goto('/?signin=preview');
   await skipLoading(page);
   await expect(page.getByRole('main').getByRole('button', { name: 'Join the waitlist' })).toBeVisible();
   await expect(page.getByRole('main').getByRole('button', { name: 'Sign in to come in early' })).toHaveCount(0);
 });
 
-test('from Feb 9 a founding member signs in past the waitlist and sees their number', async ({ page }, info) => {
-  await page.clock.setFixedTime(new Date('2027-02-09T09:00:00-08:00'));
+test('from Mar 16 a founding member signs in past the waitlist and sees their number', async ({ page }, info) => {
+  await page.clock.setFixedTime(new Date('2027-03-16T09:00:00-07:00'));
   await page.goto('/?signin=preview');
   await skipLoading(page);
   const main = page.getByRole('main');
@@ -54,7 +54,7 @@ test('from Feb 9 a founding member signs in past the waitlist and sees their num
 });
 
 test('an email not on the founding list stays on the waitlist, and is told why', async ({ page }) => {
-  await page.clock.setFixedTime(new Date('2027-02-09T09:00:00-08:00'));
+  await page.clock.setFixedTime(new Date('2027-03-16T09:00:00-07:00'));
   await page.goto('/?signin=preview');
   await skipLoading(page);
   await signIn(page, 'stranger@example.com');

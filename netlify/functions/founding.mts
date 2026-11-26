@@ -1,5 +1,5 @@
 // GET with the signed-in person's token: their Founding Atelier place, if their email is on the list (src/server/founding.ts).
-// The app uses it to show "Founding member No. 12" in Your account, and from Feb 9 to let a founding member past the
+// The app uses it to show "Founding member No. 12" in Your account, and from Mar 16 to let a founding member past the
 // waitlist page before launch. The email comes from Supabase, never from the request, so nobody can ask about
 // someone else's. Anything that can't be checked answers "not on the list" (fails closed), so it never lets anyone in.
 import { createHash } from 'node:crypto';

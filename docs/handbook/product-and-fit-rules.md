@@ -25,7 +25,7 @@ Two freezes, not one (labelled Nov 22, rules review):
   necklines, flared hems, yokes, fullness, peplums and the like) go ahead. Each is In testing until a
   sewist fit-tests it, and must pass its sweep tests before it ships.
 - **Still breaks the freeze:** a whole new garment type with its own block (wired bras, say), a new
-  feature or revenue stream, or anything that would push the Jan 18 fit gate or the Feb 11 launch.
+  feature or revenue stream, or anything that would push the Jan 18 fit gate or the Mar 18 launch.
   Say so in one line with the cost before starting, then do what Cat decides.
 - **Launch garment types** (no In testing tag): skirt, Top (`bodice` in the code) and dress. These are garment
   types, not the six launch pieces above; trousers and vests stay tagged until the Jan 18 fit gate. Everything else usable carries an **In testing** tag,

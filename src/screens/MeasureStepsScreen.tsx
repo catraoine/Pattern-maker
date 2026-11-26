@@ -85,7 +85,7 @@ type Page =
   | { kind: 'weight'; back?: 'check' }
   | { kind: 'check' }
   | { kind: 'choose' }
-  | { kind: 'extra'; garment: Garment | 'other'; ids: MeasurementId[]; at: number; redo?: boolean; then?: AfterMeasuring }
+  | { kind: 'extra'; garment: Garment | 'other'; ids: MeasurementId[]; at: number; redo?: boolean; then?: AfterMeasuring; added?: MeasurementId[] }
   | { kind: 'saved' }
   | { kind: 'describe' }
   | { kind: 'idea'; idea: IdeaReading };
@@ -119,6 +119,14 @@ const aOrAn = (name: string) => (/(s|wear|lingerie)$/i.test(name) && !/dress$/i.
 // There is no first page (Fable's concept A, Cat's apply, Nov 15): Begin opens on the waist. Who you are designing
 // for, and the form, sit in one quiet line above the first measurement, with Change for the few who need it;
 // "Someone else" words every page for the person holding the tape and asks their name before any number is taken.
+/** A base measurement still to take: not given, or given out of range (Finish later keeps a number Next refused, and
+ *  Begin carried on past it without a word, EF walk, Nov 24). */
+const toTake = (values: MeasurementValues, id: MeasurementId) => {
+  const x = values[id];
+  const f = fieldOf(id);
+  return x === undefined || Number.isNaN(x) || (!!f?.hard && (x < f.hard[0] || x > f.hard[1]));
+};
+
 export function MeasureStepsScreen({ testerCode, garment: current, unit, values, onUnit, onValues, helped = [], weight, onWeight, onDone, start, opening, onSomeoneElse, onAskThem, onKeepSafe, theirs, theirName, onSkip, onLater, form = 'womenswear', onForm, onIdea, onPhoto, onLooks, onMade, onNews, onPage, unused = () => [], named = (g) => GARMENT_NAME[g] }: Props) {
   const aimed = start?.kind === 'for' ? start.garment : undefined;
   // Opened afresh for a garment, a redo, the form or the garments (not a reload, and not stepped back into): its own
@@ -134,11 +142,11 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     // (tester journey, Nov 11). Every number typed so far is already kept.
     if (start?.kind === 'resume') {
       if (baseDone(values)) return { kind: 'check' };
-      return { kind: 'base', at: Math.max(0, BASE.findIndex((m) => values[m] === undefined)) };
+      return { kind: 'base', at: Math.max(0, BASE.findIndex((m) => toTake(values, m))) };
     }
     // Choosing another garment, or measuring for one, never goes back to the base measurements once anything is
     // measured: straight to the garments, or to the pages that garment still needs (Cat's A, 2026-10-24).
-    if (!baseDone(values) && !(begun(values) && (start?.kind === 'choose' || aimed))) return { kind: 'base', at: Math.max(0, BASE.findIndex((m) => values[m] === undefined)) };
+    if (!baseDone(values) && !(begun(values) && (start?.kind === 'choose' || aimed))) return { kind: 'base', at: Math.max(0, BASE.findIndex((m) => toTake(values, m))) };
     if (start?.kind === 'choose') return { kind: 'choose' };
     // `also`: more the design needs beyond the garment's own list (a collection top's sleeves need the arms).
     const also = start?.kind === 'for' ? (start.also ?? []).filter((id) => values[id] === undefined) : [];
@@ -186,6 +194,8 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   // Not when stepping back into it during this visit: only on opening it afresh.
   const [returning] = useState(() => !start && baseDone(values) && (window.history.state as { sub?: unknown } | null)?.sub === undefined);
   const [helper, setHelper] = useState(!!theirs);
+  // The window's own pick, kept apart until Done: the page behind changed to "Their waist" at the tap (EF walk, Nov 24).
+  const [helperPick, setHelperPick] = useState(!!theirs);
   const [who, setWho] = useState(false);
   // The who line shows on a first waist page opened with nothing measured, and stays while the waist is typed (the
   // values change on every key, Nov 15 code review).
@@ -208,7 +218,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   const [ideaError, setIdeaError] = useState<PhotoError>();
 
   /** Back after Finish later: on at the first base measurement still to take. */
-  const firstToTake = () => Math.max(0, BASE.findIndex((m) => values[m] === undefined));
+  const firstToTake = () => Math.max(0, BASE.findIndex((m) => toTake(values, m)));
   /** Every measurement still to take, for a dressmaker. */
   const fullSet = () => {
     const ids = fullSetMissing(values, form).map((f) => f.id);
@@ -313,6 +323,22 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     );
   }
 
+  // A number out of range can be kept (Finish later leaves it), and the check read as fine to carry on: its row says
+  // Check, the reason shows under the list, and the button opens it (cold read of release EF, Nov 24).
+  const baseChecks = checkMeasurements(values, unit, 'dress', form, { weight }).filter((c) => BASE.includes(c.id) && values[c.id] !== undefined);
+  const baseWrong = baseChecks.find((c) => c.level === 'error');
+  // A garment's own measurement out of range (waist to hip 40 in) isn't on this list, and Welcome back said nothing of
+  // it (EF walk, Nov 24): its reason shows here too, and the button opens its page.
+  const otherWrong = baseWrong
+    ? undefined
+    : (Object.keys(values) as MeasurementId[])
+        .filter((id) => !BASE.includes(id) && toTake(values, id) && values[id] !== undefined)
+        .map((id) => {
+          const g = GARMENTS.find((x) => FIELDS[x].some((f) => f.id === id));
+          const c = g && checkMeasurements(values, unit, g, form).find((x) => x.id === id && x.level === 'error');
+          return g && c ? { garment: g, check: c } : undefined;
+        })
+        .find(Boolean);
   if (page.kind === 'check')
     return (
       <Shell eyebrow={returning ? 'Welcome back' : undefined} title="Do these look right?">
@@ -324,7 +350,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
             <li key={id}>
               <button type="button" onClick={() => setPage({ kind: 'base', at, back: 'check' })}>
                 <span>{cap(titleOf(id, false, form).replace(/^Your /, ''))}</span>
-                {values[id] === undefined ? <em className="add">Add</em> : <span>{shown(values[id], unit)}</span>}
+                {values[id] === undefined ? <em className="add">Add</em> : baseChecks.some((c) => c.id === id && c.level === 'error') ? <em className="add">Check</em> : <span>{shown(values[id], unit)}</span>}
               </button>
             </li>
           ))}
@@ -337,8 +363,16 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
             </li>
           )}
         </ul>
-        <DoubleChecks checks={checkMeasurements(values, unit, 'dress', form, { weight }).filter((c) => c.level === 'warning' && BASE.includes(c.id))} />
-        {aimed ? (
+        {baseWrong || otherWrong ? <p className="msg error">{(baseWrong ?? otherWrong!.check).message}</p> : <DoubleChecks checks={baseChecks.filter((c) => c.level === 'warning')} />}
+        {baseWrong ? (
+          <button type="button" className="primary" onClick={() => setPage({ kind: 'base', at: BASE.indexOf(baseWrong.id), back: 'check' })}>
+            Check {titleOf(baseWrong.id, false, form).replace(/^Your /, '').toLowerCase()}
+          </button>
+        ) : otherWrong ? (
+          <button type="button" className="primary" onClick={() => setPage({ kind: 'extra', garment: otherWrong.garment, ids: [otherWrong.check.id], at: 0, redo: true })}>
+            Check {fieldOf(otherWrong.check.id).label.toLowerCase()}
+          </button>
+        ) : aimed ? (
           <button type="button" className="primary" onClick={() => go(aimed)}>
             Continue measuring
           </button>
@@ -506,8 +540,9 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   const id = ids[at];
   const g = page.kind === 'extra' ? page.garment : null;
   // What has been typed can ask for more: a top asks a broad upper body (high bust at or over the bust) for its across
-  // back and armhole (Cat, Nov 24), and the high bust is taken on these same pages. They follow on after the last one.
-  const more = page.kind === 'extra' && !page.redo && g !== 'other' && at === ids.length - 1 ? neededFor(g!, values, form).map((f) => f.id).filter((m) => !ids.includes(m) && !unused(g!).includes(m)) : [];
+  // back and armhole (Cat, Nov 24), and the high bust is taken on these same pages. They come straight after the page
+  // that asked for them, with a line saying why: added at the end, the count jumped with no reason given (EG walk, #4).
+  const more = page.kind === 'extra' && !page.redo && g !== 'other' ? neededFor(g!, values, form).map((f) => f.id).filter((m) => !ids.includes(m) && !unused(g!).includes(m)) : [];
   const last = at === ids.length - 1 && !more.length;
   const eyebrow = `${page.kind === 'base' ? '' : g === 'other' ? 'Full set · ' : `${cap(named(g!))} · `}${at + 1} of ${ids.length}`;
   const label =
@@ -518,7 +553,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     // A redo from the measurements list goes back to the list, past every page it took.
     else if (page.kind === 'extra' && page.redo && last && canGoBack()) window.history.go(-(at + 1));
     else if (page.kind === 'base') setPage(last ? (onWeight ? { kind: 'weight' } : { kind: 'check' }) : { ...page, at: at + 1 });
-    else if (more.length) setPage({ ...page, ids: [...ids, ...more], at: at + 1 });
+    else if (more.length) setPage({ ...page, ids: [...ids.slice(0, at + 1), ...more, ...ids.slice(at + 1)], at: at + 1, added: more });
     else if (last) {
       if (page.garment === 'other') setPage({ kind: 'saved' });
       else onDone(page.garment, page.then);
@@ -531,13 +566,14 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   const fresh = page.kind === 'base' && !page.back && at === 0 && freshStart;
   const pickWho = () => {
     // Someone else is added once; after that the window only changes their form.
-    if (helper && !theirs && onSomeoneElse) onSomeoneElse(name.trim(), chosen);
+    setHelper(helperPick);
+    if (helperPick && !theirs && onSomeoneElse) onSomeoneElse(name.trim(), chosen);
     else if (chosen !== form) onForm?.(chosen);
     setWho(false);
   };
   // Closed without Done: nothing picked in the window stays, so the pages never word for someone not added.
   const dropWho = () => {
-    setHelper(!!theirs);
+    setHelperPick(helper);
     setChosen(form);
     setName('');
     setWho(false);
@@ -547,7 +583,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
       <span>
         {theirs ? `For ${theirName || 'someone else'}` : helper ? `For ${name.trim() || 'someone else'}` : 'For me'} · {form === 'menswear' ? 'Menswear' : 'Womenswear'}
       </span>
-      <button type="button" className="later go who-change" aria-expanded={who} onClick={() => setWho(true)}>
+      <button type="button" className="later go who-change" aria-expanded={who} onClick={() => { setHelperPick(helper); setWho(true); }}>
         Change
       </button>
     </p>
@@ -570,15 +606,15 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
         )}
         {!theirs && (
           <div className="switch two-part" role="radiogroup" aria-label="Who are you designing for?">
-            <button type="button" role="radio" aria-checked={!helper} onClick={() => setHelper(false)}>
+            <button type="button" role="radio" aria-checked={!helperPick} onClick={() => setHelperPick(false)}>
               For me
             </button>
-            <button type="button" role="radio" aria-checked={helper} onClick={() => setHelper(true)}>
+            <button type="button" role="radio" aria-checked={helperPick} onClick={() => setHelperPick(true)}>
               Someone else
             </button>
           </div>
         )}
-        {helper && !theirs && (
+        {helperPick && !theirs && (
           <div className="field plain ready">
             <label htmlFor="who-name">Their name</label>
             <input id="who-name" autoComplete="off" autoFocus value={name} aria-describedby="who-name-why" onChange={(e) => setName(e.target.value)} />
@@ -588,7 +624,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
             </p>
           </div>
         )}
-        {helper && !theirs && onAskThem && (
+        {helperPick && !theirs && onAskThem && (
           // A gift, or a client across town: the link that lets them measure themselves was only in the client book.
           <p className="muted small ask-them">
             Not with you?{' '}
@@ -605,7 +641,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
             </button>
           </p>
         )}
-        <button type="button" className="primary" disabled={helper && !theirs && !name.trim()} onClick={pickWho}>
+        <button type="button" className="primary" disabled={helperPick && !theirs && !name.trim()} onClick={pickWho}>
           Done
         </button>
         {/* A way out without choosing: tapping outside the window was the only one (cold read EE, Nov 24). */}
@@ -619,7 +655,11 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   return (
     <MeasurePage
       key={`${page.kind}-${id}`}
-      who={whoLine || (page.kind === 'extra' && !page.redo && at === 0 && g && g !== 'other' && (
+      who={whoLine || (page.kind === 'extra' && page.added?.[0] === id && (
+        <p className="extra-intro">
+          Your high bust is as big as your full bust, so your {named(g as Garment)} also takes your {page.added.map((m) => labelOf(m, form).toLowerCase()).join(' and ')}: {page.added.length === 1 ? 'one more measurement' : `${page.added.length} more measurements`}.
+        </p>
+      )) || (page.kind === 'extra' && !page.redo && at === 0 && g && g !== 'other' && (
         // Back to measuring after What to make, said plainly on every size (clarity review A4, Nov 22: readers thought
         // measuring was over, and the computer showed no count at all).
         <p className="extra-intro">
@@ -789,7 +829,9 @@ function FormLabels({ ids, at, values, unit, form }: { ids: MeasurementId[]; at:
         const x = edgeX(p.top);
         if (Number.isFinite(x)) p.right = Math.max(p.right, box.right - (c.left + x) + 18);
         p.li.style.top = `${p.top}px`;
-        p.li.style.right = `${Math.min(p.right, box.width - 40)}px`;
+        // Never past the picture's left edge: with its number beside it, "Shoulder width 38 cm" lost its first letters at
+        // 1366 wide (cold read EG, Nov 24). A long name may come in over the form's edge rather than off the page.
+        p.li.style.right = `${Math.max(0, Math.min(p.right, box.width - p.li.offsetWidth - 4))}px`;
       }
     };
     place();
@@ -942,7 +984,9 @@ export function MeasurePage({
     if (!shownError || unit !== 'cm' || value === undefined) return undefined;
     const f = FIELDS[checkAs].find((x) => x.id === id);
     const cm = Math.round(value * 2.54 * 10) / 10;
-    return f && value < f.hard[0] && cm >= f.hard[0] && cm <= f.hard[1] ? cm : undefined;
+    // Offered only when the other unit gives a usual number, not merely a possible one: 196.9 in as cm is still a
+    // waist no one has, and the offer read as a fix (EF walk, Nov 24).
+    return f && value < f.hard[0] && cm >= f.typical[0] && cm <= f.typical[1] ? cm : undefined;
   })();
   // And the other way: a number taken in cm while the app is in inches is too big, and fits read as cm (the pretend
   // tester's inch walk, Nov 18, where only the cm pages offered the switch).
@@ -950,7 +994,7 @@ export function MeasurePage({
     if (!shownError || unit !== 'in' || value === undefined) return undefined;
     const f = FIELDS[checkAs].find((x) => x.id === id);
     const cm = Math.round((value / 2.54) * 10) / 10;
-    return f && value > f.hard[1] && cm >= f.hard[0] && cm <= f.hard[1] ? cm : undefined;
+    return f && value > f.hard[1] && cm >= f.typical[0] && cm <= f.typical[1] ? cm : undefined;
   })();
   const note = shownError ?? (tried && value === undefined ? { level: 'error', message: `Enter ${helper ? 'their' : 'your'} ${fieldLabel.toLowerCase()} to carry on.` } : undefined);
 

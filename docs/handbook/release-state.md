@@ -4,11 +4,12 @@ _Update this page whenever a release ships or a PR is queued._
 
 ## Now (Nov 21, 2026): how a ship works
 
-Live: **release EG** (Nov 24, Cat's 9:00 pm "ship"): Ice Peplum tester fit fix (side seams run straight into the
-peplum seam, waist darts left part open there), a darted dress asks front length and bust depth and a top asks across
-back and armhole when the high bust is at or over the bust, the Ice Peplum ruffle shows in its drawings, and "Good first
-make" sits inside the Skirt tile again, on top of EF.
-Rollback = release EF. Releases CW to EG went out Nov 17 to 24;
+Live: **release EH** (Nov 25, Cat's 4:29 pm "ship"): an out-of-range measurement is marked Check on "Do these look
+right?" and Begin after Finish later comes back to it; a top's across back and armhole come straight after the high
+bust with a line saying why; Cat's clarity and comfort reviews (Download pattern in the phone's gold bar, bigger touch
+areas, pale seams on dark flats); the Ice Peplum drawings match its description; barrel trouser crotch sewn at 1 cm;
+low-rise curved waistbands can't overlap; oversized jacket armhole meets the side seam square; launch date Mar 18, 2027;
+on top of EG. Rollback = release EG. Releases CW to EH went out Nov 17 to 25;
 every release's commit, deploy id and rollback is in project memory (pattern-maker-releases-nov14), and the running list of what is
 ready is `/mnt/project-files/releases/ready-to-ship.md`.
 
@@ -26,6 +27,10 @@ The ship rule (Cat, Nov 17, 7:47 pm):
    "Apply", Nov 21). Each release reloads testers' open app and costs Netlify credits.
 7. From Nov 16 to Dec 6 no tester piece's pattern shape changes unless Cat approves it as a fit fix; each release
    checks this.
+8. Pattern fixes from the bug hunt and fit threads apply themselves once their checks pass (and CLO, when the shape
+   changes), with no "apply" from Cat (Cat, Nov 25: "start auto applying these pattern fixes", then "add"). They still
+   go live only on her "ship", and each one is listed in plain words on the ready list. Cat still decides any change
+   to an active tester's pattern, to a launch pattern during the freeze, and any judgment of how a look looks.
 
 Each release still runs the full checks on the joined code, checks the live site after, pushes main to match live and
 saves a bundle to code-backup/.
@@ -205,7 +210,7 @@ no Tests run on GitHub, so merge main in first.
 
 ## Dates
 
-- Feature freeze and fit gate: Mon Jan 18, 2027. Launch: Thu Feb 11, 2027.
+- Feature freeze and fit gate: Mon Jan 18, 2027. Launch: Thu Mar 18, 2027 (moved from Feb 11 by Cat on Nov 25, 2026).
 - Sign-in switch-on: fix week, Dec 7 to 11, 2026.
 - Paid developer code review: post the job ~Nov 23, report by Dec 11.
 - Re-record the How it works film and tool demos once more when the app is declared final.

@@ -5,10 +5,11 @@
 
 export type FoundingPlace = { n: number; kind: 'tester' | 'founding' };
 
-/** Founding members come in two days before launch, from midnight on Feb 9 in Vancouver (8 am UTC, before daylight time). */
-export const EARLY_ACCESS_FROM = new Date('2027-02-09T08:00:00Z');
-/** The fit testers' free year of Premium starts at launch, Feb 11 2027, and runs to Feb 11 2028. */
-const TESTER_FREE_UNTIL = 'Feb 11, 2028';
+/** Founding members come in two days before launch, from midnight on Mar 16 in Vancouver (7 am UTC: daylight time
+ *  starts on Mar 14). Cat moved launch from Feb 11 to Mar 18, 2027 on Nov 25, 2026. */
+export const EARLY_ACCESS_FROM = new Date('2027-03-16T07:00:00Z');
+/** The fit testers' free year of Premium starts at launch, Mar 18 2027, and runs to Mar 18 2028. */
+const TESTER_FREE_UNTIL = 'Mar 18, 2028';
 
 const FOUNDING_PRICE = '$34 a year';
 
@@ -23,6 +24,6 @@ export const earlyAccessOpen = (now = new Date()) => now.getTime() >= EARLY_ACCE
 export function foundingLines(p: FoundingPlace): string[] {
   const price = `Premium at ${FOUNDING_PRICE} instead of $49, locked in for as long as you stay`;
   return p.kind === 'tester'
-    ? ['The app opens to you on Feb 9, two days before launch.', `A free first year of Premium from launch, until ${TESTER_FREE_UNTIL}. After that, ${price}.`, 'A vote on what we make next.']
-    : ['Early access from Feb 9, before the public launch on Feb 11.', `${price}.`, 'First to be invited to the next fit round, and a say in what we draft next.'];
+    ? ['The app opens to you on Mar 16, two days before launch.', `A free first year of Premium from launch, until ${TESTER_FREE_UNTIL}. After that, ${price}.`, 'A vote on what we make next.']
+    : ['Early access from Mar 16, before the public launch on Mar 18.', `${price}.`, 'First to be invited to the next fit round, and a say in what we draft next.'];
 }

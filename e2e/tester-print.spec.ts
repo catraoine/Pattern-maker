@@ -26,7 +26,7 @@ test("a fit tester's Print says how to sew it in calico, and offers no redraw", 
   await expect(main(page).getByRole('heading', { name: 'Sew a toile first' })).toBeVisible();
   await expect(main(page).locator('.tester-calico')).toHaveCount(0);
   await openAccount(page);
-  const fold = await openFold(page, 'Fit testing');
+  const fold = await openFold(page, 'Tester');
   await fold.getByLabel('Tester code').fill('SAMPLE-CODE');
   await fold.getByRole('button', { name: 'Use code' }).click();
   await expect(fold.getByRole('link', { name: 'Open the tester form ›' })).toBeVisible();

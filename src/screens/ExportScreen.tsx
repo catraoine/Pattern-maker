@@ -443,7 +443,9 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
                 </details>
               )}
             </fieldset>
-            <div className="stack">
+            {/* On its own, so on a phone it can ride in a bar at the foot of the screen, as Print my pattern does on Your
+                look: on a 360 phone it sat under the fold, out of the thumb's reach (comfort review, Nov 25). */}
+            <div className="print-go">
               <button type="button" className="primary" onClick={checked(download_)} disabled={!ready}>
                 {ready
                   ? // On A0 the count is of the big sheets, not every page in the file (Cat, Nov 14), so it says so.
@@ -452,6 +454,8 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
                     ? 'PDF not made'
                     : 'Making your PDF…'}
               </button>
+            </div>
+            <div className="stack">
               {booklet && (
                 <button type="button" className="secondary" onClick={checked(downloadBooklet)}>
                   {`Download instructions (${booklet.pages} ${booklet.pages === 1 ? 'page' : 'pages'})`}

@@ -22,11 +22,11 @@ test('a tester on a plain garment is offered the look they sew, for every tester
   const pieces: [GarmentName, string][] = [['Skirt', 'Black Pleated Skirt'], ['Dress', 'Blush Shift'], ['Trousers', 'Chocolate Barrel Trouser'], ['Jacket', 'Black Vest'], ['Bodice', 'Ice Peplum Top']];
   for (const [g, look] of pieces) {
     if (g !== 'Skirt') await switchGarment(page, g);
-    await expect(offer(page)).toContainText(`Fit testing the ${look}?`);
+    await expect(offer(page)).toContainText(`Sewing the ${look} for us?`);
   }
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/tester-look-${test.info().project.name}.png` });
   // The peplum tester's top: one tap makes the Ice Peplum Top on its Review, and the offer steps aside.
-  await offer(page).getByRole('button', { name: /Open it/ }).click();
+  await offer(page).getByRole('button', { name: /Open your tester look/ }).click();
   await expect(main(page).getByRole('heading', { name: /Ice Peplum Top/ })).toBeVisible({ timeout: 30_000 });
   await expect(main(page).getByRole('button', { name: 'Change a detail' })).toBeVisible();
   await expect(offer(page)).toHaveCount(0);
@@ -51,7 +51,7 @@ test('a length set on the plain garment comes across to the look', async ({ page
   await page.waitForTimeout(800);
   const set = await handle.getAttribute('aria-valuetext');
   expect(set).toMatch(/cm/);
-  await offer(page).getByRole('button', { name: /Open it/ }).click();
+  await offer(page).getByRole('button', { name: /Open your tester look/ }).click();
   await expect(main(page).getByRole('heading', { name: /Black Pleated Skirt/ })).toBeVisible({ timeout: 30_000 });
   await main(page).getByRole('button', { name: 'Change a detail' }).click();
   await expect(main(page).getByRole('slider', { name: /length/i }).first()).toHaveAttribute('aria-valuetext', set!);

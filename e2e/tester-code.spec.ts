@@ -13,7 +13,7 @@ test('fit tester code: checked once, kept, and sent with each photo reading', as
   });
   await startWithExample(page);
   await page.getByRole('banner').getByRole('button', { name: /account/i }).click();
-  const fold = await openFold(page, 'Fit testing');
+  const fold = await openFold(page, 'Tester');
   const box = fold.getByLabel('Tester code');
   await box.fill('wrong');
   await fold.getByRole('button', { name: 'Use code' }).click();

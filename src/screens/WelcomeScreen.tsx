@@ -23,7 +23,7 @@ interface Props {
   /** Someone coming back with their measurements taken: the garment they were on, and the ways back in. */
   resume?: { garment: string; onResume: () => void; onSaved: () => void; onNew: () => void };
   /** Until launch, someone without a tester link gets the waitlist where Begin was (Cat's W1, 2026-10-21). */
-  waitlist?: { onCode: (code: string) => void; /** From Feb 9, a way in for founding members (src/founding.ts). */ founding?: FoundingSignIn; checking?: boolean; linkMessage?: string; onRetry?: () => void };
+  waitlist?: { onCode: (code: string) => void; /** From Mar 16, a way in for founding members (src/founding.ts). */ founding?: FoundingSignIn; checking?: boolean; linkMessage?: string; onRetry?: () => void };
   /** In the home-screen app with nothing here yet: bring work across from Safari with a pasted "Send to another
    *  device" link, since the home-screen app keeps its own storage (journey review, Nov 10). False when the link
    *  isn't one. */
@@ -146,7 +146,7 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
   const [joinedNow, setJoined] = useState(() => new URLSearchParams(window.location.search).has('joined'));
   // And back on a device that joined before (Dec 7 dress rehearsal, Nov 22): a reload used to show the empty form
   // again, as if they had never joined, and their link to bring friends was gone for good. One line under it leads
-  // to the join page, for a tester code, another email, or (from Feb 9) the founding sign-in.
+  // to the join page, for a tester code, another email, or (from Mar 16) the founding sign-in.
   const [returning, setReturning] = useState(() => !!myRef());
   // Not while a tester link is being checked or has just failed, and not part way through the founding sign-in:
   // those are said and finished on the join page.

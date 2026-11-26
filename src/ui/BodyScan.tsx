@@ -14,7 +14,7 @@ const SCAN_MESSAGE: Record<ScanError, string> = {
 };
 
 /**
- * Your account > Fit testing, for the testers who asked to try a body scan (Cat, Nov 14). Our server gets a pass for
+ * Your account > Tester, for the testers who asked to try a body scan (Cat, Nov 14). Our server gets a pass for
  * one scan; the scan itself runs on Bodygram's site in a new tab, so the photos go to Bodygram and never to us. The
  * pass is fetched first and then shown as a plain link, because phones block a new tab that opens after a wait.
  */

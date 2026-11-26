@@ -19,6 +19,11 @@ for (const [high, asked] of [['93', true], ['86', false]] as const) {
       const label = (await input.evaluate((el) => (el as HTMLInputElement).labels?.[0]?.textContent ?? '')).replace(/\(optional\)/i, '').trim();
       if (seen[seen.length - 1] === label) continue;
       seen.push(label);
+      // The two come straight after the high bust, with a line saying why (EG walk, #4).
+      if (label === 'Across back') {
+        await expect(main.getByText(/Your high bust is as big as your full bust, so your top also takes your across back and armhole/)).toBeVisible();
+        expect(seen[seen.length - 2]).toBe('High bust');
+      }
       await input.fill(label === 'High bust' ? high : MEASUREMENTS[label]);
       const next = main.getByRole('button', { name: /^Next\b/ });
       const name = (await next.textContent())?.trim() ?? '';

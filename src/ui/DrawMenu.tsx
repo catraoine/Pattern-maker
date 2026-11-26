@@ -7,7 +7,8 @@ export function DrawMenu({ children }: { children: ReactNode }) {
   return (
     <details className="drawmenu" ref={menu}>
       <summary>
-        <span className="tool-word">Draw</span>
+        {/* "Draw on it": "Draw" alone didn't say what it draws (cold read EE, Nov 24; Cat applied). */}
+        <span className="tool-word">Draw on it</span>
       </summary>
       <div className="drawmenu-list" onClick={() => menu.current?.removeAttribute('open')}>
         {children}

@@ -682,6 +682,9 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
  * quarter of the way down to the hip, or it would sit where the body is nearly as wide as the hip. */
 const LOW_RISE = 6;
 export const lowRiseCm = (m: Pick<SkirtMeasurements, 'waist_to_hip'>) => Math.min(LOW_RISE, 0.25 * m.waist_to_hip);
+/** The most a low rise's curved band turns from end to end, in radians (three quarters of a circle): its top edge is
+ *  at most this many band widths shorter than its lower edge. */
+const BAND_TURN_MAX = 1.5 * Math.PI;
 export const lowRiseAllowed = (s: Pick<SkirtStyle, 'waist'>) => s.waist !== 'high';
 
 /** The measurements as if the waist were `r` cm lower: its round found between the waist's and the hip's,
@@ -710,7 +713,10 @@ export function draftSkirt(m: SkirtMeasurements, style: Partial<SkirtStyle> = {}
     const { rise: _r, ...rest } = style;
     const d = draftSkirt(lowered(m, r), rest);
     // (The band's top edge, WAISTBAND_CM higher, on the body there with the same ease as its lower edge.)
-    const top = lowered(m, Math.max(0, r - WAISTBAND_CM)).waist + (d.finishedWaist - lowered(m, r).waist);
+    // (Never smaller than a band curved three quarters of the way round: on a body much bigger at the hip than the
+    // waist with a short hip depth, the cut band wrapped past a full circle and overlapped itself, so it could not be
+    // cut in one piece (nightly bug hunt, Nov 25). An everyday body's band curves far less, so it doesn't change.)
+    const top = Math.max(lowered(m, Math.max(0, r - WAISTBAND_CM)).waist + (d.finishedWaist - lowered(m, r).waist), d.finishedWaist - BAND_TURN_MAX * WAISTBAND_CM);
     return { ...d, lowRise: r, ...(d.waistband && !d.elastic && !d.waistFinish && !d.faced && top < d.finishedWaist - 0.5 ? { bandTop: Math.round(top * 10) / 10 } : {}) };
   }
   const s = validCut({ ...DEFAULT_STYLE, ...style });

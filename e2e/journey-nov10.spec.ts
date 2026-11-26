@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { chooseChip, expect, expectStyle, fillStepPages, goPrint, measureMe, openAccount, openFold, openFresh, openReview, pickToMake, startWithExample, stepButton, test } from './fixtures';
+import { chooseChip, expect, expectStyle, fillStepPages, goPrint, measureMe, openAccount, openFold, openFresh, openReview, pickToMake, reloadAsPerson, startWithExample, stepButton, test } from './fixtures';
 
 // The app journey review (Nov 10, 2026): what testers hit going back, reloading, saving and printing, and the fixes Cat
 // applied ("do all fixes").
@@ -29,7 +29,7 @@ test('a reload keeps your place, and back still climbs from there', async ({ pag
   await startWithExample(page);
   await goPrint(page);
   await expect(main(page).getByRole('group', { name: 'Paper' })).toBeVisible();
-  await page.reload();
+  await reloadAsPerson(page);
   await expect(main(page).getByRole('group', { name: 'Paper' })).toBeVisible();
   await page.goBack();
   await expectStyle(page, 'Skirt');
@@ -92,7 +92,7 @@ test('Email me the files sends the pattern and its instructions the app made, an
   await startWithExample(page);
   // A fit tester types any address, sent with their code (weekly review, Nov 16); signed in, it goes to their own email.
   await page.getByRole('banner').getByRole('button', { name: /account/i }).click();
-  const fold = await openFold(page, 'Fit testing');
+  const fold = await openFold(page, 'Tester');
   await fold.getByLabel('Tester code').fill('atelier26');
   await fold.getByRole('button', { name: 'Use code' }).click();
   await expect(fold).toContainText('Tester code on');

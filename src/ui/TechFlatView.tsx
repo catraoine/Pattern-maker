@@ -25,7 +25,8 @@ export function TechFlatView({ flat, title, labelCm, style, part }: { flat: Flat
     const xs = v.shapes.flat().map((q) => q.x);
     return [Math.min(...xs), Math.max(...xs)];
   });
-  const rowH = flat.height + size * 2 + pad;
+  // A label's height more between the rows, so FRONT reads with the drawing above it, not the back below (cold read EF).
+  const rowH = flat.height + size * 3 + pad;
   const stackW = flat.views.length === 2 ? Math.max(spans[0][1], spans[0][0] + spans[1][1] - spans[1][0]) : flat.width;
   // Only when it draws them bigger: a wide garment (the peplum top, sleeves out) stacked into a narrow column, no larger
   // than side by side and with black either side (pretend tester EE walk, Nov 24).
