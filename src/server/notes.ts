@@ -16,6 +16,22 @@ export const NOTE_CAPS = { visitor: 10, all: 300 };
 
 const SHOT = /^data:image\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/;
 
+/** Where a held note was pinned (src/help/pin.ts): the words on screen at that spot, without numbers, and the place. */
+const PinSchema = z
+  .object({
+    spot: z.string().max(80),
+    section: z.string().max(60).optional(),
+    showing: z.string().max(40).optional(),
+    x: z.number().min(0).max(1),
+    y: z.number().min(0).max(1),
+    garment: z.string().max(80).optional(),
+    device: z.enum(['phone', 'computer']),
+    screen: z.string().regex(/^\d{1,5}x\d{1,5}$/),
+  })
+  .strict()
+  // No numbers in the words: a measurement shown at the spot is never stored, even from a page that forgot to scrub.
+  .refine((p) => ![p.spot, p.section, p.showing, p.garment].some((t) => t && /\d/.test(t)));
+
 const NoteSchema = z
   .object({
     note: z.string().trim().min(1).max(NOTE_MAX),
@@ -30,6 +46,8 @@ const NoteSchema = z
      * Not checked here: anyone could set it, but it only changes the order Cat reads notes in, and every reply is hers.
      */
     tester: z.literal(true).optional(),
+    /** Held on a spot to leave this note (testers only, In testing): where that spot was. */
+    pin: PinSchema.optional(),
   })
   .strict();
 
