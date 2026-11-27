@@ -144,6 +144,20 @@ describe('tester-mail function, end to end', () => {
     expect(sent).toHaveLength(0);
   });
 
+  it('keeps the day’s tester sends when a PDF email fills the shared day in between', async () => {
+    const sent = resendOk();
+    const day = new Date().toISOString().slice(0, 10);
+    const sharedKey = `email-limits:${day}/all`;
+    counts.set(sharedKey, 88);
+    // Another visitor's PDF email takes the last place just after this send's first shared take.
+    const set = counts.set.bind(counts);
+    counts.set = (k: string, v: number) => set(k, k === sharedKey && v === 89 ? 90 : v);
+    expect((await call(ok)).body.error).toBe('busy');
+    expect(counts.get(`tester-mail-limits:${day}/all`) ?? 0).toBe(0);
+    expect(sent).toHaveLength(0);
+    delete (counts as { set?: unknown }).set;
+  });
+
   it('says no when the counter can’t be reached', async () => {
     const sent = resendOk();
     counts.set = () => {
