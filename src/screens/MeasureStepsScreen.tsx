@@ -883,14 +883,15 @@ function FormLabels({ ids, at, values, unit, form }: { ids: MeasurementId[]; at:
 const ARM_IDS: MeasurementId[] = ['arm_length', 'upper_arm', 'wrist', 'armscye'];
 const GIRTH_IDS: MeasurementId[] = ['height', 'full_bust', 'high_bust', 'waist', 'full_hip', 'neck'];
 function StepList({ title, ids, at, values, unit, form }: { title: string; ids: MeasurementId[]; at: number; values: MeasurementValues; unit: Unit; form: FormKind }) {
-  const groups: [string, MeasurementId[]][] =
-    ids.length > 6
-      ? ([
-          ['Body', ids.filter((i) => GIRTH_IDS.includes(i))],
-          ['Arms', ids.filter((i) => ARM_IDS.includes(i))],
-          ['Lengths and widths', ids.filter((i) => !GIRTH_IDS.includes(i) && !ARM_IDS.includes(i))],
-        ] as [string, MeasurementId[]][]).filter(([, g]) => g.length)
-      : [['', ids]];
+  const grouped = ([
+    ['Body', ids.filter((i) => GIRTH_IDS.includes(i))],
+    ['Arms', ids.filter((i) => ARM_IDS.includes(i))],
+    ['Lengths and widths', ids.filter((i) => !GIRTH_IDS.includes(i) && !ARM_IDS.includes(i))],
+  ] as [string, MeasurementId[]][]).filter(([, g]) => g.length);
+  // Grouped only when the groups keep the pages' own order: the pages a high bust adds come straight after it, so
+  // grouped, "2 of 11" (across back) sat eighth in the list (cold read EI, Nov 26). Then it is one list, in order.
+  const inOrder = grouped.flatMap(([, g]) => g).every((i, n) => i === ids[n]);
+  const groups: [string, MeasurementId[]][] = ids.length > 6 && inOrder ? grouped : [['', ids]];
   return (
     <>
       <p className="eyebrow">
