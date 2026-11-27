@@ -4571,7 +4571,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
           for (const [i] of moved) {
             const I = (p.base + i) * 3;
             const yD = Math.max(BODY_TOP, Math.min(BODY_BOTTOM, res[I + 1] < cTop ? sp.yOf(cTop) + (res[I + 1] - cTop) * slope : sp.yOf(res[I + 1])));
-            const drawn = bodyHalf(yD) * shapeAt(Math.abs(Math.atan2(res[I], res[I + 2])), yD) * sp.scale(yD) + thick;
+            const drawn = bodyHalf(yD) * shapeAt(Math.abs(Math.atan2(res[I], res[I + 2])), yD) * sp.formK(Math.abs(Math.atan2(res[I], res[I + 2])), yD) * sp.scale(yD) + thick;
             const rho = Math.hypot(res[I], res[I + 2]) || 1e-9;
             if (rho < drawn) {
               res[I] *= drawn / rho;
@@ -5433,7 +5433,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
         // (Against the form as drawn, whose shoulders the cloth's own body table holds in round the armholes.)
         const a = Math.atan2(res[I], res[I + 2]);
         const y = Math.max(BODY_TOP, Math.min(BODY_BOTTOM, drawnY(res[I + 1])));
-        const drawn = bodyHalf(y) * shapeAt(Math.abs(a), y) * sp.scale(y) + thick;
+        const drawn = bodyHalf(y) * shapeAt(Math.abs(a), y) * sp.formK(Math.abs(a), y) * sp.scale(y) + thick;
         const rho = Math.hypot(res[I], res[I + 2]) || 1e-9;
         if (rho < drawn) {
           const k = 1 + (drawn / rho - 1) * ease;
