@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { checkNote } from '../server/notes';
-import { HOLD_MS, HoldWatch, MOVE_PX, RING_MS, namesToHide, pinFor, pinLine, region, scrub } from './pin';
+import { HOLD_MS, HoldWatch, MOVE_PX, RING_MS, namesToHide, pinFor, region, scrub } from './pin';
 
 // No page in these tests: a spot is a stand-in that matches whatever `closest` is told to (the page itself is walked in
 // e2e/pin-notes.spec.ts).
@@ -92,7 +92,6 @@ describe('the spot', () => {
     const pin = pinFor(at, 195, 422, 'style', 'Blush Shift', true, 390, 844);
     expect(pin).toEqual({ ...at, x: 0.5, y: 0.5, garment: 'Blush Shift', device: 'phone', screen: '390x844' });
     expect(pinFor(at, 10, 10, 'account', 'Blush Shift', false, 1440, 900)).not.toHaveProperty('garment');
-    expect(pinLine(pin, 'Style')).toBe('Blush Shift · Knee · Length · All round view · Style screen');
     const note = { note: 'The hem dips at the back here.', view: 'style', version: '0.1.0+abc1234', browser: 'Safari 18 iOS', tester: true, pin };
     expect(checkNote(JSON.stringify(note))).toEqual(note);
   });
@@ -108,13 +107,6 @@ describe('the server', () => {
     expect(checkNote(JSON.stringify({ ...base, pin: { ...pin, device: 'tablet' } }))).toBeNull();
     expect(checkNote(JSON.stringify({ ...base, pin: { ...pin, name: 'A sewist' } }))).toBeNull();
     expect(checkNote(JSON.stringify({ ...base, pin: { ...pin, screen: 'big' } }))).toBeNull();
-  });
-});
-
-describe('the pinned line', () => {
-  it('says the garment and the view once, when the drawing already names them', () => {
-    const pin = pinFor({ spot: 'Knee A-line skirt, front view, centre', showing: 'Front' }, 10, 10, 'style', 'skirt', false, 1280, 800);
-    expect(pinLine(pin, 'Style')).toBe('Knee A-line skirt, front view, centre · Style screen');
   });
 });
 

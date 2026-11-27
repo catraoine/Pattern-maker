@@ -1,8 +1,8 @@
 // Hold to leave a note (Cat, Nov 26, 2026: "Hold to drop a pin"): on a tester's device, pressing and holding any spot
 // still for half a second opens Help & feedback pinned to that spot, like dropping a pin in a map app. A right click
 // does the same on a computer. Plain double tap was ruled out: it already zooms All round and the page itself.
-// What the pin says is only what's on screen at that spot, with numbers taken out (a measurement is never sent), and the
-// tester sees all of it in the box before sending.
+// What the pin says is only what's on screen at that spot, with numbers, names and emails taken out (a measurement or a
+// person is never sent). It goes with the note out of sight: the box is one question (Cat, Nov 27: "way too cluttered").
 
 /** How long a finger stays still before the note opens. Half a second, like a map's dropped pin. */
 export const HOLD_MS = 500;
@@ -154,13 +154,6 @@ export function pinFor(spot: PinSpot, x: number, y: number, view: string, garmen
     device: phone ? 'phone' : 'computer',
     screen: `${Math.round(w)}x${Math.round(h)}`,
   };
-}
-
-/** The one line the tester reads before sending, so nothing goes that they haven't seen. */
-export function pinLine(pin: Pin, screenName: string): string {
-  // A drawing's own label often names the garment and its view already ("Knee A-line skirt, front view"): said once.
-  const has = (t?: string) => !!t && pin.spot.toLowerCase().includes(t.toLowerCase());
-  return [!has(pin.garment) && pin.garment, pin.spot, pin.section, !has(pin.showing) && pin.showing && `${pin.showing} view`, `${screenName} screen`].filter(Boolean).join(' · ');
 }
 
 type HoldEvent = { pointerId: number; pointerType: string; clientX: number; clientY: number; button: number };

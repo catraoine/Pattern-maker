@@ -1,14 +1,25 @@
 import { useEffect, useRef, useState } from 'react';
 import { sendNote } from '../help/note';
-import { CONTROL, HoldWatch, holdsItsOwn, pinFor, pinLine, spotAt, type Pin } from '../help/pin';
+import { CONTROL, HoldWatch, holdsItsOwn, pinFor, spotAt, type Pin } from '../help/pin';
 import { REPLY_EMAIL, REPLY_EMAIL_MAX } from '../help/replyEmail';
 import { OWNER } from '../legal';
 import { onPhone } from './device';
-import { TestingTag } from './TestingTag';
 
-/** The screen's name as the tester knows it, for the pinned line. */
-const SCREEN_NAME: Record<string, string> = { welcome: 'Welcome', measure: 'Measure', steps: 'Measuring', style: 'Style', photo: 'Photo', export: 'Print', sew: 'Sew', fitting: 'Fitting', scale: 'True scale', account: 'Your account', collection: 'Collection', help: 'Help', client: 'Client book', form: 'Your form' };
-const screenName = (view: string) => SCREEN_NAME[view] ?? `${view[0]?.toUpperCase() ?? ''}${view.slice(1)}`;
+const EMAIL_KEY = 'maison-trace-note-email';
+const keptEmail = () => {
+  try {
+    return localStorage.getItem(EMAIL_KEY) ?? '';
+  } catch {
+    return '';
+  }
+};
+const keepEmail = (email: string) => {
+  try {
+    localStorage.setItem(EMAIL_KEY, email);
+  } catch {
+    // Storage blocked: they type it again next time.
+  }
+};
 
 interface Props {
   /** The screen showing now, sent as the note's screen. */
@@ -123,8 +134,18 @@ function clearOf(el: Element) {
 
 function PinBox({ at, onClose }: { at: Placed; onClose: () => void }) {
   const [note, setNote] = useState('');
-  const [email, setEmail] = useState('');
+  // The email given once is kept on this device, so a tester who wants replies isn't asked every time.
+  const [email, setEmail] = useState(keptEmail);
+  const [asking, setAsking] = useState(() => !!keptEmail());
   const [state, setState] = useState<Sending>('idle');
+
+  // Sent: the thank-you shows a moment, then the box goes by itself.
+  useEffect(() => {
+    if (state !== 'sent') return;
+    if (email.trim()) keepEmail(email.trim());
+    const t = setTimeout(onClose, 2500);
+    return () => clearTimeout(t);
+  }, [state, email, onClose]);
 
   useEffect(() => {
     // Closes the box only: caught first, so an enlarged sketch or sewing mode under it stays open.
@@ -165,39 +186,29 @@ function PinBox({ at, onClose }: { at: Placed; onClose: () => void }) {
       >
         <div className="help-top">
           <p className="eyebrow" id="pintitle">
-            Help &amp; feedback <TestingTag tool="pin_notes" />
+            Leave a note
           </p>
-          <button type="button" className="link" onClick={onClose}>
-            Close
+          <button type="button" className="link pin-x" aria-label="Close" onClick={onClose}>
+            ✕
           </button>
         </div>
         {state === 'sent' ? (
-          <>
-            <p>{email.trim() ? 'Your note is in. We’ll reply by email.' : 'Your note is in. Thank you.'}</p>
-            <button type="button" className="secondary sm" onClick={onClose}>
-              Done
-            </button>
-          </>
+          <p role="status">{email.trim() ? 'Thank you. We’ll reply by email.' : 'Thank you. We read every note.'}</p>
         ) : (
           <>
-            <p className="pin-where small">
-              <span className="muted">Pinned: </span>
-              {pinLine(at.pin, screenName(at.view))}
-            </p>
-            <div className="field plain">
-              <label htmlFor="pinnote">What’s happening here, or what would make it better?</label>
-              {/* Focused at once: the hold already said they mean to write. */}
-              <textarea id="pinnote" rows={3} maxLength={2000} autoFocus value={note} onChange={(e) => setNote(e.target.value)} />
-            </div>
-            <div className="field plain">
-              <label htmlFor="pinemail">Your email, if you’d like a reply</label>
-              <input id="pinemail" type="email" autoComplete="email" inputMode="email" maxLength={REPLY_EMAIL_MAX} value={email} onChange={(e) => setEmail(e.target.value)} />
-            </div>
+            {/* One question, nothing else to read first (Cat, Nov 27: "way too cluttered"). The spot, garment and device
+                still go with the note, out of sight. */}
+            <textarea id="pinnote" rows={3} maxLength={2000} autoFocus aria-label="What’s happening here?" placeholder="What’s happening here?" value={note} onChange={(e) => setNote(e.target.value)} />
+            {asking ? (
+              <input type="email" autoComplete="email" inputMode="email" maxLength={REPLY_EMAIL_MAX} aria-label="Your email, for a reply" placeholder="Your email, for a reply" value={email} onChange={(e) => setEmail(e.target.value)} />
+            ) : (
+              <button type="button" className="link pin-reply" onClick={() => setAsking(true)}>
+                Want a reply?
+              </button>
+            )}
             <button type="submit" className="primary" disabled={!note.trim() || state === 'sending'}>
               {state === 'sending' ? 'Sending…' : 'Send'}
             </button>
-            <p className="help-added">Added for you: this spot, that you’re a fit tester, your phone or computer and the app version.</p>
-            {at.pin.device === 'computer' && <p className="help-added">Need your browser’s own menu? Hold Shift as you right click.</p>}
             {state === 'failed' && (
               <p className="msg small" role="status">
                 That didn’t go through. Check you’re online and try again.
@@ -215,7 +226,7 @@ function PinBox({ at, onClose }: { at: Placed; onClose: () => void }) {
             )}
             {state === 'bademail' && (
               <p className="msg small" role="status">
-                That email doesn’t look right. Check it, or leave it empty to send the note without a reply.
+                That email doesn’t look right. Check it, or clear it to send the note without a reply.
               </p>
             )}
           </>
