@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { sendNote } from '../help/note';
 import { CONTROL, HoldWatch, holdsItsOwn, pinFor, spotAt, type Pin } from '../help/pin';
 import { REPLY_EMAIL, REPLY_EMAIL_MAX } from '../help/replyEmail';
@@ -15,7 +15,9 @@ const keptEmail = () => {
 };
 const keepEmail = (email: string) => {
   try {
-    localStorage.setItem(EMAIL_KEY, email);
+    // Cleared before sending: forgotten too, so the next note doesn't ask for a reply they no longer want.
+    if (email) localStorage.setItem(EMAIL_KEY, email);
+    else localStorage.removeItem(EMAIL_KEY);
   } catch {
     // Storage blocked: they type it again next time.
   }
@@ -41,6 +43,8 @@ type Sending = 'idle' | 'sending' | 'sent' | 'limit' | 'busy' | 'failed' | 'bade
 export function PinNotes({ view, garment, hide }: Props) {
   const [ring, setRing] = useState<{ x: number; y: number }>();
   const [pin, setPin] = useState<Placed>();
+  // Kept the same across renders, so the thank-you's timer isn't started again by every render above it.
+  const close = useCallback(() => setPin(undefined), []);
   // Read inside the page's listeners, which are added once.
   const now = useRef({ view, garment, hide, open: false });
   now.current = { view, garment, hide, open: !!pin };
@@ -110,7 +114,7 @@ export function PinNotes({ view, garment, hide }: Props) {
   return (
     <>
       {ring && !pin && <span className="pin-ring" style={{ left: ring.x, top: ring.y }} aria-hidden="true" />}
-      {pin && <PinBox at={pin} onClose={() => setPin(undefined)} />}
+      {pin && <PinBox at={pin} onClose={close} />}
     </>
   );
 }
@@ -142,7 +146,7 @@ function PinBox({ at, onClose }: { at: Placed; onClose: () => void }) {
   // Sent: the thank-you shows a moment, then the box goes by itself.
   useEffect(() => {
     if (state !== 'sent') return;
-    if (email.trim()) keepEmail(email.trim());
+    keepEmail(email.trim());
     const t = setTimeout(onClose, 2500);
     return () => clearTimeout(t);
   }, [state, email, onClose]);
