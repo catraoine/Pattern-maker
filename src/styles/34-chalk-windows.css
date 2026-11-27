@@ -79,6 +79,11 @@ svg.stepdg {
 svg.stepdg .dg-cloth {
   fill: #f6f2ea;
 }
+/* A second layer or a turned-back edge, a shade darker than the cloth. It was mixed from the page's true black, so on
+   the chalk it filled solid black (Nov 27). */
+svg.stepdg .dg-fold {
+  fill: #e6dccb;
+}
 
 /* Lights up (Cat, Nov 11): the first time Style opens in a visit, the window fades from the page's black to chalk,
    just after the page arrives, so the step from measuring into the garment is felt rather than a jump. */

@@ -572,3 +572,15 @@ details.more[open] > summary h2::after {
 .cloth p {
   margin: 0;
 }
+/* A line chalked from the pattern (a pocket box), and the small capitals naming the pattern's marks on a close-up. */
+.stepdg .dg-chalk {
+  stroke: var(--ink);
+  stroke-width: 0.18;
+  stroke-dasharray: 0.35 0.45;
+}
+.stepdg .dg-note {
+  font-family: var(--mono);
+  font-size: 1.45px;
+  letter-spacing: 0.08em;
+  fill: var(--ink);
+}

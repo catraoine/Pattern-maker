@@ -22,20 +22,23 @@ export type DiagramId =
 /**
  * cloth: the fabric, filled. fold: a second layer or a turned-back edge, filled a little lighter.
  * edge: a cut or folded edge, or a seam. machine: machine stitching. hand: hand stitches, drawn one
- * by one. thread: tacking thread, in long stitches. under: something underneath, seen through.
+ * by one. thread: tacking thread, in long stitches. under: something underneath, seen through. chalk: a line chalked
+ * on the cloth from the pattern (a pocket box), drawn fine and dotted.
  */
-type PartKind = 'cloth' | 'fold' | 'edge' | 'machine' | 'hand' | 'thread' | 'under';
+export type PartKind = 'cloth' | 'fold' | 'edge' | 'machine' | 'hand' | 'thread' | 'under' | 'chalk';
 
-interface DiagramPart {
+export interface DiagramPart {
   pts: P[];
   kind: PartKind;
   closed?: boolean;
 }
 
-interface Diagram {
+export interface Diagram {
   w: number;
   h: number;
   parts: DiagramPart[];
+  /** Small capitals on the drawing: the pattern's own marks (BACK POCKET) and which side is up. */
+  notes?: { at: P; text: string; end?: boolean }[];
   /** What it shows, for screen readers and under the drawing in print. */
   caption: string;
 }
@@ -43,15 +46,15 @@ interface Diagram {
 const W = 40;
 const H = 24;
 
-const rect = (x0: number, y0: number, x1: number, y1: number, kind: PartKind = 'cloth'): DiagramPart => ({
+export const rect = (x0: number, y0: number, x1: number, y1: number, kind: PartKind = 'cloth'): DiagramPart => ({
   pts: [p(x0, y0), p(x1, y0), p(x1, y1), p(x0, y1)],
   kind,
   closed: true,
 });
-const line = (kind: PartKind, ...pts: P[]): DiagramPart => ({ pts, kind });
+export const line = (kind: PartKind, ...pts: P[]): DiagramPart => ({ pts, kind });
 
 /** A quadratic curve through `c`'s pull, as points. */
-function curve(a: P, c: P, b: P, n = 16): P[] {
+export function curve(a: P, c: P, b: P, n = 16): P[] {
   return Array.from({ length: n + 1 }, (_, i) => {
     const t = i / n;
     return lerp(lerp(a, c, t), lerp(c, b, t), t);
@@ -59,7 +62,7 @@ function curve(a: P, c: P, b: P, n = 16): P[] {
 }
 
 /** An arrowhead at the end of a run, pointing along it. */
-function arrow(pts: P[], kind: PartKind = 'edge'): DiagramPart[] {
+export function arrow(pts: P[], kind: PartKind = 'edge'): DiagramPart[] {
   const tip = pts[pts.length - 1];
   const u = unit(sub(tip, pts[pts.length - 2]));
   const n = p(-u.y, u.x);
@@ -69,7 +72,7 @@ function arrow(pts: P[], kind: PartKind = 'edge'): DiagramPart[] {
 /** Hand stitches: short separate strokes from each point of `from` to the matching point of `to`. */
 const strokes = (from: P[], to: P[]): DiagramPart[] => from.map((a, i) => line('hand', a, to[i]));
 
-const range = (a: number, b: number, step: number) => Array.from({ length: Math.floor((b - a) / step) + 1 }, (_, i) => a + i * step);
+export const range = (a: number, b: number, step: number) => Array.from({ length: Math.floor((b - a) / step) + 1 }, (_, i) => a + i * step);
 
 /** A seam pressed open, seen from the inside: the two allowances either side of the seam line. */
 function pressedOpen(edge: (x: number, side: -1 | 1) => DiagramPart[]): DiagramPart[] {

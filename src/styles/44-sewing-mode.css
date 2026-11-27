@@ -663,3 +663,59 @@ details.sew:not([open]) > .sew-summary > .sew-list-head::after {
   flex-direction: column;
   gap: 12px;
 }
+
+/* Close-ups for the trickier steps: the drawing for the line you are on, fading in as you tick the one before. */
+.sewframe svg.stepdg {
+  animation: sewframe-in 320ms ease-out both;
+}
+@keyframes sewframe-in {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sewframe svg.stepdg {
+    animation: none;
+  }
+}
+/* MOCK B and C (option sheet only) */
+.sewframes-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 6px;
+}
+.sewframes-strip figure {
+  margin: 0;
+  position: relative;
+  outline: 1px solid transparent;
+}
+.sewframes-strip figure.on {
+  outline: 2px solid var(--gild);
+}
+.sewframes-strip .sew-num {
+  position: absolute;
+  left: 4px;
+  top: 2px;
+  font-size: 13px;
+}
+.sewframes-strip svg.stepdg {
+  padding: 2px;
+  width: 100%;
+  height: auto;
+}
+.sewframe-tag {
+  color: var(--gild);
+  font-family: var(--mono);
+  margin-right: 6px;
+}
+.sewframe-beside {
+  background: #dcd5c7;
+  width: 100%;
+  max-width: 260px;
+  margin: 4px 0 6px;
+}
+.sewframe-beside svg.stepdg {
+  width: 100%;
+  height: auto;
+  padding: 2px;
+}
