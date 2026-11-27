@@ -51,6 +51,7 @@ import { FABRIC, StartOver, openLookNext, openTabNext } from './ui/StyleLayout';
 import { leavePrintForFabric } from './ui/printReturn';
 import { KeptCount } from './ui/SaveControl';
 import { GARMENT_NAME, baseDone } from './measureFlow';
+import { namesToHide } from './help/pin';
 import type { AfterMeasuring, PageKind, StepsStart } from './screens/MeasureStepsScreen';
 import { mergeBackups } from './cloud/merge';
 import { useCloud } from './cloud/useCloud';
@@ -114,6 +115,7 @@ const BrandsScreen = screen(() => import('./screens/BrandsScreen').then((m) => m
 const NightsScreen = screen(() => import('./screens/NightsScreen').then((m) => m.NightsScreen));
 const MadeScreen = screen(() => import('./screens/MadeScreen').then((m) => m.MadeScreen));
 const HelpScreen = screen(() => import('./screens/HelpScreen').then((m) => m.HelpScreen));
+const PinNotes = screen(() => import('./ui/PinNotes').then((m) => m.PinNotes));
 const PlansScreen = screen(() => import('./screens/PlansScreen').then((m) => m.PlansScreen));
 const FittingScreen = screen(() => import('./screens/FittingScreen').then((m) => m.FittingScreen));
 const TrueScaleScreen = screen(() => import('./screens/TrueScaleScreen').then((m) => m.TrueScaleScreen));
@@ -973,6 +975,13 @@ export default function App() {
 
         <main className="main">
           <Suspense fallback={null}>
+          {/* Hold to leave a note, on a device let in by a tester link only (Cat, Nov 26: "Hold to drop a pin"). */}
+          {/* In its own Suspense, so its file arriving never blanks the screen under it. */}
+          {access && !!account.testerCode && (
+            <Suspense fallback={null}>
+              <PinNotes view={step} garment={lookName ?? (vestOf(garment, saved) ? 'vest' : GARMENT_NAME[garment])} hide={namesToHide([account.name, account.studio?.name, ...(account.people ?? []).map((p) => p.name)])} />
+            </Suspense>
+          )}
           <KeptCount.Provider value={{ kept: account.patterns.length, limit: savedLimit(account) }}>
           {incoming?.kind === 'broken' && step === 'welcome' && (
             <p className="msg error" role="status">

@@ -1,0 +1,133 @@
+/* Hold to leave a note (Cat, Nov 26: "Hold to drop a pin"), on a tester's device only: the ring that fills under a
+   held finger, the pin it drops, and the Help & feedback box beside it (a sheet along the bottom on a phone). */
+
+/* The phone's copy and save-picture menu stays off drawings and buttons, so a hold there is ours. Text and typing keep
+   theirs. */
+.pin-notes svg,
+.pin-notes canvas,
+.pin-notes img,
+.pin-notes button,
+.pin-notes [role='img'] {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.pin-ring,
+.pin-dot {
+  position: fixed;
+  /* Above sewing mode and the enlarged views (60 to 1000), so a note held there opens in sight. */
+  z-index: 1100;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  border-radius: 50%;
+  pointer-events: none;
+  box-sizing: border-box;
+}
+/* Fills in the time left of the hold (HOLD_MS less RING_MS in src/help/pin.ts), so it closes as the box opens. */
+.pin-ring {
+  border: 2px solid var(--gild);
+  background: conic-gradient(var(--gild) var(--pin-fill, 0turn), transparent 0);
+  opacity: 0.55;
+  animation: pin-fill 350ms linear forwards;
+}
+@property --pin-fill {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0turn;
+}
+@keyframes pin-fill {
+  to {
+    --pin-fill: 1turn;
+  }
+}
+.pin-dot {
+  z-index: 0;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  background: var(--gild);
+  box-shadow: 0 0 0 4px var(--paper), 0 0 0 5px var(--gild);
+}
+
+.pin-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 1099;
+}
+.pin-shade {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.35);
+  cursor: default;
+}
+.pin-box.card {
+  position: absolute;
+  z-index: 1;
+  left: var(--pin-left);
+  top: var(--pin-top);
+  width: 360px;
+  /* Never past the foot of the window: the box scrolls inside instead, so Send is always in reach. */
+  max-height: calc(100vh - var(--pin-top, 16px) - 16px);
+  overflow: auto;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--paper);
+  border: var(--bw) solid var(--gild);
+}
+.pin-box .eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pin-box .pin-where,
+.pin-box .help-added,
+.pin-box .field {
+  margin: 0;
+}
+.pin-box textarea {
+  width: 100%;
+  min-height: 96px;
+  box-sizing: border-box;
+  resize: vertical;
+}
+
+/* A phone: a sheet along the bottom, full width, so the pin above it stays in sight. */
+@media (max-width: 699px) {
+  .pin-box.card {
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    width: auto;
+    max-height: var(--pin-room, 55vh);
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+    border-width: var(--bw) 0 0;
+    gap: 10px;
+  }
+  .pin-box.card.pin-up {
+    top: 0;
+    bottom: auto;
+    padding: calc(16px + env(safe-area-inset-top)) 16px 16px;
+    border-width: 0 0 var(--bw);
+  }
+  .pin-box textarea {
+    min-height: 72px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pin-ring {
+    animation: none;
+    --pin-fill: 1turn;
+  }
+}
