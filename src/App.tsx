@@ -385,6 +385,8 @@ export default function App() {
 
   const checks = checksFor(measured, saved.unit, garment, form, skipFor(garment, saved), { weight: person.weight });
   const canLeaveMeasure = ready(measured, saved.unit, garment, form, skipFor(garment, saved));
+  // The piece whose own measurements were left partway on this device, while there's still something to measure.
+  const partwayPiece = !canLeaveMeasure && step === 'welcome' && baseDone(measured) ? leftPartway(measured, form, (g) => skipFor(g, saved)) : undefined;
 
   // Corrections from this person's toile fittings go into every pattern drafted for them: the garment's
   // own toile first, then what the person's other toiles found that this one hasn't looked at.
@@ -1109,7 +1111,16 @@ export default function App() {
                       onSaved: () => setStep('account'),
                       onNew: startNew,
                     }
-                  : undefined
+                  : partwayPiece
+                    ? // Closed partway through a piece's own measurements: the landing page carries on with it, as Begin
+                      // only led to a list of the first five, without the piece's ones already given (EJ walk, Nov 27).
+                      {
+                        garment: vestOf(partwayPiece, saved) ? 'vest' : GARMENT_NAME[partwayPiece],
+                        onResume: () => openSteps({ kind: 'resume' }),
+                        onSaved: () => setStep('account'),
+                        onNew: startNew,
+                      }
+                    : undefined
               }
             />
           )}
