@@ -50,8 +50,9 @@ test('hold to leave a note: only on a tester device, never from a quick tap, one
   // Held still: the box opens, pinned to the spot, and stays open through the tap the lift sends.
   await hold(page, 700, true);
   await expect(box).toBeVisible();
-  await expect(box).toContainText('Leave a note');
-  // One question and Send, nothing else to read (Cat, Nov 27: "way too cluttered"). The spot goes out of sight.
+  await expect(box).toContainText('Help & feedback');
+  await expect(box.getByLabel('Email for a reply (optional)')).toBeVisible();
+  // One question, an optional email and Send, nothing else to read (Cat, Nov 27: "way too cluttered"). The spot goes out of sight.
   await expect(box).not.toContainText(/Pinned|In testing|Added for you|Hold Shift/);
   await expect(box.getByLabel(/What’s happening here/)).toBeFocused();
   if (SHOTS) await page.screenshot({ path: `${SHOTS}/pin-notes-${info.project.name}.png` });

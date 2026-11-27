@@ -140,7 +140,6 @@ function PinBox({ at, onClose }: { at: Placed; onClose: () => void }) {
   const [note, setNote] = useState('');
   // The email given once is kept on this device, so a tester who wants replies isn't asked every time.
   const [email, setEmail] = useState(keptEmail);
-  const [asking, setAsking] = useState(() => !!keptEmail());
   const [state, setState] = useState<Sending>('idle');
 
   // Sent: the thank-you shows a moment, then the box goes by itself.
@@ -190,7 +189,7 @@ function PinBox({ at, onClose }: { at: Placed; onClose: () => void }) {
       >
         <div className="help-top">
           <p className="eyebrow" id="pintitle">
-            Leave a note
+            Help &amp; feedback
           </p>
           <button type="button" className="link pin-x" aria-label="Close" onClick={onClose}>
             ✕
@@ -200,16 +199,15 @@ function PinBox({ at, onClose }: { at: Placed; onClose: () => void }) {
           <p role="status">{email.trim() ? 'Thank you. We’ll reply by email.' : 'Thank you. We read every note.'}</p>
         ) : (
           <>
-            {/* One question, nothing else to read first (Cat, Nov 27: "way too cluttered"). The spot, garment and device
+            {/* One question and an optional email, nothing else to read first (Cat, Nov 27: "way too cluttered", then A1). The spot, garment and device
                 still go with the note, out of sight. */}
-            <textarea id="pinnote" rows={3} maxLength={2000} autoFocus aria-label="What’s happening here?" placeholder="What’s happening here?" value={note} onChange={(e) => setNote(e.target.value)} />
-            {asking ? (
-              <input type="email" autoComplete="email" inputMode="email" maxLength={REPLY_EMAIL_MAX} aria-label="Your email, for a reply" placeholder="Your email, for a reply" value={email} onChange={(e) => setEmail(e.target.value)} />
-            ) : (
-              <button type="button" className="link pin-reply" onClick={() => setAsking(true)}>
-                Want a reply?
-              </button>
-            )}
+            <div className="field plain">
+              <textarea id="pinnote" rows={3} maxLength={2000} autoFocus aria-label="What’s happening here?" placeholder="What’s happening here?" value={note} onChange={(e) => setNote(e.target.value)} />
+            </div>
+            {/* Always in sight and plainly optional (Cat's pick A1, Nov 27); kept on this device once given. */}
+            <div className="field plain">
+              <input type="email" autoComplete="email" inputMode="email" maxLength={REPLY_EMAIL_MAX} aria-label="Email for a reply (optional)" placeholder="Email for a reply (optional)" value={email} onChange={(e) => setEmail(e.target.value)} />
+            </div>
             <button type="submit" className="primary" disabled={!note.trim() || state === 'sending'}>
               {state === 'sending' ? 'Sending…' : 'Send'}
             </button>

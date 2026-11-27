@@ -90,7 +90,8 @@
   align-items: center;
   gap: 8px;
 }
-.pin-box p {
+.pin-box p,
+.pin-box .field {
   margin: 0;
 }
 /* The close cross: a finger-sized target in the corner, quiet until pressed. */
@@ -101,10 +102,7 @@
   text-decoration: none;
   font-size: 1rem;
 }
-/* Asked only when wanted, so the box is one question until then. */
-.pin-box .pin-reply {
-  align-self: flex-start;
-}
+
 .pin-box textarea {
   width: 100%;
   min-height: 72px;
