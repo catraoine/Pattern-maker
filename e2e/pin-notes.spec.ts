@@ -4,7 +4,7 @@ import { expect, openFold, startWithExample, stepButton, test } from './fixtures
 const SHOTS = process.env.SHOTS_DIR;
 
 /** A finger held on the middle of the garment drawing for `ms`, as the phone sends it (a touch pointer that stays put). */
-async function hold(page: Page, ms: number) {
+async function hold(page: Page, ms: number, lift = false) {
   const drawing = page.locator('main svg.preview-svg').first();
   const box = (await drawing.boundingBox())!;
   const x = box.x + box.width / 2;
@@ -17,8 +17,8 @@ async function hold(page: Page, ms: number) {
   await send('pointerdown');
   await page.waitForTimeout(ms);
   await send('pointerup');
-  // A phone browser may send a tap as the finger lifts, which lands on whatever is now under it.
-  await page.mouse.click(x, y);
+  // A phone browser may send a tap as the finger lifts, which lands on whatever is now under it: the dimmed background.
+  if (lift) await page.mouse.click(x, y);
   return { x, y };
 }
 
@@ -47,8 +47,8 @@ test('hold to leave a note: only on a tester device, never from a quick tap, and
   await hold(page, 120);
   await expect(box).toHaveCount(0);
 
-  // Held still: the box opens, pinned to the spot.
-  await hold(page, 700);
+  // Held still: the box opens, pinned to the spot, and stays open through the tap the lift sends.
+  await hold(page, 700, true);
   await expect(box).toBeVisible();
   await expect(box).toContainText('Pinned:');
   await expect(box).toContainText('Style screen');
@@ -78,6 +78,11 @@ test('hold to leave a note: only on a tester device, never from a quick tap, and
     await expect(box).toBeVisible();
     await expect(box).toContainText('Hold Shift as you right click');
     await page.keyboard.press('Escape');
+    await expect(box).toHaveCount(0);
+    // A click on the dimmed background closes it at once: a right click leaves no lift tap to swallow.
+    await page.locator('main svg.preview-svg').first().click({ button: 'right', position: { x: 40, y: 200 } });
+    await expect(box).toBeVisible();
+    await page.mouse.click(5, 300);
     await expect(box).toHaveCount(0);
   }
 });

@@ -38,10 +38,10 @@ export function scrub(text: string | null | undefined, max = 50, hide: readonly 
   for (const n of hide) t = t.replace(new RegExp(`(?<![\\p{L}\\p{N}])${escape(n)}(?![\\p{L}\\p{N}])`, 'giu'), 'a name');
   t = t.replace(/\s+/g, ' ').trim();
   if (t.length <= max) return t;
-  // Cut at a word, never inside one ("fr…" read as nothing, the Nov 27 walk).
+  // Cut at a word ("fr…" read as nothing, the Nov 27 walk), unless that would lose more than half: then mid-word.
   const cut = t.slice(0, max - 1);
   const space = cut.lastIndexOf(' ');
-  return `${(space > max / 2 ? cut.slice(0, space) : cut).trimEnd()}…`;
+  return `${(space > max / 2 ? cut.slice(0, space) : cut).replace(/[\s,;:·-]+$/, '')}…`;
 }
 
 /** Where in a drawing the pin sits, in plain words: "lower middle" reads quicker than two numbers. */
@@ -61,9 +61,12 @@ function wordsOf(el: Element): string {
   return parts.join(' ');
 }
 
+/** What counts as one control: its name is the spot, and the box opens beside it (PinNotes' clearOf). */
+export const CONTROL = 'button, a, [role="button"], [role="tab"], [role="switch"], [role="radio"], [role="checkbox"], label, summary, legend';
+
 /** The control or label under the finger, by the words it shows (or its spoken label). */
 function controlWords(el: Element, hide: readonly string[]): string {
-  const c = el.closest('button, a, [role="button"], [role="tab"], [role="switch"], [role="radio"], [role="checkbox"], label, summary, legend');
+  const c = el.closest(CONTROL);
   if (!c) return '';
   return scrub(c.getAttribute('aria-label') || wordsOf(c), 50, hide);
 }
@@ -71,11 +74,13 @@ function controlWords(el: Element, hide: readonly string[]): string {
 /** The heading of the part of the screen the spot is in. */
 function sectionWords(el: Element, hide: readonly string[]): string {
   for (let at: Element | null = el; at; at = at.parentElement) {
-    const head = at.matches('h1, h2, h3, legend, summary') ? at : at.querySelector(':scope > h1, :scope > h2, :scope > h3, :scope > legend, :scope > summary, :scope > header h1, :scope > header h2, :scope > div > h2, :scope > div > h3');
-    // A heading that holds the spot or other controls is a whole question, not its name: keep looking further up.
-    if (!head || head.contains(el) || head.querySelector('button, a, input, [role="radio"], [role="button"]')) continue;
-    const words = wordsOf(head);
-    if (words) return scrub(words, 50, hide);
+    const heads = at.matches('h1, h2, h3, legend, summary') ? [at] : [...at.querySelectorAll(':scope > h1, :scope > h2, :scope > h3, :scope > legend, :scope > summary, :scope > header h1, :scope > header h2, :scope > div > h2, :scope > div > h3')];
+    for (const head of heads) {
+      // A heading that holds the spot or other controls is a whole question, not its name: try the next one.
+      if (head.contains(el) || head.querySelector('button, a, input, [role="radio"], [role="button"]')) continue;
+      const words = wordsOf(head);
+      if (words) return scrub(words, 50, hide);
+    }
   }
   return '';
 }
@@ -93,7 +98,8 @@ interface PinSpot {
 function viewShowing(el: Element): string | undefined {
   for (let at: Element | null = el; at && at.tagName !== 'MAIN' && at.tagName !== 'BODY'; at = at.parentElement) {
     const views = at.querySelector('[aria-label="Garment view"]');
-    if (views) return scrub(views.querySelector('[aria-pressed="true"]')?.textContent, 30) || undefined;
+    const on = views?.querySelector('[aria-pressed="true"]');
+    if (views) return on ? scrub(wordsOf(on), 30) || undefined : undefined;
   }
   return undefined;
 }
@@ -102,7 +108,8 @@ function viewShowing(el: Element): string | undefined {
 export function spotAt(el: Element, x: number, y: number, view: string, hide: readonly string[] = []): PinSpot {
   if (NAMED_VIEWS.has(view)) return { spot: 'this screen' };
   const drawing = el.closest('[role="img"], [role="group"][aria-label]');
-  let spot = controlWords(el, hide);
+  const control = controlWords(el, hide);
+  let spot = control;
   if (!spot && drawing) {
     const box = drawing.getBoundingClientRect();
     const fx = box.width ? (x - box.left) / box.width : 0.5;
@@ -111,11 +118,14 @@ export function spotAt(el: Element, x: number, y: number, view: string, hide: re
     const name = scrub((drawing.getAttribute('aria-label') ?? 'the drawing').split('. ')[0], 60, hide);
     spot = `${name}, ${region(Math.min(1, Math.max(0, fx)), Math.min(1, Math.max(0, fy)))}`;
   }
-  // The garment view is said only for a spot on the drawing: a chip beside it is the same whatever view shows.
-  const showing = !controlWords(el, hide) && drawing ? viewShowing(el) : undefined;
+  // The garment view is said only for a spot on the drawing (a mark on it too): a chip beside it is the same whatever
+  // view shows.
+  const showing = drawing ? viewShowing(el) : undefined;
   if (!spot) spot = scrub(wordsOf(el), 50, hide) || 'an empty part of the screen';
   const section = sectionWords(el, hide);
-  const repeats = !!section && (section.toLowerCase().includes(spot.toLowerCase()) || spot.toLowerCase().includes(section.toLowerCase()));
+  // Left out only when it says the spot again, word for word ("Back buttons and loops" twice, the Nov 27 stills).
+  const within = (a: string, b: string) => new RegExp(`(?<![\\p{L}])${escape(b)}(?![\\p{L}])`, 'iu').test(a);
+  const repeats = !!section && (section.toLowerCase() === spot.toLowerCase() || within(section, spot));
   return { spot, ...(section && !repeats ? { section } : {}), ...(showing ? { showing } : {}) };
 }
 

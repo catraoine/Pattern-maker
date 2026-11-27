@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { sendNote } from '../help/note';
-import { HoldWatch, holdsItsOwn, pinFor, pinLine, spotAt, type Pin } from '../help/pin';
+import { CONTROL, HoldWatch, holdsItsOwn, pinFor, pinLine, spotAt, type Pin } from '../help/pin';
 import { REPLY_EMAIL, REPLY_EMAIL_MAX } from '../help/replyEmail';
 import { OWNER } from '../legal';
 import { onPhone } from './device';
@@ -37,13 +37,14 @@ export function PinNotes({ view, garment, hide }: Props) {
   const swallowUntil = useRef(0);
 
   useEffect(() => {
-    const open = (x: number, y: number, el: Element) => {
+    // `touch`: a finger held, whose lift may send a tap; a right click sends none, so nothing is swallowed after it.
+    const open = (x: number, y: number, el: Element, touch = true) => {
       setRing(undefined);
       if (now.current.open) return;
       const { view: v, garment: g, hide: names } = now.current;
       // Text a long press started to pick on a phone, let go, so the box opens clean.
       window.getSelection?.()?.removeAllRanges();
-      swallowUntil.current = Date.now() + 800;
+      swallowUntil.current = touch ? Date.now() + 800 : 0;
       setPin({ x, y, view: v, clear: clearOf(el) ?? { left: x, right: x }, pin: pinFor(spotAt(el, x, y, v, names), x, y, v, g, onPhone(), window.innerWidth, window.innerHeight) });
     };
     const watch = new HoldWatch({ ring: (x, y) => setRing({ x, y }), done: open, stop: () => setRing(undefined) });
@@ -61,7 +62,7 @@ export function PinNotes({ view, garment, hide }: Props) {
       // A right click with a mouse or trackpad. A touch that reaches here moved or landed somewhere we leave alone.
       if ((e as PointerEvent).pointerType === 'touch' || onPhone()) return;
       e.preventDefault();
-      open(e.clientX, e.clientY, el);
+      open(e.clientX, e.clientY, el, false);
     };
     const click = (e: MouseEvent) => {
       if (Date.now() > swallowUntil.current) return;
@@ -115,7 +116,7 @@ interface Placed {
 /** The control held (a chip, a button), so the box opens beside it rather than over it. A drawing or anything wide
  *  only keeps the pin itself clear (1366 wide, the Nov 27 stills: the box covered the start of the held chip). */
 function clearOf(el: Element) {
-  const c = el.closest('button, a, [role="button"], [role="radio"], [role="tab"], [role="switch"], label, summary');
+  const c = el.closest(CONTROL);
   const r = c?.getBoundingClientRect();
   return r && r.width < window.innerWidth / 3 ? { left: r.left, right: r.right } : undefined;
 }
