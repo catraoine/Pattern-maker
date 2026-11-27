@@ -141,9 +141,16 @@ export function SewPicture({ picture, pieces, lays, flat, label, still }: { pict
   const placed = arrange(shown);
   const tall = Math.max(...placed.map((a) => a.h), 1);
   const wide = Math.max(...placed.map((a) => a.x + a.w), 1);
-  const s = Math.min((W - 16) / wide, (H - 14) / tall);
+  // Each piece's name under it, without the word they all share ("BODICE"), a word a line: four princess panels side by
+  // side ran their names into each other (EJ walk, Nov 27).
+  const words = shown.map((pc) => pc.name.toUpperCase().split(' '));
+  const shared = words.length > 1 && words.every((w) => w.length > 1 && w[0] === words[0][0]) ? 1 : 0;
+  const names = words.map((w) => (w.length - shared > 1 && placed.length > 2 ? w.slice(shared) : [w.slice(shared).join(' ')]));
+  // Each extra line of a name takes its room from the drawing, so the names sit below the pieces, not over their hems.
+  const extra = (Math.max(...names.map((n) => n.length), 1) - 1) * 4.2;
+  const s = Math.min((W - 16) / wide, (H - 14 - extra) / tall);
   const ox = (W - wide * s) / 2;
-  const oy = (H - tall * s) / 2;
+  const oy = (H - extra - tall * s) / 2;
   const to = (a: Placed) => (ps: P[]) => ps.map((q) => ({ x: ox + (q.x + a.dx) * s, y: oy + (q.y + a.dy) * s }));
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className={cls} role="img" aria-label={label ?? 'The pieces for this step'}>
@@ -158,11 +165,15 @@ export function SewPicture({ picture, pieces, lays, flat, label, still }: { pict
             {!picture.darts && a.pc.lines.map((ln, j) => <path key={j} d={line(f(ln.points(8)))} className="sp-mark" />)}
             {picture.darts && a.pc.lines.map((ln, j) => (isDart(ln) ? <Stitch key={j} d={line(f(ln.points(8)))} delay={j * 0.2} /> : <path key={j} d={line(f(ln.points(8)))} className="sp-mark" />))}
             {picture.around?.includes(picture.pieces[k]) && <Stitch d={outline} delay={k * 0.3} />}
-            {runs(a.pc, picture.edges).map((r, j) => (
+            {runs(a.pc, picture.edgesOn?.[picture.pieces[k]] ?? picture.edges).map((r, j) => (
               <Stitch key={j} d={line(f(r))} delay={k * 0.3} />
             ))}
-            <text x={ox + (a.x + a.w / 2) * s} y={Math.min(H - 1.5, oy + a.h * s + 5)} textAnchor="middle">
-              {a.pc.name.toUpperCase()}
+            <text x={ox + (a.x + a.w / 2) * s} y={Math.min(H - 1.5 - (names[k].length - 1) * 4.2, oy + a.h * s + 5)} textAnchor="middle">
+              {names[k].map((w, j) => (
+                <tspan key={j} x={ox + (a.x + a.w / 2) * s} dy={j ? 4.2 : 0}>
+                  {w}
+                </tspan>
+              ))}
             </text>
           </g>
         );

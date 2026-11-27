@@ -79,4 +79,31 @@ describe('the picture for each sewing step', () => {
     const pleated = piece('Skirt front', ['waist', 'side', 'hem', 'fold'], { lines: [new Path(p(10, 0)).line(p(10, 60))] });
     expect(stepPicture({ title: 'Fold and baste the pleats', text: '' }, [pleated, back])).toEqual({ kind: 'sew', pieces: [0], edges: [], darts: false });
   });
+
+  // The Ice Peplum's Sewing mode pictures didn't match their steps (pretend tester EJ walk, Nov 27).
+  describe('a princess top with a peplum', () => {
+    const top = [
+      piece('Bodice centre front', ['neck', 'princess', 'hem', 'fold']),
+      piece('Bodice side front', ['shoulder', 'side', 'hem', 'princess']),
+      piece('Bodice centre back', ['neck', 'princess', 'hem', 'centre']),
+      piece('Bodice side back', ['shoulder', 'side', 'hem', 'princess']),
+      piece('Neck ruffle', ['neck', 'end', 'ruffle', 'fold'], { kind: 'collar' }),
+      piece('Peplum front', ['waist', 'side', 'hem', 'fold']),
+      piece('Peplum back', ['waist', 'side', 'hem', 'centre']),
+    ];
+    const pic = (title: string, text = '') => stepPicture({ title, text }, top);
+    it('sews the princess seams on the four panels, not the centre back its words name', () => {
+      expect(pic('Sew the princess seams', 'Pin each side front to the centre front, and each side back to the centre back.')).toMatchObject({ pieces: [0, 1, 2, 3], edges: ['princess'] });
+    });
+    it("leaves the peplum's side seams and the ruffle to their own steps", () => {
+      expect(pic('Sew the side seams', 'Pin the front to the back at the sides.')).toMatchObject({ pieces: [1, 3], edges: ['side'] });
+      expect(pic('Bind the neckline', 'Pin a strip to the neckline.')).toMatchObject({ pieces: [0, 2], edges: ['neck'] });
+    });
+    it("attaches the peplum's waist to the bodice's lower edge, the front half", () => {
+      expect(pic('Attach the peplum', "Pin the peplum to the bodice's lower edge.")).toEqual({ kind: 'sew', pieces: [0, 1, 5], edges: [], darts: false, edgesOn: { 0: ['hem'], 1: ['hem'], 5: ['waist'] } });
+    });
+    it('still shows a peplum or ruffle the step names', () => {
+      expect(pic('Make the peplum', 'Sew the peplum side seams.')).toMatchObject({ pieces: [5, 6] });
+    });
+  });
 });
