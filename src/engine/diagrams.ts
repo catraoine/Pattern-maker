@@ -38,7 +38,7 @@ export interface Diagram {
   h: number;
   parts: DiagramPart[];
   /** Small capitals on the drawing: the pattern's own marks (BACK POCKET) and which side is up. */
-  notes?: { at: P; text: string; end?: boolean }[];
+  notes?: { at: P; text: string; end?: boolean; mid?: boolean }[];
   /** What it shows, for screen readers and under the drawing in print. */
   caption: string;
 }
@@ -72,7 +72,7 @@ export function arrow(pts: P[], kind: PartKind = 'edge'): DiagramPart[] {
 /** Hand stitches: short separate strokes from each point of `from` to the matching point of `to`. */
 const strokes = (from: P[], to: P[]): DiagramPart[] => from.map((a, i) => line('hand', a, to[i]));
 
-export const range = (a: number, b: number, step: number) => Array.from({ length: Math.floor((b - a) / step) + 1 }, (_, i) => a + i * step);
+const range = (a: number, b: number, step: number) => Array.from({ length: Math.floor((b - a) / step) + 1 }, (_, i) => a + i * step);
 
 /** A seam pressed open, seen from the inside: the two allowances either side of the seam line. */
 function pressedOpen(edge: (x: number, side: -1 | 1) => DiagramPart[]): DiagramPart[] {

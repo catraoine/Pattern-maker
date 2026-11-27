@@ -8,7 +8,7 @@ export function StepDiagram({ id, dg = DIAGRAMS[id!] }: { id?: DiagramId; dg?: D
         <path key={i} d={pt.pts.map((q, j) => `${j ? 'L' : 'M'}${q.x.toFixed(2)},${q.y.toFixed(2)}`).join('') + (pt.closed ? 'Z' : '')} className={`dg-${pt.kind}`} />
       ))}
       {dg.notes?.map((n, i) => (
-        <text key={i} x={n.at.x} y={n.at.y} textAnchor={n.end ? 'end' : n.at.x === 20 ? 'middle' : 'start'} className="dg-note">
+        <text key={i} x={n.at.x} y={n.at.y} textAnchor={n.end ? 'end' : n.mid || n.at.x === 20 ? 'middle' : 'start'} className="dg-note">
           {n.text}
         </text>
       ))}

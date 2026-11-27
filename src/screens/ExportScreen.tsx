@@ -18,6 +18,8 @@ import { LayPlanView } from '../ui/LayPlanView';
 import type { Flat } from '../engine/flat';
 import { TechFlatView } from '../ui/TechFlatView';
 import { StepDiagram } from '../ui/StepDiagram';
+import { stepFrames } from '../engine/stepFrames';
+import { stepLines } from '../engine/stepLines';
 import { takeFabricReturn } from '../ui/printReturn';
 import { SewPicture } from '../ui/SewPicture';
 import { stepPicture } from '../engine/stepPictures';
@@ -902,7 +904,19 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
               <li key={st.title}>
                 <strong>{st.title}</strong>
                 <p>{inCm(st.text)}</p>
-                {st.diagram && <StepDiagram id={st.diagram} />}
+                {/* The trickier steps' close-ups, numbered in the order the step's sentences come (Nov 27), in place of
+                    the step's one small drawing. */}
+                {stepFrames(st.title, stepLines(st.text)).length > 0 ? (
+                  <ol className="sewframes-row" aria-label={`Drawings for ${st.title}`}>
+                    {stepFrames(st.title, stepLines(st.text)).map((d, k) => (
+                      <li key={k}>
+                        <StepDiagram dg={d} />
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  st.diagram && <StepDiagram id={st.diagram} />
+                )}
               </li>
             ))}
           </ol>

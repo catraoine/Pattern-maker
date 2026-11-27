@@ -678,44 +678,38 @@ details.sew:not([open]) > .sew-summary > .sew-list-head::after {
     animation: none;
   }
 }
-/* MOCK B and C (option sheet only) */
-.sewframes-strip {
+
+/* On Print's list, a trickier step's close-ups in a numbered row under its words. The list's own step numbers (round,
+   in a column of their own) are set on every li inside it, so the row's are set back here. */
+.sewsteps .sewframes-row {
+  grid-column: 2;
+  list-style: none;
+  counter-reset: frame;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 6px;
+  /* One to a row, so the small capitals on each stay 11 px or more on a phone. */
+  grid-template-columns: minmax(0, 420px);
+  gap: 10px;
+  padding: 0;
+  margin: 10px 0 0;
 }
-.sewframes-strip figure {
-  margin: 0;
-  position: relative;
-  outline: 1px solid transparent;
+.sewsteps .sewframes-row li {
+  counter-increment: frame;
+  display: grid;
+  grid-template-columns: none;
+  gap: 4px;
 }
-.sewframes-strip figure.on {
-  outline: 2px solid var(--gild);
-}
-.sewframes-strip .sew-num {
-  position: absolute;
-  left: 4px;
-  top: 2px;
-  font-size: 13px;
-}
-.sewframes-strip svg.stepdg {
-  padding: 2px;
-  width: 100%;
+.sewsteps .sewframes-row li::before {
+  content: counter(frame);
+  grid-row: auto;
+  width: auto;
   height: auto;
-}
-.sewframe-tag {
+  border: 0;
+  border-radius: 0;
+  justify-content: flex-start;
   color: var(--gild);
-  font-family: var(--mono);
-  margin-right: 6px;
 }
-.sewframe-beside {
-  background: #dcd5c7;
-  width: 100%;
-  max-width: 260px;
-  margin: 4px 0 6px;
-}
-.sewframe-beside svg.stepdg {
+.sewsteps .sewframes-row svg.stepdg {
   width: 100%;
   height: auto;
-  padding: 2px;
+  margin: 0;
 }

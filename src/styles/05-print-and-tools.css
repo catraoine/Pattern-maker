@@ -580,7 +580,7 @@ details.more[open] > summary h2::after {
 }
 .stepdg .dg-note {
   font-family: var(--mono);
-  font-size: 1.45px;
+  font-size: 1.6px;
   letter-spacing: 0.08em;
   fill: var(--ink);
 }

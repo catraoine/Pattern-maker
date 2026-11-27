@@ -107,14 +107,12 @@ export function SewingMode({ steps, pieces, lays, flat, title, keep, inCm, from,
   const step = steps[at];
   const last = at === steps.length - 1;
   const lines = stepLines(inCm(step.text));
-  // A trickier step has a close-up for each of its sentences: the picture shows the one for the first line not yet
-  // ticked, so it moves on as you tick, and the last once all are done.
+  // A trickier step has a close-up for each of its sentences (Cat's A Follows your tick, Nov 27): the picture shows the
+  // one for the first line not yet ticked, so it moves on as you tick, and the last once all are done.
   const frames = framesFor(step.title, lines);
   const todo = lines.findIndex((ln, i) => !isNote(ln) && !(ticks[at] ?? []).includes(i));
   const now = todo >= 0 ? todo : lines.length - 1;
-  const variant = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('frames') ?? 'a' : 'a';
-  const firstOf = (i: number) => !!frames && (i === 0 || frames[i] !== frames[i - 1]);
-  const distinct = frames ? [...new Set(frames)] : [];
+
   return createPortal(
     <div className="sewmode" role="dialog" aria-modal="true" aria-label={`Sewing your ${title}`} ref={box} tabIndex={-1}>
       <div className="sewmode-top">
@@ -132,27 +130,16 @@ export function SewingMode({ steps, pieces, lays, flat, title, keep, inCm, from,
         ))}
       </div>
       <div className="sewmode-body">
-        {/* Keyed by step, so each picture starts its drawing afresh. */}
-        {frames && variant === 'b' ? (
-          <div className="sewmode-pic sewframes-strip" key={at}>
-            {distinct.map((d, k) => (
-              <figure key={k} className={d === frames[now] ? 'on' : undefined}>
-                <span className="sew-num">{k + 1}</span>
-                <StepDiagram dg={d} />
-              </figure>
-            ))}
-          </div>
-        ) : frames && variant === 'c' ? null : (
-          <div className="sewmode-pic" key={frames ? `${at}-${now}` : at}>
-            {frames ? (
-              <div className="sewpic sewpic-diagram sewframe">
-                <StepDiagram dg={frames[now]} />
-              </div>
-            ) : (
-              <SewPicture picture={pictures[at]} pieces={pieces} lays={lays} flat={flat} label={step.title} />
-            )}
-          </div>
-        )}
+        {/* Keyed by the line too, so each close-up fades in as the line before it is ticked (Cat's A, Nov 27). */}
+        <div className="sewmode-pic" key={frames ? `${at}-${now}` : at}>
+          {frames ? (
+            <div className="sewpic sewpic-diagram sewframe">
+              <StepDiagram dg={frames[now]} />
+            </div>
+          ) : (
+            <SewPicture picture={pictures[at]} pieces={pieces} lays={lays} flat={flat} label={step.title} />
+          )}
+        </div>
         <div className="sewmode-words">
           {/* Step and title on one line in the heading capitals, the number in champagne (Cat's A, Nov 21). */}
           <h2 className="sewmode-title" aria-live="polite">
@@ -163,15 +150,12 @@ export function SewingMode({ steps, pieces, lays, flat, title, keep, inCm, from,
           <ul className="sew-lines" aria-label="Tick each one as you do it">
             {lines.map((line, i) => {
               const on = (ticks[at] ?? []).includes(i);
-              const tag = frames && variant === 'b' && firstOf(i) ? <span className="sewframe-tag">{distinct.indexOf(frames[i]) + 1}</span> : null;
-              const pic = frames && variant === 'c' && firstOf(i) ? <div className="sewframe-beside"><StepDiagram dg={frames[i]} /></div> : null;
               if (isNote(line)) return <li key={`${at}-${i}`} className="note">{line}</li>;
               return (
                 <li key={`${at}-${i}`} className={on ? 'done' : undefined}>
-                  {pic}
                   <label>
                     <input type="checkbox" checked={on} onChange={() => tick(i)} />
-                    <span>{tag}{line}</span>
+                    <span>{line}</span>
                   </label>
                 </li>
               );
