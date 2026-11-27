@@ -1088,7 +1088,7 @@ function addSewingPages(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', 
     else if (s.diagram) drawDiagram(s.diagram);
   });
 
-  /** A trickier step's close-ups (Nov 27), two to a row under its words, each numbered in the step's order. Two to a
+  /** A trickier step's close-ups (Nov 27), two to a row under its words, in the step's order. Unnumbered: a number beside each read as a sentence number that matched nothing (EJ cold read, Nov 27). Two to a
    *  row keeps their small capitals near 8 pt; three to a row made them 5 pt, too small to read beside the machine. */
   function drawFrames(frames: Diagram[]) {
     const k = 5.3;
@@ -1100,7 +1100,6 @@ function addSewingPages(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', 
       room(tall + 14);
       row.forEach((d, j) => {
         const x = 2 * CM + 18 + j * (42 * k + gap);
-        drawText(st.page, String(r + j + 1), { x: x - 9, y: st.y - 8, size: 8, font: fonts.label, worded: true });
         drawDiagramAt(d, x, st.y, k);
       });
       st.y -= tall + 12;
