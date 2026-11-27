@@ -751,6 +751,23 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- asks once each time Print is opened without the arms
   }, [step, armsToAsk.length]);
 
+  // What a piece's current design is drafted from beyond its own list: a top that goes below the waist needs the hips,
+  // and one with sleeves the arms. Making the look asks for them, but a piece carried on after a reload or Welcome back
+  // was measured from its own list alone, and Style then stopped at "Add your full hip and waist to hip" with no way on
+  // (EI stills, Nov 26). So carrying on asks for them too.
+  const designNeeds = (g: Garment, v: MeasurementValues = measured): MeasurementId[] => {
+    const choices = GARMENT_DRAFTING[g].choices(saved) as never;
+    return [...lookHipMissing({ choices }, v), ...lookArmsMissing({ choices }, v)];
+  };
+  // And Style, however it is reached without them, asks for the hips first, as Print does for the arms.
+  const hipToAsk = lookHipMissing({ choices: current }, measured);
+  useEffect(() => {
+    if (step !== 'style' || !hipToAsk.length) return;
+    openSteps({ kind: 'for', garment, also: hipToAsk });
+    setStepsNote('Your top goes below the waist, so it is drafted from your hips too: add them to style it.');
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- asks once each time Style is opened without the hips
+  }, [step, hipToAsk.length]);
+
   /** Switch whose measurements are in use, going back to measuring when theirs aren't done for this garment. */
   const switchPerson = (id: string, to: View = step) => {
     const who = account.people.find((p) => p.id === id) ?? person;
@@ -810,7 +827,7 @@ export default function App() {
       // Back after leaving partway through a piece's measurements: that piece's next page, not the garments again.
       const partway = !canLeaveMeasure && step === 'steps' && stepsPage === 'check' ? leftPartway(measured, form, (g) => skipFor(g, saved)) : undefined;
       if (partway) {
-        measureFor(partway, measured);
+        measureFor(partway, measured, form, designNeeds(partway));
         setStepsNote('Style and Print open once your measurements are in.');
         return;
       }
@@ -1097,6 +1114,7 @@ export default function App() {
               key={stepsStart.at}
               opening={stepsStart.at !== stepsShown.current}
               unused={(g) => skipFor(g, saved)}
+              asks={(g) => designNeeds(g)}
               named={(g) => (vestOf(g, saved) ? 'vest' : GARMENT_NAME[g])}
               testerCode={account.testerCode}
               start={stepsStart.start}

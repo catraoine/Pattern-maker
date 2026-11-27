@@ -32,6 +32,9 @@ export const neededFor = (garment: Garment, v: MeasurementValues, form?: FormKin
   ...BASE.map((id) => fieldsFor(garment, form, v).find((f) => f.id === id && !f.optional && !has(v, id))).filter((f): f is MeasurementField => !!f),
   ...missingFor(garment, v, form),
 ];
+/** The extras a garment asks only because of what has been typed (a top's across back and armhole, asked of a broad
+ *  upper body: see fieldsFor), still to take. */
+export const raisedFor = (garment: Garment, v: MeasurementValues, form?: FormKind) => missingFor(garment, v, form).filter((f) => !extrasFor(garment, form).some((e) => e.id === f.id)).map((f) => f.id);
 /** The piece whose own measurements were last being taken on this device, kept so that closing the app partway
  *  through and opening it again carries on with it. Closing it there lost the piece: Welcome back offered only "Choose
  *  what to make", and Style said to choose first (pretend-tester walk EH, Nov 25). A piece picked from the list isn't
