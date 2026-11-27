@@ -586,6 +586,15 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     else setPage({ ...page, at: at + 1 });
   };
 
+  // Back to the high bust from a page it added. Asked straight after it, that is a few pages back; after a reload the
+  // pages open on the one still to take, with no high bust page behind them, and going back left the app for Welcome
+  // (cold read EJ, Nov 27). Then it opens on its own, and Save comes back here.
+  const changeHighBust = () => {
+    const hb = ids.indexOf('high_bust');
+    if (hb >= 0 && hb < at && canGoBack()) window.history.go(-(at - hb));
+    else if (g) setPage({ kind: 'extra', garment: g, ids: ['high_bust'], at: 0, redo: true });
+  };
+
   // Who it is for, and the form: one quiet line over the first measurement of a fresh start, Change opening the two
   // switches in a window (Fable's concept A, Nov 15). Set before any number is typed, as the first page did.
   const fresh = page.kind === 'base' && !page.back && at === 0 && freshStart;
@@ -680,12 +689,14 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   return (
     <MeasurePage
       key={`${page.kind}-${id}`}
-      who={whoLine || (page.kind === 'extra' && page.added?.includes(id) && (
+      who={whoLine || (page.kind === 'extra' && page.added?.includes(id) && (values.high_bust ?? 0) >= (values.full_bust ?? Infinity) && (
         // On each page it added, with a way back to the high bust: a high bust typed for the full bust by mistake also
-        // asks for these, and the EH cold read found no way back to fix it from here (Nov 25).
+        // asks for these, and the EH cold read found no way back to fix it from here (Nov 25). The two numbers are named
+        // and the link sits in the sentence: "so your top also takes your armhole" read as nonsense, gave no numbers, and
+        // its link on a line of its own pushed Finish later under a 360 phone's edge (cold read EJ, Nov 27).
         <p className="extra-intro">
-          Your high bust is {(values.high_bust ?? 0) > (values.full_bust ?? 0) ? 'bigger than' : 'the same as'} your full bust, so your {named(g as Garment)} also takes your {page.added.map((m) => labelOf(m, form).toLowerCase()).join(' and ')}.{' '}
-          <button type="button" className="link" onClick={() => window.history.go(-(page.added!.indexOf(id) + 1))}>
+          Your high bust ({fmtMeasure('high_bust', values.high_bust!, unit)}) is {values.high_bust! > values.full_bust! ? 'more than' : 'the same as'} your bust ({fmtMeasure('full_bust', values.full_bust!, unit)}), so this {named(g as Garment)} needs your {page.added.map((m) => labelOf(m, form).toLowerCase()).join(' and ')} too, to fit across your upper body.{' '}
+          <button type="button" className="link inline-link" onClick={changeHighBust}>
             Change your high bust
           </button>
         </p>
@@ -1246,7 +1257,9 @@ export function MeasurePage({
             </button>
           )
         )}
-        <button type="submit" className="primary step-next">
+        {/* Quieter until a number is in: full gold over an empty line read as if Next would skip it (cold read EJ, Nov 27).
+            It still takes a tap, to say what it needs. */}
+        <button type="submit" className={value === undefined ? 'primary step-next waiting' : 'primary step-next'}>
           {label}
         </button>
       </form>

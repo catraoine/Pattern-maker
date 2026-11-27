@@ -218,7 +218,7 @@ export function Group({ label, tab, children, className, shaped }: { label: stri
   const [pick, setPick] = useState('');
   // Whether any choice here carries an In testing tag, so the question can say once what that means (clarity review A1,
   // Nov 22: three cold readers took the tag for a note we'd left for ourselves).
-  const [testing, setTesting] = useState(false);
+  const [testing, setTesting] = useState<false | 'picked' | 'other'>(false);
   // The picked choice's name, for the folded line: a picked chip, or any pressed button when there are none.
   // eslint-disable-next-line react-hooks/exhaustive-deps -- reads the page after every render; the check stops a loop
   useLayoutEffect(() => {
@@ -226,7 +226,9 @@ export function Group({ label, tab, children, className, shaped }: { label: stri
     const text = (el ? pickIn(el) : '') || (shaped ?? '');
     if (text !== pick) setPick(text);
     // Only this question's own tags: a question folded inside it says its own line.
-    const tagged = !!el && [...el.querySelectorAll(':scope > .fold-body .testing-tag')].some((tag) => tag.closest('fieldset') === el);
+    const tags = el ? [...el.querySelectorAll(':scope > .fold-body .testing-tag')].filter((tag) => tag.closest('fieldset') === el) : [];
+    // 'picked' when the look's own choice carries the tag; 'other' when only a choice it didn't make does.
+    const tagged = !tags.length ? false : tags.some((tag) => tag.closest('[aria-pressed="true"]')) ? 'picked' : 'other';
     if (tagged !== testing) setTesting(tagged);
   });
   const folds = !!fold && !solo && t !== PRO;
@@ -282,7 +284,9 @@ export function Group({ label, tab, children, className, shaped }: { label: stri
         {children}
         {/* On a collection look its In testing tags are the point: it is what the fit testers are sewing now, and the
             general line read as a warning about the tester's own piece (pretend tester EF walk, Nov 24). */}
-        {testing && <p className="testing-why">{look ? `In testing: the ${look} is what our fit testers are sewing now.` : TESTING_WHY}</p>}
+        {/* Only when the look's own choice is tagged: under a tag on Oversized alone, "the Ice Peplum Top is what our
+            fit testers are sewing now" read as if the whole top were in testing (cold read EJ, Nov 27). */}
+        {testing && <p className="testing-why">{look && testing === 'picked' ? `In testing: the ${look} is what our fit testers are sewing now.` : TESTING_WHY}</p>}
       </div>
     </fieldset>
   );

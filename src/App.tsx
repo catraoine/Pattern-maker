@@ -1575,7 +1575,7 @@ export default function App() {
           )}
           {step === 'sew' && !hasGarment(account, garment) && <UnlockGarment garment={garment} onPlans={openPlans} onBack={() => setStep('style')} />}
           {step === 'sew' && hasGarment(account, garment) && (
-            <SewScreen made={printable} title={title} keep={`${person.id}:${garment}`} onPrint={() => setStep('export')} onStyle={() => setStep('style')} tester={!!account.testerCode} />
+            <SewScreen made={printable} title={title} name={lookName ?? (vestOf(garment, saved) ? 'vest' : GARMENT_NAME[garment])} keep={`${person.id}:${garment}`} onPrint={() => setStep('export')} onStyle={() => setStep('style')} tester={!!account.testerCode} />
           )}
           {step === 'check' && (
             <CheckFileScreen

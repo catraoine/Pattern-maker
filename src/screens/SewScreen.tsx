@@ -22,6 +22,8 @@ const SewingMode = lazy(() => import('../ui/SewingMode').then((m) => ({ default:
 interface Props {
   made?: Printable;
   title: string;
+  /** What to call it in the line under the heading: the look's name, or the garment's. */
+  name?: string;
   /** Where this pattern's place is kept between visits. */
   keep: string;
   /** To Print, for the written steps and what you'll need. */
@@ -32,7 +34,7 @@ interface Props {
   tester?: boolean;
 }
 
-export function SewScreen({ made, title, keep: owner, onPrint, onStyle, tester }: Props) {
+export function SewScreen({ made, title, name = title, keep: owner, onPrint, onStyle, tester }: Props) {
   // Sewing mode, open on the kept step (undefined) or on one picked from the list.
   const [open, setOpen] = useState<{ from?: number }>();
   const steps = useMemo(() => made?.guide.steps ?? [], [made]);
@@ -70,7 +72,9 @@ export function SewScreen({ made, title, keep: owner, onPrint, onStyle, tester }
       <section className="card sew-card sewscreen" aria-labelledby="sewhead">
         {/* A modest heading and one guiding line, like Print's (Cat, Nov 3: big capitals for a whole choice jar). */}
         <h1 id="sewhead">Sew it</h1>
-        <p className="sew-guide">Your {title}, one step at a time.</p>
+        {/* By name: the whole description read "Your Low-rise barrel-leg trousers with ..., one step at a time" (cold
+            read EJ, Nov 27). */}
+        <p className="sew-guide">Your {name}, one step at a time.</p>
         {done ? (
           // Sewn to the end (DZ pretend-tester walk, Nov 21: it said "You stopped at step 17 of 17").
           <div className="sew-start sew-finished">
