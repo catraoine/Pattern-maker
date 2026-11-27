@@ -32,6 +32,33 @@ export const neededFor = (garment: Garment, v: MeasurementValues, form?: FormKin
   ...BASE.map((id) => fieldsFor(garment, form, v).find((f) => f.id === id && !f.optional && !has(v, id))).filter((f): f is MeasurementField => !!f),
   ...missingFor(garment, v, form),
 ];
+/** The extras a garment asks only because of what has been typed (a top's across back and armhole, asked of a broad
+ *  upper body: see fieldsFor), still to take. */
+export const raisedFor = (garment: Garment, v: MeasurementValues, form?: FormKind) => missingFor(garment, v, form).filter((f) => !extrasFor(garment, form).some((e) => e.id === f.id)).map((f) => f.id);
+/** The piece whose own measurements were last being taken on this device, kept so that closing the app partway
+ *  through and opening it again carries on with it. Closing it there lost the piece: Welcome back offered only "Choose
+ *  what to make", and Style said to choose first (pretend-tester walk EH, Nov 25). A piece picked from the list isn't
+ *  the saved garment until its measurements are in, so the saved garment can't say which it was. */
+const MEASURING_KEY = 'maison-trace-measuring-for';
+export const rememberMeasuringFor = (garment: Garment) => {
+  try {
+    localStorage.setItem(MEASURING_KEY, garment);
+  } catch {
+    // Storage off (a private window): opening again starts from the garments, as before.
+  }
+};
+/** That piece, while some of its own measurements are given and some are still to take. */
+export const leftPartway = (v: MeasurementValues, form: FormKind | undefined, skip: (g: Garment) => readonly MeasurementId[]): Garment | undefined => {
+  let garment: Garment | undefined;
+  try {
+    garment = (localStorage.getItem(MEASURING_KEY) as Garment | null) ?? undefined;
+  } catch {
+    return undefined;
+  }
+  if (!garment || !GARMENT_NAME[garment]) return undefined;
+  const own = extrasFor(garment, form, v).filter((f) => !skip(garment).includes(f.id));
+  return own.some((f) => has(v, f.id)) && own.some((f) => !has(v, f.id)) ? garment : undefined;
+};
 /** Whether anything has been measured yet: until then, measuring opens on the first-visit page. */
 export const begun = (v: MeasurementValues) => Object.keys(v).some((id) => has(v, id as MeasurementId));
 export const baseDone = (v: MeasurementValues) => TAPE_BASE.every((id) => has(v, id));

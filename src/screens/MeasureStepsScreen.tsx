@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { FIELDS, checkMeasurements, type Check, type FormKind, type Garment, type MeasurementId, type MeasurementValues, type Unit } from '../measurements';
-import { BASE, baseDone, begun, fieldOf, fullSetMissing, GARMENT_NAME, GARMENTS, labelOf, mistakesOf, neededFor, seatedOf, stepsOf, stringOf, tipOf, titleOf } from '../measureFlow';
+import { BASE, baseDone, begun, fieldOf, fullSetMissing, GARMENT_NAME, GARMENTS, labelOf, leftPartway, mistakesOf, rememberMeasuringFor, neededFor, raisedFor, seatedOf, stepsOf, stringOf, tipOf, titleOf } from '../measureFlow';
 import { WEIGHT_HARD, WeightEntry, fromKg, weightUnitOf } from '../ui/WeightEntry';
 import { HowClip } from '../ui/HowClip';
 import { FormPicture, HEAD_TOP, labelLevel, readCamera, TapeDemo } from '../ui/ContourForm';
@@ -62,6 +62,9 @@ interface Props {
   onIdea?: (choices: PatternChoices) => void;
   /** What the garment's current design doesn't draft from, so it isn't asked (a vest's arms). */
   unused?: (g: Garment) => MeasurementId[];
+  /** What the garment's current design takes beyond its own list, still to take (a peplum top's hips): asked when a piece
+   *  is carried on, as making the look asks it. */
+  asks?: (g: Garment) => MeasurementId[];
   /** The garment's name for its current design ("vest" for a jacket without sleeves). */
   named?: (g: Garment) => string;
   /** "Or start from a photo" on the describe page. */
@@ -126,11 +129,21 @@ const toTake = (values: MeasurementValues, id: MeasurementId) => {
   return x === undefined || Number.isNaN(x) || (!!f?.hard && (x < f.hard[0] || x > f.hard[1]));
 };
 
-export function MeasureStepsScreen({ testerCode, garment: current, unit, values, onUnit, onValues, helped = [], weight, onWeight, onDone, start, opening, onSomeoneElse, onAskThem, onKeepSafe, theirs, theirName, onSkip, onLater, form = 'womenswear', onForm, onIdea, onPhoto, onLooks, onMade, onNews, onPage, unused = () => [], named = (g) => GARMENT_NAME[g] }: Props) {
+export function MeasureStepsScreen({ testerCode, garment: current, unit, values, onUnit, onValues, helped = [], weight, onWeight, onDone, start, opening, onSomeoneElse, onAskThem, onKeepSafe, theirs, theirName, onSkip, onLater, form = 'womenswear', onForm, onIdea, onPhoto, onLooks, onMade, onNews, onPage, unused = () => [], asks = () => [], named = (g) => GARMENT_NAME[g] }: Props) {
   const aimed = start?.kind === 'for' ? start.garment : undefined;
+  // Opened again after leaving partway through a piece's measurements: the list carries on with that piece.
+  const carryOn = aimed ?? (!start || start.kind === 'resume' ? leftPartway(values, form, unused) : undefined);
   // Opened afresh for a garment, a redo, the form or the garments (not a reload, and not stepped back into): its own
   // first page, not the one this history entry remembers from before.
   const [newOpening] = useState(() => !!opening && !!start && start.kind !== 'resume');
+  // A piece's own pages. What the numbers already typed ask for (a broad upper body's across back and armhole) comes
+  // first, with its line saying why, as when it is asked straight after the high bust: met afresh, the two sat at the
+  // list's end with no reason given (EI stills, Nov 26).
+  const piecePage = (g: Garment, own: MeasurementId[]): Page => {
+    const ids = [...own, ...asks(g)].filter((id, i, a) => a.indexOf(id) === i && !unused(g).includes(id));
+    const added = raisedFor(g, values, form).filter((id) => ids.includes(id));
+    return { kind: 'extra', garment: g, ids: [...added, ...ids.filter((id) => !added.includes(id))], at: 0, ...(added.length ? { added } : {}) };
+  };
   // Each page is a history entry, so the header's back and the phone's back go one page back.
   const [page, setPage] = usePageHistory<Page>(() => {
     if (start?.kind === 'redo') return { kind: 'extra', garment: start.garment, ids: start.ids, at: 0, redo: true };
@@ -140,6 +153,11 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     // A reload, or the phone dropping the tab mid-measuring: the page still to take, not the first page again
     // (tester journey, Nov 11). Every number typed so far is already kept.
     if (start?.kind === 'resume') {
+      // Partway through a piece's own measurements: back on the one still to take, as on the base pages (a reload on
+      // the Ice Peplum's armhole page opened the check instead, with no word of the top, EI stills, Nov 26).
+      const partway = baseDone(values) ? leftPartway(values, form, unused) : undefined;
+      const left = partway ? neededFor(partway, values, form).map((f) => f.id).filter((id) => !unused(partway).includes(id)) : [];
+      if (partway && left.length) return piecePage(partway, left);
       if (baseDone(values)) return { kind: 'check' };
       return { kind: 'base', at: Math.max(0, BASE.findIndex((m) => toTake(values, m))) };
     }
@@ -150,13 +168,18 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     // `also`: more the design needs beyond the garment's own list (a collection top's sleeves need the arms).
     const also = start?.kind === 'for' ? (start.also ?? []).filter((id) => values[id] === undefined) : [];
     const ids = aimed ? [...neededFor(aimed, values, form).map((f) => f.id), ...also].filter((id, i, a) => a.indexOf(id) === i && !unused(aimed).includes(id)) : [];
-    return ids.length ? { kind: 'extra', garment: aimed!, ids, at: 0, ...(start?.kind === 'for' && start.then ? { then: start.then } : {}) } : { kind: 'check' };
+    return ids.length ? { ...piecePage(aimed!, ids), ...(start?.kind === 'for' && start.then ? { then: start.then } : {}) } : { kind: 'check' };
     // A remembered first page (from before Nov 15, when there was one) opens as if afresh. So does a remembered base
     // page once the base measurements are in (back from the collection, Nov 11): this screen's first entry is the
     // waist, and coming back to it opens on the list or the check instead. Mending one from the check is kept.
   }, (s) => typeof s === 'object' && s !== null && 'kind' in s && (s as { kind: string }).kind !== 'intro' && !((s as Page).kind === 'base' && !(s as { back?: string }).back && baseDone(values)), newOpening);
   // eslint-disable-next-line react-hooks/exhaustive-deps -- reports each page change; the parent's callback is new every render
   useEffect(() => onPage?.(page.kind), [page.kind]);
+  // The piece being measured for, kept on this device until its measurements are in.
+  const measuringFor = page.kind === 'extra' && !page.redo && page.garment !== 'other' ? page.garment : undefined;
+  useEffect(() => {
+    if (measuringFor) rememberMeasuringFor(measuringFor);
+  }, [measuringFor]);
   // The second tap of a double tap lands on the page the first one opened, where another button may sit under the
   // finger. On the check page it opened the waist again (nightly bug hunt, Nov 21); on the measuring steps it hit Finish
   // later (home, looking like everything was lost), said "Enter your full bust to carry on" before anything was typed,
@@ -226,7 +249,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   const go = (g: Pick) => {
     if (g === 'other') return setPage({ kind: 'describe' });
     const ids = neededFor(g, values, form).map((f) => f.id).filter((id) => !unused(g).includes(id));
-    if (ids.length) setPage({ kind: 'extra', garment: g, ids, at: 0 });
+    if (ids.length) setPage(piecePage(g, ids));
     else onDone(g);
   };
   // On "What would you like to make?" a tap is the choice: the tile lights for a blink, so the tap reads as
@@ -333,7 +356,8 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     : (Object.keys(values) as MeasurementId[])
         .filter((id) => !BASE.includes(id) && toTake(values, id) && values[id] !== undefined)
         .map((id) => {
-          const g = GARMENTS.find((x) => FIELDS[x].some((f) => f.id === id));
+          // (Named for the piece being measured where it takes it: the first garment that does titled a top's fix "Dress", EI walk, Nov 26.)
+          const g = [carryOn, current, ...GARMENTS].find((x): x is Garment => !!x && FIELDS[x].some((f) => f.id === id));
           const c = g && checkMeasurements(values, unit, g, form).find((x) => x.id === id && x.level === 'error');
           return g && c ? { garment: g, check: c } : undefined;
         })
@@ -373,8 +397,8 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
           <button type="button" className="primary" onClick={() => setPage({ kind: 'extra', garment: otherWrong.garment, ids: [otherWrong.check.id], at: 0, redo: true })}>
             Check {fieldOf(otherWrong.check.id).label.toLowerCase()}
           </button>
-        ) : aimed ? (
-          <button type="button" className="primary" onClick={() => go(aimed)}>
+        ) : carryOn ? (
+          <button type="button" className="primary" onClick={() => go(carryOn)}>
             Continue measuring
           </button>
         ) : (
