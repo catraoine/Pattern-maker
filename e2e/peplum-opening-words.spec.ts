@@ -20,4 +20,7 @@ test('the Ice Peplum Top names its opening as buttons and loops', async ({ page 
   }
   await expect(loops).toBeVisible();
   await expect(main.getByRole('button', { name: /^Back zip\b/ })).toHaveCount(0);
+  // And the line under the choices: it still said "A zip down the centre back" (EI stills, Nov 26).
+  await expect(main.locator('.explain').filter({ visible: true }).first()).toContainText(/buttons and loops/i);
+  await expect(main.locator('.explain').filter({ hasText: /\bzip\b/i })).toHaveCount(0);
 });
