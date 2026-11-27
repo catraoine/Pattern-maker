@@ -978,7 +978,9 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
             dress (tester persona walk, Nov 15; Cat, Nov 14: "How come not showing in colour"). */}
         {flat && (
           <GarmentFabric fabric={fabric}>
-            <Envelope house={false} name={Name} flat={flat} foot="Drafted to you" />
+            {/* On the example body it isn't drafted to the maker yet: the look page said "Drafted to you" over the example's
+                numbers, while Print said "Drafted to an example body" (bug hunt journey, Nov 27). */}
+            <Envelope house={false} name={Name} flat={flat} foot={exampleTag ? 'Drafted to an example body' : 'Drafted to you'} />
           </GarmentFabric>
         )}
         {/* Changing it sits right under the drawing, where the eye is. */}
