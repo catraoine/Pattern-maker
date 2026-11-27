@@ -20,7 +20,9 @@ import type { Unit } from '../measurements';
 import { inCm, inInches } from '../units';
 import { type Lay, hideSqFt, layWords } from './layplan';
 import type { Flat } from './flat';
-import { DIAGRAMS, DiagramId } from './diagrams';
+import { DIAGRAMS, type Diagram, DiagramId } from './diagrams';
+import { stepFrames } from './stepFrames';
+import { stepLines } from './stepLines';
 import { P } from './geometry';
 import { CODE_CARD_BOTTOM, Face, OVERLAP, PAGE_MARGIN, Paper, type Prim, STYLES, Sheet, joinMarks, pageName, pageSize, textCorners, tileGrid, usedTiles } from './export';
 
@@ -1076,33 +1078,65 @@ function addSewingPages(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', 
   guide.steps.forEach((s, i) => {
     // A step's heading was left alone at the foot of a page (pretend-tester walk, Nov 17): its words, which never split,
     // had gone over to the next. The heading goes over with them.
-    room(11 * 1.35 + 2 + wrap(s.text, 10, fonts.body).length * 10 * 1.35);
+    // A step with close-ups keeps its words and their first row of drawings on one page.
+    const frames = stepFrames(s.title, stepLines(s.text));
+    room(11 * 1.35 + 2 + wrap(s.text, 10, fonts.body).length * 10 * 1.35 + (frames.length ? 24 * 5.3 + 14 : 0));
     write(`${i + 1}. ${s.title}`, 11, fonts.bodyMedium, 0, 2);
     write(s.text, 10, fonts.body, 18, 8);
-    if (s.diagram) drawDiagram(s.diagram);
+    // The close-ups take the place of the step's one small drawing.
+    if (frames.length) drawFrames(frames);
+    else if (s.diagram) drawDiagram(s.diagram);
   });
 
-  /** A step's small drawing, under its words: black lines, the cloth in light grey. */
-  function drawDiagram(id: DiagramId) {
-    const dg = DIAGRAMS[id];
-    const k = 3.2; // points per unit: 40 units is about 4.5 cm
-    room(dg.h * k + 10);
-    const x = 2 * CM + 18;
-    const y = st.y;
+  /** A trickier step's close-ups (Nov 27), two to a row under its words, each numbered in the step's order. Two to a
+   *  row keeps their small capitals near 8 pt; three to a row made them 5 pt, too small to read beside the machine. */
+  function drawFrames(frames: Diagram[]) {
+    const k = 5.3;
+    const gap = 10;
+    const across = 2;
+    for (let r = 0; r < frames.length; r += across) {
+      const row = frames.slice(r, r + across);
+      const tall = Math.max(...row.map((d) => d.h)) * k;
+      room(tall + 14);
+      row.forEach((d, j) => {
+        const x = 2 * CM + 18 + j * (42 * k + gap);
+        drawText(st.page, String(r + j + 1), { x: x - 9, y: st.y - 8, size: 8, font: fonts.label, worded: true });
+        drawDiagramAt(d, x, st.y, k);
+      });
+      st.y -= tall + 12;
+    }
+  }
+
+  /** One drawing with its top left corner at (x, y), `k` points to a unit, its small capitals in the label face. */
+  function drawDiagramAt(dg: Diagram, x: number, y: number, k: number) {
     for (const pt of dg.parts) {
       const d = pt.pts.map((q, j) => `${j ? 'L' : 'M'}${(q.x * k).toFixed(2)} ${(q.y * k).toFixed(2)}`).join(' ') + (pt.closed ? ' Z' : '');
       const fill = pt.kind === 'cloth' ? rgb(0.95, 0.95, 0.95) : pt.kind === 'fold' ? rgb(0.86, 0.86, 0.86) : undefined;
-      const dash = pt.kind === 'machine' ? [2, 1.2] : pt.kind === 'thread' ? [6, 3] : pt.kind === 'under' ? [1.5, 1.5] : undefined;
+      const dash = pt.kind === 'machine' ? [2, 1.2] : pt.kind === 'thread' ? [6, 3] : pt.kind === 'under' ? [1.5, 1.5] : pt.kind === 'chalk' ? [1, 1.4] : undefined;
       const grey = pt.kind === 'under' ? 0.55 : 0;
       st.page.drawSvgPath(d, {
         x,
         y,
         color: pt.closed ? fill : undefined,
         borderColor: rgb(grey, grey, grey),
-        borderWidth: pt.kind === 'hand' || pt.kind === 'thread' ? 0.9 : pt.kind === 'cloth' || pt.kind === 'fold' ? 0.6 : 0.7,
+        borderWidth: pt.kind === 'hand' || pt.kind === 'thread' ? 0.9 : pt.kind === 'cloth' || pt.kind === 'fold' ? 0.6 : pt.kind === 'chalk' ? 0.5 : 0.7,
         borderDashArray: dash,
       });
     }
+    for (const n of dg.notes ?? []) {
+      const size = 1.45 * k;
+      // drawText centres on its own; a note set to end at its point is moved back by its width.
+      const w = n.end ? fonts.label.widthOfTextAtSize(n.text, size) + 0.08 * size * (n.text.length - 1) : 0;
+      drawText(st.page, n.text, { x: x + n.at.x * k - w, y: y - n.at.y * k, size, font: fonts.label, tracking: 0.08, grey: 0.25, worded: true, centre: n.mid });
+    }
+  }
+
+  /** A step's small drawing, under its words: black lines, the cloth in light grey. */
+  function drawDiagram(id: DiagramId) {
+    const dg = DIAGRAMS[id];
+    const k = 3.2; // points per unit: 40 units is about 4.5 cm
+    room(dg.h * k + 10);
+    drawDiagramAt(dg, 2 * CM + 18, st.y, k);
     st.y -= dg.h * k + 12;
   }
 }

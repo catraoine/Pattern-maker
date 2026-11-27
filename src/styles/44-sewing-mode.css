@@ -663,3 +663,53 @@ details.sew:not([open]) > .sew-summary > .sew-list-head::after {
   flex-direction: column;
   gap: 12px;
 }
+
+/* Close-ups for the trickier steps: the drawing for the line you are on, fading in as you tick the one before. */
+.sewframe svg.stepdg {
+  animation: sewframe-in 320ms ease-out both;
+}
+@keyframes sewframe-in {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sewframe svg.stepdg {
+    animation: none;
+  }
+}
+
+/* On Print's list, a trickier step's close-ups in a numbered row under its words. The list's own step numbers (round,
+   in a column of their own) are set on every li inside it, so the row's are set back here. */
+.sewsteps .sewframes-row {
+  grid-column: 2;
+  list-style: none;
+  counter-reset: frame;
+  display: grid;
+  /* One to a row, so the small capitals on each stay 11 px or more on a phone. */
+  grid-template-columns: minmax(0, 420px);
+  gap: 10px;
+  padding: 0;
+  margin: 10px 0 0;
+}
+.sewsteps .sewframes-row li {
+  counter-increment: frame;
+  display: grid;
+  grid-template-columns: none;
+  gap: 4px;
+}
+.sewsteps .sewframes-row li::before {
+  content: counter(frame);
+  grid-row: auto;
+  width: auto;
+  height: auto;
+  border: 0;
+  border-radius: 0;
+  justify-content: flex-start;
+  color: var(--gild);
+}
+.sewsteps .sewframes-row svg.stepdg {
+  width: 100%;
+  height: auto;
+  margin: 0;
+}
