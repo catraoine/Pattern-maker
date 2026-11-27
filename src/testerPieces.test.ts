@@ -475,3 +475,33 @@ describe('the Black Pleated Skirt neatens every seam it joins', () => {
     expect(step(p, 'Neaten the edges')).toContain('Neaten the panel seam edges as well, on the front, the back and each side panel.');
   });
 });
+
+describe('tester pieces: the maker pack table', () => {
+  it("a curved waistband's row gives the band as it is cut: twice, 6 cm wide, not the folded straight band's 9", () => {
+    for (const id of ['black-pleated-skirt', 'chocolate-barrel'])
+      for (const body of Object.values(BODIES)) {
+        const p = made(id, body);
+        const band = piece(p.pieces, 'Waistband');
+        const rows = p.spec.filter((r) => /^Waistband/.test(r.label));
+        expect(rows).toHaveLength(1);
+        if (band.meta.curved) {
+          // The piece is the finished width plus a seam allowance on each long edge.
+          const wide = (band.meta.finishedWidth as number) + 2 * band.seamAllowance;
+          expect(band.cut).toMatch(/^Cut 2/);
+          expect(rows[0].label).toBe('Waistband, curved (finished width 3)');
+          expect(rows[0].finished).toMatch(/^cut 2, band and facing, each [\d.]+ at the waist seam x [\d.]+$/);
+          expect(Number(String(rows[0].finished).split(' x ')[1])).toBe(wide);
+        } else {
+          // Folded: twice the finished width, plus a seam allowance on each long edge.
+          expect(rows[0].finished).toMatch(/^cut [\d.]+ x [\d.]+$/);
+          expect(Number(String(rows[0].finished).split(' x ')[1])).toBe(2 * 3 + 2 * band.seamAllowance);
+        }
+      }
+    // The test would prove nothing if no tester piece had a curved band.
+    expect(piece(made('chocolate-barrel', BODIES.middle).pieces, 'Waistband').meta.curved).toBe(true);
+  });
+
+  it('the slant pocket row says centimetres, so "4 in" is not read as inches', () => {
+    for (const body of Object.values(BODIES)) expect(made('chocolate-barrel', body).spec.find((r) => r.label === 'Slant pockets')!.finished).toBe('opening 4 cm in from the side seam, 17 cm down');
+  });
+});
