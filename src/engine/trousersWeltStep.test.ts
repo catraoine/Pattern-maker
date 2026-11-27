@@ -37,4 +37,10 @@ describe('the welt and facing are stitched on the box lines', () => {
     expect(text).toContain("Lay it on the front below its box, raw edges toward the box, with its stitching line on the box's lower line");
     expect(text).toContain("Lay a pocket facing above the box, raw edge toward it, with its stitching line on the box's upper line");
   });
+  it('in a coat chest pocket', () => {
+    const d = draftOuter(EXAMPLE_BODY as never, { kind: 'coat', chest: 'welt' } as never);
+    const text = outerGuide(d, 2, {}).steps.find((s) => s.title === 'Make the chest pocket')!.text;
+    expect(text).toContain("Lay it below the box, raw edges toward the box, with its stitching line on the box's lower line");
+    expect(text).toContain('Lay the facing above the box, raw edge toward it, with its stitching line on the upper line');
+  });
 });
