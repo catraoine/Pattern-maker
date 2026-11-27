@@ -37,7 +37,7 @@ import { DrawOnForm, armFor, formWidth } from '../ui/DrawOnForm';
 import { orSeam, readSeamLine } from '../ui/formSeams';
 import { bodiceHemLine, orNeckline, readBodiceHemShape, readUnevenNeckline, unevenNecklineLines } from '../ui/formBodice';
 import { FormLine, bodiceLines, landmarks, readDrape, readFit, readNeckline, readSeam } from '../ui/formLines';
-import { FABRIC, Group, InCorner, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
+import { FABRIC, Group, InCorner, OnFirstStep, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
 
 import { Mode, ProTool, shows } from '../mode';
 import { EaseMapView } from '../ui/EaseMapView';
@@ -87,7 +87,8 @@ interface Props {
 /** The engine's warnings are written for the pattern cutter; this turns the common ones into a nudge. */
 function friendly(w: string) {
   if (w.startsWith('shoulder width')) return 'Your shoulder width and shoulder length don’t quite agree. The pattern still drafts, but re-measuring both will make the shoulders fit better.';
-  if (w.startsWith('front length')) return 'Your front length came out shorter than your back length, which usually means a tape slip. It’s drafted with a little extra; please re-measure it.';
+  // Also said when the two are equal, so "shorter" was wrong for them (EG walk, Nov 24).
+  if (w.startsWith('front length')) return 'Your front length is no longer than your back length. It’s usually a few cm longer, as it goes over the bust, so this often means a tape slip. It’s drafted with a little extra; please re-measure it.';
   // The closer-fit measurements, named, so the person knows which page to go back to (the readiness check, 2026-11-02).
   if (w.startsWith('front shoulder slope')) return 'Your front shoulder slope doesn’t agree with your front length and shoulder width, so the shoulder is drafted at a standard slope. Please re-measure the front shoulder slope.';
   if (w.startsWith('back shoulder slope')) return 'Your back shoulder slope doesn’t agree with your back length and shoulder width, so the shoulder is drafted at a standard slope. Please re-measure the back shoulder slope.';
@@ -385,7 +386,9 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
                   onClick={() => choose({ ...choices, [g.id]: id }, g.id)}
                 >
                   <ChoicePic set="bodice" group={g.id} id={id} />
-                  {label}
+                  {/* The Ice Peplum closes with buttons and loops where the zip would go: Style said Back zip, and a tester
+                      buying notions from it would buy a zip (EG walk, Nov 24). */}
+                  {g.id === 'closure' && id === 'back_zip' && draft?.backLoops ? 'Back buttons and loops' : label}
                   {optionInTesting(g.id, id) && <TestingTag tool="new_details" />}
                   {oversizedInTesting(g.id, id) && <TestingTag tool="oversized" />}
                   {/* One In testing tag: the balloon carries its own. */}
@@ -577,11 +580,17 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
           </p>
         )}
         {view === 'flat' && <p className="muted small">The technical flat, front and back, drawn to scale.</p>}
-        {draft?.warnings.map((w) => (
-          <p key={w} className="msg small">
-            {friendly(w)}
-          </p>
-        ))}
+        {/* On the first step only, with the way to fix it: it stood over every step and wasn't on the page to mend it (EH walk). */}
+        <OnFirstStep>
+          {draft?.warnings.map((w) => (
+            <p key={w} className="msg small">
+              {friendly(w)}{' '}
+              <button type="button" className="link inline-link" onClick={onEditMeasurements}>
+                Edit measurements
+              </button>
+            </p>
+          ))}
+        </OnFirstStep>
       </section>
 
       <aside className="card" aria-labelledby="sum">

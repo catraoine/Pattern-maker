@@ -4,12 +4,12 @@ _Update this page whenever a release ships or a PR is queued._
 
 ## Now (Nov 21, 2026): how a ship works
 
-Live: **release EH** (Nov 25, Cat's 4:29 pm "ship"): an out-of-range measurement is marked Check on "Do these look
-right?" and Begin after Finish later comes back to it; a top's across back and armhole come straight after the high
-bust with a line saying why; Cat's clarity and comfort reviews (Download pattern in the phone's gold bar, bigger touch
-areas, pale seams on dark flats); the Ice Peplum drawings match its description; barrel trouser crotch sewn at 1 cm;
-low-rise curved waistbands can't overlap; oversized jacket armhole meets the side seam square; launch date Mar 18, 2027;
-on top of EG. Rollback = release EG. Releases CW to EH went out Nov 17 to 25;
+Live: **release EI** (Nov 26, Cat's 4:41 pm "ship"): the measuring list
+shows the number to check beside its reason, "Read 66 as inches" and one height format; a top on a broad upper body
+says "bigger than" or "the same as" with a link back to the high bust; the Ice Peplum opening reads "Back buttons and
+loops"; Style's measurement notes on the first step only; a skirt with its own length keeps its name; All round
+princess shoulders, French dart tails and diagonal hems; clarity fixes from the EH cold read; a busy tester email no
+longer uses up a day's send; on top of EH. Rollback = release EH. Releases CW to EI went out Nov 17 to 26;
 every release's commit, deploy id and rollback is in project memory (pattern-maker-releases-nov14), and the running list of what is
 ready is `/mnt/project-files/releases/ready-to-ship.md`.
 

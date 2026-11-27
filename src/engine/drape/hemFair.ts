@@ -7,10 +7,10 @@ import type { Draped } from './garment';
  *  (the Leopard Shirt Dress, bug hunt Nov 14). Each point is drawn toward its neighbours along the edge a few times over,
  *  which takes out ripples a few cm long and leaves the hem's own shape, tens of cm long, as it hung. A corner in the cut
  *  (the hem meeting the front edge or a split) stays where it is. */
-export function fairTorsoHem(d: Draped, passes = 8): void {
+export function fairTorsoHem(d: Draped, passes = 8, roles: readonly string[] = ['front', 'back']): void {
   for (const pos of [d.pos, d.posMirror].filter((p): p is Float64Array => !!p))
     for (const p of d.panels) {
-      if (p.hidden || (p.role !== 'front' && p.role !== 'back')) continue;
+      if (p.hidden || !roles.includes(p.role)) continue;
       for (const run of p.mesh.runs.hem ?? []) {
         if (run.length < 5) continue;
         const flat = run.map((i) => p.mesh.pts[i]);
@@ -34,4 +34,11 @@ export function fairTorsoHem(d: Draped, passes = 8): void {
         }
       }
     }
+}
+
+/** A skirt's diagonal or high-low hem, faired the same way. Cut on a slant right across the skirt, its edge crossed the mesh the
+ *  whole way round and settled as small saw-teeth, plainest in a crisp wool trumpet, whose flare holds every tooth out
+ *  (weekly eye check 2026-11-25). A level hem runs along the mesh and is left as it hung. */
+export function fairSkirtHem(d: Draped): void {
+  fairTorsoHem(d, 8, ['peplum-front', 'peplum-back']);
 }

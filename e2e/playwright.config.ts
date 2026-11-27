@@ -35,6 +35,11 @@ const SAFARI_GATE = [
 // (Nov 14), so it's the test machine, not the app. The same walks still run in Chromium on every PR.
 const SAFARI_LEFT_OUT = /a reload keeps your place|a printed pattern is kept in Saved patterns|a photo of your own fabric dresses the sketch|fresh visitor: welcome, measure, style every garment/;
 
+// Walks left out of the nightly Firefox check (Cat's card, Nov 25): they open the app as an iPad or a phone, and Firefox
+// has no phone or tablet mode (the test browser refuses to start one), so they failed every night. They are about Safari
+// on an iPhone and iPad, and still run in Safari and Chromium on every change.
+const FIREFOX_LEFT_OUT = /on an upright iPad|in the home-screen app, work from Safari/;
+
 export default defineConfig({
   testDir: '.',
   outputDir: '../test-results',
@@ -83,6 +88,7 @@ export default defineConfig({
     ...(process.env.E2E_FIREFOX ? [{
       name: 'firefox',
       testMatch: [...SAFARI_GATE, 'computer-screens.spec.ts'],
+      grepInvert: FIREFOX_LEFT_OUT,
       use: { ...devices['Desktop Firefox'], browserName: 'firefox' as const, viewport: { width: 1280, height: 800 }, launchOptions: {} },
     }] : []),
   ],

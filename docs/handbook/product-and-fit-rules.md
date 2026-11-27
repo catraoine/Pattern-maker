@@ -417,6 +417,11 @@ Two freezes, not one (labelled Nov 22, rules review):
    over the underbust at hips 86, 105 and 136, and fitting the look closer took off only 3 cm, so the room came from
    how the empire option cuts the bodice, not the look. Not built yet: it is a pattern change, so it starts Dec 7 when
    the freeze ends (no launch piece uses the empire seam).
+60. **All round sews what the pattern sews** (Nov 25, weekly eye check; 3D view only, no pattern changes): a shoulder
+   cut across two pieces (princess seams to the shoulder) is held as one shoulder, each piece's share along it, so the
+   pieces meet at their seam instead of standing as tabs at the shoulder tip. A dart's cap (a French dart's at the side
+   seam) is sewn closed on itself, so it folds into the dart instead of poking out past the hem corner. A skirt's
+   diagonal or high-low hem is smoothed along its edge like a top's hem, so a crisp trumpet's hem doesn't show saw-teeth.
 
 ## Menswear fit (fit audit, Nov 22)
 

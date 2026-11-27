@@ -46,9 +46,12 @@ export default async (req: Request) => {
     if (!repeat) {
       // Room for both is checked first, so a refusal near the end of the day doesn't use up a send it didn't make.
       if ((await shared.get(`${day}/all`)) > EMAIL_CAPS.all - 2) return Response.json({ ok: false, error: 'busy' }, { status: 503 });
-      if (!(await own.take(`${day}/all`, TESTER_MAIL_CAP))) return Response.json({ ok: false, error: 'limit_reached' }, { status: 429 });
-      // The same day count as "Email me the PDF", twice: the tester's email and Cat's copy.
+      if ((await own.get(`${day}/all`)) >= TESTER_MAIL_CAP) return Response.json({ ok: false, error: 'limit_reached' }, { status: 429 });
+      // The same day count as "Email me the PDF", twice: the tester's email and Cat's copy. Taken before the testers' own
+      // count (weekly review, Nov 23): a PDF email landing in between makes this 'busy', and it mustn't have used up one
+      // of the day's tester sends first.
       if (!(await shared.take(`${day}/all`, EMAIL_CAPS.all)) || !(await shared.take(`${day}/all`, EMAIL_CAPS.all))) return Response.json({ ok: false, error: 'busy' }, { status: 503 });
+      if (!(await own.take(`${day}/all`, TESTER_MAIL_CAP))) return Response.json({ ok: false, error: 'limit_reached' }, { status: 429 });
       // Marked only once it has been counted, so a send refused above is counted when it's tried again.
       if (sentKey) await own.take(sentKey, 1);
     }

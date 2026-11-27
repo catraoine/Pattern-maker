@@ -745,6 +745,10 @@ function volumeFlat(d: SkirtDraft, i: number, h: Half, hemY: number): { shapes: 
     for (const f of v.folds?.[i] ?? []) {
       add2([h.move(f.top), h.move(f.hip)], 'stitch');
       add2([h.move(f.hip), h.move(f.hem)], 'seam');
+      // The pleat opening at the hem, a small V where the folds part: with only straight lines the Black Pleated
+      // Skirt read as panel seams over a smooth hem (cold read EH, Nov 25).
+      const foot = h.move(f.hem);
+      add2([p(foot.x - 1.3, foot.y), p(foot.x, foot.y - 3), p(foot.x + 1.3, foot.y)], 'seam');
     }
     return { shapes, lines, hemY };
   }

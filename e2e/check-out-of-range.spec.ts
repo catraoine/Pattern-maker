@@ -14,7 +14,9 @@ test('a number out of range on the measurements list: the button opens it', asyn
   await main.getByRole('button', { name: 'Save' }).click();
   await expect(main.getByText(/Waist to hip can be from/).first()).toBeVisible();
   await headerBack(page).click();
-  await expect(list.getByRole('button', { name: /^Waist to hip Check$/ })).toBeVisible();
+  // The number typed still shows beside Check, with its reason on its row (cold read of release EH, Nov 25).
+  await expect(list.getByRole('button', { name: /^Waist to hip 90 cm Check$/ })).toBeVisible();
+  await expect(list.getByRole('listitem').filter({ has: page.getByRole('button', { name: /^Waist to hip/ }) }).locator('.msg.error')).toContainText(/can be from/);
   await expect(main.getByRole('button', { name: 'Style your skirt' })).toHaveCount(0);
   await main.getByRole('button', { name: 'Check waist to hip' }).click();
   await expect(main.getByRole('textbox', { name: 'Waist to hip', exact: true })).toBeVisible();
