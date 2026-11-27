@@ -17,6 +17,8 @@ async function hold(page: Page, ms: number) {
   await send('pointerdown');
   await page.waitForTimeout(ms);
   await send('pointerup');
+  // A phone browser may send a tap as the finger lifts, which lands on whatever is now under it.
+  await page.mouse.click(x, y);
   return { x, y };
 }
 
@@ -78,4 +80,31 @@ test('hold to leave a note: only on a tester device, never from a quick tap, and
     await page.keyboard.press('Escape');
     await expect(box).toHaveCount(0);
   }
+});
+
+test('hold to leave a note: a choice says its own name once, and the box opens beside it with Send in sight', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop', 'A right click: a computer');
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.route('**/.netlify/functions/tester', (route) => route.fulfill({ json: { ok: true, tester: true } }));
+  await startWithExample(page);
+  await page.getByRole('banner').getByRole('button', { name: /account/i }).click();
+  const fold = await openFold(page, 'Tester');
+  await fold.getByLabel('Tester code').fill('example-code');
+  await fold.getByRole('button', { name: 'Use code' }).click();
+  await stepButton(page, 'Style').click();
+  const chip = page.getByRole('main').getByRole('group', { name: 'Fit' }).getByRole('button', { name: 'Fit' }).first();
+  await chip.click({ button: 'right' });
+  const box = page.locator('.pin-box');
+  await expect(box).toBeVisible();
+  const line = (await box.locator('.pin-where').textContent()) ?? '';
+  expect(line.match(/Regular/g) ?? [], line).toHaveLength(1);
+  // Words from different pieces of the screen keep their spaces (no "FitRegular").
+  expect(line).not.toMatch(/[a-z][A-Z]/);
+  // Not a spot on the drawing, so no garment view.
+  expect(line).not.toMatch(/Front view/);
+  const a = (await chip.boundingBox())!;
+  const b = (await box.boundingBox())!;
+  expect(b.x + b.width <= a.x || b.x >= a.x + a.width, 'the box sits beside the choice, not over it').toBe(true);
+  // Send in the window without scrolling inside the box (1366 x 768, the Nov 27 walk).
+  await expect(box.getByRole('button', { name: 'Send' })).toBeInViewport();
 });

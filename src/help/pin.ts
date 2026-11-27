@@ -37,7 +37,11 @@ export function scrub(text: string | null | undefined, max = 50, hide: readonly 
   let t = (text ?? '').replace(/\S+@\S+/g, 'an email').replace(/\d+([.,]\d+)?/g, '#');
   for (const n of hide) t = t.replace(new RegExp(`(?<![\\p{L}\\p{N}])${escape(n)}(?![\\p{L}\\p{N}])`, 'giu'), 'a name');
   t = t.replace(/\s+/g, ' ').trim();
-  return t.length > max ? `${t.slice(0, max - 1).trimEnd()}…` : t;
+  if (t.length <= max) return t;
+  // Cut at a word, never inside one ("fr…" read as nothing, the Nov 27 walk).
+  const cut = t.slice(0, max - 1);
+  const space = cut.lastIndexOf(' ');
+  return `${(space > max / 2 ? cut.slice(0, space) : cut).trimEnd()}…`;
 }
 
 /** Where in a drawing the pin sits, in plain words: "lower middle" reads quicker than two numbers. */
@@ -48,18 +52,30 @@ export function region(fx: number, fy: number): string {
   return `${row} ${col === 'centre' ? 'middle' : col}`;
 }
 
+/** An element's words with a space between each piece: textContent ran "Opening" and its chip's name together
+ *  (the Nov 27 stills). */
+function wordsOf(el: Element): string {
+  const parts: string[] = [];
+  const walk = el.ownerDocument.createTreeWalker(el, 4 /* text nodes */);
+  for (let n = walk.nextNode(); n; n = walk.nextNode()) if (n.nodeValue?.trim()) parts.push(n.nodeValue.trim());
+  return parts.join(' ');
+}
+
 /** The control or label under the finger, by the words it shows (or its spoken label). */
 function controlWords(el: Element, hide: readonly string[]): string {
   const c = el.closest('button, a, [role="button"], [role="tab"], [role="switch"], [role="radio"], [role="checkbox"], label, summary, legend');
   if (!c) return '';
-  return scrub(c.getAttribute('aria-label') || c.textContent, 50, hide);
+  return scrub(c.getAttribute('aria-label') || wordsOf(c), 50, hide);
 }
 
 /** The heading of the part of the screen the spot is in. */
 function sectionWords(el: Element, hide: readonly string[]): string {
   for (let at: Element | null = el; at; at = at.parentElement) {
     const head = at.matches('h1, h2, h3, legend, summary') ? at : at.querySelector(':scope > h1, :scope > h2, :scope > h3, :scope > legend, :scope > summary, :scope > header h1, :scope > header h2, :scope > div > h2, :scope > div > h3');
-    if (head?.textContent?.trim()) return scrub(head.textContent, 50, hide);
+    // A heading that holds the spot or other controls is a whole question, not its name: keep looking further up.
+    if (!head || head.contains(el) || head.querySelector('button, a, input, [role="radio"], [role="button"]')) continue;
+    const words = wordsOf(head);
+    if (words) return scrub(words, 50, hide);
   }
   return '';
 }
@@ -85,7 +101,6 @@ function viewShowing(el: Element): string | undefined {
 /** Describes the spot under a held finger, from what the screen shows there. `hide`: see namesToHide. */
 export function spotAt(el: Element, x: number, y: number, view: string, hide: readonly string[] = []): PinSpot {
   if (NAMED_VIEWS.has(view)) return { spot: 'this screen' };
-  const showing = viewShowing(el);
   const drawing = el.closest('[role="img"], [role="group"][aria-label]');
   let spot = controlWords(el, hide);
   if (!spot && drawing) {
@@ -96,9 +111,12 @@ export function spotAt(el: Element, x: number, y: number, view: string, hide: re
     const name = scrub((drawing.getAttribute('aria-label') ?? 'the drawing').split('. ')[0], 60, hide);
     spot = `${name}, ${region(Math.min(1, Math.max(0, fx)), Math.min(1, Math.max(0, fy)))}`;
   }
-  if (!spot) spot = scrub(el.textContent, 50, hide) || 'an empty part of the screen';
+  // The garment view is said only for a spot on the drawing: a chip beside it is the same whatever view shows.
+  const showing = !controlWords(el, hide) && drawing ? viewShowing(el) : undefined;
+  if (!spot) spot = scrub(wordsOf(el), 50, hide) || 'an empty part of the screen';
   const section = sectionWords(el, hide);
-  return { spot, ...(section && section !== spot ? { section } : {}), ...(showing ? { showing } : {}) };
+  const repeats = !!section && (section.toLowerCase().includes(spot.toLowerCase()) || spot.toLowerCase().includes(section.toLowerCase()));
+  return { spot, ...(section && !repeats ? { section } : {}), ...(showing ? { showing } : {}) };
 }
 
 /** What a pinned note carries about its spot, as the server takes it (src/server/notes.ts). */

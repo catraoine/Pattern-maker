@@ -129,3 +129,9 @@ describe('names', () => {
     expect(scrub('Measure me', 50, hide)).toBe('Measure me');
   });
 });
+
+describe('long words', () => {
+  it('are cut at a word, never inside one', () => {
+    expect(scrub('Technical flat of the ice peplum top, front and back, upper middle')).toBe('Technical flat of the ice peplum top, front and…');
+  });
+});

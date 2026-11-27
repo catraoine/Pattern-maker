@@ -29,7 +29,7 @@ type Sending = 'idle' | 'sending' | 'sent' | 'limit' | 'busy' | 'failed' | 'bade
  */
 export function PinNotes({ view, garment, hide }: Props) {
   const [ring, setRing] = useState<{ x: number; y: number }>();
-  const [pin, setPin] = useState<{ x: number; y: number; pin: Pin; view: string }>();
+  const [pin, setPin] = useState<Placed>();
   // Read inside the page's listeners, which are added once.
   const now = useRef({ view, garment, hide, open: false });
   now.current = { view, garment, hide, open: !!pin };
@@ -44,7 +44,7 @@ export function PinNotes({ view, garment, hide }: Props) {
       // Text a long press started to pick on a phone, let go, so the box opens clean.
       window.getSelection?.()?.removeAllRanges();
       swallowUntil.current = Date.now() + 800;
-      setPin({ x, y, view: v, pin: pinFor(spotAt(el, x, y, v, names), x, y, v, g, onPhone(), window.innerWidth, window.innerHeight) });
+      setPin({ x, y, view: v, clear: clearOf(el) ?? { left: x, right: x }, pin: pinFor(spotAt(el, x, y, v, names), x, y, v, g, onPhone(), window.innerWidth, window.innerHeight) });
     };
     const watch = new HoldWatch({ ring: (x, y) => setRing({ x, y }), done: open, stop: () => setRing(undefined) });
     const down = (e: PointerEvent) => (now.current.open ? undefined : watch.start(e, e.target instanceof Element ? e.target : null));
@@ -65,7 +65,8 @@ export function PinNotes({ view, garment, hide }: Props) {
     };
     const click = (e: MouseEvent) => {
       if (Date.now() > swallowUntil.current) return;
-      if (e.target instanceof Element && e.target.closest('.pin-layer')) return;
+      // Only the box itself takes taps: the dimmed background would close the box on the lift that ends the hold.
+      if (e.target instanceof Element && e.target.closest('.pin-box')) return;
       e.preventDefault();
       e.stopPropagation();
       swallowUntil.current = 0;
@@ -102,7 +103,24 @@ export function PinNotes({ view, garment, hide }: Props) {
   );
 }
 
-function PinBox({ at, onClose }: { at: { x: number; y: number; pin: Pin; view: string }; onClose: () => void }) {
+/** A held spot, and the box it shouldn't cover. */
+interface Placed {
+  x: number;
+  y: number;
+  pin: Pin;
+  view: string;
+  clear: { left: number; right: number };
+}
+
+/** The control held (a chip, a button), so the box opens beside it rather than over it. A drawing or anything wide
+ *  only keeps the pin itself clear (1366 wide, the Nov 27 stills: the box covered the start of the held chip). */
+function clearOf(el: Element) {
+  const c = el.closest('button, a, [role="button"], [role="radio"], [role="tab"], [role="switch"], label, summary');
+  const r = c?.getBoundingClientRect();
+  return r && r.width < window.innerWidth / 3 ? { left: r.left, right: r.right } : undefined;
+}
+
+function PinBox({ at, onClose }: { at: Placed; onClose: () => void }) {
   const [note, setNote] = useState('');
   const [email, setEmail] = useState('');
   const [state, setState] = useState<Sending>('idle');
@@ -121,12 +139,13 @@ function PinBox({ at, onClose }: { at: { x: number; y: number; pin: Pin; view: s
   // Beside the pin on a computer, kept on screen; a phone gets a sheet along the bottom instead (48-pin-notes.css).
   const w = window.innerWidth;
   const h = window.innerHeight;
-  const side = at.x + 16 + 360 < w ? at.x + 16 : Math.max(16, at.x - 16 - 360);
+  const side = at.clear.right + 16 + 360 < w ? at.clear.right + 16 : at.clear.left - 16 - 360 >= 16 ? at.clear.left - 16 - 360 : Math.max(16, at.x - 16 - 360);
   const top = Math.min(Math.max(16, at.y - 40), Math.max(16, h - 520));
 
   return (
     <div className="pin-layer" role="presentation">
-      <button type="button" className="pin-shade" aria-label="Close the note" onClick={onClose} />
+      {/* Pressing it never takes the typing away from the note: the tap a phone sends as the hold lifts lands here. */}
+      <button type="button" className="pin-shade" aria-label="Close the note" tabIndex={-1} onMouseDown={(e) => e.preventDefault()} onClick={onClose} />
       <span className="pin-dot" style={{ left: at.x, top: at.y }} aria-hidden="true" />
       <form
         // On a phone the sheet sits on the half of the screen away from the pin, so the spot stays in sight.
@@ -167,17 +186,17 @@ function PinBox({ at, onClose }: { at: { x: number; y: number; pin: Pin; view: s
             <div className="field plain">
               <label htmlFor="pinnote">What’s happening here, or what would make it better?</label>
               {/* Focused at once: the hold already said they mean to write. */}
-              <textarea id="pinnote" rows={4} maxLength={2000} autoFocus value={note} onChange={(e) => setNote(e.target.value)} />
+              <textarea id="pinnote" rows={3} maxLength={2000} autoFocus value={note} onChange={(e) => setNote(e.target.value)} />
             </div>
             <div className="field plain">
               <label htmlFor="pinemail">Your email, if you’d like a reply</label>
               <input id="pinemail" type="email" autoComplete="email" inputMode="email" maxLength={REPLY_EMAIL_MAX} value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
-            <p className="help-added">Added for you: this spot, that you’re a fit tester, your phone or computer and the app version.</p>
-            {at.pin.device === 'computer' && <p className="help-added">Need your browser’s own menu? Hold Shift as you right click.</p>}
             <button type="submit" className="primary" disabled={!note.trim() || state === 'sending'}>
               {state === 'sending' ? 'Sending…' : 'Send'}
             </button>
+            <p className="help-added">Added for you: this spot, that you’re a fit tester, your phone or computer and the app version.</p>
+            {at.pin.device === 'computer' && <p className="help-added">Need your browser’s own menu? Hold Shift as you right click.</p>}
             {state === 'failed' && (
               <p className="msg small" role="status">
                 That didn’t go through. Check you’re online and try again.
