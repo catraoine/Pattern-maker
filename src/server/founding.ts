@@ -12,7 +12,8 @@ const FOUNDING_PLACES = 250;
 /** The single key the whole list is kept under. */
 export const MEMBERS_KEY = 'members';
 
-type FoundingKind = 'tester' | 'founding';
+/** 'gift' is a place Cat has given for free with no end date: billing must never charge it (first one promised Nov 26, 2026). */
+type FoundingKind = 'tester' | 'founding' | 'gift';
 
 export interface FoundingMember {
   /** hash(email), the same 16 characters the sign-ups store files a waitlist sign-up under. */
@@ -71,7 +72,7 @@ export function readList(raw: unknown): FoundingList | null {
   if (!Array.isArray(members)) return null;
   const ok = members.every((m) => {
     const x = m as Partial<FoundingMember> | null;
-    return !!x && typeof x.id === 'string' && /^[0-9a-f]{16}$/.test(x.id) && Number.isInteger(x.n) && (x.kind === 'tester' || x.kind === 'founding') && typeof x.joinedAt === 'string';
+    return !!x && typeof x.id === 'string' && /^[0-9a-f]{16}$/.test(x.id) && Number.isInteger(x.n) && (x.kind === 'tester' || x.kind === 'founding' || x.kind === 'gift') && typeof x.joinedAt === 'string';
   });
   return ok ? { members: members as FoundingMember[], open: (raw as { open?: unknown }).open === true } : null;
 }

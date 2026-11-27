@@ -21,6 +21,12 @@ describe('founding promises', () => {
     expect(member).toContain('a say in what we draft next');
   });
 
+  it('shows a gift place no price and no end date', () => {
+    const gift = foundingLines({ n: 47, kind: 'gift' }).join(' ');
+    expect(gift).toContain('free, for as long as you want to use it');
+    expect(gift).not.toMatch(/\$|until|2028/);
+  });
+
   it('keeps the discount in the one line strangers read true to the two prices', () => {
     // The line says 30% off; the prices a member sees must give at least that (Cat, Nov 16: $34 against $49 is 31%).
     const [, founding, usual] = /\$(\d+) a year instead of \$(\d+)/.exec(foundingLines({ n: 60, kind: 'founding' }).join(' '))!;
