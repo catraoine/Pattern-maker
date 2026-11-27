@@ -405,7 +405,12 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
                 </button>
               ))}
             </div>
-            <Explain set="bodice" group={g.id} options={g.options} pick={handShaped(choices, g.id) ? undefined : valueOf(g.id)} />
+            {/* (The line under it says buttons and loops too: it said "A zip down the centre back", EI stills, Nov 26.) */}
+            {g.id === 'closure' && draft?.backLoops ? (
+              <Explain set="bodice" group={g.id} options={g.options.map(([id, label]) => [id, id === 'back_zip' ? 'Back buttons and loops' : label] as const)} pick={valueOf(g.id)} say={valueOf(g.id) === 'back_zip' ? 'Buttons and loops down the centre back.' : undefined} />
+            ) : (
+              <Explain set="bodice" group={g.id} options={g.options} pick={handShaped(choices, g.id) ? undefined : valueOf(g.id)} />
+            )}
             {g.id === 'neckline' && choices.neck && (
               <p className="muted small">
                 Drawn by hand.{' '}

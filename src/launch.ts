@@ -79,7 +79,8 @@ export type TestingTool =
   | 'flap_pockets'
   | 'chest_pocket'
   | 'pattern_tools'
-  | 'menswear';
+  | 'menswear'
+  | 'pin_notes';
 
 export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; proof: string }> = {
   draw_lines: { name: 'Draw your lines', where: 'Style, Draw on your form', proof: 'fit testers draw a hem, a neckline and a side and the pattern follows' },
@@ -151,6 +152,8 @@ export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; p
   chest_pocket: { name: 'Chest welt pocket on jackets and coats', where: 'the Welt chip under Chest pocket on a jacket or coat', proof: 'two testers sew a chest pocket and it sits level with the slight rise toward the side, clear of the lapel, flat over the chest' },
   // Shown but not pickable while this fit round tests womenswear only (Cat, Nov 14); see menswearOpen below.
   menswear: { name: 'Menswear form', where: 'the form choice on the first measuring page and Your form', proof: 'a menswear fit round is run and two testers sew a menswear toile that fits' },
+  // On tester devices only (Cat, Nov 26: "Hold to drop a pin"); see src/help/pin.ts.
+  pin_notes: { name: 'Hold to leave a note', where: 'any spot, held still for half a second on a tester\'s phone (a right click on a computer)', proof: 'five testers leave held notes on the spots they mean, and none say it opened by mistake' },
   pattern_tools: { name: 'Draw a line on the pattern', where: 'Style, Pattern, Move points: a line drawn across a piece to spread it, add fullness or make a new piece', proof: 'two testers spread or cut a piece with a drawn line and sew it as edited, and it hangs as the edited pattern shows' },
   belt_loops: { name: 'Belt loops on trousers', where: 'the Belt loops chips on trousers', proof: 'two testers sew the five loops and a belt sits level in them, the loops clear of the pockets and the fly' },
   // And for the flared lilac blazer from Cat's plaid-blazer picture (2026-10-31).

@@ -690,3 +690,51 @@ section[aria-label='Preview']:has(.techflat) > .big-undo {
     margin-top: 16px;
   }
 }
+
+/* The pages a high bust adds open with a note and a way back (cold read EI, Nov 26): with it, Next fell under the
+   bottom edge at 360 and on a 1440x900 laptop, so Estimate it for me looked like the only way on. On those pages the
+   words start higher on a computer and the heading comes down a size; on a phone the note is a size smaller and the
+   friend nudge steps aside, since A friend measures sits just under it. */
+@media (min-width: 1100px) {
+  .measure-step.has-hero:has(.extra-intro) .step-words {
+    padding-top: 12px;
+    gap: 12px;
+  }
+  .measure-step.has-hero:has(.extra-intro) .step-words h1 {
+    font-size: min(56px, 4vw, 6.2vh);
+  }
+}
+@media (max-width: 760px) {
+  .measure-step:has(.extra-intro) .extra-intro {
+    font-size: 14px;
+  }
+  .measure-step:has(.extra-intro) .friend-nudge {
+    display: none;
+  }
+}
+
+/* "Next: Sleeve fullness ›" would not shrink, so on a computer it ran past the panel's margin to its edge (cold read
+   EI, Nov 26). It may now give way and take a second line inside the button, as a long name should. */
+.step-next .step-go {
+  flex: 0 1 auto;
+  min-width: 0;
+  line-height: 1.25;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+/* On a phone the pattern's card on Print stopped at 300 px, short of the right margin the buttons under it reach
+   (cold read EI, Nov 26): it takes the column's width. */
+@media (max-width: 760px) {
+  .print-top .print-cover > .envelope {
+    max-width: none;
+  }
+}
+
+/* "Do these look right?" on a short screen: the welcome-back line pushed Choose what to make under the bottom edge at
+   360x780 (cold read EG and EI). On a screen under 820 px tall the words start near the top, so the way on is in view. */
+@media (max-height: 820px) {
+  .measure-step:not(.has-hero):not(.centred):has(.check-list:not(.idea-picks)) {
+    padding-top: 8px;
+  }
+}

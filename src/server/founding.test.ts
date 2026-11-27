@@ -48,6 +48,9 @@ describe('founding list', () => {
     expect(readList(null)).toBeNull();
     expect(readList({ members: [{ id: 'x', n: 1, kind: 'tester', joinedAt: '' }] })).toBeNull();
     expect(readList({ members: [tester('one@example.com', 1)] })?.members).toHaveLength(1);
+    // A gift place (free, never charged) is a kind the list keeps, and the member is told it is one.
+    const gift = { members: [{ ...tester('gift@example.com', 2), kind: 'gift' as const }] };
+    expect(placeFor(readList(gift)!, 'gift@example.com')).toEqual({ n: 2, kind: 'gift' });
   });
 
   it('files an email under the same hash as the sign-ups store', () => {

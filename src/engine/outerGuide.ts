@@ -49,6 +49,11 @@ export function outerGuide(
   const word = bare ? 'vest' : kind;
   // A seam across the chest (the Look 02 vest): the front and back are each cut in two, a yoke above the seam.
   const yoked = !!d.chestSeam;
+  // Cut on the fold without a vent, so there is one back yoke (Fit audit's steps check, Nov 27).
+  const backYokes = vent ? 'each back yoke' : 'the back yoke';
+  // A vest's notches are on its armholes and chest seam, none on the side seams, the facings or the back neck: the
+  // steps said to match notches there (Fit audit's steps check, Nov 27). Sleeved jackets keep their wording.
+  const sideMatch = bare ? 'matching the underarms and the hems' : 'matching the notches';
   const darts = !princess && d.base.bustDart > 0.3;
   const waistDarts = !princess && (d.base.waistDarts.front > 0.3 || d.base.waistDarts.back > 0.3);
   const count = d.buttons.at.length * d.buttons.columns.length + (d.buttons.show?.columns.length ?? 0);
@@ -89,7 +94,7 @@ export function outerGuide(
     },
     {
       title: 'Interface',
-      text: `${bare ? `For a crisp, boxy vest, fuse interfacing to the whole of each front${yoked ? ', each front yoke, each back yoke' : ''}, the front facings and both collar pieces${welts ? ', the welts, and a 5 cm strip behind each welt pocket box' : ''}${vent ? ', and the vent underlaps' : ''}. Then press 1 cm stay tape over the armhole seam line all round and along the roll line, 3 mm short of its length so the lapel hugs the chest. Fuse a 5 cm strip along the back hem. Use a press cloth and hold the iron still for 10 seconds at a time; let each piece cool flat before you move it.` : `Fuse interfacing to the wrong side of the front facings${collar === 'hood' ? ", a 3 cm strip along each hood piece's face edge" : collar !== 'none' ? ', both collar pieces' : ''}, and the top 10 cm of each ${princess ? 'centre front' : 'front'} and the back${pockets ? ', and the top fold of each pocket' : ''}${welts ? ', the welts, and a 5 cm strip behind each welt pocket box' : ''}${flaps ? ', the pocket flaps and jets, and a 5 cm strip behind each pocket box' : ''}${chest ? ', the chest welt and a strip behind its box' : ''}${vent ? ', and the vent underlaps' : ''}. ${rib ? `The hem${bare ? '' : ' and sleeve edges'} take${bare ? 's a rib band' : ' rib bands'}, so ${bare ? 'it needs' : 'they need'} no strip.` : `Fuse a 5 cm strip along the hem of every shell piece${bare ? '' : ' and the sleeve hems'}.`}${d.tapedRoll ? ' The lapels roll from near the waist, so fuse interfacing to the whole of each front as well, then press 1 cm stay tape along each roll line, cut 1 cm shorter than the line and the front eased onto it, so the lapel hugs the chest and the front stays closed.' : ''} Use a press cloth and hold the iron still for 10 seconds at a time; let each piece cool flat before you move it.`}`,
+      text: `${bare ? `For a crisp, boxy vest, fuse interfacing to the whole of each front${yoked ? `, each front yoke, ${backYokes}` : ''}, the front facings and both collar pieces${welts ? ', the welts, and a 5 cm strip behind each welt pocket box' : ''}${vent ? ', and the vent underlaps' : ''}. Then press 1 cm stay tape over the armhole seam line all round and along the roll line, 3 mm short of its length so the lapel hugs the chest. Fuse a 5 cm strip along the back hem. Use a press cloth and hold the iron still for 10 seconds at a time; let each piece cool flat before you move it.` : `Fuse interfacing to the wrong side of the front facings${collar === 'hood' ? ", a 3 cm strip along each hood piece's face edge" : collar !== 'none' ? ', both collar pieces' : ''}, and the top 10 cm of each ${princess ? 'centre front' : 'front'} and the back${pockets ? ', and the top fold of each pocket' : ''}${welts ? ', the welts, and a 5 cm strip behind each welt pocket box' : ''}${flaps ? ', the pocket flaps and jets, and a 5 cm strip behind each pocket box' : ''}${chest ? ', the chest welt and a strip behind its box' : ''}${vent ? ', and the vent underlaps' : ''}. ${rib ? `The hem${bare ? '' : ' and sleeve edges'} take${bare ? 's a rib band' : ' rib bands'}, so ${bare ? 'it needs' : 'they need'} no strip.` : `Fuse a 5 cm strip along the hem of every shell piece${bare ? '' : ' and the sleeve hems'}.`}${d.tapedRoll ? ' The lapels roll from near the waist, so fuse interfacing to the whole of each front as well, then press 1 cm stay tape along each roll line, cut 1 cm shorter than the line and the front eased onto it, so the lapel hugs the chest and the front stays closed.' : ''} Use a press cloth and hold the iron still for 10 seconds at a time; let each piece cool flat before you move it.`}`,
     },
     ...(darts || waistDarts
       ? [
@@ -145,7 +150,7 @@ export function outerGuide(
       ? [
           {
             title: 'Sew the chest seam',
-            text: `Sew each front yoke to its front, and each back yoke to its back, right sides together along the straight edge, 1 cm from the edge, matching the two ends. Press the seams open and flat with a press cloth, so the seam lies as one clean line across the chest: the front, the back and the armhole are then sewn as whole pieces. When you sew the side seams later, check that the front and back chest seams meet in one line at the armhole.`,
+            text: `Sew each front yoke to its front, and ${vent ? 'each back yoke to its back' : 'the back yoke to the back'}, right sides together along the straight edge, 1 cm from the edge, matching the two ends. Press the seams open and flat with a press cloth, so the seam lies as one clean line across the chest: the front, the back and the armhole are then sewn as whole pieces. When you sew the side seams later, check that the front and back chest seams meet in one line at the armhole.`,
           },
         ]
       : []),
@@ -161,7 +166,7 @@ export function outerGuide(
       title: raglan ? 'Sew the side seams' : 'Sew the shoulders and side seams',
       text: raglan
         ? `Sew the side seams, matching the notches, and press them open over a sleeve board. There are no shoulder seams: the shoulders are part of the raglan sleeves, which go in next.`
-        : `Sew the fronts to the back at the shoulders, right sides together, easing the back shoulder in to fit (it is 1 cm longer). Sew the side seams, matching the notches. Press every seam open over a sleeve board or a ham.`,
+        : `Sew the fronts to the back at the shoulders, right sides together, easing the back shoulder in to fit (it is 1 cm longer). Sew the side seams, ${sideMatch}. Press every seam open over a sleeve board or a ham.`,
     },
     ...(raglan
       ? [
@@ -231,7 +236,7 @@ export function outerGuide(
           : princess
             ? `Sew each side front lining to its front lining and each side back lining to its back lining along the princess seams, ${seam} from the edge, and press the seams open. `
             : ''
-      }${vent ? 'Sew the back linings together down the centre back to just above the vent, then tack the pleat' : 'Tack the back lining pleat'} along its line, 8 cm down from the neck. ${bare ? "Sew the lining's shoulders and side seams, leaving a 25 cm gap in one side seam for turning" : raglan ? "Sew the lining's side seams, the raglan sleeve linings' top and underarm seams, and sew the sleeve linings into their openings" : "Sew the lining's shoulders, side seams and sleeve seams, and set the sleeve linings into the armholes"}${bare ? '' : ', leaving a 25 cm gap in one sleeve lining seam for turning'}. ${panelFacing ? `Sew each side front lining to its front facing along the princess seam, right sides together, ${seam} from the edge, so the facing is the lining's centre front panel` : 'Sew the lining to the inner edges of the front facings'}${
+      }${vent ? 'Sew the back linings together down the centre back to just above the vent, then tack the pleat' : 'Tack the back lining pleat'} along its line, 8 cm down from the neck. ${bare ? `Sew the lining's shoulders and side seams, ${sideMatch}, leaving a 25 cm gap in one side seam for turning` : raglan ? "Sew the lining's side seams, the raglan sleeve linings' top and underarm seams, and sew the sleeve linings into their openings" : "Sew the lining's shoulders, side seams and sleeve seams, and set the sleeve linings into the armholes"}${bare ? '' : ', leaving a 25 cm gap in one sleeve lining seam for turning'}. ${panelFacing ? `Sew each side front lining to its front facing along the princess seam, right sides together, ${seam} from the edge, so the facing is the lining's centre front panel` : 'Sew the lining to the inner edges of the front facings'}${
         collar === 'notched'
           ? " and the upper collar to the lining's back neck"
           : collar === 'stand'
@@ -239,7 +244,7 @@ export function outerGuide(
             : collar === 'hood'
               ? ", and its back neck to the hood's neck seam allowance, right sides together, so the lining covers the seam"
               : `, and its back neck to the ${word}'s back neck between the ${raglan ? 'raglan seams' : 'shoulder seams'}, right sides together`
-      }, matching the notches.`,
+      }${bare ? '' : ', matching the notches'}.`,
     },
     {
       title: 'Bag the lining',

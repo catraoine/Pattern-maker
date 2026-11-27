@@ -984,8 +984,10 @@ function biasDressGuide(g: SewingGuide, seamCm: number, hemOffFloor?: number): S
             text: 'Do this before you handle the pieces any further: bias edges stretch. Cut narrow stay tape (or strips of the selvedge) to the length of each neckline and armhole measured on the paper pattern, not on the cloth. Sew it to the wrong side just inside the seam line, easing the cloth back to the tape where it has grown.',
           },
         ];
+      // The slip is cut in satin and its next steps sew plain seams pressed open, so it no longer offers French seams here
+      // (Fit audit's steps check, Nov 27).
       case 'Neaten the edges':
-        return [{ ...st, text: 'Zigzag or overlock the shoulder and side edges without stretching them, so they will not fray inside. In a fine silk or a satin, sew French seams instead and skip this step.' }];
+        return [{ ...st, text: 'Zigzag or overlock the shoulder and side edges without stretching them, so they will not fray inside.' }];
       case 'Sew the shoulders':
         return [{ ...st, text: `Pin the front to the back at the shoulders, right sides together: the straps are the same width, front and back. Sew ${seam} from the edge and press the seams open.` }];
       case 'Sew the side seams':
@@ -1120,7 +1122,8 @@ function sleeveSteps(sl: SleeveDraft, seam: string, curve: string, lined: boolea
     ...(cuff?.kind === 'shirt' ? [placketStep(cuff)] : []),
     {
       title: 'Sew the sleeve seams',
-      text: `Fold each sleeve right sides together, matching the underarm corners, the notches and the hem. Sew the underarm seam ${seam} from the edge${
+      // The sleeve's notches are all on its crown, none on the underarm seam (Fit audit's steps check, Nov 27).
+      text: `Fold each sleeve right sides together, matching the underarm corners and the hem. Sew the underarm seam ${seam} from the edge${
         sl.vent
           ? `, from the underarm down to the ${cuff ? 'slit' : 'vent'} notch ${sl.vent.lengthCm} cm above the hem, and backstitch there: the seam stays open below it for the ${cuff ? "tie cuff's slit" : 'wrist vent'}. Press it`
           : ' and press it'

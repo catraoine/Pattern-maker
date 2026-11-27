@@ -23,6 +23,8 @@ const TOP_N = 360;
 export interface RoundMeasurements {
   waist?: number;
   full_bust?: number;
+  /** Read only to shape a full cup on the form (engine/drape/cupForm.ts). */
+  high_bust?: number;
   full_hip?: number;
   waist_to_hip?: number;
   waist_to_knee?: number;

@@ -5,6 +5,7 @@
 import { BODY_BOTTOM, BODY_TOP, SHOULDER_TIP_Y, bodyHalf, shapeAt } from '../body';
 import { FORM_HIP } from '../form';
 import { RoundMeasurements } from '../../ui/allRoundShape';
+import { cupForm } from './cupForm';
 import { knob } from './knob';
 
 const TAU = Math.PI * 2;
@@ -34,6 +35,9 @@ export interface Space {
   cOf: (y: number) => number;
   /** cm per form unit across, at form height y. */
   scale: (y: number) => number;
+  /** How much further out than the even form the body stands at angle a (0 ahead, pi the back) on form line y: a full
+   *  cup drawn forward and the back in (cupForm.ts), 1 for everyone else. The form is drawn the same. */
+  formK: (a: number, y: number) => number;
   /** How far out the body's surface lies at angle a round it (0 ahead, pi/2 the wearer's left), at level c, in cm. */
   bodyR: (a: number, c: number) => number;
   /** The shoulder tip's level and how far out it lies, in cm. */
@@ -135,6 +139,8 @@ export function makeSpace(yOfIn: (c: number) => number, m: RoundMeasurements & {
   // Below the form's last row the legs go on down, drawing in as they go: round both thighs to the knees, the
   // body is narrower than at the hip, more at the sides than front and back. A pencil skirt follows them in.
   const cBottom = cOf(BODY_BOTTOM);
+  const cup = cupForm(m.full_bust, m.high_bust);
+  const formK = cup ?? (() => 1);
   for (let r = 0; r < NR; r++) {
     const c = C0 + r * DC;
     const y = Math.max(BODY_TOP, Math.min(BODY_BOTTOM, yOf(c)));
@@ -145,7 +151,7 @@ export function makeSpace(yOfIn: (c: number) => number, m: RoundMeasurements & {
     for (let k = 0; k <= NA; k++) {
       const a = (Math.PI * k) / NA;
       const side = Math.sin(a) ** 2;
-      tab[r * (NA + 1) + k] = h * shapeAt(a, y) * s * (1 - legs * (LEG_DRAW_IN.front + (LEG_DRAW_IN.side - LEG_DRAW_IN.front) * side));
+      tab[r * (NA + 1) + k] = h * shapeAt(a, y) * formK(a, y) * s * (1 - legs * (LEG_DRAW_IN.front + (LEG_DRAW_IN.side - LEG_DRAW_IN.front) * side));
     }
   }
   // The form keeps stumps of its arms at the shoulders, wider than the chest under them. Cloth goes over the arm there
@@ -296,7 +302,7 @@ export function makeSpace(yOfIn: (c: number) => number, m: RoundMeasurements & {
     const k = Math.min(59, Math.floor(f));
     return ridgeTab[k] + (ridgeTab[k + 1] - ridgeTab[k]) * (f - k);
   };
-  return { yOf, cOf, scale, bodyR, tip: { c: tipC, x: tipX }, arm: { r0, r1, a, b }, ridge, widen };
+  return { yOf, cOf, scale, formK, bodyR, tip: { c: tipC, x: tipX }, arm: { r0, r1, a, b }, ridge, widen };
 }
 
 /** The same body for cloth cut boxy: below the bust the cloth falls straight to the hip instead of following the body

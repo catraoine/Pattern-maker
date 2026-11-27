@@ -1257,7 +1257,8 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
               {steps[at + 1] && (
                 // Names the next step, as the phone's Next does (clarity review A10, Nov 22).
                 <button type="button" className="step-go primary" aria-label={`Next: ${steps[at + 1]}`} onClick={() => goStep(steps[at + 1])}>
-                  Next: {steps[at + 1]} ›
+                  {/* (The › kept to the last word: at 360 "Next: Sleeve fullness" wrapped and left it alone on a line, cold read EI.) */}
+                  Next: {steps[at + 1]}{'\u00a0'}›
                 </button>
               )}
               {/* Back from the fabric to Print, on the step Print sent you to (Cat, Nov 21). */}
@@ -1328,7 +1329,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
             )}
             {qAt >= 0 && qs[qAt + 1] ? (
               <button type="button" className="primary" aria-label={`Next: ${qs[qAt + 1].label}`} onClick={() => goQ(qAt + 1)}>
-                Next: {qs[qAt + 1].label} <span aria-hidden="true">›</span>
+                Next: {qs[qAt + 1].label}{'\u00a0'}<span aria-hidden="true">›</span>
               </button>
             ) : qAt >= 0 ? (
               backToPrint || (
