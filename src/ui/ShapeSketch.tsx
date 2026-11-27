@@ -298,11 +298,17 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
         : `M${at.x + r + 1.2 * k - c} ${at.y - c} L${at.x + r + 1.2 * k} ${at.y} L${at.x + r + 1.2 * k - c} ${at.y + c} M${at.x - r - 1.2 * k + c} ${at.y - c} L${at.x - r - 1.2 * k} ${at.y} L${at.x - r - 1.2 * k + c} ${at.y + c}`;
     const active = drag?.kind === kind;
     // A named length is its own word for what the dot sets ("↕ Knee · 56.6 cm"), and short enough on a phone.
-    const words = kind === 'hem' ? (text.includes(' · ') ? `↕ ${text}` : `↕ Length · ${text}`) : `↔ Width · ${text}`;
     // Cropped close on a phone, "Width · A-line" ran off the drawing's right edge ("A-LIN", Nov 23): when it won't fit
-    // beside the disc it sits just above it instead, ending at the edge.
+    // beside the disc it moves, ending at the edge. Just above the disc it lay across the skirt, light letters half on
+    // black cloth and half on the beige (cold read EI, Nov 26), so it goes under the disc, on the beige right of the
+    // legs, with the arrow alone saying width ("↔ +10 cm") so it stays clear of the length's dot; above only when the
+    // hem leaves no room under it.
     const right = shown.width ? shown.left! + shown.width : 2 * cx + MARGIN * k;
-    const above = kind === 'side' && at.x + r + 3.2 * k + words.length * 2.6 * k * 0.85 > right;
+    const full = kind === 'hem' ? (text.includes(' · ') ? `↕ ${text}` : `↕ Length · ${text}`) : `↔ Width · ${text}`;
+    const moved = kind === 'side' && at.x + r + 3.2 * k + full.length * 2.6 * k * 0.85 > right;
+    const below = moved && at.y + r + 4.4 * k < shown.bottom;
+    const above = moved && !below;
+    const words = below ? `↔ ${text}` : full;
     return (
       <g className={active ? 'handle on' : 'handle'}>
         <circle cx={at.x} cy={at.y} r={r} strokeWidth={0.22} />
@@ -315,10 +321,10 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
           key={active && kind === 'hem' && !choices.lengthCm ? choices.length : ''}
           className={[active && kind === 'hem' && !choices.lengthCm ? 'caught' : '', kind === 'hem' && !drawing ? 'typeable' : ''].filter(Boolean).join(' ') || undefined}
           // A clear gap from the disc (Cat, Nov 11 sweep: the disc sat on the last letter, "KNE").
-          x={kind === 'hem' ? at.x - r - 3.2 * k : above ? right - k : at.x + r + 3.2 * k}
-          y={above ? at.y - r - 2.4 * k : at.y + 0.9 * k}
+          x={kind === 'hem' ? at.x - r - 3.2 * k : moved ? right - k : at.x + r + 3.2 * k}
+          y={below ? at.y + r + 3.6 * k : above ? at.y - r - 2.4 * k : at.y + 0.9 * k}
           fontSize={2.6 * k}
-          textAnchor={kind === 'hem' || above ? 'end' : 'start'}
+          textAnchor={kind === 'hem' || moved ? 'end' : 'start'}
         >
           {words.toUpperCase()}
         </text>

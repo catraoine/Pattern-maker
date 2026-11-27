@@ -980,7 +980,11 @@ function paintTape(g: CanvasRenderingContext2D, w: number, h: number, from: Cam,
     } catch {
       // Older browsers draw the note without tracking.
     }
-    g.fillText('SEEN FROM THE BACK', 12, 22);
+    // On a narrow phone picture one line ran into the figure (cold read EI, Nov 26): there it takes two short lines.
+    if (12 + g.measureText('SEEN FROM THE BACK').width > w * 0.3) {
+      g.fillText('SEEN FROM', 12, 22);
+      g.fillText('THE BACK', 12, 35);
+    } else g.fillText('SEEN FROM THE BACK', 12, 22);
     g.restore();
   }
   if (!t || p <= 0) return;
