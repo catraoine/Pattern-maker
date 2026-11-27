@@ -52,6 +52,16 @@ describe('close-up drawings follow the words', () => {
       }
     });
 
+  // Other garments share these step names but sew them another way: drawn for box pleats, two shoulders, a back welt
+  // and a centre back zip, they would show the wrong thing, so these keep their usual picture (code review, Nov 27).
+  it('another way of sewing a step of the same name keeps its usual picture', () => {
+    const knife = 'Work from the right side on the ironing board. At each pleat, fold along the solid line and bring the fold over to its dashed line, the way the arrow points. Pin at the waist and hem, and baste down each fold through all the layers. Press through a damp press cloth from the waist to the hem.';
+    expect(framesFor('Fold and press the pleats', stepLines(knife))).toBeUndefined();
+    expect(framesFor('Put in the zip', ['Sew a 20 cm invisible zip into the left side seam, front and back.'])).toBeUndefined();
+    expect(framesFor('Line the neck and armholes', ['Pin the lining to the dress, right sides together.', 'Press so the lining rolls just inside.'])).toBeUndefined();
+    expect(framesFor('Make the welt pockets', ['Fold each welt in half lengthwise, right side out, and press.'])).toBeUndefined();
+  });
+
   it('a step with no drawings keeps its usual picture', () => {
     expect(framesFor('Hem the skirt', ['Press up 1 cm, then 1 cm more.'])).toBeUndefined();
     expect(framesFor('Make the back welt pockets', ['Something else entirely.'])).toBeUndefined();

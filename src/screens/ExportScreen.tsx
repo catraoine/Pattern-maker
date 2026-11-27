@@ -900,25 +900,28 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
             <p className="muted small">These steps are also in the instructions booklet.</p>
           </div>
           <ol className="sewsteps">
-            {guide.steps.map((st) => (
-              <li key={st.title}>
-                <strong>{st.title}</strong>
-                <p>{inCm(st.text)}</p>
-                {/* The trickier steps' close-ups, numbered in the order the step's sentences come (Nov 27), in place of
-                    the step's one small drawing. */}
-                {stepFrames(st.title, stepLines(st.text)).length > 0 ? (
-                  <ol className="sewframes-row" aria-label={`Drawings for ${st.title}`}>
-                    {stepFrames(st.title, stepLines(st.text)).map((d, k) => (
-                      <li key={k}>
-                        <StepDiagram dg={d} />
-                      </li>
-                    ))}
-                  </ol>
-                ) : (
-                  st.diagram && <StepDiagram id={st.diagram} />
-                )}
-              </li>
-            ))}
+            {guide.steps.map((st) => {
+              // The trickier steps' close-ups, numbered in the order the step's sentences come (Nov 27), in place of
+              // the step's one small drawing.
+              const frames = stepFrames(st.title, stepLines(st.text));
+              return (
+                <li key={st.title}>
+                  <strong>{st.title}</strong>
+                  <p>{inCm(st.text)}</p>
+                  {frames.length > 0 ? (
+                    <ol className="sewframes-row" aria-label={`Drawings for ${st.title}`}>
+                      {frames.map((d, k) => (
+                        <li key={k}>
+                          <StepDiagram dg={d} />
+                        </li>
+                      ))}
+                    </ol>
+                  ) : (
+                    st.diagram && <StepDiagram id={st.diagram} />
+                  )}
+                </li>
+              );
+            })}
           </ol>
           {/* No "Links to buy what you'll need" until there are links (clarity review A8, Nov 22: it promised links, then said
               there were none). The offer stays in offers.ts for when the shops are chosen. */}

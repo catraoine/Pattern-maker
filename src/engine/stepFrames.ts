@@ -41,7 +41,7 @@ const WELT: Frame[] = [
       'The pocket box chalked on the right side of the back, from the pattern, with interfacing fused behind it.',
       [rect(2, 2, 38, 22), rect(4, 5, 36, 17, 'under'), box()],
       [
-        { at: p(20, MID + 0.5), text: 'POCKET BOX' },
+        { at: p(20, MID + 0.5), text: 'POCKET BOX', mid: true },
         { at: p(37, 4), text: 'RIGHT SIDE', end: true },
         { at: p(5, 19.4), text: 'INTERFACING BEHIND' },
       ],
@@ -53,7 +53,7 @@ const WELT: Frame[] = [
       'The welt folded in half along its length, right side out, and pressed.',
       [rect(4, 11, 36, 18), rect(4, 4, 36, 11, 'fold'), line('edge', p(4, 11), p(36, 11)), ...arrow(curve(p(37.2, 3.5), p(39.6, 7.5), p(37.2, 11.5), 6))],
       [
-        { at: p(20, 8), text: 'WELT, FOLDED DOWN' },
+        { at: p(20, 8), text: 'WELT, FOLDED DOWN', mid: true },
         { at: p(4, 21), text: 'FOLD, RIGHT SIDE OUT' },
       ],
     ),
@@ -64,8 +64,8 @@ const WELT: Frame[] = [
       'The folded welt below the box, its raw edges toward the box, stitched along the box\'s lower line from end to end.',
       [rect(2, 2, 38, 22), box(), ...weltDown(), line('machine', p(X0, LO), p(X1, LO))],
       [
-        { at: p(20, UP - 1.6), text: 'POCKET BOX' },
-        { at: p(20, LO + 1.2 * V - 1.3), text: 'WELT' },
+        { at: p(20, UP - 1.6), text: 'POCKET BOX', mid: true },
+        { at: p(20, LO + 1.2 * V - 1.3), text: 'WELT', mid: true },
       ],
     ),
   },
@@ -75,9 +75,9 @@ const WELT: Frame[] = [
       'The facing laid above the box, edge toward it, stitched along the upper line, stopping 0.5 cm short of each end.',
       [rect(2, 2, 38, 22), ...weltDown(), rect(5, 2, 35, UP + V, 'fold'), line('machine', p(X0, LO), p(X1, LO)), line('machine', p(X0 + 1, UP), p(X1 - 1, UP)), line('edge', p(X0 + 1, UP + 0.8), p(X0 + 1, UP + 2)), line('edge', p(X1 - 1, UP + 0.8), p(X1 - 1, UP + 2))],
       [
-        { at: p(20, 5.6), text: 'POCKET FACING' },
+        { at: p(20, 5.6), text: 'POCKET FACING', mid: true },
         { at: p(X1 - 0.6, UP + 3.2), text: 'STOP SHORT', end: true },
-        { at: p(20, LO + 1.2 * V - 1.3), text: 'WELT' },
+        { at: p(20, LO + 1.2 * V - 1.3), text: 'WELT', mid: true },
       ],
     ),
   },
@@ -94,8 +94,8 @@ const WELT: Frame[] = [
         line('edge', p(X1 - 1.4, UP + 0.5), p(X1 - 3, MID), p(X1 - 0.4, LO - 0.5)),
       ],
       [
-        { at: p(20, UP - 1.6), text: 'CUT, THEN SNIP A V' },
-        { at: p(20, LO + 3.4), text: 'BACK ONLY, ALLOWANCES CLEAR' },
+        { at: p(20, UP - 1.6), text: 'CUT, THEN SNIP A V', mid: true },
+        { at: p(20, LO + 3.4), text: 'BACK ONLY, ALLOWANCES CLEAR', mid: true },
         { at: p(37, 20.6), text: 'WRONG SIDE', end: true },
       ],
     ),
@@ -106,7 +106,7 @@ const WELT: Frame[] = [
       'From the right side: the facing pushed through and the welt flipped up to fill the opening, then pressed.',
       [rect(2, 2, 38, 22), rect(X0, UP, X1, LO, 'fold'), line('edge', p(X0, UP), p(X1, UP)), line('edge', p(X0, UP), p(X0, LO)), line('edge', p(X1, UP), p(X1, LO)), ...arrow([p(20, 20), p(20, LO + 1)])],
       [
-        { at: p(20, UP - 1.6), text: 'WELT FLIPPED UP' },
+        { at: p(20, UP - 1.6), text: 'WELT FLIPPED UP', mid: true },
         { at: p(37, 20.6), text: 'RIGHT SIDE', end: true },
       ],
     ),
@@ -125,7 +125,7 @@ const WELT: Frame[] = [
         line('under', p(X0, LO), p(X1, LO)),
       ],
       [
-        { at: p(20, 18.5), text: 'BAGS SEWN TOGETHER' },
+        { at: p(20, 18.5), text: 'BAGS SEWN TOGETHER', mid: true },
         { at: p(X0 + 0.4, UP - 1.4), text: 'CATCH THE TRIANGLES' },
       ],
     ),
@@ -176,7 +176,7 @@ const FLY: Frame[] = [
       'The fly shield folded in half along its length, wrong sides together.',
       [rect(4, 11, 36, 18), rect(4, 4, 36, 11, 'fold'), line('edge', p(4, 11), p(36, 11)), ...arrow(curve(p(37.2, 3.5), p(39.6, 7.5), p(37.2, 11.5), 6))],
       [
-        { at: p(20, 8), text: 'FLY SHIELD, FOLDED DOWN' },
+        { at: p(20, 8), text: 'FLY SHIELD, FOLDED DOWN', mid: true },
         { at: p(4, 21), text: 'FOLD, WRONG SIDES TOGETHER' },
       ],
     ),
@@ -247,7 +247,7 @@ const FLY: Frame[] = [
 // An invisible zip: one drawing for its one sentence.
 const ZIP: Frame[] = [
   {
-    match: /\binvisible zip\b/i,
+    match: /\binvisible zip into the centre back edges\b/i,
     dg: dg(
       'The open invisible zip face down on the right side of each back, its teeth on the seam line, stitched close to the teeth from the top down to the ZIP ENDS notch.',
       [
@@ -291,14 +291,14 @@ const LINING: Frame[] = [
   {
     match: /^Pin the lining to the dress\b/i,
     dg: dg('The lining laid on the dress, right sides together, neck and armholes matched.', [...top(), { pts: [p(3, 23), p(3, 14), ...armL().reverse(), NECK_A, ...neck(), NECK_B, ...armR(), p(37, 23)], kind: 'fold', closed: true }], [
-      { at: p(20, 18), text: 'LINING ON TOP' },
-      { at: p(20, 21), text: 'RIGHT SIDES TOGETHER' },
+      { at: p(20, 18), text: 'LINING ON TOP', mid: true },
+      { at: p(20, 21), text: 'RIGHT SIDES TOGETHER', mid: true },
     ]),
   },
   {
     match: /^Sew the neckline\b|\bshoulders are still open\b/i,
     dg: dg('The neckline and each armhole sewn, every line stopping short of the open shoulders.', [...top(), ...lined()], [
-      { at: p(20, 18), text: 'STOP SHORT OF THE SHOULDERS' },
+      { at: p(20, 18), text: 'STOP SHORT OF THE SHOULDERS', mid: true },
     ]),
   },
   {
@@ -309,7 +309,7 @@ const LINING: Frame[] = [
       ...neck().filter((_, i) => i % 2 === 0 && i > 1 && i < 11).map((q) => line('edge', q, p(q.x, q.y + 0.9))),
       ...armL().filter((_, i) => i % 2 === 0 && i > 1).map((q) => line('edge', q, p(q.x + 0.9, q.y))),
       ...armR().filter((_, i) => i % 2 === 0 && i > 1).map((q) => line('edge', q, p(q.x - 0.9, q.y))),
-    ], [{ at: p(20, 18), text: 'CLIP THE CURVES' }]),
+    ], [{ at: p(20, 18), text: 'CLIP THE CURVES', mid: true }]),
   },
   {
     match: /^Sew the outer shoulders\b/i,
@@ -320,7 +320,7 @@ const LINING: Frame[] = [
       line('machine', p(25.2, 3.6), p(31.6, 5.6)),
       ...SHOULDERS,
     ], [
-      { at: p(20, 20), text: 'LINING HELD BACK' },
+      { at: p(20, 20), text: 'LINING HELD BACK', mid: true },
       { at: p(5, 2.6), text: 'DRESS ONLY' },
     ]),
   },
@@ -331,12 +331,12 @@ const LINING: Frame[] = [
       ...lined(),
       ...SHOULDERS,
       ...[0.2, 0.4, 0.6, 0.8].flatMap((t) => [line('hand', p(8 + 7 * t, 5 - 2 * t + 0.8), p(8 + 7 * t + 0.5, 5 - 2 * t - 0.2)), line('hand', p(25 + 7 * t, 3 + 2 * t + 0.8), p(25 + 7 * t + 0.5, 3 + 2 * t - 0.2))]),
-    ], [{ at: p(20, 18), text: 'SLIP-STITCH THE LINING SHOULDERS' }]),
+    ], [{ at: p(20, 18), text: 'SLIP-STITCH THE LINING SHOULDERS', mid: true }]),
   },
   {
     match: /\blining rolls just inside\b/i,
     dg: dg('Pressed so the lining rolls just inside the neck and armholes.', [...top(), ...SHOULDERS, { pts: neck(0.5), kind: 'under' }, { pts: armL(0.5), kind: 'under' }, { pts: armR(0.5), kind: 'under' }], [
-      { at: p(20, 18), text: 'LINING ROLLS JUST INSIDE' },
+      { at: p(20, 18), text: 'LINING ROLLS JUST INSIDE', mid: true },
     ]),
   },
 ];
@@ -354,7 +354,7 @@ const PLEATS: Frame[] = [
       ...arrow(curve(p(29, 12), p(25, 9), p(21, 12), 6)),
     ], [
       { at: p(11, 23.6), text: 'SOLID', mid: true },
-      { at: p(20, 23.6), text: 'DASHED' },
+      { at: p(20, 23.6), text: 'DASHED', mid: true },
       { at: p(29, 23.6), text: 'SOLID', mid: true },
     ]),
   },
@@ -382,7 +382,7 @@ const PLEATS: Frame[] = [
       rect(6, 9, 34, 21, 'fold'),
       { pts: [p(12, 13), p(15, 8), p(29, 8), p(29, 13)], kind: 'cloth', closed: true },
       line('edge', p(18, 8), p(19.5, 6), p(27, 6), p(27, 8)),
-    ], [{ at: p(20, 19), text: 'DAMP PRESS CLOTH' }]),
+    ], [{ at: p(20, 19), text: 'DAMP PRESS CLOTH', mid: true }]),
   },
 ];
 const PLEAT_STITCH: Frame[] = [
@@ -409,7 +409,7 @@ const PLEAT_STITCH: Frame[] = [
       line('machine', p(20.6, 6), p(20.6, 15)),
       { pts: curve(p(19.4, 15), p(17, 18), p(16, 20), 6), kind: 'hand' },
       { pts: curve(p(20.6, 15), p(23, 18), p(24, 20), 6), kind: 'hand' },
-    ], [{ at: p(20, 21.6), text: 'KNOT INSIDE' }]),
+    ], [{ at: p(20, 21.6), text: 'KNOT INSIDE', mid: true }]),
   },
   {
     match: /^Baste across the waist\b/i,
@@ -420,7 +420,7 @@ const PLEAT_STITCH: Frame[] = [
       line('machine', p(10.3, 2), p(11.4, 6), p(11.4, 15)),
       line('machine', p(26.3, 2), p(27.4, 6), p(27.4, 15)),
       line('thread', p(2, 4), p(38, 4)),
-    ], [{ at: p(20, 19.5), text: 'BASTE ACROSS THE WAIST' }]),
+    ], [{ at: p(20, 19.5), text: 'BASTE ACROSS THE WAIST', mid: true }]),
   },
 ];
 
@@ -468,12 +468,12 @@ const ROULEAU: Frame[] = [
   {
     match: /\bloop turner\b/i,
     dg: dg('Trimmed close and turned right side out with a loop turner.', [rect(2, 10, 30, 14), line('under', p(3, 12), p(30, 12)), line('edge', p(30, 12), p(38, 12)), { pts: curve(p(36.6, 12), p(39, 12.5), p(37.6, 14), 4), kind: 'edge' }], [
-      { at: p(20, 7.4), text: 'LOOP TURNER INSIDE' },
+      { at: p(20, 7.4), text: 'LOOP TURNER INSIDE', mid: true },
     ]),
   },
   {
     match: /^Cut it into\b/i,
-    dg: dg('The tube cut into short loops.', [rect(2, 10, 9, 14), rect(11, 10, 18, 14), rect(20, 10, 27, 14), rect(29, 10, 36, 14)], [{ at: p(20, 7.4), text: 'CUT INTO LOOPS' }]),
+    dg: dg('The tube cut into short loops.', [rect(2, 10, 9, 14), rect(11, 10, 18, 14), rect(20, 10, 27, 14), rect(29, 10, 36, 14)], [{ at: p(20, 7.4), text: 'CUT INTO LOOPS', mid: true }]),
   },
 ];
 
@@ -572,8 +572,8 @@ const SLANT: Frame[] = [
 ];
 
 export const FRAME_SETS: FrameSet[] = [
-  { title: /\bwelt pockets?\b/i, frames: WELT },
-  { title: /\bfly zip\b/i, frames: FLY },
+  { title: /^Make the back welt pockets$/i, frames: WELT },
+  { title: /^Put in the fly zip$/i, frames: FLY },
   { title: /^Put in the zip$/i, frames: ZIP },
   { title: /^Line the neck and armholes$/i, frames: LINING },
   { title: /^Fold and press the pleats$/i, frames: PLEATS },
@@ -584,27 +584,30 @@ export const FRAME_SETS: FrameSet[] = [
   { title: /^Make the slant pockets$/i, frames: SLANT },
 ];
 
-/** The drawing for each of a step's lines (its sentences), or none when the step has no close-ups. A line before the
- *  first drawing's sentence shows the first drawing. */
 /** A step's drawings once each, in order, for the printed list and booklet (paper can't follow your ticks). */
 export function stepFrames(title: string, lines: string[]): Diagram[] {
   return [...new Set(framesFor(title, lines) ?? [])];
 }
 
+/** The drawing for each of a step's lines (its sentences), or none when the step has no close-ups. A line before the
+ *  first drawing's sentence shows the first drawing, and one with none of its own keeps the one before it. The
+ *  drawings are used only when every one of them finds its sentence, in order: another garment's step of the same
+ *  name (knife pleats, a one-shoulder lining, a jacket's front welt) or a reworded step keeps its usual picture rather
+ *  than showing drawings of something it doesn't do (code review, Nov 27). */
 export function framesFor(title: string, lines: string[]): Diagram[] | undefined {
   const set = FRAME_SETS.find((s) => s.title.test(title));
   if (!set) return undefined;
   let at = 0;
-  let seen = false;
+  let next = 0;
   const out = lines.map((ln) => {
     const k = set.frames.findIndex((f) => f.match.test(ln));
     if (k >= 0) {
+      if (k !== next && k !== at) next = -1;
+      else if (k === next) next++;
       at = k;
-      seen = true;
     }
     return at;
   });
-  // Words that no longer match any drawing get the step's usual picture, not a guess.
-  if (!seen) return undefined;
+  if (next !== set.frames.length) return undefined;
   return out.map((k) => set.frames[k].dg);
 }

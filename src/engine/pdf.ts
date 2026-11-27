@@ -1124,9 +1124,9 @@ function addSewingPages(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', 
     }
     for (const n of dg.notes ?? []) {
       const size = 1.45 * k;
-      const w = fonts.label.widthOfTextAtSize(n.text, size) + 0.08 * size * (n.text.length - 1);
-      const at = n.end ? x + n.at.x * k - w : n.mid || n.at.x === 20 ? x + n.at.x * k - w / 2 : x + n.at.x * k;
-      drawText(st.page, n.text, { x: at, y: y - n.at.y * k, size, font: fonts.label, tracking: 0.08, grey: 0.25, worded: true });
+      // drawText centres on its own; a note set to end at its point is moved back by its width.
+      const w = n.end ? fonts.label.widthOfTextAtSize(n.text, size) + 0.08 * size * (n.text.length - 1) : 0;
+      drawText(st.page, n.text, { x: x + n.at.x * k - w, y: y - n.at.y * k, size, font: fonts.label, tracking: 0.08, grey: 0.25, worded: true, centre: n.mid });
     }
   }
 
