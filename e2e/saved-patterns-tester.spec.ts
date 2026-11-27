@@ -52,6 +52,9 @@ test('a tester keeps every printed piece, each under its look name', async ({ pa
   for (const [look] of looks) await expect(saved.getByRole('listitem').filter({ has: page.getByText(look, { exact: true }) })).toHaveCount(1);
   await expect(saved).toContainText('4 saved');
   await expect(saved).not.toContainText('free limit');
+  // The Ice Peplum's fit read "Fitted fit" (pretend tester EJ walk, Nov 27).
+  await expect(saved).toContainText('Fitted · saved');
+  await expect(saved).not.toContainText(/fit(ted)? fit/i);
 });
 
 test('with Saved patterns full, Print says the pattern is not kept', async ({ page }, info) => {

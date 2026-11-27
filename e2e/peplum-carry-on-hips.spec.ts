@@ -39,6 +39,8 @@ test('a reload partway through the Ice Peplum carries on with it, hips and all',
     await expect(h1('Do these look right?')).toHaveCount(0);
     await expect(main.locator('.extra-intro')).toContainText(/high bust/i);
     await expect(main.locator('label').first()).toContainText(/armhole/i);
+    // As a tester who hasn't styled before: How styling works not yet seen (the fixtures mark it seen on every load).
+    await page.evaluate(() => localStorage.removeItem('maison-trace-style-intro'));
 
     // The rest of the pages ask the waist to hip too, and Style draws the top.
     const asked: string[] = [];
@@ -52,6 +54,18 @@ test('a reload partway through the Ice Peplum carries on with it, hips and all',
     expect(asked.join(' | ')).toMatch(/waist to hip/i);
     await expect(main.getByRole('heading', { name: /^Style |Ice Peplum/ }).first()).toBeVisible({ timeout: 30_000 });
     await expect(main).not.toContainText('Add your full hip');
+    // The look opens on itself, ready to print, not on How styling works, which read as restyling it from scratch; and
+    // again from Style in the top bar (pretend tester EJ walk, Nov 27).
+    const steps = page.getByRole('navigation', { name: 'Steps' });
+    await expect(main.getByRole('button', { name: 'Change a detail' })).toBeVisible();
+    await expect(h1(/How styling works/)).toHaveCount(0);
+    await steps.getByRole('button', { name: 'Measure' }).click();
+    await steps.getByRole('button', { name: 'Style' }).click();
+    await expect(main.getByRole('button', { name: 'Change a detail' })).toBeVisible();
+    await expect(h1(/How styling works/)).toHaveCount(0);
+    // Changing a detail is styling, so the intro still shows there the first time.
+    await main.getByRole('button', { name: 'Change a detail' }).click();
+    await expect(h1(/How styling works/)).toBeVisible();
   } finally {
     Object.assign(MEASUREMENTS, saved);
   }

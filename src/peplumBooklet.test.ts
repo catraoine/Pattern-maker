@@ -8,6 +8,7 @@ import { printableFor } from './printable';
 import { withEstimates } from './estimate';
 import { checkMeasurements, type MeasurementValues } from './measurements';
 import { checkPattern } from './engine/qc';
+import { inInches } from './units';
 
 // The pretend-tester walk on release DW (Nov 21) read the Ice Peplum's booklet against its pattern and found four
 // places where the two said different things: the neck ruffle's length, the neck binding's seam, the sleeve crown ease
@@ -62,6 +63,19 @@ describe('the Ice Peplum booklet agrees with its pattern', () => {
       // Front and back, as the note says, with no total: in inches a total rounded on its own read 1-1/4 in beside 1/2 +
       // 5/8 in (pretend tester DX walk, Nov 22).
       expect(step(/^Ease the sleeve heads$/)).toContain(`longer than the armhole by its ease, ${f} cm at the front and ${b} cm at the back`);
+    });
+
+    it(`${name}: the shoulder ease is one number in the seam check and in the steps`, () => {
+      // Each panel's 0.5 cm read 1/4 in, so the two added up to 1/2 in beside step 9's 3/8 in (pretend tester EJ walk,
+      // Nov 27): a panel names its share as half the back's whole ease, the number the step gives.
+      const panels = checks.filter((x) => /shoulder seams$/i.test(x.label));
+      expect(panels.length).toBe(2);
+      for (const c of panels) {
+        expect(c.ok).toBe(true);
+        expect(c.detail).toMatch(/: its half of the back's 1\.0 cm of shoulder ease, as drafted$/);
+      }
+      expect(inInches(panels[0].detail)).toContain("half of the back's ⅜ in of shoulder ease");
+      expect(inInches(step(/^Sew the shoulders$/))).toContain('⅜ in longer');
     });
 
     it(`${name}: the French seam's fold is the 0.6 cm between its two rows of stitching`, () => {
