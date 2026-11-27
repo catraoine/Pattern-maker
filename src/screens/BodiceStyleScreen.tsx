@@ -37,7 +37,7 @@ import { DrawOnForm, armFor, formWidth } from '../ui/DrawOnForm';
 import { orSeam, readSeamLine } from '../ui/formSeams';
 import { bodiceHemLine, orNeckline, readBodiceHemShape, readUnevenNeckline, unevenNecklineLines } from '../ui/formBodice';
 import { FormLine, bodiceLines, landmarks, readDrape, readFit, readNeckline, readSeam } from '../ui/formLines';
-import { FABRIC, Group, InCorner, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
+import { FABRIC, Group, InCorner, OnFirstStep, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
 
 import { Mode, ProTool, shows } from '../mode';
 import { EaseMapView } from '../ui/EaseMapView';
@@ -580,11 +580,17 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
           </p>
         )}
         {view === 'flat' && <p className="muted small">The technical flat, front and back, drawn to scale.</p>}
-        {draft?.warnings.map((w) => (
-          <p key={w} className="msg small">
-            {friendly(w)}
-          </p>
-        ))}
+        {/* On the first step only, with the way to fix it: it stood over every step and wasn't on the page to mend it (EH walk). */}
+        <OnFirstStep>
+          {draft?.warnings.map((w) => (
+            <p key={w} className="msg small">
+              {friendly(w)}{' '}
+              <button type="button" className="link inline-link" onClick={onEditMeasurements}>
+                Edit measurements
+              </button>
+            </p>
+          ))}
+        </OnFirstStep>
       </section>
 
       <aside className="card" aria-labelledby="sum">

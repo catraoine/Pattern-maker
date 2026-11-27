@@ -12,7 +12,7 @@ import type { MyFabric } from '../engine/fabrics';
 import { lingerieFabrics } from '../engine/knits';
 import { FabricCard, FabricSummary } from '../ui/FabricCard';
 import type { Mode } from '../mode';
-import { FABRIC, Group, SHAPE, StyleLayout, TabPanel } from '../ui/StyleLayout';
+import { FABRIC, Group, OnFirstStep, SHAPE, StyleLayout, TabPanel } from '../ui/StyleLayout';
 import { FabricDetails } from '../ui/FabricDetails';
 import { PiecesList, SummaryActions } from '../ui/StyleSummary';
 
@@ -177,11 +177,17 @@ export function LingerieStyleScreen({ onPhoto, photo, choices, onChoices: setCho
           <UndoToast undo={undo} />
         </div>
         <p className="muted small">Drafted to your measurements as you choose.</p>
-        {draft?.warnings.map((w) => (
-          <p key={w} className="msg small">
-            {WARNINGS[w]}
-          </p>
-        ))}
+        {/* On the first step only, with the way to fix it (as on the top's Style, EH walk). */}
+        <OnFirstStep>
+          {draft?.warnings.map((w) => (
+            <p key={w} className="msg small">
+              {WARNINGS[w]}{' '}
+              <button type="button" className="link inline-link" onClick={onEditMeasurements}>
+                Edit measurements
+              </button>
+            </p>
+          ))}
+        </OnFirstStep>
       </section>
 
       <aside className="card" aria-labelledby="sum">

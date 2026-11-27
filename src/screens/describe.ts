@@ -35,9 +35,11 @@ export function describePattern(c: PatternChoices) {
     const word = `${c.fit === 'boxy' ? 'boxy ' : ''}${seam && seam !== 'natural' ? `${SEAM_WORDS[seam]} ${kind}` : kind}`;
     const named = /skirt/.test(skirt) ? skirt.replace('skirt', word) : `${skirt} ${word}`;
     // A skirt length set by hand is said as the skirt's, at the end: "37 cm A-line dress" read as a dress 37 cm long.
-    const cmLead = /^(\d+(?:\.\d+)?) cm (.*)$/.exec(named);
-    const dress = cmLead ? cmLead[2][0].toUpperCase() + cmLead[2].slice(1) : named;
-    const skirtLong = cmLead ? `, its skirt ${cmLead[1]} cm long` : '';
+    // The skirt's own name leads with its nearest length ("Knee"), not the number (EH walk, Nov 25), so it comes off here.
+    const band = GROUPS[2].options.find((o) => o[0] === c.skirt.length)?.[1];
+    const ownCm = c.skirt.lengthCm !== undefined && band && named.startsWith(`${band} `) ? named.slice(band.length + 1) : undefined;
+    const dress = ownCm ? ownCm[0].toUpperCase() + ownCm.slice(1) : named;
+    const skirtLong = ownCm ? `, its skirt ${Math.round(c.skirt.lengthCm! * 10) / 10} cm long` : '';
     const ends = [...(hem ? [hem] : []), ...(c.skirt.pockets === 'inseam' ? ['pockets'] : c.skirt.pockets === 'patch' ? ['patch pockets'] : c.skirt.pockets === 'slant' ? ['slant pockets'] : []), ...(belted ? [belted] : [])];
     return `${dress} with ${details.length ? `${details.join(' and ')}, ` : ''}${bodiceDetails(c.bodice)}${ends.length ? `, and ${ends.join(' and ')}` : ''}${skirtLong}`;
   }
