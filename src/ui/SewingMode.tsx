@@ -104,6 +104,8 @@ export function SewingMode({ steps, pieces, lays, flat, title, keep, inCm, from,
     };
   }, []);
   const pictures = useMemo(() => steps.map((st) => stepPicture(st, pieces)), [steps, pieces]);
+  // Along the foot, a step with close-ups shows its first one, the same drawing the step opens on.
+  const firsts = useMemo(() => steps.map((st) => framesFor(st.title, stepLines(inCm(st.text)))?.[0]), [steps, inCm]);
   const step = steps[at];
   const last = at === steps.length - 1;
   const lines = stepLines(inCm(step.text));
@@ -183,7 +185,13 @@ export function SewingMode({ steps, pieces, lays, flat, title, keep, inCm, from,
         {steps.map((s, i) => (
           <li key={s.title + i}>
             <button type="button" className={i === at ? 'on' : i < at ? 'done' : undefined} aria-label={`Step ${i + 1}: ${s.title}`} aria-current={i === at ? 'step' : undefined} onClick={() => go(i)}>
-              <SewPicture picture={pictures[i]} pieces={pieces} lays={lays} flat={flat} still />
+              {firsts[i] ? (
+                <div className="sewpic still sewpic-diagram">
+                  <StepDiagram dg={firsts[i]!} />
+                </div>
+              ) : (
+                <SewPicture picture={pictures[i]} pieces={pieces} lays={lays} flat={flat} still />
+              )}
             </button>
           </li>
         ))}

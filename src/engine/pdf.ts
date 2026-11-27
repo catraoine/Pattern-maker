@@ -1080,7 +1080,7 @@ function addSewingPages(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', 
     // had gone over to the next. The heading goes over with them.
     // A step with close-ups keeps its words and their first row of drawings on one page.
     const frames = stepFrames(s.title, stepLines(s.text));
-    room(11 * 1.35 + 2 + wrap(s.text, 10, fonts.body).length * 10 * 1.35 + (frames.length ? 24 * 3.5 + 14 : 0));
+    room(11 * 1.35 + 2 + wrap(s.text, 10, fonts.body).length * 10 * 1.35 + (frames.length ? 24 * 5.3 + 14 : 0));
     write(`${i + 1}. ${s.title}`, 11, fonts.bodyMedium, 0, 2);
     write(s.text, 10, fonts.body, 18, 8);
     // The close-ups take the place of the step's one small drawing.
@@ -1088,11 +1088,12 @@ function addSewingPages(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', 
     else if (s.diagram) drawDiagram(s.diagram);
   });
 
-  /** A trickier step's close-ups (Nov 27), three to a row under its words, each numbered in the step's order. */
+  /** A trickier step's close-ups (Nov 27), two to a row under its words, each numbered in the step's order. Two to a
+   *  row keeps their small capitals near 8 pt; three to a row made them 5 pt, too small to read beside the machine. */
   function drawFrames(frames: Diagram[]) {
-    const k = 3.5;
+    const k = 5.3;
     const gap = 10;
-    const across = 3;
+    const across = 2;
     for (let r = 0; r < frames.length; r += across) {
       const row = frames.slice(r, r + across);
       const tall = Math.max(...row.map((d) => d.h)) * k;
