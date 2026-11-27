@@ -42,6 +42,7 @@ import { heavyChainK } from './heavyHold';
 import { wholeSkirt } from './wholeSkirt';
 import { fullHemLevel } from './hemWidth';
 import { droppedFlareCut, selfGap } from './skirtApart';
+import { dartCaps } from './dartCap';
 import { madeUpSkirt } from '../skirtPockets';
 import { foldCorner } from './collarFold';
 
@@ -894,6 +895,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
     for (let i = 0; i + 1 < withP.length; i += 2) sew(seams, B.chain([withP[i]], 'princess', down), B.chain([withP[i + 1]], 'princess', down));
   }
   for (const p of [...front, ...back]) for (const [a, b] of dartLegs(p)) sew(seams, a, b);
+  for (const p of [...front, ...back]) for (const [a, b] of dartCaps(p)) sew(seams, a, b);
 
   // What hangs from the waist (a skirt, a peplum): placed down from its waist edge, sewn to the bodice's waist if there is one.
   if (extra.skirt?.length && !knob("__noPep")) {
@@ -2228,8 +2230,26 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
     const fr = tp.filter((p) => p.role === 'front').flatMap((p) => (p.mesh.runs.shoulder ?? []).flat().map((i) => p.mesh.pts[i].x));
     const f0 = Math.min(...fr);
     const f1 = Math.max(...fr);
+    // (A shoulder cut in two pieces, a princess seam's: each point by its share along the whole seam, front pieces
+    // and back pieces each strung in one chain. Taken piece by piece, the side front's inner end was held no further
+    // out than the neck point, and dragged the seam's join 4 cm in to the neck: the shoulder crumpled into tabs,
+    // weekly eye check 2026-11-25.)
+    const along = new Map<number, number>();
+    const span = (ps: Panel[]) => ps.reduce((t, p) => {
+      const xs = (p.mesh.runs.shoulder ?? []).flat().map((i) => p.mesh.pts[i].x);
+      return t + (xs.length ? Math.max(...xs) - Math.min(...xs) : 0);
+    }, 0);
+    if (!knob('__shByPiece')) for (const role of ['front', 'back']) {
+      const ps = tp.filter((p) => p.role === role && !p.yoke && p.mesh.runs.shoulder?.length);
+      if (ps.length < 2) continue;
+      const ch = B.chain(ps, 'shoulder', (q) => q.x);
+      const L = ch.s[ch.s.length - 1] || 1;
+      const w = role === 'front' ? span(ps) : span(tp.filter((p) => p.role === 'front' && !p.yoke));
+      ch.ids.forEach((g, n) => along.set(g, f0 + (ch.s[n] / L) * w));
+    }
     return Float64Array.from(
       tp.flatMap((p) => {
+        if ((p.mesh.runs.shoulder ?? []).flat().every((i) => along.has(i + p.base))) return (p.mesh.runs.shoulder ?? []).flat().map((i) => along.get(i + p.base)! + (knob('__strapSlack') ?? 0.5));
         const xs = (p.mesh.runs.shoulder ?? []).flat().map((i) => (p.yoke ? Math.abs(p.start[i][0]) : p.mesh.pts[i].x));
         const a = Math.min(...xs);
         const b = Math.max(...xs);
@@ -2244,11 +2264,22 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
   // (Cut with full shoulders, a shell's, rather than straps: the shoulder seam's cut length, as widensForm reads it.
   // From 7 cm, not 9, since 2026-11-03: a square neck's 8.8 cm shoulder, left to settle as a strap, slid behind the
   // side and stood its corners up as wings; held as a full shoulder it lies on the shoulder.)
-  const fullShoulders = B.panels.some((p) => {
-    if (p.role !== 'front') return false;
-    const sh = (p.mesh.runs.shoulder ?? []).flat().map((i) => p.mesh.pts[i]);
-    return sh.length > 1 && Math.hypot(sh[0].x - sh[sh.length - 1].x, sh[0].y - sh[sh.length - 1].y) >= (knob('__fullSh') ?? 7);
-  });
+  // (The whole front shoulder, over every front piece: a princess seam to the shoulder splits it in two, each part
+  // under 7 cm, and the top was left to settle as a strap top; its seam slid 4 cm behind the side, the neck rode up
+  // and the shoulder tips stood up as tabs, weekly eye check 2026-11-25.)
+  const fullShoulders =
+    B.panels
+      .filter((p) => p.role === 'front')
+      .reduce((t, p) => {
+        const sh = (p.mesh.runs.shoulder ?? []).flat().map((i) => p.mesh.pts[i]);
+        return t + (sh.length > 1 && !knob('__shOnePiece') ? Math.hypot(sh[0].x - sh[sh.length - 1].x, sh[0].y - sh[sh.length - 1].y) : 0);
+      }, 0) >= (knob('__fullSh') ?? 7) ||
+    (!!knob('__shOnePiece') &&
+      B.panels.some((p) => {
+        if (p.role !== 'front') return false;
+        const sh = (p.mesh.runs.shoulder ?? []).flat().map((i) => p.mesh.pts[i]);
+        return sh.length > 1 && Math.hypot(sh[0].x - sh[sh.length - 1].x, sh[0].y - sh[sh.length - 1].y) >= (knob('__fullSh') ?? 7);
+      }));
   // (A sleeveless front cut down to a plunge, hung from straps: left to settle, a top's straps slid 8 cm behind the
   // shoulder and took the whole V edge round to the side of the body, where the stay-tape pass then had to drag it
   // 10 cm back to the front and tore the cloth beside it 5x, All round quality 2026-11-04. Its straps are held on the

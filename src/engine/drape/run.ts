@@ -33,7 +33,8 @@ import { fairBackCentre } from './fairFront';
 import { layLapelFoot } from './lapelFoot';
 import { fairStraps } from './strapFair';
 import { fairCowl } from './cowlFair';
-import { fairTorsoHem } from './hemFair';
+import { fairSkirtHem, fairTorsoHem } from './hemFair';
+import { pressDartCaps } from './dartCap';
 import { pickBody } from '../body';
 import type { FormKind } from '../../measurements';
 
@@ -210,7 +211,12 @@ function sewDrape(job: DrapeJob, sleevedHoldZ?: number, tierFoldCap?: number): D
   if (job.kind === 'outer' && job.draft.lapel?.shawl) d.lines = d.lines.filter((l) => l.kind !== 'gorge');
   // A top's hem edge, smoothed along its length where it crossed the mesh on a slant (hemFair.ts).
   if ((job.kind === 'bodice' || job.kind === 'dress') && !knob('__noHemFair')) fairTorsoHem(d);
+  // A skirt's diagonal or high-low hem likewise, on a skirt or a dress (hemFair.ts).
+  if (sk?.asym && !knob('__noSkirtHemFair')) fairSkirtHem(d);
   const quality = drapeQuality(d, sp, { seams: d.seams, levelHem: !!sk && !sk.asym && !sk.hem, legs: job.kind === 'trousers' });
+  // A dart's cap, sewn closed on itself, pressed flat into its seam (dartCap.ts). After the score, which has judged the
+  // cap's own seam: laid on the seam line, its sewn pairs land a little apart along it, out of sight.
+  if (job.kind === 'bodice' || job.kind === 'dress') pressDartCaps(d);
   // A sleeve piece the drape left out (a raglan's back half) is cloth missing from the drawing, which no measure of the
   // cloth that is there can see: the eye check's oversized raglan jacket passed with its shoulders open (2026-11-02).
   const sleevePieces = (job.kind === 'outer' ? job.draft.pieces : job.kind === 'tee' ? (job.draft.sleeveless ? [] : job.draft.sleeve.pieces) : job.kind === 'bodice' || job.kind === 'dress' ? (job.sleeve?.pieces ?? []) : []).filter((pc) => isShell(pc) && /sleeve/i.test(pc.name) && !/band|cuff|facing/i.test(pc.name));
