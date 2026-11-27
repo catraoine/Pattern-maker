@@ -109,7 +109,10 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
       ? [
           {
             title: 'Make the back welt pockets',
-            text: `On the right side of each back, chalk the BACK POCKET box from the pattern. Fuse a strip of interfacing behind it on the wrong side. Fold each back welt in half lengthwise, right side out, and press. Lay it on the back below the box, raw edges up to the box's lower line, and stitch along that line from end to end. Lay a back pocket facing, edge to the box's upper line, and stitch along it, stopping 0.5 cm short of each end. Cut through the back between the lines and into each corner in a small V, stopping just short of the stitching. Push the facing through, flip the welt up over the opening and press. Sew a back pocket bag to the welt's seam allowance and another to the facing's, then sew the two bags together round their edges, catching the little triangles at the ends. Tack the top of the bags to the waist edge inside the seam allowance so the waistband holds them.`,
+            // The bags are sewn at the opening, 7 cm below the waist (BACK_WELT.below), and are 17 cm deep, so they hang
+            // free: the step used to ask to tack their tops into the waistband, which a tester found can't be done
+            // (fit audit, findings row 162).
+            text: `On the right side of each back, chalk the BACK POCKET box from the pattern. Fuse a strip of interfacing behind it on the wrong side. Fold each back welt in half lengthwise, right side out, and press. Lay it on the back below the box, raw edges up to the box's lower line, and stitch along that line from end to end. Lay a back pocket facing, edge to the box's upper line, and stitch along it, stopping 0.5 cm short of each end. Cut through the back between the lines and into each corner in a small V, stopping just short of the stitching. Push the facing through, flip the welt up over the opening and press. Sew a back pocket bag to the welt's seam allowance and another to the facing's, then sew the two bags together round their edges, catching the little triangles at the ends. The bags hang free from the opening and do not reach the waist.`,
           },
         ]
       : []),
