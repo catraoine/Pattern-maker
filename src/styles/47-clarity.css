@@ -593,8 +593,8 @@ section[aria-label='Preview']:has(.techflat) > .big-undo {
     position: sticky;
     bottom: 0;
     z-index: 6;
-    margin: 0 -18px;
-    padding: 8px 18px calc(8px + env(safe-area-inset-bottom));
+    margin: 0 -20px;
+    padding: 8px 20px calc(8px + env(safe-area-inset-bottom));
     border-top: 1px solid var(--guide);
     background: var(--paper);
   }
@@ -615,6 +615,15 @@ section[aria-label='Preview']:has(.techflat) > .big-undo {
   .print-top .print-controls > .pages-fold,
   .print-top .print-more > * {
     order: 2;
+  }
+}
+/* Edge to edge, and no wider: the page's own side margin is 16px on a phone (01-base), and 18px here had the whole
+   Print page scroll sideways by 2px (EH walk, Nov 25). */
+@media (max-width: 640px) {
+  .print-top .print-go {
+    margin: 0 -16px;
+    padding-left: 16px;
+    padding-right: 16px;
   }
 }
 

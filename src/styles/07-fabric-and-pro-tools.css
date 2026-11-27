@@ -664,6 +664,24 @@ button.link.garment-change {
   margin-top: -10px;
 }
 
+/* A number out of range: shown in ink, with Check beside it underlined, so it reads as the row to fix. */
+.check-list button span.wrong-value:last-child {
+  color: var(--ink);
+}
+.check-list .wrong-value em {
+  margin-left: 8px;
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
+  text-transform: uppercase;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.check-list .check-reason {
+  margin: 8px 0;
+}
+
 .check-list em.add {
   font-style: normal;
   font-family: var(--mono);

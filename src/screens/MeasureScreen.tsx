@@ -4,7 +4,7 @@ import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { GARMENT_NAME } from '../measureFlow';
 import { PeopleSwitch } from '../ui/PeopleSwitch';
 import { ME, formOf, type Account, type Person } from '../account';
-import { DoubleChecks } from './MeasureStepsScreen';
+import { DoubleChecks, WrongValue } from './MeasureStepsScreen';
 
 interface Props {
   account: Account & { people: Person[]; active: string };
@@ -83,8 +83,9 @@ export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, g
               <li key={f.id}>
                 <button type="button" onClick={() => onMeasure([f.id])}>
                   <span>{worded(f.label, form)}</span>
-                  {v === undefined ? <em className="add">Add</em> : wrong(f.id) ? <em className="add">Check</em> : doubtful(f.id) ? <span className="doubtful">{show(f.id, v, unit)}</span> : <span>{show(f.id, v, unit)}</span>}
+                  {v === undefined ? <em className="add">Add</em> : wrong(f.id) ? <WrongValue value={show(f.id, v, unit)} /> : doubtful(f.id) ? <span className="doubtful">{show(f.id, v, unit)}</span> : <span>{show(f.id, v, unit)}</span>}
                 </button>
+                {problem?.id === f.id && <p className="msg error check-reason">{problem.message}</p>}
               </li>
             );
           })}
@@ -97,7 +98,6 @@ export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, g
             </li>
           )}
         </ul>
-        {problem && <p className="msg error">{problem.message}</p>}
         {!problem && <DoubleChecks checks={doubts} />}
         {looks.length > 0 && (
           <div className="second-looks" role="status" aria-labelledby="looks-title">

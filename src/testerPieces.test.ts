@@ -102,7 +102,7 @@ describe.each(Object.entries(BODIES))('the Ice Peplum Top on a %s body', (_size,
   });
 
   it('says the back shoulder ease is split between its two panels', () => {
-    expect(step(p, 'Sew the shoulders')).toContain('1 cm longer, 0.5 cm on each of its two panels');
+    expect(step(p, 'Sew the shoulders')).toContain('1 cm longer, half of it on each of its two panels');
   });
 
   it('lists no interfacing, which no step uses, and says the sheer is cut single layer in place of folding', () => {

@@ -11,7 +11,7 @@ test('a number taken in inches gets a one-tap switch, and a weight in pounds rea
   await box.fill('28');
   await box.blur();
   await expect(main.getByText(/Waist can be from/)).toBeVisible();
-  await main.getByRole('button', { name: /Switch to inches/ }).click();
+  await main.getByRole('button', { name: 'Read 28 as inches' }).click();
   await expect(main.getByRole('button', { name: 'Inches' })).toHaveAttribute('aria-pressed', 'true');
   await expect(box).toHaveValue('28');
   await expect(main.getByText(/can be from/)).toHaveCount(0);
@@ -19,7 +19,7 @@ test('a number taken in inches gets a one-tap switch, and a weight in pounds rea
   await box.fill('3');
   await box.blur();
   await expect(main.getByText(/Waist can be from/)).toBeVisible();
-  await expect(main.getByRole('button', { name: /Switch to inches/ })).toHaveCount(0);
+  await expect(main.getByRole('button', { name: /as inches/ })).toHaveCount(0);
   await box.fill('28');
   for (const n of ['36', '38', '58']) {
     await main.getByRole('button', { name: /^Next\b/ }).click();
