@@ -336,9 +336,19 @@ export async function seeChoices(page: Page) {
   await expect(see).toBeHidden();
 }
 
-/** "Show all tools": on a style screen it sits under the last tab only, so open that tab first. */
+/** "Show all tools": on a style screen it sits under the last tab only, so open that tab first. On Print the tools are
+ *  More for this pattern, one fold with a row per tool (Cat picked A, Nov 28): open it and every row, and hand back the
+ *  (absent) link so callers have nothing more to click. */
 export async function showAllTools(page: Page) {
   const all = main(page).getByRole('button', { name: 'Show all tools' });
+  const fold = main(page).locator('details.more-tools');
+  if (await fold.isVisible()) {
+    if (!(await fold.evaluate((d) => (d as HTMLDetailsElement).open))) await fold.locator('summary').first().click();
+    const rows = fold.locator('details.tool-row');
+    await expect(rows.first()).toBeVisible();
+    for (const row of await rows.all()) if (!(await row.evaluate((d) => (d as HTMLDetailsElement).open))) await row.locator(':scope > summary').click();
+    return all;
+  }
   const tabs = main(page).getByRole('tablist', { name: 'Style choices', includeHidden: true });
   if (!(await all.isVisible()) && (await tabs.count())) await (await stepTabs(page)).getByRole('tab').last().click();
   // On a phone the link is on the Review page, after the last step (Cat, 2026-10-31). Cut it has no Review page:

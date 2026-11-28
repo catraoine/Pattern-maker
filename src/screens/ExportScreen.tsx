@@ -23,7 +23,7 @@ import { Envelope } from '../ui/Envelope';
 import { InterestCard } from '../ui/InterestCard';
 import type { MeasurementValues } from '../measurements';
 import { Mode, ProTool, shows } from '../mode';
-import { ModeLink } from '../ui/ModeLink';
+import { MoreTools, ToolRow, ToolTick } from '../ui/MoreTools';
 import { countStep } from '../report/report';
 import { patternCode } from '../patternCode';
 import { GarmentFabric } from '../ui/FabricFill';
@@ -344,6 +344,24 @@ export function ExportScreen({ example, onNextSew, onMeasureMe, onEditMeasuremen
   };
   const paperChoice = projector ? 'projector' : paper;
 
+  // Files for a dressmaker, under the Dressmaker's pack row of More for this pattern.
+  const makerPack = (
+    <MakerPack
+      profile={profile}
+      title={title}
+      fit={fit}
+      made={made}
+      fileBase={fileBase}
+      onSvg={() => download(toSvg(sheet), 'image/svg+xml', `${fileBase}.svg`)}
+      atelier={finish.atelier}
+      onAtelier={(on) => onFinish({ ...finish, atelier: on })}
+      drafting={drafting}
+      pattern={ready ? { bytes: ready, name: fileName } : undefined}
+      values={imported ? undefined : values}
+      imported={!!imported}
+      alterations={imported ? NONE : alterations}
+    />
+  );
   return (
     <>
       <div className="split">
@@ -618,53 +636,40 @@ export function ExportScreen({ example, onNextSew, onMeasureMe, onEditMeasuremen
             )}
           </div>
           <div className="print-more">
-            {can('byHand') && !imported && (
-              <label className="check">
-                <input type="checkbox" checked={!!finish.byHand} onChange={(e) => onFinish({ ...finish, byHand: e.target.checked })} />
-                <span>
-                  Draft it by hand <span className="muted small">add pages to draw the pattern yourself on pattern paper, point by point</span>
-                </span>
-              </label>
-            )}
-            <ModeLink quiet mode={mode} onMode={onMode} what="drafting by hand, a dressmaker's pack and more" />
+            {/* Every extra tool in one fold at the foot of Print (Cat picked A, Nov 28). Most sewists never need them, so
+                they stay in reach without a page of their own, and Next: Cut and sew stays the last thing on Print. */}
+            <MoreTools open={mode === 'all'} onToggle={(open) => (open ? 'all' : 'simple') !== mode && onMode?.(open ? 'all' : 'simple')}>
+              {can('byHand') && !imported && (
+                <ToolTick name="Draft it by hand" what="Pages to draw it yourself on pattern paper, point by point" checked={!!finish.byHand} onChange={(on) => onFinish({ ...finish, byHand: on })} />
+              )}
+              {can('makerPack') && (
+                <ToolRow name="Dressmaker's pack" what={made?.flat && can('techFlat') ? 'Technical flat, tech pack, DXF and SVG files' : 'Tech pack, DXF and SVG files'}>
+                  {/* The technical flat leads the pack (Cat, Nov 28: one row, not two): it is for a dressmaker, and goes
+                      on the instructions' cover too. */}
+                  {made?.flat && can('techFlat') && (
+                    <section className="card" aria-labelledby="flattitle">
+                      <p className="eyebrow">Technical flat</p>
+                      <h2 id="flattitle">{title}</h2>
+                      <TechFlatView flat={made.flat} title={title} />
+                      <p className="muted small">
+                        Drawn to scale from your pattern{garment === 'tee' ? '' : ', with the darts sewn'}. It goes on the cover of the instructions, for a dressmaker
+                        or anyone checking the design.
+                      </p>
+                    </section>
+                  )}
+                  {makerPack}
+                </ToolRow>
+              )}
+              {values && draftAt && can('sizeRun') && (
+                <ToolRow name="Size run" what="Grade this pattern up and down">
+                  <SizeRun garment={garment} values={values} draftAt={draftAt} title={title} fileBase={fileBase} width={finish.fabricWidth} nap={nap} download={download} />
+                  <InterestCard offer="sizerun" pattern={title} />
+                </ToolRow>
+              )}
+            </MoreTools>
           </div>
         </section>
       </div>
-
-      {made?.flat && can('techFlat') && (
-        <section className="card" aria-labelledby="flattitle">
-          <p className="eyebrow">Technical flat</p>
-          <h2 id="flattitle">{title}</h2>
-          <TechFlatView flat={made.flat} title={title} />
-          <p className="muted small">
-            Drawn to scale from your pattern{garment === 'tee' ? '' : ', with the darts sewn'}. It goes on the cover of the instructions, for a dressmaker or anyone
-            checking the design.
-          </p>
-        </section>
-      )}
-
-      {can('makerPack') && (
-        <MakerPack
-          profile={profile}
-          title={title}
-          fit={fit}
-          made={made}
-          fileBase={fileBase}
-          onSvg={() => download(toSvg(sheet), 'image/svg+xml', `${fileBase}.svg`)}
-          atelier={finish.atelier}
-          onAtelier={(on) => onFinish({ ...finish, atelier: on })}
-          drafting={drafting}
-          pattern={ready ? { bytes: ready, name: fileName } : undefined}
-          values={imported ? undefined : values}
-          imported={!!imported}
-          alterations={imported ? NONE : alterations}
-        />
-      )}
-
-      {values && draftAt && can('sizeRun') && (
-        <SizeRun garment={garment} values={values} draftAt={draftAt} title={title} fileBase={fileBase} width={finish.fabricWidth} nap={nap} download={download} />
-      )}
-      {values && draftAt && can('sizeRun') && <InterestCard offer="sizerun" pattern={title} />}
 
       {/* On to the Sew chapter, which opens on cutting (Cat, Nov 28). An outline, since Download pattern is this page's
           one fill (clarity review B1, Nov 22). */}

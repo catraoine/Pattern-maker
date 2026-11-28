@@ -26,6 +26,7 @@ inventing a new one. The shared rules live in `src/styles/47-clarity.css`.
 | Headings | Page 40, part 28, section 22 (Archivo 600). A garment's description is 17 px sentence case. | `h1`, `.print-part h2`, `.sew-card > h2` |
 | Reading text | 16 px; help lines 14 px muted. Nothing under 11 px. | `body`, `.muted` |
 | Opens in place | A ruled row with + / −. | `.fold-pick`, `details > summary` |
+| Extra tools | Print's tools sit in one fold, More for this pattern, at the foot of Print. Each tool is a ruled row with its name and one 14 px muted line: + / − opens it in place, and a tool that is only on or off is a tick box. Open means all tools and closed the simple view. | `.more-tools`, `.tool-row`, `.tool-tick` |
 | Phone margin | 16 px on every screen. | `.main` |
 | Help under a pick | The same short line on a phone and a computer. | `.explain-short` |
 

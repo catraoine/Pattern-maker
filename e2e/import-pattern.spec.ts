@@ -31,6 +31,8 @@ test('import a pattern: check a DXF, then use it to print and send', async ({ pa
   await page.getByRole('dialog', { name: /^Sewing your / }).getByRole('button', { name: /^Close/ }).click();
   await openSew(page);
   await expect(main.getByText('Join the seams')).toBeVisible();
+  // The dressmaker's pack is a row of More for this pattern on its Print.
+  await showAllTools(page);
   await expect(main.getByRole('button', { name: 'Send to a dressmaker' })).toBeEnabled({ timeout: 45_000 });
   // No toile, fabric check or save: those belong to patterns drafted here.
   await expect(main.getByText('Sew a toile first')).toHaveCount(0);

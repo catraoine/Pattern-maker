@@ -1110,3 +1110,89 @@ body .style-layout .style-pin > section > .preview > .preview-corner:has(> .pe-o
     margin-left: auto;
   }
 }
+
+/* More for this pattern (Cat picked A, Nov 28): Print's extra tools in one fold, each a ruled row with its name and one
+   line on what it does. A row that opens in place ends in + / − like every fold; Draft it by hand is a tick box. */
+.more-tools {
+  border-top: 1px solid var(--guide);
+  padding-top: 4px;
+}
+.more-tools > summary {
+  margin: 8px 0;
+}
+.more-tools .tool-rows {
+  display: flex;
+  flex-direction: column;
+}
+.more-tools .tool-row {
+  border-bottom: 1px solid var(--guide);
+}
+.more-tools .tool-row > summary,
+.more-tools .tool-tick {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 10px 0;
+  cursor: pointer;
+  list-style: none;
+}
+.more-tools .tool-row > summary::-webkit-details-marker {
+  display: none;
+}
+.more-tools .tool-row > summary::after {
+  content: '+';
+  color: var(--muted);
+  flex: none;
+}
+.more-tools .tool-row[open] > summary::after {
+  content: '−';
+}
+.more-tools .tool-row > summary,
+.more-tools .tool-tick > span {
+  flex-wrap: wrap;
+}
+.more-tools .tool-tick > span,
+.more-tools .tool-row > summary {
+  font: 400 16px/1.35 var(--sans);
+  color: var(--ink);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.more-tools .tool-name,
+.more-tools .tool-what {
+  display: block;
+}
+.more-tools .tool-row > summary > span:first-child {
+  flex: 1 1 auto;
+}
+.more-tools .tool-row > summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  row-gap: 2px;
+}
+.more-tools .tool-row > summary::after {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  align-self: center;
+}
+.more-tools .tool-what {
+  font-size: 14px;
+  color: var(--muted);
+}
+.more-tools .tool-tick input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+}
+.more-tools .tool-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 0 16px;
+}
+.more-tools .tool-body > .card {
+  margin: 0;
+}
