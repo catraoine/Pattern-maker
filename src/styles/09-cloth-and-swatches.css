@@ -291,8 +291,10 @@
 .colourdots .card-tex {
   background-color: var(--guide);
 }
-.colourdots .card-tex::before {
+.card-tex.dyed::before {
   content: '';
+  /* Only the weave's light and shade, not the photo's own colour: a green velvet photo turned every colour green. */
+  filter: grayscale(1);
   position: absolute;
   inset: 0;
   background-image: var(--tex);
@@ -654,15 +656,10 @@
   vertical-align: 3px;
 }
 
-/* Sheer and Lace (Cat, Nov 28: "need to look like sheer and lace"). Their type cards are pictures of the cloth over a
-   dark and a light ground (public/fabrics/card), drawn to fill the card rather than tiled. Their colour cards show the
-   colour the same way: a sheer is the colour laid thin over the form's charcoal and the chalk, with a fold where it
-   lies double; a lace is the colour cut to the lace's motifs and net (the drawings' own lace mask) over black. */
-.swatch-row .swatch .card-tex.art {
-  background-size: cover;
-  background-position: center top;
-}
-.colourdots.see-sheer .card-tex {
+/* Sheer and Lace (Cat, Nov 28: "need to look like sheer and lace"). Their chips and colour cards show the colour over
+   a dark and a light ground: a sheer is the colour laid thin over the form's charcoal and the chalk, with a fold where
+   it lies double; a lace is the colour cut to the lace's motifs and net (the drawings' own lace mask). */
+.card-tex.see-sheer {
   background:
     linear-gradient(100deg, transparent 58%, color-mix(in srgb, var(--c) 30%, transparent) 58%),
     linear-gradient(90deg, color-mix(in srgb, var(--c) 40%, transparent), color-mix(in srgb, var(--c) 62%, transparent) 30%, color-mix(in srgb, var(--c) 38%, transparent) 55%, color-mix(in srgb, var(--c) 60%, transparent)),
@@ -670,11 +667,12 @@
 }
 /* Half black, half chalk, so a dark lace shows on the chalk and a light one on the black: on black alone, black lace
    vanished (Nov 28). */
-.colourdots.see-lace .card-tex {
+.card-tex.see-lace {
   background: linear-gradient(75deg, #0b0a09 0 50%, #dcd5c7 50%);
 }
-.colourdots.see-lace .card-tex::before {
+.card-tex.see-lace::before {
   background: var(--c);
+  filter: none;
   mask: var(--net) center / 56px 56px;
   -webkit-mask: var(--net) center / 56px 56px;
   mix-blend-mode: normal;

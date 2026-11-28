@@ -1,0 +1,22 @@
+/* The fabric types as small chips of cloth, names on the black under them (Cat's A1.1 Small chips, Nov 28), so the
+   types read as "choose a cloth" and the shop's cream cards below read as shopping. Six or so to a phone's row, and
+   the same chips on a computer (this file comes after 47-clarity's computer cards on purpose). */
+.style-panel .swatch-row .swatches {
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  gap: 10px 6px;
+}
+.style-panel .swatch-row :is(.swatch, .swatch.on) .card-tex {
+  height: auto;
+  aspect-ratio: 1;
+  box-shadow: none;
+}
+.style-panel .swatch-row :is(.swatch, .swatch.on) > .card-name {
+  background: none;
+  color: var(--ink);
+  padding: 5px 0 0;
+  font-size: 8px;
+  /* Tight enough that Polyester fits a computer's narrowest chip. */
+  letter-spacing: 0.04em;
+  white-space: normal;
+  text-align: center;
+}

@@ -31,7 +31,13 @@ export const tileUrl = (id: string) => `${import.meta.env.BASE_URL}fabrics/flat/
 /** The see-through cloths' cards are drawn over a dark and a light ground, so what is behind shows through them: a
  *  close-up of the cloth alone read as flat pink for Sheer and as wallpaper for Lace (Cat, Nov 28). */
 const SEE_THROUGH = ['sheer', 'lace'];
-const CARD_ART: Partial<Record<string, string>> = { sheer: `${import.meta.env.BASE_URL}fabrics/card/sheer.svg`, lace: `${import.meta.env.BASE_URL}fabrics/card/lace.jpg` };
+/** A chip or colour card's cloth in a colour: the weave laid over it, or for a sheer or lace the colour drawn see-through. */
+function dyed(id: string, hex: string): CSSProperties {
+  if (SEE_THROUGH.includes(id)) return { '--c': hex, '--net': `url(${import.meta.env.BASE_URL}fabrics/flat/lace-net.png)` } as CSSProperties;
+  return { backgroundColor: hex, '--tex': `url(${tileUrl(id)})` } as CSSProperties;
+}
+/** The type chips' colour before any colour is picked: undyed cloth. */
+const CHIP_IVORY = '#E6DDCB';
 
 /** The fabric the sketch shows: a shop fabric's own swatch, else a special cloth or a knit over the fibre it is made of. */
 export const flatId = (f: MyFabric | undefined): string | undefined => shopFabric(f?.shop)?.tile ?? f?.special ?? f?.knit ?? f?.fibre;
@@ -427,6 +433,10 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
   const photoOn = !!fabric?.photo;
   // Any colour is for the fabric types: a shop fabric comes only in its own colourways.
   const anyColour = !fabric?.shop && !printed && !photoOn;
+  // Every type chip shows the colour already picked, so the row reads as "your colour in each cloth" and only the colour
+  // cards set colour: each chip in its own colour looked like picking it picked that colour too (Cat, Nov 28). Before a
+  // colour is picked they are all ivory, the cloth undyed.
+  const dye = (photoOn || printed ? undefined : colourHex(fabric)) ?? CHIP_IVORY;
   return (
     <div className="swatch-row">
       <p className="fabric-now">
@@ -479,7 +489,7 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
                 startPick(() => onFinish(pickFabric(finish, s.id)));
               }}
             >
-              <span className={CARD_ART[s.id] ? 'card-tex art' : 'card-tex'} style={{ backgroundImage: `url(${CARD_ART[s.id] ?? tileUrl(s.id)})` }} aria-hidden="true" />
+              <span className={SEE_THROUGH.includes(s.id) ? `card-tex dyed see-${s.id}` : 'card-tex dyed'} style={dyed(s.id, dye)} aria-hidden="true" />
               <span className="card-name" aria-hidden="true">{s.label}</span>
             </button>
           );
@@ -539,7 +549,7 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
       )}
       {photoOn && <PhotoSize finish={finish} onFinish={onFinish} named={!!chosen} />}
       {chosen && !photoOn && (
-        <div className={SEE_THROUGH.includes(chosen) ? `colourdots see-${chosen}` : 'colourdots'} role="radiogroup" aria-label="Colour">
+        <div className="colourdots" role="radiogroup" aria-label="Colour">
           {colours.map((c) => {
             const on = colour?.toLowerCase() === c.name.toLowerCase();
             return (
@@ -555,7 +565,7 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
               >
                 {/* The chosen fabric's weave over the colour, so each card reads as that cloth dyed. */}
                 {/* A sheer or lace colour card shows the colour over a dark and a light ground, as its type card does. */}
-                <span className="card-tex" style={SEE_THROUGH.includes(chosen) ? ({ '--c': c.hex, '--net': `url(${import.meta.env.BASE_URL}fabrics/flat/lace-net.png)` } as CSSProperties) : ({ backgroundColor: c.hex, '--tex': `url(${tileUrl(chosen)})` } as CSSProperties)} aria-hidden="true" />
+                <span className={SEE_THROUGH.includes(chosen) ? `card-tex dyed see-${chosen}` : 'card-tex dyed'} style={dyed(chosen, c.hex)} aria-hidden="true" />
                 <span className="card-name" aria-hidden="true">{c.name}</span>
               </button>
             );
