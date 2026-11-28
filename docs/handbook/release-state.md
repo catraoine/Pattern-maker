@@ -4,12 +4,11 @@ _Update this page whenever a release ships or a PR is queued._
 
 ## Now (Nov 21, 2026): how a ship works
 
-Live: **release EK** (Nov 27, Cat's 6:20 pm "ship"): a simpler pin note box that stays open when the finger lifts;
-sewing step drawings and Sewing mode pictures match their steps; EJ cold-read and walk fixes (high bust note, Next
-outline, laptop Sewing mode buttons in view, one shoulder ease, "Fitted"); measuring count carries on after a reload
-and the landing page offers Carry on; a page left open on an old build reloads once; "Drafted to an example body";
-welt pocket stitching on the box lines; menswear dress without a front length; bug hunt app fixes apply themselves
-(rule 8); on top of EJ. Rollback = release EJ. Releases CW to EK went out Nov 17 to 27;
+Live: **release EL** (Nov 27, Cat's 8:11 pm "ship"): inch pattern marks show the booklet's ease and a peplum has no
+waist mark; Sewing mode pictures show the right pieces for pleats, creases, ruffle, sleeve bands and heads; a key under
+each sewing drawing; a collection look is carried on with before its first measurement; the high bust note leads with
+the fit; booklet drawings that run onto a new page keep their step's name; "Leave my weight out"; on top of EK.
+Rollback = release EK. Releases CW to EL went out Nov 17 to 27;
 every release's commit, deploy id and rollback is in project memory (pattern-maker-releases-nov14), and the running list of what is
 ready is `/mnt/project-files/releases/ready-to-ship.md`.
 
