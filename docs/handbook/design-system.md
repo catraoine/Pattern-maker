@@ -14,7 +14,8 @@ inventing a new one. The shared rules live in `src/styles/47-clarity.css`.
 | Second button | 1 px champagne outline, 13.5 px capitals, 44 px tall. | `button.secondary` |
 | Action link | 13.5 px champagne capitals; › only when it leaves the screen. | `.later`, `.link` |
 | Link in a sentence | The sentence's own type, underlined. | `a`, `.link.quiet` |
-| Back | Inside Style's steps a named "‹ Shape"; elsewhere the header ←. | `.step-back-arrow.named`, `.steady-back` |
+| Back | Inside Style's steps a named "‹ Shape", on Sew it a named "‹ Cut it"; elsewhere the header ←. | `.step-back-arrow.named`, `.steady-back`, `.sew-back` |
+| Next chapter | The last thing on the page, 56 px, full width on phones, at most 420 px at the right on a computer. Print ends in "Next: Cut and sew ›" (outlined, as Download is Print's fill); Cut it ends in "Next: Sew it ›" (filled). | `.chapter-next` |
 | Close | Square, in the window's top corner. The enlarged view's shrink mark is square too, an icon with no word. | `.enlarge` |
 | Done (a tool open) | One thin outlined word, top right, standing in the shrink icon's spot. Never a fill, never a different place per tool. | `button.done`, `.pe-open-tool.on` |
 | Download pair | Download pattern (filled) and Download instructions (outlined) are the same height, 56 px. | `.print-go`, `.print-controls .stack` |
@@ -44,6 +45,12 @@ keeps each control in the same corner:
 Above the window, two lines at most: the garment's name with "Example body · Measure me" level with it at the right,
 then The collection and Your tester look side by side. The header steps (Measure, Style, Print, Sew) each fit their
 word, with equal space between them.
+
+## The chapters after Style
+
+Cat set this on Nov 28: Print, then Cut it and Sew it as the two pages of the Sew tab, joined by Next buttons instead of
+"Part" labels. Cut it holds the fabric, the cutting layout, what you'll need and the toile; Sew it holds Sewing mode, the
+step pictures and every step as a list. Back (the phone's or ‹ Cut it) steps from Sew it to Cut it to Print.
 
 ## How it's checked
 
