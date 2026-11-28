@@ -99,3 +99,25 @@ describe('a number typed in inches in the cm form', () => {
     expect(w?.message ?? '').not.toMatch(/inches/);
   });
 });
+
+// The EK walk (Nov 27) read the Ice Peplum's inch pattern: its bust mark said "EASE +1-5/8 IN" beside 36 in and
+// 37-1/2 in, where the booklet said +1-1/2, as the mark's ease was rounded on its own; and a FINISHED WAIST sat on the
+// peplum, whose waist edge is the peplum seam, not the waist.
+describe('the Ice Peplum finished marks', () => {
+  const eighths = (s: string) => {
+    const m = /^(\d*)(?:([⅛¼⅜½⅝¾⅞]))? IN$/.exec(s)!;
+    return Number(m[1] || 0) * 8 + (m[2] ? '⅛¼⅜½⅝¾⅞'.indexOf(m[2]) + 1 : 0);
+  };
+  for (const [name, body] of Object.entries(BODIES)) {
+    const marks = made('ice-peplum', body).pieces.flatMap((pc) => (pc.finished ?? []).map((f) => ({ piece: pc.name, ...f })));
+    it(`${name}: the inch ease is the finished size less the body, as the booklet works it`, () => {
+      const bust = marks.find((f) => f.title.startsWith('FINISHED BUST '))!;
+      const [, fin] = /^FINISHED BUST (.+)$/.exec(bust.inch!.title)!;
+      const [, you, sign, ease] = /^YOU (.+) · EASE ([+-])(.+)$/.exec(bust.inch!.note)!;
+      expect((sign === '-' ? -1 : 1) * eighths(ease)).toBe(eighths(fin) - eighths(you));
+    });
+    it(`${name}: no finished waist on the peplum`, () => {
+      expect(marks.filter((f) => /peplum/i.test(f.piece) && f.title.startsWith('FINISHED WAIST '))).toEqual([]);
+    });
+  }
+});

@@ -8,6 +8,7 @@ import type { SpecRow } from './techpack';
 import { isWaistRow } from './spec';
 import { crossings } from './easeMap';
 import { textWidth } from './export';
+import { toInches } from '../units';
 
 /** The pieces of the garment's own shell, fronts first: not its facings, linings, sleeves or bands. */
 function shells(pieces: Piece[]): Piece[] {
@@ -78,7 +79,14 @@ export function withFinishedMarks(pieces: Piece[], spec: SpecRow[]): Piece[] {
     // mistake (pretend tester DN walk, Nov 20), so the note says where.
     const low = /^Top edge, ([\d.]+) cm (below|above) your waist$/.exec(r.label);
     const you = low ? `YOU ${fmt(r.body!)} CM, ${low[1]} CM ${low[2].toUpperCase()} YOUR WAIST` : `YOU ${fmt(r.body!)} CM`;
-    const mark = { at: p(spot.at.x, spot.y), title, note: `${you} · EASE ${signed(r.ease!)} CM` };
+    // In inches the ease is the finished size less the body, each to the eighth, as the booklet's table works it: the
+    // ease rounded on its own read +1-5/8 in beside 36 in and 37-1/2 in, where the booklet said +1-1/2 (EK walk, Nov 27).
+    const eighth = 2.54 / 8;
+    const e8 = Math.round((r.finished as number) / eighth) - Math.round(r.body! / eighth);
+    const inch = (cm: number) => toInches(cm).toUpperCase();
+    const youIn = low ? `YOU ${inch(r.body!)}, ${inch(Number(low[1]))} ${low[2].toUpperCase()} YOUR WAIST` : `YOU ${inch(r.body!)}`;
+    const easeIn = e8 === 0 ? '0' : `${e8 > 0 ? '+' : '-'}${inch(Math.abs(e8) * eighth)}`;
+    const mark = { at: p(spot.at.x, spot.y), title, note: `${you} · EASE ${signed(r.ease!)} CM`, inch: { title: `FINISHED ${name} ${inch(r.finished as number)}`, note: `${youIn} · EASE ${easeIn}` } };
     marks.set(pc, [...(marks.get(pc) ?? []), above ? { ...mark, above } : mark]);
     return true;
   };
@@ -105,7 +113,9 @@ export function withFinishedMarks(pieces: Piece[], spec: SpecRow[]): Piece[] {
   if (waist) {
     // A top's waist is its lower edge, so its words go above the mark; a skirt's or trousers' waist is its
     // upper edge. The mark sits 3 cm inside.
-    const pc = (upper && waistSeam(upper) !== undefined ? upper : undefined) ?? fronts.find((x) => waistSeam(x) !== undefined);
+    // Not on a peplum: its waist edge is sewn at the peplum seam, below the waist, so "FINISHED WAIST" there named a
+    // round the piece doesn't have (EK walk, Nov 27). A top whose own waist is no seam goes without the mark.
+    const pc = (upper && waistSeam(upper) !== undefined ? upper : undefined) ?? fronts.find((x) => waistSeam(x) !== undefined && !/peplum/i.test(x.name));
     const wy = pc && waistSeam(pc);
     if (pc && wy !== undefined) {
       const ys = pc.outline.points().map((q) => q.y);

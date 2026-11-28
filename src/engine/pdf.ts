@@ -135,7 +135,8 @@ function drawSheet(
       // left off one page and printed on the next, so the words were cut where the two pages overlap.
       const font = fonts[pr.face ?? 'body'];
       const size = pr.size * CM * 0.85;
-      const shown = printable(worded(pr.text));
+      const own = inchMode && pr.inch !== undefined;
+      const shown = printable(own ? pr.inch! : worded(pr.text));
       const width = (font.widthOfTextAtSize(shown, size) + (pr.tracking ?? 0) * size * Math.max(0, shown.length - 1)) / CM;
       const rad = (pr.rotate * Math.PI) / 180;
       const u = { x: Math.cos(rad), y: Math.sin(rad) };
@@ -150,7 +151,8 @@ function drawSheet(
       )
         continue;
       const at = (q: P) => ({ x: (q.x - ox + left) * CM, y: (ph - top - (q.y - oy)) * CM });
-      drawText(page, pr.text, {
+      drawText(page, own ? pr.inch! : pr.text, {
+        worded: own,
         ...at(pr.at),
         size: pr.size * CM * 0.85,
         font: fonts[pr.face ?? 'body'],
