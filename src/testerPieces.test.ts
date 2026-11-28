@@ -319,7 +319,7 @@ describe('sewing in muslin', () => {
     expect(may('chocolate-barrel')).toMatch(/^the welt pockets .*, the belt loops, /);
     expect(may('black-vest')).toMatch(/^the lining .*, the welt pockets /);
     // And the interfacing, the zip and the buttons, where the steps use them, with what to do instead (DO walk, Nov 20).
-    expect(may('black-pleated-skirt')).toMatch(/the interfacing and the zip \(pin or tack the opening closed/);
+    expect(may('black-pleated-skirt')).toMatch(/the interfacing and the zip \(pin or baste the opening closed/);
     expect(may('black-vest')).toContain('the buttonholes and buttons (pin the fronts closed');
   });
   // DQ walk, Nov 20: stay tape named on a skirt and trouser that have none, "pin the fronts closed" for the trouser's

@@ -86,7 +86,7 @@ export function hoodieGuide(d: HoodieDraft, fabricM: number, finish: { width?: n
     pocket === 'kangaroo'
       ? {
           title: 'Sew on the pocket',
-          text: `Press the pocket's curved openings under by 1 cm and topstitch them 6 mm from the fold with a long narrow zigzag. Press its top and bottom under by 1 cm. Pin it to the front, centred, with its lower edge on the hem's line, and topstitch it down along the top only. Tack its sides into the side seams and its lower edge into the hem${d.bands.hemBand ? ' band seam' : ''}.`,
+          text: `Press the pocket's curved openings under by 1 cm and topstitch them 6 mm from the fold with a long narrow zigzag. Press its top and bottom under by 1 cm. Pin it to the front, centred, with its lower edge on the hem's line, and topstitch it down along the top only. Baste its sides into the side seams and its lower edge into the hem${d.bands.hemBand ? ' band seam' : ''}.`,
         }
       : pocket === 'split'
         ? {
@@ -97,7 +97,7 @@ export function hoodieGuide(d: HoodieDraft, fabricM: number, finish: { width?: n
   const hood: SewStep[] = [
     {
       title: 'Make the hood',
-      text: `Sew each hood's centre seam, the curved one from the forehead over the crown to the nape, right sides together, ${seam} from the edge: the self hood, then the lining hood. Press the seams to one side. Put the lining inside the hood, right sides together, and sew them together round the face opening. Turn the hood right side out, press the opening flat and topstitch it 1.5 cm from the edge${zip || half ? '' : ' to make a channel for a cord if you want one, with two buttonholes either side of the centre before you sew'}. Tack the two necklines together just inside the seam line.`,
+      text: `Sew each hood's centre seam, the curved one from the forehead over the crown to the nape, right sides together, ${seam} from the edge: the self hood, then the lining hood. Press the seams to one side. Put the lining inside the hood, right sides together, and sew them together round the face opening. Turn the hood right side out, press the opening flat and topstitch it 1.5 cm from the edge${zip || half ? '' : ' to make a channel for a cord if you want one, with two buttonholes either side of the centre before you sew'}. Baste the two necklines together just inside the seam line.`,
     },
     {
       title: 'Sew on the hood',

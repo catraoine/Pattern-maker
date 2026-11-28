@@ -50,7 +50,7 @@ const H = 24;
  *  its edges, the arrows and the hand stitches (each stroke drawn, as the zip teeth are) read as themselves (cold read, Nov 27: "no key for the dashed and grey lines"). */
 const KEY: [PartKind, string][] = [
   ['machine', 'Black dashes: machine stitching'],
-  ['thread', 'Long dashes: tacking'],
+  ['thread', 'Long dashes: basting'],
   ['under', 'Grey dashes: underneath'],
   ['chalk', 'Fine dots: chalked from the pattern'],
   ['fold', 'Shaded: a second layer, or turned back'],
@@ -97,7 +97,7 @@ export const DIAGRAMS: Record<DiagramId, Diagram> = {
   trace: {
     w: W,
     h: H,
-    caption: 'Thread tracing: long tacking stitches along the stitching line and the dart, with a tailor\'s tack at the point.',
+    caption: 'Thread tracing: long basting stitches along the stitching line and the dart, with a tailor\'s tack at the point.',
     parts: [
       rect(2, 3, 38, 21),
       line('thread', p(4, 17), p(36, 17)),

@@ -139,7 +139,7 @@ export function wholeGuide(draft: SkirtDraft, fabricM: number, finish: SkirtFini
           },
           {
             title: 'Put the lining in',
-            text: `Slip the lining inside the skirt, wrong sides together, matching the side seams. Turn the lining's edges under beside the zip and slip-stitch them to the zip tape, clear of the teeth. Tack the waist edges together ${n1(Math.max(0.5, sw.waist - 0.5))} from the edge, and treat them as one from here on.`,
+            text: `Slip the lining inside the skirt, wrong sides together, matching the side seams. Turn the lining's edges under beside the zip and slip-stitch them to the zip tape, clear of the teeth. Baste the waist edges together ${n1(Math.max(0.5, sw.waist - 0.5))} from the edge, and treat them as one from here on.`,
           },
         ]
       : []),

@@ -57,7 +57,7 @@ function seamSteps(draft: BodiceDraft, seam: string): { darts?: SewStep; join: S
       return {
         join: {
           title: 'Join the pleated back to its yoke',
-          text: `Open the back out flat, right side up. Crease it along each pleat line, ${cm(pleat / 2)} either side of the middle, and bring the two centre back notches together underneath so they meet at the middle: the box pleat lies ${cm(pleat)} across on the right side. Pin it and tack across the top edge. Pin the back yoke to the top edge of the back, right sides together, matching the centre back and the double notches. Sew ${seam} from the edge, and press the seam up toward the yoke. The pleat hangs free below the seam.`,
+          text: `Open the back out flat, right side up. Crease it along each pleat line, ${cm(pleat / 2)} either side of the middle, and bring the two centre back notches together underneath so they meet at the middle: the box pleat lies ${cm(pleat)} across on the right side. Pin it and baste across the top edge. Pin the back yoke to the top edge of the back, right sides together, matching the centre back and the double notches. Sew ${seam} from the edge, and press the seam up toward the yoke. The pleat hangs free below the seam.`,
         },
       };
     // A plunge's front yoke is a shoulder panel each side of the V, and the front below may be gathered into it.

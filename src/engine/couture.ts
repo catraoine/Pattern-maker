@@ -101,7 +101,7 @@ export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
       out.push(
         step(
           'Thread-trace the lines',
-          `Before you lift the pattern, mark every stitching line, dart, notch and balance line with long tacking stitches in a contrasting thread, ${c.traced ? 'along the solid stitching line' : 'along the dashed stitching line'}. At each dart point${bodice ? ' and the bust point' : ''} make a tailor's tack, a loose double stitch left in loops. Ease the layers apart and snip the threads between them, so each piece carries the lines on both sides. Unlike chalk, the thread shows on the right side and the wrong, so you sew, fit and press to the exact line.${c.traced ? '' : ' For room to fit, choose Couture seam allowances above: 2.5 cm at the seams.'}`,
+          `Before you lift the pattern, mark every stitching line, dart, notch and balance line with long basting stitches in a contrasting thread, ${c.traced ? 'along the solid stitching line' : 'along the dashed stitching line'}. At each dart point${bodice ? ' and the bust point' : ''} make a tailor's tack, a loose double stitch left in loops. Ease the layers apart and snip the threads between them, so each piece carries the lines on both sides. Unlike chalk, the thread shows on the right side and the wrong, so you sew, fit and press to the exact line.${c.traced ? '' : ' For room to fit, choose Couture seam allowances above: 2.5 cm at the seams.'}`,
           'trace',
         ),
         step(
@@ -309,7 +309,7 @@ export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
       const words = hemWords(c, finish, s.text);
       out.push(step(t, words, /slip-stitch/.test(words) ? 'slipstitch' : 'catch'));
     } else if (t === 'Finish') {
-      out.push({ ...s, text: `${s.text.replace(/ Give the (skirt|bodice|dress) a final press\./, '')} Take out every tacking thread, and give it a last press through a press cloth.` });
+      out.push({ ...s, text: `${s.text.replace(/ Give the (skirt|bodice|dress) a final press\./, '')} Take out every basting thread, and give it a last press through a press cloth.` });
     } else out.push(s);
   }
 
@@ -319,7 +319,7 @@ export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
     return [n];
   });
   notions.push(
-    'Contrasting tacking thread',
+    'Contrasting basting thread',
     "A tailor's ham and a press cloth",
     ...(finish === 'hongkong' ? ['1 m of lining or silk organza, for the bias strips that bind the seams'] : []),
     ...(dress && !ownStay ? ['1 m of 1.5 cm grosgrain ribbon and a hook and bar, for the waist stay'] : []),

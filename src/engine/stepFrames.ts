@@ -564,7 +564,7 @@ const SLANT: Frame[] = [
   },
   {
     match: /\bfacing fills in the corner\b|\bMatch the facing's notch\b/i,
-    dg: dg('The front laid flat, the facing filling in the corner, tacked along the waist and down the side inside the seam allowance.', [
+    dg: dg('The front laid flat, the facing filling in the corner, basted along the waist and down the side inside the seam allowance.', [
       { pts: [p(3, 2), p(37, 2), p(37, 23), p(3, 23)], kind: 'cloth', closed: true },
       line('under', p(24, 2), p(37, 14)),
       line('machine', p(24, 2.8), p(36.2, 2.8), p(36.2, 16)),

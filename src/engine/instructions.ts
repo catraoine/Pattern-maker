@@ -222,7 +222,7 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
           },
           {
             title: 'Put the lining in',
-            text: `Slip the lining inside the skirt, wrong sides together, matching the side seams.${elastic ? '' : " Turn the lining's centre back edges under beside the zip and slip-stitch them to the zip tape, clear of the teeth."} Tack the waist edges together ${n1(Math.max(0.5, sw.waist - 0.5))} from the edge, and treat them as one from here on.`,
+            text: `Slip the lining inside the skirt, wrong sides together, matching the side seams.${elastic ? '' : " Turn the lining's centre back edges under beside the zip and slip-stitch them to the zip tape, clear of the teeth."} Baste the waist edges together ${n1(Math.max(0.5, sw.waist - 0.5))} from the edge, and treat them as one from here on.`,
           },
         ]
       : []),
@@ -335,7 +335,7 @@ function frontPocketSteps(d: SkirtDraft, seam: string, piece: string): SewStep[]
       {
         title: 'Make the slant pockets',
         diagram: 'understitch',
-        text: `Pin a pocket lining to the skirt ${piece} along each slanted POCKET OPENING edge, right sides together. Sew ${seam} from the edge, trim the seam to 0.5 cm, then press the lining away from the ${piece} and understitch it to the seam allowance close to the seam. Turn the lining to the inside, press the opening edge so the lining rolls just out of sight, and topstitch 0.7 cm from the edge if you like. Lay a pocket facing under each lining, right side up toward the lining, matching the curved bag edges, and sew the bag edges together 1 cm in. Zigzag or overlock them together. Then lay the ${piece} flat: the facing fills in the corner cut away for the pocket. Match the facing's notch to the foot of the opening, and tack the facing to the ${piece} along the waist and down the side edge, inside the seam allowance. From here the ${piece} is one piece again.`,
+        text: `Pin a pocket lining to the skirt ${piece} along each slanted POCKET OPENING edge, right sides together. Sew ${seam} from the edge, trim the seam to 0.5 cm, then press the lining away from the ${piece} and understitch it to the seam allowance close to the seam. Turn the lining to the inside, press the opening edge so the lining rolls just out of sight, and topstitch 0.7 cm from the edge if you like. Lay a pocket facing under each lining, right side up toward the lining, matching the curved bag edges, and sew the bag edges together 1 cm in. Zigzag or overlock them together. Then lay the ${piece} flat: the facing fills in the corner cut away for the pocket. Match the facing's notch to the foot of the opening, and baste the facing to the ${piece} along the waist and down the side edge, inside the seam allowance. From here the ${piece} is one piece again.`,
       },
     ];
   return [];
