@@ -1331,7 +1331,7 @@ export function volumeSteps(steps: SewStep[], draft: SkirtDraft, sw: VolumeSewin
         },
       ]);
     const knife = v.kind === 'knife';
-    const hemText = `Hem before you pleat: the hem has to turn up flat across every fold. At each seam that falls inside a pleat, clip into the seam allowance just above the hem's depth and press the seam open below the clip only, so the hem is not bulky there. Press up 1 cm, then ${hemDepth - 1} cm more, and stitch by hand or machine.`;
+    const hemText = `Hem before you pleat: the hem has to turn up flat across every fold. At each seam that falls inside a pleat, clip into the seam allowance ${Math.round((hemDepth + 0.5) * 10) / 10} cm up from the bottom edge, just above the hem's depth, and press the seam open below the clip only, so the hem is not bulky there. Press up 1 cm, then ${hemDepth - 1} cm more, and stitch by hand or machine.`;
     const pleatSteps: SewStep[] = [
       { title: 'Hem the skirt', text: hemText },
       {

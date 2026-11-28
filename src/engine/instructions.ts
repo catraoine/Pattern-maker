@@ -199,7 +199,7 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
       : [
           {
             title: 'Put in the zip',
-            text: `Sew the ${draft.zipCm} cm invisible zip into the centre back edges, with the top of the teeth ${waist} below the waist edge, stopping at the ZIP ENDS notch.${INVISIBLE_ZIP_LAY}${SEAM_BELOW_ZIP}`,
+            text: `The ${draft.zipCm} cm invisible zip goes into the centre back edges, the top of its teeth ${waist} below the waist edge, down to the ZIP ENDS notch.${INVISIBLE_ZIP_LAY}${SEAM_BELOW_ZIP}`,
           },
           {
             title: 'Close the centre back',
@@ -404,7 +404,7 @@ function withZipThrough(g: SewingGuide, draft: BodiceDraft): SewingGuide {
         ? {
             ...st,
             text:
-              st.text.replace('stopping at the ZIP ENDS notch.', `running all the way down to ${edge}: your waist is narrower than your bust, so the top opens right out to go on.`).replace(SEAM_BELOW_ZIP, '') +
+              st.text.replace('down to the ZIP ENDS notch.', `all the way down to ${edge}: your waist is narrower than your bust, so the top opens right out to go on.`).replace(SEAM_BELOW_ZIP, '') +
               ` If the zip is longer than the opening, close it, stitch across its teeth several times 1 cm above ${draft.peplum ? 'the seam line' : 'where the hem will fold'}, and cut the rest off 2 cm below the stitching.`,
           }
         : st.title === 'Make the lining'
@@ -575,7 +575,7 @@ function bodiceSteps(draft: BodiceDraft, _style: { length: BodiceLength }, fabri
       : []),
     {
       title: 'Put in the zip',
-      text: `Sew the ${draft.zipCm} cm invisible zip into the centre back edges, with the top of the teeth ${curve} below the neck edge, stopping at the ZIP ENDS notch.${INVISIBLE_ZIP_LAY}${SEAM_BELOW_ZIP}`,
+      text: `The ${draft.zipCm} cm invisible zip goes into the centre back edges, the top of its teeth ${curve} below the neck edge, down to the ZIP ENDS notch.${INVISIBLE_ZIP_LAY}${SEAM_BELOW_ZIP}`,
     },
     {
       title: 'Close the centre back',
@@ -870,7 +870,7 @@ function dressSteps(draft: DressDraft, style: { silhouette: Silhouette; length: 
     },
     {
       title: 'Put in the zip',
-      text: `Sew the ${draft.zipCm} cm invisible zip into the centre back edges, with the top of the teeth ${curve} below the neck edge, across the waist seam, to the ZIP ENDS notch on the skirt.${INVISIBLE_ZIP_LAY} Sew one side, close the zip and mark where the waist seam crosses the other tape, so the waist meets exactly when you sew the second side.${SEAM_BELOW_ZIP}${OVER_HEAD(draft)}`,
+      text: `The ${draft.zipCm} cm invisible zip goes into the centre back edges, the top of its teeth ${curve} below the neck edge, across the waist seam and down to the ZIP ENDS notch on the skirt.${INVISIBLE_ZIP_LAY} Sew one side, close the zip and mark where the waist seam crosses the other tape, so the waist meets exactly when you sew the second side.${SEAM_BELOW_ZIP}${OVER_HEAD(draft)}`,
     },
     {
       title: 'Close the centre back',

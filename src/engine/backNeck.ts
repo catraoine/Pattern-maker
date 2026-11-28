@@ -63,7 +63,7 @@ export function withBackNeck(g: SewingGuide, back: BackNeck | undefined): Sewing
   }
   // A keyhole: bound before the neck is finished, the loop basted in at the top, the zip starting below it.
   const zip = at(/^Put in the zip$/);
-  if (zip >= 0) steps[zip] = { ...steps[zip], text: steps[zip].text.replace(/with the top of the teeth [^ ]+ cm below the neck edge/, 'with the top of the teeth at the foot of the keyhole') };
+  if (zip >= 0) steps[zip] = { ...steps[zip], text: steps[zip].text.replace(/the top of its teeth [^ ]+ cm below the neck edge/, 'the top of its teeth at the foot of the keyhole') };
   const keyhole: SewStep = {
     title: 'Bind the keyhole',
     text: `Cut a bias strip 3 cm wide and 25 cm long. Fold it in half lengthways and sew it to the right side of the keyhole, raw edges together, ${KEYHOLE.allowance} cm from the edge, from the neck edge of one back down round the foot and up to the other, clipping the curve. Turn it to the inside and stitch it down close to its fold. Make a rouleau loop: fold a second bias strip, 2.5 cm wide, in half, sew 0.4 cm from the fold, and turn it through with a loop turner. Cut ${KEYHOLE.loop} cm of it, fold it in half and baste its ends at the top of the right back neck edge (as you wear it), the loop pointing in, so it is caught when the neck is finished.`,
