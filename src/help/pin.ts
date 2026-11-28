@@ -71,11 +71,18 @@ function controlWords(el: Element, hide: readonly string[]): string {
   return scrub(c.getAttribute('aria-label') || wordsOf(c), 50, hide);
 }
 
-/** The heading of the part of the screen the spot is in. */
+/** The heading of the part of the screen the spot is in: the nearest one named for it (aria-labelledby), or a heading
+ *  that comes before the spot. A heading further down belongs to the next part: on Print, Part 2 "Cut it" was said for a
+ *  spot in Part 1 "Print it" (the Nov 27 pretend-tester walk). */
 function sectionWords(el: Element, hide: readonly string[]): string {
+  const doc = el.ownerDocument;
   for (let at: Element | null = el; at; at = at.parentElement) {
-    const heads = at.matches('h1, h2, h3, legend, summary') ? [at] : [...at.querySelectorAll(':scope > h1, :scope > h2, :scope > h3, :scope > legend, :scope > summary, :scope > header h1, :scope > header h2, :scope > div > h2, :scope > div > h3')];
-    for (const head of heads) {
+    const named = at.getAttribute('aria-labelledby')?.split(/\s+/)[0];
+    const label = named ? doc.getElementById(named) : null;
+    const own = at.matches('h1, h2, h3, legend, summary') ? [at] : [...at.querySelectorAll(':scope > h1, :scope > h2, :scope > h3, :scope > legend, :scope > summary, :scope > header h1, :scope > header h2, :scope > div > h1, :scope > div > h2, :scope > div > h3')];
+    // Nearest first: the last heading before the spot.
+    const before = own.filter((h) => h.contains(el) || !!(h.compareDocumentPosition(el) & 4 /* the spot follows it */)).reverse();
+    for (const head of label ? [label, ...before] : before) {
       // A heading that holds the spot or other controls is a whole question, not its name: try the next one.
       if (head.contains(el) || head.querySelector('button, a, input, [role="radio"], [role="button"]')) continue;
       const words = wordsOf(head);

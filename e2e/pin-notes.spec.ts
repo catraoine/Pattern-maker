@@ -135,4 +135,9 @@ test('hold to leave a note: a choice says its own name once, and the box opens b
   expect(c.x + c.width <= l.x || c.x >= l.x + l.width, 'the box sits beside the list, not over it').toBe(true);
   if (SHOTS) await page.screenshot({ path: `${SHOTS}/pin-notes-print-1366.png` });
   await expect(box.getByRole('button', { name: 'Send' })).toBeInViewport();
+  // The note says the part of Print it was left in, not the next part down (the Nov 27 walk: "Cut it" for Part 1).
+  await box.getByLabel(/What’s happening here/).fill('A piece is missing.');
+  await box.getByRole('button', { name: 'Send' }).click();
+  await expect(box).toContainText('Thank you');
+  expect((sent!.pin as Record<string, unknown>).section).toBe('Print it');
 });
