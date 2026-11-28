@@ -121,6 +121,12 @@ export function withFinishedMarks(pieces: Piece[], spec: SpecRow[]): Piece[] {
       const ys = pc.outline.points().map((q) => q.y);
       const low = wy > (Math.min(...ys) + Math.max(...ys)) / 2;
       add(pc, low ? wy - 3 : wy + 3, 'WAIST', waist, low, low ? [0, -1.5, -3, -4.5] : [0, 1.5, 3, 4.5]);
+    } else {
+      // A top that runs on past the waist to a peplum seam is measured at the waist its draft marks, the words above:
+      // the booklet listed its waist ease with no mark on the paper to check it against (EL walk, Nov 27).
+      const level = (x: Piece) => x.draft?.points.find((d) => /^(Centre front|Side) waist\b/.test(d.note))?.at.y;
+      const at = [...(upper ? [upper] : []), ...fronts.filter((x) => x !== upper && !/peplum/i.test(x.name))].filter((x) => level(x) !== undefined);
+      if (!at.find((x) => add(x, level(x)!, 'WAIST', waist, true, [0, -1.5, -3], true)) && at[0]) add(at[0], level(at[0])!, 'WAIST', waist, true, [0, -1.5, -3]);
     }
   }
   const hip = row('Hip');

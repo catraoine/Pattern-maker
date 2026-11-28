@@ -9,6 +9,7 @@ import { withEstimates } from './estimate';
 import { checkMeasurements, type MeasurementValues } from './measurements';
 import { checkPattern } from './engine/qc';
 import { inInches } from './units';
+import { layout, textWidth } from './engine/export';
 
 // The pretend-tester walk on release DW (Nov 21) read the Ice Peplum's booklet against its pattern and found four
 // places where the two said different things: the neck ruffle's length, the neck binding's seam, the sleeve crown ease
@@ -118,6 +119,25 @@ describe('the Ice Peplum finished marks', () => {
     });
     it(`${name}: no finished waist on the peplum`, () => {
       expect(marks.filter((f) => /peplum/i.test(f.piece) && f.title.startsWith('FINISHED WAIST '))).toEqual([]);
+    });
+    // The booklet listed the waist's ease with no mark on the paper to check it against (EL walk, Nov 27): the top runs
+    // on past the waist, and is marked there.
+    it(`${name}: the waist the booklet lists is marked on the top, at the waist`, () => {
+      const w = marks.find((f) => f.title.startsWith('FINISHED WAIST '));
+      expect(w?.piece).toMatch(/^Bodice/);
+    });
+    // On D6 the bust's bullseye printed over its own "YOU 36 IN · EASE" (EL walk, Nov 27).
+    it(`${name}: the marks' words keep off the bullseyes`, () => {
+      const sheet = layout(made('ice-peplum', body).pieces, 'Ice', [], { pattern: 'Ice' });
+      const rings = sheet.prims.flatMap((x) => (x.kind === 'poly' && x.closed && x.pts.length === 25 ? [{ x: (x.pts[0].x + x.pts[12].x) / 2, y: (x.pts[0].y + x.pts[12].y) / 2 }] : []));
+      const words = marks.flatMap((f) => [f.title, f.note]);
+      const on = sheet.prims.flatMap((x) => {
+        if (x.kind !== 'text' || !words.includes(x.text)) return [];
+        const hw = Math.max(textWidth(x.text, x.size, 0.12), textWidth(x.inch ?? '', x.size, 0.12)) / 2;
+        const cy = x.at.y - x.size * 0.32;
+        return rings.some((c) => Math.abs(c.x - x.at.x) < hw + 0.6 && Math.abs(c.y - cy) < x.size * 0.4 + 0.6) ? [x.text] : [];
+      });
+      expect(on).toEqual([]);
     });
   }
 });
