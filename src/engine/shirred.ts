@@ -146,7 +146,7 @@ export function shirredSteps(g: SewingGuide, d: BodiceDraft, o: { seam: string }
     ),
     step(
       'Shirr the back',
-      `Wind shirring elastic onto an empty bobbin by hand, firmly but without stretching it, and use ordinary thread on top. Set a long straight stitch, 3 to 4 mm. Test on a scrap first: it should pucker as you sew. With the right side up, stitch along the first chalked row from one side edge to the other, leaving 10 cm tails, then each row after it, ${n1(SHIRR.gap)} apart, holding the rows already sewn flat as you go. Knot each pair of tails on the wrong side. Hold a steam iron just above the back, without pressing: the steam shrinks the elastic and draws the rows up tight. Shirred, the back is about ${Math.round(100 / sh.ratio)}% of its cut width.`,
+      `Wind shirring elastic onto an empty bobbin by hand, firmly but without stretching it, and use ordinary thread on top. Set a long straight stitch, 3 to 4 on the stitch length dial. Test on a scrap first: it should pucker as you sew. With the right side up, stitch along the first chalked row from one side edge to the other, leaving 10 cm tails, then each row after it, ${n1(SHIRR.gap)} apart, holding the rows already sewn flat as you go. Knot each pair of tails on the wrong side. Hold a steam iron just above the back, without pressing: the steam shrinks the elastic and draws the rows up tight. Shirred, the back is about ${Math.round(100 / sh.ratio)}% of its cut width.`,
     ),
     step(
       'Sew the side seams',
@@ -154,7 +154,7 @@ export function shirredSteps(g: SewingGuide, d: BodiceDraft, o: { seam: string }
     ),
     step(
       'Finish the front lower edge',
-      "Turn the front's and the lining's lower allowances in toward each other, 1.5 cm, so their folds meet, and edgestitch them together, running on round onto the back's hem at the side seams.",
+      "Turn the front's and the lining's lower allowances in toward each other, 1.5 cm, so their folds meet, and edge-stitch them together, running on round onto the back's hem at the side seams.",
     ),
     step('Finish', 'Give the top a light steam, holding the iron above the shirring rather than pressing it flat.'),
   ];

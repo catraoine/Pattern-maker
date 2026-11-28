@@ -52,7 +52,7 @@ export function FittingScreen({ garment, fitting, own, carried = [], draftWith, 
     <div className="split">
       <section className="card grow" aria-labelledby="fittitle">
         <div>
-          <p className="eyebrow">After your toile · version {version}</p>
+          <p className="eyebrow">After your toile, version {version}</p>
           <h1 id="fittitle">What do you see?</h1>
           <p className="muted">
             Sew the pattern in calico with long stitches and try it on, inside out, over the underwear you'll wear with it. Tick what you

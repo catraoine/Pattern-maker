@@ -48,7 +48,7 @@ export function withTrouserLining(g: SewingGuide, d: TrousersDraft, o: { metres:
   };
   const make: SewStep = {
     title: 'Make the lining',
-    text: `${d.pleats ? "Fold the lining's pleats as on the trousers and stitch each down only 2 cm from the waist, and sew the back darts as tucks, stitching only their top 3 cm" : "Sew the lining's darts as tucks: stitch only the top 3 cm of each"}. Press, so the lining has room to move. Sew its side seams and inside legs ${o.seam} from the edge and press them open${
+    text: `${d.pleats ? "Fold the lining's pleats as on the trousers and stitch each down for only the first 2 cm below the waist, and sew the back darts as tucks, stitching only their top 3 cm" : "Sew the lining's darts as tucks: stitch only the top 3 cm of each"}. Press, so the lining has room to move. Sew its side seams and inside legs ${o.seam} from the edge and press them open${
       fly ? '' : ', leaving the left side seam open above the zip notch'
     }. Turn one leg right side out, slip it inside the other and sew the crotch seam from the back waist round to ${fly ? 'the bottom of the fly opening, 2 cm below the zip stop' : 'the front waist'}.`,
   };

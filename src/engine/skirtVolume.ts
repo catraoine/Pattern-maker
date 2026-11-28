@@ -1316,7 +1316,7 @@ export function volumeSteps(steps: SewStep[], draft: SkirtDraft, sw: VolumeSewin
     insert(garment === 'dress' ? ['Neaten the edges'] : ['Interface the waistband', 'Neaten the edges'], [
       {
         title: 'Mark the pleats',
-        text: `Before you lift the pattern, mark every pleat: snip the notches at the top and bottom of each solid fold line and each dashed placement line, then chalk or thread-trace the lines on the right side, with the stitching lines above the hip. There are ${pl.count} pleats round the ${thing}.`,
+        text: `Before you lift the pattern, mark every pleat: snip the notches at the top and bottom of each solid fold line and each dashed placement line, then chalk or thread-trace those lines on the right side. Mark the short stitching lines above the hip line as well. There are ${pl.count} pleats round the ${thing}.`,
       },
     ]);
     // The panel seams join the front and back to the side panels, so their edges are neatened with the rest: the step
@@ -1327,11 +1327,11 @@ export function volumeSteps(steps: SewStep[], draft: SkirtDraft, sw: VolumeSewin
       insert(['Sew the side seams', 'Join the bodice to the skirt'], [
         {
           title: 'Join the side panels',
-          text: `Sew each skirt side front to the skirt front, and each side back to its back, along the panel seams, right sides together, matching the notches. Sew ${sw.seam} from the edge and press the seams open: they fall at the inside fold of a pleat, where they never show.`,
+          text: `Sew each skirt side front to the skirt front, and each side back to its back, along the panel seams, right sides together, matching the notches. Sew ${sw.seam} from the edge and press each seam flat as it was sewn, the two allowances together: it becomes the inside fold of a pleat, where it never shows.`,
         },
       ]);
     const knife = v.kind === 'knife';
-    const hemText = `Hem before you pleat: the hem has to turn up flat across every fold. At each seam that falls inside a pleat, clip the seam allowance just above the hem and press it open below the clip. Press up 1 cm, then ${hemDepth - 1} cm more, and stitch by hand or machine.`;
+    const hemText = `Hem before you pleat: the hem has to turn up flat across every fold. At each seam that falls inside a pleat, clip into the seam allowance just above the hem's depth and press the seam open below the clip only, so the hem is not bulky there. Press up 1 cm, then ${hemDepth - 1} cm more, and stitch by hand or machine.`;
     const pleatSteps: SewStep[] = [
       { title: 'Hem the skirt', text: hemText },
       {
@@ -1342,7 +1342,7 @@ export function volumeSteps(steps: SewStep[], draft: SkirtDraft, sw: VolumeSewin
       },
       {
         title: 'Stitch the pleats down',
-        text: `From the right side, edge-stitch each fold 2 mm from its edge, along the stitching line from the waist down to the hip line. The line is angled a little at the top: it takes in the waist shaping that darts would. Pull the threads through to the inside at the hip and knot them. Baste across the waist ${sw.waist} from the edge to hold every pleat. For pleats that stay sharp through washing, edge-stitch the inside fold of each pleat from the hem up to the hip too.`,
+        text: `From the right side, edge-stitch each fold along its marked stitching line, from the waist down to the hip line. The line runs 2 mm from the fold and angles in a little at the top: it takes in the waist shaping that darts would. Pull the threads through to the inside at the hip and knot them. Baste across the waist ${sw.waist} from the edge to hold every pleat. For pleats that stay sharp through wear and cleaning, edge-stitch the inside fold of each pleat from the hem up to the hip too.`,
       },
     ];
     const i = remove('Hem');

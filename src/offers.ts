@@ -29,7 +29,7 @@ const FOUNDING_PLACES = 250;
 export const OFFERS: Record<OfferId, Offer> = {
   founding: {
     id: 'founding',
-    eyebrow: `Founding Atelier · ${FOUNDING_PLACES} numbered places`,
+    eyebrow: `Founding Atelier, ${FOUNDING_PLACES} numbered places`,
     title: `Be one of the first ${FOUNDING_PLACES}`,
     text: `${FOUNDING_LINE} The price stays locked for as long as you stay subscribed. Founding members also get early access, their own founding number and a say in what comes next.`,
     prices: [['Founding Premium', '$34 a year (Premium will be $49 a year)']],
@@ -38,7 +38,7 @@ export const OFFERS: Record<OfferId, Offer> = {
   },
   printed: {
     id: 'printed',
-    eyebrow: 'Coming soon · No taping',
+    eyebrow: 'Coming soon, no taping',
     title: 'Have it printed and posted',
     text: 'Your pattern printed full size on one roll of pattern paper and posted to you. No sheets to tape together.',
     prices: [['Full-size roll, posted', '$12']],
@@ -84,7 +84,7 @@ export const OFFERS: Record<OfferId, Offer> = {
   },
   kit: {
     id: 'kit',
-    eyebrow: 'Coming soon · Fabric and notions kit',
+    eyebrow: 'Coming soon, fabric and notions kit',
     title: 'Buy everything for this pattern',
     text: 'The fabric for your cutting layout, with the zip, interfacing and thread to match, from a partner fabric shop. You pay the shop at its own checkout.',
     button: 'Tell me when kits open',
@@ -134,7 +134,7 @@ export const OFFERS: Record<OfferId, Offer> = {
   },
   deadstock: {
     id: 'deadstock',
-    eyebrow: 'Deadstock · limited lengths',
+    eyebrow: 'Deadstock, limited lengths',
     title: 'Deadstock cloth for this pattern',
     text: 'End-of-roll fabric from fashion houses and mills, chosen to suit this style and cut to the length your layout needs. Each drop is small, and once a cloth is gone it is gone.',
     button: 'Hold one for me',
@@ -170,7 +170,7 @@ export const OFFERS: Record<OfferId, Offer> = {
   },
   labels: {
     id: 'labels',
-    eyebrow: 'Coming soon · Woven labels, posted',
+    eyebrow: 'Coming soon, woven labels by post',
     title: 'Have your labels woven',
     text: 'Twelve woven labels in the house colours, with your name and this pattern\'s code, posted to you.',
     prices: [['Pack of 12', '$18']],

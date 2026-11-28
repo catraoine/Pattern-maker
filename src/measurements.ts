@@ -600,7 +600,9 @@ export function checkMeasurements(v: MeasurementValues, unit: Unit, garment: Gar
     out.push({ id: 'underbust', level: 'warning', message: 'Just checking your full bust against your underbust. If both are right, carry on; if not, keep each tape level all the way round.' });
   }
   if (full_bust && high_bust && high_bust > full_bust + 2) {
-    out.push({ id: 'high_bust', level: 'warning', message: 'High bust is usually the same as or smaller than full bust. Are they swapped?' });
+    // Said as the top's own pages say it: the note that took a high bust over the bust as a broad back, and then this
+    // asking whether they were swapped, left a tester unsure which to believe (EL walk, Nov 27).
+    out.push({ id: 'high_bust', level: 'warning', message: 'Your high bust is more than your full bust, as it can be with a broad back. If both are right, carry on: a top also asks for your across back and armhole to fit your shoulders. If they are swapped, change them.' });
   } else if (full_bust && high_bust && full_bust - high_bust > 20) {
     out.push({ id: 'high_bust', level: 'warning', message: 'Just checking your full bust against your high bust. If both are right, carry on; if not, take the high bust up under the arms, above the bust.' });
   }

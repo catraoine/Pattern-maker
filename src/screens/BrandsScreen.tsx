@@ -12,7 +12,7 @@ export function BrandsScreen({ onPrivacy }: Props) {
   }, []);
   return (
     <article className="card legal promo" aria-labelledby="btitle">
-      <p className="eyebrow">Tracé Engine · for brands</p>
+      <p className="eyebrow">Tracé Engine for brands</p>
       <h1 id="btitle">Every order cut to the person</h1>
       <p className="lead">
         Plug our drafting into your own shop. Each order arrives as a pattern

@@ -4,7 +4,8 @@ import { useMemo, useState } from 'react';
 import { SKIRT_BELTS, beltAllowed, beltPieces, skirtBelt } from '../engine/belt';
 import type { Choices } from '../savedWork';
 import { layout } from '../engine/export';
-import { PULL_ON_EASE, lengthRange, lowRiseAllowed, lowRiseCm, SkirtDraft, SkirtMeasurements } from '../engine/skirt';
+import { PULL_ON_EASE, WAISTBAND_CM, lengthRange, lowRiseAllowed, lowRiseCm, SkirtDraft, SkirtMeasurements } from '../engine/skirt';
+import { curvedBandOf } from '../engine/finishing';
 import { skirtSpec } from '../engine/spec';
 import { FinishedTable, finishedLines } from '../ui/FinishedTable';
 import { isShaped } from '../engine/hem';
@@ -675,7 +676,10 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
           )}
           {draft && !draft.faced && !draft.waistFinish && (
             <li>
-              Waistband{draft.elastic ? ' (elastic casing)' : ''}: cut 1, {draft.waistband.cutLength} × {draft.waistband.cutWidth} cm
+              {/* A curved band is an outer band and a facing, not one folded strip: the list said cut 1, 9 cm wide. */}
+              {curvedBandOf(draft)
+                ? `Waistband (curved): cut 2, band and facing, each ${draft.waistband.cutLength} at the waist seam × ${Math.round((draft.waistband.cutWidth - WAISTBAND_CM) * 10) / 10} cm`
+                : `Waistband${draft.elastic ? ' (elastic casing)' : ''}: cut 1, ${draft.waistband.cutLength} × ${draft.waistband.cutWidth} cm`}
             </li>
           )}
           {draft?.elastic && (

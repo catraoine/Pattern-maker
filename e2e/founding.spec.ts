@@ -48,7 +48,7 @@ test('from Mar 16 a founding member signs in past the waitlist and sees their nu
   const fold = await openFold(page, 'Membership');
   await expect(fold.locator('summary').first()).toContainText('Founding member No. 60');
   const card = main.getByTestId('founding-member');
-  await expect(card).toContainText('Founding Atelier · No. 60');
+  await expect(card).toContainText('Founding Atelier No. 60');
   await expect(card).toContainText('$34 a year instead of $49, locked in for as long as you stay');
   if (SHOTS) await card.screenshot({ path: `${SHOTS}/founding-account-${info.project.name}.png` });
 });

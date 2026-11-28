@@ -53,7 +53,7 @@ test('a tester keeps every printed piece, each under its look name', async ({ pa
   await expect(saved).toContainText('4 saved');
   await expect(saved).not.toContainText('free limit');
   // The Ice Peplum's fit read "Fitted fit" (pretend tester EJ walk, Nov 27).
-  await expect(saved).toContainText('Fitted · saved');
+  await expect(saved).toContainText('Fitted, saved');
   await expect(saved).not.toContainText(/fit(ted)? fit/i);
 });
 

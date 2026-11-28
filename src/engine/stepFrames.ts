@@ -464,9 +464,9 @@ const ROULEAU: Frame[] = [
   },
   {
     match: /^Fold it in half lengthwise\b/i,
-    dg: dg('The strip folded in half along its length, right sides together, sewn close to the fold, the end angled out.', [rect(2, 9, 38, 15), line('edge', p(2, 9), p(38, 9)), line('machine', p(2, 10.4), p(33, 10.4), p(37, 15))], [
+    dg: dg('The strip folded in half along its length, right sides together, sewn close to the fold, widening into a funnel at one end.', [rect(2, 9, 38, 15), line('edge', p(2, 9), p(38, 9)), line('machine', p(2, 10.4), p(33, 10.4), p(37, 15))], [
       { at: p(3, 7.4), text: 'FOLD' },
-      { at: p(37, 19), text: 'END ANGLED OUT', end: true },
+      { at: p(37, 19), text: 'FUNNEL AT THIS END', end: true },
     ]),
   },
   {
@@ -564,7 +564,7 @@ const SLANT: Frame[] = [
   },
   {
     match: /\bfacing fills in the corner\b|\bMatch the facing's notch\b/i,
-    dg: dg('The front laid flat, the facing filling in the corner, tacked along the waist and down the side inside the seam allowance.', [
+    dg: dg('The front laid flat, the facing filling in the corner, basted along the waist and down the side inside the seam allowance.', [
       { pts: [p(3, 2), p(37, 2), p(37, 23), p(3, 23)], kind: 'cloth', closed: true },
       line('under', p(24, 2), p(37, 14)),
       line('machine', p(24, 2.8), p(36.2, 2.8), p(36.2, 16)),

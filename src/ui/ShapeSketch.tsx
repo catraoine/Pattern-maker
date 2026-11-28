@@ -7,7 +7,7 @@ import { useEnlarged } from './EnlargeSketch';
 import type { Choices } from '../savedWork';
 import { skirtFlat, wornLines, wornShapes } from '../engine/flat';
 import type { P } from '../engine/geometry';
-import { HEM_SAMPLES, HemShape, flatHem, isShaped, offsetAt } from '../engine/hem';
+import { HEM_SAMPLES, HemShape, flatHem, isShaped, matchSides, offsetAt } from '../engine/hem';
 import { LengthTap, useSaid } from './LengthEntry';
 import { LENGTHS, Length, Silhouette, SkirtDraft, SkirtMeasurements, flareRange, isCircle, draftedMeasures, lengthRange, presetFlare } from '../engine/skirt';
 import { GROUPS } from '../skirtChoices';
@@ -268,7 +268,8 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
       if (stroke.length > 2) {
         const current: HemShape = draft.hem ?? { front: flatHem(), back: flatHem() };
         const pts = stroke.map((q) => ({ x: (q.x - cx) / SQUEEZE, y: q.y }));
-        const hem = { ...current, [side]: strokeToHem(pts, w.hem, current[side]) };
+        // The side drawn sets where the hem meets the side seams; the other side comes to it.
+        const hem = matchSides({ ...current, [side]: strokeToHem(pts, w.hem, current[side]) }, undefined, side);
         // A drawn hem replaces a high-low or diagonal one.
         const { look: _look, asymHem: _asym, ...rest } = choices;
         onDone(choices, isShaped(hem) ? { ...rest, hem } : { ...rest, hem: undefined });
@@ -279,7 +280,7 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
 
   // A named length says its length too, as the dress's and trousers' do ("Knee · 59 cm"): the skirt's "Knee" alone
   // read as a 9 cm jump with no number to check it by (pretend tester DI walk, Nov 19).
-  const lengthLabel = choices.lengthCm || choices.kneeShare || choices.floorClear ? `${Math.round(draft.lengthCm * 10) / 10} cm` : `${lengthName(choices.length)} · ${Math.round(draft.lengthCm * 10) / 10} cm`;
+  const lengthLabel = choices.lengthCm || choices.kneeShare || choices.floorClear ? `${Math.round(draft.lengthCm * 10) / 10} cm` : `${lengthName(choices.length)}, ${Math.round(draft.lengthCm * 10) / 10} cm`;
   const flareLabel = choices.flareCm !== undefined ? `${choices.flareCm > 0 ? '+' : ''}${choices.flareCm} cm` : silName(choices.silhouette);
   const guide = (y: number, text: string) => (
     <g className="guide">
@@ -304,11 +305,12 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
     // legs, with the arrow alone saying width ("↔ +10 cm") so it stays clear of the length's dot; above only when the
     // hem leaves no room under it.
     const right = shown.width ? shown.left! + shown.width : 2 * cx + MARGIN * k;
-    const full = kind === 'hem' ? (text.includes(' · ') ? `↕ ${text}` : `↕ Length · ${text}`) : `↔ Width · ${text}`;
+    const full = kind === 'hem' ? (text.includes(', ') ? `↕ ${text}` : `↕ Length ${text}`) : `↔ Width ${text}`;
     const moved = kind === 'side' && at.x + r + 3.2 * k + full.length * 2.6 * k * 0.85 > right;
     const below = moved && at.y + r + 4.4 * k < shown.bottom;
     const above = moved && !below;
-    const words = below ? `↔ ${text}` : full;
+    // Under the disc it still says what it is: "↔ +10 cm" alone left a tester asking (EL walk, Nov 27).
+    const words = below ? `↔ Width ${text}` : full;
     return (
       <g className={active ? 'handle on' : 'handle'}>
         <circle cx={at.x} cy={at.y} r={r} strokeWidth={0.22} />

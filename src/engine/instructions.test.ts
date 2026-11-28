@@ -119,8 +119,8 @@ describe('the trousers steps follow their options', () => {
   it('presses an elastic-waist front crease to the hip line, there being no dart', () => {
     const d = draftTrousers(T, { waist: 'elastic' });
     expect(d.dartsPerSide.front).toBe(0);
-    expect(step(trousersGuide(d, 2), 'Press the creases')).toMatch(/to the hip line on the front/);
-    expect(step(trousersGuide(draftTrousers(T), 2), 'Press the creases')).toMatch(/to the dart on the front/);
+    expect(step(trousersGuide(d, 2), 'Press the creases')).toMatch(/the hip line on each front/);
+    expect(step(trousersGuide(draftTrousers(T), 2), 'Press the creases')).toMatch(/the point of the dart on each front/);
   });
 
   it('does not close a side-zip seam twice', () => {

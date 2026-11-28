@@ -1,8 +1,9 @@
 // Sewing steps for a skirt cut whole, single layer: the bias slip, and skirts whose hem differs side
 // to side. With no centre back seam the zip goes in the left side seam. The slip is handled the way
-// bias is handled in a workroom: cut flat on a single layer, its waist stay-stitched at once, French
+// bias is handled in a workroom: cut flat on a single layer, its waist staystitched at once, French
 // seams, a faced waist, and hung for a day so the bias can drop before the hem is levelled and rolled.
 // Keep to plain ASCII punctuation: the PDF uses a standard font without curly quotes.
+import { INVISIBLE_ZIP_LAY } from './stepWords';
 import { SEAM_WIDTHS } from './allowances';
 import type { SewStep, SewingGuide, SkirtFinish } from './instructions';
 import type { Piece } from './piece';
@@ -62,7 +63,7 @@ export function wholeGuide(draft: SkirtDraft, fabricM: number, finish: SkirtFini
     ...(bias
       ? [
           {
-            title: 'Stay-stitch the waist',
+            title: 'Staystitch the waist',
             diagram: 'staystitch' as const,
             text: `As soon as the pieces are cut, machine a line of stitching ${n1(Math.max(0.5, sw.waist - 0.5))} from the waist edge of each, in the seam allowance, sewing from each side toward the centre. The bias waist stretches the moment it is handled; the stitching holds it to the pattern. Handle the pieces flat from now on, and never hang them by an edge.`,
           },
@@ -99,7 +100,7 @@ export function wholeGuide(draft: SkirtDraft, fabricM: number, finish: SkirtFini
           // A slit up the left side: the zip goes in the right side seam, the left one stays open below the slit's top.
           {
             title: 'Put in the side zip',
-            text: `${bias ? 'Fuse a 1.5 cm strip of interfacing along the right side edges of the front and back, down past the ZIP ENDS notches, so the bias does not stretch as the zip goes in. ' : ''}Sew a ${draft.zipCm} cm invisible zip into the right side seam edges (as you wear it), with the top of the teeth ${waist} below the waist edge, stopping at the ZIP ENDS notches.`,
+            text: `${bias ? 'Fuse a 1.5 cm strip of interfacing along the right side edges of the front and back, down past the ZIP ENDS notches, so the bias does not stretch as the zip goes in. ' : ''}Sew the ${draft.zipCm} cm invisible zip into the right side seam edges (as you wear it), with the top of the teeth ${waist} below the waist edge, stopping at the ZIP ENDS notches.${INVISIBLE_ZIP_LAY}`,
           },
           {
             title: 'Sew the right side seam',
@@ -123,7 +124,7 @@ export function wholeGuide(draft: SkirtDraft, fabricM: number, finish: SkirtFini
             },
         {
           title: 'Put in the side zip',
-          text: `${bias ? 'Fuse a 1.5 cm strip of interfacing along the left side edges of the front and back, down past the ZIP ENDS notches, so the bias does not stretch as the zip goes in. ' : ''}Sew a ${draft.zipCm} cm invisible zip into the left side seam edges (as you wear it), with the top of the teeth ${waist} below the waist edge, stopping at the ZIP ENDS notches.`,
+          text: `${bias ? 'Fuse a 1.5 cm strip of interfacing along the left side edges of the front and back, down past the ZIP ENDS notches, so the bias does not stretch as the zip goes in. ' : ''}Sew the ${draft.zipCm} cm invisible zip into the left side seam edges (as you wear it), with the top of the teeth ${waist} below the waist edge, stopping at the ZIP ENDS notches.${INVISIBLE_ZIP_LAY}`,
         },
         {
           title: 'Sew the left side seam',
@@ -138,7 +139,7 @@ export function wholeGuide(draft: SkirtDraft, fabricM: number, finish: SkirtFini
           },
           {
             title: 'Put the lining in',
-            text: `Slip the lining inside the skirt, wrong sides together, matching the side seams. Turn the lining's edges under beside the zip and slip-stitch them to the zip tape, clear of the teeth. Tack the waist edges together ${n1(Math.max(0.5, sw.waist - 0.5))} from the edge, and treat them as one from here on.`,
+            text: `Slip the lining inside the skirt, wrong sides together, matching the side seams. Turn the lining's edges under beside the zip and slip-stitch them to the zip tape, clear of the teeth. Baste the waist edges together ${n1(Math.max(0.5, sw.waist - 0.5))} from the edge, and treat them as one from here on.`,
           },
         ]
       : []),

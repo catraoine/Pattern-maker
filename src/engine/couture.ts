@@ -101,7 +101,7 @@ export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
       out.push(
         step(
           'Thread-trace the lines',
-          `Before you lift the pattern, mark every stitching line, dart, notch and balance line with long tacking stitches in a contrasting thread, ${c.traced ? 'along the solid stitching line' : 'along the dashed stitching line'}. At each dart point${bodice ? ' and the bust point' : ''} make a tailor's tack, a loose double stitch left in loops. Ease the layers apart and snip the threads between them, so each piece carries the lines on both sides. Unlike chalk, the thread shows on the right side and the wrong, so you sew, fit and press to the exact line.${c.traced ? '' : ' For room to fit, choose Couture seam allowances above: 2.5 cm at the seams.'}`,
+          `Before you lift the pattern, mark every stitching line, dart, notch and balance line with long basting stitches in a contrasting thread, ${c.traced ? 'along the solid stitching line' : 'along the dashed stitching line'}. At each dart point${bodice ? ' and the bust point' : ''} make a tailor's tack, a loose double stitch left in loops. Ease the layers apart and snip the threads between them, so each piece carries the lines on both sides. Unlike chalk, the thread shows on the right side and the wrong, so you sew, fit and press to the exact line.${c.traced ? '' : ' For room to fit, choose Couture seam allowances above: 2.5 cm at the seams.'}`,
           'trace',
         ),
         step(
@@ -149,10 +149,11 @@ export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
         out.push(fitStep());
         fitted = true;
       }
-      rightZip = /right side/.test(s.text);
+      // "The right side seam", not the right side of the cloth, which the zip's own how-to names.
+      rightZip = /right side (seam|edges)/.test(s.text);
       zip = step(
         'Hand-pick the zip',
-        `Press both ${/right side/.test(s.text) ? 'right side seam' : 'centre back'} allowances under along the traced line, down to the ZIP ENDS mark. Baste the ${c.zipCm} cm zip behind the opening, its teeth centred, with the folded edges just meeting over them. From the right side, sew each side with a prick stitch: a tiny backstitch every 6 mm, 6 mm from the fold, catching only a thread or two of the surface. It is how couture houses still set a zip: barely seen from outside, soft, and easy to adjust at a fitting.`,
+        `Press both ${rightZip ? 'right side seam' : 'centre back'} allowances under along the traced line, down to the ZIP ENDS mark. Baste the ${c.zipCm} cm zip behind the opening, its teeth centred, with the folded edges just meeting over them. From the right side, sew each side with a prick stitch: a tiny backstitch every 6 mm, 6 mm from the fold, catching only a thread or two of the surface. It is how couture houses still set a zip: barely seen from outside, soft, and easy to adjust at a fitting.`,
         'pickzip',
       );
       // A zip run through to the hem (BodiceDraft.zipThrough) has no seam below it to sew first: it goes in here.
@@ -160,7 +161,7 @@ export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
         out.push({ ...zip, text: zip.text.replace('down to the ZIP ENDS mark', 'all the way down to the bottom edge') + ' A zip longer than the opening is shortened first: stitch across its teeth several times 1 cm above the bottom edge\'s seam line and cut the rest off 2 cm below.' });
         zip = undefined;
       }
-    } else if (t === 'Stay-stitch the waist') {
+    } else if (t === 'Staystitch the waist') {
       // Every curve is staystitched once the lines are traced (above).
     } else if (t === 'Sew the right side seam' || t === 'Sew the left side seam') {
       if (!fitted) {
@@ -308,7 +309,7 @@ export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
       const words = hemWords(c, finish, s.text);
       out.push(step(t, words, /slip-stitch/.test(words) ? 'slipstitch' : 'catch'));
     } else if (t === 'Finish') {
-      out.push({ ...s, text: `${s.text.replace(/ Give the (skirt|bodice|dress) a final press\./, '')} Take out every tacking thread, and give it a last press through a press cloth.` });
+      out.push({ ...s, text: `${s.text.replace(/ Give the (skirt|bodice|dress) a final press\./, '')} Take out every basting thread, and give it a last press through a press cloth.` });
     } else out.push(s);
   }
 
@@ -318,7 +319,7 @@ export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
     return [n];
   });
   notions.push(
-    'Contrasting tacking thread',
+    'Contrasting basting thread',
     "A tailor's ham and a press cloth",
     ...(finish === 'hongkong' ? ['1 m of lining or silk organza, for the bias strips that bind the seams'] : []),
     ...(dress && !ownStay ? ['1 m of 1.5 cm grosgrain ribbon and a hook and bar, for the waist stay'] : []),

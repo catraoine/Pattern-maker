@@ -44,7 +44,7 @@ export function teeGuide(d: TeeDraft, fabricM: number, finish: { width?: number 
     {
       title: 'Sew on the neckband',
       text: v
-        ? `Pin the band's centre back to the tee's centre back, on the right side, raw edges together. Stretch the band, not the neckline, round to the front, and pin its ends at the V so each runs down to the clipped point and on past it, the right end crossing over the left. Sew ${seam} from the edge with the band on top, from the point up round the back and down to the point, stretching the band gently to fit as you go. Fold the band up, tack the crossed ends together inside and trim them. Press the seam toward the tee.`
+        ? `Pin the band's centre back to the tee's centre back, on the right side, raw edges together. Stretch the band, not the neckline, round to the front, and pin its ends at the V so each runs down to the clipped point and on past it, the right end crossing over the left. Sew ${seam} from the edge with the band on top, from the point up round the back and down to the point, stretching the band gently to fit as you go. Fold the band up, baste the crossed ends together inside and trim them. Press the seam toward the tee.`
         : `Fold the tee's neckline in half to find the centre front and centre back, then again for the quarters, and mark each with a pin. Pin the band to the right side of the neckline, raw edges together, matching the band's seam to the centre back and its pins to the neckline's. The band is shorter: stretch it, not the neckline, to fit between the pins. Sew ${seam} from the edge with the band on top, stretching it gently as you go. Press the seam toward the tee.`,
     },
     {

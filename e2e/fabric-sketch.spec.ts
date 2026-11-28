@@ -79,8 +79,8 @@ test('None, a colour and a shop fabric on the skirt sketch', async ({ page }) =>
   await expect(main.locator('#fabcolour')).toHaveValue('Indigo twill');
   // The buy strip says how much this skirt needs, about what it costs, and goes to the shop.
   const strip = main.locator('.buystrip');
-  await expect(strip).toContainText('Mood Fabrics · Indigo twill');
-  await expect(strip).toContainText(/\d+ yd for your skirt · about \$\d+/);
+  await expect(strip).toContainText('Mood Fabrics, Indigo twill');
+  await expect(strip).toContainText(/\d+ yd for your skirt, about \$\d+/);
   await expect(strip.getByRole('link', { name: /Buy at Mood/ })).toHaveAttribute('href', /indigo-cotton-denim-twill-420606$/);
   await goCut(page);
   await expect(main.locator('.yourfabric h2')).toContainText('Cotton denim, 10.5 oz');

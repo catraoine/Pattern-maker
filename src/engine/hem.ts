@@ -29,12 +29,17 @@ export function offsetAt(offsets: number[], u: number): number {
 /**
  * Front and back hems have to meet at the side seams, so their side ends are brought to the same
  * height. The change fades in towards the side, so the centre keeps the shape that was drawn.
+ * With `lead`, the side just drawn keeps its own height and the other side comes to it. Met halfway,
+ * a front drawn short at the sides had its side end pulled back down while the hem just inside it
+ * stayed short, so the corners stood out below it as points (Cat's screen recording, Nov 28).
  */
-export function matchSides(h: HemShape, clamp: (v: number) => number = (v) => v): HemShape {
-  const side = (h.front[HEM_SAMPLES - 1] + h.back[HEM_SAMPLES - 1]) / 2;
+export function matchSides(h: HemShape, clamp: (v: number) => number = (v) => v, lead?: keyof HemShape): HemShape {
+  const side = lead ? h[lead][HEM_SAMPLES - 1] : (h.front[HEM_SAMPLES - 1] + h.back[HEM_SAMPLES - 1]) / 2;
   const fix = (offs: number[]) => {
     const d = side - offs[HEM_SAMPLES - 1];
-    return offs.map((v, i) => clamp(v + d * (i / (HEM_SAMPLES - 1)) ** 2));
+    // Coming to a drawn side, the change spreads from the centre, so a side brought far up or down curves into it
+    // rather than hooking at its last few centimetres. (The hem is squared at the centre as it is shaped, see shapeHem.)
+    return offs.map((v, i) => clamp(v + d * (i / (HEM_SAMPLES - 1)) ** (lead ? 1 : 2)));
   };
   return { front: fix(h.front), back: fix(h.back) };
 }

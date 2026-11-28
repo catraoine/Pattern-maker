@@ -13,18 +13,18 @@ test('a look picked and left before its first measurement is carried on with', a
   await main.getByRole('button', { name: 'Choose what to make' }).click();
   await main.getByRole('button', { name: /^The collection/ }).click();
   await main.getByRole('listitem').filter({ hasText: 'Ice Peplum Top' }).first().getByRole('button', { name: /^Make/ }).first().click();
-  await expect(main.getByText(/^Top · 1 of \d+$/)).toBeVisible();
+  await expect(main.getByText(/^Top, 1 of \d+$/)).toBeVisible();
 
   // Reloaded before anything is typed: still on the top's first page.
   await page.evaluate(() => location.reload());
   await page.waitForLoadState('load');
-  await expect(main.getByText(/^Top · 1 of \d+$/)).toBeVisible();
+  await expect(main.getByText(/^Top, 1 of \d+$/)).toBeVisible();
 
-  // Opened again on a new visit: the landing page carries on with it.
+  // Opened again on a new visit: the landing page carries on with it, by the look's name (EL walk, Nov 27).
   await page.goto('/');
   await skipLoading(page);
-  await main.getByRole('button', { name: 'Carry on with your top' }).click();
-  await expect(main.getByText(/^Top · 1 of \d+$/)).toBeVisible();
+  await main.getByRole('button', { name: 'Carry on with your Ice Peplum Top' }).click();
+  await expect(main.getByText(/^Top, 1 of \d+$/)).toBeVisible();
 
   // And the look is still the Ice Peplum once its measurements are in.
   await fillStepPages(page);
