@@ -4,11 +4,12 @@ _Update this page whenever a release ships or a PR is queued._
 
 ## Now (Nov 21, 2026): how a ship works
 
-Live: **release EJ** (Nov 27, Cat's 9:49 am "ship"): measuring carries on with the piece you left and asks for the
-hips and arms the look needs; close-up drawings on the trickier sewing steps of the tester pieces; sewing steps ask only
-for what each launch piece has; the barrel trouser welt pocket bags hang free; testers can hold any spot to leave a
-pinned note; the Ice Peplum opening line says buttons and loops; All round shows fuller cups; a founding place can be a
-gift; EI cold-read layout fixes; on top of EI. Rollback = release EI. Releases CW to EJ went out Nov 17 to 27;
+Live: **release EK** (Nov 27, Cat's 6:20 pm "ship"): a simpler pin note box that stays open when the finger lifts;
+sewing step drawings and Sewing mode pictures match their steps; EJ cold-read and walk fixes (high bust note, Next
+outline, laptop Sewing mode buttons in view, one shoulder ease, "Fitted"); measuring count carries on after a reload
+and the landing page offers Carry on; a page left open on an old build reloads once; "Drafted to an example body";
+welt pocket stitching on the box lines; menswear dress without a front length; bug hunt app fixes apply themselves
+(rule 8); on top of EJ. Rollback = release EJ. Releases CW to EK went out Nov 17 to 27;
 every release's commit, deploy id and rollback is in project memory (pattern-maker-releases-nov14), and the running list of what is
 ready is `/mnt/project-files/releases/ready-to-ship.md`.
 
