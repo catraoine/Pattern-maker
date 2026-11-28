@@ -27,11 +27,9 @@ export const returnToFabric = () => {
 /** Whether the way on from Style is that way back, so it goes to Sew, where Cut it now is (Cat, Nov 28). */
 export const fabricReturning = () => backToFabric;
 
-/** Read once by Sew as it opens. */
-export const takeFabricReturn = () => {
-  const back = backToFabric;
+/** Dropped by Sew once it has opened on the fabric (read with `fabricReturning`, for the same reason as Cut it's). */
+export const dropFabricReturn = () => {
   backToFabric = false;
-  return back;
 };
 
 let backToCut = false;
@@ -41,9 +39,9 @@ export const openCutNext = () => {
   backToCut = true;
 };
 
-/** Read once by Sew as it opens. */
-export const takeCutReturn = () => {
-  const back = backToCut;
+/** Read by Sew as it opens, and dropped once it has opened: read and cleared in one go, React's development double
+ *  render read it cleared the second time, and Sew opened on Sew it once sewing had begun (EM walk, Nov 28). */
+export const cutReturning = () => backToCut;
+export const dropCutReturn = () => {
   backToCut = false;
-  return back;
 };

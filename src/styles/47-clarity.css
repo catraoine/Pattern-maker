@@ -1209,3 +1209,26 @@ body .style-layout .style-pin > section > .preview > .preview-corner:has(> .pe-o
     align-items: start;
   }
 }
+
+/* Once the pattern is downloaded, Download pattern steps back to an outline (Next: Cut and sew takes the fill), keeps
+   its full width and height, and leaves the phone's bar at the foot of the screen (EM walk, Nov 28). */
+body .print-top .print-controls .print-go > button.secondary {
+  width: 100%;
+  min-height: 56px;
+  height: 56px;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+@media (max-width: 760px) {
+  .print-top .print-go.done {
+    position: static;
+    margin: 0;
+    padding: 0;
+    border-top: none;
+  }
+}
+/* Print at 100%, right under the two downloads. */
+.print-controls .print-rule {
+  margin: 0;
+  font-size: 16px;
+}

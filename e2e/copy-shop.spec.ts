@@ -14,7 +14,14 @@ test('Print at a copy shop switches to A0 and says what to ask for', async ({ pa
   await expect(shop).toContainText(/A0 paper .*printed at 100% \(actual size\)\.Find a copy shop/, { timeout: 45_000 });
   await expect(shop).not.toContainText('of the PDF');
   await expect(shop.getByRole('link', { name: 'Find a copy shop near me' })).toHaveAttribute('href', /google\.com\/maps\/search/);
-  // Back on home paper, the row folds shut again.
+  // It says the download is now A0, and Print at home instead goes back to home paper (EM walk, Nov 28: one tap to read
+  // it left the paper on A0).
+  await expect(shop).toContainText('Download pattern now gives you the A0 sheets.');
+  await shop.getByRole('button', { name: 'Print at home instead' }).click();
+  await expect(main.getByRole('button', { name: 'Print at a copy shop' })).toBeVisible();
+  await expect(main.getByRole('group', { name: 'Paper' })).not.toContainText('A0 copy shop');
+  // Back on home paper from the paper menu too, the row folds shut again.
+  await main.getByRole('button', { name: 'Print at a copy shop' }).click();
   await main.getByRole('button', { name: 'A0 copy shop' }).click();
   await page.getByRole('menuitem', { name: 'US Letter' }).or(page.getByRole('menuitemradio', { name: 'US Letter' })).first().click();
   await expect(main.getByRole('button', { name: 'Print at a copy shop' })).toBeVisible();

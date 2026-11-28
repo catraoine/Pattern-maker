@@ -16,8 +16,14 @@ for (const g of ['Skirt', 'Trousers', 'Bodice', 'Dress', 'Tee', 'Jacket'] as Gar
     await list.locator('> summary').click();
     const titles = await list.locator('.sewsteps strong').allTextContents();
     expect(titles.length).toBeGreaterThan(3);
+    // Start sewing begins after printing and cutting, which Cut it has just covered (EM walk, Nov 28).
     await main.getByRole('button', { name: /^Start sewing/ }).click();
     const mode = page.getByRole('dialog', { name: /^Sewing your / });
+    await expect(mode).toBeVisible();
+    await expect(mode.locator('.sewmode-title .sew-title-words')).not.toHaveText(/^(Prepare|Print|Cut)\b/);
+    await mode.getByRole('button', { name: /^Close/ }).click();
+    // Every step, from the first, opened from its picture in the list.
+    await main.getByRole('list').filter({ has: page.locator('.sew-index-pic') }).getByRole('button').first().click();
     await expect(mode).toBeVisible();
     for (let i = 0; i < titles.length; i++) {
       await expect(mode.locator('.eyebrow').first()).toHaveText(`Step ${i + 1} of ${titles.length}`);
@@ -44,7 +50,7 @@ test('the sew tab keeps your place', async ({ page }) => {
   await goCut(page);
   const main = page.getByRole('main');
   await main.getByRole('button', { name: /^Next: Sew it/ }).click();
-  await main.getByRole('button', { name: /^Start sewing/ }).click();
+  await main.getByRole('list').filter({ has: page.locator('.sew-index-pic') }).getByRole('button').first().click();
   const mode = page.getByRole('dialog', { name: /^Sewing your / });
   await expect(mode).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Steps' }).getByRole('button', { name: 'Sew' })).toHaveAttribute('aria-current', 'step');
@@ -83,5 +89,11 @@ test('the sew tab keeps your place', async ({ page }) => {
   await page.goBack();
   await expect(main.getByRole('heading', { level: 1, name: 'Cut it' })).toBeVisible();
   await page.goBack();
+  await expect(main.getByRole('button', { name: /^Next: Cut and sew/ })).toBeVisible();
+  // Cut it goes back to Print by name too, as Sew it goes back to Cut it (EM walk, Nov 28).
+  await main.getByRole('button', { name: /^Next: Cut and sew/ }).click();
+  await expect(main.getByRole('heading', { level: 1, name: 'Cut it' })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(50);
+  await main.getByRole('button', { name: 'Back to Print' }).click();
   await expect(main.getByRole('button', { name: /^Next: Cut and sew/ })).toBeVisible();
 });

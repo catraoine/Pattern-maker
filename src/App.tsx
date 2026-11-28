@@ -95,6 +95,15 @@ import { NEEDS_MEASUREMENTS, PARENT, PLACE_KEY, STEPS, STEP_OF, UNDER_ACCOUNT, l
 
 
 /** The screens a reload may open again. */
+/** The chapter a finished pattern was last on, for Carry on. */
+const CHAPTER_KEY = 'maison-trace-chapter';
+const lastChapter = (): View => {
+  try {
+    return localStorage.getItem(CHAPTER_KEY) === 'sew' ? 'sew' : 'export';
+  } catch {
+    return 'export';
+  }
+};
 const RESTORABLE: View[] = ['measure', 'steps', 'style', 'export', 'sew', 'account', 'collection'];
 
 const MeasureScreen = screen(() => import('./screens/MeasureScreen').then((m) => m.MeasureScreen));
@@ -373,6 +382,10 @@ export default function App() {
   useEffect(() => {
     try {
       sessionStorage.setItem(PLACE_KEY, step);
+      // Which chapter a finished pattern was last on, kept past this tab: Carry on goes back to sewing, not to Print,
+      // once you've reached Sew (EM walk, Nov 28).
+      if (step === 'export' || step === 'sew') localStorage.setItem(CHAPTER_KEY, step);
+      else if (step === 'style') localStorage.removeItem(CHAPTER_KEY);
     } catch {
       // Storage off (a private window): a reload starts at the welcome.
     }
@@ -1113,7 +1126,7 @@ export default function App() {
                       onResume: () => {
                         // A saved pattern (printing keeps one too) is finished, so it opens on Print, ready to download:
                         // reopening the tester link after printing led back to the look (pretend tester DI walk, Nov 19).
-                        if (isSaved) return setStep('export');
+                        if (isSaved) return setStep(lastChapter());
                         if (lookName) openLookNext();
                         setStep('style');
                       },
@@ -1586,7 +1599,7 @@ export default function App() {
           )}
           {step === 'sew' && !hasGarment(account, garment) && <UnlockGarment garment={garment} onPlans={openPlans} onBack={() => setStep('style')} />}
           {step === 'sew' && hasGarment(account, garment) && (
-            <SewScreen made={printable} title={title} name={lookName ?? (vestOf(garment, saved) ? 'vest' : GARMENT_NAME[garment])} keep={`${person.id}:${garment}`} onStyle={() => setStep('style')} tester={!!account.testerCode} cut={{
+            <SewScreen made={printable} title={title} name={lookName ?? (vestOf(garment, saved) ? 'vest' : GARMENT_NAME[garment])} keep={`${person.id}:${garment}`} onStyle={() => setStep('style')} onPrint={() => setStep('export')} tester={!!account.testerCode} cut={{
                 garment,
                 finish,
                 onFinish: setFinish,

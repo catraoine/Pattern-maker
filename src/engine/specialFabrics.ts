@@ -155,6 +155,9 @@ export const SPECIALS: Record<Special, SpecialInfo> = {
 
 export const SPECIAL_IDS = Object.keys(SPECIALS) as Special[];
 
+/** A cloth whose cutting step says to cut it single layer (sheer, satin), though the layout is drawn folded. */
+export const cutSingle = (special: Special | undefined): boolean => !!special && SPECIALS[special].cut.includes(SINGLE_LAYER);
+
 /** Styles a special cloth does not suit, and why. */
 const NOT_FOR: Partial<Record<Special, { silhouettes?: string[]; legs?: string[]; text: string }>> = {
   leather: { silhouettes: ['half_circle', 'circle', 'trumpet'], legs: ['wide'], text: 'Leather is too stiff for a flared or full shape. It suits a pencil, straight or A-line skirt and slim trousers.' },
