@@ -717,8 +717,10 @@ const FOLDS_FROM = 5;
  * Where a piece is far fuller than it shows on the form (a gathered or circle skirt, a loose shift), its
  * extra width hangs in folds: a few soft lines falling from just under where the piece is held to its hem,
  * one or two more the fuller it is. Drawn over the cloth, clipped to it. Fitted pieces get none.
+ * A piece that runs on down past the waist from above it (a shift, a coat) only falls in folds below the hip: from the
+ * shoulder the lines ran the whole length and read as panel seams on the Blush Shift (EM walk, Nov 28).
  */
-export function wornFolds(cloth: P[][], worn: P[][]): P[][] {
+export function wornFolds(cloth: P[][], worn: P[][], at?: { waist: number; hip: number }): P[][] {
   const out: P[][] = [];
   cloth.forEach((flat, i) => {
     const w = worn[i];
@@ -732,11 +734,12 @@ export function wornFolds(cloth: P[][], worn: P[][]): P[][] {
     const n = Math.max(1, Math.min(4, Math.round(extra / 6)));
     const wornHemY = Math.max(...w.map((q) => q.y));
     const wornHem = half(w, wornHemY);
-    const held = Math.max(0.5, half(w, topY));
+    const fromY = at && topY < at.waist - 7 && at.hip < hemY - 10 ? at.hip : topY + 2.5;
+    const held = Math.max(0.5, half(w, fromY));
     for (const s of [1, -1]) {
       for (let k = 1; k <= n; k++) {
         const u = k / (n + 1);
-        const a = { x: s * held * (0.15 + 0.75 * u), y: topY + 2.5 };
+        const a = { x: s * held * (0.15 + 0.75 * u), y: fromY };
         const b = { x: s * wornHem * (0.12 + 0.8 * u), y: wornHemY - 0.6 };
         const c = { x: (a.x + b.x) / 2 + s * 1.2, y: (a.y + b.y) / 2 };
         out.push(Array.from({ length: 11 }, (_, j) => {
@@ -847,8 +850,19 @@ const CRISP_STOPS: [number, string, number][] = ROUND_STOPS.map(([at, color, opa
 /** The light down the body (Cat's D3), by height in the form's cm: a lift over the bust, shade under it that draws
  *  the waist in, a shadow under the waist seam, and the skirt coming back into the light. The bust is taken as
  *  15 cm above the waist. */
-function downLight(body: FormBody, bottom: number): [number, string, number][] {
+function downLight(body: FormBody, bottom: number, seam = true): [number, string, number][] {
   const w = body.waistY;
+  // Cloth that runs on past the waist (a shift, a coat) has no seam there: the shade comes in at the waist and goes
+  // softly, as on the body, with no band under it. The band drew a waist seam on the Blush Shift (EM walk, Nov 28).
+  if (!seam)
+    return [
+      [body.top, SHADOW, 0],
+      [w - 7, SHADOW, 0],
+      [w - 2, SHADOW, 0.1],
+      [w + 4, SHADOW, 0.1],
+      [w + 16, SHADOW, 0],
+      [bottom, '#fff8e6', 0.03],
+    ];
   return [
     [body.top, SHADOW, 0],
     [w - 7, SHADOW, 0],
@@ -860,6 +874,8 @@ function downLight(body: FormBody, bottom: number): [number, string, number][] {
     [bottom, '#fff8e6', 0.03],
   ];
 }
+/** How far below the waist the hip is taken to be when the measurements don't say. */
+export const HIP_BELOW_WAIST = 20;
 /** How far above the waist the bust sits, in cm, for the light on it. */
 const BUST_ABOVE_WAIST = 15;
 /** Soft bands of shade across the skirt below the hip, the folds its fullness falls in. */
@@ -897,7 +913,7 @@ export function FormSketch({ body, m, legs, bottom, arms, lines, outline = [], c
     const map = wornMapper(cloth, body, underarmY ?? arms?.under.y, sewn);
     return { ...lines, seam: [...(lines.seam ?? []), ...flatLines.map((run) => run.map(map))] };
   }, [cloth, flatLines, lines, body, underarmY, arms, sewn]);
-  const folds = useMemo(() => (cloth && worn ? wornFolds(cloth, worn) : undefined), [cloth, worn]);
+  const folds = useMemo(() => (cloth && worn ? wornFolds(cloth, worn, { waist: body.waistY, hip: body.waistY + (m.waist_to_hip ?? HIP_BELOW_WAIST) }) : undefined), [cloth, worn, body.waistY, m.waist_to_hip]);
   const frame = useMemo(() => formFrame(m, body, bottom, arms, worn), [m, body, bottom, arms, worn]);
   const cx = frame.half;
   // The dot sits on the hem as drawn at the centre, where the cloth has one there near the length picked.
@@ -1010,6 +1026,8 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
   const marks = useMemo(() => (arms && sleeve && worn ? sleeveMarks(arms, sleeve, shoulderPoint(worn, arms)).flatMap((s) => [s, s.map((q) => ({ x: -q.x, y: q.y }))]) : []), [arms, sleeve, worn]);
   const onForm = worn ? (sleevesOver ? [...worn, ...sleeves] : [...sleeves, ...worn]) : [];
   const pieces = onForm.map((s) => `${at(s)} Z`);
+  // Which pieces run on past the waist with no seam there, so the light shows none (downLight).
+  const through = onForm.map((s) => s.length > 0 && Math.min(...s.map((q) => q.y)) < body.waistY - 7 && Math.max(...s.map((q) => q.y)) > body.waistY + 5);
   const look = useFabricLook();
   // Plain cloth is drawn crisp (Cat's C1 Clean Edge): lighter shade, no fold bands, sharp edges and seams.
   const crisp = !look?.special;
@@ -1036,7 +1054,7 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
         <path d={d} className="cloth-fill" strokeWidth={0.3} strokeLinejoin="round" fillOpacity={throughOpacity(look)} />
         <ClothOverlay d={d} uid={uid} k={key} look={look} hemY={hems[i]} />
         <path d={d} fill={`url(#${shade})`} stroke="none" opacity={look?.faint ? 0.9 : look?.sheer ? 0.6 : undefined} />
-        <path d={d} fill={`url(#down${uid})`} stroke="none" />
+        <path d={d} fill={`url(#${through[i] ? 'downon' : 'down'}${uid})`} stroke="none" />
         {body.head && (
           <>
             <path d={d} fill={`url(#bust${uid})`} stroke="none" />
@@ -1097,11 +1115,13 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
             // The light falls down the body too: a lift over the bust, shade under it and in at the waist, a shadow
             // under the waist seam, and the skirt's fullness falling in soft bands of shade.
             <>
-              <linearGradient id={`down${uid}`} gradientUnits="userSpaceOnUse" x1="0" x2="0" y1={f(body.top)} y2={f(bottom)}>
-                {downLight(body, bottom).map(([at, color, opacity], i) => (
-                  <stop key={i} offset={f((at - body.top) / (bottom - body.top))} stopColor={color} stopOpacity={crisp ? opacity / 2 : opacity} />
-                ))}
-              </linearGradient>
+              {[true, false].map((seam) => (
+                <linearGradient key={`${seam}`} id={`${seam ? 'down' : 'downon'}${uid}`} gradientUnits="userSpaceOnUse" x1="0" x2="0" y1={f(body.top)} y2={f(bottom)}>
+                  {downLight(body, bottom, seam).map(([at, color, opacity], i) => (
+                    <stop key={i} offset={f((at - body.top) / (bottom - body.top))} stopColor={color} stopOpacity={crisp ? opacity / 2 : opacity} />
+                  ))}
+                </linearGradient>
+              ))}
               {/* The lift over the bust and the shade under it are the shape of the bust, not bands across the garment
                   (a tee or jacket is wider than the body there). */}
               <radialGradient id={`bust${uid}`} gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform={`translate(${f(cx * 0.93)} ${f(body.waistY - BUST_ABOVE_WAIST)}) scale(${f(SQUEEZE * body.width(body.waistY - BUST_ABOVE_WAIST) * 1.5)} 5.5)`}>

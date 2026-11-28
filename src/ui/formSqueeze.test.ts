@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { skirtForm, torsoForm } from './DrawOnForm';
-import { SQUEEZE, drawnPoint, drawnPointBack, neckLift, squeezeX, unsqueezeX } from './FormSketch';
+import { SQUEEZE, drawnPoint, drawnPointBack, neckLift, squeezeX, unsqueezeX, wornFolds } from './FormSketch';
 
 // The form is drawn narrower than the pattern's flat girths, but a shoulder and a neck are straight widths across
 // (Nov 17: a long-sleeve dress read as a coat with padded shoulders and its crew neck as a deep U).
@@ -74,5 +74,27 @@ describe('the cloth under the neck drawn a touch foreshortened', () => {
   });
   it('leaves a form without a neck (a skirt) as it is', () => {
     expect(neckLift(skirtForm(m))).toBeUndefined();
+  });
+});
+
+// EM walk, Nov 28: on the Blush Shift the folds fell from the shoulders to the hem and read as panel seams.
+describe('the folds a loose piece falls in', () => {
+  // A piece `upper` wide each side at `top`, flaring to `hem` each side at `bottom`.
+  const piece = (top: number, bottom: number, upper: number, hem: number) => [
+    { x: -upper, y: top },
+    { x: upper, y: top },
+    { x: hem, y: bottom },
+    { x: -hem, y: bottom },
+  ];
+  const at = { waist: 0, hip: 20 };
+  it('start below the hip on a shift that hangs from the shoulders', () => {
+    const folds = wornFolds([piece(-40, 40, 20, 34)], [piece(-40, 40, 20, 24)], at);
+    expect(folds.length).toBeGreaterThan(0);
+    for (const run of folds) expect(Math.min(...run.map((q) => q.y))).toBeGreaterThanOrEqual(20);
+  });
+  it('still fall from just under the waist on a skirt', () => {
+    const folds = wornFolds([piece(0, 60, 20, 40)], [piece(0, 60, 20, 26)], at);
+    expect(folds.length).toBeGreaterThan(0);
+    for (const run of folds) expect(run[0].y).toBeLessThan(3);
   });
 });
