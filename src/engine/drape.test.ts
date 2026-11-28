@@ -216,7 +216,7 @@ describe('sewing a draped bodice', () => {
       const cw = draftBodice(body, { neckline: 'cowl', fit: 'regular', peplum: 'gathered' });
       const h = bodiceGuide(cw, { length: 'waist' }, 1.5, 1, { edges });
       const ct = h.steps.map((s) => s.title);
-      expect(ct).toContain('Stay-stitch the cowl front');
+      expect(ct).toContain('Staystitch the cowl front');
       expect(h.steps.find((s) => s.title === 'Cut out')!.text).toMatch(/true bias/);
       if (edges !== 'lined') expect(ct).toContain('Fold the cowl facing');
       expect(h.steps.find((s) => s.title === 'Attach the peplum')!.text).toMatch(/gathering threads/);

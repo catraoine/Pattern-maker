@@ -56,7 +56,7 @@ export const SPECIALS: Record<Special, SpecialInfo> = {
     added: 'Felled seams with two rows of topstitching, on the 1.5 cm allowance.',
     cut: 'Mark on the wrong side with chalk. Rigid denim only: stretch denim needs a pattern drafted for stretch.',
     need: 'A jeans needle 100/16, topstitch thread, a jeans button and rivets.',
-    sew: 'Topstitch at 3 to 3.5 mm. Tap thick seam crossings flat with a hammer before you sew over them.',
+    sew: 'Topstitch with a long stitch, 3 to 3.5 mm. Tap thick seam crossings flat with a hammer before you sew over them.',
   },
   leather: {
     label: 'Leather',

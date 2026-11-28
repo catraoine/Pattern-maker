@@ -161,7 +161,7 @@ export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
         out.push({ ...zip, text: zip.text.replace('down to the ZIP ENDS mark', 'all the way down to the bottom edge') + ' A zip longer than the opening is shortened first: stitch across its teeth several times 1 cm above the bottom edge\'s seam line and cut the rest off 2 cm below.' });
         zip = undefined;
       }
-    } else if (t === 'Stay-stitch the waist') {
+    } else if (t === 'Staystitch the waist') {
       // Every curve is staystitched once the lines are traced (above).
     } else if (t === 'Sew the right side seam' || t === 'Sew the left side seam') {
       if (!fitted) {

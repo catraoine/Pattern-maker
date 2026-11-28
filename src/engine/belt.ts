@@ -216,7 +216,7 @@ export function withBelt(g: SewingGuide, b: BeltDraft | undefined, o: { band: bo
     added.push(
       {
         title: 'Make the belt loops',
-        text: `Press the loop strip in half along its length, open it, and press both long edges in to the middle crease. Fold it on the crease again, so it is 1 cm wide, and edgestitch both long edges. Cut it into ${b.loops.count} loops at the marks, each ${b.loops.cutCm} cm.`,
+        text: `Press the loop strip in half along its length, open it, and press both long edges in to the middle crease. Fold it on the crease again, so it is 1 cm wide, and edge-stitch both long edges. Cut it into ${b.loops.count} loops at the marks, each ${b.loops.cutCm} cm.`,
       },
       {
         title: 'Sew on the belt loops',
@@ -232,7 +232,7 @@ export function withBelt(g: SewingGuide, b: BeltDraft | undefined, o: { band: bo
   if (b.band)
     added.push({
       title: 'Make the self band',
-      text: `Fold the band in half along its FOLD line, right sides together, and sew across the slanted end and along the long edge 1 cm from it, leaving the straight end open. Trim the corner, turn it right side out, press it flat, and edgestitch all round. Thread the straight end through a ${b.band.widthCm} cm buckle, fold it back 4 cm and stitch it down, then make a hole for the prong where the band laps.`,
+      text: `Fold the band in half along its FOLD line, right sides together, and sew across the slanted end and along the long edge 1 cm from it, leaving the straight end open. Trim the corner, turn it right side out, press it flat, and edge-stitch all round. Thread the straight end through a ${b.band.widthCm} cm buckle, fold it back 4 cm and stitch it down, then make a hole for the prong where the band laps.`,
     });
   if (b.ties)
     added.push(

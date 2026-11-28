@@ -125,10 +125,10 @@ export function styleBodiceSteps(g: SewingGuide, draft: BodiceDraft, o: { seam: 
     const extra: string[] = [];
     // (A collar on a stand has no back neck facing: see draftBodice.)
     if (buttons) extra.push(standCollar ? 'Cut the front facings as a pair, from the fabric and again from fusible interfacing.' : 'Cut the front facings as a pair and the back neck facing on the fold, from the fabric and again from fusible interfacing.');
-    if (collar === 'peter_pan') extra.push(buttons ? 'Cut the collar twice on the fold, once for the top collar and once for the under collar, and once from interfacing.' : 'Cut four collar pieces (two pairs), two for the top collar and two for the under collar, and interface the top pair.');
+    if (collar === 'peter_pan') extra.push(buttons ? 'Cut the collar twice on the fold, once for the upper collar and once for the under collar, and once from interfacing.' : 'Cut four collar pieces (two pairs), two for the upper collar and two for the under collar, and interface the top pair.');
     if (isBandCollar(collar)) extra.push('Cut the collar twice on the fold, once for the outer band and once for the inner band, and interface the outer one.');
     if (collar === 'shirt') extra.push('Cut the collar and the collar stand twice each on the fold, and interface one of each.');
-    if (collar === 'polo') extra.push(`Cut four collar pieces (two pairs), two for the top collar and two for the under collar, and interface the top pair. Cut the slit facing on the fold, and again from fusible interfacing, and chalk the slit line down the centre front of the bodice front to the SLIT ENDS notch.`);
+    if (collar === 'polo') extra.push(`Cut four collar pieces (two pairs), two for the upper collar and two for the under collar, and interface the top pair. Cut the slit facing on the fold, and again from fusible interfacing, and chalk the slit line down the centre front of the bodice front to the SLIT ENDS notch.`);
     if (collar === 'bow') extra.push('Cut the two bow strips as a pair, single layer on the true bias, and snip their notches.');
     if (collar === 'ruffle') extra.push(`Cut the neck ruffle with its fold end on the fold, so it opens out into one long strip, and snip its notches.`);
     if (collar === 'cape') extra.push(`Cut the cape ${buttons ? 'back on the fold and the cape fronts as a pair' : 'front on the fold and the cape backs as a pair'}, single layer if the fabric is narrow, and snip the notches at the middle of each neck edge.`);
@@ -201,7 +201,7 @@ export function styleBodiceSteps(g: SewingGuide, draft: BodiceDraft, o: { seam: 
     collarSteps.push(
       {
         title: 'Make the collar',
-        text: `Pin the top collar to the under collar, right sides together. Sew round the outer edge ${o.curve} from it, leaving the neck edge open. Trim the seam to 0.5 cm, notch the curves, and turn it right side out. Roll the seam a little toward the under collar and press, so it won't show.${buttons ? '' : ' Make the second half the same way.'}`,
+        text: `Pin the upper collar to the under collar, right sides together. Sew round the outer edge ${o.curve} from it, leaving the neck edge open. Trim the seam to 0.5 cm, notch the curves, and turn it right side out. Roll the seam a little toward the under collar and press, so it won't show.${buttons ? '' : ' Make the second half the same way.'}`,
       },
       {
         title: 'Attach the collar',
@@ -218,7 +218,7 @@ export function styleBodiceSteps(g: SewingGuide, draft: BodiceDraft, o: { seam: 
       },
       {
         title: 'Make the collar',
-        text: `Pin the top collar to the under collar, right sides together. Sew the centre front end and round the outer edge to the centre back, ${o.curve} from it, leaving the neck edge and the centre back end open. Trim, cut across the point, turn it right side out and press, rolling the seam a little toward the under collar. Make the second half the same way.`,
+        text: `Pin the upper collar to the under collar, right sides together. Sew the centre front end and round the outer edge to the centre back, ${o.curve} from it, leaving the neck edge and the centre back end open. Trim, cut across the point, turn it right side out and press, rolling the seam a little toward the under collar. Make the second half the same way.`,
       },
       {
         title: 'Attach the collar',
@@ -287,7 +287,7 @@ export function styleBodiceSteps(g: SewingGuide, draft: BodiceDraft, o: { seam: 
       },
       {
         title: 'Attach the stand',
-        text: `Pin the outer stand to the neckline, right sides together, the notches to the shoulder seams and its ends to the front edges. Sew ${o.curve} from the edge, trim and clip. Press the seam up into the stand, bring the inner stand over it, and slip-stitch or edgestitch it down.`,
+        text: `Pin the outer stand to the neckline, right sides together, the notches to the shoulder seams and its ends to the front edges. Sew ${o.curve} from the edge, trim and clip. Press the seam up into the stand, bring the inner stand over it, and slip-stitch or edge-stitch it down.`,
       },
     );
   }

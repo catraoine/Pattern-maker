@@ -1,6 +1,6 @@
 // Sewing steps for a skirt cut whole, single layer: the bias slip, and skirts whose hem differs side
 // to side. With no centre back seam the zip goes in the left side seam. The slip is handled the way
-// bias is handled in a workroom: cut flat on a single layer, its waist stay-stitched at once, French
+// bias is handled in a workroom: cut flat on a single layer, its waist staystitched at once, French
 // seams, a faced waist, and hung for a day so the bias can drop before the hem is levelled and rolled.
 // Keep to plain ASCII punctuation: the PDF uses a standard font without curly quotes.
 import { INVISIBLE_ZIP_LAY } from './stepWords';
@@ -63,7 +63,7 @@ export function wholeGuide(draft: SkirtDraft, fabricM: number, finish: SkirtFini
     ...(bias
       ? [
           {
-            title: 'Stay-stitch the waist',
+            title: 'Staystitch the waist',
             diagram: 'staystitch' as const,
             text: `As soon as the pieces are cut, machine a line of stitching ${n1(Math.max(0.5, sw.waist - 0.5))} from the waist edge of each, in the seam allowance, sewing from each side toward the centre. The bias waist stretches the moment it is handled; the stitching holds it to the pattern. Handle the pieces flat from now on, and never hang them by an edge.`,
           },

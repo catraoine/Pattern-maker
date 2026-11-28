@@ -833,7 +833,7 @@ function dressSteps(draft: DressDraft, style: { silhouette: Silhouette; length: 
       title: 'Cut out',
       text: `Fold the fabric in half with the selvedges together. ${placeWords(draft.bodice)}${wide ? '' : frontSlit ? ' Place the skirt front and the skirt back on both layers so you get a pair of each.' : ' Place the skirt front on the fold and the skirt back on both layers.'}${
         draft.skirt.bias
-          ? ' The skirt is cut on the bias, from a single layer opened out flat on a big table: the front once, whole, and the back twice, turning the pattern over for the second. Lay each with its grain arrow parallel to the selvedge, so it sits at 45 degrees across the cloth. As soon as the skirt pieces are cut, stay-stitch their waist edges 1 cm in, so the bias waist cannot stretch before it is joined to the bodice.'
+          ? ' The skirt is cut on the bias, from a single layer opened out flat on a big table: the front once, whole, and the back twice, turning the pattern over for the second. Lay each with its grain arrow parallel to the selvedge, so it sits at 45 degrees across the cloth. As soon as the skirt pieces are cut, staystitch their waist edges 1 cm in, so the bias waist cannot stretch before it is joined to the bodice.'
           : wide ? ' The skirt pieces are too wide for folded fabric: cut them from a single layer, turning the pattern over for the second of each so you get pairs.' : ''
       } Keep each grain arrow parallel to the selvedge. Cut along the solid outer line, snip the small notches${dartLines ? ', and chalk-mark the dart lines and the bust point' : ''}.${pockets ? ` ${POCKET_CUT}` : ''}${frontPocketCut(draft.skirt)}${collarCut(draft.bodice)}${
         lined
@@ -1149,7 +1149,7 @@ function sleeveSteps(sl: SleeveDraft, seam: string, curve: string, lined: boolea
       : sl.pieces[0].meta.flutter
         ? {
             title: 'Hem the flutters',
-            text: 'The hem is curved and flared, so it takes a narrow hem only. Stay-stitch 0.5 cm from the edge, press up along that line, then fold the raw edge in to meet the crease and press again, easing it round the curve. Stitch close to the inner fold. In a fine fabric a rolled hem on an overlocker is lovely here. It is far easier now than once the sleeves are in.',
+            text: 'The hem is curved and flared, so it takes a narrow hem only. Staystitch 0.5 cm from the edge, press up along that line, then fold the raw edge in to meet the crease and press again, easing it round the curve. Stitch close to the inner fold. In a fine fabric a rolled hem on an overlocker is lovely here. It is far easier now than once the sleeves are in.',
           }
         : {
           title: 'Hem the sleeves',

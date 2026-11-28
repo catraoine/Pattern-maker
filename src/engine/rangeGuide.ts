@@ -108,7 +108,7 @@ export function hoodieGuide(d: HoodieDraft, fabricM: number, finish: { width?: n
     ? [
         {
           title: 'Sew in the zip',
-          text: `Use a ${n1(d.zipCm ?? 0)} open-ended (separating) zip. Iron a strip of fusible knit tape down each centre front edge so it doesn't stretch. Pin a zip tape to each front edge, right sides together, the teeth 1 cm in from the edge and the hood's front edge caught in at the top${d.bands.hemBand ? ', the bottom stop at the hem band seam' : ''}. Sew with a zipper foot, fold the edges back and topstitch 6 mm from the fold.`,
+          text: `Use a ${n1(d.zipCm ?? 0)} open-ended (separating) zip. Iron a strip of fusible knit tape down each centre front edge so it doesn't stretch. Pin a zip tape to each front edge, right sides together, the teeth 1 cm in from the edge and the hood's front edge caught in at the top${d.bands.hemBand ? ', the bottom stop at the hem band seam' : ''}. Sew with a zip foot, fold the edges back and topstitch 6 mm from the fold.`,
         },
       ]
     : half
@@ -249,7 +249,7 @@ export function jumpsuitGuide(d: JumpsuitDraft, fabricM: number, finish: { width
       : [
           {
             title: 'Sew in the zip',
-            text: `Sew a ${n1(d.zipCm)} invisible zip into the centre back, from the neck down to the mark ${n1(20)} below the waist, with an invisible zipper foot. Close the rest of the crotch seam below it, then fold the facing or binding ends in over the zip tape and slip-stitch them down.`,
+            text: `Sew the ${n1(d.zipCm)} invisible zip into the centre back, from the neck down to the mark ${n1(20)} below the waist, with an invisible zip foot. Close the rest of the crotch seam below it, then fold the facing or binding ends in over the zip tape and slip-stitch them down.`,
           },
         ]),
     {

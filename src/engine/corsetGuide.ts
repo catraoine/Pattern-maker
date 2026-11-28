@@ -27,7 +27,7 @@ const step = (title: string, text: string, diagram?: SewStep['diagram']): SewSte
 export function strapCut(d: BodiceDraft): string {
   const st = d.top?.straps;
   const ties = d.top?.ties;
-  if (ties) return ` Cut two strips for the neck ties on the straight grain, ${ties.cutWidthCm} cm wide and ${ties.cutLengthCm} cm long. Stay-stitch the cut-in armholes 1 cm in as soon as they are cut, so they cannot stretch.`;
+  if (ties) return ` Cut two strips for the neck ties on the straight grain, ${ties.cutWidthCm} cm wide and ${ties.cutLengthCm} cm long. Staystitch the cut-in armholes 1 cm in as soon as they are cut, so they cannot stretch.`;
   return st ? ` Cut two bias strips for the straps, ${st.cutWidthCm} cm wide and ${st.cutLengthCm} cm long.` : '';
 }
 
@@ -35,7 +35,7 @@ export function strapCut(d: BodiceDraft): string {
 const tieStep = () =>
   step(
     'Attach the ties',
-    "Turn the open end of each tie in by 1 cm. Slip a strap end 1 cm inside it, so the tie wraps the end with its seam to the inside, and edgestitch across through every layer, then again 0.5 cm above. Try the top on and knot the ties behind your neck: it should lie flat across the chest without pulling down the front.",
+    "Turn the open end of each tie in by 1 cm. Slip a strap end 1 cm inside it, so the tie wraps the end with its seam to the inside, and edge-stitch across through every layer, then again 0.5 cm above. Try the top on and knot the ties behind your neck: it should lie flat across the chest without pulling down the front.",
   );
 
 /** Making the rouleau straps and settling their length. */
@@ -68,7 +68,7 @@ function bonedCore(d: BodiceDraft, o: TopFinish): { early: SewStep[]; bones: Sew
   const early: SewStep[] = [
     step(
       'Sew the centre channels',
-      'Before the layers are joined, stitch a boning casing to the coutil centre front, centred on the CENTRE FRONT line, and one to each coutil centre back panel 1.5 cm in from the seam line. Edgestitch both long sides through the coutil only, so the stitching never shows on the outside.',
+      'Before the layers are joined, stitch a boning casing to the coutil centre front, centred on the CENTRE FRONT line, and one to each coutil centre back panel 1.5 cm in from the seam line. Edge-stitch both long sides through the coutil only, so the stitching never shows on the outside.',
     ),
     step(
       'Flat-line the panels',
@@ -84,7 +84,7 @@ function bonedCore(d: BodiceDraft, o: TopFinish): { early: SewStep[]; bones: Sew
     ),
     step(
       'Sew the boning channels',
-      `Stitch a boning casing (ready-made casing, or 1.2 cm cotton tape) centred over each pressed-open princess and side seam on the coutil side, through the seam allowances only. Edgestitch both long sides, from ${BONE_STOP.top} cm below the top stitching line to ${BONE_STOP.waist} cm above the waist stitching line, and leave the top end open.`,
+      `Stitch a boning casing (ready-made casing, or 1.2 cm cotton tape) centred over each pressed-open princess and side seam on the coutil side, through the seam allowances only. Edge-stitch both long sides, from ${BONE_STOP.top} cm below the top stitching line to ${BONE_STOP.waist} cm above the waist stitching line, and leave the top end open.`,
     ),
     step(
       'Insert the boning',

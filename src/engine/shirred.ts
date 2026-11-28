@@ -154,7 +154,7 @@ export function shirredSteps(g: SewingGuide, d: BodiceDraft, o: { seam: string }
     ),
     step(
       'Finish the front lower edge',
-      "Turn the front's and the lining's lower allowances in toward each other, 1.5 cm, so their folds meet, and edgestitch them together, running on round onto the back's hem at the side seams.",
+      "Turn the front's and the lining's lower allowances in toward each other, 1.5 cm, so their folds meet, and edge-stitch them together, running on round onto the back's hem at the side seams.",
     ),
     step('Finish', 'Give the top a light steam, holding the iron above the shirring rather than pressing it flat.'),
   ];

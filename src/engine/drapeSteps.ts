@@ -75,9 +75,9 @@ const UNEVEN_CUT =
   'Cut the bodice front first, from a single layer of fabric opened out right side up. It is a whole piece and its two sides differ: lay it printed side up, the side marked LEFT SIDE on your left as you wear it, and cut it once.';
 
 const COWL_STAY: SewStep = {
-  title: 'Stay-stitch the cowl front',
+  title: 'Staystitch the cowl front',
   diagram: 'staystitch',
-  text: "The front is on the bias and stretches easily, so handle it flat and as little as you can. Stay-stitch its shoulders, the facing's shoulders and the armholes 1 cm from the edge, sewing each from the shoulder down. Hang the front up by its shoulders for a day so the bias can drop, then lay it back on the pattern and trim the side edges to it if they have grown.",
+  text: "The front is on the bias and stretches easily, so handle it flat and as little as you can. Staystitch its shoulders, the facing's shoulders and the armholes 1 cm from the edge, sewing each from the shoulder down. Hang the front up by its shoulders for a day so the bias can drop, then lay it back on the pattern and trim the side edges to it if they have grown.",
 };
 
 const cowlFold = (seam: string): SewStep => ({
