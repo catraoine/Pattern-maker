@@ -84,7 +84,7 @@ export function HemMarks({ name, marks, value, onPick, svg, cx, k, hemAt, bare, 
   // 51 cm, read back as 20⅛ (pretend tester DN walk, Nov 20).
   const typedAt = free ? (held ? cmAt(setAt) : Math.round((setAt - free.zero) * 100) / 100) : 0;
   const cmNow = free ? `${held ? cmAt(setAt) : Math.round((setAt - free.zero) * 10) / 10} cm` : '';
-  const spoken = `${at ? (free && !held ? `${at.label} · ${cmNow}` : at.label) : cmNow}${held?.end ? ` · ${held.end}` : ''}`;
+  const spoken = `${at ? (free && !held ? `${at.label}, ${cmNow}` : at.label) : cmNow}${held?.end ? `, ${held.end}` : ''}`;
   const toY = (e: PointerEvent) => new DOMPoint(e.clientX, e.clientY).matrixTransform(svg.current!.getScreenCTM()!.inverse()).y;
   const follow = (yy: number) => {
     const near = nearest(marks, yy);

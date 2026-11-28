@@ -20,21 +20,21 @@ test('opened again partway through a piece, measuring carries on with that piece
   await main.getByRole('button', { name: 'Next' }).click();
   await expect(main.getByRole('textbox')).toHaveCount(1);
 
-  const count = main.getByText(/^Trousers · \d+ of \d+$/);
-  const total = (await count.textContent())?.match(/· 2 of (\d+)$/)?.[1];
+  const count = main.getByText(/^Trousers, \d+ of \d+$/);
+  const total = (await count.textContent())?.match(/, 2 of (\d+)$/)?.[1];
   expect(total).toBeTruthy();
 
   // A reload carries the count on, rather than starting it again at 1 (EJ walk, Nov 27).
   await page.evaluate(() => location.reload());
   await page.waitForLoadState('load');
-  await expect(main.getByText(`Trousers · 2 of ${total}`)).toBeVisible();
+  await expect(main.getByText(`Trousers, 2 of ${total}`)).toBeVisible();
 
   // A new visit, as after closing the app: the landing page carries on with the trousers, where it offered only Begin
   // (EJ walk, Nov 27).
   await page.goto('/');
   await skipLoading(page);
   await main.getByRole('button', { name: 'Carry on with your trousers' }).click();
-  await expect(main.getByText(`Trousers · 2 of ${total}`)).toBeVisible();
+  await expect(main.getByText(`Trousers, 2 of ${total}`)).toBeVisible();
 
   await expect(main.getByRole('textbox')).toHaveCount(1);
   if (first) await expect(main.getByRole('textbox')).not.toHaveAccessibleName(first);

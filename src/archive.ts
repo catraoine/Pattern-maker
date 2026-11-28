@@ -198,7 +198,7 @@ export const ARCHIVE: ArchiveCut[] = [
 ];
 
 /** The record's catalogue number, like a museum's accession number: ARC · 1954 · 001. */
-export const accession = (c: ArchiveCut) => `ARC · ${c.year} · ${String(c.number).padStart(3, '0')}`;
+export const accession = (c: ArchiveCut) => `ARC ${c.year}/${String(c.number).padStart(3, '0')}`;
 
 /** A cut can be made once its source is licensed and credited. */
 /** The Archive tab stays hidden until there is a past season to show (Cat, Nov 13: "Archive should only show past

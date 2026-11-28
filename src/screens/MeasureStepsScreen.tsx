@@ -577,7 +577,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   // that asked for them, with a line saying why: added at the end, the count jumped with no reason given (EG walk, #4).
   const more = page.kind === 'extra' && !page.redo && g !== 'other' ? neededFor(g!, values, form).map((f) => f.id).filter((m) => !ids.includes(m) && !unused(g!).includes(m)) : [];
   const last = at === ids.length - 1 && !more.length;
-  const eyebrow = `${page.kind === 'base' ? '' : g === 'other' ? 'Full set · ' : `${cap(named(g!))} · `}${at + 1} of ${ids.length}`;
+  const eyebrow = `${page.kind === 'base' ? '' : g === 'other' ? 'Full set, ' : `${cap(named(g!))}, `}${at + 1} of ${ids.length}`;
   const label =
     (page.kind === 'base' && page.back === 'check') || (page.kind === 'extra' && page.redo && last) ? 'Save' : page.kind === 'extra' && page.redo ? 'Next' : page.kind === 'base' ? (last && !onWeight ? 'Done' : 'Next') : g === 'other' ? (last ? 'Done' : 'Next') : last ? (page.kind === 'extra' && page.then ? (page.then === 'sew' ? 'Next: sew it' : 'Next: print your pattern') : `Next: style your ${named(g!)}`) : 'Next';
   const next = () => {
@@ -623,7 +623,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   const whoLine = fresh && (onForm || onSomeoneElse) && (
     <p className="eyebrow who-line">
       <span>
-        {theirs ? `For ${theirName || 'someone else'}` : helper ? `For ${name.trim() || 'someone else'}` : 'For me'} · {form === 'menswear' ? 'Menswear' : 'Womenswear'}
+        {theirs ? `For ${theirName || 'someone else'}` : helper ? `For ${name.trim() || 'someone else'}` : 'For me'}, {form === 'menswear' ? 'Menswear' : 'Womenswear'}
       </span>
       <button type="button" className="later go who-change" aria-expanded={who} onClick={() => { setHelperPick(helper); setWho(true); }}>
         Change
@@ -915,7 +915,7 @@ function StepList({ title, ids, at, values, unit, form }: { title: string; ids: 
   return (
     <>
       <p className="eyebrow">
-        {title} · {ids.length}
+        {title} ({ids.length})
       </p>
       {groups.map(([name, g]) => (
         <div key={name} className="step-group">

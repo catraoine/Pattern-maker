@@ -213,8 +213,10 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
   const jobKey = useMemo(() => (job ? drapeKey(job) : ''), [job]);
   // The same garment on the same form, whatever its cloth: a Feel step changes only the cloth's card, and while that is
   // re-sewn the last sewn garment stays on screen with the settling line under it, rather than the shape preview
-  // jumping in for a second and out again (Cat, Nov 22: "how come this weird jump in fabric").
-  const shapeKey = useMemo(() => (job ? drapeKey({ ...job, card: undefined } as DrapeJob) : ''), [job]);
+  // jumping in for a second and out again (Cat, Nov 22: "how come this weird jump in fabric"). Picking another fabric type
+  // changes the fibre and crispness too, and the window went blank between types (Cat, Nov 28: "delayed not smooth"),
+  // so those are left out of the shape as well.
+  const shapeKey = useMemo(() => (job ? drapeKey({ ...job, card: undefined, fibre: undefined, crisp: undefined } as DrapeJob) : ''), [job]);
   const [draped, setDraped] = useState<{ key: string; shape: string; view: DrapedView } | undefined>();
   // (Drawn at the wearer's shoulder width only under a sleeveless garment, as the drape worker's form is: see makeSpace.)
   const widenForm = !drape || widensForm(drape);
