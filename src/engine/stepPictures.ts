@@ -13,8 +13,9 @@ export type StepPicture =
   /** The cutting layout, with these pieces cut out as you watch (by name, as the layout names them). */
   | { kind: 'cut'; names: string[] }
   /** These pieces (by index), with these edges stitched as you watch, and their darts when `darts`. `around`: small
-   *  pieces (a pocket, a loop) stitched all the way round. */
-  | { kind: 'sew'; pieces: number[]; edges: string[]; darts: boolean; around?: number[] }
+   *  pieces (a pocket, a loop) stitched all the way round. `edgesOn`: a piece's own edges in place of `edges`, where
+   *  the two sides of a seam carry different tags (a bodice's lower edge, sewn to a peplum's waist). */
+  | { kind: 'sew'; pieces: number[]; edges: string[]; darts: boolean; around?: number[]; edgesOn?: Record<number, string[]> }
   /** A close-up of the technique, from the step's own small drawing. */
   | { kind: 'diagram'; id: DiagramId }
   /** The finished garment, front and back. */
@@ -29,6 +30,8 @@ const EDGES: [RegExp, string[]][] = [
   [/\bpanel seams?\b|\bside panels?\b/, ['panel']],
   // A seam across the chest joins the yoke to the body below it.
   [/\bchest seams?\b|\byoke seams?\b/, ['yoke']],
+  // Before the side seams: "Sew the princess seams" showed the centre back, from its words' "centre back" (EJ walk, Nov 27).
+  [/\bprincess seams?\b/, ['princess']],
   [/\bside seams?\b|\bthe sides\b|\bthe side (and|edges)\b/, ['side']],
   [/\bshoulders?\b/, ['shoulder']],
   [/\bhem\b|\bhems\b/, ['hem']],
@@ -110,13 +113,26 @@ export function stepPicture(step: SewStep, pieces: Piece[]): StepPicture {
     if (these.length) return { kind: 'sew', pieces: these, edges: [], darts: false };
     return step.diagram ? { kind: 'diagram', id: step.diagram } : { kind: 'flat' };
   }
+  // The peplum sewn on: the bodice's lower edge to the peplum's waist (EJ walk, Nov 27: only the peplum showed, with no
+  // seam drawn).
+  if (/^attach the peplum\b/.test(title)) {
+    // The front half: the seam goes the same way round the back, and six pieces don't fit the picture.
+    const front = (ids: number[]) => (ids.some((i) => /front/i.test(pieces[i].name)) ? ids.filter((i) => /front/i.test(pieces[i].name)) : ids);
+    const bodice = front(pieces.map((pc, i) => (isGarment(pc) && !/peplum|sleeve|cuff|band/i.test(pc.name) && tagsOf(pc).has('hem') ? i : -1)).filter((i) => i >= 0));
+    const peplum = front(these.filter((i) => tagsOf(pieces[i]).has('waist')));
+    if (bodice.length && peplum.length)
+      return { kind: 'sew', pieces: [...bodice, ...peplum], edges: [], darts: false, edgesOn: Object.fromEntries([...bodice.map((i) => [i, ['hem']]), ...peplum.map((i) => [i, ['waist']])]) };
+  }
   let edges = edgesIn(title);
   // A step that only says "sew" or "neaten" in its title names its edges in its words. Others (press the creases)
   // don't stitch anything, so their words aren't searched for seams.
   if (!edges.length && !these.length && /^(sew|neaten|stitch|join|bind|stay|close|zigzag|overlock)\b/.test(title)) edges = edgesIn(all);
   // A step that sews onto the facings or the lining ("the upper collar to the facings") leaves the garment itself out.
   const inside = /\bto the (front |neck )?(facings?|lining)\b/.test(title);
-  const carrying = inside ? [] : pieces.map((pc, i) => (isGarment(pc) && edges.some((t) => tagsOf(pc).has(t)) ? i : -1)).filter((i) => i >= 0);
+  // A part sewn on later (a peplum, a ruffle) is shown only when the step names it: the bodice's side seams marked the
+  // peplum's too, which are sewn later, in Make the peplum (EJ walk, Nov 27).
+  const later = (pc: Piece) => /peplum|ruffle|flounce/i.test(pc.name);
+  const carrying = inside ? [] : pieces.map((pc, i) => (isGarment(pc) && !later(pc) && edges.some((t) => tagsOf(pc).has(t)) ? i : -1)).filter((i) => i >= 0);
   const shown = [...new Set([...these, ...carrying])];
   // A small piece the step makes (a pocket, a loop, a tie) is sewn all the way round.
   const around = edges.length ? [] : these.filter((i) => /pocket|welt|loop|tie|sash|strap|flap|cuff|tab/i.test(pieces[i].name));
