@@ -5,7 +5,7 @@ import { LayPlanView } from '../ui/LayPlanView';
 import { CLOTHS, seamFinish } from '../engine/couture';
 import { FIBRES, Fibre, MyFabric, FabricStyle, adviceFor, checkFabric, clothFor, pickTag, printRepeat } from '../engine/fabrics';
 import { colourWords } from '../engine/houseColours';
-import { SPECIALS, Special, needsNap } from '../engine/specialFabrics';
+import { SPECIALS, Special, cutSingle, needsNap } from '../engine/specialFabrics';
 import { printNap, printOf } from '../engine/prints';
 import { InterestCard } from '../ui/InterestCard';
 import { Mode, shows, type ProTool } from '../mode';
@@ -14,6 +14,7 @@ import { buyAmount, buyLink, shopFabric, shopPrice, type ShopFabric } from '../e
 import { LabelCard } from '../ui/LabelCard';
 import { DemoButton } from '../ui/DemoButton';
 import { isKnit, isLowerBody } from '../measurements';
+import { inCm } from '../units';
 import type { Garment } from '../measurements';
 import type { Finish } from '../savedWork';
 import type { Fitting } from '../engine/fitting';
@@ -56,6 +57,9 @@ export function CutPart({ made, title, garment, finish, onFinish, style, onEditF
   const print = printOf(finish.fabric);
   const napFixed = needsNap(special) || printNap(print);
   const nap = finish.nap || napFixed;
+  // A tester reads the muslin note once, under Your fabric, not again under What you'll need (EM walk, Nov 28: it came
+  // three times between Cut it and Sew it).
+  const fabricLines = (guide?.fabric ?? []).filter((l) => !(tester && !imported && l.startsWith('Sewing in muslin')));
   return (
     <>
       {head}
@@ -126,6 +130,11 @@ export function CutPart({ made, title, garment, finish, onFinish, style, onEditF
               </div>
               {lay.fabric === 'self' && print === 'motif' && <p className="muted small">The front is centred on a motif. Move the pattern so no motif sits on the bust points or the seat.</p>}
               <p className="muted small">{layWords(lay)}</p>
+              {/* Sheer and satin are cut in a single layer (their own cutting step says so), while the layout is drawn
+                  folded: said here too, so Cut it and the steps agree (EM walk, Nov 28; wording from the sewing steps review). */}
+              {lay.fabric === 'self' && lay.folded && cutSingle(special) && (
+                <p className="small">This cloth is cut in a single layer. Where the layout puts a piece on the fold, trace the piece out whole and cut it once. Where it cuts a pair, cut the piece twice, turning the pattern over for the second.</p>
+              )}
             </div>
           ))
         ) : (
@@ -171,21 +180,21 @@ export function CutPart({ made, title, garment, finish, onFinish, style, onEditF
             </div>
           )}
           <div className="notions">
-            {guide.fabric?.length ? (
+            {fabricLines.length ? (
               <>
                 <p className="eyebrow">Your fabric</p>
                 <ul>
-                  {guide.fabric.map((n) => (
-                    <li key={n}>{n}</li>
+                  {fabricLines.map((n) => (
+                    <li key={n}>{inCm(n)}</li>
                   ))}
                 </ul>
               </>
             ) : null}
             {/* Under the fabric lines, a label of their own, so the zip and thread don't read as more fabric. */}
-            {guide.fabric?.length ? <p className="eyebrow">Notions</p> : null}
+            {fabricLines.length ? <p className="eyebrow">Notions</p> : null}
             <ul>
               {guide.notions.map((n) => (
-                <li key={n}>{n}</li>
+                <li key={n}>{inCm(n)}</li>
               ))}
             </ul>
           </div>
@@ -320,7 +329,7 @@ function YourFabric({ fabric, style, metres, onChange, calico }: { fabric: MyFab
   const forTest = calico && (
     <p className="small fabnote tester-calico">
       <b>For your fit test </b>
-      {calico}
+      {inCm(calico)}
     </p>
   );
   const shop = shopFabric(fabric.shop);
@@ -368,7 +377,7 @@ function YourFabric({ fabric, style, metres, onChange, calico }: { fabric: MyFab
       {notes.map((n) => (
         <p key={n.text} className={`small fabnote ${n.level}`}>
           {n.level === 'ok' ? <b>Good match </b> : n.level === 'warn' ? <b>Heads up </b> : null}
-          {n.level === 'ok' ? n.text.replace(/^Good match /, '') : n.text}
+          {inCm(n.level === 'ok' ? n.text.replace(/^Good match /, '') : n.text)}
         </p>
       ))}
       <p className="muted small">

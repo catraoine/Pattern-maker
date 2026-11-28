@@ -23,7 +23,7 @@ import { Envelope } from '../ui/Envelope';
 import { InterestCard } from '../ui/InterestCard';
 import type { MeasurementValues } from '../measurements';
 import { Mode, ProTool, shows } from '../mode';
-import { ModeLink } from '../ui/ModeLink';
+import { MoreTools, ToolRow, ToolTick } from '../ui/MoreTools';
 import { countStep } from '../report/report';
 import { patternCode } from '../patternCode';
 import { GarmentFabric } from '../ui/FabricFill';
@@ -232,7 +232,9 @@ export function ExportScreen({ example, onNextSew, onMeasureMe, onEditMeasuremen
       .then(async ({ toTiledPdf, toProjectorPdf, pdfPageCount }) => {
         const [bytes, book] = await Promise.all([
           isProjector(paper) ? toProjectorPdf(sheet, { dark: paper === 'projectorDark', title: lookName ?? (unit === 'in' ? inInches(title) : title) }) : toTiledPdf(sheet, paper, { title, name: lookName, unit, part: 'pattern' }),
-          toTiledPdf(sheet, isProjector(paper) ? (unit === 'in' ? 'letter' : 'a4') : paper, { title, name: lookName, guide, summary, unit, part: 'booklet' }),
+          // On home paper: for a projector or the copy shop's A0, the sewist's own size, Letter for inches (an inch tester's
+          // A0 booklet came on A4, EM walk, Nov 28).
+          toTiledPdf(sheet, isProjector(paper) ? (unit === 'in' ? 'letter' : 'a4') : paper === 'a0' ? defaultPaper(unit) : paper, { title, name: lookName, guide, summary, unit, part: 'booklet' }),
         ]);
         const pages = await pdfPageCount(book);
         // A booklet with nothing in it isn't offered.
@@ -248,6 +250,9 @@ export function ExportScreen({ example, onNextSew, onMeasureMe, onEditMeasuremen
   // These hooks sit above the early return below so every render calls them in the same order.
   // Once the pattern has left the app (downloaded, shared or opened to print), the fit question comes up.
   const [printed, setPrinted] = useState(false);
+  // The paper the pattern last left the app on: Download steps back for Next only while that's the paper picked, so a
+  // switch to the copy shop's A0 after printing at home brings the filled Download back (code review, Nov 28).
+  const [gotOn, setGotOn] = useState<Output>();
   const [kept, setKept] = useState(false);
   // How to sew it folds closed on a phone, where the page was one long scroll, and opens on a computer (the
   // aesthetic review, 2026-10-21). Set once on arrival; after that the fold is the reader's.
@@ -292,17 +297,19 @@ export function ExportScreen({ example, onNextSew, onMeasureMe, onEditMeasuremen
   // Named for its paper too: the Letter and A4 booklets shared one name, so the second overwrote the first or came down
   // as "(1)" (pretend tester, Nov 18).
   // The paper it's laid out on, which for A0 and a projector is A4 or Letter (see the booklet's toTiledPdf above).
-  const bookletName = `${fileBase}-${isProjector(paper) ? (unit === 'in' ? 'letter' : 'a4') : paper === 'a0' ? 'a4' : paper}${inchPart}-instructions.pdf`;
+  const bookletName = `${fileBase}-${isProjector(paper) ? (unit === 'in' ? 'letter' : 'a4') : paper === 'a0' ? defaultPaper(unit) : paper}${inchPart}-instructions.pdf`;
   // Both files together, for sharing and emailing.
   const files = () => [new File([ready!], fileName, { type: 'application/pdf' }), ...(booklet ? [new File([booklet.bytes], bookletName, { type: 'application/pdf' })] : [])];
 
   const showPages = wide || tablet || seePages;
+  const got = gotOn === paper;
   const checked = (go: () => void) => () => (example && !exampleOk ? setAsking(() => go) : go());
   // The pattern has left the app: the fit question comes up, and the pattern is kept in Saved patterns where there's
   // room, so it's there after closing the app (journey review, Nov 10: printing didn't save it).
   const left = () => {
     countStep('printed', garment);
     setPrinted(true);
+    setGotOn(paper);
     if (onKeep && !example && !imported) {
       onKeep();
       setKept(true);
@@ -344,6 +351,24 @@ export function ExportScreen({ example, onNextSew, onMeasureMe, onEditMeasuremen
   };
   const paperChoice = projector ? 'projector' : paper;
 
+  // Files for a dressmaker, under the Dressmaker's pack row of More for this pattern.
+  const makerPack = (
+    <MakerPack
+      profile={profile}
+      title={title}
+      fit={fit}
+      made={made}
+      fileBase={fileBase}
+      onSvg={() => download(toSvg(sheet), 'image/svg+xml', `${fileBase}.svg`)}
+      atelier={finish.atelier}
+      onAtelier={(on) => onFinish({ ...finish, atelier: on })}
+      drafting={drafting}
+      pattern={ready ? { bytes: ready, name: fileName } : undefined}
+      values={imported ? undefined : values}
+      imported={!!imported}
+      alterations={imported ? NONE : alterations}
+    />
+  );
   return (
     <>
       <div className="split">
@@ -412,8 +437,10 @@ export function ExportScreen({ example, onNextSew, onMeasureMe, onEditMeasuremen
             </fieldset>
             {/* On its own, so on a phone it can ride in a bar at the foot of the screen, as Print my pattern does on Your
                 look: on a 360 phone it sat under the fold, out of the thumb's reach (comfort review, Nov 25). */}
-            <div className="print-go">
-              <button type="button" className="primary" onClick={checked(download_)} disabled={!ready}>
+            {/* Once the pattern has left the app, Next: Cut and sew takes the fill and Download steps back to an outline, out
+                of the phone's bar, so the way on is the button that stands out (EM walk, Nov 28: Next was a faint outline). */}
+            <div className={got ? 'print-go done' : 'print-go'}>
+              <button type="button" className={got ? 'secondary' : 'primary'} onClick={checked(download_)} disabled={!ready}>
                 {ready
                   ? // On A0 the count is of the big sheets, not every page in the file (Cat, Nov 14), so it says so.
                     `Download pattern (${pages} ${paper === 'a0' ? (pages === 1 ? 'A0 sheet' : 'A0 sheets') : pages === 1 ? 'page' : 'pages'})`
@@ -428,6 +455,11 @@ export function ExportScreen({ example, onNextSew, onMeasureMe, onEditMeasuremen
                   {`Download instructions (${booklet.pages} ${booklet.pages === 1 ? 'page' : 'pages'})`}
                 </button>
               )}
+              {/* The one rule that spoils a print, said where you download, not further down under How to print (EM walk,
+                  Nov 28). */}
+              <p className="print-rule">
+                <b>Print at 100%</b> (actual size), never “fit to page”.
+              </p>
               {/* Said here too, not only in the small page preview: nothing on Print said there was a code, or that the
                   tester form asks for it (pretend tester, Nov 18). */}
               {tester && !imported && code && (
@@ -460,7 +492,7 @@ export function ExportScreen({ example, onNextSew, onMeasureMe, onEditMeasuremen
                     Share the files
                   </button>
                 )}
-                <CopyShopWay a0={paper === 'a0'} onA0={() => setPaper('a0')} unit={unit} />
+                <CopyShopWay a0={paper === 'a0'} onA0={() => setPaper('a0')} onHome={() => setPaper(defaultPaper(unit))} unit={unit} />
                 {/* It moves the measurements and styling, not the files, so it's named for why you'd use it. */}
                 {sendLink && phone && <SendToDevice link={sendLink} className="way" />}
               </div>
@@ -527,9 +559,6 @@ export function ExportScreen({ example, onNextSew, onMeasureMe, onEditMeasuremen
                 {/* Named like Other ways and Pieces (Cat, Nov 28: they needed a title). "How to print", not "Print
                     instructions", which would read as printing the instructions booklet just above. */}
                 <p className="eyebrow">How to print</p>
-                <p>
-                  <b>Print at 100%</b> (actual size), never “fit to page”.
-                </p>
                 <p>
                   <b>Check the size.</b> The test square on page A2 (row A, column 2, as its footer says) must measure exactly 10 cm before you cut.
                 </p>
@@ -618,58 +647,47 @@ export function ExportScreen({ example, onNextSew, onMeasureMe, onEditMeasuremen
             )}
           </div>
           <div className="print-more">
-            {can('byHand') && !imported && (
-              <label className="check">
-                <input type="checkbox" checked={!!finish.byHand} onChange={(e) => onFinish({ ...finish, byHand: e.target.checked })} />
-                <span>
-                  Draft it by hand <span className="muted small">add pages to draw the pattern yourself on pattern paper, point by point</span>
-                </span>
-              </label>
+            {/* Every extra tool in one fold at the foot of Print (Cat picked A, Nov 28). Most sewists never need them, so
+                they stay in reach without a page of their own, and Next: Cut and sew stays the last thing on Print. */}
+            {(onMode || mode === 'all') && (
+              <MoreTools onOpen={() => mode !== 'all' && onMode?.('all')}>
+                {can('byHand') && !imported && (
+                  <ToolTick name="Draft it by hand" what="Pages to draw it yourself on pattern paper, point by point" checked={!!finish.byHand} onChange={(on) => onFinish({ ...finish, byHand: on })} />
+                )}
+                {can('makerPack') && (
+                  <ToolRow name="Dressmaker's pack" what={made?.flat && can('techFlat') ? 'Technical flat, tech pack, DXF and SVG files' : 'Tech pack, DXF and SVG files'}>
+                    {/* The technical flat leads the pack (Cat, Nov 28: one row, not two): it is for a dressmaker, and goes
+                        on the instructions' cover too. */}
+                    {made?.flat && can('techFlat') && (
+                      <section className="card" aria-labelledby="flattitle">
+                        <p className="eyebrow">Technical flat</p>
+                        <h2 id="flattitle">{title}</h2>
+                        <TechFlatView flat={made.flat} title={title} />
+                        <p className="muted small">
+                          Drawn to scale from your pattern{garment === 'tee' ? '' : ', with the darts sewn'}. It goes on the cover of the instructions, for a dressmaker
+                          or anyone checking the design.
+                        </p>
+                      </section>
+                    )}
+                    {makerPack}
+                  </ToolRow>
+                )}
+                {values && draftAt && can('sizeRun') && (
+                  <ToolRow name="Size run" what="Grade this pattern up and down">
+                    <SizeRun garment={garment} values={values} draftAt={draftAt} title={title} fileBase={fileBase} width={finish.fabricWidth} nap={nap} download={download} />
+                    <InterestCard offer="sizerun" pattern={title} />
+                  </ToolRow>
+                )}
+              </MoreTools>
             )}
-            <ModeLink quiet mode={mode} onMode={onMode} what="drafting by hand, a dressmaker's pack and more" />
           </div>
         </section>
       </div>
 
-      {made?.flat && can('techFlat') && (
-        <section className="card" aria-labelledby="flattitle">
-          <p className="eyebrow">Technical flat</p>
-          <h2 id="flattitle">{title}</h2>
-          <TechFlatView flat={made.flat} title={title} />
-          <p className="muted small">
-            Drawn to scale from your pattern{garment === 'tee' ? '' : ', with the darts sewn'}. It goes on the cover of the instructions, for a dressmaker or anyone
-            checking the design.
-          </p>
-        </section>
-      )}
-
-      {can('makerPack') && (
-        <MakerPack
-          profile={profile}
-          title={title}
-          fit={fit}
-          made={made}
-          fileBase={fileBase}
-          onSvg={() => download(toSvg(sheet), 'image/svg+xml', `${fileBase}.svg`)}
-          atelier={finish.atelier}
-          onAtelier={(on) => onFinish({ ...finish, atelier: on })}
-          drafting={drafting}
-          pattern={ready ? { bytes: ready, name: fileName } : undefined}
-          values={imported ? undefined : values}
-          imported={!!imported}
-          alterations={imported ? NONE : alterations}
-        />
-      )}
-
-      {values && draftAt && can('sizeRun') && (
-        <SizeRun garment={garment} values={values} draftAt={draftAt} title={title} fileBase={fileBase} width={finish.fabricWidth} nap={nap} download={download} />
-      )}
-      {values && draftAt && can('sizeRun') && <InterestCard offer="sizerun" pattern={title} />}
-
       {/* On to the Sew chapter, which opens on cutting (Cat, Nov 28). An outline, since Download pattern is this page's
           one fill (clarity review B1, Nov 22). */}
       {onNextSew && (
-        <button type="button" className="secondary chapter-next" onClick={onNextSew}>
+        <button type="button" className={`${got ? 'primary' : 'secondary'} chapter-next`} onClick={onNextSew}>
           Next: Cut and sew <span aria-hidden="true">›</span>
         </button>
       )}

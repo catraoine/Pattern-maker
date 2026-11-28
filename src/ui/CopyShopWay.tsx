@@ -5,7 +5,7 @@ const NEAR_ME = 'https://www.google.com/maps/search/?api=1&query=' + encodeURICo
 
 /** "Print at a copy shop" in the Print screen's Other ways list: one tap switches the paper to A0. While A0 is the
  *  paper (picked here or from the paper menu) it stays open, saying what to ask for, with a map of nearby shops. */
-export function CopyShopWay({ a0, onA0, unit }: { a0: boolean; onA0: () => void; unit: 'cm' | 'in' }) {
+export function CopyShopWay({ a0, onA0, onHome, unit }: { a0: boolean; onA0: () => void; onHome?: () => void; unit: 'cm' | 'in' }) {
   if (!a0)
     return (
       <button type="button" className="way" onClick={onA0}>
@@ -23,6 +23,14 @@ export function CopyShopWay({ a0, onA0, unit }: { a0: boolean; onA0: () => void;
       <a className="way" href={NEAR_ME} target="_blank" rel="noopener noreferrer">
         Find a copy shop near me
       </a>
+      {/* Opening this row puts the pattern on A0, which a home printer can't print, so it says so and offers the way
+          back: a tester tapped it only to read it and downloaded A0 sheets (EM walk, Nov 28). */}
+      <p className="small muted">Download pattern now gives you the A0 sheets.</p>
+      {onHome && (
+        <button type="button" className="later" onClick={onHome}>
+          Print at home instead
+        </button>
+      )}
     </div>
   );
 }

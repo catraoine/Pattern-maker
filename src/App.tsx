@@ -94,6 +94,17 @@ import { testerHeaders } from './ui/TesterCode';
 import { NEEDS_MEASUREMENTS, PARENT, PLACE_KEY, STEPS, STEP_OF, UNDER_ACCOUNT, ladder, type Step, type View } from './navigation';
 
 
+/** The chapter a finished pattern was last on, for Carry on. Kept with whose pattern and which garment it was, so
+ * reaching Sew on one pattern doesn't send another person's, or another garment's, Carry on to sewing. */
+const CHAPTER_KEY = 'maison-trace-chapter';
+const lastChapter = (pattern: string): View => {
+  try {
+    const kept = JSON.parse(localStorage.getItem(CHAPTER_KEY) ?? 'null') as { pattern?: string; step?: string } | null;
+    return kept?.pattern === pattern && kept.step === 'sew' ? 'sew' : 'export';
+  } catch {
+    return 'export';
+  }
+};
 /** The screens a reload may open again. */
 const RESTORABLE: View[] = ['measure', 'steps', 'style', 'export', 'sew', 'account', 'collection'];
 
@@ -373,9 +384,14 @@ export default function App() {
   useEffect(() => {
     try {
       sessionStorage.setItem(PLACE_KEY, step);
+      // Which chapter a finished pattern was last on, kept past this tab: Carry on goes back to sewing, not to Print,
+      // once you've reached Sew (EM walk, Nov 28).
+      if (step === 'export' || step === 'sew') localStorage.setItem(CHAPTER_KEY, JSON.stringify({ pattern: `${person.id}:${garment}`, step }));
+      else if (step === 'style') localStorage.removeItem(CHAPTER_KEY);
     } catch {
       // Storage off (a private window): a reload starts at the welcome.
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- kept on each move between screens; the pattern is read as it stands then
   }, [step]);
   // After the place is saved, so a new release shown now opens on this screen.
   const firstScreen = useRef(true);
@@ -1113,7 +1129,7 @@ export default function App() {
                       onResume: () => {
                         // A saved pattern (printing keeps one too) is finished, so it opens on Print, ready to download:
                         // reopening the tester link after printing led back to the look (pretend tester DI walk, Nov 19).
-                        if (isSaved) return setStep('export');
+                        if (isSaved) return setStep(lastChapter(`${person.id}:${garment}`));
                         if (lookName) openLookNext();
                         setStep('style');
                       },
@@ -1586,7 +1602,7 @@ export default function App() {
           )}
           {step === 'sew' && !hasGarment(account, garment) && <UnlockGarment garment={garment} onPlans={openPlans} onBack={() => setStep('style')} />}
           {step === 'sew' && hasGarment(account, garment) && (
-            <SewScreen made={printable} title={title} name={lookName ?? (vestOf(garment, saved) ? 'vest' : GARMENT_NAME[garment])} keep={`${person.id}:${garment}`} onStyle={() => setStep('style')} tester={!!account.testerCode} cut={{
+            <SewScreen made={printable} title={title} name={lookName ?? (vestOf(garment, saved) ? 'vest' : GARMENT_NAME[garment])} keep={`${person.id}:${garment}`} onStyle={() => setStep('style')} onPrint={() => setStep('export')} tester={!!account.testerCode} cut={{
                 garment,
                 finish,
                 onFinish: setFinish,

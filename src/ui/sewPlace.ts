@@ -35,6 +35,9 @@ const write = (keep: string, change: Partial<Place>) => {
   }
 };
 
+/** Whether a place has been kept at all: step 1 kept by From the start is not the same as never begun. */
+export const hasPlace = (keep: string) => keep in readAll();
+
 export const readAt = (keep: string, n: number) => {
   const { at } = read(keep);
   return at >= 0 && at < n ? at : 0;

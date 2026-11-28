@@ -3,12 +3,12 @@ import type { Printable } from './ExportScreen';
 import { stepPicture } from '../engine/stepPictures';
 import { SewPicture } from '../ui/SewPicture';
 import { TechFlatView } from '../ui/TechFlatView';
-import { readAt, readDone } from '../ui/sewPlace';
+import { hasPlace, readAt, readDone } from '../ui/sewPlace';
 import { TesterReport } from '../ui/TesterReport';
 import { inCm } from '../units';
 import { WrittenSteps } from '../ui/WrittenSteps';
 import { CutPart, type CutProps } from './CutPart';
-import { takeCutReturn, takeFabricReturn } from '../ui/printReturn';
+import { cutReturning, dropCutReturn, dropFabricReturn, fabricReturning } from '../ui/printReturn';
 import { usePageHistory } from '../nav';
 
 // Sew, the fourth step after Print (Cat, Nov 21), in two pages since Nov 28: Cut it first (the fabric, the cutting
@@ -35,11 +35,13 @@ interface Props {
   cut?: Omit<CutProps, 'made' | 'title' | 'onNext' | 'head'>;
   /** To Style, when the pattern can't be drafted. */
   onStyle: () => void;
+  /** Back to Print, the chapter before Cut it. */
+  onPrint?: () => void;
   /** A fit tester: sewn to the end, the finished state points to the tester form. */
   tester?: boolean;
 }
 
-export function SewScreen({ made, title, name = title, keep: owner, cut, onStyle, tester }: Props) {
+export function SewScreen({ made, title, name = title, keep: owner, cut, onStyle, onPrint, tester }: Props) {
   // Sewing mode, open on the kept step (undefined) or on one picked from the list.
   const [open, setOpen] = useState<{ from?: number }>();
   const steps = useMemo(() => made?.guide.steps ?? [], [made]);
@@ -48,8 +50,12 @@ export function SewScreen({ made, title, name = title, keep: owner, cut, onStyle
   const keep = useMemo(() => `${owner}#${stepsMark(steps)}`, [owner, steps]);
   // Cut it first, then Sew it (Cat, Nov 28: "Doesn't the cut step make more sense for the sew chapter?"). Opened from
   // Print's Next, or back from choosing the fabric, it's Cut it; opened from the tab once sewing has begun, Sew it.
-  const [fabricBack] = useState(takeFabricReturn);
-  const [cutNext] = useState(takeCutReturn);
+  const [fabricBack] = useState(fabricReturning);
+  const [cutNext] = useState(cutReturning);
+  useEffect(() => {
+    dropFabricReturn();
+    dropCutReturn();
+  }, []);
   // Each page is its own entry, so the phone's Back from Sew it returns to Cut it (code review, Nov 28).
   const [part, goPart] = usePageHistory<'cut' | 'sew'>(
     () => (!cut ? 'sew' : fabricBack || cutNext ? 'cut' : readAt(keep, steps.length) > 0 || readDone(keep) ? 'sew' : 'cut'),
@@ -80,6 +86,14 @@ export function SewScreen({ made, title, name = title, keep: owner, cut, onStyle
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once, as Sew opens
   }, []);
+  // Between Cut it and Sew it, each opens at its top: the browser's Back put "‹ Cut it" at the foot of Cut it, mid-way
+  // through a paragraph with no heading in view (EM walk, Nov 28).
+  const shownPart = useRef(part);
+  useEffect(() => {
+    if (shownPart.current === part) return;
+    shownPart.current = part;
+    window.scrollTo(0, 0);
+  }, [part]);
   const pictures = useMemo(() => (made ? steps.map((st) => stepPicture(st, made.pieces)) : []), [made, steps]);
   // Read again each time Sewing mode closes, so "Carry on" names the step you stopped at.
   const at = useMemo(() => (open ? 0 : readAt(keep, steps.length)), [open, keep, steps.length]);
@@ -96,9 +110,18 @@ export function SewScreen({ made, title, name = title, keep: owner, cut, onStyle
       </section>
     );
   }
-  if (part === 'cut' && cut) return <CutPart {...cut} made={made} title={title} onNext={toSew} />;
+  // Cut it goes back to Print as Sew it goes back to Cut it, by name, so neither needs the tabs (EM walk, Nov 28).
+  const toPrint = onPrint && (
+    <button type="button" className="step-back-arrow named sew-back" aria-label="Back to Print" onClick={onPrint}>
+      <span aria-hidden="true">‹</span> Print
+    </button>
+  );
+  if (part === 'cut' && cut) return <CutPart {...cut} made={made} title={title} onNext={toSew} head={toPrint} />;
   const flat = made.flat ? <TechFlatView flat={made.flat} title={title} /> : null;
-  const first = pictures.find((pic) => pic.kind === 'cut') ?? pictures[0];
+  // Printing and cutting are done on Cut it, the page before, so Sew it starts at the first sewing step, with that step's
+  // picture, not the cutting layout again (EM walk, Nov 28). The list below still has every step.
+  // Only before sewing has begun: a place kept at step 1 (From the start) opens there.
+  const sewFrom = cut && !hasPlace(keep) ? Math.max(0, pictures.findIndex((pic) => pic.kind !== 'prep' && pic.kind !== 'print' && pic.kind !== 'cut')) : 0;
   return (
     <>
       {/* Back to Cut it, the page before, as Style's steps go back (Cat, Nov 28). */}
@@ -127,13 +150,17 @@ export function SewScreen({ made, title, name = title, keep: owner, cut, onStyle
         ) : (
         <div className="sew-start">
           <div className="sewmode-pic">
-            <SewPicture picture={at ? pictures[at] : first} pieces={made.pieces} lays={made.lays} flat={flat} />
+            <SewPicture picture={pictures[at || sewFrom]} pieces={made.pieces} lays={made.lays} flat={flat} />
           </div>
           <p className="small">
-            {at ? `You stopped at step ${at + 1} of ${steps.length}: ${steps[at].title}.` : `${steps.length} steps, one at a time, each drawn from your own pieces. Keep it open by your machine.`}
+            {at
+              ? `You stopped at step ${at + 1} of ${steps.length}: ${steps[at].title}.`
+              : sewFrom
+                ? `Starts at step ${sewFrom + 1}, ${steps[sewFrom].title}, once it's cut. Each step is drawn from your own pieces. Keep it open by your machine.`
+                : `${steps.length} steps, one at a time, each drawn from your own pieces. Keep it open by your machine.`}
           </p>
           <div className="sew-start-go">
-            <button type="button" className="primary" onClick={() => setOpen({})}>
+            <button type="button" className="primary" onClick={() => setOpen(sewFrom && !at ? { from: sewFrom } : {})}>
               {at ? 'Carry on sewing' : 'Start sewing'} <span aria-hidden="true">›</span>
             </button>
             {at > 0 && (
