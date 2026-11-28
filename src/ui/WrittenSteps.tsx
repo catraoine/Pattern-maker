@@ -1,9 +1,8 @@
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import type { SewingGuide } from '../engine/instructions';
 import type { Printable } from '../screens/ExportScreen';
 import { TechFlatView } from './TechFlatView';
-import { DIAGRAMS } from '../engine/diagrams';
-import { stepFrames } from '../engine/stepFrames';
+import { guideDrawings, stepFrames } from '../engine/stepFrames';
 import { stepLines } from '../engine/stepLines';
 import { inCm } from '../units';
 import { DiagramKey, StepDiagram } from './StepDiagram';
@@ -18,6 +17,7 @@ const SewingMode = lazy(() => import('./SewingMode').then((m) => ({ default: m.S
  *  cover, has no Sew tab, so `sew` puts Sewing mode's Start sewing above the list there. */
 export function WrittenSteps({ guide, sew }: { guide: SewingGuide; sew?: { made: Printable; title: string } }) {
   const [sewing, setSewing] = useState(false);
+  const key = useMemo(() => guideDrawings(guide.steps), [guide]);
   return (
     <>
     {sew && (
@@ -46,6 +46,14 @@ export function WrittenSteps({ guide, sew }: { guide: SewingGuide; sew?: { made:
       <summary className="sew-summary">
         <h3 className="sew-list-head">Every step as a list</h3>
       </summary>
+      {/* One key for every drawing on the list, before the first of them: a key under each step came twice on one
+          laptop screen and only after the lines it explained (EL cold read, Nov 27). */}
+      {key.length > 0 && (
+        <div className="sew-key">
+          <p className="eyebrow">Reading the drawings</p>
+          <DiagramKey dgs={key} />
+        </div>
+      )}
       <div className="sewgrid">
       <ol className="sewsteps">
         {guide.steps.map((st) => {
@@ -57,23 +65,15 @@ export function WrittenSteps({ guide, sew }: { guide: SewingGuide; sew?: { made:
               <strong>{st.title}</strong>
               <p>{inCm(st.text)}</p>
               {frames.length > 0 ? (
-                <>
-                  <ol className="sewframes-row" aria-label={`Drawings for ${st.title}`}>
-                    {frames.map((d, k) => (
-                      <li key={k}>
-                        <StepDiagram dg={d} />
-                      </li>
-                    ))}
-                  </ol>
-                  <DiagramKey dgs={frames} />
-                </>
+                <ol className="sewframes-row" aria-label={`Drawings for ${st.title}`}>
+                  {frames.map((d, k) => (
+                    <li key={k}>
+                      <StepDiagram dg={d} />
+                    </li>
+                  ))}
+                </ol>
               ) : (
-                st.diagram && (
-                  <>
-                    <StepDiagram id={st.diagram} />
-                    <DiagramKey dgs={[DIAGRAMS[st.diagram]]} />
-                  </>
-                )
+                st.diagram && <StepDiagram id={st.diagram} />
               )}
             </li>
           );

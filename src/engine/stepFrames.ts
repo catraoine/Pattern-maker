@@ -3,7 +3,8 @@
 // Each drawing is picked by the words of its sentence, never by its place in the step, so a reworded step still finds
 // its drawings, and one that no longer matches shows the step's usual picture instead of a wrong one.
 import { p } from './geometry';
-import { type Diagram, type DiagramPart, arrow, curve, line, rect } from './diagrams';
+import { DIAGRAMS, type Diagram, type DiagramId, type DiagramPart, arrow, curve, line, rect } from './diagrams';
+import { stepLines } from './stepLines';
 
 interface Frame {
   /** The sentence this drawing shows. A sentence with no drawing of its own keeps the one before it. */
@@ -200,11 +201,14 @@ const FLY: Frame[] = [
     match: /^Close the zip and lap\b/i,
     dg: dg(
       'The zip closed and the left front lapped over it until the two centre front lines meet, hiding the teeth, then pinned.',
-      [rect(3, TOP, CF + 0.5, 22), rect(CF, TOP, 37, 22), line('chalk', p(CF, TOP), p(CF, 22)), ...[6, 11, 16].map((y) => line('edge', p(CF + 1, y), p(CF + 4, y))), ...arrow([p(31, 12), p(26, 12)])],
+      [rect(3, TOP, CF + 0.5, 22), rect(CF, TOP, 37, 22), ...[6, 11, 16].map((y) => line('edge', p(CF + 1, y), p(CF + 4, y))), ...arrow([p(31, 12), p(26, 12)])],
       [
         { at: p(11, 8), text: 'RIGHT FRONT', mid: true },
         { at: p(30.5, 8), text: 'LEFT FRONT', mid: true },
-        { at: p(CF, 21), text: 'CENTRE FRONTS MEET', mid: true },
+        // Under the pieces, centred on the line where they meet, so the seam doesn't run through the words.
+        // The two chalked lines meet on the left front's edge, so no chalk is drawn: dots there were hidden under the
+        // edge (EL cold read, Nov 27).
+        { at: p(CF, 24), text: 'CENTRE FRONTS MEET', mid: true },
       ],
     ),
   },
@@ -264,6 +268,11 @@ const ZIP: Frame[] = [
         line('chalk', p(22.5, 3), p(22.5, 23)),
         line('edge', p(18, 19.5), p(19.6, 19.5)),
         line('edge', p(20.4, 19.5), p(22, 19.5)),
+        // A pointer from each label to what it names: on their own they floated beside the pieces (EM cold read, Nov 28).
+        ...arrow([p(12.8, 8.5), p(15.3, 8.5)]),
+        ...arrow([p(11.8, 11.9), p(16.7, 11.9)]),
+        ...arrow([p(11.8, 21.1), p(17.6, 19.9)]),
+        ...arrow([p(25, 12.2), p(23.2, 12.2)]),
       ],
       [
         { at: p(3, 9), text: 'FACE DOWN' },
@@ -592,6 +601,15 @@ export const FRAME_SETS: FrameSet[] = [
 /** A step's drawings once each, in order, for the printed list and booklet (paper can't follow your ticks). */
 export function stepFrames(title: string, lines: string[]): Diagram[] {
   return [...new Set(framesFor(title, lines) ?? [])];
+}
+
+/** Every drawing a list of steps shows, close-ups and single drawings, for the one key at the top of Print's list and
+ *  the booklet's steps. */
+export function guideDrawings(steps: { title: string; text: string; diagram?: DiagramId }[]): Diagram[] {
+  return steps.flatMap((st) => {
+    const frames = stepFrames(st.title, stepLines(st.text));
+    return frames.length ? frames : st.diagram ? [DIAGRAMS[st.diagram]] : [];
+  });
 }
 
 /** The drawing for each of a step's lines (its sentences), or none when the step has no close-ups. A line before the

@@ -161,6 +161,8 @@ export function SewPicture({ picture, pieces, lays, flat, label, still }: { pict
   // The thick line only where something is sewn: interfacing, pressing and marking steps draw none.
   const sewn = picture.darts ? shown.some((pc) => pc.lines.some(isDart)) : false;
   const stitched = sewn || shown.some((pc, k) => picture.around?.includes(picture.pieces[k]) || runs(pc, picture.edgesOn?.[picture.pieces[k]] ?? picture.edges).length > 0);
+  // Worded for what the step does there and for the stitches drawn beside the line, and the fold as an edge, so it
+  // can't be read against the close-ups' 'black dashes: machine stitching' (EL cold read, Nov 27).
   // The step's own lines, each kind keyed in the words the step uses.
   const drawn = picture.lines?.filter((ln) => picture.pieces.indexOf(ln.piece) >= 0 && picture.pieces.indexOf(ln.piece) < shown.length) ?? [];
   const has = (as: string) => drawn.some((ln) => ln.as === as);

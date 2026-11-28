@@ -717,8 +717,8 @@ details.sew:not([open]) > .sew-summary > .sew-list-head::after {
   margin: 0;
 }
 
-/* The key under a drawing: what the dashed, grey and shaded lines mean (cold read, Nov 27). Small capitals in ink on
-   the chalk, one entry after another so a short key takes one line. */
+/* The key to the drawings: what the dashed, grey, dotted and shaded lines mean (cold read, Nov 27), one entry after
+   another so a short key takes one line. On the written steps it sits once at the top, above the first drawing. */
 .dg-key {
   list-style: none;
   display: flex;
@@ -727,23 +727,27 @@ details.sew:not([open]) > .sew-summary > .sew-list-head::after {
   padding: 0;
   margin: 6px 0 0;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #1d1a17;
+  color: var(--ink);
 }
-/* On Print's list it sits on the black page under the row, and the list's own round numbers are set back. */
-.sewsteps .dg-key {
-  grid-column: 2;
-  color: var(--muted);
+/* At the top of the written steps, set back from the card's own list style so it lines up with its heading. */
+.sew-key {
+  margin: 4px 0 12px;
 }
-.sewsteps .dg-key li {
-  counter-increment: none;
-  display: block;
+.sew-key .dg-key {
   padding: 0;
+  margin: 6px 0 0;
+  line-height: 1.5;
 }
-.sewsteps .dg-key li::before {
-  content: none;
+.dg-key .off {
+  visibility: hidden;
+}
+/* In Sewing mode it sits under the drawing, ink on the chalk. */
+.sewmode-pic .dg-key {
+  font-size: 11px;
+  color: #1d1a17;
 }
 /* With a key the drawing's window stacks the two: the drawing takes the room the key leaves, the key a line below. */
 .sewpic-diagram:has(> .dg-key) {

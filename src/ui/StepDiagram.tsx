@@ -17,14 +17,20 @@ export function StepDiagram(props: { id: DiagramId } | { dg: Diagram }) {
   );
 }
 
-/** A one-line key under a drawing, or under a row of close-ups, for the dashed, grey and shaded lines. */
-export function DiagramKey({ dgs }: { dgs: Diagram[] }) {
+/** A one-line key under a drawing, or above a list of them, for the dashed, grey, dotted and shaded lines. With `now`,
+ *  the key is for all of `dgs` but shows only the entries `now` uses: the rest keep their room, so the drawing above
+ *  keeps its size as Sewing mode moves through a step, and no entry names a line that isn't drawn (EL cold read). */
+export function DiagramKey({ dgs, now }: { dgs: Diagram[]; now?: Diagram }) {
   const key = keyFor(...dgs);
   if (!key.length) return null;
+  const shown = now ? keyFor(now) : key;
+  // Always in the same order, so the key wraps the same way, and keeps one height, on every drawing of the step.
   return (
     <ul className="dg-key">
       {key.map((t) => (
-        <li key={t}>{t}</li>
+        <li key={t} className={shown.includes(t) ? undefined : 'off'} aria-hidden={shown.includes(t) ? undefined : true}>
+          {t}
+        </li>
       ))}
     </ul>
   );
