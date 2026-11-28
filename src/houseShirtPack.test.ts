@@ -55,7 +55,7 @@ describe("the house shirt's printed pack", () => {
   it('says that placing a big print single layer takes the place of the folded layout', () => {
     const words = bigPrintCut(26);
     expect(words).toContain('cut single layer');
-    expect(words).toContain('takes the place of folding the fabric in the cutting layout and the cutting step');
+    expect(words).toContain('The cutting layout and the cutting step are drawn for folded fabric. Where they put a piece on the fold, trace the piece out whole first');
     expect(words).not.toContain('rather than on a fold');
   });
 });
