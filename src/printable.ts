@@ -416,7 +416,7 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
     // a look can close the back with buttons and loops in place of the zip.
     const sheer = fabric?.special === 'sheer' && finish.route !== 'couture' && edges === 'binding' && !bodice.top;
     const sheerTop = (g: SewingGuide) => {
-      const s0 = saved.bodice.shirtCut === 'house' && finish.route !== 'couture' && edges !== 'lined' ? withHouseShirtSeams(g, fmtCm(seams.seam)) : g;
+      const s0 = saved.bodice.shirtCut === 'house' && finish.route !== 'couture' && edges !== 'lined' ? withHouseShirtSeams(g, fmtCm(seams.seam), fmtCm(seams.curve)) : g;
       const s1 = sheer ? withSheerTop(s0, bodice, fmtCm(seams.seam), fmtCm(seams.curve)) : s0;
       return bodice.backLoops ? withBackLoops(s1, bodice, fmtCm(seams.seam)) : s1;
     };

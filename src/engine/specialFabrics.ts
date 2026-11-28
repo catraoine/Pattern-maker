@@ -83,7 +83,7 @@ export const SPECIALS: Record<Special, SpecialInfo> = {
     press: 'Never press it flat. Lay it face down on a towel or a needle board and steam it from the wrong side.',
     added: 'Every piece laid the same way up, so it takes a little more fabric.',
     cut: 'Cut single layer, face down. Run the pile up the body for a deeper colour.',
-    need: 'A walking foot and a Microtex needle 70/10. Tack the seams by hand first so the layers do not creep.',
+    need: 'A walking foot and a Microtex needle 70/10. Baste the seams by hand first so the layers do not creep.',
   },
   corduroy: {
     label: 'Corduroy',

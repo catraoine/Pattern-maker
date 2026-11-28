@@ -7,6 +7,7 @@ import { P, len, sub } from './geometry';
 import { Piece, bounds, cutLine } from './piece';
 import type { SewingGuide } from './instructions';
 import type { Alteration } from './fitting';
+import { seamSchedule } from './seamSchedule';
 
 /** One line of the measurement table, in cm. Body and ease are left out where they don't apply. */
 export interface SpecRow {
@@ -25,6 +26,8 @@ interface TechPack {
   measurements: SpecRow[];
   notes: string[];
   guide: SewingGuide;
+  /** Needle, stitch and tension lines for the chosen cloth (machineSetup.ts). */
+  setup?: string[];
   /** The person's toile corrections as alterations to make on one's own block. */
   alterations?: Alteration[];
 }
@@ -169,6 +172,22 @@ export async function toTechPack(tp: TechPack): Promise<Uint8Array> {
       write(`${a.area}: ${a.seen}`, 10, bold, 0, 1);
       write(a.change, 9.5, font, 14, 5);
     });
+  }
+
+  // Every seam in one table, read from the steps below, so the seam type is never only inside a long step.
+  const seams = seamSchedule(tp.guide);
+  if (seams.length) {
+    heading('Seams and stitching');
+    table(
+      [['Seam (step)', 'Type', 'Allowance', 'Finish', 'Topstitching'], ...seams.map((r) => [r.seam, r.type, r.allowance, r.finish, r.topstitch])],
+      [0, 130, 215, 270, 395],
+      ['l', 'l', 'l', 'l', 'l'],
+    );
+  }
+  // A knit garment's steps open with their own machine set-up (ballpoint needle, zigzag), so it is not said twice.
+  if (tp.setup?.length && !tp.guide.steps.some((st) => st.title === 'Set up your machine')) {
+    heading('Machine set-up');
+    tp.setup.forEach((l) => write(l, 10, font, 0, 3));
   }
 
   heading('Construction');

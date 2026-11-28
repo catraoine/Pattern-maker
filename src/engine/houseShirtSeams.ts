@@ -4,12 +4,19 @@
 // in one run from the hem to the cuff (set in the round, a felled armhole cannot be turned under the arm).
 import type { SewStep, SewingGuide } from './instructions';
 
-/** How a flat-felled seam is sewn, as a sentence on its own: `toward` is the piece the folded edge lies on. */
-const FELL = (seam: string, toward: string) =>
-  `Sew it as a flat-felled seam: sew with wrong sides together ${seam} from the edge, trim the allowance on the ${toward} side to 0.6 cm, fold the wider one over it, turn it under and press it flat onto the ${toward}, then edge-stitch the fold 0.2 cm from its edge, so both raw edges are enclosed`;
+/** How a flat-felled seam is sewn, as a sentence on its own: `toward` is the piece the folded edge lies on.
+ *  The fold goes inside, as on a bought shirt, and it is narrow. Sewn wrong sides together on the whole 1.5 cm
+ *  allowance, the fold sat outside as a raised strap and rippled round the armhole (the first finished dress, Nov 28).
+ *  That step also sewed the armhole at the straight seams' width, deeper than the 1 cm the armhole is cut with. */
+const FELL = (seam: string, toward: string) => {
+  // The fold is sized from the allowance it is made in: the armhole's 1 cm, or 1 cm seams all round, leave no 1.2 cm to
+  // trim to, so there the wider allowance is left as cut and the fold comes out a little narrower.
+  const narrow = parseFloat(seam) < 1.3;
+  return `Sew it as a flat-felled seam, with the fold inside: sew with right sides together ${seam} from the edge, trim the allowance on the ${toward} side to ${narrow ? '0.4 cm and leave the other as it is' : '0.5 cm and the other to 1.2 cm'}, fold the wider one in half over the narrow one, and press both flat onto the ${toward}. From the right side, topstitch on the ${toward} ${narrow ? '0.4' : '0.5'} cm from the seam, so the stitching catches the fold underneath, then stitch a second row close beside the seam. The raw edges are both enclosed, and the outside shows two neat rows`;
+};
 
 /** The sewing guide for the house shirt cut: flat-felled seams throughout, the sleeves set in flat. */
-export function withHouseShirtSeams(g: SewingGuide, seam: string): SewingGuide {
+export function withHouseShirtSeams(g: SewingGuide, seam: string, curve: string): SewingGuide {
   const sleeved = g.steps.some((s) => s.title === 'Set in the sleeves');
   const out: SewStep[] = [];
   for (const st of g.steps) {
@@ -32,7 +39,7 @@ export function withHouseShirtSeams(g: SewingGuide, seam: string): SewingGuide {
         out.push(
           {
             title: 'Set the sleeves in flat',
-            text: `With the body opened out flat and each sleeve still open, pin the sleeve crown to the armhole, matching the top notch to the shoulder seam, the single notch to the front and the double notches to the back, spreading the little ease evenly. ${FELL(seam, 'body')}, the fold lying on the body round the armhole.`,
+            text: `With the body opened out flat and each sleeve still open, pin the sleeve crown to the armhole, matching the top notch to the shoulder seam, the single notch to the front and the double notches to the back, spreading the little ease evenly. ${FELL(curve, 'body')}.`,
           },
           {
             title: 'Sew the side and sleeve seams',
@@ -45,7 +52,8 @@ export function withHouseShirtSeams(g: SewingGuide, seam: string): SewingGuide {
         out.push({ ...st, text: st.text.replace('Give the bodice a final press', 'Give the shirt a final press') });
         break;
       default:
-        out.push(st);
+        // A yoke seam is felled like the rest: left plain, its two raw edges were the only ones showing inside the shirt.
+        out.push(/^Join /.test(st.title) ? { ...st, text: st.text.replace(/Sew [^ ]+ cm from the edge, and press the seam up toward the yoke\./, `${FELL(seam, 'yoke')}.`) } : st);
     }
   }
   // The sleeve hems (or cuffs) are finished once the sleeves are closed.

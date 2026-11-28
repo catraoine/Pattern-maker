@@ -29,7 +29,7 @@ export function teeGuide(d: TeeDraft, fabricM: number, finish: { width?: number 
     },
     {
       title: 'Set up your machine',
-      text: `Fit a ballpoint or stretch needle (size 75 or 80) and use polyester thread, which gives a little. Sew every seam ${seam} from the edge with a narrow zigzag (width 1 to 1.5 mm, length 2.5 mm) or your machine's stretch stitch: a straight stitch snaps when the knit stretches. With an overlocker (serger), sew and neaten each seam in one pass, the knife trimming at ${seam}. A walking foot helps the layers feed evenly. Try it on a scrap first: the seam should stretch with the fabric without the stitches popping. Knits do not fray, so there are no edges to neaten.`,
+      text: `Fit a ballpoint or stretch needle (size 75 or 80) and use polyester thread, which gives a little. Sew every seam ${seam} from the edge with a narrow zigzag (width 1 to 1.5 and length 2.5 on the dials) or your machine's stretch stitch: a straight stitch snaps when the knit stretches. With an overlocker (serger), sew and neaten each seam in one pass, the knife trimming at ${seam}. A walking foot helps the layers feed evenly. Try it on a scrap first: the seam should stretch with the fabric without the stitches popping. Knits do not fray, so there are no edges to neaten.`,
     },
     {
       title: 'Sew the shoulders',
