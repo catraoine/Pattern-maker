@@ -36,6 +36,8 @@ export const isLadderStep = (e: Event) => ours.has(e);
 
 /** What to do once the browser has stepped back to where two branches meet. */
 let pending: { replace?: NavState; push: NavState[]; then: () => void } | null = null;
+/** When it was set: one the browser never answers doesn't hold the screens up for longer than a second. */
+let pendingAt = 0;
 
 if (typeof window !== 'undefined')
   window.addEventListener('popstate', (e) => {
@@ -109,6 +111,9 @@ export function useViewHistory<V extends string>(start: V, onPop: (view: V) => V
     return () => window.removeEventListener('popstate', on);
   }, [start]);
   const go = (to: V) => {
+    // While the browser is still stepping back for one move, another is let go: read before history had moved, a
+    // double-tapped Print my pattern stepped back twice as far and opened Your measurements (bug hunt journey 14, Nov 28).
+    if (pending && Date.now() - pendingAt < 1000) return;
     const now = current();
     const trail = (now?.trail ?? (now ? [now.view] : [])) as V[];
     const bases = now?.bases ?? (now ? [now.depth] : []);
@@ -128,6 +133,7 @@ export function useViewHistory<V extends string>(start: V, onPop: (view: V) => V
       const push = entries(chain, 1, replace);
       if (steps > 0) {
         pending = { replace, push, then: () => setView(to) };
+        pendingAt = Date.now();
         window.history.go(-steps);
         return;
       }
@@ -148,6 +154,7 @@ export function useViewHistory<V extends string>(start: V, onPop: (view: V) => V
       // is written afresh, so it opens on its first page as before rather than on the page kept for Back.
       const replace = keepsPage(to) && now?.view === meeting.view && now.sub !== undefined ? { ...meeting, sub: now.sub } : keep === chain.length ? meeting : undefined;
       pending = { replace, push, then: () => setView(to) };
+      pendingAt = Date.now();
       window.history.go(-steps);
       return;
     }
