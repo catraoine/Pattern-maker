@@ -419,6 +419,10 @@ const UNDERARM_HOLD = 1;
 const UNDERARM_RAISE_MAX = 1.5;
 const UNDERARM_RAISE_DART = 1;
 
+/** Above a French or side dart, how far the underarm's own line may lean from the line to the dart, in degrees, before
+ *  the seam is drawn to leave along that line (and the armhole's foot re-trued square to it): see fairRun. */
+const UNDERARM_LEAN_DART = 4;
+
 /**
  * A princess top's or dress's side seam (fairSide `further`), made one curve from the underarm to the waist. Closing the
  * side dart leaves the seam in, out and in again over the few cm under the arm, then straight to the waist; a curve over
@@ -447,7 +451,7 @@ function fairToWaist(pts: P[], tags: string[], joined: P): boolean {
  * underarm square to the armhole (see fairToWaist) and meets the end along that last step's line. False, and nothing
  * changed, when no such curve keeps the seam's length.
  */
-function fairRun(pts: P[], tags: string[], a: number, j: number, raiseMax: number): boolean {
+function fairRun(pts: P[], tags: string[], a: number, j: number, raiseMax: number, lean?: number): boolean {
   // Skip repeated points at the underarm, so its line is read from the seam itself.
   let a1 = a + 1;
   while (a1 < j && len(sub(pts[a1], pts[a])) < 1e-6) a1++;
@@ -477,7 +481,11 @@ function fairRun(pts: P[], tags: string[], a: number, j: number, raiseMax: numbe
   const chordDir = unit(sub(B, A));
   const across = (d: P) => chordDir.x * d.y - chordDir.y * d.x;
   const turn = across(dA) * across(dB) > 0;
-  if (turn) dA = chordDir;
+  // Or it leaves the arm square but well off the line to the dart: the curve then drops straight, swings out past that
+  // line to catch it up, and eases back in to meet the dart, a wave of a few mm that a pattern cutter would never draw
+  // (a Blush Shift fit tester's printed front, Nov 27). Past `lean` degrees the seam leaves along the line as well.
+  const leans = lean !== undefined && (Math.acos(Math.max(-1, Math.min(1, dA.x * chordDir.x + dA.y * chordDir.y))) * 180) / Math.PI > lean;
+  if (turn || leans) dA = chordDir;
   let was = 0;
   for (let i = a; i < e; i++) was += len(sub(pts[i + 1], pts[i]));
   let chord = len(sub(B, A));
@@ -506,8 +514,8 @@ function fairRun(pts: P[], tags: string[], a: number, j: number, raiseMax: numbe
   const curve = curveFor((lo + hi) / 2);
   if (Math.abs(lengthOf(curve) - was) > 0.02 || raise > raiseMax) return false;
   // (The armhole is redrawn only once the seam is sure to be, so a seam left as it was keeps its armhole.)
-  const k = turn || raise ? retrueFrom(pts, tags, a) : undefined;
-  if ((turn || raise) && k === undefined) return false;
+  const k = turn || leans || raise ? retrueFrom(pts, tags, a) : undefined;
+  if ((turn || leans || raise) && k === undefined) return false;
   pts[a] = A;
   pts.splice(a + 1, e - 1 - a, ...curve);
   tags.splice(a + 1, e - 1 - a, ...curve.map(() => 'side'));
@@ -532,7 +540,8 @@ function fairAboveDart(pts: P[], tags: string[], legs: P[]) {
     if (a === 0 || tags[a - 1] !== 'armhole') continue;
     // The seam's line into the dart, read over a step long enough to have one.
     while (e > a + 2 && len(sub(leg, pts[e])) < 0.3) e--;
-    fairRun(pts, tags, a, e, UNDERARM_RAISE_DART);
+    // Where no such line keeps the seam's length (or the armhole can't be re-trued to it), the square curve is still drawn.
+    if (!fairRun(pts, tags, a, e, UNDERARM_RAISE_DART, UNDERARM_LEAN_DART)) fairRun(pts, tags, a, e, UNDERARM_RAISE_DART);
     return;
   }
 }

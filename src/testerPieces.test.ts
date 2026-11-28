@@ -437,3 +437,20 @@ describe('a wrapped length', () => {
       expect(texts.filter((t) => /^(cm|mm|in|yd)\b/i.test(t))).toEqual([]);
     });
 });
+
+describe("the Blush Shift's front side seam above its dart", () => {
+  it('runs from the underarm to the dart as one near-straight line, never a dip in and back out, on a full bust', () => {
+    // Left square to the armhole while the line to the dart leaned away, it dropped straight, swung past the line and
+    // eased back: nearly 1 cm off straight on this body, and a fit tester saw it on her print (Nov 27).
+    const full: MeasurementValues = { height: 166, full_bust: 118, high_bust: 104, underbust: 98, waist: 96, full_hip: 124, high_hip: 110, waist_to_hip: 26, nape_to_waist: 46, front_hps_to_waist: 55, bust_depth: 35, apex_separation: 19.1, shoulder_width: 39.5, crotch_depth: 34, crotch_length: 90, arm_length: 58, upper_arm: 36.5, wrist: 16.5, waist_to_knee: 58, waist_to_floor: 103 };
+    for (const body of [full, ...Object.values(BODIES)]) {
+      const { pts, tags } = piece(made('blush-shift', body).pieces, 'Dress front').outline.taggedPoints(0.25);
+      const from = tags.indexOf('side');
+      let to = from;
+      while (tags[to] === 'side') to++;
+      const [a, b] = [pts[from], pts[to]];
+      const off = pts.slice(from, to + 1).map((q) => Math.abs((b.x - a.x) * (q.y - a.y) - (b.y - a.y) * (q.x - a.x)) / Math.hypot(b.x - a.x, b.y - a.y));
+      expect(Math.max(...off)).toBeLessThan(0.5);
+    }
+  });
+});
