@@ -554,10 +554,6 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
     if (window.history.state) window.history.replaceState({ ...window.history.state, sub: 'edit' }, '');
     setPage('review');
   };
-  useLayoutEffect(() => {
-    if (lookNext) lookReview();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only on opening
-  }, []);
   // Not when Print's Change fabric opened Style: that's one quick change, so Fabric opens straight away, without an intro
   // about fits and necklines in between (DY pretend-tester walk, Nov 21). It still shows on the next ordinary visit.
   const [intro, setIntro] = useState(() => !fromPrint && !introSeen());
@@ -593,6 +589,13 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
     return () => watch.disconnect();
   }, [page, intro]);
   const look = useContext(LookName);
+  // An unchanged collection look opens on itself too when How styling works would come first: after a reload partway
+  // through its measurements, or from Style in the top bar, the intro read as restyling from scratch, though the look was
+  // set (pretend tester EJ walk, Nov 27). The intro still shows the first time Change a detail opens the questions.
+  useLayoutEffect(() => {
+    if (lookNext || (look && intro)) lookReview();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only on opening
+  }, []);
   // The open question on each step. Every question starts folded (Cat, 2026-11-06: the first one stood open, so
   // See the choices didn't show the whole list); a tap on one opens it.
   // The question open on that step too (Cat's K, Nov 8: on a phone each question is its own screen).

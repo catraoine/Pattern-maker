@@ -505,7 +505,8 @@ function PatternRow({
         <p className="muted small">
           {whoFor ? `For ${whoFor} · ` : ''}
           {pattern.name.toLowerCase() === detail.toLowerCase() ? '' : `${detail[0].toUpperCase()}${detail.slice(1)} · `}
-          {'fit' in pattern.choices ? `${pattern.choices.fit[0].toUpperCase() + pattern.choices.fit.slice(1)} fit · ` : ''}saved {dateFmt.format(new Date(pattern.savedAt))}
+          {/* "Fitted fit" read twice (pretend tester EJ walk, Nov 27): a fit already ending in "fit" isn't followed by it. */}
+          {'fit' in pattern.choices ? `${pattern.choices.fit[0].toUpperCase() + pattern.choices.fit.slice(1)}${/fit/i.test(pattern.choices.fit) ? '' : ' fit'} · ` : ''}saved {dateFmt.format(new Date(pattern.savedAt))}
         </p>
         {pattern.fit && !fitting && (
           <p className="small fitnote">

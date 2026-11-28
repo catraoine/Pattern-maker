@@ -153,7 +153,9 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
         checks.push({
           group: 'Seams',
           label: which('Shoulder seams'),
-          detail: `front ${cm(f)}, back ${cm(b)}: ${cm(ease)} of back shoulder ease, as drafted`,
+          // A panel's share, when right, is named as half the whole ease: in inches each panel's 0.5 cm read as 1/4 in, so the two
+          // added up to 1/2 in where the step says 3/8 in (pretend tester EJ walk, Nov 27).
+          detail: `front ${cm(f)}, back ${cm(b)}: ${want > 0 && want < 1 && Math.abs(ease - want) <= SEAM_TOLERANCE ? `its half of the back's ${cm(want * 2)} of shoulder ease` : `${cm(ease)} of back shoulder ease`}, as drafted`,
           ok: Math.abs(ease - want) <= SEAM_TOLERANCE,
         });
       } else if (bothWhole(front, back)) {
