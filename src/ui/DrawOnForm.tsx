@@ -13,7 +13,7 @@ import { legsFor } from '../engine/form';
 import { bodyHalf } from '../engine/body';
 
 import { FormLine, FormSide, Reading, landmarks } from './formLines';
-import { BELOW_HEM, CLOTH_EDGES, FormHead, FormLayers, FormSatin, HEAD_CM, SQUEEZE, SewnLevel, WornSleeve, drawnPointBack, formHalf, formHead, neckLift, squeezeX, toDrawing, wornCloth, wornFolds, wornMapper } from './FormSketch';
+import { BELOW_HEM, CLOTH_EDGES, FormHead, FormLayers, FormSatin, HEAD_CM, HIP_BELOW_WAIST, SQUEEZE, SewnLevel, WornSleeve, drawnPointBack, formHalf, formHead, neckLift, squeezeX, toDrawing, wornCloth, wornFolds, wornMapper } from './FormSketch';
 import { TestingTag } from './TestingTag';
 import { DemoButton } from './DemoButton';
 import { AllRound, RoundPick } from './AllRound';
@@ -356,8 +356,8 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
   }, [onBackSide, cloth, flatLines, backCloth, backFlatLines, body, underarmY, arms, sewn]);
   const folds = useMemo(() => {
     const c = onBackSide ? backCloth : cloth;
-    return c && clothOn ? wornFolds(c, clothOn) : undefined;
-  }, [onBackSide, cloth, backCloth, clothOn]);
+    return c && clothOn ? wornFolds(c, clothOn, { waist: body.waistY, hip: body.waistY + (m.waist_to_hip ?? HIP_BELOW_WAIST) }) : undefined;
+  }, [onBackSide, cloth, backCloth, clothOn, body.waistY, m.waist_to_hip]);
   // Enlarged, the garment fills the screen as on the Style page (Cat, 2026-10-25: Draw inside Enlarge too): from just
   // above it to well past its hem, so there's room to draw the hem longer, and only a little wider than it, both sides
   // alike so the back matches the front.
