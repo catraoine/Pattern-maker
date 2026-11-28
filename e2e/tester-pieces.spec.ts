@@ -35,8 +35,9 @@ for (const name of PIECES)
     const shots = process.env.SHOTS;
     if (shots) await page.screenshot({ path: `${shots}/${name.replace(/ /g, '-')}-look.png`, fullPage: true });
     await goPrint(page);
-    // The shift is cut again from lining: its piece list says so, not just "cut 1 on fold" (DU walk, Nov 21).
-    if (name === 'Blush Shift') await expect(main(page).locator('ul.pieces li').first()).toContainText(', and again in lining');
+    // The shift is cut again from lining: its piece list says so, not just "cut 1 on fold" (DU walk, Nov 21). The list
+    // is the rows of Print only some pieces since Nov 28.
+    if (name === 'Blush Shift') await expect(main(page).locator('.print-some label').first()).toContainText(', and again in lining');
     await chooseDrop(page, 'Paper', paper);
     const pattern = main(page).getByRole('button', { name: /^Download pattern \(\d+ pages?\)$/ });
     await expect(pattern).toBeEnabled({ timeout: 90_000 });

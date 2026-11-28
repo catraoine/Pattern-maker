@@ -1,4 +1,4 @@
-import { expect, goPrint, openFold, openReview, startWithExample, test, showAllTools, openExtras } from './fixtures';
+import { expect, goCut, goPrint, openFold, openReview, startWithExample, test, showAllTools, openExtras } from './fixtures';
 
 // Paid extras that aren't open yet show as email sign-ups. The signup function isn't served by Vite,
 // so it's stubbed here and the test checks what the app sends.
@@ -26,7 +26,9 @@ test('offers: sign up for printing by post and a founding place', async ({ page 
   expect(sent).toHaveLength(1);
   expect(sent[0]).toMatchObject({ kind: 'interest', offer: 'printed', email: 'ada@example.com', website: '' });
 
-  // Back climbs to Style; on a phone, Keep is on its Review page.
+  // Back climbs from Cut it to Print, then to Style; on a phone, Keep is on its Review page.
+  await page.goBack();
+  await expect(main.getByRole('button', { name: /^Next: Cut and sew/ })).toBeVisible();
   await page.goBack();
   await openReview(page);
   await main.getByRole('button', { name: 'Save this pattern' }).click();
@@ -69,7 +71,8 @@ test('offers: hold a deadstock length, cut too, and ask for cutting', async ({ p
   await expect(hear).toContainText('first deadstock drop');
   expect(sent[0]).toMatchObject({ kind: 'interest', offer: 'deadstock', cut: true });
 
-  // C1: on the dressmaker card (all tools), for people who already have their fabric.
+  // C1: on the dressmaker card (all tools, on Print, one step back from Cut it), for people who already have their fabric.
+  await page.goBack();
   const all = await showAllTools(page);
   if (await all.count()) await all.click();
   const cut = main.locator('.offer.inset', { has: page.getByRole('heading', { name: 'Cut for me' }) });
@@ -82,9 +85,10 @@ test('offers: hold a deadstock length, cut too, and ask for cutting', async ({ p
   expect(sent[1]).toMatchObject({ kind: 'interest', offer: 'cutforme' });
 
   // Once the fabric is chosen (on the Fabric tab, the one place for it), the deadstock card steps aside.
+  await main.getByRole('button', { name: /^Next: Cut and sew/ }).click();
   await main.getByRole('button', { name: 'Choose fabric' }).click();
   await main.getByRole('radiogroup', { name: 'Fabric for the sketch' }).getByRole('radio', { name: 'Wool' }).click();
-  await goPrint(page);
+  await goCut(page);
   await openExtras(page);
   await expect(deadstock).toHaveCount(0);
 });

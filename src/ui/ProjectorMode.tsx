@@ -239,7 +239,7 @@ function Corners({ lineUp, unit, view, fresh, onChange, onSeat, onNext, onClose 
       </svg>
       <div ref={panel} className="projector-panel pj-lineup">
         <p className="eyebrow">
-          Projector mode · line up · 1 of 2 <TestingTag tool="projector" />
+          Projector mode, line up 1 of 2 <TestingTag tool="projector" />
         </p>
         <h2>{paper ? 'Drag each corner onto a corner of the paper' : 'Drag each corner onto a corner of your cutting mat'}</h2>
         <p className="muted small">
@@ -367,7 +367,7 @@ function Check({ lineUp, unit, view, onBack, onOk }: { lineUp: LineUp; unit: Uni
         </ScreenLayer>
       </div>
       <div className="projector-panel bottom pj-checking">
-        <p className="eyebrow">Line up · 2 of 2</p>
+        <p className="eyebrow">Line up 2 of 2</p>
         <h2>
           {paper
             ? `Lay a ruler across the bold square, then along the grid at the far end of the table. Is each square ${unit === 'in' ? '2 in' : '5 cm'}?`
@@ -543,7 +543,7 @@ function Project({ pieces, lineUp, unit, view, onLineUp, onClose }: { pieces: Pi
             <circle cx={lens.x} cy={lens.y} r={lensR} className="pj-lens" strokeWidth={4} />
             <circle cx={loupe.x} cy={loupe.y} r={lensR / ZOOM} className="pj-lens pj-spot" strokeWidth={2.5} />
             <text x={lens.x} y={lens.y + lensR + 24} className="pj-lens-note" textAnchor="middle">
-              {ZOOM}× · drag the small ring
+              {ZOOM}×, drag the small ring
             </text>
           </g>
         )}
@@ -551,11 +551,11 @@ function Project({ pieces, lineUp, unit, view, onLineUp, onClose }: { pieces: Pi
       {tools ? (
         <>
           <p className="eyebrow pj-top">
-            Projector mode · true size <TestingTag tool="projector" />
+            Projector mode, true size <TestingTag tool="projector" />
           </p>
           <p className="muted small pj-hint">
-            {loupe ? 'Drag the small ring over a notch' : 'Drag to move · drag the dot to turn'}
-            {turnText && <span className="pj-turned"> · {turnText}</span>}
+            {loupe ? 'Drag the small ring over a notch' : 'Drag to move, or drag the dot to turn'}
+            {turnText && <span className="pj-turned">, {turnText}</span>}
           </p>
           {lines && (
             <div
@@ -620,7 +620,7 @@ function Project({ pieces, lineUp, unit, view, onLineUp, onClose }: { pieces: Pi
               ‹
             </button>
             <span className="pj-name">
-              {pc.name} <span className="muted">· {which + 1} of {pieces.length}</span>
+              {pc.name} <span className="muted">{which + 1} of {pieces.length}</span>
             </span>
             <button type="button" aria-label="Next piece" onClick={() => pick(which + 1)} disabled={pieces.length < 2}>
               ›

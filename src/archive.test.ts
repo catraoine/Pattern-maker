@@ -7,7 +7,7 @@ describe('the Archive', () => {
     expect(ARCHIVE.map((c) => c.number)).toEqual(ARCHIVE.map((_, i) => i + 1));
     const ids = [...ARCHIVE, ...COLLECTION].map((l) => l.id);
     expect(new Set(ids).size).toBe(ids.length);
-    expect(accession(ARCHIVE[0])).toBe('ARC · 1954 · 001');
+    expect(accession(ARCHIVE[0])).toBe('ARC 1954/001');
   });
 
   it('draws every cut to the sample measurements and saves it under its garment', () => {

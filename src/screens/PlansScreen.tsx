@@ -10,7 +10,7 @@ export function PlansScreen({ account, onBack }: { account: Account; onBack: () 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
-  const yours = (p: typeof plan) => (plan === p ? ' · yours now' : '');
+  const yours = (p: typeof plan) => (plan === p ? ', yours now' : '');
 
   return (
     <div className="plans">
@@ -27,7 +27,7 @@ export function PlansScreen({ account, onBack }: { account: Account; onBack: () 
       </section>
 
       <section className="card plan" aria-labelledby="premiumtitle">
-        <p className="eyebrow">Premium{yours('premium') || ' · best value yearly'}</p>
+        <p className="eyebrow">Premium{yours('premium') || ', best value yearly'}</p>
         <h2 id="premiumtitle">Every garment</h2>
         <p className="muted">
           Dress, trousers, T-shirt, jacket and coat as well, as many people and saved patterns as you like, and unlimited photo drafts.
@@ -46,7 +46,7 @@ export function PlansScreen({ account, onBack }: { account: Account; onBack: () 
       </section>
 
       <section className="card plan" aria-labelledby="makertitle2">
-        <p className="eyebrow">Maker{yours('maker') || ' · for dressmakers'}</p>
+        <p className="eyebrow">Maker{yours('maker') || ', for dressmakers'}</p>
         <h2 id="makertitle2">Premium plus your clients</h2>
         <p className="muted">Everything in Premium, with a client book for each person you sew for, the maker pack and graded size runs.</p>
         <dl className="offerprices">

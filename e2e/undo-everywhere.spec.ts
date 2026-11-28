@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { chooseChip, expect, goPrint, openReview, showAllTools, startWithExample, switchGarment, test } from './fixtures';
+import { chooseChip, expect, goCut, goPrint, openReview, showAllTools, startWithExample, switchGarment, test } from './fixtures';
 
 // Undo wherever an edit can't otherwise be taken back (Cat, Nov 12: "we need an undo button here ... check across app
 // for similar"): Move points, the enlarged window, Back to the original style and Clear every correction.
@@ -93,7 +93,7 @@ test('Back to the original style can be undone', async ({ page }) => {
 
 test('Clear every correction can be undone', async ({ page }) => {
   await startWithExample(page);
-  await goPrint(page);
+  await goCut(page);
   const all = await showAllTools(page);
   if (await all.count()) await all.click();
   await main(page).getByRole('button', { name: 'I’ve tried on my toile' }).click();

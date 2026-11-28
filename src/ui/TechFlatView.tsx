@@ -1,7 +1,7 @@
 import { CSSProperties, useId } from 'react';
 import type { Flat } from '../engine/flat';
 import { SHADE_STOPS } from './FormSketch';
-import { ClothDefs, ClothOverlay, throughOpacity, borderHems, useFabricLook } from './ClothLook';
+import { ClothDefs, ClothOverlay, SheerEdges, laceMask, throughOpacity, borderHems, useFabricLook } from './ClothLook';
 import { useEnlarged } from './EnlargeSketch';
 import { useMedia } from './StyleLayout';
 
@@ -63,9 +63,13 @@ export function TechFlatView({ flat, title, labelCm, style, part }: { flat: Flat
             </defs>
             {v.shapes.map((s, i) => (
               <g key={i}>
-                <path d={d(s, true)} className="flat-shape" fillOpacity={throughOpacity(look)} />
-                <ClothOverlay d={d(s, true)} uid={`${uid}${k}`} k={`s${i}`} look={look} hemY={hems[i]} />
-                <path d={d(s, true)} className="flat-shade" style={{ fill: `url(#${shade})` }} opacity={look?.faint ? 0.9 : look?.sheer ? 0.6 : undefined} />
+                {/* A lace is drawn through its net and motifs; a sheer's edges lie double (ClothLook). */}
+                <g mask={laceMask(look, `${uid}${k}`)}>
+                  <path d={d(s, true)} className="flat-shape" fillOpacity={throughOpacity(look)} />
+                  <ClothOverlay d={d(s, true)} uid={`${uid}${k}`} k={`s${i}`} look={look} hemY={hems[i]} />
+                  <path d={d(s, true)} className="flat-shade" style={{ fill: `url(#${shade})` }} opacity={look?.faint ? 0.9 : look?.sheer ? 0.6 : undefined} />
+                </g>
+                <SheerEdges d={d(s, true)} uid={`${uid}${k}`} k={`s${i}`} look={look} />
               </g>
             ))}
             {v.lines.map((l, i) => (

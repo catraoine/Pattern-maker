@@ -123,6 +123,19 @@ describe('base girths checked against each other (measuring accuracy)', () => {
   });
 });
 
+// The top's pages took a high bust over the bust as a broad back, then the measurements list asked whether they were
+// swapped, and a tester couldn't tell which was right (EL walk, Nov 27).
+describe('a high bust over the bust', () => {
+  it('is checked the way the top takes it, not as a mistake', () => {
+    const v = { ...(EXAMPLE_VALUES as Record<string, number>), full_bust: 91.4, high_bust: 94 };
+    const c = checkMeasurements(v as never, 'cm', 'bodice').find((x) => x.id === 'high_bust')!;
+    expect(c.level).toBe('warning');
+    expect(c.message).toMatch(/broad back/);
+    expect(c.message).toMatch(/If both are right, carry on/);
+    expect(c.message).not.toMatch(/usually/);
+  });
+});
+
 describe('height and weight checks', () => {
   // Sample body A is 165 cm; about 62 kg goes with its bust, waist and hip.
   const body = { ...EXAMPLE_VALUES };

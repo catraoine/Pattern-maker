@@ -18,12 +18,17 @@ test('import a pattern: check a DXF, then use it to print and send', async ({ pa
   await main.getByRole('button', { name: 'Use this pattern' }).click();
 
   await expect(main.getByRole('group', { name: 'Paper' })).toBeVisible();
-  await expect(main.getByText(/\.dxf · \d+ pieces from Maison Tracé/)).toBeVisible();
+  await expect(main.getByText(/\.dxf, \d+ pieces from Maison Tracé/)).toBeVisible();
   const pdf = main.getByRole('button', { name: /^Download pattern \(\d+ pages?\)$/ });
   await expect(pdf).toBeEnabled({ timeout: 45_000 });
   const { bytes } = await download(page, pdf, info);
   expect(bytes.subarray(0, 5).toString()).toBe('%PDF-');
-  await expect(main.getByRole('heading', { name: 'How to sew it' })).toBeVisible();
+  // A file's pattern has no Sew tab of its own, so its cutting layout and written steps follow on the same page.
+  await expect(main.getByRole('heading', { name: 'Every step as a list' })).toBeVisible();
+  // With no Sew tab for a pattern read from a file, Sewing mode starts here.
+  await main.getByRole('button', { name: /^Start sewing/ }).click();
+  await expect(page.getByRole('dialog', { name: /^Sewing your / })).toBeVisible();
+  await page.getByRole('dialog', { name: /^Sewing your / }).getByRole('button', { name: /^Close/ }).click();
   await openSew(page);
   await expect(main.getByText('Join the seams')).toBeVisible();
   await expect(main.getByRole('button', { name: 'Send to a dressmaker' })).toBeEnabled({ timeout: 45_000 });

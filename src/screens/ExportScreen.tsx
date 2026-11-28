@@ -1,7 +1,7 @@
 import { DropMenu } from '../ui/DropMenu';
 import { TesterReport } from '../ui/TesterReport';
 import { useTablet, useWide } from '../ui/StyleLayout';
-import { Suspense, lazy, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { CopyShopWay } from '../ui/CopyShopWay';
 import { SendToDevice } from '../ui/SendToDevice';
 import { OVERLAP, PAGE_MARGIN, Paper, Sheet, layout, pageCount, pageName, pageSize, tileGrid, toSvg, usedTiles } from '../engine/export';
@@ -12,23 +12,13 @@ import type { SpecRow } from '../engine/techpack';
 import { PatternPreview } from '../ui/Preview';
 import type { Finish } from '../savedWork';
 import type { Garment, Unit } from '../measurements';
-import type { Alteration, Fitting } from '../engine/fitting';
-import { FABRIC_WIDTHS, type FabricWidth, Lay, type LayFabric, fabricsOf, layAmount, layWords } from '../engine/layplan';
-import { LayPlanView } from '../ui/LayPlanView';
+import type { Alteration } from '../engine/fitting';
+import { Lay, type LayFabric, fabricsOf } from '../engine/layplan';
 import type { Flat } from '../engine/flat';
 import { TechFlatView } from '../ui/TechFlatView';
-import { DIAGRAMS } from '../engine/diagrams';
-import { DiagramKey, StepDiagram } from '../ui/StepDiagram';
-import { stepFrames } from '../engine/stepFrames';
-import { stepLines } from '../engine/stepLines';
-import { takeFabricReturn } from '../ui/printReturn';
-import { SewPicture } from '../ui/SewPicture';
-import { stepPicture } from '../engine/stepPictures';
-import { CLOTHS, seamFinish } from '../engine/couture';
 import { machineSetup } from '../engine/machineSetup';
-import { FIBRES, Fibre, MyFabric, FabricStyle, adviceFor, checkFabric, clothFor, pickTag, printRepeat } from '../engine/fabrics';
-import { colourWords } from '../engine/houseColours';
-import { SPECIALS, Special, needsNap } from '../engine/specialFabrics';
+import type { MyFabric } from '../engine/fabrics';
+import { needsNap } from '../engine/specialFabrics';
 import { printNap, printOf } from '../engine/prints';
 import { SizeRun } from '../ui/SizeRun';
 import { Envelope } from '../ui/Envelope';
@@ -38,22 +28,18 @@ import { Mode, ProTool, shows } from '../mode';
 import { ModeLink } from '../ui/ModeLink';
 import { countStep } from '../report/report';
 import { patternCode } from '../patternCode';
-import { GarmentFabric, TintFilter, clothTint, flatId } from '../ui/FabricFill';
+import { GarmentFabric } from '../ui/FabricFill';
 import { amazonLink, amazonTagged, kit } from '../engine/projectorKit';
-import { buyAmount, buyLink, shopFabric, shopPrice, type ShopFabric } from '../engine/shopFabrics';
 import { canShareFiles, download } from '../ui/download';
-import { LabelCard } from '../ui/LabelCard';
 import { TestingTag } from '../ui/TestingTag';
 import { DemoButton } from '../ui/DemoButton';
 import { reloadPending } from './load';
-import { fieldsFor, isKnit, isLowerBody } from '../measurements';
+import { fieldsFor } from '../measurements';
 import { isWaistRow } from '../engine/spec';
 import { cloud } from '../cloud/api';
 import { testerHeaders } from '../ui/TesterCode';
-import { inCm, inInches } from '../units';
+import { inInches } from '../units';
 import { onPhone } from '../ui/device';
-import { PartHead } from '../ui/PrintParts';
-import { ExtrasSignup } from '../ui/ExtrasSignup';
 
 /** What to print: the drafted pieces of either garment, with its notes and sewing steps. */
 export interface Printable {
@@ -71,8 +57,8 @@ export interface Printable {
 interface Props {
   /** Drafted to the example body because measuring was skipped: printing asks first (Cat, 2026-10-21). */
   example?: boolean;
-  /** To the Sew tab, from How to sew it. Without it (a pattern read from a file), Sewing mode opens here. */
-  onSew?: () => void;
+  /** Next: Cut and sew, at the foot of Print: on to the Sew tab, which opens on cutting. */
+  onNextSew?: () => void;
   /** Measure me, from that question: drops the example and opens measuring. */
   onMeasureMe?: () => void;
   /** Back to the measurements, from a pattern that can't be drafted to them. */
@@ -94,8 +80,6 @@ interface Props {
   onFinish: (f: Finish) => void;
   made?: Printable;
   error?: string;
-  /** Back to the style screen's Fabric tab, where the fabric is chosen. */
-  onEditFabric?: () => void;
   /** Keeps the pattern in your patterns, for the label card's code; the button itself is on Review. */
   onKeep?: () => void;
   /** Saved patterns is full, so printing can't keep this one: Print says so instead of keeping quiet. */
@@ -109,23 +93,13 @@ interface Props {
   emailTo?: { signedIn?: string; testerCode?: string };
   /** The fit already reported for this pattern, in a line, if there is one. */
   fitNote?: string;
-  /** Corrections from toile fittings, and their notes, already in the pattern. */
-  fitting?: Fitting;
-  fittingNotes: string[];
   /** The toile corrections as alterations a pattern cutter makes on their own block. */
   alterations?: Alteration[];
-  onFitting: () => void;
-  /** The style the fabric is checked against. */
-  style: FabricStyle;
-  /** Each piece on screen at its real size. */
-  onTrueScale?: () => void;
   /** For grading: the measurements, and the pattern's pieces drafted to any set of them. */
   values?: MeasurementValues;
   draftAt?: (m: MeasurementValues) => Piece[];
   /** A pattern read from another program's file: no style, fabric check or toile of its own. */
   imported?: { source?: string; fileName: string };
-  /** The signature label: whose name it carries and the saved pattern's code. */
-  label?: { name: string; code?: string };
   /** Simple or all tools; all when not given. */
   mode?: Mode;
   onMode?: (m: Mode) => void;
@@ -153,8 +127,7 @@ const PAPERS: { id: Paper | 'projector'; label: string }[] = [
 
 const isProjector = (o: Output): o is 'projector' | 'projectorDark' => o === 'projector' || o === 'projectorDark';
 
-// Projector mode and Sewing mode load only when they are opened.
-const SewingMode = lazy(() => import('../ui/SewingMode').then((m) => ({ default: m.SewingMode })));
+// Projector mode loads only when it is opened.
 const ProjectorMode = lazy(() => import('../ui/ProjectorMode').then((m) => ({ default: m.ProjectorMode })));
 
 /** The date as printed on the pattern, such as 14 Oct 2026. */
@@ -168,27 +141,17 @@ const againIn = (pc: Piece) => {
   return from.includes('self') && also.length ? `, and again in ${also.join(' and ')}` : '';
 };
 
+/** A piece with how many to cut, as "Skirt front: cut 1 on fold, and again in lining". */
+const pieceCut = (pc: Piece) => `${pc.name}: ${pc.cut.replace(' (1 pair)', '').toLowerCase()}${againIn(pc)}`;
+
 const printedDate = () => new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
 
 
 const FRACTION_WORDS: Record<string, string> = { '⅛': '1-8', '¼': '1-4', '⅜': '3-8', '½': '1-2', '⅝': '5-8', '¾': '3-4', '⅞': '7-8' };
 
-export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, unit = 'cm', paper: savedPaper, onPaper, sendLink, profile, title, lookName, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, onFitNotes, tester, emailTo, fitNote, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label, full }: Props) {
+export function ExportScreen({ example, onNextSew, onMeasureMe, onEditMeasurements, unit = 'cm', paper: savedPaper, onPaper, sendLink, profile, title, lookName, fit, garment, finish, onFinish, made, error, onKeep, onFitNotes, tester, emailTo, fitNote, alterations = NONE, values, draftAt, imported, mode = 'all', onMode, edition, credit, full }: Props) {
   const can = (t: ProTool) => shows(mode, t);
-  // Back from choosing the fabric in Style: open on the fabric, where they left Print (Cat, Nov 21).
-  useEffect(() => {
-    if (!takeFabricReturn()) return;
-    requestAnimationFrame(() => {
-      const fabric = document.querySelector('.yourfabric');
-      if (!fabric) return;
-      // Clear of the top bar, which stays at the top as the page scrolls, with a little room above the heading.
-      const bar = document.querySelector('.topbar')?.getBoundingClientRect().bottom ?? 0;
-      window.scrollTo(0, fabric.getBoundingClientRect().top + window.scrollY - bar - 16);
-    });
-  }, []);
-  /** Knits fit by their stretch: tested in a spare knit, not a calico toile. */
-  const knit = isKnit(garment);
   // The paper starts on what was picked before, else on US Letter for a sewist measuring in inches or on a
   // North American browser (the tester walk, 2026-10-27: an inch tester printed A4 tiles on Letter paper). The pick
   // is kept with the saved work, so it holds across visits and garments.
@@ -212,10 +175,6 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
   const napFixed = needsNap(special) || printNap(print);
   const nap = finish.nap || napFixed;
   const guide = made?.guide;
-  const [sewing, setSewing] = useState(false);
-  // Print's own picture for Sewing mode.
-  // The first real sewing step, not the cutting layout again (clarity review A8, Nov 22: it repeated Cut it above).
-  const startPicture = useMemo(() => (made ? made.guide.steps.map((st) => stepPicture(st, made.pieces)).find((pic) => pic.kind === 'sew') : undefined), [made]);
   const date = useMemo(printedDate, []);
   // Pieces left out of the print, by their place in the list, so one lost sleeve reprints on a page or two
   // instead of the whole pattern (the PDF-printing pain in the Reddit research, 2026-10-28). A new draft starts whole.
@@ -362,6 +321,11 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
     }
   };
 
+  // Email me the files is for the signed in and fit testers, on their own patterns.
+  const emailable = !imported && !!(emailTo?.signedIn || emailTo?.testerCode);
+  // Whether this is a phone (a touch screen) decides which of the Other ways it gets.
+  const phone = onPhone();
+
   const openToPrint = () => {
     if (!ready) return;
     left();
@@ -387,14 +351,14 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
       <div className="split">
         <section className="card grow print-top" aria-labelledby="ptitle">
           <div className="print-head">
-            {/* Where you've landed, said calmly (Cat, Nov 3). Part 1 of three since the declutter (Cat's E, Nov 21), with no
-                line under it: the card and the buttons say what the page is for. The garment's name and who it's for
-                are on the card below (Cat, Nov 7). An imported pattern still says which file it came from. */}
-            <p className="eyebrow print-part-no">Part 1</p>
+            {/* Where you've landed, said calmly (Cat, Nov 3), first of the three parts since the declutter (Cat's E,
+                Nov 21), with no "Part 1" over it (Cat, Nov 28) and no line under it: the card and the buttons say what
+                the page is for. The garment's name and who it's for are on the card below (Cat, Nov 7). An imported
+                pattern still says which file it came from. */}
             <h1 id="ptitle">Print it</h1>
             {imported && (
               <p className="muted">
-                {`${imported.fileName} · ${made.pieces.length} ${made.pieces.length === 1 ? 'piece' : 'pieces'}${imported.source ? ` from ${imported.source}` : ''}`}
+                {`${imported.fileName}, ${made.pieces.length} ${made.pieces.length === 1 ? 'piece' : 'pieces'}${imported.source ? ` from ${imported.source}` : ''}`}
               </p>
             )}
           </div>
@@ -403,15 +367,16 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
           <GarmentFabric fabric={finish.fabric}>
           <div className="print-cover">
             <Envelope house={false} name={lookName ?? title[0].toUpperCase() + title.slice(1)} flat={made.flat} mark={edition} foot={imported || example ? undefined : `Drafted to ${profile === 'Me' ? 'you' : profile}`} />
-            <p className="eyebrow">Pieces</p>
-            <ul className="pieces">
-              {made.pieces.map((pc, i) => (
-                <li key={i}>
-                  {pc.name}: {pc.cut.replace(' (1 pair)', '').toLowerCase()}
-                  {againIn(pc)}
-                </li>
-              ))}
-            </ul>
+            {/* Each piece's cut count sits on its row in Print only some pieces, so one list says it all (Cat, Nov 28:
+                "We don't need the second pieces list"). A one-piece pattern has no such list, so it keeps this line. */}
+            {made.pieces.length === 1 && (
+              <>
+                <p className="eyebrow">Pieces</p>
+                <ul className="pieces">
+                  <li>{pieceCut(made.pieces[0])}</li>
+                </ul>
+              </>
+            )}
           </div>
           </GarmentFabric>
           <div className="print-controls">
@@ -441,7 +406,7 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
                         disabled={!leftOut.includes(i) && leftOut.length === made.pieces.length - 1}
                         onChange={(e) => setLeftOut(e.target.checked ? leftOut.filter((j) => j !== i) : [...leftOut, i])}
                       />
-                      <span>{pc.name}</span>
+                      <span>{pieceCut(pc)}</span>
                     </label>
                   ))}
                 </details>
@@ -482,20 +447,24 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
               <p className="eyebrow other-ways-label" id="other-ways">
                 Other ways
               </p>
+              {/* One row for each different job (Cat, Nov 28: "some seem to overlap"; she picked Trim as proposed). On a
+                  phone that can share, the share menu prints too, so opening the PDF to print is for everything else;
+                  on a computer the share menu did what Email me does, so it's only offered where Email me isn't. */}
               <div className="other-ways" role="group" aria-labelledby="other-ways">
-                {canShareFiles && (
-                  <button type="button" className="way" onClick={checked(share)} disabled={!ready}>
-                    Send to email or a printer
+                {(!phone || !canShareFiles) && (
+                  <button type="button" className="way" onClick={checked(openToPrint)} disabled={!ready}>
+                    Print it now
                   </button>
                 )}
-                <button type="button" className="way" onClick={checked(openToPrint)} disabled={!ready}>
-                  Open pattern to print
-                </button>
-                {!imported && (emailTo?.signedIn || emailTo?.testerCode) && <EmailPdf who={emailTo} ready={ready} fileName={fileName} booklet={booklet?.bytes ?? null} bookletName={bookletName} title={title} onSent={left} checked={checked} />}
-                <CopyShopWay a0={paper === 'a0'} onA0={() => setPaper('a0')} unit={unit} />
-                {sendLink && onPhone() && (
-                  <SendToDevice link={sendLink} className="way" />
+                {emailable && emailTo && <EmailPdf who={emailTo} ready={ready} fileName={fileName} booklet={booklet?.bytes ?? null} bookletName={bookletName} title={title} onSent={left} checked={checked} />}
+                {canShareFiles && (phone || !emailable) && (
+                  <button type="button" className="way" onClick={checked(share)} disabled={!ready}>
+                    Share the files
+                  </button>
                 )}
+                <CopyShopWay a0={paper === 'a0'} onA0={() => setPaper('a0')} unit={unit} />
+                {/* It moves the measurements and styling, not the files, so it's named for why you'd use it. */}
+                {sendLink && phone && <SendToDevice link={sendLink} className="way" />}
               </div>
               {asking && (
                 <div className="example-ask" role="alertdialog" aria-labelledby="example-ask-title">
@@ -557,6 +526,9 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
             ) : (
               // Each step opens in bold, like How styling works (copy review, Nov 14), so the one that matters is found at a glance.
               <div className="stack print-steps">
+                {/* Named like Other ways and Pieces (Cat, Nov 28: they needed a title). "How to print", not "Print
+                    instructions", which would read as printing the instructions booklet just above. */}
+                <p className="eyebrow">How to print</p>
                 <p>
                   <b>Print at 100%</b> (actual size), never “fit to page”.
                 </p>
@@ -592,7 +564,7 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
                         <span>
                           <span>
                             <strong>{item.name}</strong>
-                            {item.optional && <span className="muted"> · optional</span>}
+                            {item.optional && <span className="muted"> (optional)</span>}
                           </span>
                           <span className="muted small">{item.why}</span>
                         </span>
@@ -656,7 +628,7 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
                 </span>
               </label>
             )}
-            <ModeLink quiet mode={mode} onMode={onMode} what="a test fitting, a dressmaker's pack and more" />
+            <ModeLink quiet mode={mode} onMode={onMode} what="drafting by hand, a dressmaker's pack and more" />
           </div>
         </section>
       </div>
@@ -670,121 +642,6 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
             Drawn to scale from your pattern{garment === 'tee' ? '' : ', with the darts sewn'}. It goes on the cover of the instructions, for a dressmaker or anyone
             checking the design.
           </p>
-        </section>
-      )}
-
-      <PartHead n={2} title="Cut it" />
-
-      {!imported && (
-        <YourFabric
-          fabric={finish.fabric ?? {}}
-          style={style}
-          metres={lays.find((l) => l.fabric !== 'lining' && l.fabric !== 'interlining' && !l.hide)?.metres}
-          onChange={onEditFabric}
-          calico={tester ? guide.fabric?.find((l) => l.startsWith('Sewing in muslin')) : undefined}
-        />
-      )}
-
-      <section className="card" aria-labelledby="laytitle">
-        <div className="row between wrap">
-          <div>
-            <p className="eyebrow">Cutting layout</p>
-            <h2 id="laytitle">
-              {lays
-                .map((l, i) => {
-                  const amount = `${layAmount(l)}${l.fabric === 'lining' ? ' of lining' : l.fabric === 'interlining' ? ' of coutil' : ''}`;
-                  return i === 0 ? amount[0].toUpperCase() + amount.slice(1) : amount;
-                })
-                .join(' + ') || 'Too wide to lay out'}
-            </h2>
-            {lays.some((l) => l.hide) && <p className="muted small">Leather is sold by the hide, in square feet. This includes a third extra for the hide's shape and flaws.</p>}
-          </div>
-          <div className="row wrap">
-            <DropMenu
-              name="Fabric width"
-              label="Fabric"
-              value={`${finish.fabricWidth} cm wide`}
-              items={FABRIC_WIDTHS.map((w) => ({ id: String(w), text: `${w} cm wide`, on: finish.fabricWidth === w }))}
-              onPick={(id) => onFinish({ ...finish, fabricWidth: Number(id) as FabricWidth })}
-            />
-            <label className="check">
-              <input type="checkbox" checked={nap} disabled={napFixed} onChange={(e) => onFinish({ ...finish, nap: e.target.checked })} />
-              <span>
-                {/* Its purpose in plain words: "nap" alone meant nothing to Cat (Nov 21). */}
-                Pile or one-way print{' '}
-                <span className="muted small">
-                  {napFixed
-                    ? `Always on for ${needsNap(special) ? SPECIALS[special!].label.toLowerCase() : print === 'motif' ? 'placed motifs' : 'a one-way print'}: every piece is laid the same way up.`
-                    : 'Tick it if your fabric has a pile, like velvet or corduroy, or a print that points one way. Every piece is then laid the same way up, so it takes a little more fabric.'}
-                </span>
-              </span>
-            </label>
-          </div>
-        </div>
-        {lays.length ? (
-          lays.map((lay) => (
-            <div key={lay.fabric} className="lay">
-              {lays.length > 1 && <p className="eyebrow">{lay.fabric === 'lining' ? 'Lining' : lay.fabric === 'interlining' ? 'Coutil' : 'Fabric'}</p>}
-              <div className="lay-box">
-                <LayPlanView
-                  lay={lay}
-                  size={lays.length > 1}
-                  cloth={lay.fabric === 'self' ? (flatId(finish.fabric) ?? 'default') : lay.fabric === 'lining' ? 'silk' : 'cotton'}
-                  tint={lay.fabric === 'self' ? clothTint(finish.fabric, 'tile') : undefined}
-                  print={lay.fabric === 'self' && print ? { kind: print, repeat: printRepeat(finish.fabric), stripes: finish.fabric?.checks?.stripes, gingham: finish.fabric?.checks?.gingham } : undefined}
-                />
-                {lay.fabric === 'self' && <DemoButton demo="fabric" />}
-              </div>
-              {lay.fabric === 'self' && print === 'motif' && <p className="muted small">The front is centred on a motif. Move the pattern so no motif sits on the bust points or the seat.</p>}
-              <p className="muted small">{layWords(lay)}</p>
-            </div>
-          ))
-        ) : (
-          <p className="muted">These pieces are wider than {finish.fabricWidth} cm fabric. Try a wider fabric.</p>
-        )}
-      </section>
-
-      <PartHead n={3} title="Sew it" />
-
-      {/* The toile shows in the simple view too (measuring accuracy, 2026-10-21): a calico try-on fixes what a tape at
-          home can't, so a first-time sewist is offered it before cutting good fabric. */}
-      {/* Not for a fit tester, who sews the pattern as drafted and reports on the tester form: redrawn first, the pattern
-          and its code no longer match what was tested (pretend tester DV walk, Nov 21; Cat: hide it for testers). */}
-      {!imported && !tester && (
-        <section className="card" aria-labelledby="toiletitle">
-          {/* Under Sew it, "Before you cut your fabric" went (declutter, Nov 21); a corrected version still says which. */}
-          {fittingNotes.length > 0 && fitting && <p className="eyebrow">Version {fitting.round + 1}</p>}
-          <h2 id="toiletitle">{knit ? 'Try it in a spare knit first' : fittingNotes.length ? 'Corrected after your toile' : 'Sew a toile first'}</h2>
-          {knit ? (
-            <p className="muted">
-              {garment === 'lingerie'
-                ? 'A knit fits by its stretch, so make one first in a cheap knit with the same stretch as yours. Then tell us how it fitted under “How did it fit?” on the style screen, and the pattern is redrawn.'
-                : 'A knit fits by its stretch, so test it in a cheap knit with the same stretch as yours, not calico. If it is too snug or too loose, change the stretch or the fit on the style screen.'}
-            </p>
-          ) : fittingNotes.length ? (
-            <ul className="fitlist">
-              {fittingNotes.map((n) => (
-                <li key={n}>{n[0].toUpperCase() + n.slice(1)}</li>
-              ))}
-            </ul>
-          ) : (
-            <p className="muted">
-              Sew it in cheap fabric first (a toile, or muslin) and try it on. Tick what you see, such as {isLowerBody(garment) ? 'pulling across the hips or folds below the back waist' : 'pulling at the bust or a gaping neckline'}, and your
-              pattern is redrawn to fix it.
-            </p>
-          )}
-          <div className="row wrap">
-            {!knit && (
-              <button type="button" className="secondary" onClick={onFitting}>
-                {fittingNotes.length ? 'Fit another toile' : 'I’ve tried on my toile'}
-              </button>
-            )}
-            {onTrueScale && made && can('toile') && (
-              <button type="button" className="secondary" onClick={onTrueScale}>
-                See a piece at true size
-              </button>
-            )}
-          </div>
         </section>
       )}
 
@@ -812,152 +669,12 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
       )}
       {values && draftAt && can('sizeRun') && <InterestCard offer="sizerun" pattern={title} />}
 
-      {/* Sewing mode first (Cat's C, Nov 21): the steps one at a time, each drawn from this pattern's own pieces. The
-          list stays, folded under it, for anyone who'd rather read it all (Cat applied P1, 2026-10-24: a fold). */}
-      <section className="card sew-card" aria-labelledby="sewtitle">
-        <h2 id="sewtitle">How to sew it</h2>
-        {guide && made && (
-          <div className="sew-start">
-            <div className="sewmode-pic">
-              <SewPicture picture={startPicture ?? { kind: 'prep' }} pieces={made.pieces} lays={lays} flat={null} />
-            </div>
-            <p className="small">
-              {guide.steps.length} steps, one at a time, each drawn from your own pieces. Keep it open by your machine.
-            </p>
-            {/* An outline button: Download pattern is this screen's one fill (clarity review B1, Nov 22). */}
-            <button type="button" className="secondary" onClick={() => (onSew ? onSew() : setSewing(true))}>
-              Start sewing <span aria-hidden="true">›</span>
-            </button>
-          </div>
-        )}
-      </section>
-      {sewing && guide && made && (
-        <Suspense fallback={null}>
-          <SewingMode
-            steps={guide.steps}
-            pieces={made.pieces}
-            lays={lays}
-            flat={made.flat ? <TechFlatView flat={made.flat} title={title} /> : null}
-            title={title}
-            keep={code ?? title}
-            inCm={inCm}
-            muslin={tester ? guide.fabric?.find((l) => l.startsWith('Sewing in muslin')) : undefined}
-            onClose={() => setSewing(false)}
-          />
-        </Suspense>
-      )}
-      <details className="card sew">
-        <summary className="sew-summary">
-          <h3 className="sew-list-head">Every step as a list</h3>
-        </summary>
-        <div className="row between wrap">
-          {garment !== 'trousers' && !knit && can('couture') && !imported && (
-          <div className="seg" role="group" aria-label="How to sew it">
-            {(['quick', 'couture'] as const).map((r) => (
-              <button key={r} type="button" className={finish.route === r ? 'on' : ''} aria-pressed={finish.route === r} onClick={() => onFinish({ ...finish, route: r })}>
-                {r === 'quick' ? 'Quick' : 'Couture'}
-              </button>
-            ))}
-          </div>
-          )}
-        </div>
-        {finish.route === 'couture' && garment !== 'trousers' && !knit && !imported && (
-          <div className="cloth">
-            <p className="muted small">
-              Thread-traced lines, basting and a fitting before machining, a hand-picked zip and hand-finished edges. The seam finish and
-              pressing follow your cloth.
-            </p>
-            {finish.fabric?.fibre ? null : (
-              <div className="seg" role="group" aria-label="Your cloth">
-                {CLOTHS.map((c) => (
-                  <button key={c.id} type="button" className={finish.cloth === c.id ? 'on' : ''} aria-pressed={finish.cloth === c.id} onClick={() => onFinish({ ...finish, cloth: c.id })} title={c.detail}>
-                    {c.label}
-                  </button>
-                ))}
-              </div>
-            )}
-            <p className="muted small">
-              Seams: {{ french: 'French seams', hongkong: 'Hong Kong bound', pinked: 'pinked', overcast: 'overcast by hand' }[seamFinish(clothFor(finish.fabric, finish.cloth), garment === 'skirt' ? finish.skirtLined : finish.bodiceEdges === 'lined')]}
-              {finish.fabric?.fibre ? `, chosen for your ${FIBRES[finish.fabric.fibre].label.toLowerCase()}` : ''}.
-            </p>
-          </div>
-        )}
-        <div className="sewgrid">
-          <div className="notions">
-            {guide.fabric?.length ? (
-              <>
-                <p className="eyebrow">Your fabric</p>
-                <ul>
-                  {guide.fabric.map((n) => (
-                    <li key={n}>{n}</li>
-                  ))}
-                </ul>
-              </>
-            ) : null}
-            <p className="eyebrow">You'll need</p>
-            <ul>
-              {guide.notions.map((n) => (
-                <li key={n}>{n}</li>
-              ))}
-            </ul>
-            <p className="muted small">These steps are also in the instructions booklet.</p>
-          </div>
-          <ol className="sewsteps">
-            {guide.steps.map((st) => {
-              // The trickier steps' close-ups, in the order the step's sentences come (Nov 27), in place of
-              // the step's one small drawing.
-              const frames = stepFrames(st.title, stepLines(st.text));
-              return (
-                <li key={st.title}>
-                  <strong>{st.title}</strong>
-                  <p>{inCm(st.text)}</p>
-                  {frames.length > 0 ? (
-                    <>
-                      <ol className="sewframes-row" aria-label={`Drawings for ${st.title}`}>
-                        {frames.map((d, k) => (
-                          <li key={k}>
-                            <StepDiagram dg={d} />
-                          </li>
-                        ))}
-                      </ol>
-                      <DiagramKey dgs={frames} />
-                    </>
-                  ) : (
-                    st.diagram && (
-                      <>
-                        <StepDiagram id={st.diagram} />
-                        <DiagramKey dgs={[DIAGRAMS[st.diagram]]} />
-                      </>
-                    )
-                  )}
-                </li>
-              );
-            })}
-          </ol>
-          {/* No "Links to buy what you'll need" until there are links (clarity review A8, Nov 22: it promised links, then said
-              there were none). The offer stays in offers.ts for when the shops are chosen. */}
-        </div>
-      </details>
-
-      {/* Everything to buy or sign up for, folded at the very end so nothing comes between printing and sewing. */}
-      {!imported && (
-        <details className="card extras">
-          <summary>
-            <span className="extras-title">Extras for this pattern</span>
-            <span className="muted small">Printed and posted roll · fabric and notions kit · {label ? 'your label and woven labels' : 'woven labels'}{hasFabric(finish.fabric) ? '' : ' · deadstock cloth'}</span>
-          </summary>
-          <ExtrasSignup offers={['printed', 'kit', ...(label ? (['labels'] as const) : []), ...(hasFabric(finish.fabric) ? [] : (['deadstock'] as const))]} pattern={title}>
-            {/* One holder, so on a computer the extras sit side by side as cards (clarity review C5, Nov 22). */}
-            <div className="extras-cards">
-              <div className="split">
-                <InterestCard offer="printed" pattern={title} />
-                <InterestCard offer="kit" pattern={title} />
-              </div>
-              {label && <LabelCard name={label.name} code={label.code} pattern={title} onKeep={onKeep} />}
-              {!hasFabric(finish.fabric) && <Deadstock style={style} lays={lays} title={title} />}
-            </div>
-          </ExtrasSignup>
-        </details>
+      {/* On to the Sew chapter, which opens on cutting (Cat, Nov 28). An outline, since Download pattern is this page's
+          one fill (clarity review B1, Nov 22). */}
+      {onNextSew && (
+        <button type="button" className="secondary chapter-next" onClick={onNextSew}>
+          Next: Cut and sew <span aria-hidden="true">›</span>
+        </button>
       )}
     </>
   );
@@ -976,165 +693,6 @@ export function makerNote(title: string, profile: string, imported = false): str
   ].join('\n\n');
 }
 
-
-const fabricPhoto = (id?: Fibre | Special) => `${import.meta.env.BASE_URL}fabrics/${id ?? 'default'}.jpg`;
-
-/** A close-up of the chosen cloth, with its name and how it handles. */
-function FabricStage({ fabric }: { fabric: MyFabric }) {
-  const id = fabric.special ?? fabric.fibre;
-  const label = fabric.special ? SPECIALS[fabric.special].label : fabric.fibre ? FIBRES[fabric.fibre].label : undefined;
-  const handle = [fabric.weight && `${fabric.weight} weight`, fabric.drape && `${fabric.drape} drape`].filter(Boolean).join(', ');
-  // In the colour picked, so the close-up is the cloth named over it.
-  const tint = clothTint(fabric, 'close-up');
-  const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
-  return (
-    <figure className="fabstage">
-      {tint && (
-        <svg className="fabric-defs" aria-hidden="true" focusable="false">
-          <defs>
-            <TintFilter id={`stage${uid}`} table={tint} />
-          </defs>
-        </svg>
-      )}
-      <img src={fabricPhoto(id)} alt={label ? `${label} close up` : ''} style={tint ? { filter: `url(#stage${uid})` } : undefined} />
-      <figcaption>
-        <span className="fabname">{label ?? 'No fabric chosen'}</span>
-        <span className="muted small">{label ? (handle ? handle[0].toUpperCase() + handle.slice(1) : 'Set the weight and drape under Fabric in Style.') : 'Choose one under Fabric in Style.'}</span>
-      </figcaption>
-    </figure>
-  );
-}
-
-/** Buy the shop fabric: opens the shop's own site with the amount from the cutting layout. */
-function BuyShopFabric({ shop, colour, metres }: { shop: ShopFabric; colour?: string; metres: number }) {
-  const { qty, unit } = buyAmount(shop, metres);
-  const link = buyLink(shop, colour, metres);
-  const words = unit === 'yd' ? (qty === 1 ? 'yard' : 'yards') : 'm';
-  const amount = unit === 'yd' ? `${qty} ${words}` : `${qty} m`;
-  // A shop whose listed price isn't a yard's (shopCatalogue.ts) has no cost here: its page shows it.
-  const cost = shopPrice(shop, colour) ? `about $${Math.ceil(qty * shopPrice(shop, colour))} ${shop.currency}` : 'price on its page';
-  if (!link) return <p className="muted small">You need {amount}, {cost}.</p>;
-  return (
-    <>
-      <a className="buylink" href={link.href} target="_blank" rel="noopener noreferrer">
-        Buy {unit === 'yd' ? `${qty} yd` : `${qty} m`} at {shop.shop}
-      </a>
-      <p className="muted small">
-        {link.inCart ? `${amount} goes straight into the cart` : `Add ${amount} on ${shop.shop}'s page`}, {cost}. We may earn a commission when you buy.
-      </p>
-    </>
-  );
-}
-
-/** The fabric, as chosen on the style screen's Fabric tab (one place to choose it, Cat 2026-10-18): what it
- * is, whether it suits the style, where to buy it, and the way back to change it. */
-function YourFabric({ fabric, style, metres, onChange, calico }: { fabric: MyFabric; style: Props['style']; metres?: number; onChange?: () => void; calico?: string }) {
-  // Testers sew in calico, and the screen headlined only the look's own cloth, with its care ("Do not wash it"): the
-  // calico advice was in the booklet alone (pretend tester DV walk, Nov 21; Cat: add it for testers).
-  const forTest = calico && (
-    <p className="small fabnote tester-calico">
-      <b>For your fit test </b>
-      {calico}
-    </p>
-  );
-  const shop = shopFabric(fabric.shop);
-  const notes = checkFabric(style, fabric);
-  const name = fabricName(fabric);
-  // No fabric yet: one line and the way to choose it, not a photo of folded cloth (Cat applied P2, 2026-10-24).
-  if (!name)
-    return (
-      <section className="card yourfabric none" aria-labelledby="fabtitle">
-        <p className="eyebrow" id="fabtitle">
-          Your fabric
-        </p>
-        {forTest}
-        <div className="fabline">
-          <p className="muted small">Not chosen yet. It sets the cutting layout and goes on the PDF.</p>
-          {onChange && (
-            <button type="button" className="later go" onClick={onChange}>
-              Choose fabric <span aria-hidden="true">›</span>
-            </button>
-          )}
-        </div>
-      </section>
-    );
-  return (
-    <section className="card yourfabric" aria-labelledby="fabtitle">
-      <p className="eyebrow">Your fabric</p>
-      <h2 id="fabtitle" className="fabhead">
-        {name ? `${name}${metres !== undefined ? ` · ${metres} m` : ''}` : 'Not chosen yet'}
-      </h2>
-      {forTest}
-      <FabricStage fabric={fabric} />
-      {shop && (
-        <div className="shopbuy">
-          <p className="small">
-            <b>{shop.name}</b>
-            {fabric.colour ? `, ${colourWords(fabric.colour) ?? fabric.colour}` : ''}{' '}
-            <span className="muted">
-              from {shop.shop}
-              {shopPrice(shop, fabric.colour) ? `, $${shopPrice(shop, fabric.colour)}/${shop.yards ? 'yd' : 'm'}` : ''}
-            </span>
-          </p>
-          {metres !== undefined && <BuyShopFabric shop={shop} colour={fabric.colour} metres={metres} />}
-        </div>
-      )}
-      {notes.map((n) => (
-        <p key={n.text} className={`small fabnote ${n.level}`}>
-          {n.level === 'ok' ? <b>Good match </b> : n.level === 'warn' ? <b>Heads up </b> : null}
-          {n.level === 'ok' ? n.text.replace(/^Good match /, '') : n.text}
-        </p>
-      ))}
-      <p className="muted small">
-        {name ? 'Chosen under Fabric in Style. It sets the cutting layout below and goes on the PDF.' : 'Choose it under Fabric in Style to see the style in it. It goes on the PDF.'}
-      </p>
-      {onChange && (
-        <button type="button" className="later go" onClick={onChange}>
-          {name ? 'Change fabric' : 'Choose fabric'} <span aria-hidden="true">›</span>
-        </button>
-      )}
-    </section>
-  );
-}
-
-/** The fabric's name in a few words: its own name, else the cloth, with the colour in words. A house colour is stored
- *  as its swatch's code, and "Sheer, #9CC3E6" showed on the Print screen (pretend tester DM walk, Nov 19). */
-function fabricName(f: MyFabric): string | undefined {
-  const cloth = f.name || (f.special ? SPECIALS[f.special].label : f.fibre ? FIBRES[f.fibre].label : undefined);
-  const colour = colourWords(f.colour) ?? f.colour;
-  return cloth && (colour && !f.name ? `${cloth}, ${colour}` : cloth);
-}
-
-const hasFabric = (f: MyFabric | undefined) => !!(f && (f.name || f.fibre || f.special));
-
-/** Deadstock matched to the style, measured to the cutting layout: a sign-up until the first drop opens. */
-function Deadstock({ style, lays, title }: { style: FabricStyle; lays: Lay[]; title: string }) {
-  const cloth = adviceFor(style).picks[0];
-  const lay = lays.find((l) => l.fabric === 'self');
-  return (
-    <InterestCard offer="deadstock" pattern={title} choice={{ label: 'Cut it for me too', hint: 'it arrives as your pattern pieces, ready to sew' }}>
-      <dl className="offerprices deadstock small">
-        {cloth && (
-          <div>
-            <dt>Suits this style</dt>
-            <dd>
-              {cloth.name} <span className="muted">· {pickTag(cloth).toLowerCase()}</span>
-            </dd>
-          </div>
-        )}
-        {lay && (
-          <div>
-            <dt>Your cutting layout</dt>
-            <dd>
-              {layAmount(lay)}
-              {lay.hide ? '' : <span className="muted"> at {lay.width} cm wide</span>}
-            </dd>
-          </div>
-        )}
-      </dl>
-    </InterestCard>
-  );
-}
 
 async function saveMeasurements(values: MeasurementValues, profile: string, fileBase: string, kind: 'vit' | 'csv') {
   const { toVit, toMeasurementsCsv } = await import('../measureExport');
@@ -1426,8 +984,8 @@ function toBase64(bytes: Uint8Array) {
 }
 
 /**
- * "Email me the files" (journey review, Nov 10; was "Email me the PDF" until the instructions became their own file, Nov 15): on every phone, tablet and computer, where "Send to email or a printer"
- * needs a share menu that some computer browsers don't have. The address is used only to send this email.
+ * "Email me the files" (journey review, Nov 10; was "Email me the PDF" until the instructions became their own file, Nov 15): on every phone, tablet and computer. On a
+ * computer it stands in for the share menu, which some computer browsers don't have. The address is used only to send this email.
  */
 function EmailPdf({ who, ready, fileName, booklet, bookletName, title, onSent, checked }: { who: { signedIn?: string; testerCode?: string }; ready: Uint8Array | null; fileName: string; booklet: Uint8Array | null; bookletName: string; title: string; onSent: () => void; checked: (go: () => void) => () => void }) {
   const [open, setOpen] = useState(false);

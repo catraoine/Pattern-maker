@@ -42,7 +42,7 @@ test('returning visitor: a reload keeps the measurements and the saved pattern',
   // The style chosen is still there.
   await page.getByRole('navigation', { name: 'Steps' }).getByRole('button', { name: 'Style' }).click();
   await expectStyle(page, 'Skirt');
-  await expect(lengthDot(page)).toHaveAttribute('aria-valuetext', /^Midi · [\d.]+ cm$/);
+  await expect(lengthDot(page)).toHaveAttribute('aria-valuetext', /^Midi, [\d.]+ cm$/);
   await openReview(page);
   await expect(main.getByRole('status').filter({ hasText: 'Saved in' })).toBeVisible();
 

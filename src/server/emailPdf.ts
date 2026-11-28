@@ -1,5 +1,5 @@
 // Server side only: "Email me the PDF" on the Print screen (journey review, Nov 10: a tester on a computer couldn't
-// get her pattern into her email, because "Send to email or a printer" shows only where the browser has a share
+// get her pattern into her email, because the share menu (now "Share the files") shows only where the browser has a share
 // menu). The app sends the PDF it made; the function checks it and hands it to the email service (Resend), from
 // hello@maisontrace.co. The address is used only to send this one email: it isn't stored or logged.
 import { z } from 'zod';

@@ -44,7 +44,7 @@ test('a tester changing her look\'s style is asked first, and can keep it', asyn
   await pick(page, /^Neckline\b/, /^V-neck/);
   await dialog(page).getByRole('button', { name: 'Change it anyway' }).click();
   await expect(main(page).getByRole('heading', { name: /Ice Peplum Top/ })).toHaveCount(0);
-  await expect(main(page).locator('.tester-look')).toContainText('Sewing the Ice Peplum Top for us?');
+  await expect(main(page).locator('.tester-look').getByRole('button')).toHaveAccessibleName('Your tester look, the Ice Peplum Top');
 });
 
 test('Edit measurements on a tester\'s look comes back to the look, not its questions', async ({ page }) => {

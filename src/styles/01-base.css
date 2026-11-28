@@ -747,3 +747,14 @@ button.link {
   font-size: 22px;
   cursor: default;
 }
+
+/* A phone zooms the whole page in when a box with text under 16px is tapped, and stays zoomed once you leave it: on an
+   iPhone, searching the lace to buy left the Style page wider than the screen, its right edge cut off (Cat, Nov 28).
+   So on a touch screen every box you type in is at least 16px. Pinch zoom itself stays on, for anyone who needs it. */
+@media (pointer: coarse) {
+  input:not([type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file']),
+  select,
+  textarea {
+    font-size: max(16px, 1em) !important;
+  }
+}

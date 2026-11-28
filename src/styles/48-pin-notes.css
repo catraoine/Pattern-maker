@@ -42,13 +42,16 @@
     --pin-fill: 1turn;
   }
 }
+/* A ring, open in the middle, so the word under the pin still reads ("FI●ED", the Nov 27 cold read). */
 .pin-dot {
   z-index: 0;
-  width: 14px;
-  height: 14px;
-  margin: -7px 0 0 -7px;
-  background: var(--gild);
-  box-shadow: 0 0 0 4px var(--paper), 0 0 0 5px var(--gild);
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  box-sizing: border-box;
+  background: transparent;
+  border: 2px solid var(--gild);
+  box-shadow: 0 0 0 1px var(--paper), inset 0 0 0 1px var(--paper);
 }
 
 .pin-layer {
@@ -105,7 +108,8 @@
 
 .pin-box textarea {
   width: 100%;
-  min-height: 72px;
+  /* Four lines to write in (two felt cramped, the Nov 27 cold read). */
+  min-height: 104px;
   box-sizing: border-box;
   resize: vertical;
 }
@@ -116,12 +120,17 @@
     left: 0;
     right: 0;
     top: auto;
-    bottom: 0;
+    /* Above the keyboard when it's open (PinBox measures it). */
+    bottom: var(--pin-kb, 0px);
     width: auto;
-    max-height: var(--pin-room, 55vh);
+    max-height: max(180px, calc(var(--pin-room, 55vh) - var(--pin-kb, 0px)));
     padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
     border-width: var(--bw) 0 0;
     gap: 10px;
+  }
+  /* A drag corner is no use under a finger. */
+  .pin-box textarea {
+    resize: none;
   }
   .pin-layer .pin-box.card.pin-up {
     top: 0;

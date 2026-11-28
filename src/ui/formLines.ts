@@ -326,7 +326,7 @@ export function readSkirtHem(stroke: P[], waistY: number, draft: Pick<SkirtDraft
   const reach = Math.round((Math.min(half, Math.max(...pts.map((q) => Math.abs(q.x)))) / half) * (HEM_SAMPLES - 1));
   const offsets = drawn.map((v, k) => (k > reach ? drawn[reach] : v));
   // Front and back meet at the side seams, eased in so the hem curves into them.
-  const hem = matchSides({ front: skirt.hem?.front ?? new Array(HEM_SAMPLES).fill(0), back: skirt.hem?.back ?? new Array(HEM_SAMPLES).fill(0), [side]: offsets }, clamp);
+  const hem = matchSides({ front: skirt.hem?.front ?? new Array(HEM_SAMPLES).fill(0), back: skirt.hem?.back ?? new Array(HEM_SAMPLES).fill(0), [side]: offsets }, clamp, side);
   const flat = [...hem.front, ...hem.back].every((v) => Math.abs(v) < 0.5);
   const { hem: _h, ...plain } = rest;
   const backLonger = side === 'back' && median(hem.back) - median(hem.front) > 2;
