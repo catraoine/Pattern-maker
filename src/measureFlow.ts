@@ -47,7 +47,18 @@ export const rememberMeasuringFor = (garment: Garment) => {
     // Storage off (a private window): opening again starts from the garments, as before.
   }
 };
-/** That piece, while some of its own measurements are given and some are still to take. */
+/** Measuring for a piece is over or left behind (its Style, Print or Sew opened): it isn't carried on with again. */
+export const forgetMeasuringFor = () => {
+  try {
+    localStorage.removeItem(MEASURING_KEY);
+  } catch {
+    // Storage off: nothing was kept.
+  }
+};
+/** That piece, while some of its own measurements are still to take. Picked with none given yet counts too: a look
+ *  picked from the collection was forgotten when the page reloaded before its first measurement, and the landing page
+ *  offered only Begin (pretend tester EK walk, Nov 27). The piece is forgotten once its Style, Print or Sew opens, so
+ *  one picked and then left for another garment isn't offered again. */
 export const leftPartway = (v: MeasurementValues, form: FormKind | undefined, skip: (g: Garment) => readonly MeasurementId[]): Garment | undefined => {
   let garment: Garment | undefined;
   try {
@@ -57,7 +68,7 @@ export const leftPartway = (v: MeasurementValues, form: FormKind | undefined, sk
   }
   if (!garment || !GARMENT_NAME[garment]) return undefined;
   const own = extrasFor(garment, form, v).filter((f) => !skip(garment).includes(f.id));
-  return own.some((f) => has(v, f.id)) && own.some((f) => !has(v, f.id)) ? garment : undefined;
+  return own.some((f) => !has(v, f.id)) ? garment : undefined;
 };
 /** Whether anything has been measured yet: until then, measuring opens on the first-visit page. */
 export const begun = (v: MeasurementValues) => Object.keys(v).some((id) => has(v, id as MeasurementId));
