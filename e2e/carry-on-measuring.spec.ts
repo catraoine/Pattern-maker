@@ -20,26 +20,30 @@ test('opened again partway through a piece, measuring carries on with that piece
   await main.getByRole('button', { name: 'Next' }).click();
   await expect(main.getByRole('textbox')).toHaveCount(1);
 
-  // A new visit, as after closing the app.
+  const count = main.getByText(/^Trousers · \d+ of \d+$/);
+  const total = (await count.textContent())?.match(/· 2 of (\d+)$/)?.[1];
+  expect(total).toBeTruthy();
+
+  // A reload carries the count on, rather than starting it again at 1 (EJ walk, Nov 27).
+  await page.evaluate(() => location.reload());
+  await page.waitForLoadState('load');
+  await expect(main.getByText(`Trousers · 2 of ${total}`)).toBeVisible();
+
+  // A new visit, as after closing the app: the landing page carries on with the trousers, where it offered only Begin
+  // (EJ walk, Nov 27).
   await page.goto('/');
   await skipLoading(page);
-  const carry = main.getByRole('button', { name: /^(Carry on with your|Begin)/ });
-  if (await carry.isVisible().catch(() => false)) await carry.click();
-  await expect(h1('Do these look right?')).toBeVisible();
-  await expect(main.getByRole('button', { name: 'Choose what to make' })).toHaveCount(0);
+  await main.getByRole('button', { name: 'Carry on with your trousers' }).click();
+  await expect(main.getByText(`Trousers · 2 of ${total}`)).toBeVisible();
 
-  // Style opens the trousers' next page, not the garments.
+  await expect(main.getByRole('textbox')).toHaveCount(1);
+  if (first) await expect(main.getByRole('textbox')).not.toHaveAccessibleName(first);
+
+  // Style keeps to the trousers' pages, not the garments.
   await page.getByRole('navigation', { name: 'Steps' }).getByRole('button', { name: 'Style' }).click();
   await expect(main.getByRole('textbox')).toHaveCount(1);
   await expect(main).toContainText('Style and Print open once your measurements are in.');
   await expect(h1('What would you like to make?')).toHaveCount(0);
-
-  // And from the list, Continue measuring does the same: on to the trousers' pages, the one given kept.
-  await page.goBack();
-  await expect(h1('Do these look right?')).toBeVisible();
-  await main.getByRole('button', { name: 'Continue measuring' }).click();
-  await expect(main.getByRole('textbox')).toHaveCount(1);
-  if (first) await expect(main.getByRole('textbox')).not.toHaveAccessibleName(first);
   await fillStepPages(page);
   await expect(h1('Style your trousers')).toBeVisible();
 });

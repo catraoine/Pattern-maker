@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { FIELDS, checkMeasurements, type Check, type FormKind, type Garment, type MeasurementId, type MeasurementValues, type Unit } from '../measurements';
-import { BASE, baseDone, begun, fieldOf, fullSetMissing, GARMENT_NAME, GARMENTS, labelOf, leftPartway, mistakesOf, rememberMeasuringFor, neededFor, raisedFor, seatedOf, stepsOf, stringOf, tipOf, titleOf } from '../measureFlow';
+import { BASE, baseDone, begun, extrasFor, fieldOf, fullSetMissing, GARMENT_NAME, GARMENTS, labelOf, leftPartway, mistakesOf, rememberMeasuringFor, neededFor, raisedFor, seatedOf, stepsOf, stringOf, tipOf, titleOf } from '../measureFlow';
 import { WEIGHT_HARD, WeightEntry, fromKg, weightUnitOf } from '../ui/WeightEntry';
 import { HowClip } from '../ui/HowClip';
 import { FormPicture, HEAD_TOP, labelLevel, readCamera, TapeDemo } from '../ui/ContourForm';
@@ -139,7 +139,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   // A piece's own pages. What the numbers already typed ask for (a broad upper body's across back and armhole) comes
   // first, with its line saying why, as when it is asked straight after the high bust: met afresh, the two sat at the
   // list's end with no reason given (EI stills, Nov 26).
-  const piecePage = (g: Garment, own: MeasurementId[]): Page => {
+  const piecePage = (g: Garment, own: MeasurementId[]): Extract<Page, { kind: 'extra' }> => {
     const ids = [...own, ...asks(g)].filter((id, i, a) => a.indexOf(id) === i && !unused(g).includes(id));
     const added = raisedFor(g, values, form).filter((id) => ids.includes(id));
     return { kind: 'extra', garment: g, ids: [...added, ...ids.filter((id) => !added.includes(id))], at: 0, ...(added.length ? { added } : {}) };
@@ -157,7 +157,13 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
       // the Ice Peplum's armhole page opened the check instead, with no word of the top, EI stills, Nov 26).
       const partway = baseDone(values) ? leftPartway(values, form, unused) : undefined;
       const left = partway ? neededFor(partway, values, form).map((f) => f.id).filter((id) => !unused(partway).includes(id)) : [];
-      if (partway && left.length) return piecePage(partway, left);
+      // The ones already given count too, so the count carries on ("5 of 9") rather than starting again at "1 of 5",
+      // which made a tester wonder whether her first answers were kept (pretend tester EJ walk, Nov 27).
+      if (partway && left.length) {
+        const rest = piecePage(partway, left);
+        const given = extrasFor(partway, form, values).map((f) => f.id).filter((id) => values[id] !== undefined && !unused(partway).includes(id) && !rest.ids.includes(id));
+        return { ...rest, ids: [...given, ...rest.ids], at: given.length };
+      }
       if (baseDone(values)) return { kind: 'check' };
       return { kind: 'base', at: Math.max(0, BASE.findIndex((m) => toTake(values, m))) };
     }
