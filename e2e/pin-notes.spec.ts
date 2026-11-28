@@ -127,8 +127,10 @@ test('hold to leave a note: a choice says its own name once, and the box opens b
 
   // A line of the pieces list on Print: the box opens beside the list, not over it (1366, the Nov 27 cold read).
   await stepButton(page, 'Print').click();
-  const list = page.locator('ul.pieces');
-  await list.locator('li').first().click({ button: 'right' });
+  // The pieces are the rows of Print only some pieces since Nov 28 (one pieces list), so it is opened first.
+  await page.getByRole('main').getByText('Print only some pieces').click();
+  const list = page.locator('.print-some');
+  await list.locator('label').first().click({ button: 'right' });
   await expect(box).toBeVisible();
   const l = (await list.boundingBox())!;
   const c = (await box.boundingBox())!;
@@ -139,5 +141,6 @@ test('hold to leave a note: a choice says its own name once, and the box opens b
   await box.getByLabel(/What’s happening here/).fill('A piece is missing.');
   await box.getByRole('button', { name: 'Send' }).click();
   await expect(box).toContainText('Thank you');
-  expect((sent!.pin as Record<string, unknown>).section).toBe('Print it');
+  // Print's Part labels went on Nov 28, so the note names the fold it was left in.
+  expect((sent!.pin as Record<string, unknown>).section).toBe('Print only some pieces');
 });

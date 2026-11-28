@@ -132,11 +132,12 @@ interface Placed {
 }
 
 /** What the box should leave in sight: the control held (a chip, a button), or failing that the list the spot is in (the
- *  pieces on Print, where the box covered every line at 1366, the Nov 27 cold read). Only one the box fits beside counts;
+ *  pieces on Print, where the box covered every line at 1366, the Nov 27 cold read; since Nov 28 those are the rows of
+ *  Print only some pieces). Only one the box fits beside counts;
  *  a drawing or anything wide keeps just the pin itself clear. */
 function clearOf(el: Element) {
   const w = window.innerWidth;
-  for (const c of [el.closest(CONTROL), el.closest('ul, ol, dl, table')]) {
+  for (const c of [el.closest(CONTROL), el.closest('ul, ol, dl, table, .print-some')]) {
     const r = c?.getBoundingClientRect();
     if (r && r.width < w / 2 && (r.right + 16 + BOX_W <= w - 16 || r.left - 16 - BOX_W >= 16)) return { left: r.left, right: r.right };
   }
