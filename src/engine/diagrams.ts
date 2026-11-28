@@ -180,6 +180,8 @@ export const DIAGRAMS: Record<DiagramId, Diagram> = {
     h: H,
     caption: 'Overlocked or zigzagged: the edge wrapped in machine stitches so it cannot fray.',
     parts: [rect(2, 2, 30, 22), line('hand', ...range(2, 22, 0.8).map((y, i) => p(i % 2 ? 30 : 27.6, y)))],
+    // Named on the drawing: the key has no entry for it, and a zigzag drawn alone went unexplained (EL walk, Nov 27).
+    notes: [{ at: p(26.6, 12.6), text: 'ZIGZAG', end: true }],
   },
   understitch: {
     w: W,
