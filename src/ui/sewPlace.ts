@@ -48,15 +48,3 @@ export const saveTicks = (keep: string, ticks: Record<number, number[]>) => writ
 
 export const readDone = (keep: string) => !!read(keep).done;
 export const saveDone = (keep: string) => write(keep, { done: true });
-
-/** Print's Start sewing goes straight into Sewing mode on the Sew tab, not to a second Start sewing button (DZ
- *  pretend-tester walk, Nov 21). One-time, like Print's way back from Fabric. */
-let openNext = false;
-export const openSewingNext = () => {
-  openNext = true;
-};
-export const takeOpenSewing = () => {
-  const open = openNext;
-  openNext = false;
-  return open;
-};

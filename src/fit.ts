@@ -94,13 +94,13 @@ export const NOTES_MAX = 1000;
 
 export const emptyFit = (): FitFeedback => ({ verdict: 'good', areas: {}, notes: '', made: 'toile', at: new Date().toISOString() });
 
-/** One line for the saved pattern list, e.g. "Needs small changes · waist too tight, length too long". */
+/** One line for the saved pattern list, e.g. "Needs small changes (waist too tight, length too long)". */
 export function fitSummary(fit: FitFeedback, choices: PatternChoices): string {
   const verdict = VERDICTS.find(([v]) => v === fit.verdict)![1];
   const off = fitAreas(choices)
     .filter((a) => fit.areas[a.id] === -1 || fit.areas[a.id] === 1)
     .map((a) => `${a.label.toLowerCase()} ${a.words[fit.areas[a.id] === -1 ? 0 : 1].toLowerCase()}`);
-  return off.length ? `${verdict} · ${off.join(', ')}` : verdict;
+  return off.length ? `${verdict} (${off.join(', ')})` : verdict;
 }
 
 /** Drop areas the garment doesn't have and trim the notes, so only clean feedback is saved. */

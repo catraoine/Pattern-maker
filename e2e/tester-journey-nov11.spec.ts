@@ -111,6 +111,8 @@ test('the Black Vest is called a vest throughout and asks for no arm measurement
   await expect(m).not.toContainText(/jacket/i);
   await expect(m.getByRole('columnheader', { name: 'Vest' })).toBeVisible();
   await stepButton(page, 'Print').click();
+  // The pieces and their cut counts are the rows of Print only some pieces (Cat, Nov 28: one pieces list).
+  await m.getByText('Print only some pieces').click();
   await expect(m.getByText(/^Vest front: cut 2/)).toBeVisible({ timeout: 30_000 });
   await expect(m.getByRole('listitem').filter({ hasText: /^Jacket/ })).toHaveCount(0);
   // Without the arms, the vest's sleeves wait for them, with the reason, rather than drawing nothing (code review, Nov 15).

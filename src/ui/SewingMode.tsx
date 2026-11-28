@@ -166,7 +166,8 @@ export function SewingMode({ steps, pieces, lays, flat, title, keep, inCm, from,
           </ul>
           {at === 0 && muslin && <p className="sew-muslin">{inCm(muslin)}</p>}
           <div className="sewmode-go">
-            <button type="button" className="ghost" disabled={at === 0} onClick={() => go(at - 1)}>
+            {/* Never a dead button (Cat, Nov 28): on the first step, Back leaves Sewing mode for where it was opened. */}
+            <button type="button" className="ghost" onClick={() => (at === 0 ? onClose() : go(at - 1))}>
               <span aria-hidden="true">‹</span> Back
             </button>
             {last ? (

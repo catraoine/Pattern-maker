@@ -341,8 +341,9 @@ export async function showAllTools(page: Page) {
   const all = main(page).getByRole('button', { name: 'Show all tools' });
   const tabs = main(page).getByRole('tablist', { name: 'Style choices', includeHidden: true });
   if (!(await all.isVisible()) && (await tabs.count())) await (await stepTabs(page)).getByRole('tab').last().click();
-  // On a phone the link is on the Review page, after the last step (Cat, 2026-10-31).
-  if (!(await all.isVisible())) {
+  // On a phone the link is on the Review page, after the last step (Cat, 2026-10-31). Cut it has no Review page:
+  // the toile fitting there shows with either set of tools.
+  if (!(await all.isVisible()) && (await main(page).getByRole('button', { name: /^Review\b/ }).count())) {
     await seeChoices(page);
     await main(page).getByRole('button', { name: /^Review\b/ }).last().click();
   }
@@ -356,8 +357,11 @@ export async function drawTool(page: Page, name = 'Draw on your form') {
   return tool;
 }
 
-/** On the print screen, open "Extras for this pattern", where the offers and the label card are folded. */
+/** On Cut it, open "Extras for this pattern", where the offers and the label card are folded. From Print, it goes on to
+ *  Cut it first. */
 export async function openExtras(page: Page) {
+  const next = main(page).getByRole('button', { name: /^Next: Cut and sew/ });
+  if (await next.isVisible()) await next.click();
   const extras = main(page).locator('details.extras');
   if (!(await extras.evaluate((d) => (d as HTMLDetailsElement).open))) await extras.locator('summary').click();
   return extras;
@@ -397,12 +401,21 @@ async function openNumbers(page: Page) {
 
 /** From a style screen (or its Review page) to Print. */
 export async function goPrint(page: Page) {
-  // Style opened from Print's Choose fabric goes straight back to Print (Cat, Nov 21).
-  const back = main(page).getByRole('button', { name: /^Back to Print/ }).first();
-  if (await back.isVisible()) return back.click();
   const print = main(page).getByRole('button', { name: 'Print my pattern' });
   if (!(await print.isVisible())) await openReview(page);
   await print.click();
+}
+
+/** From a style screen to Cut it, the Sew tab's first page (Cat, Nov 28): Print, then Next: Cut and sew. Style opened
+ *  from Cut it's Choose fabric goes straight back there (Cat, Nov 21). */
+export async function goCut(page: Page) {
+  const back = main(page).getByRole('button', { name: /^Back to Sew/ }).first();
+  if (await back.isVisible()) await back.click();
+  else {
+    await goPrint(page);
+    await main(page).getByRole('button', { name: /^Next: Cut and sew/ }).click();
+  }
+  await expect(main(page).getByRole('heading', { level: 1, name: 'Cut it' })).toBeVisible();
 }
 
 /** Tap a style chip in a named group (Fit, Length, ...), and check it took. */
@@ -413,8 +426,8 @@ export const lengthDot = (page: Page) => main(page).getByRole('slider', { name: 
  *  they step between the named lengths; on the skirt they move the hem 2 cm at a time, catching on each named one. */
 export async function chooseLength(page: Page, name: string) {
   await stepDotTo(page, name);
-  // A named length on a dress, T-shirt or trousers says its length after it ("Mini · 52 cm").
-  await expect(lengthDot(page)).toHaveAttribute('aria-valuetext', new RegExp(`^${name}( · [\\d.,¼½¾⅛⅜⅝⅞ ]+ (cm|in))?$`));
+  // A named length on a dress, T-shirt or trousers says its length after it ("Mini, 52 cm").
+  await expect(lengthDot(page)).toHaveAttribute('aria-valuetext', new RegExp(`^${name}(, [\\d.,¼½¾⅛⅜⅝⅞ ]+ (cm|in))?$`));
 }
 
 /** Steps the hem dot up to its shortest, then down until it reads a name. */
@@ -422,7 +435,7 @@ async function stepDotTo(page: Page, name: string) {
   const dot = lengthDot(page);
   const raw = () => dot.getAttribute('aria-valuetext');
   // Its name alone: a named length says its length after it.
-  const read = async () => (await raw())?.split(' · ')[0] ?? null;
+  const read = async () => (await raw())?.split(', ')[0] ?? null;
   // One press; false once the dot has stopped moving (at the end of its run).
   const step = async (key: string) => {
     const before = await raw();
@@ -498,7 +511,7 @@ export async function startWithExample(page: Page) {
   await expectStyle(page, 'Skirt');
 }
 
-/** "How to sew it" on the print screen folds shut on a phone (the aesthetic review, 2026-10-21): open it to read the steps. */
+/** "Every step as a list", folded on Sew it (and under a pattern read from a file): open it to read the steps. */
 export async function openSew(page: Page) {
   const fold = main(page).locator('details.sew');
   await expect(fold).toBeVisible();

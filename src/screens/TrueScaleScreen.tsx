@@ -44,7 +44,7 @@ function CardCalibration({ start, onDone, onCancel }: { start?: number; onDone: 
   const nudge = (d: number) => setPx((v) => Math.min(800, Math.max(120, v + d)));
   return (
     <section className="card" aria-labelledby="caltitle">
-      <p className="eyebrow">True size · once for this screen</p>
+      <p className="eyebrow">True size, once for this screen</p>
       <h1 id="caltitle">Match a bank card</h1>
       <p className="muted">
         Hold any bank or loyalty card flat against the screen, over the shape below, and make the shape the same size as the card. Every
@@ -133,7 +133,7 @@ function PieceAtScale({ pieces, pxPerMm, onRecalibrate }: { pieces: Piece[]; pxP
 
   return (
     <section className="card truescale" aria-labelledby="tstitle">
-      <p className="eyebrow">True size · {pc.cut}</p>
+      <p className="eyebrow">True size, {pc.cut}</p>
       <h1 id="tstitle">{pc.name}</h1>
       <div className="seg wrap" role="group" aria-label="Piece">
         {pieces.map((p, i) => (

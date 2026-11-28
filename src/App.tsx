@@ -40,7 +40,6 @@ withPeople,
 } from './account';
 import { MENSWEAR_JACKET_CHOICES, MENSWEAR_TROUSERS_CHOICES, validDetails, PatternChoices, outerWord, unusedFor } from './garments';
 import type { Printable } from './screens/ExportScreen';
-import { openSewingNext } from './ui/sewPlace';
 import { describePattern } from './screens/describe';
 import { WelcomeScreen } from './screens/WelcomeScreen';
 import { CODE_MESSAGE, checkCode, hasAccess, rememberAccess, testerFromLink, withoutTester } from './access';
@@ -48,7 +47,7 @@ import { cleanCode } from './photo/limit';
 import { atNewScreen, keepOffline } from './swUpdate';
 import { preloadScreens, screen } from './screens/load';
 import { FABRIC, StartOver, openLookNext, openTabNext } from './ui/StyleLayout';
-import { leavePrintForFabric } from './ui/printReturn';
+import { fabricReturning, leavePrintForFabric, openCutNext } from './ui/printReturn';
 import { KeptCount } from './ui/SaveControl';
 import { GARMENT_NAME, baseDone, forgetMeasuringFor, leftPartway } from './measureFlow';
 import { namesToHide } from './help/pin';
@@ -108,6 +107,8 @@ const RangeStyleScreen = screen(() => import('./screens/RangeStyleScreen').then(
 const LingerieStyleScreen = screen(() => import('./screens/LingerieStyleScreen').then((m) => m.LingerieStyleScreen));
 const OuterStyleScreen = screen(() => import('./screens/OuterStyleScreen').then((m) => m.OuterStyleScreen));
 const SewScreen = screen(() => import('./screens/SewScreen').then((m) => m.SewScreen));
+const CutPart = screen(() => import('./screens/CutPart').then((m) => m.CutPart));
+const WrittenSteps = screen(() => import('./ui/WrittenSteps').then((m) => m.WrittenSteps));
 const AccountScreen = screen(() => import('./screens/AccountScreen').then((m) => m.AccountScreen));
 const PhotoScreen = screen(() => import('./screens/PhotoScreen').then((m) => m.PhotoScreen));
 const SignupScreen = screen(() => import('./screens/SignupScreen').then((m) => m.SignupScreen));
@@ -198,7 +199,7 @@ export default function App() {
     if (saved.unit !== 'in') return;
     return showInInches(document.body);
   }, [saved.unit]);
-  // A "Send to my computer" link: everything from the sewist's other device, read once the page is up.
+  // A "Print from my computer" link (Send to my computer until Nov 28): everything from the sewist's other device, read once the page is up.
   const [moving, setMoving] = useState<Backup<Saved> | 'broken'>();
   useEffect(() => {
     readMoveLink<Saved>(window.location.hash).then((b) => b && arrive(b));
@@ -696,6 +697,8 @@ export default function App() {
   );
   /** "Choose another garment": the same list as when measuring. */
   const chooseGarment = () => openSteps({ kind: 'choose' });
+  /** Style's way on: to Print, or back to Sew's Cut it when Style was opened there to choose the fabric (Cat, Nov 28). */
+  const toPrintOrSew = () => setStep(fabricReturning() ? 'sew' : 'export');
 
   /** Switch garment, going straight to the measurements the new one still needs, one page each. */
   /** Opens garment `g` on `to`; false when it went to take measurements first. */
@@ -1121,7 +1124,9 @@ export default function App() {
                     ? // Closed partway through a piece's own measurements: the landing page carries on with it, as Begin
                       // only led to a list of the first five, without the piece's ones already given (EJ walk, Nov 27).
                       {
-                        garment: vestOf(partwayPiece, saved) ? 'vest' : GARMENT_NAME[partwayPiece],
+                        // A look picked from the collection is called by its name here too, as once it's measured
+                        // ("Carry on with your top" for the Ice Peplum, EL walk, Nov 27).
+                        garment: (partwayPiece === garment && lookName) || (vestOf(partwayPiece, saved) ? 'vest' : GARMENT_NAME[partwayPiece]),
                         onResume: () => openSteps({ kind: 'resume' }),
                         onSaved: () => setStep('account'),
                         onNew: startNew,
@@ -1362,7 +1367,7 @@ export default function App() {
               draft={result.skirt}
               error={styleError}
               onEditMeasurements={() => setStep('measure')}
-              onNext={() => setStep('export')}
+              onNext={toPrintOrSew}
               saveState={saveState}
               onSave={() => setAccount(savePattern(account, current, lookName ?? describePattern(current), person.id))}
               onAccount={() => setStep('account')}
@@ -1391,7 +1396,7 @@ export default function App() {
               error={styleError}
               onEditMeasurements={() => setStep('measure')}
               onAddHip={() => openSteps({ kind: 'for', garment, also: ['full_hip', 'waist_to_hip'] })}
-              onNext={() => setStep('export')}
+              onNext={toPrintOrSew}
               saveState={saveState}
               onSave={() => setAccount(savePattern(account, current, lookName ?? describePattern(current), person.id))}
               onAccount={() => setStep('account')}
@@ -1415,7 +1420,7 @@ export default function App() {
               sleeve={result.sleeve}
               error={styleError}
               onEditMeasurements={() => setStep('measure')}
-              onNext={() => setStep('export')}
+              onNext={toPrintOrSew}
               saveState={saveState}
               onSave={() => setAccount(savePattern(account, current, lookName ?? describePattern(current), person.id))}
               onAccount={() => setStep('account')}
@@ -1438,7 +1443,7 @@ export default function App() {
               draft={result.trousers}
               error={styleError}
               onEditMeasurements={() => setStep('measure')}
-              onNext={() => setStep('export')}
+              onNext={toPrintOrSew}
               saveState={saveState}
               onSave={() => setAccount(savePattern(account, current, lookName ?? describePattern(current), person.id))}
               onAccount={() => setStep('account')}
@@ -1461,7 +1466,7 @@ export default function App() {
               draft={result.tee}
               error={styleError}
               onEditMeasurements={() => setStep('measure')}
-              onNext={() => setStep('export')}
+              onNext={toPrintOrSew}
               saveState={saveState}
               onSave={() => setAccount(savePattern(account, current, lookName ?? describePattern(current), person.id))}
               onAccount={() => setStep('account')}
@@ -1485,7 +1490,7 @@ export default function App() {
               draft={garment === 'knit_dress' ? result.knitDress : garment === 'hoodie' ? result.hoodie : result.jumpsuit}
               error={styleError}
               onEditMeasurements={() => setStep('measure')}
-              onNext={() => setStep('export')}
+              onNext={toPrintOrSew}
               saveState={saveState}
               onSave={() => setAccount(savePattern(account, current, lookName ?? describePattern(current), person.id))}
               onAccount={() => setStep('account')}
@@ -1506,7 +1511,7 @@ export default function App() {
               draft={result.lingerie}
               error={styleError}
               onEditMeasurements={() => setStep('measure')}
-              onNext={() => setStep('export')}
+              onNext={toPrintOrSew}
               saveState={saveState}
               onSave={() => setAccount(savePattern(account, current, lookName ?? describePattern(current), person.id))}
               onAccount={() => setStep('account')}
@@ -1530,7 +1535,7 @@ export default function App() {
               draft={result.outer}
               error={styleError}
               onEditMeasurements={() => setStep('measure')}
-              onNext={() => setStep('export')}
+              onNext={toPrintOrSew}
               saveState={saveState}
               onSave={() => setAccount(savePattern(account, current, lookName ?? describePattern(current), person.id))}
               onAccount={() => setStep('account')}
@@ -1546,8 +1551,8 @@ export default function App() {
           {step === 'export' && hasGarment(account, garment) && (
             <ExportScreen
               example={!!person.example?.length}
-              onSew={() => {
-                openSewingNext();
+              onNextSew={() => {
+                openCutNext();
                 setStep('sew');
               }}
               onMeasureMe={measureMe}
@@ -1558,11 +1563,6 @@ export default function App() {
               sendLink={sendLink}
               mode={mode}
               onMode={setMode}
-              onEditFabric={() => {
-                openTabNext(FABRIC);
-                leavePrintForFabric();
-                setStep('style');
-              }}
               onKeep={saveState === 'can' ? () => setAccount(savePattern(account, current, lookName ?? describePattern(current), person.id)) : undefined}
               onFitNotes={saveState === 'full' && !savedNow ? undefined : openFitNotes}
               full={saveState === 'full'}
@@ -1576,23 +1576,35 @@ export default function App() {
               fit={'fit' in current ? current.fit : 'close'}
               finish={finish}
               onFinish={setFinish}
-              style={fabricStyle}
               made={printable}
               error={styleError}
-              fitting={ownFitting}
-              fittingNotes={[...describeFitting(ownFitting, garment), ...carriedNotes]}
               alterations={alterations}
-              onFitting={() => setStep('fitting')}
-              onTrueScale={() => setStep('scale')}
               values={values}
               draftAt={draftAt}
               credit={fromArchive?.credit}
-              label={{ name: profile === 'Me' ? account.name : profile, code: labelFor }}
             />
           )}
           {step === 'sew' && !hasGarment(account, garment) && <UnlockGarment garment={garment} onPlans={openPlans} onBack={() => setStep('style')} />}
           {step === 'sew' && hasGarment(account, garment) && (
-            <SewScreen made={printable} title={title} name={lookName ?? (vestOf(garment, saved) ? 'vest' : GARMENT_NAME[garment])} keep={`${person.id}:${garment}`} onPrint={() => setStep('export')} onStyle={() => setStep('style')} tester={!!account.testerCode} />
+            <SewScreen made={printable} title={title} name={lookName ?? (vestOf(garment, saved) ? 'vest' : GARMENT_NAME[garment])} keep={`${person.id}:${garment}`} onStyle={() => setStep('style')} tester={!!account.testerCode} cut={{
+                garment,
+                finish,
+                onFinish: setFinish,
+                tester: !!account.testerCode,
+                mode,
+                onKeep: saveState === 'can' ? () => setAccount(savePattern(account, current, lookName ?? describePattern(current), person.id)) : undefined,
+                onEditFabric: () => {
+                  openTabNext(FABRIC);
+                  leavePrintForFabric();
+                  setStep('style');
+                },
+                style: fabricStyle,
+                fitting: ownFitting,
+                fittingNotes: [...describeFitting(ownFitting, garment), ...carriedNotes],
+                onFitting: () => setStep('fitting'),
+                onTrueScale: () => setStep('scale'),
+                label: { name: profile === 'Me' ? account.name : profile, code: labelFor },
+              }} />
           )}
           {step === 'check' && (
             <CheckFileScreen
@@ -1604,22 +1616,23 @@ export default function App() {
           )}
           {step === 'imported' && !importedPrintable && <CheckFileScreen onUse={(pattern, fileName) => setImported({ pattern, fileName })} />}
           {step === 'imported' && importedPrintable && imported && (
-            <ExportScreen
-              unit={saved.unit}
-              mode={mode}
-              onMode={setMode}
-              garment={garment}
-              profile={profile}
-              title={importedTitle}
-              fit="as drafted"
-              finish={finish}
-              onFinish={setFinish}
-              style={{ garment: 'skirt', silhouette: saved.choices.silhouette, length: saved.choices.length }}
-              made={importedPrintable}
-              fittingNotes={[]}
-              onFitting={() => undefined}
-              imported={{ source: imported.pattern.source, fileName: imported.fileName }}
-            />
+            <>
+              <ExportScreen
+                unit={saved.unit}
+                mode={mode}
+                onMode={setMode}
+                garment={garment}
+                profile={profile}
+                title={importedTitle}
+                fit="as drafted"
+                finish={finish}
+                onFinish={setFinish}
+                made={importedPrintable}
+                imported={{ source: imported.pattern.source, fileName: imported.fileName }}
+              />
+              <CutPart made={importedPrintable} title={importedTitle} garment={garment} finish={finish} onFinish={setFinish} style={{ garment: 'skirt', silhouette: saved.choices.silhouette, length: saved.choices.length }} mode={mode} imported />
+              {importedPrintable.guide.steps.length > 0 && <WrittenSteps guide={importedPrintable.guide} sew={{ made: importedPrintable, title: importedTitle }} />}
+            </>
           )}
           {step === 'form' && (
             <FormScreen
@@ -1633,22 +1646,23 @@ export default function App() {
           )}
           {step === 'formprint' && coverPrintable && (
             // Printed like a pattern read from a file: no style, fabric check or toile of its own.
-            <ExportScreen
-              unit={saved.unit}
-              mode={mode}
-              onMode={setMode}
-              garment={garment}
-              profile={profile}
-              title="Form cover"
-              fit="zero ease"
-              finish={finish}
-              onFinish={setFinish}
-              style={{ garment: 'skirt', silhouette: saved.choices.silhouette, length: saved.choices.length }}
-              made={coverPrintable}
-              fittingNotes={[]}
-              onFitting={() => undefined}
-              imported={{ fileName: `Drafted to ${profile === 'Me' ? 'you' : profile}` }}
-            />
+            <>
+              <ExportScreen
+                unit={saved.unit}
+                mode={mode}
+                onMode={setMode}
+                garment={garment}
+                profile={profile}
+                title="Form cover"
+                fit="zero ease"
+                finish={finish}
+                onFinish={setFinish}
+                made={coverPrintable}
+                imported={{ fileName: `Drafted to ${profile === 'Me' ? 'you' : profile}` }}
+              />
+              <CutPart made={coverPrintable} title="Form cover" garment={garment} finish={finish} onFinish={setFinish} style={{ garment: 'skirt', silhouette: saved.choices.silhouette, length: saved.choices.length }} mode={mode} imported />
+              {coverPrintable.guide.steps.length > 0 && <WrittenSteps guide={coverPrintable.guide} sew={{ made: coverPrintable, title: 'Form cover' }} />}
+            </>
           )}
           {step === 'formprint' && !coverPrintable && (
             <FormScreen values={values} measured={measured} unit={saved.unit} profile={profile} onPrint={() => undefined} onMeasure={() => openSteps({ kind: 'for', garment: 'dress' })} />
@@ -1682,9 +1696,9 @@ export default function App() {
               onSave={(f, shown) => {
                 const next = saveVersion(ownFitting, f, new Date().toISOString().slice(0, 10), shown);
                 setAccount(updatePerson(account, person.id, { fittings: { ...person.fittings, [garment]: next } }));
-                // Saved: back to the pattern it was opened from.
+                // Saved: back to Cut it, which it was opened from.
                 if (canGoBack()) goBack();
-                else setStep('export');
+                else setStep('sew');
               }}
             />
           )}

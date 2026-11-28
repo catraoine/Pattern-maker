@@ -206,7 +206,7 @@ function sewDrape(job: DrapeJob, sleevedHoldZ?: number, tierFoldCap?: number): D
   if (job.kind === 'outer' && job.draft.lapel && job.draft.sleeveless && !knob('__noLapelBreak')) meetAtBreak(d, job.draft.lapel.breakPt);
   // A welt pocket's opening, which is not in the front's cut, drawn where the pattern marks it (outerPockets.ts).
   if (job.kind === 'outer') weltPockets(d, job.draft);
-  // A shawl's top collar is cut in one with its facing, so the gorge seam under it doesn't show: drawn, it read as a
+  // A shawl's upper collar is cut in one with its facing, so the gorge seam under it doesn't show: drawn, it read as a
   // notch where the collar meets the lapel (Cat "Collar, start more with clo", Nov 11).
   if (job.kind === 'outer' && job.draft.lapel?.shawl) d.lines = d.lines.filter((l) => l.kind !== 'gorge');
   // A top's hem edge, smoothed along its length where it crossed the mesh on a slant (hemFair.ts).

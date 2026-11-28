@@ -24,6 +24,7 @@
 - Every caption, bio and post is checked against the "Meet the sewist" research and the AI stance
   word list (both linked from the business plan).
 - App wording (copy review, Nov 14): plain and specific, no filler, no reassurance lines, no app internals. One name per thing: Top (not Bodice) for the garment, "style detail" for a Style question, "Save this pattern" and "Saved patterns", "cutting layout", "toile" (Cat, Nov 21: "I like toile"; it was "a test version" from Nov 14). No colour names.
+- No middle dots ("·") as separators on screen (Cat, Nov 28: they read as AI). Write "Knee, 62 cm", "Mood Fabrics" then the price on its own line, "Shop lace" with no count. The printed pattern still uses them in piece labels until Cat decides that part.
 - Never promote on r/sewing or r/femalefashionadvice (they ban it).
 
 ## Naming (Oct 29)

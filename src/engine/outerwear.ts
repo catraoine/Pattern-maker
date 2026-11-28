@@ -177,7 +177,7 @@ export interface Lapel {
   collarPoint: P;
   neckPoint: P;
   gorge: P;
-  /** A shawl: its top collar is cut in one with the facing, so no gorge seam shows on the outside. */
+  /** A shawl: its upper collar is cut in one with the facing, so no gorge seam shows on the outside. */
   shawl?: true;
 }
 

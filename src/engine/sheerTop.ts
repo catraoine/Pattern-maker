@@ -56,7 +56,7 @@ export function withSheerTop(g: SewingGuide, d: Pick<BodiceDraft, 'peplum' | 'zi
       case 'Sew the princess seams':
         steps.push({
           ...st,
-          text: `Sew each side front to its centre front, and each side back to its centre back, as French seams, matching the notches above and below the bust. ${FRENCH(seam, 'the side')}, over a tailor's ham at the bust so it keeps its shape. On the first pass the centre front curves in where the side front curves out: ease it rather than stretch it, and clip only the 0.6 cm you sew through, never past the line.`,
+          text: `Sew each side front to its centre front, and each side back to its centre back, as French seams, matching the notches above and below the bust. ${FRENCH(seam, 'the side')}, over a tailor's ham at the bust so it keeps its shape. On the first pass the centre front curves in where the side front curves out: ease it on rather than stretch it. If the edge will not lie along the curve, snip into it, stopping short of your first row of stitching.`,
         });
         break;
       case 'Sew the shoulders':
@@ -70,7 +70,15 @@ export function withSheerTop(g: SewingGuide, d: Pick<BodiceDraft, 'peplum' | 'zi
       case 'Bind the neckline':
         // Sewn on the neck's own stitching line and then trimmed: sewn 0.5 cm from an untrimmed edge, the seam sat 0.5 cm
         // outside the drafted neckline, a smaller, higher neck than the one the fit test checks (DW walk, Nov 21).
-        steps.push({ ...st, text: `Cut 2.5 cm bias strips from the same sheer. Pin a strip to the neckline right sides together, 1 cm extra at each end, and sew it on the neck's stitching line, ${neck} from the edge. Trim the seam to 0.5 cm, wrap the strip round the raw edges and slip-stitch its fold down by hand over the stitching. Bought binding is heavier and darker than the sheer and would show as a band.` });
+        // A top that pulls on has no back edges for the strip's ends to finish at: its step already says all the way round.
+        steps.push({
+          ...st,
+          text: `Cut 2.5 cm bias strips from the same sheer. Pin a strip to the neckline right sides together, ${
+            st.text.includes('all the way round')
+              ? `starting at a shoulder seam, all the way round, and sew it on the neck's stitching line, ${neck} from the edge. Trim the seam to 0.5 cm. Where the ends meet, fold the top end under and lap it 1 cm over the other, then wrap`
+              : `1 cm extra at each end, and sew it on the neck's stitching line, ${neck} from the edge. Trim the seam to 0.5 cm, fold the spare ends in level with the back edges, wrap`
+          } the strip round the raw edges and slip-stitch its fold down by hand over the stitching. Bought binding is heavier and darker than the sheer and would show as a band.`,
+        });
         break;
       case 'Finish the armhole seams':
         steps.push({ ...st, text: `${SELF_BIND} round each armhole, starting at the underarm. Let the seam turn toward the sleeve.` });
@@ -109,7 +117,7 @@ export function withBackLoops(g: SewingGuide, d: LoopedBack, seam: string): Sewi
       return [
         {
           title: 'Make the rouleau loops',
-          text: `Cut a 2.5 cm bias strip of the same cloth, ${Math.ceil(n * 3 + 10)} cm long. Fold it in half lengthwise, right sides together, and sew 0.3 cm from the fold, the end angled out. Trim close, then turn it through with a loop turner. Cut it into ${n} loops, each 3 cm long.`,
+          text: `Cut a 2.5 cm bias strip of the same cloth, ${Math.ceil(n * 3 + 10)} cm long. Fold it in half lengthwise, right sides together, and sew 0.3 cm from the fold, widening the stitching into a small funnel at one end so the tube is easier to turn. Trim close, then turn it through with a loop turner. Cut it into ${n} loops, each 3 cm long.`,
         },
         {
           title: 'Close the back with buttons and loops',

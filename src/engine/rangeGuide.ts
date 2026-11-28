@@ -86,7 +86,7 @@ export function hoodieGuide(d: HoodieDraft, fabricM: number, finish: { width?: n
     pocket === 'kangaroo'
       ? {
           title: 'Sew on the pocket',
-          text: `Press the pocket's curved openings under by 1 cm and topstitch them 6 mm from the fold with a long narrow zigzag. Press its top and bottom under by 1 cm. Pin it to the front, centred, with its lower edge on the hem's line, and topstitch it down along the top only. Tack its sides into the side seams and its lower edge into the hem${d.bands.hemBand ? ' band seam' : ''}.`,
+          text: `Press the pocket's curved openings under by 1 cm and topstitch them 6 mm from the fold with a long narrow zigzag. Press its top and bottom under by 1 cm. Pin it to the front, centred, with its lower edge on the hem's line, and topstitch it down along the top only. Baste its sides into the side seams and its lower edge into the hem${d.bands.hemBand ? ' band seam' : ''}.`,
         }
       : pocket === 'split'
         ? {
@@ -97,7 +97,7 @@ export function hoodieGuide(d: HoodieDraft, fabricM: number, finish: { width?: n
   const hood: SewStep[] = [
     {
       title: 'Make the hood',
-      text: `Sew each hood's centre seam, the curved one from the forehead over the crown to the nape, right sides together, ${seam} from the edge: the self hood, then the lining hood. Press the seams to one side. Put the lining inside the hood, right sides together, and sew them together round the face opening. Turn the hood right side out, press the opening flat and topstitch it 1.5 cm from the edge${zip || half ? '' : ' to make a channel for a cord if you want one, with two buttonholes either side of the centre before you sew'}. Tack the two necklines together just inside the seam line.`,
+      text: `Sew each hood's centre seam, the curved one from the forehead over the crown to the nape, right sides together, ${seam} from the edge: the self hood, then the lining hood. Press the seams to one side. Put the lining inside the hood, right sides together, and sew them together round the face opening. Turn the hood right side out, press the opening flat and topstitch it 1.5 cm from the edge${zip || half ? '' : ' to make a channel for a cord if you want one, with two buttonholes either side of the centre before you sew'}. Baste the two necklines together just inside the seam line.`,
     },
     {
       title: 'Sew on the hood',
@@ -108,7 +108,7 @@ export function hoodieGuide(d: HoodieDraft, fabricM: number, finish: { width?: n
     ? [
         {
           title: 'Sew in the zip',
-          text: `Use a ${n1(d.zipCm ?? 0)} open-ended (separating) zip. Iron a strip of fusible knit tape down each centre front edge so it doesn't stretch. Pin a zip tape to each front edge, right sides together, the teeth 1 cm in from the edge and the hood's front edge caught in at the top${d.bands.hemBand ? ', the bottom stop at the hem band seam' : ''}. Sew with a zipper foot, fold the edges back and topstitch 6 mm from the fold.`,
+          text: `Use a ${n1(d.zipCm ?? 0)} open-ended (separating) zip. Iron a strip of fusible knit tape down each centre front edge so it doesn't stretch. Pin a zip tape to each front edge, right sides together, the teeth 1 cm in from the edge and the hood's front edge caught in at the top${d.bands.hemBand ? ', the bottom stop at the hem band seam' : ''}. Sew with a zip foot, fold the edges back and topstitch 6 mm from the fold.`,
         },
       ]
     : half
@@ -249,14 +249,14 @@ export function jumpsuitGuide(d: JumpsuitDraft, fabricM: number, finish: { width
       : [
           {
             title: 'Sew in the zip',
-            text: `Sew a ${n1(d.zipCm)} invisible zip into the centre back, from the neck down to the mark ${n1(20)} below the waist, with an invisible zipper foot. Close the rest of the crotch seam below it, then fold the facing or binding ends in over the zip tape and slip-stitch them down.`,
+            text: `Sew the ${n1(d.zipCm)} invisible zip into the centre back, from the neck down to the mark ${n1(20)} below the waist, with an invisible zip foot. Close the rest of the crotch seam below it, then fold the facing or binding ends in over the zip tape and slip-stitch them down.`,
           },
         ]),
     {
       title: 'Hem',
       text: `Try the jumpsuit on with the shoes you will wear and pin up the hem. Press up the allowance${sleeve && !band ? ' at the sleeves and' : ''} at the ${legs}, turn the raw edge under and stitch by hand or machine.`,
     },
-    { title: 'Finish', text: 'Press the jumpsuit all over on the wrong side, with a pressing cloth on the right side wherever you need to.' },
+    { title: 'Finish', text: 'Press the jumpsuit all over on the wrong side, with a press cloth on the right side wherever you need to.' },
   ];
   return {
     notions: [

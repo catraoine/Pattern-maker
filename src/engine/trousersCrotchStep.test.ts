@@ -13,9 +13,9 @@ describe('the crotch seam step', () => {
     return trousersGuide(d, 2, { seams }).steps.find((s) => s.title === 'Sew the crotch seam')!.text;
   };
   it('says the 1 cm is narrower than the other seams, with a fly and without', () => {
-    for (const c of ['fly', 'elastic'] as const) expect(crotch(c)).toContain('Sew it 1 cm from the edge, narrower than the other seams, twice');
+    for (const c of ['fly', 'elastic'] as const) expect(crotch(c)).toContain('Sew it 1 cm from the edge, which is narrower than the other seams. Then sew the curve a second time');
   });
   it('says nothing extra when every seam is 1 cm', () => {
-    expect(crotch('fly', SEAM_WIDTHS.industry)).toContain('Sew it 1 cm from the edge twice');
+    expect(crotch('fly', SEAM_WIDTHS.industry)).toContain('Sew it 1 cm from the edge. Then sew the curve a second time');
   });
 });

@@ -9,11 +9,11 @@ import type { SewStep, SewingGuide } from './instructions';
 
 const step = (title: string, text: string): SewStep => ({ title, text });
 
-/** The cutting words for the ties and the stay-stitched edges. */
+/** The cutting words for the ties and the staystitched edges. */
 function wrapCut(d: BodiceDraft): string {
   const t = d.wrap?.ties;
   if (!t) return '';
-  return ` Cut two tie strips on the straight grain, ${t.cutWidth} cm wide: one ${t.cut.outer} cm long and one ${t.cut.inner} cm long. As soon as the fronts are cut, stay-stitch their front edges 1 cm in: the edge runs across the grain and stretches easily.`;
+  return ` Cut two tie strips on the straight grain, ${t.cutWidth} cm wide: one ${t.cut.outer} cm long and one ${t.cut.inner} cm long. As soon as the fronts are cut, staystitch their front edges 1 cm in: the edge runs across the grain and stretches easily.`;
 }
 
 /** Making the two ties and sewing them on at the far ends of the fronts. */
@@ -30,7 +30,7 @@ function wrapTieSteps(d: BodiceDraft): SewStep[] {
 
 const ATTACH = step(
   'Attach the ties',
-  'Turn the open end of each tie in by 1 cm. Slip the far end of a front 1 cm inside it, at the TIE mark, so the tie wraps the corner with its seam to the inside, and edgestitch across through every layer, then again 0.5 cm in. The longer tie goes on the front that laps on top, the shorter on the one beneath.',
+  'Turn the open end of each tie in by 1 cm. Slip the far end of a front 1 cm inside it, at the TIE mark, so the tie wraps the corner with its seam to the inside, and edge-stitch across through every layer, then again 0.5 cm in. The longer tie goes on the front that laps on top, the shorter on the one beneath.',
 );
 
 const SIDES =

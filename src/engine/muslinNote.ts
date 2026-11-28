@@ -33,7 +33,7 @@ const OPTIONAL_WORDS: [RegExp, string][] = [
   // the trouser's one button to "pin the fronts closed" (DQ walk, Nov 20).
   [/interfacing/i, 'the interfacing'],
   [/stay tape/i, 'the stay tape'],
-  [/\bzip\b/i, 'the zip (pin or tack the opening closed along its stitching line to try it on)'],
+  [/\bzip\b/i, 'the zip (pin or baste the opening closed along its stitching line to try it on)'],
   [/buttonholes/i, 'the buttonholes and buttons (pin the fronts closed, centre front on centre front)'],
   [/buttonhole\b(?!s)/i, 'the buttonhole and button (pin the opening closed where it buttons)'],
 ];

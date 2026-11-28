@@ -13,7 +13,7 @@ test('the Maison collection: open it from styling, draw every look, make one', a
   await expect(looks).toHaveCount(7);
   await expect(main.getByRole('img', { name: /Technical flat/ })).toHaveCount(9);
   // The House shows one season at a time.
-  await expect(main.getByText('SS27 · Spring Summer 2027')).toBeVisible();
+  await expect(main.getByText('SS27, Spring Summer 2027')).toBeVisible();
 
   // Making the Ivory Bias Slip opens the dress cut in one on the bias.
   await looks.filter({ has: page.getByRole('heading', { name: 'Ivory Bias Slip' }) }).getByRole('button', { name: 'Make this look' }).click();
@@ -29,7 +29,7 @@ test('Look 02, the Black Vest Set: both pieces in one look, each made on its own
   const main = page.getByRole('main');
   await openCollection(page);
   const set = main.getByRole('listitem').filter({ has: page.getByRole('heading', { name: 'The Black Vest Set' }) });
-  await expect(set).toContainText('SS27 · Look 02');
+  await expect(set).toContainText('SS27 Look 02');
   await expect(set.getByRole('img', { name: /Technical flat/ })).toHaveCount(2);
   // The skirt: wide box pleats, low on the hip, in crisp black wool.
   await set.getByRole('button', { name: 'Make the skirt' }).click();
@@ -125,7 +125,7 @@ test('the collection: the next drop stays hidden until it has a piece, and the A
   const shelves = main.getByRole('group', { name: 'Collection' });
   await expect(shelves.getByRole('button', { name: 'Eras' })).toBeVisible();
   await expect(shelves.getByRole('button', { name: 'Archive' })).toHaveCount(0);
-  await expect(main.getByText('ARC · 1954 · 001')).toHaveCount(0);
+  await expect(main.getByText('ARC 1954/001')).toHaveCount(0);
 });
 
 test('the Chocolate Barrel Trouser: made low on the hip with one pleat, in chocolate sateen', async ({ page }) => {
@@ -134,7 +134,7 @@ test('the Chocolate Barrel Trouser: made low on the hip with one pleat, in choco
   await openCollection(page);
   // Worn with the lilac lace blouse as Look 05, a set of two (Cat, Nov 14).
   const set = main.getByRole('listitem').filter({ has: page.getByRole('heading', { name: 'The Lilac Lace Set' }) });
-  await expect(set).toContainText('SS27 · Look 05');
+  await expect(set).toContainText('SS27 Look 05');
   await expect(set.getByRole('img', { name: /Technical flat/ })).toHaveCount(2);
   const look = set.locator('.set-piece').filter({ has: page.getByRole('heading', { name: 'Chocolate Barrel Trouser' }) });
   await expect(look.getByRole('img', { name: /Technical flat/ })).toBeVisible();
@@ -197,6 +197,8 @@ test('a collection top with sleeves asks for the arms first, so its pattern has 
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('pattern-maker:account') ?? '{}'));
   expect(JSON.stringify(saved)).toContain('"arm_length"');
   await goPrint(page);
+  // The pieces and their cut counts are the rows of Print only some pieces (Cat, Nov 28: one pieces list).
+  await main.getByText('Print only some pieces').click();
   await expect(main.getByText(/^Sleeve\b.*: cut/).first()).toBeVisible();
   await expect(main.getByText(/Sleeveless/)).toHaveCount(0);
 });

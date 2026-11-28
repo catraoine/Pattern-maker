@@ -14,7 +14,7 @@ export const STEPS: { id: Step; label: string }[] = [
 ];
 
 /** Which of the four steps each screen belongs to, lit in the header. Account and the legal pages belong to none. */
-export const STEP_OF: Partial<Record<View, Step>> = { steps: 'measure', measure: 'measure', style: 'style', photo: 'style', export: 'export', fitting: 'export', scale: 'export', sew: 'sew' };
+export const STEP_OF: Partial<Record<View, Step>> = { steps: 'measure', measure: 'measure', style: 'style', photo: 'style', export: 'export', fitting: 'sew', scale: 'sew', sew: 'sew' };
 
 /** Side screens of Account. They light the account square in the header, as Measure, Style and Print light their
  *  step: the trail under the header that named them ("Account › Client book") went in the declutter (Cat's E, Nov 21),
@@ -32,8 +32,8 @@ export const NEEDS_MEASUREMENTS: View[] = ['style', 'export', 'fitting', 'scale'
  * measurements, the measurements off the welcome, however the sewist got there.
  */
 const RUNGS: Partial<Record<View, View[]>> = { welcome: ['welcome'], measure: ['welcome', 'measure'], style: ['welcome', 'measure', 'style'], export: ['welcome', 'measure', 'style', 'export'], sew: ['welcome', 'measure', 'style', 'export', 'sew'] };
-/** Side screens that always hang off the same screen. */
-const HANGS_OFF: Partial<Record<View, View>> = { photo: 'style', collection: 'style', fitting: 'export', scale: 'export', client: 'account', check: 'account', form: 'account', imported: 'check', formprint: 'form', help: 'account' };
+/** Side screens that always hang off the same screen. The toile fitting and true size open from Sew's Cut it (Nov 28). */
+const HANGS_OFF: Partial<Record<View, View>> = { photo: 'style', collection: 'style', fitting: 'sew', scale: 'sew', client: 'account', check: 'account', form: 'account', imported: 'check', formprint: 'form', help: 'account' };
 /** The screens `to` hangs off. Any other screen (Account, Plans, the legal pages, the guided measuring) hangs off
  *  the one it was opened from, and going to one already behind steps back to it. */
 export const ladder = (to: View, trail: View[]): View[] => {
@@ -52,4 +52,4 @@ export const ladder = (to: View, trail: View[]): View[] => {
 };
 
 /** Where the header's back goes when there's nothing behind in history, such as after a reload. */
-export const PARENT: Partial<Record<View, View>> = { measure: 'welcome', steps: 'welcome', style: 'measure', photo: 'style', export: 'style', sew: 'export', fitting: 'export', scale: 'export', account: 'style', client: 'account', arrive: 'client', link: 'welcome', check: 'account', imported: 'check', form: 'account', formprint: 'form', privacy: 'welcome', terms: 'welcome', tester: 'account', news: 'account', brands: 'account', nights: 'account', move: 'welcome', made: 'welcome', help: 'account' };
+export const PARENT: Partial<Record<View, View>> = { measure: 'welcome', steps: 'welcome', style: 'measure', photo: 'style', export: 'style', sew: 'export', fitting: 'sew', scale: 'sew', account: 'style', client: 'account', arrive: 'client', link: 'welcome', check: 'account', imported: 'check', form: 'account', formprint: 'form', privacy: 'welcome', terms: 'welcome', tester: 'account', news: 'account', brands: 'account', nights: 'account', move: 'welcome', made: 'welcome', help: 'account' };

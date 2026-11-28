@@ -1,4 +1,4 @@
-import { expect, goPrint, goTab, openGroup, startWithExample, switchGarment, test, type GarmentName } from './fixtures';
+import { expect, goCut, goTab, openGroup, startWithExample, switchGarment, test, type GarmentName } from './fixtures';
 
 // The sketch is drawn in the fabric tapped under it, and the print screen keeps that fabric.
 test('a swatch dresses the skirt sketch and carries to the print screen', async ({ page }) => {
@@ -15,7 +15,7 @@ test('a swatch dresses the skirt sketch and carries to the print screen', async 
   await expect(corduroy).toHaveAttribute('aria-checked', 'false');
   await expect(main.locator('.garment-fabric')).toHaveCount(0);
   await swatches.getByRole('radio', { name: 'Linen' }).click();
-  await goPrint(page);
+  await goCut(page);
   await expect(main.getByText('Linen', { exact: true }).first()).toBeVisible();
   // The cutting layout lays the paper pieces on that same cloth.
   await expect(main.locator('.layplan pattern image').first()).toHaveAttribute('href', /fabrics\/flat\/linen\.jpg$/);
@@ -79,10 +79,10 @@ test('None, a colour and a shop fabric on the skirt sketch', async ({ page }) =>
   await expect(main.locator('#fabcolour')).toHaveValue('Indigo twill');
   // The buy strip says how much this skirt needs, about what it costs, and goes to the shop.
   const strip = main.locator('.buystrip');
-  await expect(strip).toContainText('Mood Fabrics · Indigo twill');
-  await expect(strip).toContainText(/\d+ yd for your skirt · about \$\d+/);
+  await expect(strip).toContainText('Mood Fabrics, Indigo twill');
+  await expect(strip).toContainText(/\d+ yd for your skirt, about \$\d+/);
   await expect(strip.getByRole('link', { name: /Buy at Mood/ })).toHaveAttribute('href', /indigo-cotton-denim-twill-420606$/);
-  await goPrint(page);
+  await goCut(page);
   await expect(main.locator('.yourfabric h2')).toContainText('Cotton denim, 10.5 oz');
   await expect(main.locator('.shopbuy')).toContainText('Mood Fabrics');
   await expect(main.locator('.shopbuy a')).toHaveAttribute('href', /indigo-cotton-denim-twill-420606$/);

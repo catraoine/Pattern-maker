@@ -178,6 +178,15 @@
   stroke-width: 0.7;
 }
 
+/* Where a fold is brought to: fine dots, apart from the solid fold line beside it. */
+.sewpic .sp-dot {
+  fill: none;
+  stroke: #1d1a17;
+  stroke-width: 0.6;
+  stroke-linecap: round;
+  stroke-dasharray: 0.01 1.1;
+}
+
 .sewpic .sp-selvedge {
   fill: none;
   stroke: #1d1a17;
@@ -709,8 +718,7 @@ details.sew:not([open]) > .sew-summary > .sew-list-head::after {
 }
 
 /* The key to the drawings: what the dashed, grey, dotted and shaded lines mean (cold read, Nov 27), one entry after
-   another so a short key takes one line. On Print's list it sits once in the panel with what you'll need, above the
-   steps. */
+   another so a short key takes one line. On the written steps it sits once at the top, above the first drawing. */
 .dg-key {
   list-style: none;
   display: flex;
@@ -724,8 +732,11 @@ details.sew:not([open]) > .sew-summary > .sew-list-head::after {
   text-transform: uppercase;
   color: var(--ink);
 }
-/* The panel's own list style (a bullet indent and loose lines) is set back, so the key lines up with its heading. */
-.notions .dg-key {
+/* At the top of the written steps, set back from the card's own list style so it lines up with its heading. */
+.sew-key {
+  margin: 4px 0 12px;
+}
+.sew-key .dg-key {
   padding: 0;
   margin: 6px 0 0;
   line-height: 1.5;

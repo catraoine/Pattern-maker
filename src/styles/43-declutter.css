@@ -46,27 +46,6 @@
   }
 }
 
-/* D · Print in three parts: Print it, Cut it, Sew it, each under a fine rule, in the order they're done. */
-.print-part {
-  margin: 36px 0 4px;
-  /* Lined up with the words inside the cards below it, as Part 1 is inside its card. */
-  padding: 22px calc(22px + var(--bw)) 0;
-  border-top: 1px solid var(--guide);
-}
-@media (max-width: 640px) {
-  .print-part {
-    padding-left: calc(18px + var(--bw));
-    padding-right: calc(18px + var(--bw));
-  }
-}
-.print-part .eyebrow,
-.print-head .print-part-no {
-  margin: 0 0 6px;
-}
-.print-part h2 {
-  margin: 0;
-}
-
 /* D · The Extras' one email box: a tick for each offer above it. */
 .extras-signup .extras-ticks {
   display: grid;

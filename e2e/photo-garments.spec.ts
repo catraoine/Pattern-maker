@@ -94,7 +94,7 @@ test('a dress photo drafts a dress, with its skirt to change', async ({ page }) 
   });
   await expect(main.getByText('We see a dress')).toBeVisible();
   await expect(main.getByRole('heading', { name: /dress with a V-neck and short sleeves/i })).toBeVisible();
-  await expect(main.getByText('A-line · Knee', { exact: false })).toBeVisible();
+  await expect(main.getByText('A-line, Knee', { exact: false })).toBeVisible();
   await main.getByRole('button', { name: 'Change', exact: true }).click();
   await expect(main.getByRole('group', { name: 'Silhouette' })).toBeVisible();
   await main.getByRole('button', { name: 'Draft my dress' }).click();

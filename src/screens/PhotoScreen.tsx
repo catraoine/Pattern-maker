@@ -555,14 +555,14 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
       <div className="photohead">
         {thumb}
         <div>
-          <p className="eyebrow">{`We see ${aPiece(piece)}${flat ? ' · not worn' : ''}`}</p>
+          <p className="eyebrow">{`We see ${aPiece(piece)}${flat ? ', not worn' : ''}`}</p>
           <h1 id="seetitle">{title}</h1>
         </div>
       </div>
       {note && <p className="msg small">{note}</p>}
       {summary.length > 0 && (
         <p className="photosum">
-          <span>{summary.join(' · ')}</span>
+          <span>{summary.join(', ')}</span>
           {hasSkirt(piece) && (
             <button type="button" className="link small" aria-expanded={editing} onClick={() => setEditing(!editing)}>
               {editing ? 'Done' : 'Change'}
