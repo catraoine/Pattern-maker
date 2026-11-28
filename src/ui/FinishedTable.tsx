@@ -22,6 +22,11 @@ interface FinishedLine {
   fit?: string;
 }
 
+/** The upper arm's word. An arm needs less room than a body to feel the same, so its steps are smaller: a set-in sleeve
+ *  with about 5 cm over the arm is an ordinary, comfortable sleeve. The row showed "+5" with no word beside the bust's
+ *  "+7 Comfy" and read as missing (cold read EK, Nov 27). */
+const armLevel = (ease: number) => (ease < 0 ? 'Held in' : ease < 4 ? 'Close' : ease < 9 ? 'Comfy' : 'Roomy');
+
 /**
  * The rows the table shows, from the garment's spec: its girths against you with the ease, then its
  * lengths. A knit's negative ease is the cloth stretching on; an elastic waist is read at the elastic.
@@ -36,8 +41,9 @@ export function finishedLines(rows: SpecRow[], opts: { knit?: boolean; elasticCm
       out.push({ label: 'Waist, on elastic', body: r.body, finished: opts.elasticCm, ease: Math.round((opts.elasticCm - r.body) * 10) / 10, fit: 'Snug' });
       continue;
     }
+    const arm = /^Upper arm/.test(r.label);
     const fit =
-      r.ease === undefined || !GIRTH.test(r.label) ? undefined : opts.knit && r.ease < 0 ? 'Stretches on' : easeLevel(r.ease).label;
+      r.ease === undefined || !(GIRTH.test(r.label) || arm) ? undefined : opts.knit && r.ease < 0 ? 'Stretches on' : arm ? armLevel(r.ease) : easeLevel(r.ease).label;
     out.push({ label: r.label.replace(/ \(hem\)$/, ', at the hem'), body: r.body, finished: r.finished, ease: r.ease, fit });
   }
   // The girths first, then the lengths; a dress is read nape to hem, not by its bodice and skirt apart.

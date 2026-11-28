@@ -933,7 +933,9 @@ export default function App() {
       <DemoGarment.Provider value={garment}>
       <FabricStyleOf.Provider value={fabricStyle}>
       <PointEditContext.Provider value={pointEditing}>
-      <StartOver.Provider value={styledSinceStart() ? startOver : undefined}>
+      {/* Not on a collection look just as it comes: the cold read EK (Nov 27) met it before changing anything, and it
+          would turn the look into the garment's plain first style. */}
+      <StartOver.Provider value={styledSinceStart() && !lookName ? startOver : undefined}>
       <div className="app" {...{ inert: opening ? '' : undefined }}>
         <header className={step === 'welcome' || step === 'link' || gated ? 'topbar' : 'topbar steady'}>
           {gated && step !== 'welcome' ? (
