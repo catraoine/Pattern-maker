@@ -1084,20 +1084,24 @@ function addSewingPages(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', 
     write(`${i + 1}. ${s.title}`, 11, fonts.bodyMedium, 0, 2);
     write(s.text, 10, fonts.body, 18, 8);
     // The close-ups take the place of the step's one small drawing.
-    if (frames.length) drawFrames(frames);
+    if (frames.length) drawFrames(frames, `${i + 1}. ${s.title}`);
     else if (s.diagram) drawDiagram(s.diagram);
   });
 
   /** A trickier step's close-ups (Nov 27), two to a row under its words, in the step's order. Unnumbered: a number beside each read as a sentence number that matched nothing (EJ cold read, Nov 27). Two to a
    *  row keeps their small capitals near 8 pt; three to a row made them 5 pt, too small to read beside the machine. */
-  function drawFrames(frames: Diagram[]) {
+  function drawFrames(frames: Diagram[], heading: string) {
     const k = 5.3;
     const gap = 10;
     const across = 2;
     for (let r = 0; r < frames.length; r += across) {
       const row = frames.slice(r, r + across);
       const tall = Math.max(...row.map((d) => d.h)) * k;
+      // A row that goes over to a new page takes its step's name with it: the Ice Peplum's page 9 opened on step 8's
+      // drawings under no heading, read as step 9's (pretend tester EK walk, Nov 27).
+      const was = st.page;
       room(tall + 14);
+      if (st.page !== was) write(`${heading} (continued)`, 11, fonts.bodyMedium, 0, 6);
       row.forEach((d, j) => {
         const x = 2 * CM + 18 + j * (42 * k + gap);
         drawDiagramAt(d, x, st.y, k);

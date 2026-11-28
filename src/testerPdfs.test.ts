@@ -77,6 +77,14 @@ describe('the tester pieces print cleanly', () => {
             const over: string[] = [];
             for (const a of lines) for (const b of lines) if (a !== b && a.page === b.page && Math.abs(a.y - b.y) < 4 && a.x0 < b.x0 && a.x1 > b.x0 + 1) over.push(`"${a.text}" runs into "${b.text}"`);
             expect(over, where).toEqual([]);
+            // Each steps page opens on a step's name: the Ice Peplum's page 9 opened on step 8's drawings under no heading,
+            // read as step 9's (pretend tester EK walk, Nov 27).
+            const pages = [...new Set(lines.map((l) => l.page))];
+            const from = pages.findIndex((pg) => lines.some((l) => l.page === pg && l.text === 'STEPS'));
+            const heads = (pg: PDFPage) => lines.some((l) => l.page === pg && /^\d+\. /.test(l.text));
+            const last = pages.length - 1 - [...pages].reverse().findIndex(heads);
+            const headless = pages.slice(from + 1, last + 1).map((pg) => lines.filter((l) => l.page === pg && !/^MAISON TRAC|^\d+$|^Page \d/i.test(l.text)).sort((a, b) => b.y - a.y)[0]?.text ?? '').filter((t) => !/^\d+\. /.test(t));
+            expect(headless, where).toEqual([]);
             expect(drawn, where).not.toMatch(/NaN|undefined|Infinity|\[object/);
             expect(drawn, where).not.toMatch(/\(3\.94 in\)\s*\(3\.94 in\)/);
             const square = /10 CM · 3\.94 IN|10 cm \(3\.94 in\)/g;
