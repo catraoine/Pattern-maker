@@ -1144,14 +1144,12 @@ body .style-layout .style-pin > section > .preview > .preview-corner:has(> .pe-o
 .more-tools .tool-row > summary::after {
   content: '+';
   color: var(--muted);
-  flex: none;
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  align-self: center;
 }
 .more-tools .tool-row[open] > summary::after {
   content: '−';
-}
-.more-tools .tool-row > summary,
-.more-tools .tool-tick > span {
-  flex-wrap: wrap;
 }
 .more-tools .tool-tick > span,
 .more-tools .tool-row > summary {
@@ -1164,22 +1162,19 @@ body .style-layout .style-pin > section > .preview > .preview-corner:has(> .pe-o
 .more-tools .tool-what {
   display: block;
 }
-.more-tools .tool-row > summary > span:first-child {
-  flex: 1 1 auto;
-}
+/* The name over its line, with + / − level with both at the right. */
 .more-tools .tool-row > summary {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   row-gap: 2px;
 }
-.more-tools .tool-row > summary::after {
-  grid-row: 1 / span 2;
-  grid-column: 2;
-  align-self: center;
-}
 .more-tools .tool-what {
   font-size: 14px;
   color: var(--muted);
+}
+.more-tools .tool-tick {
+  max-width: none;
+  width: 100%;
 }
 .more-tools .tool-tick input {
   flex: none;
@@ -1192,7 +1187,25 @@ body .style-layout .style-pin > section > .preview > .preview-corner:has(> .pe-o
   flex-direction: column;
   gap: 12px;
   padding: 4px 0 16px;
+  font-size: 16px;
 }
 .more-tools .tool-body > .card {
   margin: 0;
+}
+/* On a computer the fold gets a row of its own under Print's three columns: an open tool (a size run's table, the
+   dressmaker's pack) needs more room than the 340px column beside the sheet (code review, Nov 28). Its tools sit two
+   across. */
+@media (min-width: 1100px) {
+  .card.print-top {
+    grid-template-areas: 'head sheet controls' 'cover sheet controls' 'cover sheet .' 'more more more';
+  }
+  .print-top .print-more {
+    padding-top: 28px;
+  }
+  .more-tools .tool-body {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 28px;
+    align-items: start;
+  }
 }

@@ -3,11 +3,13 @@ import type { ReactNode } from 'react';
 // Print's extra tools in one fold, "More for this pattern" (Cat picked A, Nov 28). They used to drop across the page
 // at once behind Show all tools: a dressmaker's pack, a size run and a technical flat, each a card of its own.
 
-/** The fold. Open is the all-tools view and closed the simple one, as Show all tools was, so the choice still carries
- *  to Style and Cut it and is kept with the account. */
-export function MoreTools({ open, onToggle, children }: { open: boolean; onToggle: (open: boolean) => void; children: ReactNode }) {
+/** The fold, closed when Print opens. Opening it is Show all tools as it was: the simple view turns to all tools, which
+ *  carries to Style and Cut it and is kept with the account. Closing it only tidies Print: going back to the simple
+ *  view would also put back its simple seam allowances and finish (SIMPLE_FINISH), so that stays Style's own
+ *  Show fewer tools (code review, Nov 28). */
+export function MoreTools({ onOpen, children }: { onOpen: () => void; children: ReactNode }) {
   return (
-    <details className="small fold-link more-tools" open={open} onToggle={(e) => onToggle((e.currentTarget as HTMLDetailsElement).open)}>
+    <details className="fold-link more-tools" onToggle={(e) => (e.currentTarget as HTMLDetailsElement).open && onOpen()}>
       <summary>More for this pattern</summary>
       <div className="tool-rows">{children}</div>
     </details>

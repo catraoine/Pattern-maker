@@ -638,35 +638,37 @@ export function ExportScreen({ example, onNextSew, onMeasureMe, onEditMeasuremen
           <div className="print-more">
             {/* Every extra tool in one fold at the foot of Print (Cat picked A, Nov 28). Most sewists never need them, so
                 they stay in reach without a page of their own, and Next: Cut and sew stays the last thing on Print. */}
-            <MoreTools open={mode === 'all'} onToggle={(open) => (open ? 'all' : 'simple') !== mode && onMode?.(open ? 'all' : 'simple')}>
-              {can('byHand') && !imported && (
-                <ToolTick name="Draft it by hand" what="Pages to draw it yourself on pattern paper, point by point" checked={!!finish.byHand} onChange={(on) => onFinish({ ...finish, byHand: on })} />
-              )}
-              {can('makerPack') && (
-                <ToolRow name="Dressmaker's pack" what={made?.flat && can('techFlat') ? 'Technical flat, tech pack, DXF and SVG files' : 'Tech pack, DXF and SVG files'}>
-                  {/* The technical flat leads the pack (Cat, Nov 28: one row, not two): it is for a dressmaker, and goes
-                      on the instructions' cover too. */}
-                  {made?.flat && can('techFlat') && (
-                    <section className="card" aria-labelledby="flattitle">
-                      <p className="eyebrow">Technical flat</p>
-                      <h2 id="flattitle">{title}</h2>
-                      <TechFlatView flat={made.flat} title={title} />
-                      <p className="muted small">
-                        Drawn to scale from your pattern{garment === 'tee' ? '' : ', with the darts sewn'}. It goes on the cover of the instructions, for a dressmaker
-                        or anyone checking the design.
-                      </p>
-                    </section>
-                  )}
-                  {makerPack}
-                </ToolRow>
-              )}
-              {values && draftAt && can('sizeRun') && (
-                <ToolRow name="Size run" what="Grade this pattern up and down">
-                  <SizeRun garment={garment} values={values} draftAt={draftAt} title={title} fileBase={fileBase} width={finish.fabricWidth} nap={nap} download={download} />
-                  <InterestCard offer="sizerun" pattern={title} />
-                </ToolRow>
-              )}
-            </MoreTools>
+            {(onMode || mode === 'all') && (
+              <MoreTools onOpen={() => mode !== 'all' && onMode?.('all')}>
+                {can('byHand') && !imported && (
+                  <ToolTick name="Draft it by hand" what="Pages to draw it yourself on pattern paper, point by point" checked={!!finish.byHand} onChange={(on) => onFinish({ ...finish, byHand: on })} />
+                )}
+                {can('makerPack') && (
+                  <ToolRow name="Dressmaker's pack" what={made?.flat && can('techFlat') ? 'Technical flat, tech pack, DXF and SVG files' : 'Tech pack, DXF and SVG files'}>
+                    {/* The technical flat leads the pack (Cat, Nov 28: one row, not two): it is for a dressmaker, and goes
+                        on the instructions' cover too. */}
+                    {made?.flat && can('techFlat') && (
+                      <section className="card" aria-labelledby="flattitle">
+                        <p className="eyebrow">Technical flat</p>
+                        <h2 id="flattitle">{title}</h2>
+                        <TechFlatView flat={made.flat} title={title} />
+                        <p className="muted small">
+                          Drawn to scale from your pattern{garment === 'tee' ? '' : ', with the darts sewn'}. It goes on the cover of the instructions, for a dressmaker
+                          or anyone checking the design.
+                        </p>
+                      </section>
+                    )}
+                    {makerPack}
+                  </ToolRow>
+                )}
+                {values && draftAt && can('sizeRun') && (
+                  <ToolRow name="Size run" what="Grade this pattern up and down">
+                    <SizeRun garment={garment} values={values} draftAt={draftAt} title={title} fileBase={fileBase} width={finish.fabricWidth} nap={nap} download={download} />
+                    <InterestCard offer="sizerun" pattern={title} />
+                  </ToolRow>
+                )}
+              </MoreTools>
+            )}
           </div>
         </section>
       </div>
