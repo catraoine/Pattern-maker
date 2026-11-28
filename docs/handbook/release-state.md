@@ -28,8 +28,10 @@ The ship rule (Cat, Nov 17, 7:47 pm):
    checks this.
 8. Pattern fixes from the bug hunt and fit threads apply themselves once their checks pass (and CLO, when the shape
    changes), with no "apply" from Cat (Cat, Nov 25: "start auto applying these pattern fixes", then "add"). They still
-   go live only on her "ship", and each one is listed in plain words on the ready list. Cat still decides any change
-   to an active tester's pattern, to a launch pattern during the freeze, and any judgment of how a look looks.
+   go live only on her "ship", and each one is listed in plain words on the ready list. Since Nov 27 the bug hunt's app
+   fixes (screens, wording that fixes a fault, flows) apply themselves the same way (Cat: "add"). Cat still decides any
+   change to a pattern or its steps that an active tester is using, to a launch pattern during the freeze, and any
+   judgment of how a look looks.
 
 Each release still runs the full checks on the joined code, checks the live site after, pushes main to match live and
 saves a bundle to code-backup/.
