@@ -52,6 +52,18 @@ describe('envelope cover', () => {
     expect(inches.getTitle()).toBe('Maison Tracé: 36 in a-line skirt');
   });
 
+  // EM walk, Nov 28: an inch tester's A0 pattern came with its booklet on A4.
+  it('lays an A0 pattern\'s booklet on Letter in inches and on A4 in cm', async () => {
+    const draft = draftSkirt(m);
+    const sheet = layout(draft.pieces, 'Knee a-line skirt', [], undefined, { paper: 'a0' });
+    const extras = { title: 'knee a-line skirt', summary: { rows: [], checks: [], madeFor: 'Me', flat: skirtFlat(draft) }, part: 'booklet' as const };
+    const size = async (unit: 'cm' | 'in') => (await PDFDocument.load(await toTiledPdf(sheet, 'a0', { ...extras, unit }))).getPage(0).getSize();
+    const letter = (await PDFDocument.load(await toTiledPdf(sheet, 'letter', extras))).getPage(0).getSize();
+    const a4 = (await PDFDocument.load(await toTiledPdf(sheet, 'a4', extras))).getPage(0).getSize();
+    expect(await size('in')).toEqual(letter);
+    expect(await size('cm')).toEqual(a4);
+  });
+
   // Fit tester walk, Nov 14: the Ice Peplum's long name ran off the cover in one line.
   it('wraps a long name onto as many lines as it needs, each inside the frame', () => {
     const widthOf = (l: string, size: number) => l.length * size * 0.6;

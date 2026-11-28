@@ -125,6 +125,10 @@ const PAPERS: { id: Paper | 'projector'; label: string }[] = [
 
 const isProjector = (o: Output): o is 'projector' | 'projectorDark' => o === 'projector' || o === 'projectorDark';
 
+/** The booklet's paper: home paper, which for A0 and a projector is Letter in inches and A4 in cm. An inch tester's A0
+ *  booklet came out on A4 (EM walk, Nov 28). */
+const bookletPaper = (o: Output, unit: Unit): Paper => (isProjector(o) || o === 'a0' ? (unit === 'in' ? 'letter' : 'a4') : o);
+
 // Projector mode loads only when it is opened.
 const ProjectorMode = lazy(() => import('../ui/ProjectorMode').then((m) => ({ default: m.ProjectorMode })));
 
@@ -158,6 +162,12 @@ export function ExportScreen({ example, onNextSew, onMeasureMe, onEditMeasuremen
     setPicked(p);
     if (!isProjector(p)) onPaper?.(p);
   };
+  // The home paper to go back to from the copy shop's A0.
+  const [lastHome, setLastHome] = useState<Paper | undefined>(savedPaper && savedPaper !== 'a0' ? savedPaper : undefined);
+  useEffect(() => {
+    if (picked === 'a4' || picked === 'letter') setLastHome(picked);
+  }, [picked]);
+  const homePaper = lastHome ?? defaultPaper(unit);
   // The copy-shop sheet (Cat, 2026-10-22) and the projector file (Cat, 2026-10-28) show in every view: many
   // sewists, beginners too, project instead of taping pages.
   const paper: Output = picked;
@@ -292,7 +302,7 @@ export function ExportScreen({ example, onNextSew, onMeasureMe, onEditMeasuremen
   // Named for its paper too: the Letter and A4 booklets shared one name, so the second overwrote the first or came down
   // as "(1)" (pretend tester, Nov 18).
   // The paper it's laid out on, which for A0 and a projector is A4 or Letter (see the booklet's toTiledPdf above).
-  const bookletName = `${fileBase}-${isProjector(paper) ? (unit === 'in' ? 'letter' : 'a4') : paper === 'a0' ? 'a4' : paper}${inchPart}-instructions.pdf`;
+  const bookletName = `${fileBase}-${bookletPaper(paper, unit)}${inchPart}-instructions.pdf`;
   // Both files together, for sharing and emailing.
   const files = () => [new File([ready!], fileName, { type: 'application/pdf' }), ...(booklet ? [new File([booklet.bytes], bookletName, { type: 'application/pdf' })] : [])];
 
@@ -460,7 +470,7 @@ export function ExportScreen({ example, onNextSew, onMeasureMe, onEditMeasuremen
                     Share the files
                   </button>
                 )}
-                <CopyShopWay a0={paper === 'a0'} onA0={() => setPaper('a0')} unit={unit} />
+                <CopyShopWay a0={paper === 'a0'} onA0={() => setPaper('a0')} unit={unit} back={{ label: homePaper === 'letter' ? 'US Letter' : 'A4', go: () => setPaper(homePaper) }} />
                 {/* It moves the measurements and styling, not the files, so it's named for why you'd use it. */}
                 {sendLink && phone && <SendToDevice link={sendLink} className="way" />}
               </div>
