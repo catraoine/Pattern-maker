@@ -345,7 +345,9 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
             done();
           }}
         >
-          {page.back ? 'Back' : 'Skip this step'}
+          {/* Not "Skip": the tester invite asks them not to tap Skip, meaning skipping measuring, and the weight is only ever
+              optional (pretend tester EK walk, Nov 27). */}
+          {page.back ? 'Back' : 'Leave my weight out'}
         </button>
       </Shell>
     );
