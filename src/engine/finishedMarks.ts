@@ -74,11 +74,20 @@ export function withFinishedMarks(pieces: Piece[], spec: SpecRow[]): Piece[] {
   const marks = new Map<Piece, FinishedMark[]>();
   // The level is tried as given, then a little either side, until the words fit clear of the lines.
   // `roomy`: only where the words fit whole, so a narrower piece can be passed over for one with room.
-  const add = (pc: Piece, y: number, name: string, r: SpecRow, above = false, tries = [0, 1.5, -1.5, 3], roomy = false) => {
+  // `fixed`: the bullseye stays at the level and only its words move to where they fit.
+  const add = (pc: Piece, y: number, name: string, r: SpecRow, above = false, tries = [0, 1.5, -1.5, 3], roomy = false, fixed = false) => {
     const title = `FINISHED ${name} ${fmt(r.finished as number)} CM`;
     const need = textWidth(title, MARK_TEXT, 0.12) * 1.3 + 0.6;
     const spots = tries.map((dy) => ({ y: y + dy, at: across(pc, y + dy, above ? [-2.4, 0.8] : [-0.8, 2.6]) }));
-    const spot = spots.find((s) => s.at && s.at.w >= need) ?? (roomy ? undefined : spots.find((s) => s.at && s.at.w >= 4));
+    // A bullseye held at its level sits where its words are centred, so that place must be clear at the level too.
+    const clearAt = (x: number) => {
+      if (!fixed) return true;
+      const edge = crossings(pc.outline.points(), y);
+      const lines = [...pc.lines.map((ln) => ln.points()), ...(pc.grain ? [pc.grain] : [])];
+      const near = lines.flatMap((ln) => crossings(ln.length === 2 ? [...ln, ...ln.slice().reverse()] : ln, y));
+      return edge.length >= 2 && x > edge[0] + EDGE_WORDS && x < edge[edge.length - 1] - EDGE_WORDS && near.every((c) => Math.abs(c - x) > 0.8);
+    };
+    const spot = spots.find((s) => s.at && s.at.w >= need && clearAt(s.at.x)) ?? (roomy ? undefined : spots.find((s) => s.at && s.at.w >= 4));
     if (!spot?.at) return false;
     // A low rise's waist is read against the body where its top sits: "YOU 89.9 CM" on a 79 cm waist read as a
     // mistake (pretend tester DN walk, Nov 20), so the note says where.
@@ -91,7 +100,7 @@ export function withFinishedMarks(pieces: Piece[], spec: SpecRow[]): Piece[] {
     const inch = (cm: number) => toInches(cm).toUpperCase();
     const youIn = low ? `YOU ${inch(r.body!)}, ${inch(Number(low[1]))} ${low[2].toUpperCase()} YOUR WAIST` : `YOU ${inch(r.body!)}`;
     const easeIn = e8 === 0 ? '0' : `${e8 > 0 ? '+' : '-'}${inch(Math.abs(e8) * eighth)}`;
-    const mark = { at: p(spot.at.x, spot.y), title, note: `${you} · EASE ${signed(r.ease!)} CM`, inch: { title: `FINISHED ${name} ${inch(r.finished as number)}`, note: `${youIn} · EASE ${easeIn}` } };
+    const mark = { at: p(spot.at.x, fixed ? y : spot.y), ...(fixed && spot.y !== y ? { wordsDy: spot.y - y } : {}), title, note: `${you} · EASE ${signed(r.ease!)} CM`, inch: { title: `FINISHED ${name} ${inch(r.finished as number)}`, note: `${youIn} · EASE ${easeIn}` } };
     marks.set(pc, [...(marks.get(pc) ?? []), above ? { ...mark, above } : mark]);
     return true;
   };
@@ -132,8 +141,11 @@ export function withFinishedMarks(pieces: Piece[], spec: SpecRow[]): Piece[] {
       const level = (x: Piece) => x.draft?.points.find((d) => /^(Centre front|Side) waist\b/.test(d.note))?.at.y;
       const at = [...(upper ? [upper] : []), ...fronts.filter((x) => x !== upper && !/peplum/i.test(x.name))].filter((x) => level(x) !== undefined);
       // Only where the words fit whole, above the level or below it: squeezed in, they ran over the side front's grain
-      // arrow on a small body.
-      at.find((x) => add(x, level(x)!, 'WAIST', waist, true, [0, -1, -2, -3, -4], true) || add(x, level(x)!, 'WAIST', waist, false, [0, 1, 2, 3], true));
+      // arrow on a small body. The bullseye itself stays on the waist and only its words move: moved with them, it sat
+      // up to 3 cm below the waist (EM walk, Nov 28).
+      // Nearest first, so the words stay close to their bullseye: above it or below it by up to 2 cm, then further up.
+      const tries: [boolean, number[]][] = [[true, [0, -1, -2]], [false, [0, 1, 2]], [true, [-3, -4, -5]], [false, [3]]];
+      at.find((x) => tries.some(([above, dys]) => add(x, level(x)!, 'WAIST', waist, above, dys, true, true)));
     }
   }
   const hip = row('Hip');
