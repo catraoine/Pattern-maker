@@ -310,6 +310,8 @@ interface Lab {
   /** Furniture a label keeps off only when it can (a page's cut line, the grain arrow): a label moving off anything
    *  else may land on it, or a seam name near a page join found nowhere to go and stayed on its diamond. */
   soft?: boolean;
+  /** Never moved onto the places `settle` is given as `never` (a finished mark's words, kept off the grain arrow). */
+  offArrow?: boolean;
 }
 
 const LABEL_GAP = 0.3;
@@ -335,7 +337,9 @@ function besides(l: Lab, box: Box): boolean {
  * slide along its line. Nothing moves onto a higher-ranked label, onto a line drawn across the piece
  * (`marks`), or off the piece.
  */
-function settle(labs: Lab[], poly: P[], marks: P[][] = []) {
+/** `marks`: lines a label isn't moved onto, unless it already sat on one. `never`: places a label marked `offArrow` is never
+ *  moved onto. */
+function settle(labs: Lab[], poly: P[], marks: P[][] = [], never: Box[] = []) {
   for (const l of labs) {
     if (l.rank === 0 || within(l.box, poly)) continue;
     outer: for (let d = 0.5; d <= 4; d += 0.5)
@@ -368,7 +372,7 @@ function settle(labs: Lab[], poly: P[], marks: P[][] = []) {
         const onLine = marks.some((ln) => crossesLine(mv.box, ln));
         const clear = (m: P) => {
           const bx = shifted(mv.box, m);
-          return !overlaps(bx, stay.box) && !others.some((o) => o.rank <= mv.rank && !(o.minRank && mv.rank < o.minRank) && !(o.soft && !stay.soft) && overlaps(o.box, bx)) && (onLine || !marks.some((ln) => crossesLine(bx, ln)));
+          return !overlaps(bx, stay.box) && !others.some((o) => o.rank <= mv.rank && !(o.minRank && mv.rank < o.minRank) && !(o.soft && !stay.soft) && overlaps(o.box, bx)) && (onLine || !marks.some((ln) => crossesLine(bx, ln))) && !(mv.offArrow && never.some((o) => overlaps(bx, o)));
         };
         const valid = options.filter((m) => inside(m) && clear(m)).sort((x, y) => dist(x) - dist(y));
         // A grain or fold label slides along its line rather than away from it, when it can.
@@ -778,19 +782,23 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
     (pc.finished ?? []).forEach((f, k) => {
       const c = t(f.at);
       const [ring, across, down] = bullseyes[k];
-      // The words, where they had room: by the bullseye, or a little further off it on the side they print, so on a
-      // turned piece too they move away from it rather than back over it.
-      const w = f.wordsDy ? add(c, p(0, (f.above ? -1 : 1) * Math.abs(f.wordsDy))) : c;
+      // The words, where they had room: by the bullseye, or moved up or down the piece to where room was found. That
+      // place is on the piece, so on a piece turned upside down on the sheet the words go there, on the sheet's other
+      // side of the mark, rather than over the arrow or seam the room was found clear of.
+      const turned = f.wordsDy !== undefined && sub(t(add(f.at, p(0, 1))), c).y < -0.5;
+      const above = turned ? !f.above : !!f.above;
+      const w = f.wordsDy ? t(add(f.at, p(0, f.wordsDy))) : c;
       // Moved 2 cm or more, a fine line joins them to it, so they read as its words.
       if (Math.abs(f.wordsDy ?? 0) >= 2) {
-        const s = f.above ? -1 : 1;
-        poly([add(c, p(0, s * 0.7)), add(c, p(0, s * (Math.abs(f.wordsDy!) + (f.above ? 0.55 : 0.7))))], 'fine');
+        const s = above ? -1 : 1;
+        poly([add(c, p(0, s * 0.7)), add(w, p(0, above ? -0.55 : 0.7))], 'fine');
       }
       poly(ring, 'mark', true);
       poly(across, 'mark');
       poly(down, 'mark');
-      lab(text(add(w, p(0, f.above ? -1.55 : 1.35)), f.title, MARK_TEXT, 0, 'middle', { face: 'label', tracking: 0.12, inch: f.inch?.title }), 2, 0.12);
-      lab(text(add(w, p(0, f.above ? -0.9 : 2.0)), f.note, 0.36, 0, 'middle', { face: 'label', tracking: 0.12, grey: 0.35, inch: f.inch?.note }), 2, 0.12);
+      lab(text(add(w, p(0, above ? -1.55 : 1.35)), f.title, MARK_TEXT, 0, 'middle', { face: 'label', tracking: 0.12, inch: f.inch?.title }), 2, 0.12);
+      lab(text(add(w, p(0, above ? -0.9 : 2.0)), f.note, 0.36, 0, 'middle', { face: 'label', tracking: 0.12, grey: 0.35, inch: f.inch?.note }), 2, 0.12);
+      labs.slice(-2).forEach((l) => (l.offArrow = true));
     });
     // The pages' joining diamonds are printed over the sheet, and one sat on "WAIST · 5/8 IN ALLOWANCE" (pretend tester
     // DJ walk, Nov 19): where home paper (A4 or Letter, the same sheet for both) puts one, the labels keep off it.
@@ -1067,7 +1075,11 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
     labs.push(...furniture);
     // Nor onto a bullseye: the Ice Peplum's bust note, pushed up out of the page's footer, printed through its own mark
     // (EL walk, Nov 27).
-    settle(labs, stitch, blockMarks);
+    // Nor onto the grain arrow, even from a spot already touching a bullseye's cross: the Ice Peplum's bust and waist
+    // words moved onto it and its line cut through their fractions (EM walk, Nov 28).
+    // (The arrow as wide as its heads, as the check for words on it reads it.)
+    const grainLine = gm && prims.includes(gm.line) ? [lineBox(gm.line.pts[0], gm.line.pts[1], 0.8)] : [];
+    settle(labs, stitch, blockMarks, grainLine);
     // A seam name left with no room is left off: the notches and the garment's own labels say it. One left across a
     // page's cut line stays (taped, it reads whole), and one on the grain arrow (better crossed than missing).
     for (const l of [...labs].reverse()) {

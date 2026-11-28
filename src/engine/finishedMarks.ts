@@ -100,7 +100,7 @@ export function withFinishedMarks(pieces: Piece[], spec: SpecRow[]): Piece[] {
     const inch = (cm: number) => toInches(cm).toUpperCase();
     const youIn = low ? `YOU ${inch(r.body!)}, ${inch(Number(low[1]))} ${low[2].toUpperCase()} YOUR WAIST` : `YOU ${inch(r.body!)}`;
     const easeIn = e8 === 0 ? '0' : `${e8 > 0 ? '+' : '-'}${inch(Math.abs(e8) * eighth)}`;
-    const mark = { at: p(spot.at.x, fixed ? y : spot.y), ...(fixed && spot.y !== y ? { wordsDy: spot.y - y } : {}), title, note: `${you} · EASE ${signed(r.ease!)} CM`, inch: { title: `FINISHED ${name} ${inch(r.finished as number)}`, note: `${youIn} · EASE ${easeIn}` } };
+    const mark = { at: p(spot.at.x, fixed ? y : spot.y), ...(fixed ? { wordsDy: spot.y - y } : {}), title, note: `${you} · EASE ${signed(r.ease!)} CM`, inch: { title: `FINISHED ${name} ${inch(r.finished as number)}`, note: `${youIn} · EASE ${easeIn}` } };
     marks.set(pc, [...(marks.get(pc) ?? []), above ? { ...mark, above } : mark]);
     return true;
   };
