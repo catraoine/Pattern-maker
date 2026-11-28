@@ -30,6 +30,9 @@ export type Prim =
       /** Extra space between letters, as a fraction of the size. */
       tracking?: number;
       grey?: number;
+      /** The words as an inch file prints them, where rewriting `text` length by length would not add up (a finished
+       *  mark's ease, rounded on its own, beside its body and finished size). */
+      inch?: string;
     } & Order);
 
 export interface Sheet {
@@ -691,7 +694,7 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
     size: number,
     rotate = 0,
     anchor: 'middle' | 'start' = 'middle',
-    opts: { face?: Face; tracking?: number; grey?: number } = {},
+    opts: { face?: Face; tracking?: number; grey?: number; inch?: string } = {},
   ): TextPrim => {
     const pr: TextPrim = { kind: 'text', at, text: t, size, rotate, anchor, ...opts, ...order };
     prims.push(pr);
@@ -778,8 +781,8 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
       poly(ring, 'mark', true);
       poly(across, 'mark');
       poly(down, 'mark');
-      lab(text(add(c, p(0, f.above ? -1.55 : 1.35)), f.title, MARK_TEXT, 0, 'middle', { face: 'label', tracking: 0.12 }), 2, 0.12);
-      lab(text(add(c, p(0, f.above ? -0.9 : 2.0)), f.note, 0.36, 0, 'middle', { face: 'label', tracking: 0.12, grey: 0.35 }), 2, 0.12);
+      lab(text(add(c, p(0, f.above ? -1.55 : 1.35)), f.title, MARK_TEXT, 0, 'middle', { face: 'label', tracking: 0.12, inch: f.inch?.title }), 2, 0.12);
+      lab(text(add(c, p(0, f.above ? -0.9 : 2.0)), f.note, 0.36, 0, 'middle', { face: 'label', tracking: 0.12, grey: 0.35, inch: f.inch?.note }), 2, 0.12);
     });
     // The pages' joining diamonds are printed over the sheet, and one sat on "WAIST · 5/8 IN ALLOWANCE" (pretend tester
     // DJ walk, Nov 19): where home paper (A4 or Letter, the same sheet for both) puts one, the labels keep off it.
