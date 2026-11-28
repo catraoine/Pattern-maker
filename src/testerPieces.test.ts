@@ -541,3 +541,23 @@ describe('tester pieces: how the steps read', () => {
     expect(step(p, 'Fold the front pleat')).toContain('for the first 4 cm below the waist edge');
   });
 });
+
+// EM walk, Nov 28: the grain arrow ran through the Ice Peplum's "FINISHED BUST 37-1/2 IN" and "FINISHED WAIST 31 IN",
+// the words settled onto it round a page join. Across bodies from the small to the large, on every tester piece, the
+// finished measurement words keep off it.
+describe('the finished measurement words', () => {
+  const sweep = Array.from({ length: 11 }, (_, k) => {
+    const [S, L] = [BODIES.small, BODIES.large] as unknown as Record<string, number>[];
+    return Object.fromEntries(Object.keys(S).map((key) => [key, Math.round((S[key] + ((L[key] - S[key]) * k) / 10) * 10) / 10])) as unknown as MeasurementValues;
+  });
+  for (const id of ['blush-shift', 'ice-peplum', 'black-pleated-skirt', 'chocolate-barrel', 'black-vest'])
+    it(`keep off the grain arrow on ${id}`, () => {
+      const hit = sweep.flatMap((values, k) => {
+        const print = made(id, values);
+        return grainCollisions(layout(print.pieces, `Maison Tracé: ${id}`, print.notes, { pattern: id }))
+          .filter((h) => /^FINISHED |^YOU /.test(h.text))
+          .map((h) => `body ${k}, ${print.pieces[h.piece].name}: ${h.text}`);
+      });
+      expect(hit).toEqual([]);
+    });
+});

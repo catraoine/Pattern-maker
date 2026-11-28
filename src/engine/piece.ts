@@ -56,6 +56,9 @@ export interface FinishedMark {
   note: string;
   /** The words over the mark rather than under it: a top's waist, near its lower edge. */
   above?: boolean;
+  /** How far the words sit from where they'd go by the bullseye, in cm down the piece, when only they had room further
+   *  off: the bullseye stays on its level. */
+  wordsDy?: number;
   /** The title and note as an inch file prints them, worked out from the numbers so the three add up. */
   inch?: { title: string; note: string };
 }
