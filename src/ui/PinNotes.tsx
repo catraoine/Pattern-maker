@@ -1,14 +1,27 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { sendNote } from '../help/note';
-import { HoldWatch, holdsItsOwn, pinFor, pinLine, spotAt, type Pin } from '../help/pin';
+import { CONTROL, HoldWatch, holdsItsOwn, pinFor, spotAt, type Pin } from '../help/pin';
 import { REPLY_EMAIL, REPLY_EMAIL_MAX } from '../help/replyEmail';
 import { OWNER } from '../legal';
 import { onPhone } from './device';
-import { TestingTag } from './TestingTag';
 
-/** The screen's name as the tester knows it, for the pinned line. */
-const SCREEN_NAME: Record<string, string> = { welcome: 'Welcome', measure: 'Measure', steps: 'Measuring', style: 'Style', photo: 'Photo', export: 'Print', sew: 'Sew', fitting: 'Fitting', scale: 'True scale', account: 'Your account', collection: 'Collection', help: 'Help', client: 'Client book', form: 'Your form' };
-const screenName = (view: string) => SCREEN_NAME[view] ?? `${view[0]?.toUpperCase() ?? ''}${view.slice(1)}`;
+const EMAIL_KEY = 'maison-trace-note-email';
+const keptEmail = () => {
+  try {
+    return localStorage.getItem(EMAIL_KEY) ?? '';
+  } catch {
+    return '';
+  }
+};
+const keepEmail = (email: string) => {
+  try {
+    // Cleared before sending: forgotten too, so the next note doesn't ask for a reply they no longer want.
+    if (email) localStorage.setItem(EMAIL_KEY, email);
+    else localStorage.removeItem(EMAIL_KEY);
+  } catch {
+    // Storage blocked: they type it again next time.
+  }
+};
 
 interface Props {
   /** The screen showing now, sent as the note's screen. */
@@ -29,7 +42,9 @@ type Sending = 'idle' | 'sending' | 'sent' | 'limit' | 'busy' | 'failed' | 'bade
  */
 export function PinNotes({ view, garment, hide }: Props) {
   const [ring, setRing] = useState<{ x: number; y: number }>();
-  const [pin, setPin] = useState<{ x: number; y: number; pin: Pin; view: string }>();
+  const [pin, setPin] = useState<Placed>();
+  // Kept the same across renders, so the thank-you's timer isn't started again by every render above it.
+  const close = useCallback(() => setPin(undefined), []);
   // Read inside the page's listeners, which are added once.
   const now = useRef({ view, garment, hide, open: false });
   now.current = { view, garment, hide, open: !!pin };
@@ -37,14 +52,15 @@ export function PinNotes({ view, garment, hide }: Props) {
   const swallowUntil = useRef(0);
 
   useEffect(() => {
-    const open = (x: number, y: number, el: Element) => {
+    // `touch`: a finger held, whose lift may send a tap; a right click sends none, so nothing is swallowed after it.
+    const open = (x: number, y: number, el: Element, touch = true) => {
       setRing(undefined);
       if (now.current.open) return;
       const { view: v, garment: g, hide: names } = now.current;
       // Text a long press started to pick on a phone, let go, so the box opens clean.
       window.getSelection?.()?.removeAllRanges();
-      swallowUntil.current = Date.now() + 800;
-      setPin({ x, y, view: v, pin: pinFor(spotAt(el, x, y, v, names), x, y, v, g, onPhone(), window.innerWidth, window.innerHeight) });
+      swallowUntil.current = touch ? Date.now() + 800 : 0;
+      setPin({ x, y, view: v, clear: clearOf(el) ?? { left: x, right: x }, pin: pinFor(spotAt(el, x, y, v, names), x, y, v, g, onPhone(), window.innerWidth, window.innerHeight) });
     };
     const watch = new HoldWatch({ ring: (x, y) => setRing({ x, y }), done: open, stop: () => setRing(undefined) });
     const down = (e: PointerEvent) => (now.current.open ? undefined : watch.start(e, e.target instanceof Element ? e.target : null));
@@ -61,11 +77,12 @@ export function PinNotes({ view, garment, hide }: Props) {
       // A right click with a mouse or trackpad. A touch that reaches here moved or landed somewhere we leave alone.
       if ((e as PointerEvent).pointerType === 'touch' || onPhone()) return;
       e.preventDefault();
-      open(e.clientX, e.clientY, el);
+      open(e.clientX, e.clientY, el, false);
     };
     const click = (e: MouseEvent) => {
       if (Date.now() > swallowUntil.current) return;
-      if (e.target instanceof Element && e.target.closest('.pin-layer')) return;
+      // Only the box itself takes taps: the dimmed background would close the box on the lift that ends the hold.
+      if (e.target instanceof Element && e.target.closest('.pin-box')) return;
       e.preventDefault();
       e.stopPropagation();
       swallowUntil.current = 0;
@@ -97,15 +114,41 @@ export function PinNotes({ view, garment, hide }: Props) {
   return (
     <>
       {ring && !pin && <span className="pin-ring" style={{ left: ring.x, top: ring.y }} aria-hidden="true" />}
-      {pin && <PinBox at={pin} onClose={() => setPin(undefined)} />}
+      {pin && <PinBox at={pin} onClose={close} />}
     </>
   );
 }
 
-function PinBox({ at, onClose }: { at: { x: number; y: number; pin: Pin; view: string }; onClose: () => void }) {
+/** A held spot, and the box it shouldn't cover. */
+interface Placed {
+  x: number;
+  y: number;
+  pin: Pin;
+  view: string;
+  clear: { left: number; right: number };
+}
+
+/** The control held (a chip, a button), so the box opens beside it rather than over it. A drawing or anything wide
+ *  only keeps the pin itself clear (1366 wide, the Nov 27 stills: the box covered the start of the held chip). */
+function clearOf(el: Element) {
+  const c = el.closest(CONTROL);
+  const r = c?.getBoundingClientRect();
+  return r && r.width < window.innerWidth / 3 ? { left: r.left, right: r.right } : undefined;
+}
+
+function PinBox({ at, onClose }: { at: Placed; onClose: () => void }) {
   const [note, setNote] = useState('');
-  const [email, setEmail] = useState('');
+  // The email given once is kept on this device, so a tester who wants replies isn't asked every time.
+  const [email, setEmail] = useState(keptEmail);
   const [state, setState] = useState<Sending>('idle');
+
+  // Sent: the thank-you shows a moment, then the box goes by itself.
+  useEffect(() => {
+    if (state !== 'sent') return;
+    keepEmail(email.trim());
+    const t = setTimeout(onClose, 2500);
+    return () => clearTimeout(t);
+  }, [state, email, onClose]);
 
   useEffect(() => {
     // Closes the box only: caught first, so an enlarged sketch or sewing mode under it stays open.
@@ -121,12 +164,13 @@ function PinBox({ at, onClose }: { at: { x: number; y: number; pin: Pin; view: s
   // Beside the pin on a computer, kept on screen; a phone gets a sheet along the bottom instead (48-pin-notes.css).
   const w = window.innerWidth;
   const h = window.innerHeight;
-  const side = at.x + 16 + 360 < w ? at.x + 16 : Math.max(16, at.x - 16 - 360);
+  const side = at.clear.right + 16 + 360 < w ? at.clear.right + 16 : at.clear.left - 16 - 360 >= 16 ? at.clear.left - 16 - 360 : Math.max(16, at.x - 16 - 360);
   const top = Math.min(Math.max(16, at.y - 40), Math.max(16, h - 520));
 
   return (
     <div className="pin-layer" role="presentation">
-      <button type="button" className="pin-shade" aria-label="Close the note" onClick={onClose} />
+      {/* Pressing it never takes the typing away from the note: the tap a phone sends as the hold lifts lands here. */}
+      <button type="button" className="pin-shade" aria-label="Close the note" tabIndex={-1} onMouseDown={(e) => e.preventDefault()} onClick={onClose} />
       <span className="pin-dot" style={{ left: at.x, top: at.y }} aria-hidden="true" />
       <form
         // On a phone the sheet sits on the half of the screen away from the pin, so the spot stays in sight.
@@ -145,36 +189,25 @@ function PinBox({ at, onClose }: { at: { x: number; y: number; pin: Pin; view: s
       >
         <div className="help-top">
           <p className="eyebrow" id="pintitle">
-            Help &amp; feedback <TestingTag tool="pin_notes" />
+            Help &amp; feedback
           </p>
-          <button type="button" className="link" onClick={onClose}>
-            Close
+          <button type="button" className="link pin-x" aria-label="Close" onClick={onClose}>
+            ✕
           </button>
         </div>
         {state === 'sent' ? (
-          <>
-            <p>{email.trim() ? 'Your note is in. We’ll reply by email.' : 'Your note is in. Thank you.'}</p>
-            <button type="button" className="secondary sm" onClick={onClose}>
-              Done
-            </button>
-          </>
+          <p role="status">{email.trim() ? 'Thank you. We’ll reply by email.' : 'Thank you. We read every note.'}</p>
         ) : (
           <>
-            <p className="pin-where small">
-              <span className="muted">Pinned: </span>
-              {pinLine(at.pin, screenName(at.view))}
-            </p>
+            {/* One question and an optional email, nothing else to read first (Cat, Nov 27: "way too cluttered", then A1). The spot, garment and device
+                still go with the note, out of sight. */}
             <div className="field plain">
-              <label htmlFor="pinnote">What’s happening here, or what would make it better?</label>
-              {/* Focused at once: the hold already said they mean to write. */}
-              <textarea id="pinnote" rows={4} maxLength={2000} autoFocus value={note} onChange={(e) => setNote(e.target.value)} />
+              <textarea id="pinnote" rows={3} maxLength={2000} autoFocus aria-label="What’s happening here?" placeholder="What’s happening here?" value={note} onChange={(e) => setNote(e.target.value)} />
             </div>
+            {/* Always in sight and plainly optional (Cat's pick A1, Nov 27); kept on this device once given. */}
             <div className="field plain">
-              <label htmlFor="pinemail">Your email, if you’d like a reply</label>
-              <input id="pinemail" type="email" autoComplete="email" inputMode="email" maxLength={REPLY_EMAIL_MAX} value={email} onChange={(e) => setEmail(e.target.value)} />
+              <input type="email" autoComplete="email" inputMode="email" maxLength={REPLY_EMAIL_MAX} aria-label="Email for a reply (optional)" placeholder="Email for a reply (optional)" value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
-            <p className="help-added">Added for you: this spot, that you’re a fit tester, your phone or computer and the app version.</p>
-            {at.pin.device === 'computer' && <p className="help-added">Need your browser’s own menu? Hold Shift as you right click.</p>}
             <button type="submit" className="primary" disabled={!note.trim() || state === 'sending'}>
               {state === 'sending' ? 'Sending…' : 'Send'}
             </button>
@@ -195,7 +228,7 @@ function PinBox({ at, onClose }: { at: { x: number; y: number; pin: Pin; view: s
             )}
             {state === 'bademail' && (
               <p className="msg small" role="status">
-                That email doesn’t look right. Check it, or leave it empty to send the note without a reply.
+                That email doesn’t look right. Check it, or clear it to send the note without a reply.
               </p>
             )}
           </>

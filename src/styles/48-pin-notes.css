@@ -66,7 +66,8 @@
   background: rgba(0, 0, 0, 0.35);
   cursor: default;
 }
-.pin-box.card {
+/* Said with the layer in front, so a screen's own card padding (Print sets its cards edge to edge) never wins. */
+.pin-layer .pin-box.card {
   position: absolute;
   z-index: 1;
   left: var(--pin-left);
@@ -89,21 +90,29 @@
   align-items: center;
   gap: 8px;
 }
-.pin-box .pin-where,
-.pin-box .help-added,
+.pin-box p,
 .pin-box .field {
   margin: 0;
 }
+/* The close cross: a finger-sized target in the corner, quiet until pressed. */
+.pin-box .pin-x {
+  min-width: 44px;
+  min-height: 44px;
+  margin: -12px -12px -12px 0;
+  text-decoration: none;
+  font-size: 1rem;
+}
+
 .pin-box textarea {
   width: 100%;
-  min-height: 96px;
+  min-height: 72px;
   box-sizing: border-box;
   resize: vertical;
 }
 
 /* A phone: a sheet along the bottom, full width, so the pin above it stays in sight. */
 @media (max-width: 699px) {
-  .pin-box.card {
+  .pin-layer .pin-box.card {
     left: 0;
     right: 0;
     top: auto;
@@ -114,14 +123,11 @@
     border-width: var(--bw) 0 0;
     gap: 10px;
   }
-  .pin-box.card.pin-up {
+  .pin-layer .pin-box.card.pin-up {
     top: 0;
     bottom: auto;
     padding: calc(16px + env(safe-area-inset-top)) 16px 16px;
     border-width: 0 0 var(--bw);
-  }
-  .pin-box textarea {
-    min-height: 72px;
   }
 }
 

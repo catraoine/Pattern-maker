@@ -1,8 +1,8 @@
 // Hold to leave a note (Cat, Nov 26, 2026: "Hold to drop a pin"): on a tester's device, pressing and holding any spot
 // still for half a second opens Help & feedback pinned to that spot, like dropping a pin in a map app. A right click
 // does the same on a computer. Plain double tap was ruled out: it already zooms All round and the page itself.
-// What the pin says is only what's on screen at that spot, with numbers taken out (a measurement is never sent), and the
-// tester sees all of it in the box before sending.
+// What the pin says is only what's on screen at that spot, with numbers, names and emails taken out (a measurement or a
+// person is never sent). It goes with the note out of sight: the box is one question (Cat, Nov 27: "way too cluttered").
 
 /** How long a finger stays still before the note opens. Half a second, like a map's dropped pin. */
 export const HOLD_MS = 500;
@@ -37,7 +37,11 @@ export function scrub(text: string | null | undefined, max = 50, hide: readonly 
   let t = (text ?? '').replace(/\S+@\S+/g, 'an email').replace(/\d+([.,]\d+)?/g, '#');
   for (const n of hide) t = t.replace(new RegExp(`(?<![\\p{L}\\p{N}])${escape(n)}(?![\\p{L}\\p{N}])`, 'giu'), 'a name');
   t = t.replace(/\s+/g, ' ').trim();
-  return t.length > max ? `${t.slice(0, max - 1).trimEnd()}…` : t;
+  if (t.length <= max) return t;
+  // Cut at a word ("fr…" read as nothing, the Nov 27 walk), unless that would lose more than half: then mid-word.
+  const cut = t.slice(0, max - 1);
+  const space = cut.lastIndexOf(' ');
+  return `${(space > max / 2 ? cut.slice(0, space) : cut).replace(/[\s,;:·-]+$/, '')}…`;
 }
 
 /** Where in a drawing the pin sits, in plain words: "lower middle" reads quicker than two numbers. */
@@ -48,18 +52,35 @@ export function region(fx: number, fy: number): string {
   return `${row} ${col === 'centre' ? 'middle' : col}`;
 }
 
+/** An element's words with a space between each piece: textContent ran "Opening" and its chip's name together
+ *  (the Nov 27 stills). */
+function wordsOf(el: Element): string {
+  const parts: string[] = [];
+  const walk = el.ownerDocument.createTreeWalker(el, 4 /* text nodes */);
+  for (let n = walk.nextNode(); n; n = walk.nextNode()) if (n.nodeValue?.trim()) parts.push(n.nodeValue.trim());
+  return parts.join(' ');
+}
+
+/** What counts as one control: its name is the spot, and the box opens beside it (PinNotes' clearOf). */
+export const CONTROL = 'button, a, [role="button"], [role="tab"], [role="switch"], [role="radio"], [role="checkbox"], label, summary, legend';
+
 /** The control or label under the finger, by the words it shows (or its spoken label). */
 function controlWords(el: Element, hide: readonly string[]): string {
-  const c = el.closest('button, a, [role="button"], [role="tab"], [role="switch"], [role="radio"], [role="checkbox"], label, summary, legend');
+  const c = el.closest(CONTROL);
   if (!c) return '';
-  return scrub(c.getAttribute('aria-label') || c.textContent, 50, hide);
+  return scrub(c.getAttribute('aria-label') || wordsOf(c), 50, hide);
 }
 
 /** The heading of the part of the screen the spot is in. */
 function sectionWords(el: Element, hide: readonly string[]): string {
   for (let at: Element | null = el; at; at = at.parentElement) {
-    const head = at.matches('h1, h2, h3, legend, summary') ? at : at.querySelector(':scope > h1, :scope > h2, :scope > h3, :scope > legend, :scope > summary, :scope > header h1, :scope > header h2, :scope > div > h2, :scope > div > h3');
-    if (head?.textContent?.trim()) return scrub(head.textContent, 50, hide);
+    const heads = at.matches('h1, h2, h3, legend, summary') ? [at] : [...at.querySelectorAll(':scope > h1, :scope > h2, :scope > h3, :scope > legend, :scope > summary, :scope > header h1, :scope > header h2, :scope > div > h2, :scope > div > h3')];
+    for (const head of heads) {
+      // A heading that holds the spot or other controls is a whole question, not its name: try the next one.
+      if (head.contains(el) || head.querySelector('button, a, input, [role="radio"], [role="button"]')) continue;
+      const words = wordsOf(head);
+      if (words) return scrub(words, 50, hide);
+    }
   }
   return '';
 }
@@ -77,7 +98,8 @@ interface PinSpot {
 function viewShowing(el: Element): string | undefined {
   for (let at: Element | null = el; at && at.tagName !== 'MAIN' && at.tagName !== 'BODY'; at = at.parentElement) {
     const views = at.querySelector('[aria-label="Garment view"]');
-    if (views) return scrub(views.querySelector('[aria-pressed="true"]')?.textContent, 30) || undefined;
+    const on = views?.querySelector('[aria-pressed="true"]');
+    if (views) return on ? scrub(wordsOf(on), 30) || undefined : undefined;
   }
   return undefined;
 }
@@ -85,9 +107,9 @@ function viewShowing(el: Element): string | undefined {
 /** Describes the spot under a held finger, from what the screen shows there. `hide`: see namesToHide. */
 export function spotAt(el: Element, x: number, y: number, view: string, hide: readonly string[] = []): PinSpot {
   if (NAMED_VIEWS.has(view)) return { spot: 'this screen' };
-  const showing = viewShowing(el);
   const drawing = el.closest('[role="img"], [role="group"][aria-label]');
-  let spot = controlWords(el, hide);
+  const control = controlWords(el, hide);
+  let spot = control;
   if (!spot && drawing) {
     const box = drawing.getBoundingClientRect();
     const fx = box.width ? (x - box.left) / box.width : 0.5;
@@ -96,9 +118,15 @@ export function spotAt(el: Element, x: number, y: number, view: string, hide: re
     const name = scrub((drawing.getAttribute('aria-label') ?? 'the drawing').split('. ')[0], 60, hide);
     spot = `${name}, ${region(Math.min(1, Math.max(0, fx)), Math.min(1, Math.max(0, fy)))}`;
   }
-  if (!spot) spot = scrub(el.textContent, 50, hide) || 'an empty part of the screen';
+  // The garment view is said only for a spot on the drawing (a mark on it too): a chip beside it is the same whatever
+  // view shows.
+  const showing = drawing ? viewShowing(el) : undefined;
+  if (!spot) spot = scrub(wordsOf(el), 50, hide) || 'an empty part of the screen';
   const section = sectionWords(el, hide);
-  return { spot, ...(section && section !== spot ? { section } : {}), ...(showing ? { showing } : {}) };
+  // Left out only when it says the spot again, word for word ("Back buttons and loops" twice, the Nov 27 stills).
+  const within = (a: string, b: string) => new RegExp(`(?<![\\p{L}])${escape(b)}(?![\\p{L}])`, 'iu').test(a);
+  const repeats = !!section && (section.toLowerCase() === spot.toLowerCase() || within(section, spot));
+  return { spot, ...(section && !repeats ? { section } : {}), ...(showing ? { showing } : {}) };
 }
 
 /** What a pinned note carries about its spot, as the server takes it (src/server/notes.ts). */
@@ -126,13 +154,6 @@ export function pinFor(spot: PinSpot, x: number, y: number, view: string, garmen
     device: phone ? 'phone' : 'computer',
     screen: `${Math.round(w)}x${Math.round(h)}`,
   };
-}
-
-/** The one line the tester reads before sending, so nothing goes that they haven't seen. */
-export function pinLine(pin: Pin, screenName: string): string {
-  // A drawing's own label often names the garment and its view already ("Knee A-line skirt, front view"): said once.
-  const has = (t?: string) => !!t && pin.spot.toLowerCase().includes(t.toLowerCase());
-  return [!has(pin.garment) && pin.garment, pin.spot, pin.section, !has(pin.showing) && pin.showing && `${pin.showing} view`, `${screenName} screen`].filter(Boolean).join(' · ');
 }
 
 type HoldEvent = { pointerId: number; pointerType: string; clientX: number; clientY: number; button: number };
