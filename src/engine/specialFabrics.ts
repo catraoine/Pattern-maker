@@ -38,6 +38,11 @@ interface SpecialInfo {
   lining?: string;
 }
 
+/** A cloth cut single layer comes before a cutting step written for folded fabric. This says how to read that step, as
+ *  two plain rules: it said "this takes the place of folding the fabric in the cutting step" before the reader
+ *  had met that step (sewing instructions review, Nov 28). */
+const SINGLE_LAYER = 'Where the cutting step puts a piece on the fold, trace the piece out whole first and cut it once. Where it cuts a pair through both layers, cut the piece twice, turning the pattern over for the second.';
+
 export const SPECIALS: Record<Special, SpecialInfo> = {
   denim: {
     label: 'Denim',
@@ -103,7 +108,7 @@ export const SPECIALS: Record<Special, SpecialInfo> = {
     prewash: 'Hand wash a small sample first, as for its fibre, and dry it flat.',
     press: 'Low heat, dry, through a press cloth.',
     added: 'French seams on the 1.5 cm allowance, and a 1 cm hem rolled narrow.',
-    cut: 'Lay it between sheets of tissue paper and cut through the paper too. Single layer, with fine pins in the seam allowance only. This takes the place of folding the fabric in the cutting step: where that step puts a piece on the fold, trace it out whole first and cut it once, and where it cuts a pair through both layers, cut it twice, turning the pattern over for the second.',
+    cut: `Cut it in a single layer, between sheets of tissue paper, cutting through the paper too. Use fine pins, in the seam allowance only. ${SINGLE_LAYER}`,
     need: 'A Microtex needle 60/8, fine thread, and a straight-stitch plate if you have one.',
     lining: 'A sheer needs a lining or an underlayer, unless you mean to wear it as a layer.',
   },
@@ -115,7 +120,7 @@ export const SPECIALS: Record<Special, SpecialInfo> = {
     nap: true,
     prewash: 'Hand wash a small sample first. If it keeps its sheen, hand wash the whole length cool and dry it flat; if not, keep it dry clean only.',
     press: 'Silk setting, dry, through a press cloth. Water drops can spot it.',
-    cut: 'Cut single layer on a cotton sheet, satin side down, every piece the same way up so the sheen matches. Pin inside the seam allowance only: pins leave marks.',
+    cut: `Cut it in a single layer, right side up, on a cotton sheet, which stops it sliding, with every piece the same way up so the sheen matches. Pin inside the seam allowance only: pins leave marks. ${SINGLE_LAYER}`,
     need: 'A Microtex needle 70/10 and fine thread. Test on a scrap first, since unpicking leaves holes.',
   },
   lace: {

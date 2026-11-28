@@ -1,5 +1,6 @@
 // Plain-language sewing steps for the drafted skirt and bodice, shown in the app and added to the end of the PDF.
 // Keep to plain ASCII punctuation: the PDF uses a standard font without curly quotes.
+import { DART_POINT, INVISIBLE_ZIP_LAY, SEAM_BELOW_ZIP, boundAllRound } from './stepWords';
 import { longBandInterfacing, curvedBandOf } from './finishing';
 import { buttonFrontSteps, yokeSteps } from './skirtFront';
 import { taggedLength } from './geometry';
@@ -198,7 +199,7 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
       : [
           {
             title: 'Put in the zip',
-            text: `Sew a ${draft.zipCm} cm invisible zip into the centre back edges, with the top of the teeth ${waist} below the waist edge, stopping at the ZIP ENDS notch.`,
+            text: `Sew the ${draft.zipCm} cm invisible zip into the centre back edges, with the top of the teeth ${waist} below the waist edge, stopping at the ZIP ENDS notch.${INVISIBLE_ZIP_LAY}${SEAM_BELOW_ZIP}`,
           },
           {
             title: 'Close the centre back',
@@ -403,7 +404,7 @@ function withZipThrough(g: SewingGuide, draft: BodiceDraft): SewingGuide {
         ? {
             ...st,
             text:
-              st.text.replace('stopping at the ZIP ENDS notch.', `running all the way down to ${edge}: your waist is narrower than your bust, so the top opens right out to go on.`) +
+              st.text.replace('stopping at the ZIP ENDS notch.', `running all the way down to ${edge}: your waist is narrower than your bust, so the top opens right out to go on.`).replace(SEAM_BELOW_ZIP, '') +
               ` If the zip is longer than the opening, close it, stitch across its teeth several times 1 cm above ${draft.peplum ? 'the seam line' : 'where the hem will fold'}, and cut the rest off 2 cm below the stitching.`,
           }
         : st.title === 'Make the lining'
@@ -476,7 +477,7 @@ function pullOnSteps(g: SewingGuide, d: BodiceDraft): SewingGuide {
         continue;
       case 'Bind the neckline':
         // With no centre back opening the neckline is a closed ring: the binding goes all the way round from a shoulder seam.
-        steps.push({ ...s, text: s.text.replace('and 1 cm extra at each end', 'and starting at a shoulder seam, all the way round').replace('Fold the ends in, then turn', 'Where the ends meet, fold the top end under and lap it 1 cm over the other, then turn') });
+        steps.push({ ...s, text: boundAllRound(s.text) });
         continue;
       default:
         steps.push(s);
@@ -559,13 +560,13 @@ function bodiceSteps(draft: BodiceDraft, _style: { length: BodiceLength }, fabri
           {
             title: `Sew the ${dartWords}`,
             text: [
+              DART_POINT,
               bust ? `Fold each bust dart with right sides together so the dart lines meet, stitch from the side seam to the point, and press it down.${pivoted ? ` The side bust dart is ${draft.bustDart} cm wide; the rest of the bust shaping is carried in the waist dart, which is wider than usual.` : ''}` : '',
               waist && below
                 ? `The ${draft.waistDarts.front > 0.3 ? 'waist darts' : 'two waist darts on the back'} are pointed at both ends. Fold each one along its centre, stitch from one point through the widest part at the waist to the other point, then clip into the fold at the waist so it lies flat. Press toward the centre.`
                 : waist
                   ? 'Fold each waist dart the same way, stitch from the waist edge to the point, and press toward the centre.'
                   : '',
-              'Run each line of stitching off the fold at the point and knot the threads.',
             ]
               .filter(Boolean)
               .join(' '),
@@ -574,7 +575,7 @@ function bodiceSteps(draft: BodiceDraft, _style: { length: BodiceLength }, fabri
       : []),
     {
       title: 'Put in the zip',
-      text: `Sew a ${draft.zipCm} cm invisible zip into the centre back edges, with the top of the teeth ${curve} below the neck edge, stopping at the ZIP ENDS notch.`,
+      text: `Sew the ${draft.zipCm} cm invisible zip into the centre back edges, with the top of the teeth ${curve} below the neck edge, stopping at the ZIP ENDS notch.${INVISIBLE_ZIP_LAY}${SEAM_BELOW_ZIP}`,
     },
     {
       title: 'Close the centre back',
@@ -869,7 +870,7 @@ function dressSteps(draft: DressDraft, style: { silhouette: Silhouette; length: 
     },
     {
       title: 'Put in the zip',
-      text: `Sew a ${draft.zipCm} cm invisible zip into the centre back edges, with the top of the teeth ${curve} below the neck edge, across the waist seam, to the ZIP ENDS notch on the skirt. Sew one side, close the zip and mark where the waist seam crosses the other tape, so the waist meets exactly when you sew the second side.${OVER_HEAD(draft)}`,
+      text: `Sew the ${draft.zipCm} cm invisible zip into the centre back edges, with the top of the teeth ${curve} below the neck edge, across the waist seam, to the ZIP ENDS notch on the skirt.${INVISIBLE_ZIP_LAY} Sew one side, close the zip and mark where the waist seam crosses the other tape, so the waist meets exactly when you sew the second side.${SEAM_BELOW_ZIP}${OVER_HEAD(draft)}`,
     },
     {
       title: 'Close the centre back',
@@ -921,6 +922,8 @@ function pullOnDress(g: SewingGuide, draft: DressDraft): SewingGuide {
         return [{ ...st, text: st.text.replace(', the side edges of the skirt, and the centre back edges of both', ' and the side edges of the skirt').replace(', and the centre back edges of both', '') }];
       case 'Join the bodice to the skirt':
         return [{ ...st, text: st.text.replace('Pin each back half the same way.', 'Pin the back the same way, matching the centre backs.') }];
+      case 'Bind the neckline':
+        return [{ ...st, text: boundAllRound(st.text) }];
       case 'Finish':
         return [{ ...st, text: st.text.replace(/Sew a hook and eye at the top of the zip, inside the (neckline|top edge)\. ?/, '') }];
       default:
@@ -999,6 +1002,9 @@ function biasDressGuide(g: SewingGuide, seamCm: number, hemOffFloor?: number): S
             text: `Hang the dress up for a day before hemming, on a hanger or a dress form: cut on the bias, it drops as it hangs, unevenly and often by 2 cm or more. The hem allowance has ${n1(SLIP_LEVEL)} spare for this. Try it on with the shoes you will wear and have someone mark the hem with pins measured up from the floor${hemOffFloor !== undefined ? `, ${n1(hemOffFloor)} above it all the way round: that is this dress's length, just above the ankle, however far the cloth has dropped` : ''}. Trim 0.8 cm below the marks. Finish with a fine baby hem, about 3 mm deep, which lies flat on the bias where a deeper hem ripples: stitch round 0.6 cm from the cut edge without stretching it, press the edge up along that stitching and stitch 2 mm from the fold. Trim the spare close to this row with small sharp scissors, turn the edge up once more and stitch over the last row. In a fine silk you can roll it by hand instead.`,
           },
         ];
+      // It goes on over the head, so the neckline is a closed ring: its binding has no ends to fold in at a zip.
+      case 'Bind the neckline':
+        return [{ ...st, text: boundAllRound(st.text) }];
       case 'Finish':
         return [{ ...st, text: 'Give the dress a final press, moving the iron along the grain arrow\'s line, not down the length of the dress, so the bias is not pressed out of shape.' }];
       default:

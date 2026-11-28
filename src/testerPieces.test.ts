@@ -108,7 +108,7 @@ describe.each(Object.entries(BODIES))('the Ice Peplum Top on a %s body', (_size,
   it('lists no interfacing, which no step uses, and says the sheer is cut single layer in place of folding', () => {
     expect(p.guide.notions.join(' | ')).not.toMatch(/interfacing/);
     expect(p.guide.steps.some((s) => /interfac/i.test(s.text))).toBe(false);
-    expect(step(p, 'Cut the sheer')).toContain('takes the place of folding the fabric in the cutting step');
+    expect(step(p, 'Cut the sheer')).toContain('Where the cutting step puts a piece on the fold, trace the piece out whole first');
   });
 
   it('runs the front and back side seams the same way below the waist', () => {
@@ -162,7 +162,7 @@ describe.each(Object.entries(BODIES))('the other tester pieces on a %s body', (_
     const p = made('black-vest', body);
     expect(p.pieces.some((pc) => /sleeve/i.test(pc.name))).toBe(false);
     expect(p.notes.join(' ')).not.toMatch(/Sleeve: bicep/);
-    expect(step(p, 'Hem the shell')).toContain('Leave the front facings unfolded at the hem for now');
+    expect(step(p, 'Hem the vest')).toContain('Leave the front facings unfolded at the hem for now');
     expect(step(p, 'Bag the lining')).toContain('finish the foot of each front facing');
     // The front and back side seams are still one length.
     const [ft, fb] = sideEnds(piece(p.pieces, 'Vest front'));
@@ -503,5 +503,41 @@ describe('tester pieces: the maker pack table', () => {
 
   it('the slant pocket row says centimetres, so "4 in" is not read as inches', () => {
     for (const body of Object.values(BODIES)) expect(made('chocolate-barrel', body).spec.find((r) => r.label === 'Slant pockets')!.finished).toBe('opening 4 cm in from the side seam, 17 cm down');
+  });
+});
+
+// The steps read for clarity, sewing terms and ease of use (sewing instructions review, 2026-11-28).
+describe('tester pieces: how the steps read', () => {
+  const body = BODIES.middle;
+
+  it('says how a dart ends before the darts are sewn, and how an invisible zip goes in', () => {
+    const p = made('blush-shift', body);
+    expect(step(p, 'Sew the bust and waist darts')).toMatch(/^At the point of every dart, run the stitching off the fold/);
+    const zip = step(p, 'Put in the zip');
+    expect(zip).toContain('press its coils flat');
+    expect(zip).toContain('invisible zip foot');
+    expect(zip).not.toMatch(/\bSew a \d/);
+  });
+
+  it("leaves the pleated skirt's panel seams as sewn, where they are the inside fold of a pleat, and opens them only in the hem", () => {
+    const p = made('black-pleated-skirt', body);
+    expect(step(p, 'Join the side panels')).toContain('press each seam flat as it was sewn');
+    expect(step(p, 'Join the side panels')).not.toContain('press the seams open');
+    expect(step(p, 'Hem the skirt')).toContain('press the seam open below the clip only');
+  });
+
+  it('binds the slip neckline all the way round, there being no opening, and lays the satin one way up in both cutting steps', () => {
+    const p = made('ivory-slip', body);
+    expect(step(p, 'Bind the neckline')).toContain('starting at a shoulder seam, all the way round');
+    expect(step(p, 'Bind the neckline')).not.toContain('extra at each end');
+    expect(step(p, 'Cut the satin')).toContain('right side up');
+    expect(step(p, 'Cut out')).toContain('right side up');
+    expect(step(p, 'Cut the satin')).not.toContain('side down');
+  });
+
+  it("says left and right on the trousers are as worn, and stitches the front pleat for its first centimetres, not at a distance", () => {
+    const p = made('chocolate-barrel', body);
+    expect(step(p, 'Put in the fly zip')).toMatch(/^The left and the right here are as you wear the trousers\./);
+    expect(step(p, 'Fold the front pleat')).toContain('for the first 4 cm below the waist edge');
   });
 });

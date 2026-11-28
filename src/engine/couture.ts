@@ -149,10 +149,11 @@ export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
         out.push(fitStep());
         fitted = true;
       }
-      rightZip = /right side/.test(s.text);
+      // "The right side seam", not the right side of the cloth, which the zip's own how-to names.
+      rightZip = /right side (seam|edges)/.test(s.text);
       zip = step(
         'Hand-pick the zip',
-        `Press both ${/right side/.test(s.text) ? 'right side seam' : 'centre back'} allowances under along the traced line, down to the ZIP ENDS mark. Baste the ${c.zipCm} cm zip behind the opening, its teeth centred, with the folded edges just meeting over them. From the right side, sew each side with a prick stitch: a tiny backstitch every 6 mm, 6 mm from the fold, catching only a thread or two of the surface. It is how couture houses still set a zip: barely seen from outside, soft, and easy to adjust at a fitting.`,
+        `Press both ${rightZip ? 'right side seam' : 'centre back'} allowances under along the traced line, down to the ZIP ENDS mark. Baste the ${c.zipCm} cm zip behind the opening, its teeth centred, with the folded edges just meeting over them. From the right side, sew each side with a prick stitch: a tiny backstitch every 6 mm, 6 mm from the fold, catching only a thread or two of the surface. It is how couture houses still set a zip: barely seen from outside, soft, and easy to adjust at a fitting.`,
         'pickzip',
       );
       // A zip run through to the hem (BodiceDraft.zipThrough) has no seam below it to sew first: it goes in here.

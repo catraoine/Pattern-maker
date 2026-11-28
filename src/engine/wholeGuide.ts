@@ -3,6 +3,7 @@
 // bias is handled in a workroom: cut flat on a single layer, its waist stay-stitched at once, French
 // seams, a faced waist, and hung for a day so the bias can drop before the hem is levelled and rolled.
 // Keep to plain ASCII punctuation: the PDF uses a standard font without curly quotes.
+import { INVISIBLE_ZIP_LAY } from './stepWords';
 import { SEAM_WIDTHS } from './allowances';
 import type { SewStep, SewingGuide, SkirtFinish } from './instructions';
 import type { Piece } from './piece';
@@ -99,7 +100,7 @@ export function wholeGuide(draft: SkirtDraft, fabricM: number, finish: SkirtFini
           // A slit up the left side: the zip goes in the right side seam, the left one stays open below the slit's top.
           {
             title: 'Put in the side zip',
-            text: `${bias ? 'Fuse a 1.5 cm strip of interfacing along the right side edges of the front and back, down past the ZIP ENDS notches, so the bias does not stretch as the zip goes in. ' : ''}Sew a ${draft.zipCm} cm invisible zip into the right side seam edges (as you wear it), with the top of the teeth ${waist} below the waist edge, stopping at the ZIP ENDS notches.`,
+            text: `${bias ? 'Fuse a 1.5 cm strip of interfacing along the right side edges of the front and back, down past the ZIP ENDS notches, so the bias does not stretch as the zip goes in. ' : ''}Sew the ${draft.zipCm} cm invisible zip into the right side seam edges (as you wear it), with the top of the teeth ${waist} below the waist edge, stopping at the ZIP ENDS notches.${INVISIBLE_ZIP_LAY}`,
           },
           {
             title: 'Sew the right side seam',
@@ -123,7 +124,7 @@ export function wholeGuide(draft: SkirtDraft, fabricM: number, finish: SkirtFini
             },
         {
           title: 'Put in the side zip',
-          text: `${bias ? 'Fuse a 1.5 cm strip of interfacing along the left side edges of the front and back, down past the ZIP ENDS notches, so the bias does not stretch as the zip goes in. ' : ''}Sew a ${draft.zipCm} cm invisible zip into the left side seam edges (as you wear it), with the top of the teeth ${waist} below the waist edge, stopping at the ZIP ENDS notches.`,
+          text: `${bias ? 'Fuse a 1.5 cm strip of interfacing along the left side edges of the front and back, down past the ZIP ENDS notches, so the bias does not stretch as the zip goes in. ' : ''}Sew the ${draft.zipCm} cm invisible zip into the left side seam edges (as you wear it), with the top of the teeth ${waist} below the waist edge, stopping at the ZIP ENDS notches.${INVISIBLE_ZIP_LAY}`,
         },
         {
           title: 'Sew the left side seam',

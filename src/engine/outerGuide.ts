@@ -74,7 +74,7 @@ export function outerGuide(
     ...(rib ? [`0.3 m of rib knit (tubular or 2x2 rib) for the hem band${bare ? '' : ' and cuffs'}`] : []),
     ...(d.pads ? [`A pair of set-in shoulder pads, ${d.pads < 1 ? `${Math.round(d.pads * 10)} mm` : n1(d.pads)} thick: the shoulders are drafted for them`] : []),
     ...(bagCount ? ['A strip of lining or pocketing for the pocket bags'] : []),
-    zip ? 'Matching thread' : 'Matching thread, and silk thread for the buttonholes if you sew them by hand',
+    zip ? 'Matching thread' : 'Matching thread, and silk buttonhole twist if you sew the buttonholes by hand',
   ];
 
   const steps: SewStep[] = [
@@ -94,7 +94,7 @@ export function outerGuide(
     },
     {
       title: 'Interface',
-      text: `${bare ? `For a crisp, boxy vest, fuse interfacing to the whole of each front${yoked ? `, each front yoke, ${backYokes}` : ''}, the front facings and both collar pieces${welts ? ', the welts, and a 5 cm strip behind each welt pocket box' : ''}${vent ? ', and the vent underlaps' : ''}. Then press 1 cm stay tape over the armhole seam line all round and along the roll line, 3 mm short of its length so the lapel hugs the chest. Fuse a 5 cm strip along the back hem. Use a press cloth and hold the iron still for 10 seconds at a time; let each piece cool flat before you move it.` : `Fuse interfacing to the wrong side of the front facings${collar === 'hood' ? ", a 3 cm strip along each hood piece's face edge" : collar !== 'none' ? ', both collar pieces' : ''}, and the top 10 cm of each ${princess ? 'centre front' : 'front'} and the back${pockets ? ', and the top fold of each pocket' : ''}${welts ? ', the welts, and a 5 cm strip behind each welt pocket box' : ''}${flaps ? ', the pocket flaps and jets, and a 5 cm strip behind each pocket box' : ''}${chest ? ', the chest welt and a strip behind its box' : ''}${vent ? ', and the vent underlaps' : ''}. ${rib ? `The hem${bare ? '' : ' and sleeve edges'} take${bare ? 's a rib band' : ' rib bands'}, so ${bare ? 'it needs' : 'they need'} no strip.` : `Fuse a 5 cm strip along the hem of every shell piece${bare ? '' : ' and the sleeve hems'}.`}${d.tapedRoll ? ' The lapels roll from near the waist, so fuse interfacing to the whole of each front as well, then press 1 cm stay tape along each roll line, cut 1 cm shorter than the line and the front eased onto it, so the lapel hugs the chest and the front stays closed.' : ''} Use a press cloth and hold the iron still for 10 seconds at a time; let each piece cool flat before you move it.`}`,
+      text: `${bare ? `For a crisp, boxy vest, fuse interfacing to the whole of each front${yoked ? `, each front yoke, ${backYokes}` : ''}, the front facings and both collar pieces${welts ? ', the welts, and a 5 cm strip behind each welt pocket box' : ''}${vent ? ', and the vent underlaps' : ''}. Then press 1 cm stay tape over the armhole seam line all round. Tape each roll line too, with the tape cut 3 mm shorter than the line and the front eased onto it, so the lapel hugs the chest. Fuse a 5 cm strip along the back hem. Use a press cloth and hold the iron still for 10 seconds at a time; let each piece cool flat before you move it.` : `Fuse interfacing to the wrong side of the front facings${collar === 'hood' ? ", a 3 cm strip along each hood piece's face edge" : collar !== 'none' ? ', both collar pieces' : ''}, and the top 10 cm of each ${princess ? 'centre front' : 'front'} and the back${pockets ? ', and the top fold of each pocket' : ''}${welts ? ', the welts, and a 5 cm strip behind each welt pocket box' : ''}${flaps ? ', the pocket flaps and jets, and a 5 cm strip behind each pocket box' : ''}${chest ? ', the chest welt and a strip behind its box' : ''}${vent ? ', and the vent underlaps' : ''}. ${rib ? `The hem${bare ? '' : ' and sleeve edges'} take${bare ? 's a rib band' : ' rib bands'}, so ${bare ? 'it needs' : 'they need'} no strip.` : `Fuse a 5 cm strip along the hem of every shell piece${bare ? '' : ' and the sleeve hems'}.`}${d.tapedRoll ? ' The lapels roll from near the waist, so fuse interfacing to the whole of each front as well, then press 1 cm stay tape along each roll line, cut 1 cm shorter than the line and the front eased onto it, so the lapel hugs the chest and the front stays closed.' : ''} Use a press cloth and hold the iron still for 10 seconds at a time; let each piece cool flat before you move it.`}`,
     },
     ...(darts || waistDarts
       ? [
@@ -188,7 +188,7 @@ export function outerGuide(
       ? [
           {
             title: `Sew the collar to the ${word}`,
-            text: `Use one collar as the under collar. Sew it to the neck of the ${word} from one gorge mark to the other, matching the centre back notch, and stop exactly at the end of each gorge line. Clip the neck seam allowance at the shoulder seams and press the seam open.`,
+            text: `Use one collar as the under collar. Sew it to the neck of the ${word} from one gorge mark to the other, matching the centre back notch, and stop exactly at the end of each gorge line. The gorge is the short seam where the collar joins the lapel. Clip the neck seam allowance at the shoulder seams and press the seam open.`,
           },
           {
             title: 'Sew the upper collar to the facings',
@@ -197,7 +197,7 @@ export function outerGuide(
           {
             title: 'Join the collar and lapels',
             // The trim comes first: it read "Before you sew" after the sewing and turning (pretend tester DM walk, Nov 19).
-            text: `${bare ? "First trim 3 mm off the under collar's outer edge and off each front's lapel edge from the gorge to the break, so the top collar and the facings are a little bigger and the seam rolls out of sight. " : ''}Pin the facings and upper collar to the ${word} right sides together, matching the gorge seams exactly. ${d.lapel?.shawl ? 'Sew round the outer edge of the collar and on in one smooth curve across each gorge seam (a shawl has no notch), down the lapels to the break point and the front edge to the hem. Trim, clip the curve, and turn.' : 'Sew round the outer edge of the collar, pivot at the notches without stitching across the seam, and carry on down the lapels to the break point and the front edge to the hem. Trim, clip the notch corners, and turn.'} Roll the lapels and collar along the roll line and press so the seam rolls just to the underside.`,
+            text: `${bare ? "First trim 3 mm off the under collar's outer edge and off each front's lapel edge from the gorge to the break, so the upper collar and the facings are a little bigger and the seam rolls out of sight. " : ''}Pin the facings and upper collar to the ${word} right sides together, matching the gorge seams exactly. ${d.lapel?.shawl ? 'Sew round the outer edge of the collar and on in one smooth curve across each gorge seam (a shawl has no notch), down the lapels to the break point and the front edge to the hem. Trim, clip the curve, and turn.' : 'Sew round the outer edge of the collar as far as the gorge seam. At that corner, where the collar meets the lapel, stop with the needle exactly on the seam, lift the seam allowances out of the way and start again on the other side, so no stitch crosses the seam. Carry on down each lapel to the break point and the front edge to the hem. Trim, clip into the two corners, and turn.'} Roll the lapels and collar along the roll line and press so the seam rolls just to the underside.`,
           },
         ]
       : [
@@ -225,7 +225,7 @@ export function outerGuide(
           text: `Join the short ends of the hem band into a ring and fold it in half lengthwise, wrong sides together, so both raw edges are together. Divide the band and the ${word}'s hem into quarters with pins. Pin the band to the hem right sides together, raw edges level, matching the pins, and sew with a narrow zigzag or a stretch stitch, stretching the band to fit between the pins so the ${word} gathers in evenly onto it. ${bare ? '' : 'Make each cuff band the same way, in a ring, and sew it to the sleeve hem. '} Press the seams up into the ${word}, never flattening the rib.`,
         }
       : {
-          title: 'Hem the shell',
+          title: `Hem the ${word}`,
           text: `Turn up the ${word} hem by ${n1(hem)}${bare ? '' : ` and the sleeve hems by ${n1(sleeveHem)}`}, press, and catch-stitch the raw edges by hand to the interfacing. Leave the front facings unfolded at the hem for now.${vent ? " At the vent, mitre the corner of the right back facing and turn the left back underlap's hem up with the rest." : ''}`,
         },
     {

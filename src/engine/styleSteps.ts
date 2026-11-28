@@ -1,6 +1,7 @@
 // The bodice's sewing steps for its styled details, laid over the block's steps: a moved bust dart,
 // princess seams, a yoke, an empire seam or side panels, a button front and a collar. Plain ASCII
 // punctuation (see instructions.ts).
+import { DART_POINT } from './stepWords';
 import { BOW, RUFFLE, isBandCollar } from './collar';
 import type { BodiceDraft } from './bodice';
 import type { SewStep, SewingGuide } from './instructions';
@@ -77,9 +78,9 @@ function seamSteps(draft: BodiceDraft, seam: string): { darts?: SewStep; join: S
         ? {
             title: 'Sew the darts',
             text: [
+              DART_POINT,
               upper ? 'Fold each dart of the bodice front and back with right sides together so the dart lines meet, stitch from the empire seam edge to the point, and press it toward the centre.' : '',
               band ? `Fold each midriff dart ${upper ? 'the same way' : 'with right sides together so the dart lines meet'}, stitch from the waist edge to the point, and press toward the centre.` : '',
-              'Run each line of stitching off the fold at the point and knot the threads.',
             ]
               .filter(Boolean)
               .join(' '),
@@ -97,7 +98,7 @@ function seamSteps(draft: BodiceDraft, seam: string): { darts?: SewStep; join: S
     darts: darted(/centre (front|back)/)
       ? {
           title: 'Sew the darts',
-          text: `Fold each dart of the centre front and centre backs with right sides together so the dart lines meet, stitch from the waist edge to the point, and press it toward the centre.${draft.bustDart > 0.3 ? ' The front dart takes the bust shaping too, so it runs up close to the bust point.' : ''} Run each line of stitching off the fold at the point and knot the threads.`,
+          text: `${DART_POINT} Fold each dart of the centre front and centre backs with right sides together so the dart lines meet, stitch from the waist edge to the point, and press it toward the centre.${draft.bustDart > 0.3 ? ' The front dart takes the bust shaping too, so it runs up close to the bust point.' : ''}`,
         }
       : undefined,
     join: {
@@ -254,7 +255,7 @@ export function styleBodiceSteps(g: SewingGuide, draft: BodiceDraft, o: { seam: 
     collarSteps.push(
       {
         title: 'Make the ruffle',
-        text: `Fold the ruffle strip in half along its length, wrong sides together, and press.${buttons ? '' : ` Fold each end in ${o.seam}, right sides together, sew across it, and turn it out.`} Sew two rows of long machine stitches through both layers along the raw edges, one just inside the seam line and one 0.5 cm further out, leaving long thread ends. It is ${ratio === 2 ? 'twice' : `${ratio} times`} as long as the neckline, so it gathers up to fit.`,
+        text: `Fold the ruffle strip in half along its length, wrong sides together, and press.${buttons ? '' : ` At each end, open the strip and fold it the other way, right sides together, sew across ${o.seam} from the end, trim, and turn it right side out.`} Sew two rows of long machine stitches through both layers along the raw edges, one just inside the seam line and one 0.5 cm further out, leaving long thread ends. It is ${ratio === 2 ? 'twice' : `${ratio} times`} as long as the neckline, so it gathers up to fit.`,
       },
       {
         title: 'Attach the ruffle',
