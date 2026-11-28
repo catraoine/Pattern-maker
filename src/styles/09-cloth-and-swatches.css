@@ -668,8 +668,10 @@
     linear-gradient(90deg, color-mix(in srgb, var(--c) 40%, transparent), color-mix(in srgb, var(--c) 62%, transparent) 30%, color-mix(in srgb, var(--c) 38%, transparent) 55%, color-mix(in srgb, var(--c) 60%, transparent)),
     linear-gradient(75deg, #262320 0 46%, #dcd5c7 46%);
 }
+/* Half black, half chalk, so a dark lace shows on the chalk and a light one on the black: on black alone, black lace
+   vanished (Nov 28). */
 .colourdots.see-lace .card-tex {
-  background: radial-gradient(circle at 30% 25%, #2a2622, #0b0a09 80%);
+  background: linear-gradient(75deg, #0b0a09 0 50%, #dcd5c7 50%);
 }
 .colourdots.see-lace .card-tex::before {
   background: var(--c);
