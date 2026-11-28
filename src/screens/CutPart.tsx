@@ -59,7 +59,7 @@ export function CutPart({ made, title, garment, finish, onFinish, style, onEditF
   const nap = finish.nap || napFixed;
   // A tester reads the muslin note once, under Your fabric, not again under What you'll need (EM walk, Nov 28: it came
   // three times between Cut it and Sew it).
-  const fabricLines = (guide?.fabric ?? []).filter((l) => !(tester && l.startsWith('Sewing in muslin')));
+  const fabricLines = (guide?.fabric ?? []).filter((l) => !(tester && !imported && l.startsWith('Sewing in muslin')));
   return (
     <>
       {head}

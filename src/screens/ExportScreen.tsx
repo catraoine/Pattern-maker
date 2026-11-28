@@ -234,7 +234,7 @@ export function ExportScreen({ example, onNextSew, onMeasureMe, onEditMeasuremen
           isProjector(paper) ? toProjectorPdf(sheet, { dark: paper === 'projectorDark', title: lookName ?? (unit === 'in' ? inInches(title) : title) }) : toTiledPdf(sheet, paper, { title, name: lookName, unit, part: 'pattern' }),
           // On home paper: for a projector or the copy shop's A0, the sewist's own size, Letter for inches (an inch tester's
           // A0 booklet came on A4, EM walk, Nov 28).
-          toTiledPdf(sheet, isProjector(paper) || paper === 'a0' ? (unit === 'in' ? 'letter' : 'a4') : paper, { title, name: lookName, guide, summary, unit, part: 'booklet' }),
+          toTiledPdf(sheet, isProjector(paper) ? (unit === 'in' ? 'letter' : 'a4') : paper === 'a0' ? defaultPaper(unit) : paper, { title, name: lookName, guide, summary, unit, part: 'booklet' }),
         ]);
         const pages = await pdfPageCount(book);
         // A booklet with nothing in it isn't offered.
@@ -250,6 +250,9 @@ export function ExportScreen({ example, onNextSew, onMeasureMe, onEditMeasuremen
   // These hooks sit above the early return below so every render calls them in the same order.
   // Once the pattern has left the app (downloaded, shared or opened to print), the fit question comes up.
   const [printed, setPrinted] = useState(false);
+  // The paper the pattern last left the app on: Download steps back for Next only while that's the paper picked, so a
+  // switch to the copy shop's A0 after printing at home brings the filled Download back (code review, Nov 28).
+  const [gotOn, setGotOn] = useState<Output>();
   const [kept, setKept] = useState(false);
   // How to sew it folds closed on a phone, where the page was one long scroll, and opens on a computer (the
   // aesthetic review, 2026-10-21). Set once on arrival; after that the fold is the reader's.
@@ -294,17 +297,19 @@ export function ExportScreen({ example, onNextSew, onMeasureMe, onEditMeasuremen
   // Named for its paper too: the Letter and A4 booklets shared one name, so the second overwrote the first or came down
   // as "(1)" (pretend tester, Nov 18).
   // The paper it's laid out on, which for A0 and a projector is A4 or Letter (see the booklet's toTiledPdf above).
-  const bookletName = `${fileBase}-${isProjector(paper) || paper === 'a0' ? (unit === 'in' ? 'letter' : 'a4') : paper}${inchPart}-instructions.pdf`;
+  const bookletName = `${fileBase}-${isProjector(paper) ? (unit === 'in' ? 'letter' : 'a4') : paper === 'a0' ? defaultPaper(unit) : paper}${inchPart}-instructions.pdf`;
   // Both files together, for sharing and emailing.
   const files = () => [new File([ready!], fileName, { type: 'application/pdf' }), ...(booklet ? [new File([booklet.bytes], bookletName, { type: 'application/pdf' })] : [])];
 
   const showPages = wide || tablet || seePages;
+  const got = gotOn === paper;
   const checked = (go: () => void) => () => (example && !exampleOk ? setAsking(() => go) : go());
   // The pattern has left the app: the fit question comes up, and the pattern is kept in Saved patterns where there's
   // room, so it's there after closing the app (journey review, Nov 10: printing didn't save it).
   const left = () => {
     countStep('printed', garment);
     setPrinted(true);
+    setGotOn(paper);
     if (onKeep && !example && !imported) {
       onKeep();
       setKept(true);
@@ -434,8 +439,8 @@ export function ExportScreen({ example, onNextSew, onMeasureMe, onEditMeasuremen
                 look: on a 360 phone it sat under the fold, out of the thumb's reach (comfort review, Nov 25). */}
             {/* Once the pattern has left the app, Next: Cut and sew takes the fill and Download steps back to an outline, out
                 of the phone's bar, so the way on is the button that stands out (EM walk, Nov 28: Next was a faint outline). */}
-            <div className={printed ? 'print-go done' : 'print-go'}>
-              <button type="button" className={printed ? 'secondary' : 'primary'} onClick={checked(download_)} disabled={!ready}>
+            <div className={got ? 'print-go done' : 'print-go'}>
+              <button type="button" className={got ? 'secondary' : 'primary'} onClick={checked(download_)} disabled={!ready}>
                 {ready
                   ? // On A0 the count is of the big sheets, not every page in the file (Cat, Nov 14), so it says so.
                     `Download pattern (${pages} ${paper === 'a0' ? (pages === 1 ? 'A0 sheet' : 'A0 sheets') : pages === 1 ? 'page' : 'pages'})`
@@ -487,7 +492,7 @@ export function ExportScreen({ example, onNextSew, onMeasureMe, onEditMeasuremen
                     Share the files
                   </button>
                 )}
-                <CopyShopWay a0={paper === 'a0'} onA0={() => setPaper('a0')} onHome={() => setPaper(unit === 'in' ? 'letter' : 'a4')} unit={unit} />
+                <CopyShopWay a0={paper === 'a0'} onA0={() => setPaper('a0')} onHome={() => setPaper(defaultPaper(unit))} unit={unit} />
                 {/* It moves the measurements and styling, not the files, so it's named for why you'd use it. */}
                 {sendLink && phone && <SendToDevice link={sendLink} className="way" />}
               </div>
@@ -682,7 +687,7 @@ export function ExportScreen({ example, onNextSew, onMeasureMe, onEditMeasuremen
       {/* On to the Sew chapter, which opens on cutting (Cat, Nov 28). An outline, since Download pattern is this page's
           one fill (clarity review B1, Nov 22). */}
       {onNextSew && (
-        <button type="button" className={`${printed ? 'primary' : 'secondary'} chapter-next`} onClick={onNextSew}>
+        <button type="button" className={`${got ? 'primary' : 'secondary'} chapter-next`} onClick={onNextSew}>
           Next: Cut and sew <span aria-hidden="true">›</span>
         </button>
       )}

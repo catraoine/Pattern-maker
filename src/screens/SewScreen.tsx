@@ -3,7 +3,7 @@ import type { Printable } from './ExportScreen';
 import { stepPicture } from '../engine/stepPictures';
 import { SewPicture } from '../ui/SewPicture';
 import { TechFlatView } from '../ui/TechFlatView';
-import { readAt, readDone } from '../ui/sewPlace';
+import { hasPlace, readAt, readDone } from '../ui/sewPlace';
 import { TesterReport } from '../ui/TesterReport';
 import { inCm } from '../units';
 import { WrittenSteps } from '../ui/WrittenSteps';
@@ -120,7 +120,8 @@ export function SewScreen({ made, title, name = title, keep: owner, cut, onStyle
   const flat = made.flat ? <TechFlatView flat={made.flat} title={title} /> : null;
   // Printing and cutting are done on Cut it, the page before, so Sew it starts at the first sewing step, with that step's
   // picture, not the cutting layout again (EM walk, Nov 28). The list below still has every step.
-  const sewFrom = cut ? Math.max(0, pictures.findIndex((pic) => pic.kind !== 'prep' && pic.kind !== 'print' && pic.kind !== 'cut')) : 0;
+  // Only before sewing has begun: a place kept at step 1 (From the start) opens there.
+  const sewFrom = cut && !hasPlace(keep) ? Math.max(0, pictures.findIndex((pic) => pic.kind !== 'prep' && pic.kind !== 'print' && pic.kind !== 'cut')) : 0;
   return (
     <>
       {/* Back to Cut it, the page before, as Style's steps go back (Cat, Nov 28). */}
@@ -159,7 +160,7 @@ export function SewScreen({ made, title, name = title, keep: owner, cut, onStyle
                 : `${steps.length} steps, one at a time, each drawn from your own pieces. Keep it open by your machine.`}
           </p>
           <div className="sew-start-go">
-            <button type="button" className="primary" onClick={() => setOpen(at ? {} : { from: sewFrom })}>
+            <button type="button" className="primary" onClick={() => setOpen(sewFrom && !at ? { from: sewFrom } : {})}>
               {at ? 'Carry on sewing' : 'Start sewing'} <span aria-hidden="true">›</span>
             </button>
             {at > 0 && (
