@@ -517,8 +517,10 @@ function inchSlip(v: MeasurementValues, unit: Unit, c: CrossCheck): string | und
 export function checkMeasurements(v: MeasurementValues, unit: Unit, garment: Garment = 'skirt', form: FormKind = 'womenswear', body: BodyInfo = {}): Check[] {
   if (form === 'menswear') return checkMeasurements(v, unit, garment, 'womenswear', { ...body, form }).filter((c) => !MENSWEAR_SKIPS.includes(c.id)).map((c) => ({ ...c, message: worded(c.message, form) }));
   const out: Check[] = [];
-  // (Run here for the menswear form too: its top keeps estimating the front length, see fieldsFor.)
-  for (const f of body.form === 'menswear' && garment === 'bodice' ? BODICE_FIELDS : FIELDS[garment]) {
+  // (Run here for the menswear form too, on its own fields: its top and dress keep estimating the front length, see
+  // fieldsFor. Only the top was named here, so a menswear dress with a bust dart said "Front length is needed" with no
+  // page to give it on, and its Style button stayed off; nightly menswear screen check, Nov 27.)
+  for (const f of body.form === 'menswear' ? fieldsFor(garment, 'menswear') : FIELDS[garment]) {
     const x = v[f.id];
     if (x === undefined || Number.isNaN(x)) {
       if (!f.optional) out.push({ id: f.id, level: 'error', message: `${f.label} is needed.` });
