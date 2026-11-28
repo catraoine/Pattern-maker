@@ -5,6 +5,9 @@ import { REPLY_EMAIL, REPLY_EMAIL_MAX } from '../help/replyEmail';
 import { OWNER } from '../legal';
 import { onPhone } from './device';
 
+/** The box's width on a computer (48-pin-notes.css). */
+const BOX_W = 360;
+
 const EMAIL_KEY = 'maison-trace-note-email';
 const keptEmail = () => {
   try {
@@ -128,12 +131,16 @@ interface Placed {
   clear: { left: number; right: number };
 }
 
-/** The control held (a chip, a button), so the box opens beside it rather than over it. A drawing or anything wide
- *  only keeps the pin itself clear (1366 wide, the Nov 27 stills: the box covered the start of the held chip). */
+/** What the box should leave in sight: the control held (a chip, a button), or failing that the list the spot is in (the
+ *  pieces on Print, where the box covered every line at 1366, the Nov 27 cold read). Only one the box fits beside counts;
+ *  a drawing or anything wide keeps just the pin itself clear. */
 function clearOf(el: Element) {
-  const c = el.closest(CONTROL);
-  const r = c?.getBoundingClientRect();
-  return r && r.width < window.innerWidth / 3 ? { left: r.left, right: r.right } : undefined;
+  const w = window.innerWidth;
+  for (const c of [el.closest(CONTROL), el.closest('ul, ol, dl, table')]) {
+    const r = c?.getBoundingClientRect();
+    if (r && r.width < w / 2 && (r.right + 16 + BOX_W <= w - 16 || r.left - 16 - BOX_W >= 16)) return { left: r.left, right: r.right };
+  }
+  return undefined;
 }
 
 function PinBox({ at, onClose }: { at: Placed; onClose: () => void }) {
@@ -141,6 +148,21 @@ function PinBox({ at, onClose }: { at: Placed; onClose: () => void }) {
   // The email given once is kept on this device, so a tester who wants replies isn't asked every time.
   const [email, setEmail] = useState(keptEmail);
   const [state, setState] = useState<Sending>('idle');
+  // How much of the window a phone's keyboard covers, so the sheet along the bottom rides above it with Send in sight
+  // (360 wide, the Nov 27 cold read: Send sat on the bottom edge, where the keyboard opens).
+  const [keyboard, setKeyboard] = useState(0);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const fit = () => setKeyboard(Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)));
+    fit();
+    vv.addEventListener('resize', fit);
+    vv.addEventListener('scroll', fit);
+    return () => {
+      vv.removeEventListener('resize', fit);
+      vv.removeEventListener('scroll', fit);
+    };
+  }, []);
 
   // Sent: the thank-you shows a moment, then the box goes by itself.
   useEffect(() => {
@@ -164,7 +186,7 @@ function PinBox({ at, onClose }: { at: Placed; onClose: () => void }) {
   // Beside the pin on a computer, kept on screen; a phone gets a sheet along the bottom instead (48-pin-notes.css).
   const w = window.innerWidth;
   const h = window.innerHeight;
-  const side = at.clear.right + 16 + 360 < w ? at.clear.right + 16 : at.clear.left - 16 - 360 >= 16 ? at.clear.left - 16 - 360 : Math.max(16, at.x - 16 - 360);
+  const side = at.clear.right + 16 + BOX_W <= w - 16 ? at.clear.right + 16 : at.clear.left - 16 - BOX_W >= 16 ? at.clear.left - 16 - BOX_W : Math.max(16, at.x - 16 - BOX_W);
   const top = Math.min(Math.max(16, at.y - 40), Math.max(16, h - 520));
 
   return (
@@ -176,7 +198,7 @@ function PinBox({ at, onClose }: { at: Placed; onClose: () => void }) {
         // On a phone the sheet sits on the half of the screen away from the pin, so the spot stays in sight.
         className={`pin-box card${at.y > h * 0.5 ? ' pin-up' : ''}`}
         // A phone's sheet is only as tall as the room on its side of the pin (it scrolls inside), never over the spot.
-        style={{ '--pin-left': `${side}px`, '--pin-top': `${top}px`, '--pin-room': `${Math.max(h * 0.4, at.y > h * 0.5 ? at.y - 28 : h - at.y - 28)}px` } as React.CSSProperties}
+        style={{ '--pin-left': `${side}px`, '--pin-top': `${top}px`, '--pin-room': `${Math.max(h * 0.4, at.y > h * 0.5 ? at.y - 28 : h - at.y - 28)}px`, '--pin-kb': `${keyboard}px` } as React.CSSProperties}
         aria-labelledby="pintitle"
         noValidate
         onSubmit={async (e) => {
@@ -202,7 +224,7 @@ function PinBox({ at, onClose }: { at: Placed; onClose: () => void }) {
             {/* One question and an optional email, nothing else to read first (Cat, Nov 27: "way too cluttered", then A1). The spot, garment and device
                 still go with the note, out of sight. */}
             <div className="field plain">
-              <textarea id="pinnote" rows={3} maxLength={2000} autoFocus aria-label="What’s happening here?" placeholder="What’s happening here?" value={note} onChange={(e) => setNote(e.target.value)} />
+              <textarea id="pinnote" rows={4} maxLength={2000} autoFocus aria-label="What’s happening here?" placeholder="What’s happening here?" value={note} onChange={(e) => setNote(e.target.value)} />
             </div>
             {/* Always in sight and plainly optional (Cat's pick A1, Nov 27); kept on this device once given. */}
             <div className="field plain">

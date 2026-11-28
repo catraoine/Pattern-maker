@@ -121,4 +121,18 @@ test('hold to leave a note: a choice says its own name once, and the box opens b
   expect(line).not.toMatch(/[a-z][A-Z]/);
   // Not a spot on the drawing, so no garment view.
   expect(pin.showing).toBeUndefined();
+
+  await page.keyboard.press('Escape');
+  await expect(box).toHaveCount(0);
+
+  // A line of the pieces list on Print: the box opens beside the list, not over it (1366, the Nov 27 cold read).
+  await stepButton(page, 'Print').click();
+  const list = page.locator('ul.pieces');
+  await list.locator('li').first().click({ button: 'right' });
+  await expect(box).toBeVisible();
+  const l = (await list.boundingBox())!;
+  const c = (await box.boundingBox())!;
+  expect(c.x + c.width <= l.x || c.x >= l.x + l.width, 'the box sits beside the list, not over it').toBe(true);
+  if (SHOTS) await page.screenshot({ path: `${SHOTS}/pin-notes-print-1366.png` });
+  await expect(box.getByRole('button', { name: 'Send' })).toBeInViewport();
 });
