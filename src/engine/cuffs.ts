@@ -228,7 +228,7 @@ const PLEATS_TAKE_UP = 10;
 export function cuffStep(c: CuffDraft, sl: { gathers?: { hem: number }; pleated?: boolean }, seam: string): Step {
   const gathers = sl.gathers?.hem ?? 0;
   // A man's shirt: the fullness folded into two pleats beside the placket, each taking up half of it.
-  const pleats = `Fold the sleeve hem's fullness into two pleats on the back of the sleeve, the first 2 cm from the placket and the second 2 cm past it, each taking up ${r1(gathers / 2)} cm and folded toward the placket, and tack them inside the seam allowance`;
+  const pleats = `Fold the sleeve hem's fullness into two pleats on the back of the sleeve, the first 2 cm from the placket and the second 2 cm past it, each taking up ${r1(gathers / 2)} cm and folded toward the placket, and baste them inside the seam allowance`;
   const gather = `Sew two rows of long gathering stitches round each sleeve hem, inside the seam allowance${gathers > 0 ? `, and draw them up by ${gathers} cm to fit the cuff` : ''}, spreading the gathers evenly`;
   if (c.kind === 'shirt') {
     return {

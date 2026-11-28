@@ -56,7 +56,7 @@ export const SPECIALS: Record<Special, SpecialInfo> = {
     added: 'Felled seams with two rows of topstitching, on the 1.5 cm allowance.',
     cut: 'Mark on the wrong side with chalk. Rigid denim only: stretch denim needs a pattern drafted for stretch.',
     need: 'A jeans needle 100/16, topstitch thread, a jeans button and rivets.',
-    sew: 'Topstitch with a long stitch, 3 to 3.5 mm. Tap thick seam crossings flat with a hammer before you sew over them.',
+    sew: 'Topstitch with a long stitch, 3 to 3.5 on the stitch length dial. Tap thick seam crossings flat with a hammer before you sew over them.',
   },
   leather: {
     label: 'Leather',
@@ -70,7 +70,7 @@ export const SPECIALS: Record<Special, SpecialInfo> = {
     press: 'No steam. Press on a low, dry setting through brown paper, or roll the seams flat with a seam roller.',
     added: '1 cm seams and a 3 cm hem, glued down. Darts are cut open and glued flat.',
     cut: 'Every pin and needle hole stays, so make a calico test first and fit that. Cut single layer from the right side of the hide, each piece once, then turn the pattern over for the other side. Hold the pattern down with weights, not pins.',
-    need: 'A leather needle 90/14, a non-stick or roller foot, clips instead of pins, leather glue and a 3.5 mm stitch.',
+    need: 'A leather needle 90/14, a non-stick or roller foot, clips instead of pins, leather glue and a long stitch, 3.5 on the stitch length dial.',
     sew: 'Do not backstitch: tie the threads off. Never unpick, the holes show.',
   },
   velvet: {

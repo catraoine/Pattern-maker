@@ -256,7 +256,7 @@ export function jumpsuitGuide(d: JumpsuitDraft, fabricM: number, finish: { width
       title: 'Hem',
       text: `Try the jumpsuit on with the shoes you will wear and pin up the hem. Press up the allowance${sleeve && !band ? ' at the sleeves and' : ''} at the ${legs}, turn the raw edge under and stitch by hand or machine.`,
     },
-    { title: 'Finish', text: 'Press the jumpsuit all over on the wrong side, with a pressing cloth on the right side wherever you need to.' },
+    { title: 'Finish', text: 'Press the jumpsuit all over on the wrong side, with a press cloth on the right side wherever you need to.' },
   ];
   return {
     notions: [
