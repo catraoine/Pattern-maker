@@ -374,9 +374,9 @@ describe('a one-shoulder over the right shoulder', () => {
 
   it('turns left and right over in the steps, but not the sewing terms', () => {
     const text = bodiceGuide(right, { length: 'waist' } as never, 1.5, 1).steps.map((s) => s.text).join(' ');
-    expect(text).toMatch(/zip into the left side seam/);
+    expect(text).toMatch(/zip goes into the left side seam/);
     expect(text).toMatch(/right sides together/);
-    expect(text).not.toMatch(/zip into the right side seam/);
+    expect(text).not.toMatch(/zip goes into the right side seam/);
     expect(bodiceSpec(m as never, right, 'waist').some((r) => r.label === 'Invisible zip, left side')).toBe(true);
   });
 

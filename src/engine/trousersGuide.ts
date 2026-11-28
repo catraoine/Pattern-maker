@@ -168,7 +168,7 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
         ? [
             {
               title: 'Put in the side zip',
-              text: `Sew the ${d.zipCm} cm invisible zip into the open part of the left side seam, the top of the teeth ${waist} below the waist edge, stopping at the LEFT ZIP ENDS notch, where the seam you sewed below it begins.${INVISIBLE_ZIP_LAY}`,
+              text: `The ${d.zipCm} cm invisible zip goes into the open part of the left side seam, the top of its teeth ${waist} below the waist edge, down to the LEFT ZIP ENDS notch, where the seam you sewed below it begins.${INVISIBLE_ZIP_LAY}`,
             },
           ]
         : []),

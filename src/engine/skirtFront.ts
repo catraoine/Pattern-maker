@@ -390,7 +390,7 @@ export function yokeSteps(g: SewingGuide, seam: string): SewingGuide {
             'Sew on the yokes',
             `Pin the front yoke to the top of the skirt front, right sides together, matching the notch and the ends; the curves run opposite ways, so clip the skirt's edge to the stitching line every 2 cm so it lies along the yoke. Sew ${seam} from the edge, press the seam up into the yoke and topstitch 0.6 cm above it. Join each back yoke to its back the same way, matching the double notches.`,
           ),
-          { ...s, text: s.text.replace('stopping at the ZIP ENDS notch.', 'stopping at the ZIP ENDS notch, the yoke seams level on each side.') },
+          { ...s, text: s.text.replace('down to the ZIP ENDS notch.', 'down to the ZIP ENDS notch, the yoke seams level on each side.') },
         ];
       case 'Sew the side seams':
         return [{ ...s, text: s.text.replace('matching the hip notches.', 'matching the yoke seams and the hip notches, the seam allowances pressed up into the yokes.') }];

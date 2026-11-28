@@ -100,7 +100,7 @@ export function wholeGuide(draft: SkirtDraft, fabricM: number, finish: SkirtFini
           // A slit up the left side: the zip goes in the right side seam, the left one stays open below the slit's top.
           {
             title: 'Put in the side zip',
-            text: `${bias ? 'Fuse a 1.5 cm strip of interfacing along the right side edges of the front and back, down past the ZIP ENDS notches, so the bias does not stretch as the zip goes in. ' : ''}Sew the ${draft.zipCm} cm invisible zip into the right side seam edges (as you wear it), with the top of the teeth ${waist} below the waist edge, stopping at the ZIP ENDS notches.${INVISIBLE_ZIP_LAY}`,
+            text: `${bias ? 'Fuse a 1.5 cm strip of interfacing along the right side edges of the front and back, down past the ZIP ENDS notches, so the bias does not stretch as the zip goes in. ' : ''}The ${draft.zipCm} cm invisible zip goes into the right side seam edges (as you wear it), the top of its teeth ${waist} below the waist edge, down to the ZIP ENDS notches.${INVISIBLE_ZIP_LAY}`,
           },
           {
             title: 'Sew the right side seam',
@@ -124,7 +124,7 @@ export function wholeGuide(draft: SkirtDraft, fabricM: number, finish: SkirtFini
             },
         {
           title: 'Put in the side zip',
-          text: `${bias ? 'Fuse a 1.5 cm strip of interfacing along the left side edges of the front and back, down past the ZIP ENDS notches, so the bias does not stretch as the zip goes in. ' : ''}Sew the ${draft.zipCm} cm invisible zip into the left side seam edges (as you wear it), with the top of the teeth ${waist} below the waist edge, stopping at the ZIP ENDS notches.${INVISIBLE_ZIP_LAY}`,
+          text: `${bias ? 'Fuse a 1.5 cm strip of interfacing along the left side edges of the front and back, down past the ZIP ENDS notches, so the bias does not stretch as the zip goes in. ' : ''}The ${draft.zipCm} cm invisible zip goes into the left side seam edges (as you wear it), the top of its teeth ${waist} below the waist edge, down to the ZIP ENDS notches.${INVISIBLE_ZIP_LAY}`,
         },
         {
           title: 'Sew the left side seam',

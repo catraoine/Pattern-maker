@@ -117,7 +117,7 @@ export function drapeBodiceSteps(g: SewingGuide, d: BodiceDraft, o: Opts): Sewin
     e.insertAt(lastDart >= 0 ? lastDart + 1 : e.steps.findIndex((s) => s.title === 'Neaten the edges') + 1, staySteps(d));
     e.set(
       'Put in the zip',
-      `Sew the ${d.zipCm} cm invisible zip into the right side seam, front and back, with the top of the teeth ${o.curve} below the top edge, ${below ? 'stopping at the ZIP ENDS notch at the waist' : 'down to the waist edge'}.${INVISIBLE_ZIP_LAY} A longer zip is shortened from the bottom: stitch across the teeth where it should stop and cut 2 cm below.`,
+      `The ${d.zipCm} cm invisible zip goes into the right side seam, front and back, the top of its teeth ${o.curve} below the top edge, ${below ? 'down to the ZIP ENDS notch at the waist' : 'down to the waist edge'}.${INVISIBLE_ZIP_LAY} A longer zip is shortened from the bottom: stitch across the teeth where it should stop and cut 2 cm below.`,
     );
     e.drop('Close the centre back');
     const shoulder = `Pin the front to the back at the left shoulder, right sides together. The back shoulder is 1 cm longer: ease it in so it fits without pleats. Sew ${o.seam} from the edge and press the seam open.`;
@@ -306,7 +306,7 @@ export function drapeDressSteps(g: SewingGuide, top: SewingGuide, d: DressDraft,
     );
     e.set(
       'Put in the zip',
-      `Sew the ${d.zipCm} cm invisible zip into the right side edges of the front and back, with the top of the teeth ${o.curve} below the top edge, across the waist seam, to the ZIP ENDS notch on the skirt.${INVISIBLE_ZIP_LAY} Sew one side, close the zip and mark where the waist seam crosses the other tape, so the waist meets exactly when you sew the second side.`,
+      `The ${d.zipCm} cm invisible zip goes into the right side edges of the front and back, the top of its teeth ${o.curve} below the top edge, across the waist seam and down to the ZIP ENDS notch on the skirt.${INVISIBLE_ZIP_LAY} Sew one side, close the zip and mark where the waist seam crosses the other tape, so the waist meets exactly when you sew the second side.`,
     );
     e.drop('Close the centre back');
     e.set(

@@ -250,7 +250,7 @@ const FLY: Frame[] = [
 // An invisible zip: one drawing for its one sentence.
 const ZIP: Frame[] = [
   {
-    match: /\binvisible zip into the centre back edges\b/i,
+    match: /\binvisible zip goes into the centre back edges\b/i,
     dg: dg(
       'The open invisible zip face down on the right side of each back, its teeth on the seam line, stitched close to the teeth from the top down to the ZIP ENDS notch.',
       [
@@ -264,6 +264,11 @@ const ZIP: Frame[] = [
         line('chalk', p(22.5, 3), p(22.5, 23)),
         line('edge', p(18, 19.5), p(19.6, 19.5)),
         line('edge', p(20.4, 19.5), p(22, 19.5)),
+        // Each word points at what it names, the tape and the stitching: they floated in the corner of the panel (EM
+        // walk, Nov 28).
+        ...arrow([p(13.4, 8.5), p(15.3, 8.5)]),
+        ...arrow([p(12.6, 11.9), p(16.8, 11.9)]),
+        ...arrow([p(12.4, 21.1), p(15.4, 19.9)]),
       ],
       [
         { at: p(3, 9), text: 'FACE DOWN' },

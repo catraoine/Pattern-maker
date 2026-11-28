@@ -158,7 +158,7 @@ export function topSteps(g: SewingGuide, d: BodiceDraft, o: TopFinish): SewingGu
         'Sew the princess seams',
         `Pin each side front to its centre front, right sides together, matching the notches above and below the bust. The centre front curves in where the side front curves out: clip the centre front's allowance almost to the stitching line over the bust so the two lie together. Sew ${o.seam} from the edge. Sew the back princess seams the same way, matching their notches.`,
       ),
-      step('Put in the zip', `Sew the ${zipWords(d.zipCm)} into the centre back edges, with the top of the teeth ${o.curve} below the top edge, stopping at the ZIP ENDS notch.${INVISIBLE_ZIP_LAY}${SEAM_BELOW_ZIP}`),
+      step('Put in the zip', `The ${zipWords(d.zipCm)} goes into the centre back edges, the top of its teeth ${o.curve} below the top edge, down to the ZIP ENDS notch.${INVISIBLE_ZIP_LAY}${SEAM_BELOW_ZIP}`),
       step('Close the centre back', `Sew the last centimetre of the centre back seam below the zip, ${o.seam} from the edge, and press it open.`),
       step(
         'Sew the side seams',
@@ -257,7 +257,7 @@ export function bonedDressSteps(d: DressDraft, top: SewingGuide, skirt: SewingGu
     ),
     step(
       'Put in the zip',
-      `Sew the ${d.zipCm} cm invisible zip into the centre back edges, with the top of the teeth ${o.curve} below the top edge, across the waist seam, to the ZIP ENDS notch on the skirt.${INVISIBLE_ZIP_LAY} Sew one side, close the zip and mark where the waist seam crosses the other tape, so the waist meets exactly when you sew the second side.${SEAM_BELOW_ZIP}`,
+      `The ${d.zipCm} cm invisible zip goes into the centre back edges, the top of its teeth ${o.curve} below the top edge, across the waist seam and down to the ZIP ENDS notch on the skirt.${INVISIBLE_ZIP_LAY} Sew one side, close the zip and mark where the waist seam crosses the other tape, so the waist meets exactly when you sew the second side.${SEAM_BELOW_ZIP}`,
     ),
     step('Close the centre back', `Sew the rest of the centre back seam, from the bottom of the zip ${toHem(o.slit, 'back')}, ${o.seam} from the edge. Press the seam open.${slitStop(o.slit, 'back')}`),
     step(
