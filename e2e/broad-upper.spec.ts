@@ -21,7 +21,7 @@ for (const [high, asked] of [['93', true], ['86', false]] as const) {
       seen.push(label);
       // The two come straight after the high bust, with a line saying why (EG walk, #4).
       if (label === 'Across back') {
-        await expect(main.getByText(/Your high bust is bigger than your full bust, so your top also takes your across back and armhole/)).toBeVisible();
+        await expect(main.getByText(/Your high bust \(93 cm\) is more than your bust \(92 cm\), so this top needs your across back and armhole too/)).toBeVisible();
         expect(seen[seen.length - 2]).toBe('High bust');
       }
       if (label === 'Armhole') {
