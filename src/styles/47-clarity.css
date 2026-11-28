@@ -690,3 +690,120 @@ section[aria-label='Preview']:has(.techflat) > .big-undo {
     margin-top: 16px;
   }
 }
+
+/* The pages a high bust adds open with a note and a way back (cold read EI, Nov 26): with it, Next fell under the
+   bottom edge at 360 and on a 1440x900 laptop, so Estimate it for me looked like the only way on. On those pages the
+   words start higher on a computer and the heading comes down a size; on a phone the note is a size smaller and the
+   friend nudge steps aside, since A friend measures sits just under it. */
+@media (min-width: 1100px) {
+  .measure-step.has-hero:has(.extra-intro) .step-words {
+    padding-top: 12px;
+    gap: 12px;
+  }
+  .measure-step.has-hero:has(.extra-intro) .step-words h1 {
+    font-size: min(56px, 4vw, 6.2vh);
+  }
+}
+@media (max-width: 760px) {
+  .measure-step:has(.extra-intro) .extra-intro {
+    font-size: 14px;
+  }
+  .measure-step:has(.extra-intro) .friend-nudge {
+    display: none;
+  }
+}
+
+/* "Next: Sleeve fullness ›" would not shrink, so on a computer it ran past the panel's margin to its edge (cold read
+   EI, Nov 26). It may now give way and take a second line inside the button, as a long name should. */
+.step-next .step-go {
+  flex: 0 1 auto;
+  min-width: 0;
+  line-height: 1.25;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+/* On a phone the pattern's card on Print stopped at 300 px, short of the right margin the buttons under it reach
+   (cold read EI, Nov 26): it takes the column's width. */
+@media (max-width: 760px) {
+  .print-top .print-cover > .envelope {
+    max-width: none;
+  }
+}
+
+/* "Do these look right?" on a short screen: the welcome-back line pushed Choose what to make under the bottom edge at
+   360x780 (cold read EG and EI). On a screen under 820 px tall the words start near the top, so the way on is in view. */
+@media (max-height: 820px) {
+  .measure-step:not(.has-hero):not(.centred):has(.check-list:not(.idea-picks)) {
+    padding-top: 8px;
+  }
+}
+
+/* The high bust note's way back sits at the end of its sentence, in the sentence's own letters (cold read EJ, Nov 27:
+   on a line of its own, in spaced capitals, it pushed Finish later under a 360 phone's edge). The padding gives it a
+   fingertip's height to tap without moving the lines. */
+.extra-intro button.link.inline-link {
+  font: inherit;
+  font-weight: var(--w-strong);
+  text-transform: none;
+  letter-spacing: normal;
+  padding: 12px 0;
+  margin: -12px 0;
+}
+/* With that note the picture on a phone may give way further, as it does for the who line on the first page, so
+   Finish later stays on a 360 x 780 screen (cold read EJ, Nov 27). */
+@media (max-width: 760px) {
+  .measure-step.has-hero:has(.extra-intro) .welcome-hero {
+    min-height: 72px;
+  }
+}
+
+/* A measuring page's Next stays an outline until a number is typed (cold read EJ, Nov 27: full gold over an empty line
+   read as if it would skip the measurement, and its colour changed with where the mouse last was). It still takes a
+   tap, which says what it needs. */
+.measure-entry button.primary.step-next.waiting,
+.measure-entry button.primary.step-next.waiting:hover {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+
+/* Sewing mode on a computer: the step's words scroll in their own column and Back and Next step stay at its foot, in
+   the same place on every step, with the row of steps under them always in view. On a 1366 x 768 laptop a long step
+   (the back welt pockets, the fly zip) put both buttons and the row below the window with no hint to scroll, and the
+   buttons moved from step to step (cold read EJ, Nov 27). */
+@media (min-width: 900px) {
+  .sewmode-body {
+    flex: 1 1 0;
+    min-height: 0;
+    align-items: stretch;
+  }
+  .sewmode-body > .sewmode-pic {
+    align-self: center;
+    max-height: 100%;
+    overflow: hidden;
+  }
+  .sewmode-words {
+    min-height: 0;
+    overflow-y: auto;
+    justify-content: flex-start;
+  }
+  .sewmode .sewmode-go {
+    position: sticky;
+    bottom: 0;
+    margin-top: auto;
+    padding-top: 12px;
+    background: var(--paper);
+  }
+  /* A fade above them, so words running on underneath read as more to scroll to, as on a phone. */
+  .sewmode .sewmode-go::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 100%;
+    height: 28px;
+    background: linear-gradient(to bottom, transparent, var(--paper));
+    pointer-events: none;
+  }
+}

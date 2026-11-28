@@ -56,6 +56,8 @@ export interface FinishedMark {
   note: string;
   /** The words over the mark rather than under it: a top's waist, near its lower edge. */
   above?: boolean;
+  /** The title and note as an inch file prints them, worked out from the numbers so the three add up. */
+  inch?: { title: string; note: string };
 }
 
 export function cutLine(pc: Piece, outline: Path = pc.outline): P[] {

@@ -88,7 +88,7 @@ interface Props {
 function friendly(w: string) {
   if (w.startsWith('shoulder width')) return 'Your shoulder width and shoulder length don’t quite agree. The pattern still drafts, but re-measuring both will make the shoulders fit better.';
   // Also said when the two are equal, so "shorter" was wrong for them (EG walk, Nov 24).
-  if (w.startsWith('front length')) return 'Your front length is no longer than your back length. It’s usually a few cm longer, as it goes over the bust, so this often means a tape slip. It’s drafted with a little extra; please re-measure it.';
+  if (w.startsWith('front length')) return 'Your front length is no longer than your back length. It’s usually a little longer, as it goes over the bust, so this often means a tape slip. It’s drafted with a little extra; please re-measure it.';
   // The closer-fit measurements, named, so the person knows which page to go back to (the readiness check, 2026-11-02).
   if (w.startsWith('front shoulder slope')) return 'Your front shoulder slope doesn’t agree with your front length and shoulder width, so the shoulder is drafted at a standard slope. Please re-measure the front shoulder slope.';
   if (w.startsWith('back shoulder slope')) return 'Your back shoulder slope doesn’t agree with your back length and shoulder width, so the shoulder is drafted at a standard slope. Please re-measure the back shoulder slope.';
@@ -405,7 +405,12 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
                 </button>
               ))}
             </div>
-            <Explain set="bodice" group={g.id} options={g.options} pick={handShaped(choices, g.id) ? undefined : valueOf(g.id)} />
+            {/* (The line under it says buttons and loops too: it said "A zip down the centre back", EI stills, Nov 26.) */}
+            {g.id === 'closure' && draft?.backLoops ? (
+              <Explain set="bodice" group={g.id} options={g.options.map(([id, label]) => [id, id === 'back_zip' ? 'Back buttons and loops' : label] as const)} pick={valueOf(g.id)} say={valueOf(g.id) === 'back_zip' ? 'Buttons and loops down the centre back.' : undefined} />
+            ) : (
+              <Explain set="bodice" group={g.id} options={g.options} pick={handShaped(choices, g.id) ? undefined : valueOf(g.id)} />
+            )}
             {g.id === 'neckline' && choices.neck && (
               <p className="muted small">
                 Drawn by hand.{' '}

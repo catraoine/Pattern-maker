@@ -218,7 +218,7 @@ export function Group({ label, tab, children, className, shaped }: { label: stri
   const [pick, setPick] = useState('');
   // Whether any choice here carries an In testing tag, so the question can say once what that means (clarity review A1,
   // Nov 22: three cold readers took the tag for a note we'd left for ourselves).
-  const [testing, setTesting] = useState(false);
+  const [testing, setTesting] = useState<false | 'picked' | 'other'>(false);
   // The picked choice's name, for the folded line: a picked chip, or any pressed button when there are none.
   // eslint-disable-next-line react-hooks/exhaustive-deps -- reads the page after every render; the check stops a loop
   useLayoutEffect(() => {
@@ -226,7 +226,9 @@ export function Group({ label, tab, children, className, shaped }: { label: stri
     const text = (el ? pickIn(el) : '') || (shaped ?? '');
     if (text !== pick) setPick(text);
     // Only this question's own tags: a question folded inside it says its own line.
-    const tagged = !!el && [...el.querySelectorAll(':scope > .fold-body .testing-tag')].some((tag) => tag.closest('fieldset') === el);
+    const tags = el ? [...el.querySelectorAll(':scope > .fold-body .testing-tag')].filter((tag) => tag.closest('fieldset') === el) : [];
+    // 'picked' when the look's own choice carries the tag; 'other' when only a choice it didn't make does.
+    const tagged = !tags.length ? false : tags.some((tag) => tag.closest('[aria-pressed="true"]')) ? 'picked' : 'other';
     if (tagged !== testing) setTesting(tagged);
   });
   const folds = !!fold && !solo && t !== PRO;
@@ -282,7 +284,9 @@ export function Group({ label, tab, children, className, shaped }: { label: stri
         {children}
         {/* On a collection look its In testing tags are the point: it is what the fit testers are sewing now, and the
             general line read as a warning about the tester's own piece (pretend tester EF walk, Nov 24). */}
-        {testing && <p className="testing-why">{look ? `In testing: the ${look} is what our fit testers are sewing now.` : TESTING_WHY}</p>}
+        {/* Only when the look's own choice is tagged: under a tag on Oversized alone, "the Ice Peplum Top is what our
+            fit testers are sewing now" read as if the whole top were in testing (cold read EJ, Nov 27). */}
+        {testing && <p className="testing-why">{look && testing === 'picked' ? `In testing: the ${look} is what our fit testers are sewing now.` : TESTING_WHY}</p>}
       </div>
     </fieldset>
   );
@@ -550,10 +554,6 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
     if (window.history.state) window.history.replaceState({ ...window.history.state, sub: 'edit' }, '');
     setPage('review');
   };
-  useLayoutEffect(() => {
-    if (lookNext) lookReview();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only on opening
-  }, []);
   // Not when Print's Change fabric opened Style: that's one quick change, so Fabric opens straight away, without an intro
   // about fits and necklines in between (DY pretend-tester walk, Nov 21). It still shows on the next ordinary visit.
   const [intro, setIntro] = useState(() => !fromPrint && !introSeen());
@@ -589,6 +589,13 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
     return () => watch.disconnect();
   }, [page, intro]);
   const look = useContext(LookName);
+  // An unchanged collection look opens on itself too when How styling works would come first: after a reload partway
+  // through its measurements, or from Style in the top bar, the intro read as restyling from scratch, though the look was
+  // set (pretend tester EJ walk, Nov 27). The intro still shows the first time Change a detail opens the questions.
+  useLayoutEffect(() => {
+    if (lookNext || (look && intro)) lookReview();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only on opening
+  }, []);
   // The open question on each step. Every question starts folded (Cat, 2026-11-06: the first one stood open, so
   // See the choices didn't show the whole list); a tap on one opens it.
   // The question open on that step too (Cat's K, Nov 8: on a phone each question is its own screen).
@@ -978,7 +985,9 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
             dress (tester persona walk, Nov 15; Cat, Nov 14: "How come not showing in colour"). */}
         {flat && (
           <GarmentFabric fabric={fabric}>
-            <Envelope house={false} name={Name} flat={flat} foot="Drafted to you" />
+            {/* On the example body it isn't drafted to the maker yet: the look page said "Drafted to you" over the example's
+                numbers, while Print said "Drafted to an example body" (bug hunt journey, Nov 27). */}
+            <Envelope house={false} name={Name} flat={flat} foot={exampleTag ? 'Drafted to an example body' : 'Drafted to you'} />
           </GarmentFabric>
         )}
         {/* Changing it sits right under the drawing, where the eye is. */}
@@ -1257,7 +1266,8 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
               {steps[at + 1] && (
                 // Names the next step, as the phone's Next does (clarity review A10, Nov 22).
                 <button type="button" className="step-go primary" aria-label={`Next: ${steps[at + 1]}`} onClick={() => goStep(steps[at + 1])}>
-                  Next: {steps[at + 1]} ›
+                  {/* (The › kept to the last word: at 360 "Next: Sleeve fullness" wrapped and left it alone on a line, cold read EI.) */}
+                  Next: {steps[at + 1]}{'\u00a0'}›
                 </button>
               )}
               {/* Back from the fabric to Print, on the step Print sent you to (Cat, Nov 21). */}
@@ -1328,7 +1338,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
             )}
             {qAt >= 0 && qs[qAt + 1] ? (
               <button type="button" className="primary" aria-label={`Next: ${qs[qAt + 1].label}`} onClick={() => goQ(qAt + 1)}>
-                Next: {qs[qAt + 1].label} <span aria-hidden="true">›</span>
+                Next: {qs[qAt + 1].label}{'\u00a0'}<span aria-hidden="true">›</span>
               </button>
             ) : qAt >= 0 ? (
               backToPrint || (

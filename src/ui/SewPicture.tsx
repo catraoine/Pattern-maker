@@ -3,7 +3,8 @@ import type { P } from '../engine/geometry';
 import type { Piece } from '../engine/piece';
 import type { Lay } from '../engine/layplan';
 import { type StepPicture, isDart } from '../engine/stepPictures';
-import { StepDiagram } from './StepDiagram';
+import { DIAGRAMS } from '../engine/diagrams';
+import { DiagramKey, StepDiagram } from './StepDiagram';
 
 // A sewing step's picture (Cat's C, Nov 21), on its own so Print can show one without loading the whole of Sewing mode.
 
@@ -75,7 +76,7 @@ export function SewPicture({ picture, pieces, lays, flat, label, still }: { pict
   const cls = still ? 'sewpic still' : 'sewpic';
   // A pattern with no flat drawing (one read from a file) shows its pieces instead.
   if (picture.kind === 'flat' && !flat) picture = { kind: 'sew', pieces: pieces.map((_, i) => i), edges: [], darts: false };
-  if (picture.kind === 'diagram') return <div className={`${cls} sewpic-diagram`}><StepDiagram id={picture.id} /></div>;
+  if (picture.kind === 'diagram') return <div className={`${cls} sewpic-diagram`}><StepDiagram id={picture.id} />{!still && <DiagramKey dgs={[DIAGRAMS[picture.id]]} />}</div>;
   if (picture.kind === 'flat') return <div className={`${cls} sewpic-flat`}>{flat}</div>;
   if (picture.kind === 'prep')
     return (
@@ -141,11 +142,23 @@ export function SewPicture({ picture, pieces, lays, flat, label, still }: { pict
   const placed = arrange(shown);
   const tall = Math.max(...placed.map((a) => a.h), 1);
   const wide = Math.max(...placed.map((a) => a.x + a.w), 1);
-  const s = Math.min((W - 16) / wide, (H - 14) / tall);
+  // Each piece's name under it, without the word they all share ("BODICE"), a word a line: four princess panels side by
+  // side ran their names into each other (EJ walk, Nov 27).
+  const words = shown.map((pc) => pc.name.toUpperCase().split(' '));
+  const shared = words.length > 1 && words.every((w) => w.length > 1 && w[0] === words[0][0]) ? 1 : 0;
+  const names = words.map((w) => (w.length - shared > 1 && placed.length > 2 ? w.slice(shared) : [w.slice(shared).join(' ')]));
+  // Each extra line of a name takes its room from the drawing, so the names sit below the pieces, not over their hems.
+  const extra = (Math.max(...names.map((n) => n.length), 1) - 1) * 4.2;
+  const s = Math.min((W - 16) / wide, (H - 14 - extra) / tall);
   const ox = (W - wide * s) / 2;
-  const oy = (H - tall * s) / 2;
+  const oy = (H - extra - tall * s) / 2;
   const to = (a: Placed) => (ps: P[]) => ps.map((q) => ({ x: ox + (q.x + a.dx) * s, y: oy + (q.y + a.dy) * s }));
-  return (
+  // A key for the two lines a first-time reader can't name (cold read, Nov 27), left off the small pictures along the foot.
+  // The thick line only where something is sewn: interfacing, pressing and marking steps draw none.
+  const sewn = picture.darts ? shown.some((pc) => pc.lines.some(isDart)) : false;
+  const stitched = sewn || shown.some((pc, k) => picture.around?.includes(picture.pieces[k]) || runs(pc, picture.edgesOn?.[picture.pieces[k]] ?? picture.edges).length > 0);
+  const key = still ? [] : [...(stitched ? ['Thick line: sew this edge'] : []), ...(shown.some((pc) => pc.fold) ? ['Dashed line: the fold'] : [])];
+  const pic = (
     <svg viewBox={`0 0 ${W} ${H}`} className={cls} role="img" aria-label={label ?? 'The pieces for this step'}>
       {placed.map((a, k) => {
         const f = to(a);
@@ -158,15 +171,31 @@ export function SewPicture({ picture, pieces, lays, flat, label, still }: { pict
             {!picture.darts && a.pc.lines.map((ln, j) => <path key={j} d={line(f(ln.points(8)))} className="sp-mark" />)}
             {picture.darts && a.pc.lines.map((ln, j) => (isDart(ln) ? <Stitch key={j} d={line(f(ln.points(8)))} delay={j * 0.2} /> : <path key={j} d={line(f(ln.points(8)))} className="sp-mark" />))}
             {picture.around?.includes(picture.pieces[k]) && <Stitch d={outline} delay={k * 0.3} />}
-            {runs(a.pc, picture.edges).map((r, j) => (
+            {runs(a.pc, picture.edgesOn?.[picture.pieces[k]] ?? picture.edges).map((r, j) => (
               <Stitch key={j} d={line(f(r))} delay={k * 0.3} />
             ))}
-            <text x={ox + (a.x + a.w / 2) * s} y={Math.min(H - 1.5, oy + a.h * s + 5)} textAnchor="middle">
-              {a.pc.name.toUpperCase()}
+            <text x={ox + (a.x + a.w / 2) * s} y={Math.min(H - 1.5 - (names[k].length - 1) * 4.2, oy + a.h * s + 5)} textAnchor="middle">
+              {names[k].map((w, j) => (
+                <tspan key={j} x={ox + (a.x + a.w / 2) * s} dy={j ? 4.2 : 0}>
+                  {w}
+                </tspan>
+              ))}
             </text>
           </g>
         );
       })}
     </svg>
+  );
+  if (!key.length) return pic;
+  // Drawing and key in one column that shrinks the drawing, so on a short laptop screen the key isn't cut off below it.
+  return (
+    <div className="sewpic-keyed">
+      {pic}
+      <ul className="dg-key">
+        {key.map((t) => (
+          <li key={t}>{t}</li>
+        ))}
+      </ul>
+    </div>
   );
 }

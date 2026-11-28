@@ -50,7 +50,8 @@ import { preloadScreens, screen } from './screens/load';
 import { FABRIC, StartOver, openLookNext, openTabNext } from './ui/StyleLayout';
 import { leavePrintForFabric } from './ui/printReturn';
 import { KeptCount } from './ui/SaveControl';
-import { GARMENT_NAME, baseDone } from './measureFlow';
+import { GARMENT_NAME, baseDone, forgetMeasuringFor, leftPartway } from './measureFlow';
+import { namesToHide } from './help/pin';
 import type { AfterMeasuring, PageKind, StepsStart } from './screens/MeasureStepsScreen';
 import { mergeBackups } from './cloud/merge';
 import { useCloud } from './cloud/useCloud';
@@ -114,6 +115,7 @@ const BrandsScreen = screen(() => import('./screens/BrandsScreen').then((m) => m
 const NightsScreen = screen(() => import('./screens/NightsScreen').then((m) => m.NightsScreen));
 const MadeScreen = screen(() => import('./screens/MadeScreen').then((m) => m.MadeScreen));
 const HelpScreen = screen(() => import('./screens/HelpScreen').then((m) => m.HelpScreen));
+const PinNotes = screen(() => import('./ui/PinNotes').then((m) => m.PinNotes));
 const PlansScreen = screen(() => import('./screens/PlansScreen').then((m) => m.PlansScreen));
 const FittingScreen = screen(() => import('./screens/FittingScreen').then((m) => m.FittingScreen));
 const TrueScaleScreen = screen(() => import('./screens/TrueScaleScreen').then((m) => m.TrueScaleScreen));
@@ -260,6 +262,10 @@ export default function App() {
   useEffect(() => {
     if (step !== 'style' && step !== 'steps' && step !== 'collection') openLookNext(false);
   }, [step]);
+  // A piece being measured for is done with, or left for another, once a garment's Style, Print or Sew opens.
+  useEffect(() => {
+    if (step === 'style' || step === 'export' || step === 'sew') forgetMeasuringFor();
+  }, [step]);
   // Signing in on a device another account used asks a question in Your account: open it there, wherever the sign-in
   // came back to (Google's page returns to the start).
   useEffect(() => {
@@ -383,6 +389,8 @@ export default function App() {
 
   const checks = checksFor(measured, saved.unit, garment, form, skipFor(garment, saved), { weight: person.weight });
   const canLeaveMeasure = ready(measured, saved.unit, garment, form, skipFor(garment, saved));
+  // The piece whose own measurements were left partway on this device, while there's still something to measure.
+  const partwayPiece = !canLeaveMeasure && step === 'welcome' && baseDone(measured) ? leftPartway(measured, form, (g) => skipFor(g, saved)) : undefined;
 
   // Corrections from this person's toile fittings go into every pattern drafted for them: the garment's
   // own toile first, then what the person's other toiles found that this one hasn't looked at.
@@ -751,6 +759,23 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- asks once each time Print is opened without the arms
   }, [step, armsToAsk.length]);
 
+  // What a piece's current design is drafted from beyond its own list: a top that goes below the waist needs the hips,
+  // and one with sleeves the arms. Making the look asks for them, but a piece carried on after a reload or Welcome back
+  // was measured from its own list alone, and Style then stopped at "Add your full hip and waist to hip" with no way on
+  // (EI stills, Nov 26). So carrying on asks for them too.
+  const designNeeds = (g: Garment, v: MeasurementValues = measured): MeasurementId[] => {
+    const choices = GARMENT_DRAFTING[g].choices(saved) as never;
+    return [...lookHipMissing({ choices }, v), ...lookArmsMissing({ choices }, v)];
+  };
+  // And Style, however it is reached without them, asks for the hips first, as Print does for the arms.
+  const hipToAsk = lookHipMissing({ choices: current }, measured);
+  useEffect(() => {
+    if (step !== 'style' || !hipToAsk.length) return;
+    openSteps({ kind: 'for', garment, also: hipToAsk });
+    setStepsNote('Your top goes below the waist, so it is drafted from your hips too: add them to style it.');
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- asks once each time Style is opened without the hips
+  }, [step, hipToAsk.length]);
+
   /** Switch whose measurements are in use, going back to measuring when theirs aren't done for this garment. */
   const switchPerson = (id: string, to: View = step) => {
     const who = account.people.find((p) => p.id === id) ?? person;
@@ -807,6 +832,13 @@ export default function App() {
     if (choosing && baseDone(measured)) {
       // On the list Style is lit (cold read EE, Nov 24), so Measure is a way back to the measurements, as from the collection.
       if (to === 'measure') return step === 'steps' && stepsPage === 'check' ? undefined : openSteps({ kind: 'check' });
+      // Back after leaving partway through a piece's measurements: that piece's next page, not the garments again.
+      const partway = !canLeaveMeasure && step === 'steps' && stepsPage === 'check' ? leftPartway(measured, form, (g) => skipFor(g, saved)) : undefined;
+      if (partway) {
+        measureFor(partway, measured, form, designNeeds(partway));
+        setStepsNote('Style and Print open once your measurements are in.');
+        return;
+      }
       if (!canLeaveMeasure) {
         if (!(step === 'steps' && stepsPage === 'choose')) openSteps({ kind: 'choose' });
         setStepsNote('Choose what to make first: Style and Print open for it.');
@@ -905,7 +937,9 @@ export default function App() {
       <DemoGarment.Provider value={garment}>
       <FabricStyleOf.Provider value={fabricStyle}>
       <PointEditContext.Provider value={pointEditing}>
-      <StartOver.Provider value={styledSinceStart() ? startOver : undefined}>
+      {/* Not on a collection look just as it comes: the cold read EK (Nov 27) met it before changing anything, and it
+          would turn the look into the garment's plain first style. */}
+      <StartOver.Provider value={styledSinceStart() && !lookName ? startOver : undefined}>
       <div className="app" {...{ inert: opening ? '' : undefined }}>
         <header className={step === 'welcome' || step === 'link' || gated ? 'topbar' : 'topbar steady'}>
           {gated && step !== 'welcome' ? (
@@ -973,6 +1007,13 @@ export default function App() {
 
         <main className="main">
           <Suspense fallback={null}>
+          {/* Hold to leave a note, on a device let in by a tester link only (Cat, Nov 26: "Hold to drop a pin"). */}
+          {/* In its own Suspense, so its file arriving never blanks the screen under it. */}
+          {access && !!account.testerCode && (
+            <Suspense fallback={null}>
+              <PinNotes view={step} garment={lookName ?? (vestOf(garment, saved) ? 'vest' : GARMENT_NAME[garment])} hide={namesToHide([account.name, account.studio?.name, ...(account.people ?? []).map((p) => p.name)])} />
+            </Suspense>
+          )}
           <KeptCount.Provider value={{ kept: account.patterns.length, limit: savedLimit(account) }}>
           {incoming?.kind === 'broken' && step === 'welcome' && (
             <p className="msg error" role="status">
@@ -1076,7 +1117,16 @@ export default function App() {
                       onSaved: () => setStep('account'),
                       onNew: startNew,
                     }
-                  : undefined
+                  : partwayPiece
+                    ? // Closed partway through a piece's own measurements: the landing page carries on with it, as Begin
+                      // only led to a list of the first five, without the piece's ones already given (EJ walk, Nov 27).
+                      {
+                        garment: vestOf(partwayPiece, saved) ? 'vest' : GARMENT_NAME[partwayPiece],
+                        onResume: () => openSteps({ kind: 'resume' }),
+                        onSaved: () => setStep('account'),
+                        onNew: startNew,
+                      }
+                    : undefined
               }
             />
           )}
@@ -1090,6 +1140,7 @@ export default function App() {
               key={stepsStart.at}
               opening={stepsStart.at !== stepsShown.current}
               unused={(g) => skipFor(g, saved)}
+              asks={(g) => designNeeds(g)}
               named={(g) => (vestOf(g, saved) ? 'vest' : GARMENT_NAME[g])}
               testerCode={account.testerCode}
               start={stepsStart.start}
@@ -1541,7 +1592,7 @@ export default function App() {
           )}
           {step === 'sew' && !hasGarment(account, garment) && <UnlockGarment garment={garment} onPlans={openPlans} onBack={() => setStep('style')} />}
           {step === 'sew' && hasGarment(account, garment) && (
-            <SewScreen made={printable} title={title} keep={`${person.id}:${garment}`} onPrint={() => setStep('export')} onStyle={() => setStep('style')} tester={!!account.testerCode} />
+            <SewScreen made={printable} title={title} name={lookName ?? (vestOf(garment, saved) ? 'vest' : GARMENT_NAME[garment])} keep={`${person.id}:${garment}`} onPrint={() => setStep('export')} onStyle={() => setStep('style')} tester={!!account.testerCode} />
           )}
           {step === 'check' && (
             <CheckFileScreen

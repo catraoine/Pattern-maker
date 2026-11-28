@@ -53,7 +53,8 @@ the first $6 pack on Apr 15, 2027. Drops $28. Founding Atelier (Nov 13): 250 num
 lifetime pass and the $10 January deposit are dropped. The founding list lives on the server (Netlify Blobs store
 "founding", by email hash only): fit testers numbered first, then the waitlist in the order they joined, numbered by
 an hourly job. From Mar 16 a founding member gets past the waitlist by signing in with that email; Your account shows
-their number and what they were promised. The $34 price and the testers' free year (Mar 18 2027 to Mar 18 2028) are
+their number and what they were promised. A place of kind `gift` is free with no end date and must never be charged when billing
+switches on (Cat's promise of Nov 26, 2026; promises list row T15). The $34 price and the testers' free year (Mar 18 2027 to Mar 18 2028) are
 charged from the list once Paddle is switched on.
 Sewist drop designers get 30% plus a free Premium year; no upfront prize.
 

@@ -7,6 +7,8 @@ import { stepPicture } from '../engine/stepPictures';
 import { SewPicture } from './SewPicture';
 import { readAt, readTicks, saveAt, saveDone, saveTicks } from './sewPlace';
 import { isNote, stepLines } from '../engine/stepLines';
+import { framesFor } from '../engine/stepFrames';
+import { DiagramKey, StepDiagram } from './StepDiagram';
 
 // Sewing mode (Cat's C, Nov 21): the steps one at a time, each with a drawing of the garment's own pieces where the
 // edges being sewn draw themselves in, so it reads at arm's length beside the machine. The words are the steps' own.
@@ -102,8 +104,17 @@ export function SewingMode({ steps, pieces, lays, flat, title, keep, inCm, from,
     };
   }, []);
   const pictures = useMemo(() => steps.map((st) => stepPicture(st, pieces)), [steps, pieces]);
+  // Along the foot, a step with close-ups shows its first one, the same drawing the step opens on.
+  const firsts = useMemo(() => steps.map((st) => framesFor(st.title, stepLines(inCm(st.text)))?.[0]), [steps, inCm]);
   const step = steps[at];
   const last = at === steps.length - 1;
+  const lines = stepLines(inCm(step.text));
+  // A trickier step has a close-up for each of its sentences (Cat's A Follows your tick, Nov 27): the picture shows the
+  // one for the first line not yet ticked, so it moves on as you tick, and the last once all are done.
+  const frames = framesFor(step.title, lines);
+  const todo = lines.findIndex((ln, i) => !isNote(ln) && !(ticks[at] ?? []).includes(i));
+  const now = todo >= 0 ? todo : lines.length - 1;
+
   return createPortal(
     <div className="sewmode" role="dialog" aria-modal="true" aria-label={`Sewing your ${title}`} ref={box} tabIndex={-1}>
       <div className="sewmode-top">
@@ -121,9 +132,17 @@ export function SewingMode({ steps, pieces, lays, flat, title, keep, inCm, from,
         ))}
       </div>
       <div className="sewmode-body">
-        {/* Keyed by step, so each picture starts its drawing afresh. */}
-        <div className="sewmode-pic" key={at}>
-          <SewPicture picture={pictures[at]} pieces={pieces} lays={lays} flat={flat} label={step.title} />
+        {/* Keyed by the line too, so each close-up fades in as the line before it is ticked (Cat's A, Nov 27). */}
+        <div className="sewmode-pic" key={frames ? `${at}-${now}` : at}>
+          {frames ? (
+            <div className="sewpic sewpic-diagram sewframe">
+              <StepDiagram dg={frames[now]} />
+              {/* The key for the whole step, so it keeps one height and the drawing doesn't change size as you tick. */}
+              <DiagramKey dgs={frames} />
+            </div>
+          ) : (
+            <SewPicture picture={pictures[at]} pieces={pieces} lays={lays} flat={flat} label={step.title} />
+          )}
         </div>
         <div className="sewmode-words">
           {/* Step and title on one line in the heading capitals, the number in champagne (Cat's A, Nov 21). */}
@@ -133,7 +152,7 @@ export function SewingMode({ steps, pieces, lays, flat, title, keep, inCm, from,
           </h2>
           {/* One action per line, split at each full stop: the step's own words, nothing reworded (Cat's A, Nov 21). */}
           <ul className="sew-lines" aria-label="Tick each one as you do it">
-            {stepLines(inCm(step.text)).map((line, i) => {
+            {lines.map((line, i) => {
               const on = (ticks[at] ?? []).includes(i);
               if (isNote(line)) return <li key={`${at}-${i}`} className="note">{line}</li>;
               return (
@@ -168,7 +187,13 @@ export function SewingMode({ steps, pieces, lays, flat, title, keep, inCm, from,
         {steps.map((s, i) => (
           <li key={s.title + i}>
             <button type="button" className={i === at ? 'on' : i < at ? 'done' : undefined} aria-label={`Step ${i + 1}: ${s.title}`} aria-current={i === at ? 'step' : undefined} onClick={() => go(i)}>
-              <SewPicture picture={pictures[i]} pieces={pieces} lays={lays} flat={flat} still />
+              {firsts[i] ? (
+                <div className="sewpic still sewpic-diagram">
+                  <StepDiagram dg={firsts[i]!} />
+                </div>
+              ) : (
+                <SewPicture picture={pictures[i]} pieces={pieces} lays={lays} flat={flat} still />
+              )}
             </button>
           </li>
         ))}

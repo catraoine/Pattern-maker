@@ -3,6 +3,7 @@
 // Never measurements, names or patterns. An email only if they type one for a reply, and for a tester only the fact
 // that they are one, never their tester code.
 import { browserFamily } from '../report/report';
+import type { Pin } from './pin';
 
 const ENDPOINT = '/.netlify/functions/note';
 /** The screenshot's longest side once shrunk: enough to read a phone screen, small enough to send on a slow line. */
@@ -45,10 +46,12 @@ interface NoteExtras {
   email?: string;
   /** They're a fit tester. Only the fact, never the code. */
   tester?: boolean;
+  /** Held on a spot to write it (src/help/pin.ts): where. */
+  pin?: Pin;
 }
 
 /** Sends the note. `view` is the screen they came from. */
-export async function sendNote(note: string, view: string, { shot, email, tester }: NoteExtras = {}): Promise<NoteResult> {
+export async function sendNote(note: string, view: string, { shot, email, tester, pin }: NoteExtras = {}): Promise<NoteResult> {
   const reply = email?.trim();
   const body = JSON.stringify({
     note: note.trim(),
@@ -58,6 +61,7 @@ export async function sendNote(note: string, view: string, { shot, email, tester
     ...(shot ? { shot } : {}),
     ...(reply ? { email: reply } : {}),
     ...(tester ? { tester: true } : {}),
+    ...(pin ? { pin } : {}),
   });
   try {
     const res = await fetch(ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });

@@ -22,20 +22,23 @@ export type DiagramId =
 /**
  * cloth: the fabric, filled. fold: a second layer or a turned-back edge, filled a little lighter.
  * edge: a cut or folded edge, or a seam. machine: machine stitching. hand: hand stitches, drawn one
- * by one. thread: tacking thread, in long stitches. under: something underneath, seen through.
+ * by one. thread: tacking thread, in long stitches. under: something underneath, seen through. chalk: a line chalked
+ * on the cloth from the pattern (a pocket box), drawn fine and dotted.
  */
-type PartKind = 'cloth' | 'fold' | 'edge' | 'machine' | 'hand' | 'thread' | 'under';
+export type PartKind = 'cloth' | 'fold' | 'edge' | 'machine' | 'hand' | 'thread' | 'under' | 'chalk';
 
-interface DiagramPart {
+export interface DiagramPart {
   pts: P[];
   kind: PartKind;
   closed?: boolean;
 }
 
-interface Diagram {
+export interface Diagram {
   w: number;
   h: number;
   parts: DiagramPart[];
+  /** Small capitals on the drawing: the pattern's own marks (BACK POCKET) and which side is up. */
+  notes?: { at: P; text: string; end?: boolean; mid?: boolean }[];
   /** What it shows, for screen readers and under the drawing in print. */
   caption: string;
 }
@@ -43,15 +46,29 @@ interface Diagram {
 const W = 40;
 const H = 24;
 
-const rect = (x0: number, y0: number, x1: number, y1: number, kind: PartKind = 'cloth'): DiagramPart => ({
+/** What each kind of line means, in the order a key lists them. Only kinds a reader might misread are here: the cloth,
+ *  its edges, the arrows and the hand stitches (each stroke drawn, as the zip teeth are) read as themselves (cold read, Nov 27: "no key for the dashed and grey lines"). */
+const KEY: [PartKind, string][] = [
+  ['machine', 'Black dashes: machine stitching'],
+  ['thread', 'Long dashes: tacking'],
+  ['under', 'Grey dashes: underneath'],
+  ['chalk', 'Fine dots: chalked from the pattern'],
+  ['fold', 'Shaded: a second layer, or turned back'],
+];
+
+/** The key for a drawing, or a row of them: only the lines they have, so a short key stays short. */
+export const keyFor = (...dgs: Diagram[]): string[] => KEY.filter(([k]) => dgs.some((dg) => dg.parts.some((pt) => pt.kind === k))).map(([, t]) => t);
+
+
+export const rect = (x0: number, y0: number, x1: number, y1: number, kind: PartKind = 'cloth'): DiagramPart => ({
   pts: [p(x0, y0), p(x1, y0), p(x1, y1), p(x0, y1)],
   kind,
   closed: true,
 });
-const line = (kind: PartKind, ...pts: P[]): DiagramPart => ({ pts, kind });
+export const line = (kind: PartKind, ...pts: P[]): DiagramPart => ({ pts, kind });
 
 /** A quadratic curve through `c`'s pull, as points. */
-function curve(a: P, c: P, b: P, n = 16): P[] {
+export function curve(a: P, c: P, b: P, n = 16): P[] {
   return Array.from({ length: n + 1 }, (_, i) => {
     const t = i / n;
     return lerp(lerp(a, c, t), lerp(c, b, t), t);
@@ -59,7 +76,7 @@ function curve(a: P, c: P, b: P, n = 16): P[] {
 }
 
 /** An arrowhead at the end of a run, pointing along it. */
-function arrow(pts: P[], kind: PartKind = 'edge'): DiagramPart[] {
+export function arrow(pts: P[], kind: PartKind = 'edge'): DiagramPart[] {
   const tip = pts[pts.length - 1];
   const u = unit(sub(tip, pts[pts.length - 2]));
   const n = p(-u.y, u.x);

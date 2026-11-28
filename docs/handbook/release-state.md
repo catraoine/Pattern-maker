@@ -4,12 +4,11 @@ _Update this page whenever a release ships or a PR is queued._
 
 ## Now (Nov 21, 2026): how a ship works
 
-Live: **release EI** (Nov 26, Cat's 4:41 pm "ship"): the measuring list
-shows the number to check beside its reason, "Read 66 as inches" and one height format; a top on a broad upper body
-says "bigger than" or "the same as" with a link back to the high bust; the Ice Peplum opening reads "Back buttons and
-loops"; Style's measurement notes on the first step only; a skirt with its own length keeps its name; All round
-princess shoulders, French dart tails and diagonal hems; clarity fixes from the EH cold read; a busy tester email no
-longer uses up a day's send; on top of EH. Rollback = release EH. Releases CW to EI went out Nov 17 to 26;
+Live: **release EL** (Nov 27, Cat's 8:11 pm "ship"): inch pattern marks show the booklet's ease and a peplum has no
+waist mark; Sewing mode pictures show the right pieces for pleats, creases, ruffle, sleeve bands and heads; a key under
+each sewing drawing; a collection look is carried on with before its first measurement; the high bust note leads with
+the fit; booklet drawings that run onto a new page keep their step's name; "Leave my weight out"; on top of EK.
+Rollback = release EK. Releases CW to EL went out Nov 17 to 27;
 every release's commit, deploy id and rollback is in project memory (pattern-maker-releases-nov14), and the running list of what is
 ready is `/mnt/project-files/releases/ready-to-ship.md`.
 
@@ -29,8 +28,10 @@ The ship rule (Cat, Nov 17, 7:47 pm):
    checks this.
 8. Pattern fixes from the bug hunt and fit threads apply themselves once their checks pass (and CLO, when the shape
    changes), with no "apply" from Cat (Cat, Nov 25: "start auto applying these pattern fixes", then "add"). They still
-   go live only on her "ship", and each one is listed in plain words on the ready list. Cat still decides any change
-   to an active tester's pattern, to a launch pattern during the freeze, and any judgment of how a look looks.
+   go live only on her "ship", and each one is listed in plain words on the ready list. Since Nov 27 the bug hunt's app
+   fixes (screens, wording that fixes a fault, flows) apply themselves the same way (Cat: "add"). Cat still decides any
+   change to a pattern or its steps that an active tester is using, to a launch pattern during the freeze, and any
+   judgment of how a look looks.
 
 Each release still runs the full checks on the joined code, checks the live site after, pushes main to match live and
 saves a bundle to code-backup/.
