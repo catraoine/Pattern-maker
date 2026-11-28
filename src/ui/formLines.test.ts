@@ -149,6 +149,33 @@ describe('reading lines drawn on the form', () => {
     expect(sideLine.said).toMatch(/flare|shape/);
   });
 
+  // Cat's screen recording, Nov 28: a front hem drawn short at the sides met the undrawn back halfway, so its side end
+  // was pulled back down below the hem just inside it, and the corners stood out under it as points, on the paper too.
+  it('keeps a skirt hem drawn short at the sides as drawn, the back coming up to meet it', () => {
+    const legs = { ...m, waist_to_knee: 58, waist_to_floor: 104 };
+    const skirt = { fit: 'regular', silhouette: 'a_line', length: 'knee' } as const;
+    const sd = draftSkirt(legs, skirt);
+    const u = Array.from({ length: 25 }, (_, i) => {
+      const x = -34 + (i * 68) / 24;
+      return { x, y: Math.abs(x) > 16 ? 40 : 66 - 26 * (Math.abs(x) / 16) ** 2 };
+    });
+    const hem = readSkirtHem(u, 0, sd, legs, skirt).choices!.hem!;
+    const side = hem.front.length - 1;
+    // The side ends where it was drawn, and no point of the hem is shorter than its side end.
+    expect(hem.front[side]).toBeLessThan(-15);
+    expect(Math.min(...hem.front)).toBeGreaterThanOrEqual(hem.front[side] - 0.05);
+    expect(hem.back[side]).toBeCloseTo(hem.front[side]);
+    // The back comes up evenly from its centre, with no step at the side.
+    for (let i = 1; i <= side; i++) expect(hem.back[i]).toBeLessThanOrEqual(hem.back[i - 1] + 0.05);
+    expect(hem.back[side - 1] - hem.back[side]).toBeLessThan(4);
+    // On the paper, the side seam ends at the hem's highest point: no corner hangs below the hem beside it.
+    const front = draftSkirt(legs, { ...skirt, hem }).pieces[0];
+    const { pts, tags } = front.outline.taggedPoints(16);
+    const hemPts = pts.filter((_, i) => tags[i] === 'hem');
+    const corner = pts[tags.indexOf('hem') - 1] ?? hemPts[0];
+    expect(Math.min(...hemPts.map((q) => q.y))).toBeGreaterThanOrEqual(corner.y - 0.3);
+  });
+
   it("flares a dress's skirt from its side line, keeping the dress's one fit", () => {
     const legs = { ...m, waist_to_knee: 58, waist_to_floor: 104 };
     const skirt = { fit: 'regular', silhouette: 'straight', length: 'knee' } as const;
