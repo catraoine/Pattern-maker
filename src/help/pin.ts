@@ -77,7 +77,8 @@ function controlWords(el: Element, hide: readonly string[]): string {
 function sectionWords(el: Element, hide: readonly string[]): string {
   const doc = el.ownerDocument;
   for (let at: Element | null = el; at; at = at.parentElement) {
-    const named = at.getAttribute('aria-labelledby')?.split(/\s+/)[0];
+    // A part of the page named by its own heading; never the spot itself or a control's own label.
+    const named = at !== el && at.matches('section, fieldset, [role="region"], [role="dialog"]') ? at.getAttribute('aria-labelledby')?.split(/\s+/)[0] : undefined;
     const label = named ? doc.getElementById(named) : null;
     const own = at.matches('h1, h2, h3, legend, summary') ? [at] : [...at.querySelectorAll(':scope > h1, :scope > h2, :scope > h3, :scope > legend, :scope > summary, :scope > header h1, :scope > header h2, :scope > div > h1, :scope > div > h2, :scope > div > h3')];
     // Nearest first: the last heading before the spot.
