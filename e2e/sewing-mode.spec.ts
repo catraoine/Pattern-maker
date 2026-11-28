@@ -1,20 +1,21 @@
-import { GarmentName, expect, goPrint, startWithExample, switchGarment, test } from './fixtures';
+import { GarmentName, expect, goCut, startWithExample, switchGarment, test } from './fixtures';
 
-// Sewing mode (Cat's C, Nov 21): Start sewing on Print goes to the Sew tab, which opens the steps one at a time, each
-// with a picture drawn from the garment's own pieces, and keeps the steps' words exactly as Print's list has them.
+// Sewing mode (Cat's C, Nov 21): Start sewing on the Sew tab opens the steps one at a time, each with a picture drawn
+// from the garment's own pieces, and keeps the steps' words exactly as the written list has them. Since Nov 28 Print ends
+// in Next: Cut and sew, and the Sew tab opens on Cut it, then Next: Sew it.
 for (const g of ['Skirt', 'Trousers', 'Bodice', 'Dress', 'Tee', 'Jacket'] as GarmentName[]) {
   test(`sewing mode walks every ${g.toLowerCase()} step with a picture`, async ({ page }, info) => {
     test.setTimeout(120_000);
     await startWithExample(page);
     if (g !== 'Skirt') await switchGarment(page, g);
-    await goPrint(page);
+    await goCut(page);
     const main = page.getByRole('main');
+    await main.getByRole('button', { name: /^Next: Sew it/ }).click();
     // The list, read before, so the words can be checked against it.
     const list = main.locator('details.sew');
     await list.locator('> summary').click();
     const titles = await list.locator('.sewsteps strong').allTextContents();
     expect(titles.length).toBeGreaterThan(3);
-    // Print's Start sewing goes straight into Sewing mode, on the Sew tab.
     await main.getByRole('button', { name: /^Start sewing/ }).click();
     const mode = page.getByRole('dialog', { name: /^Sewing your / });
     await expect(mode).toBeVisible();
@@ -40,8 +41,9 @@ for (const g of ['Skirt', 'Trousers', 'Bodice', 'Dress', 'Tee', 'Jacket'] as Gar
 // The Sew tab: Print sends you there, it remembers the step you stopped at, and any step opens from its picture.
 test('the sew tab keeps your place', async ({ page }) => {
   await startWithExample(page);
-  await goPrint(page);
+  await goCut(page);
   const main = page.getByRole('main');
+  await main.getByRole('button', { name: /^Next: Sew it/ }).click();
   await main.getByRole('button', { name: /^Start sewing/ }).click();
   const mode = page.getByRole('dialog', { name: /^Sewing your / });
   await expect(mode).toBeVisible();
@@ -64,12 +66,22 @@ test('the sew tab keeps your place', async ({ page }) => {
   await mode.getByRole('button', { name: /^Back/ }).click();
   await expect(lines.first()).toBeChecked();
   await expect(main.getByRole('heading', { level: 1, name: 'Sew it' })).toBeAttached();
-  await mode.getByRole('button', { name: /^Close/ }).click();
+  // On step 1, Back is never a dead button: it closes Sewing mode (Cat, Nov 28).
+  await mode.getByRole('button', { name: /^Back/ }).click();
+  await expect(mode).toHaveCount(0);
   // A step picked from its picture opens there.
   await main.getByRole('list').filter({ has: page.locator('.sew-index-pic') }).getByRole('button').nth(4).click();
   await expect(mode.locator('.eyebrow').first()).toHaveText(/^Step 5 of /);
   await mode.getByRole('button', { name: /^Close/ }).click();
-  // The written steps stay on Print.
-  await main.getByRole('button', { name: 'Print', exact: true }).click();
-  await expect(main.getByRole('heading', { level: 1, name: 'Print it' })).toBeVisible();
+  // The written steps are under the pictures, and ‹ Cut it goes back a page.
+  await expect(main.locator('details.sew .sewsteps')).toBeAttached();
+  await main.getByRole('button', { name: 'Back to Cut it' }).click();
+  await expect(main.getByRole('heading', { level: 1, name: 'Cut it' })).toBeVisible();
+  // The phone's own Back does the same, and then goes on to Print.
+  await main.getByRole('button', { name: /^Next: Sew it/ }).click();
+  await expect(main.getByRole('heading', { level: 1, name: 'Sew it' })).toBeVisible();
+  await page.goBack();
+  await expect(main.getByRole('heading', { level: 1, name: 'Cut it' })).toBeVisible();
+  await page.goBack();
+  await expect(main.getByRole('button', { name: /^Next: Cut and sew/ })).toBeVisible();
 });

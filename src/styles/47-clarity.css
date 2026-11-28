@@ -177,8 +177,8 @@ body .shopfab-text,
 
 /* B6: headings follow importance. Page 40, part 28, section 22; a garment's description reads as a sentence, not a
    heading louder than its own name. */
-.print-part h2,
-.print-head #ptitle {
+.print-head #ptitle,
+.chapter-head #cuttitle {
   font-size: 28px;
 }
 .yourfabric .fabhead,
@@ -1069,4 +1069,44 @@ body .print-top .print-controls .stack > button.secondary:first-child {
    under it (code review, Nov 28). */
 body .style-layout .style-pin > section > .preview > .preview-corner:has(> .pe-open-tool.on) > .demo-play {
   display: none;
+}
+
+/* Print it, Cut it and Sew as chapters (Cat, Nov 28). Each ends in one full-width Next, as Style's steps do, and Cut
+   it and Sew open with a named back to the chapter before, where Style's steps keep theirs. */
+.chapter-next {
+  width: 100%;
+  min-height: 56px;
+  margin: 8px 0 0;
+}
+.chapter-head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 4px;
+}
+.chapter-head #cuttitle {
+  margin: 0;
+}
+.sew-back {
+  margin: 0 0 12px;
+}
+.need-card .notions {
+  flex: none;
+}
+.chapter-next + .extras {
+  margin-top: 28px;
+}
+.need-card > .row:empty {
+  display: none;
+}
+@media (min-width: 761px) {
+  .chapter-next {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4em;
+    width: min(100%, 420px);
+    margin-left: auto;
+  }
 }

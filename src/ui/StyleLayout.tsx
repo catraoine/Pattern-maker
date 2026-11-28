@@ -536,12 +536,13 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   const [page, setPage] = usePageHistory<'edit' | 'review'>(() => 'edit', (s) => s === 'edit' || s === 'review');
   // Read here and cleared once mounted: React may run this twice, and the second run must see it too.
   const [active, setActive] = useState<string | undefined>(() => nextTab ?? (leftOn?.name === name ? leftOn.tab : undefined));
-  // Opened from Print's Choose fabric: the way on goes straight back to Print, on its fabric (Cat, Nov 21).
+  // Opened from Cut it's Choose fabric: the way on goes straight back to Sew, on its fabric (Cat, Nov 21).
   const [fromPrint] = useState(cameFromPrint);
   useEffect(() => {
     nextTab = undefined;
     forgetPrint();
   }, []);
+  // Only the Back to Sew buttons take that way back: a "Print my pattern" still goes to Print.
   const toPrint = onPrint && fromPrint ? () => {
     returnToFabric();
     onPrint();
@@ -951,7 +952,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   // fold (cold read, Nov 14: "no obvious print button").
   const printBar = onPrint && (
     <div className="review-print-bar">
-      <button type="button" className="primary review-print" disabled={!ready} onClick={toPrint}>
+      <button type="button" className="primary review-print" disabled={!ready} onClick={onPrint}>
         Print my pattern <span aria-hidden="true">›</span>
       </button>
     </div>
@@ -1059,7 +1060,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
 
   const backToPrint = toPrint && fromPrint && (
     <button type="button" className="primary" disabled={!ready} onClick={toPrint}>
-      Back to Print <span aria-hidden="true">›</span>
+      Back to Sew <span aria-hidden="true">›</span>
     </button>
   );
 
@@ -1274,10 +1275,10 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
                   Next: {steps[at + 1]}{'\u00a0'}›
                 </button>
               )}
-              {/* Back from the fabric to Print, on the step Print sent you to (Cat, Nov 21). */}
+              {/* Back from the fabric to Sew's Cut it, which sent you here (Cat, Nov 21; Cut it moved to Sew, Nov 28). */}
               {!steps[at + 1] && fromPrint && toPrint && (
                 <button type="button" className="step-go primary" disabled={!ready} onClick={toPrint}>
-                  Back to Print ›
+                  Back to Sew ›
                 </button>
               )}
               {/* After the last step the way on is Print, as the screen's one filled button (clarity review B1, Nov 22). */}
@@ -1301,7 +1302,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           <div className="style-side">
             {onPrint && !(at >= 0 && !steps[at + 1] && !fromPrint) && (
               // An outline beside the step's own Next (on the last step the filled Print under it takes over), so the screen has one filled button (clarity review B1, Nov 22).
-              <button type="button" className="secondary review-print" disabled={!ready} onClick={toPrint}>
+              <button type="button" className="secondary review-print" disabled={!ready} onClick={onPrint}>
                 Print my pattern
               </button>
             )}
