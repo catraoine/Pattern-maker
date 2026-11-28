@@ -4,11 +4,12 @@ _Update this page whenever a release ships or a PR is queued._
 
 ## Now (Nov 21, 2026): how a ship works
 
-Live: **release EL** (Nov 27, Cat's 8:11 pm "ship"): inch pattern marks show the booklet's ease and a peplum has no
-waist mark; Sewing mode pictures show the right pieces for pleats, creases, ruffle, sleeve bands and heads; a key under
-each sewing drawing; a collection look is carried on with before its first measurement; the high bust note leads with
-the fit; booklet drawings that run onto a new page keep their step's name; "Leave my weight out"; on top of EK.
-Rollback = release EK. Releases CW to EL went out Nov 17 to 27;
+Live: **release EM** (Nov 28, Cat's 10:18 am "Ship"): Print, Cut it and Sew it chapters with the Style window controls in
+fixed corners and a tidier Print; iPhone no longer zooms into type-in boxes; sewing steps wording on the six launch
+pieces ("baste", stitch lengths as dial numbers) and the maker pack waistband size; see-through sheer and lace with cloth
+chips for fabric types and no middle dots; pin note box follow-ups; Sewing mode pleat, crease and sheer pictures; Ice
+Peplum waist mark; skirt hem side points; double tap on Print my pattern; carry on by the look's name; on top of EL.
+Rollback = release EL. Releases CW to EM went out Nov 17 to 28;
 every release's commit, deploy id and rollback is in project memory (pattern-maker-releases-nov14), and the running list of what is
 ready is `/mnt/project-files/releases/ready-to-ship.md`.
 
