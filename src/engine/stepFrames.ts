@@ -53,7 +53,7 @@ const WELT: Frame[] = [
       'The welt folded in half along its length, right side out, and pressed.',
       [rect(4, 11, 36, 18), rect(4, 4, 36, 11, 'fold'), line('edge', p(4, 11), p(36, 11)), ...arrow(curve(p(37.2, 3.5), p(39.6, 7.5), p(37.2, 11.5), 6))],
       [
-        { at: p(20, 8), text: 'WELT, FOLDED DOWN', mid: true },
+        { at: p(20, 8), text: 'WELT, FOLDED IN HALF', mid: true },
         { at: p(4, 21), text: 'FOLD, RIGHT SIDE OUT' },
       ],
     ),
@@ -149,10 +149,13 @@ const FLY: Frame[] = [
         { pts: [p(CF - 1, TOP), p(CF + 4, TOP), p(CF + 4, END - 4), ...curve(p(CF + 4, END - 4), p(CF + 4, END), p(CF - 1, END + 0.5), 6)], kind: 'fold', closed: true },
         line('machine', p(CF, TOP), p(CF, END)),
         line('edge', p(CF - 2.2, END), p(CF - 0.6, END)),
+        // The facing's name sits off the cloth with a pointer to the shaded strip: on the left front it read as a
+        // second name for the same panel (cold read, Nov 27).
+        ...arrow([p(CF - 2.2, 12.5), p(CF + 2, 12.5)]),
       ],
       [
         { at: p(30.5, 8), text: 'LEFT FRONT', mid: true },
-        { at: p(CF + 5, 12), text: 'FLY FACING' },
+        { at: p(CF - 2.6, 13), text: 'FLY FACING', end: true },
         { at: p(CF - 2.6, END + 0.5), text: 'ZIP ENDS', end: true },
         { at: p(CF - 2.6, 6), text: 'SEAM LINE', end: true },
       ],
@@ -176,7 +179,7 @@ const FLY: Frame[] = [
       'The fly shield folded in half along its length, wrong sides together.',
       [rect(4, 11, 36, 18), rect(4, 4, 36, 11, 'fold'), line('edge', p(4, 11), p(36, 11)), ...arrow(curve(p(37.2, 3.5), p(39.6, 7.5), p(37.2, 11.5), 6))],
       [
-        { at: p(20, 8), text: 'FLY SHIELD, FOLDED DOWN', mid: true },
+        { at: p(20, 8), text: 'FLY SHIELD, FOLDED IN HALF', mid: true },
         { at: p(4, 21), text: 'FOLD, WRONG SIDES TOGETHER' },
       ],
     ),

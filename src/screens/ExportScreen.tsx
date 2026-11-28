@@ -17,7 +17,8 @@ import { FABRIC_WIDTHS, type FabricWidth, Lay, type LayFabric, fabricsOf, layAmo
 import { LayPlanView } from '../ui/LayPlanView';
 import type { Flat } from '../engine/flat';
 import { TechFlatView } from '../ui/TechFlatView';
-import { StepDiagram } from '../ui/StepDiagram';
+import { DIAGRAMS } from '../engine/diagrams';
+import { DiagramKey, StepDiagram } from '../ui/StepDiagram';
 import { stepFrames } from '../engine/stepFrames';
 import { stepLines } from '../engine/stepLines';
 import { takeFabricReturn } from '../ui/printReturn';
@@ -909,15 +910,23 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
                   <strong>{st.title}</strong>
                   <p>{inCm(st.text)}</p>
                   {frames.length > 0 ? (
-                    <ol className="sewframes-row" aria-label={`Drawings for ${st.title}`}>
-                      {frames.map((d, k) => (
-                        <li key={k}>
-                          <StepDiagram dg={d} />
-                        </li>
-                      ))}
-                    </ol>
+                    <>
+                      <ol className="sewframes-row" aria-label={`Drawings for ${st.title}`}>
+                        {frames.map((d, k) => (
+                          <li key={k}>
+                            <StepDiagram dg={d} />
+                          </li>
+                        ))}
+                      </ol>
+                      <DiagramKey dgs={frames} />
+                    </>
                   ) : (
-                    st.diagram && <StepDiagram id={st.diagram} />
+                    st.diagram && (
+                      <>
+                        <StepDiagram id={st.diagram} />
+                        <DiagramKey dgs={[DIAGRAMS[st.diagram]]} />
+                      </>
+                    )
                   )}
                 </li>
               );

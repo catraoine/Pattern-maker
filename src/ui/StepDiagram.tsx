@@ -1,4 +1,4 @@
-import { DIAGRAMS, type Diagram, type DiagramId } from '../engine/diagrams';
+import { DIAGRAMS, keyFor, type Diagram, type DiagramId } from '../engine/diagrams';
 
 /** A sewing step's small drawing, in fine champagne lines: one of the step diagrams by name, or a close-up drawing. */
 export function StepDiagram(props: { id: DiagramId } | { dg: Diagram }) {
@@ -14,5 +14,18 @@ export function StepDiagram(props: { id: DiagramId } | { dg: Diagram }) {
         </text>
       ))}
     </svg>
+  );
+}
+
+/** A one-line key under a drawing, or under a row of close-ups, for the dashed, grey and shaded lines. */
+export function DiagramKey({ dgs }: { dgs: Diagram[] }) {
+  const key = keyFor(...dgs);
+  if (!key.length) return null;
+  return (
+    <ul className="dg-key">
+      {key.map((t) => (
+        <li key={t}>{t}</li>
+      ))}
+    </ul>
   );
 }
