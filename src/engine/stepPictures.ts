@@ -74,6 +74,9 @@ const tagsOf = (pc: Piece) => new Set(pc.outline.tags);
  *  fold line, a button mark) are one straight stroke, and aren't sewn as darts. */
 export const isDart = (ln: Piece['lines'][number]) => ln.segs.length >= 2;
 const hasDarts = (pc: Piece) => pc.lines.some(isDart);
+/** A part sewn on later (a peplum, a ruffle) is shown only when the step names it: the bodice's side seams marked the
+ *  peplum's too, which are sewn later, in Make the peplum (EJ walk, Nov 27). */
+const later = (pc: Piece) => /peplum|ruffle|flounce/i.test(pc.name);
 
 /** The picture for one step, from its title first, then its words. */
 export function stepPicture(step: SewStep, pieces: Piece[]): StepPicture {
@@ -101,7 +104,16 @@ export function stepPicture(step: SewStep, pieces: Piece[]): StepPicture {
   // steps showed only the finished skirt).
   if (/\bpleats?\b/.test(title)) {
     const pleated = pieces.map((pc, i) => (isGarment(pc) && pc.lines.some((ln) => !isDart(ln)) ? i : -1)).filter((i) => i >= 0);
+    // A trouser's front pleat is an edge of the outline, and its one inner line is the crease: the pleat's edge is drawn
+    // in, where the front showed only its crease (EK walk, Nov 27).
+    const atEdge = pieces.map((pc, i) => (isGarment(pc) && tagsOf(pc).has('pleat') ? i : -1)).filter((i) => i >= 0);
+    if (atEdge.length) return { kind: 'sew', pieces: atEdge, edges: ['pleat'], darts: false };
     if (pleated.length) return { kind: 'sew', pieces: pleated, edges: [], darts: false };
+  }
+  // Pressing the creases: the legs with their crease lines, not the finished garment (EK walk, Nov 27).
+  if (/\bcreases?\b/.test(title)) {
+    const legs = pieces.map((pc, i) => (isGarment(pc) && tagsOf(pc).has('inseam') ? i : -1)).filter((i) => i >= 0);
+    if (legs.length) return { kind: 'sew', pieces: legs, edges: [], darts: false };
   }
   if (/^finish$|try it on|put it on|final press/.test(title)) return { kind: 'flat' };
   // The edges the title names, else the ones its words name.
@@ -123,15 +135,33 @@ export function stepPicture(step: SewStep, pieces: Piece[]): StepPicture {
     if (bodice.length && peplum.length)
       return { kind: 'sew', pieces: [...bodice, ...peplum], edges: [], darts: false, edgesOn: Object.fromEntries([...bodice.map((i) => [i, ['hem']]), ...peplum.map((i) => [i, ['waist']])]) };
   }
+  // A ruffle sewn on: the neckline and the ruffle's long edge, where it showed only the ruffle, the same as Make the
+  // ruffle (EK walk, Nov 27).
+  if (/^attach the ruffle\b/.test(title)) {
+    const ruffle = these.filter((i) => tagsOf(pieces[i]).has('neck'));
+    const necks = pieces.map((pc, i) => (isGarment(pc) && !later(pc) && pc.kind !== 'collar' && tagsOf(pc).has('neck') ? i : -1)).filter((i) => i >= 0);
+    if (ruffle.length && necks.length) return { kind: 'sew', pieces: [...necks, ...ruffle], edges: ['neck'], darts: false };
+  }
+  // Sleeve bands go on the sleeve hems, gathered, and are joined into rings: the hems drawn in and the bands round.
+  if (/^attach the (sleeve )?(bands?|cuffs?)\b/.test(title)) {
+    const sleeves = pieces.map((pc, i) => (/sleeve/i.test(pc.name) && tagsOf(pc).has('hem') && !/band|cuff/i.test(pc.name) ? i : -1)).filter((i) => i >= 0);
+    const bands = these.filter((i) => /band|cuff/i.test(pieces[i].name));
+    if (sleeves.length && bands.length) return { kind: 'sew', pieces: [...sleeves, ...bands], edges: [], darts: false, around: bands, edgesOn: Object.fromEntries(sleeves.map((i) => [i, ['hem']])) };
+  }
+  // Easing the sleeve heads: the sleeve with its crown drawn in, not the bands (EK walk, Nov 27: the same picture as the
+  // bands step before it).
+  if (/\bsleeve heads?\b|\bcrowns?\b/.test(title)) {
+    const sleeves = pieces.map((pc, i) => (/sleeve/i.test(pc.name) && tagsOf(pc).has('armhole') ? i : -1)).filter((i) => i >= 0);
+    if (sleeves.length) return { kind: 'sew', pieces: sleeves, edges: ['armhole'], darts: false };
+  }
+  // Making the peplum sews its own side seams: drawn in, where none was (EK walk, Nov 27).
+  if (/^make the peplum\b/.test(title) && these.length) return { kind: 'sew', pieces: these, edges: ['side'], darts: false };
   let edges = edgesIn(title);
   // A step that only says "sew" or "neaten" in its title names its edges in its words. Others (press the creases)
   // don't stitch anything, so their words aren't searched for seams.
   if (!edges.length && !these.length && /^(sew|neaten|stitch|join|bind|stay|close|zigzag|overlock)\b/.test(title)) edges = edgesIn(all);
   // A step that sews onto the facings or the lining ("the upper collar to the facings") leaves the garment itself out.
   const inside = /\bto the (front |neck )?(facings?|lining)\b/.test(title);
-  // A part sewn on later (a peplum, a ruffle) is shown only when the step names it: the bodice's side seams marked the
-  // peplum's too, which are sewn later, in Make the peplum (EJ walk, Nov 27).
-  const later = (pc: Piece) => /peplum|ruffle|flounce/i.test(pc.name);
   const carrying = inside ? [] : pieces.map((pc, i) => (isGarment(pc) && !later(pc) && edges.some((t) => tagsOf(pc).has(t)) ? i : -1)).filter((i) => i >= 0);
   const shown = [...new Set([...these, ...carrying])];
   // A small piece the step makes (a pocket, a loop, a tie) is sewn all the way round.
