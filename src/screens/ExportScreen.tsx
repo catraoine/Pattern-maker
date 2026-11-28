@@ -25,6 +25,7 @@ import { takeFabricReturn } from '../ui/printReturn';
 import { SewPicture } from '../ui/SewPicture';
 import { stepPicture } from '../engine/stepPictures';
 import { CLOTHS, seamFinish } from '../engine/couture';
+import { machineSetup } from '../engine/machineSetup';
 import { FIBRES, Fibre, MyFabric, FabricStyle, adviceFor, checkFabric, clothFor, pickTag, printRepeat } from '../engine/fabrics';
 import { colourWords } from '../engine/houseColours';
 import { SPECIALS, Special, needsNap } from '../engine/specialFabrics';
@@ -802,6 +803,7 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
           values={imported ? undefined : values}
           imported={!!imported}
           alterations={imported ? NONE : alterations}
+          fabric={imported ? undefined : finish.fabric}
         />
       )}
 
@@ -1166,6 +1168,7 @@ function MakerPack({
   values,
   imported,
   alterations,
+  fabric,
 }: {
   profile: string;
   title: string;
@@ -1183,6 +1186,8 @@ function MakerPack({
   /** Read from another program's file rather than drafted here. */
   imported?: boolean;
   alterations: Alteration[];
+  /** The chosen cloth, for the pack's machine set-up. */
+  fabric?: MyFabric;
 }) {
   const [pack, setPack] = useState<Uint8Array | null>(null);
   const [dxfText, setDxfText] = useState<string | null>(null);
@@ -1198,7 +1203,7 @@ function MakerPack({
     setDxfText(null);
     Promise.all([import('../engine/techpack'), import('../engine/dxf')]).then(async ([{ toTechPack }, { toDxf }]) => {
       const text = toDxf(made.pieces, { style: title, size: profile, date: today() });
-      const bytes = await toTechPack({ title, profile, fit: fitName, date: today(), pieces: made.pieces, measurements: made.spec, notes: made.notes, guide: made.guide, alterations });
+      const bytes = await toTechPack({ title, profile, fit: fitName, date: today(), pieces: made.pieces, measurements: made.spec, notes: made.notes, guide: made.guide, setup: machineSetup(fabric), alterations });
       if (live) {
         setDxfText(text);
         setPack(bytes);
@@ -1207,7 +1212,7 @@ function MakerPack({
     return () => {
       live = false;
     };
-  }, [made, title, profile, fitName, alterations]);
+  }, [made, title, profile, fitName, alterations, fabric]);
 
   const ready = pack && dxfText;
 

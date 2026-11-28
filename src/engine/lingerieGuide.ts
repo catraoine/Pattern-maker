@@ -52,7 +52,7 @@ export function lingerieGuide(d: LingerieDraft, fabricM: number, finish: { width
     },
     {
       title: 'Set up your machine',
-      text: `Use polyester thread and a ${swim ? 'stretch needle' : 'ballpoint or stretch needle'}. Sew every seam ${seam} from the edge with a narrow zigzag (width 1.5 mm, length 2 mm) or an overlocker. For the elastic you need a wide zigzag or a three-step zigzag. Try both on a scrap first: the seam should stretch with the fabric without the stitches popping.`,
+      text: `Use polyester thread and a ${swim ? 'stretch needle' : 'ballpoint or stretch needle'}. Sew every seam ${seam} from the edge with a narrow zigzag (width 1.5 and length 2 on the dials) or an overlocker. For the elastic you need a wide zigzag or a three-step zigzag. Try both on a scrap first: the seam should stretch with the fabric without the stitches popping.`,
     },
   ];
   if (swim) {
