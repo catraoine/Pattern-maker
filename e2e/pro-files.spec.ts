@@ -1,4 +1,4 @@
-import { download, expect, goPrint, startWithExample, test, showAllTools } from './fixtures';
+import { download, expect, goCut, goPrint, startWithExample, test, showAllTools } from './fixtures';
 
 // Files for other pattern software, under More files on the print screen.
 test('pro files: pattern DXF, measurements for Seamly2D and CLO, and the 3D body', async ({ page }, info) => {
@@ -32,13 +32,18 @@ test('pro files: pattern DXF, measurements for Seamly2D and CLO, and the 3D body
 test('pro files: toile alterations for a pattern cutter', async ({ page }, info) => {
   await startWithExample(page);
   const main = page.getByRole('main');
-  await goPrint(page);
+  await goCut(page);
   const all = await showAllTools(page);
   if (await all.count()) await all.click();
   await main.getByRole('button', { name: 'I’ve tried on my toile' }).click();
   await main.getByText('Pulls across the hips').click();
   await main.getByRole('button', { name: /^Save as version 2$/ }).click();
-  if (!(await main.getByText('More files').isVisible())) await goPrint(page);
+  // Saving the new version goes back to Cut it, and Print is one step back; the files are among all the tools there.
+  await expect(main.getByRole('heading', { level: 1, name: 'Cut it' })).toBeVisible();
+  await page.goBack();
+  await expect(main.getByRole('button', { name: /^Next: Cut and sew/ })).toBeVisible();
+  const more = await showAllTools(page);
+  if (await more.count()) await more.click();
   await main.getByText('More files').click();
   const csv = await download(page, main.getByRole('button', { name: 'Alterations (CSV)' }), info);
   const rows = csv.bytes.toString('utf8').split('\r\n');

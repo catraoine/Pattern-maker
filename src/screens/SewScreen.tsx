@@ -1,14 +1,19 @@
-import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import type { Printable } from './ExportScreen';
 import { stepPicture } from '../engine/stepPictures';
 import { SewPicture } from '../ui/SewPicture';
 import { TechFlatView } from '../ui/TechFlatView';
-import { readAt, readDone, takeOpenSewing } from '../ui/sewPlace';
+import { readAt, readDone } from '../ui/sewPlace';
 import { TesterReport } from '../ui/TesterReport';
 import { inCm } from '../units';
+import { WrittenSteps } from '../ui/WrittenSteps';
+import { CutPart, type CutProps } from './CutPart';
+import { takeCutReturn, takeFabricReturn } from '../ui/printReturn';
+import { usePageHistory } from '../nav';
 
-// Sew, the fourth step after Print (Cat, Nov 21): Sewing mode's start, where you left off, and every step as a picture to
-// jump straight to. The written list, with what you'll need and the couture route, stays on Print where testers know it.
+// Sew, the fourth step after Print (Cat, Nov 21), in two pages since Nov 28: Cut it first (the fabric, the cutting
+// layout, what you'll need and the toile), then Sew it, with Sewing mode's start, where you left off, and every step as a
+// picture to jump straight to, then the written list.
 
 /** A short mark of the step titles, so a changed list of steps keeps its own place. */
 const stepsMark = (steps: { title: string }[]) => {
@@ -26,29 +31,55 @@ interface Props {
   name?: string;
   /** Where this pattern's place is kept between visits. */
   keep: string;
-  /** To Print, for the written steps and what you'll need. */
-  onPrint: () => void;
+  /** Cut it, the chapter's first page: the fabric, its layout, what you'll need and a toile. */
+  cut?: Omit<CutProps, 'made' | 'title' | 'onNext' | 'head'>;
   /** To Style, when the pattern can't be drafted. */
   onStyle: () => void;
   /** A fit tester: sewn to the end, the finished state points to the tester form. */
   tester?: boolean;
 }
 
-export function SewScreen({ made, title, name = title, keep: owner, onPrint, onStyle, tester }: Props) {
+export function SewScreen({ made, title, name = title, keep: owner, cut, onStyle, tester }: Props) {
   // Sewing mode, open on the kept step (undefined) or on one picked from the list.
   const [open, setOpen] = useState<{ from?: number }>();
   const steps = useMemo(() => made?.guide.steps ?? [], [made]);
   // The place is kept for these very steps: a style change that adds or drops a step starts afresh, so ticks never
   // land on the wrong step and a garment with new steps isn't called finished.
   const keep = useMemo(() => `${owner}#${stepsMark(steps)}`, [owner, steps]);
+  // Cut it first, then Sew it (Cat, Nov 28: "Doesn't the cut step make more sense for the sew chapter?"). Opened from
+  // Print's Next, or back from choosing the fabric, it's Cut it; opened from the tab once sewing has begun, Sew it.
+  const [fabricBack] = useState(takeFabricReturn);
+  const [cutNext] = useState(takeCutReturn);
+  // Each page is its own entry, so the phone's Back from Sew it returns to Cut it (code review, Nov 28).
+  const [part, goPart] = usePageHistory<'cut' | 'sew'>(
+    () => (!cut ? 'sew' : fabricBack || cutNext ? 'cut' : readAt(keep, steps.length) > 0 || readDone(keep) ? 'sew' : 'cut'),
+    (sub) => sub === 'cut' || sub === 'sew',
+    fabricBack || cutNext,
+  );
+  // ‹ Cut it steps back to the Cut it already behind Sew it, rather than stacking a new one on top.
+  const wentOn = useRef(false);
+  const toSew = () => {
+    wentOn.current = true;
+    goPart('sew');
+  };
+  const toCut = () => {
+    if (wentOn.current && window.history.state?.sub === 'sew') window.history.back();
+    else goPart('cut');
+  };
   useEffect(() => {
-    window.scrollTo(0, 0);
+    // Back from choosing the fabric: open on the fabric, where they left (Cat, Nov 21), clear of the top bar.
+    if (!fabricBack) {
+      window.scrollTo(0, 0);
+      return;
+    }
+    requestAnimationFrame(() => {
+      const fabric = document.querySelector('.yourfabric');
+      if (!fabric) return;
+      const bar = document.querySelector('.topbar')?.getBoundingClientRect().bottom ?? 0;
+      window.scrollTo(0, fabric.getBoundingClientRect().top + window.scrollY - bar - 16);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, as Sew opens
   }, []);
-  // From Print's Start sewing: straight into Sewing mode, once there are steps. A garment already sewn to the end shows
-  // its finished state instead of reopening on the last step.
-  useEffect(() => {
-    if (steps.length && takeOpenSewing() && !readDone(keep)) setOpen({});
-  }, [steps.length, keep]);
   const pictures = useMemo(() => (made ? steps.map((st) => stepPicture(st, made.pieces)) : []), [made, steps]);
   // Read again each time Sewing mode closes, so "Carry on" names the step you stopped at.
   const at = useMemo(() => (open ? 0 : readAt(keep, steps.length)), [open, keep, steps.length]);
@@ -65,10 +96,17 @@ export function SewScreen({ made, title, name = title, keep: owner, onPrint, onS
       </section>
     );
   }
+  if (part === 'cut' && cut) return <CutPart {...cut} made={made} title={title} onNext={toSew} />;
   const flat = made.flat ? <TechFlatView flat={made.flat} title={title} /> : null;
   const first = pictures.find((pic) => pic.kind === 'cut') ?? pictures[0];
   return (
     <>
+      {/* Back to Cut it, the page before, as Style's steps go back (Cat, Nov 28). */}
+      {cut && (
+        <button type="button" className="step-back-arrow named sew-back" aria-label="Back to Cut it" onClick={toCut}>
+          <span aria-hidden="true">‹</span> Cut it
+        </button>
+      )}
       <section className="card sew-card sewscreen" aria-labelledby="sewhead">
         {/* A modest heading and one guiding line, like Print's (Cat, Nov 3: big capitals for a whole choice jar). */}
         <h1 id="sewhead">Sew it</h1>
@@ -124,14 +162,8 @@ export function SewScreen({ made, title, name = title, keep: owner, onPrint, onS
             </li>
           ))}
         </ol>
-        <p className="muted small">
-          The written steps, with your fabric and everything you'll need, are on{' '}
-          <button type="button" className="link inline-link" onClick={onPrint}>
-            Print
-          </button>
-          .
-        </p>
       </section>
+      <WrittenSteps guide={made.guide} />
       {open && (
         <Suspense fallback={null}>
           <SewingMode steps={steps} pieces={made.pieces} lays={made.lays} flat={flat} title={title} keep={keep} inCm={inCm} from={open.from} muslin={tester ? made.guide.fabric?.find((l) => l.startsWith('Sewing in muslin')) : undefined} onClose={() => setOpen(undefined)} />

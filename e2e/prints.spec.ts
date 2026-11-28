@@ -1,4 +1,4 @@
-import { expect, goPrint, goTab, startWithExample, test } from './fixtures';
+import { expect, goCut, goTab, startWithExample, test } from './fixtures';
 import type { Page } from '@playwright/test';
 
 // The print picker (P1) replaces the checks switch, under "About your fabric" on the Fabric tab (the one
@@ -30,7 +30,7 @@ test('picking a print sets the lay and draws it under the pieces', async ({ page
   await expect(main.locator('.fabric-more')).toContainText('40 cm repeat');
   await main.locator('.printpick').screenshot({ path: test.info().outputPath('picker.png') });
 
-  await goPrint(page);
+  await goCut(page);
   // Placed motifs are cut every piece the same way up.
   await expect(main.getByRole('checkbox', { name: /Pile or one-way print/ })).toBeChecked();
   await expect(main.getByRole('checkbox', { name: /Pile or one-way print/ })).toBeDisabled();
@@ -49,7 +49,7 @@ test('a border print turns the hemmed pieces crosswise, and tapping it again cle
   await expect(prints.getByRole('radio', { name: 'Border' })).toHaveAttribute('aria-checked', 'false');
   await prints.getByRole('radio', { name: 'Border' }).click();
 
-  await goPrint(page);
+  await goCut(page);
   await expect(main.locator('.lay').first()).toContainText('turned crosswise');
   await main.locator('.lay').first().screenshot({ path: test.info().outputPath('lay-border.png') });
 });

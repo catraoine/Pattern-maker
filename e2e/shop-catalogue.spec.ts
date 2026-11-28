@@ -1,4 +1,4 @@
-import { expect, goPrint, goTab, startWithExample, test } from './fixtures';
+import { expect, goCut, goTab, startWithExample, test } from './fixtures';
 
 // The partner shops' whole catalogues (Affiliates, Nov 7): a type's fabrics load when it is tapped, each with the
 // shop's own swatch photo, searchable, a page at a time; picking one fills in the fabric and Buy opens its own page.
@@ -54,7 +54,7 @@ test('a shop catalogue lists its fabrics, searchable, and a pick goes to the sho
   await page.route('**/shops/cotton.json', (r) => r.fulfill({ json: [] }));
   await page.goto('/');
   await page.getByRole('button', { name: /Carry on with your skirt/i }).click();
-  await goPrint(page);
+  await goCut(page);
   await expect(main.locator('.yourfabric h2')).toContainText('Cotton lawn');
   await expect(main.locator('.shopbuy')).toContainText('NY Designer Fabrics');
 });

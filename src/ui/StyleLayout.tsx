@@ -536,12 +536,13 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   const [page, setPage] = usePageHistory<'edit' | 'review'>(() => 'edit', (s) => s === 'edit' || s === 'review');
   // Read here and cleared once mounted: React may run this twice, and the second run must see it too.
   const [active, setActive] = useState<string | undefined>(() => nextTab ?? (leftOn?.name === name ? leftOn.tab : undefined));
-  // Opened from Print's Choose fabric: the way on goes straight back to Print, on its fabric (Cat, Nov 21).
+  // Opened from Cut it's Choose fabric: the way on goes straight back to Sew, on its fabric (Cat, Nov 21).
   const [fromPrint] = useState(cameFromPrint);
   useEffect(() => {
     nextTab = undefined;
     forgetPrint();
   }, []);
+  // Only the Back to Sew buttons take that way back: a "Print my pattern" still goes to Print.
   const toPrint = onPrint && fromPrint ? () => {
     returnToFabric();
     onPrint();
@@ -951,7 +952,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   // fold (cold read, Nov 14: "no obvious print button").
   const printBar = onPrint && (
     <div className="review-print-bar">
-      <button type="button" className="primary review-print" disabled={!ready} onClick={toPrint}>
+      <button type="button" className="primary review-print" disabled={!ready} onClick={onPrint}>
         Print my pattern <span aria-hidden="true">›</span>
       </button>
     </div>
@@ -1059,7 +1060,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
 
   const backToPrint = toPrint && fromPrint && (
     <button type="button" className="primary" disabled={!ready} onClick={toPrint}>
-      Back to Print <span aria-hidden="true">›</span>
+      Back to Sew <span aria-hidden="true">›</span>
     </button>
   );
 
@@ -1072,28 +1073,32 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
         <Title id="opts" big="Style" label={look ?? label} hideLabel />
         <GarmentDrop label={look ?? label} onChoose={onChooseGarment} onPhoto={onPhoto} />
       </div>
-      {/* The collection one tap away: from Style it was only in the name's drop-down, and a tester looking for it
-          didn't find it there (testers, Nov 17; Cat applied). */}
-      {openCollection && (
-        <button type="button" className="collection-go" onClick={openCollection}>
-          The collection ›
-        </button>
-      )}
+      {/* Two lines at most above the window (Cat, Nov 28: "Lots of text here looks very busy"): the name with the
+          example note on the first, the two ways to another piece on the second. */}
       {exampleTag}
-      {/* A tester on the plain garment their look is made from is one tap from the look itself: picked from the
-          garment list, the plain top had no peplum to choose (testers, Nov 18). After the example note, which on a
-          phone lifts itself onto the line above. */}
-      {testerLook && (
-        <p className="tester-look">
-          {/* "Tester" for the tester's own look, so it never reads as the In testing label (cold read EE, Nov 24). */}
-          Sewing the {testerLook.name} for us?{' '}
-          {/* Made on the same garment, Style stays open rather than opening afresh, so the look's Review is opened here;
-              sent to measure first, Style opens afresh afterwards and does it itself. */}
-          <button type="button" onClick={() => testerLook.open() && lookNext && lookReview()}>
-            Open your tester look ›
-          </button>
-          {testerLook.lengthStays && <span className="tester-look-note">It has its own length, so the length you set here won't come across. You can change it there.</span>}
-        </p>
+      {(openCollection || testerLook) && (
+        <div className="style-links">
+          {/* The collection one tap away: from Style it was only in the name's drop-down, and a tester looking for it
+              didn't find it there (testers, Nov 17; Cat applied). */}
+          {openCollection && (
+            <button type="button" className="collection-go" onClick={openCollection}>
+              The collection ›
+            </button>
+          )}
+          {/* A tester on the plain garment their look is made from is one tap from the look itself: picked from the
+              garment list, the plain top had no peplum to choose (testers, Nov 18). "Tester" so it never reads as the
+              In testing label (cold read EE, Nov 24); the look's name is read out rather than shown, to keep one line.
+              Made on the same garment, Style stays open rather than opening afresh, so the look's Review is opened
+              here; sent to measure first, Style opens afresh afterwards and does it itself. */}
+          {testerLook && (
+            <span className="tester-look">
+              <button type="button" aria-label={`Your tester look, the ${testerLook.name}`} onClick={() => testerLook.open() && lookNext && lookReview()}>
+                Your tester look ›
+              </button>
+              {testerLook.lengthStays && <span className="tester-look-note">It has its own length, so the length you set here won't come across. You can change it there.</span>}
+            </span>
+          )}
+        </div>
       )}
       <div className="style-edit">
         <div className={['style-pin', tall && 'tall'].filter(Boolean).join(' ')} ref={pin}>
@@ -1270,10 +1275,10 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
                   Next: {steps[at + 1]}{'\u00a0'}›
                 </button>
               )}
-              {/* Back from the fabric to Print, on the step Print sent you to (Cat, Nov 21). */}
+              {/* Back from the fabric to Sew's Cut it, which sent you here (Cat, Nov 21; Cut it moved to Sew, Nov 28). */}
               {!steps[at + 1] && fromPrint && toPrint && (
                 <button type="button" className="step-go primary" disabled={!ready} onClick={toPrint}>
-                  Back to Print ›
+                  Back to Sew ›
                 </button>
               )}
               {/* After the last step the way on is Print, as the screen's one filled button (clarity review B1, Nov 22). */}
@@ -1297,7 +1302,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           <div className="style-side">
             {onPrint && !(at >= 0 && !steps[at + 1] && !fromPrint) && (
               // An outline beside the step's own Next (on the last step the filled Print under it takes over), so the screen has one filled button (clarity review B1, Nov 22).
-              <button type="button" className="secondary review-print" disabled={!ready} onClick={toPrint}>
+              <button type="button" className="secondary review-print" disabled={!ready} onClick={onPrint}>
                 Print my pattern
               </button>
             )}

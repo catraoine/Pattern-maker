@@ -197,6 +197,8 @@ test('a collection top with sleeves asks for the arms first, so its pattern has 
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('pattern-maker:account') ?? '{}'));
   expect(JSON.stringify(saved)).toContain('"arm_length"');
   await goPrint(page);
+  // The pieces and their cut counts are the rows of Print only some pieces (Cat, Nov 28: one pieces list).
+  await main.getByText('Print only some pieces').click();
   await expect(main.getByText(/^Sleeve\b.*: cut/).first()).toBeVisible();
   await expect(main.getByText(/Sleeveless/)).toHaveCount(0);
 });

@@ -1,4 +1,4 @@
-import { chooseChip, goPrint, openReview, showAllTools, startWithExample, switchGarment, test } from './fixtures';
+import { chooseChip, goCut, openReview, showAllTools, startWithExample, switchGarment, test } from './fixtures';
 
 // Stills of the enlarged Move points window for a fuller body, and of each new Undo (Cat, Nov 12). Not a CI test.
 // UNDO_STILLS=<folder> npx playwright test -c e2e undo-stills --project=phone
@@ -59,7 +59,7 @@ test('undo stills: the other spots', async ({ page, consoleErrors }) => {
   await main.getByRole('button', { name: 'Yes, start over' }).click();
   await main.getByText('Back to the original style.').scrollIntoViewIfNeeded();
   await page.screenshot({ path: `${OUT}/6-start-over-undo.png` });
-  await goPrint(page);
+  await goCut(page);
   const all = await showAllTools(page);
   if (await all.count()) await all.click();
   await main.getByRole('button', { name: 'I’ve tried on my toile' }).click();
