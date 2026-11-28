@@ -562,13 +562,15 @@ export async function toTiledPdf(sheet: Sheet, paper: Paper, extras?: PdfExtras)
     }
   }
   if (!book) return doc.save();
-  if (extras?.summary) addSummaryPage(doc, fonts, sheet, paper === 'a0' ? 'a4' : paper, used, total, extras.title, extras.summary, [stepX, stepY], extras.name);
-  if (extras?.summary?.lays?.length) addLayPages(doc, fonts, paper === 'a0' ? 'a4' : paper, extras.summary.lays);
-  if (extras?.summary?.byHand?.length) addHandPages(doc, fonts, paper === 'a0' ? 'a4' : paper, extras.title, extras.summary.byHand);
-  if (extras?.summary?.drafting?.length) addDraftingPages(doc, fonts, paper === 'a0' ? 'a4' : paper, extras.title, extras.summary.drafting);
-  if (extras?.guide) addSewingPages(doc, fonts, paper === 'a0' ? 'a4' : paper, extras.title, extras.guide);
+  // An A0 pattern's booklet is on home paper: Letter in inches, A4 in cm. An inch tester's came out on A4 (EM walk, Nov 28).
+  const home = paper === 'a0' ? (extras?.unit === 'in' ? 'letter' : 'a4') : paper;
+  if (extras?.summary) addSummaryPage(doc, fonts, sheet, home, used, total, extras.title, extras.summary, [stepX, stepY], extras.name);
+  if (extras?.summary?.lays?.length) addLayPages(doc, fonts, home, extras.summary.lays);
+  if (extras?.summary?.byHand?.length) addHandPages(doc, fonts, home, extras.title, extras.summary.byHand);
+  if (extras?.summary?.drafting?.length) addDraftingPages(doc, fonts, home, extras.title, extras.summary.drafting);
+  if (extras?.guide) addSewingPages(doc, fonts, home, extras.title, extras.guide);
   const cover = extras?.summary;
-  if (cover?.flat) addCoverPage(doc, fonts, paper === 'a0' ? 'a4' : paper, extras!.title, { ...cover, flat: cover.flat }, extras!.name);
+  if (cover?.flat) addCoverPage(doc, fonts, home, extras!.title, { ...cover, flat: cover.flat }, extras!.name);
   return doc.save();
 }
 
