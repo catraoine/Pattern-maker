@@ -60,10 +60,10 @@ interface Props {
 
 /** The engine's warnings are written for the pattern cutter; this turns them into a nudge. */
 function friendly(w: string) {
-  if (w.startsWith('bust widened')) return 'Your shoulders are broad next to your bust, so the tee is cut a little roomier at the bust for the armholes to fit.';
-  if (w.startsWith('sleeve')) return 'Your armhole is large next to your upper arm, so the sleeve is cut a little wider to fit it. Please check both measurements.';
-  if (w.startsWith('armhole')) return 'Your armhole measurement is large for the rest of you, so the armhole is drafted as close to it as the block allows. Please re-measure it.';
-  return `One of your measurements looks unusual (${w}). Please double-check it.`;
+  if (w.startsWith('bust widened')) return 'With your shoulder width and bust, the tee is cut a little roomier at the bust so the armholes fit.';
+  if (w.startsWith('sleeve')) return 'The sleeve is cut a little wider to fit your armhole. If a tape slipped, a quick re-measure of the armhole and upper arm helps.';
+  if (w.startsWith('armhole')) return 'The armhole is drafted as close to your armhole measurement as the block allows. If a tape slipped, a quick re-measure helps.';
+  return `Just checking one of your measurements (${w}): if a tape slipped, a quick re-measure helps. If they're right, carry on.`;
 }
 
 export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices, onChooseGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, fabric, onFabric, finish, onFinish, mode = 'all', onMode }: Props) {
