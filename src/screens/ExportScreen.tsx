@@ -901,7 +901,7 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
           </div>
           <ol className="sewsteps">
             {guide.steps.map((st) => {
-              // The trickier steps' close-ups, numbered in the order the step's sentences come (Nov 27), in place of
+              // The trickier steps' close-ups, in the order the step's sentences come (Nov 27), in place of
               // the step's one small drawing.
               const frames = stepFrames(st.title, stepLines(st.text));
               return (

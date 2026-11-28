@@ -201,7 +201,7 @@ const FLY: Frame[] = [
       [
         { at: p(11, 8), text: 'RIGHT FRONT', mid: true },
         { at: p(30.5, 8), text: 'LEFT FRONT', mid: true },
-        { at: p(CF, 21), text: 'CENTRE FRONTS MEET' },
+        { at: p(CF, 21), text: 'CENTRE FRONTS MEET', mid: true },
       ],
     ),
   },
@@ -215,7 +215,7 @@ const FLY: Frame[] = [
       rect(CF + 3, TOP, CF + 9, END + 1, 'under'),
     ], [
       { at: p(CF - 5, 8), text: 'FACING ONLY', end: true },
-      { at: p(CF + 3, END + 2.6), text: 'SHIELD CLEAR' },
+      { at: p(CF + 9.6, END - 2), text: 'SHIELD' },
       { at: p(36, 5), text: 'INSIDE', end: true },
     ]),
   },
@@ -263,11 +263,12 @@ const ZIP: Frame[] = [
         line('edge', p(20.4, 19.5), p(22, 19.5)),
       ],
       [
-        { at: p(2, 1.8), text: 'ZIP FACE DOWN' },
+        { at: p(3, 9), text: 'FACE DOWN' },
         { at: p(3, 12.4), text: 'SEW HERE' },
         { at: p(3, 21.6), text: 'ZIP ENDS' },
-        { at: p(25.4, 12.4), text: 'NEXT SIDE' },
-        { at: p(38, 1.8), text: 'RIGHT SIDE', end: true },
+        { at: p(25.4, 11), text: 'SEW THIS' },
+        { at: p(25.4, 13.4), text: 'SIDE NEXT' },
+        { at: p(38, 1.8), text: 'RIGHT SIDE OF THE FABRIC', end: true },
       ],
     ),
   },
@@ -485,6 +486,7 @@ const LOOPS: Frame[] = [
     dg: dg('Points marked down the centre back line of the right back, evenly spaced, the first just below the neck.', [rect(2, 2, 24, 24), line('chalk', p(21, 2), p(21, 24)), ...marks.map((y) => line('edge', p(20, y), p(22, y)))], [
       { at: p(18.6, 3.6), text: 'CENTRE BACK', end: true },
       { at: p(10, 13), text: 'RIGHT BACK', mid: true },
+      { at: p(11, 23.2), text: 'ALL THE WAY DOWN', mid: true },
     ]),
   },
   {

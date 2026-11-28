@@ -679,12 +679,11 @@ details.sew:not([open]) > .sew-summary > .sew-list-head::after {
   }
 }
 
-/* On Print's list, a trickier step's close-ups in a numbered row under its words. The list's own step numbers (round,
+/* On Print's list, a trickier step's close-ups in order under its words, unnumbered (a number read as a sentence number). The list's own step numbers (round,
    in a column of their own) are set on every li inside it, so the row's are set back here. */
 .sewsteps .sewframes-row {
   grid-column: 2;
   list-style: none;
-  counter-reset: frame;
   display: grid;
   /* One to a row, so the small capitals on each stay 11 px or more on a phone. */
   grid-template-columns: minmax(0, 420px);
@@ -693,20 +692,12 @@ details.sew:not([open]) > .sew-summary > .sew-list-head::after {
   margin: 10px 0 0;
 }
 .sewsteps .sewframes-row li {
-  counter-increment: frame;
   display: grid;
   grid-template-columns: none;
   gap: 4px;
 }
 .sewsteps .sewframes-row li::before {
-  content: counter(frame);
-  grid-row: auto;
-  width: auto;
-  height: auto;
-  border: 0;
-  border-radius: 0;
-  justify-content: flex-start;
-  color: var(--gild);
+  content: none;
 }
 .sewsteps .sewframes-row svg.stepdg {
   width: 100%;
