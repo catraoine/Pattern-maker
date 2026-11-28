@@ -76,11 +76,11 @@ const BRING = {
     lead: 'Your measurements stay on the phone you took them on. To print from this computer:',
     steps: [
       'On your phone, open your tester link and tap Print.',
-      'Under Other ways, tap Send to my computer. (Not there? Tap the person icon, then Your data, then Send to another device.)',
+      'Under Other ways, tap Print from my computer. (Not there? Tap the person icon, then Your data, then Send to another device.)',
       'Send the link to yourself, by email or message.',
       'Open it on this computer, or paste it below.',
     ],
-    wrong: "That isn't a Send to my computer link. Send it again from your phone.",
+    wrong: "That isn't the link from Print from my computer. Send it again from your phone.",
     field: 'Link you sent yourself',
   },
 };

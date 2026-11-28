@@ -167,6 +167,9 @@ const againIn = (pc: Piece) => {
   return from.includes('self') && also.length ? `, and again in ${also.join(' and ')}` : '';
 };
 
+/** A piece with how many to cut, as "Skirt front: cut 1 on fold, and again in lining". */
+const pieceCut = (pc: Piece) => `${pc.name}: ${pc.cut.replace(' (1 pair)', '').toLowerCase()}${againIn(pc)}`;
+
 const printedDate = () => new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
 
@@ -361,6 +364,11 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
     }
   };
 
+  // Email me the files is for the signed in and fit testers, on their own patterns.
+  const emailable = !imported && !!(emailTo?.signedIn || emailTo?.testerCode);
+  // Whether this is a phone (a touch screen) decides which of the Other ways it gets.
+  const phone = onPhone();
+
   const openToPrint = () => {
     if (!ready) return;
     left();
@@ -386,10 +394,10 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
       <div className="split">
         <section className="card grow print-top" aria-labelledby="ptitle">
           <div className="print-head">
-            {/* Where you've landed, said calmly (Cat, Nov 3). Part 1 of three since the declutter (Cat's E, Nov 21), with no
-                line under it: the card and the buttons say what the page is for. The garment's name and who it's for
-                are on the card below (Cat, Nov 7). An imported pattern still says which file it came from. */}
-            <p className="eyebrow print-part-no">Part 1</p>
+            {/* Where you've landed, said calmly (Cat, Nov 3), first of the three parts since the declutter (Cat's E,
+                Nov 21), with no "Part 1" over it (Cat, Nov 28) and no line under it: the card and the buttons say what
+                the page is for. The garment's name and who it's for are on the card below (Cat, Nov 7). An imported
+                pattern still says which file it came from. */}
             <h1 id="ptitle">Print it</h1>
             {imported && (
               <p className="muted">
@@ -402,15 +410,16 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
           <GarmentFabric fabric={finish.fabric}>
           <div className="print-cover">
             <Envelope house={false} name={lookName ?? title[0].toUpperCase() + title.slice(1)} flat={made.flat} mark={edition} foot={imported || example ? undefined : `Drafted to ${profile === 'Me' ? 'you' : profile}`} />
-            <p className="eyebrow">Pieces</p>
-            <ul className="pieces">
-              {made.pieces.map((pc, i) => (
-                <li key={i}>
-                  {pc.name}: {pc.cut.replace(' (1 pair)', '').toLowerCase()}
-                  {againIn(pc)}
-                </li>
-              ))}
-            </ul>
+            {/* Each piece's cut count sits on its row in Print only some pieces, so one list says it all (Cat, Nov 28:
+                "We don't need the second pieces list"). A one-piece pattern has no such list, so it keeps this line. */}
+            {made.pieces.length === 1 && (
+              <>
+                <p className="eyebrow">Pieces</p>
+                <ul className="pieces">
+                  <li>{pieceCut(made.pieces[0])}</li>
+                </ul>
+              </>
+            )}
           </div>
           </GarmentFabric>
           <div className="print-controls">
@@ -440,7 +449,7 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
                         disabled={!leftOut.includes(i) && leftOut.length === made.pieces.length - 1}
                         onChange={(e) => setLeftOut(e.target.checked ? leftOut.filter((j) => j !== i) : [...leftOut, i])}
                       />
-                      <span>{pc.name}</span>
+                      <span>{pieceCut(pc)}</span>
                     </label>
                   ))}
                 </details>
@@ -481,20 +490,24 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
               <p className="eyebrow other-ways-label" id="other-ways">
                 Other ways
               </p>
+              {/* One row for each different job (Cat, Nov 28: "some seem to overlap"; she picked Trim as proposed). On a
+                  phone that can share, the share menu prints too, so opening the PDF to print is for everything else;
+                  on a computer the share menu did what Email me does, so it's only offered where Email me isn't. */}
               <div className="other-ways" role="group" aria-labelledby="other-ways">
-                {canShareFiles && (
-                  <button type="button" className="way" onClick={checked(share)} disabled={!ready}>
-                    Send to email or a printer
+                {(!phone || !canShareFiles) && (
+                  <button type="button" className="way" onClick={checked(openToPrint)} disabled={!ready}>
+                    Print it now
                   </button>
                 )}
-                <button type="button" className="way" onClick={checked(openToPrint)} disabled={!ready}>
-                  Open pattern to print
-                </button>
-                {!imported && (emailTo?.signedIn || emailTo?.testerCode) && <EmailPdf who={emailTo} ready={ready} fileName={fileName} booklet={booklet?.bytes ?? null} bookletName={bookletName} title={title} onSent={left} checked={checked} />}
-                <CopyShopWay a0={paper === 'a0'} onA0={() => setPaper('a0')} unit={unit} />
-                {sendLink && onPhone() && (
-                  <SendToDevice link={sendLink} className="way" />
+                {emailable && emailTo && <EmailPdf who={emailTo} ready={ready} fileName={fileName} booklet={booklet?.bytes ?? null} bookletName={bookletName} title={title} onSent={left} checked={checked} />}
+                {canShareFiles && (phone || !emailable) && (
+                  <button type="button" className="way" onClick={checked(share)} disabled={!ready}>
+                    Share the files
+                  </button>
                 )}
+                <CopyShopWay a0={paper === 'a0'} onA0={() => setPaper('a0')} unit={unit} />
+                {/* It moves the measurements and styling, not the files, so it's named for why you'd use it. */}
+                {sendLink && phone && <SendToDevice link={sendLink} className="way" />}
               </div>
               {asking && (
                 <div className="example-ask" role="alertdialog" aria-labelledby="example-ask-title">
@@ -556,6 +569,9 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
             ) : (
               // Each step opens in bold, like How styling works (copy review, Nov 14), so the one that matters is found at a glance.
               <div className="stack print-steps">
+                {/* Named like Other ways and Pieces (Cat, Nov 28: they needed a title). "How to print", not "Print
+                    instructions", which would read as printing the instructions booklet just above. */}
+                <p className="eyebrow">How to print</p>
                 <p>
                   <b>Print at 100%</b> (actual size), never “fit to page”.
                 </p>
@@ -672,7 +688,7 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
         </section>
       )}
 
-      <PartHead n={2} title="Cut it" />
+      <PartHead title="Cut it" />
 
       {!imported && (
         <YourFabric
@@ -743,7 +759,7 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
         )}
       </section>
 
-      <PartHead n={3} title="Sew it" />
+      <PartHead title="Sew it" />
 
       {/* The toile shows in the simple view too (measuring accuracy, 2026-10-21): a calico try-on fixes what a tape at
           home can't, so a first-time sewist is offered it before cutting good fabric. */}
@@ -1421,8 +1437,8 @@ function toBase64(bytes: Uint8Array) {
 }
 
 /**
- * "Email me the files" (journey review, Nov 10; was "Email me the PDF" until the instructions became their own file, Nov 15): on every phone, tablet and computer, where "Send to email or a printer"
- * needs a share menu that some computer browsers don't have. The address is used only to send this email.
+ * "Email me the files" (journey review, Nov 10; was "Email me the PDF" until the instructions became their own file, Nov 15): on every phone, tablet and computer. On a
+ * computer it stands in for the share menu, which some computer browsers don't have. The address is used only to send this email.
  */
 function EmailPdf({ who, ready, fileName, booklet, bookletName, title, onSent, checked }: { who: { signedIn?: string; testerCode?: string }; ready: Uint8Array | null; fileName: string; booklet: Uint8Array | null; bookletName: string; title: string; onSent: () => void; checked: (go: () => void) => () => void }) {
   const [open, setOpen] = useState(false);

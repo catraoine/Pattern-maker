@@ -198,7 +198,7 @@ export default function App() {
     if (saved.unit !== 'in') return;
     return showInInches(document.body);
   }, [saved.unit]);
-  // A "Send to my computer" link: everything from the sewist's other device, read once the page is up.
+  // A "Print from my computer" link (Send to my computer until Nov 28): everything from the sewist's other device, read once the page is up.
   const [moving, setMoving] = useState<Backup<Saved> | 'broken'>();
   useEffect(() => {
     readMoveLink<Saved>(window.location.hash).then((b) => b && arrive(b));

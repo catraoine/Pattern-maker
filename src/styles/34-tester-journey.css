@@ -59,7 +59,7 @@
   text-transform: uppercase;
   color: #e6d3a8;
 }
-/* Its link reads like the app's other quiet links (Send to my computer), not a browser-blue one. */
+/* Its link reads like the app's other quiet links (Print from my computer), not a browser-blue one. */
 .tester-report a.link,
 .body-scan a.link {
   display: inline-flex;

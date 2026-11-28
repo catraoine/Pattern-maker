@@ -1072,28 +1072,32 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
         <Title id="opts" big="Style" label={look ?? label} hideLabel />
         <GarmentDrop label={look ?? label} onChoose={onChooseGarment} onPhoto={onPhoto} />
       </div>
-      {/* The collection one tap away: from Style it was only in the name's drop-down, and a tester looking for it
-          didn't find it there (testers, Nov 17; Cat applied). */}
-      {openCollection && (
-        <button type="button" className="collection-go" onClick={openCollection}>
-          The collection ›
-        </button>
-      )}
+      {/* Two lines at most above the window (Cat, Nov 28: "Lots of text here looks very busy"): the name with the
+          example note on the first, the two ways to another piece on the second. */}
       {exampleTag}
-      {/* A tester on the plain garment their look is made from is one tap from the look itself: picked from the
-          garment list, the plain top had no peplum to choose (testers, Nov 18). After the example note, which on a
-          phone lifts itself onto the line above. */}
-      {testerLook && (
-        <p className="tester-look">
-          {/* "Tester" for the tester's own look, so it never reads as the In testing label (cold read EE, Nov 24). */}
-          Sewing the {testerLook.name} for us?{' '}
-          {/* Made on the same garment, Style stays open rather than opening afresh, so the look's Review is opened here;
-              sent to measure first, Style opens afresh afterwards and does it itself. */}
-          <button type="button" onClick={() => testerLook.open() && lookNext && lookReview()}>
-            Open your tester look ›
-          </button>
-          {testerLook.lengthStays && <span className="tester-look-note">It has its own length, so the length you set here won't come across. You can change it there.</span>}
-        </p>
+      {(openCollection || testerLook) && (
+        <div className="style-links">
+          {/* The collection one tap away: from Style it was only in the name's drop-down, and a tester looking for it
+              didn't find it there (testers, Nov 17; Cat applied). */}
+          {openCollection && (
+            <button type="button" className="collection-go" onClick={openCollection}>
+              The collection ›
+            </button>
+          )}
+          {/* A tester on the plain garment their look is made from is one tap from the look itself: picked from the
+              garment list, the plain top had no peplum to choose (testers, Nov 18). "Tester" so it never reads as the
+              In testing label (cold read EE, Nov 24); the look's name is read out rather than shown, to keep one line.
+              Made on the same garment, Style stays open rather than opening afresh, so the look's Review is opened
+              here; sent to measure first, Style opens afresh afterwards and does it itself. */}
+          {testerLook && (
+            <span className="tester-look">
+              <button type="button" aria-label={`Your tester look, the ${testerLook.name}`} onClick={() => testerLook.open() && lookNext && lookReview()}>
+                Your tester look ›
+              </button>
+              {testerLook.lengthStays && <span className="tester-look-note">It has its own length, so the length you set here won't come across. You can change it there.</span>}
+            </span>
+          )}
+        </div>
       )}
       <div className="style-edit">
         <div className={['style-pin', tall && 'tall'].filter(Boolean).join(' ')} ref={pin}>

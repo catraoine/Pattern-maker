@@ -22,7 +22,7 @@ const when = (iso: string) => {
   return isNaN(d.getTime()) ? '' : d.toLocaleString(undefined, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
 };
 
-/** A "Send to my computer" link opened on the other device: what it holds, then bring it here. */
+/** A "Print from my computer" link opened on the other device: what it holds, then bring it here. */
 export function MoveArrivalScreen<S>({ backup, here, hereMeasured, opened, onBring, onCarryOn, onNotNow }: Props<S>) {
   const [done, setDone] = useState(false);
   // Whether this device held anything before the work was brought: after, `here` is already the joined account.

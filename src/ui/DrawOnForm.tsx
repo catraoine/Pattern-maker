@@ -476,7 +476,9 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
       <svg viewBox="0 0 16 16" aria-hidden="true">
         <path d={big ? 'M13.5 6.5h-4v-4M2.5 9.5h4v4M9.5 6.5 14 2M6.5 9.5 2 14' : 'M9.5 2.5h4v4M6.5 13.5h-4v-4M13.5 2.5 9 7M2.5 13.5 7 9'} />
       </svg>
-      {big ? 'Smaller' : 'Enlarge'}
+      {/* Shrinking is the icon alone, as on the enlarged Style drawing (Cat, Nov 28: "smaller vs icon to make smaller
+          (icon is better)"); the word stays for screen readers. */}
+      {big ? <span className="visually-hidden">Smaller</span> : 'Enlarge'}
     </button>
   );
   // While a hem is drawn, a level line shows where it will sit, with its length on it, so the wobble of a finger
