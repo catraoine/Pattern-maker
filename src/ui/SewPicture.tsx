@@ -124,7 +124,7 @@ export function SewPicture({ picture, pieces, lays, flat, label, still }: { pict
       <svg viewBox={`0 0 ${W} ${H}`} className={cls} role="img" aria-label={label ?? 'Cutting layout'}>
         <rect x={ox} y={oy} width={L * s} height={A * s} className="sp-fabric" />
         {!open && <path d={`M${ox} ${oy}H${ox + L * s}`} className="sp-ghost" />}
-        <text x={ox} y={oy - 2.5}>{open ? 'SELVEDGE · SINGLE LAYER' : lay.folded ? 'FOLD' : 'SELVEDGE'}</text>
+        <text x={ox} y={oy - 2.5}>{open ? 'SELVEDGE, SINGLE LAYER' : lay.folded ? 'FOLD' : 'SELVEDGE'}</text>
         <text x={ox} y={oy + A * s + 5}>{open ? 'SELVEDGE' : 'SELVEDGES'}</text>
         {(open ? [false, true] : [false]).flatMap((flip) =>
           lay.placements.map((pl, i) => {
