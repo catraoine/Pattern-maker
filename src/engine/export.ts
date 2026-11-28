@@ -778,11 +778,19 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
     (pc.finished ?? []).forEach((f, k) => {
       const c = t(f.at);
       const [ring, across, down] = bullseyes[k];
+      // The words, where they had room: by the bullseye, or a little further off it on the side they print, so on a
+      // turned piece too they move away from it rather than back over it.
+      const w = f.wordsDy ? add(c, p(0, (f.above ? -1 : 1) * Math.abs(f.wordsDy))) : c;
+      // Moved 2 cm or more, a fine line joins them to it, so they read as its words.
+      if (Math.abs(f.wordsDy ?? 0) >= 2) {
+        const s = f.above ? -1 : 1;
+        poly([add(c, p(0, s * 0.7)), add(c, p(0, s * (Math.abs(f.wordsDy!) + (f.above ? 0.55 : 0.7))))], 'fine');
+      }
       poly(ring, 'mark', true);
       poly(across, 'mark');
       poly(down, 'mark');
-      lab(text(add(c, p(0, f.above ? -1.55 : 1.35)), f.title, MARK_TEXT, 0, 'middle', { face: 'label', tracking: 0.12, inch: f.inch?.title }), 2, 0.12);
-      lab(text(add(c, p(0, f.above ? -0.9 : 2.0)), f.note, 0.36, 0, 'middle', { face: 'label', tracking: 0.12, grey: 0.35, inch: f.inch?.note }), 2, 0.12);
+      lab(text(add(w, p(0, f.above ? -1.55 : 1.35)), f.title, MARK_TEXT, 0, 'middle', { face: 'label', tracking: 0.12, inch: f.inch?.title }), 2, 0.12);
+      lab(text(add(w, p(0, f.above ? -0.9 : 2.0)), f.note, 0.36, 0, 'middle', { face: 'label', tracking: 0.12, grey: 0.35, inch: f.inch?.note }), 2, 0.12);
     });
     // The pages' joining diamonds are printed over the sheet, and one sat on "WAIST · 5/8 IN ALLOWANCE" (pretend tester
     // DJ walk, Nov 19): where home paper (A4 or Letter, the same sheet for both) puts one, the labels keep off it.

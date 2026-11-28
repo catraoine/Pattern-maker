@@ -110,7 +110,8 @@ describe('the Ice Peplum finished marks', () => {
     return Number(m[1] || 0) * 8 + (m[2] ? '⅛¼⅜½⅝¾⅞'.indexOf(m[2]) + 1 : 0);
   };
   for (const [name, body] of Object.entries(BODIES)) {
-    const marks = made('ice-peplum', body).pieces.flatMap((pc) => (pc.finished ?? []).map((f) => ({ piece: pc.name, ...f })));
+    const pieces = made('ice-peplum', body).pieces;
+    const marks = pieces.flatMap((pc) => (pc.finished ?? []).map((f) => ({ piece: pc.name, ...f })));
     it(`${name}: the inch ease is the finished size less the body, as the booklet works it`, () => {
       const bust = marks.find((f) => f.title.startsWith('FINISHED BUST '))!;
       const [, fin] = /^FINISHED BUST (.+)$/.exec(bust.inch!.title)!;
@@ -125,6 +126,10 @@ describe('the Ice Peplum finished marks', () => {
     it(`${name}: the waist the booklet lists is marked on the top, at the waist`, () => {
       const w = marks.find((f) => f.title.startsWith('FINISHED WAIST '));
       expect(w?.piece).toMatch(/^Bodice/);
+      // The bullseye on the drafted waist, wherever its words had room: it had moved down with its words, up to 3 cm
+      // below the waist, so a tester measured the side front's width in the wrong place (EM walk, Nov 28).
+      const waistY = pieces.find((pc) => pc.name === w!.piece)!.draft!.points.find((d) => /^(Centre front|Side) waist\b/.test(d.note))!.at.y;
+      expect(Math.abs(w!.at.y - waistY)).toBeLessThan(0.05);
     });
     // On D6 the bust's bullseye printed over its own "YOU 36 IN · EASE" (EL walk, Nov 27).
     it(`${name}: the marks' words keep off the bullseyes`, () => {
