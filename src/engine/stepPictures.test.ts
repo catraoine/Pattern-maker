@@ -128,14 +128,57 @@ describe('the picture for each sewing step', () => {
     it("sews the peplum's own side seams when making it", () => {
       expect(pic('Make the peplum', 'Sew the peplum front to the backs at the side seams.')).toMatchObject({ pieces: [3], edges: ['side'] });
     });
+    // The front 0-20 wide and 60 long: a pleat folding at 12 to its placement line at 16, a hip line at 20 and a crotch
+    // line at 25.
     const legs = [
-      piece('Trousers front', ['waist', 'pleat', 'side', 'inseam'], { lines: [new Path(p(12, 0)).line(p(12, 60))] }),
-      piece('Trousers back', ['waist', 'side', 'hem', 'inseam']),
+      piece('Trousers front', ['waist', 'pleat', 'side', 'inseam'], {
+        lines: [new Path(p(12, 0)).line(p(12, 60))],
+        balance: [{ pts: [p(16, 0), p(16, 26)], label: 'PLACEMENT' }, { pts: [p(0, 20), p(20, 20)], label: 'HIP LINE' }],
+        meta: { pleats: [{ fold: 12, place: 16 }], creaseX: 12.5 },
+      }),
+      piece('Trousers back', ['waist', 'side', 'hem', 'inseam'], { balance: [{ pts: [p(0, 25), p(20, 25)], label: 'CROTCH LINE' }], meta: { creaseX: 10 } }),
       piece('Waistband', ['band', 'end', 'band', 'end'], { kind: 'waistband' }),
     ];
-    it("folds the front pleat at its pleat edge, and presses the creases on both legs", () => {
-      expect(stepPicture({ title: 'Fold the front pleat', text: '' }, legs)).toEqual({ kind: 'sew', pieces: [0], edges: ['pleat'], darts: false });
-      expect(stepPicture({ title: 'Press the creases', text: '' }, legs)).toEqual({ kind: 'sew', pieces: [0, 1], edges: [], darts: false });
+    const CREASES = 'Fold each front and each back along its chalked crease line, and press the crease in from the hem up to the knee and on up to the crotch line on the back, to the hip line on the front.';
+    // Its waist edge drawn thick as if sewn said nothing of the fold (EL walk, Nov 27).
+    it('folds the front pleat on its fold line, to its placement line, stitched down from the waist', () => {
+      expect(stepPicture({ title: 'Fold the front pleat', text: '' }, legs)).toEqual({
+        kind: 'sew',
+        pieces: [0],
+        edges: [],
+        darts: false,
+        lines: [
+          { piece: 0, pts: [p(12, 0), p(12, 60)], as: 'fold' },
+          { piece: 0, pts: [p(16, 0), p(16, 26)], as: 'place' },
+          { piece: 0, pts: [p(12, 0), p(12, 4)], as: 'stitch' },
+        ],
+      });
+    });
+    // The back had no crease, and the front's ran to the waist (EL walk, Nov 27).
+    it('presses the creases on both legs, each from the hem as far up as the words say', () => {
+      expect(stepPicture({ title: 'Press the creases', text: CREASES }, legs)).toEqual({
+        kind: 'sew',
+        pieces: [0, 1],
+        edges: [],
+        darts: false,
+        lines: [
+          { piece: 0, pts: [p(12, 20), p(12, 60)], as: 'press' },
+          { piece: 1, pts: [p(10, 25), p(10, 60)], as: 'press' },
+        ],
+      });
+    });
+    it("marks a skirt's pleats without sewing an edge, and keys neatening as neatening", () => {
+      const skirt = [piece('Skirt front', ['waist', 'pleat', 'hem', 'panel'], { lines: [new Path(p(5, 0)).line(p(5, 60))] })];
+      expect(stepPicture({ title: 'Mark the pleats', text: '' }, skirt)).toEqual({ kind: 'sew', pieces: [0], edges: [], darts: false });
+      expect(stepPicture({ title: 'Neaten the edges', text: 'Zigzag the panel seam edges.' }, skirt)).toMatchObject({ edges: ['panel'], neaten: true });
+    });
+    it('leaves the sleeve band out of the sleeve seams and setting in the sleeves', () => {
+      expect(pic('Sew the sleeve seams')).toMatchObject({ pieces: [4] });
+      expect(pic('Set in the sleeves')).toMatchObject({ pieces: [4] });
+    });
+    it('cuts a sheer single layer', () => {
+      expect(pic('Cut the sheer', 'Lay the sheer single layer between tissue paper.')).toMatchObject({ kind: 'cut', single: true });
+      expect(pic('Cut out', 'Fold the fabric in half.')).not.toHaveProperty('single');
     });
   });
 });

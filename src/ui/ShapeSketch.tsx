@@ -308,7 +308,8 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
     const moved = kind === 'side' && at.x + r + 3.2 * k + full.length * 2.6 * k * 0.85 > right;
     const below = moved && at.y + r + 4.4 * k < shown.bottom;
     const above = moved && !below;
-    const words = below ? `↔ ${text}` : full;
+    // Under the disc it still says what it is: "↔ +10 cm" alone left a tester asking (EL walk, Nov 27).
+    const words = below ? `↔ Width ${text}` : full;
     return (
       <g className={active ? 'handle on' : 'handle'}>
         <circle cx={at.x} cy={at.y} r={r} strokeWidth={0.22} />

@@ -178,6 +178,15 @@
   stroke-width: 0.7;
 }
 
+/* Where a fold is brought to: fine dots, apart from the solid fold line beside it. */
+.sewpic .sp-dot {
+  fill: none;
+  stroke: #1d1a17;
+  stroke-width: 0.6;
+  stroke-linecap: round;
+  stroke-dasharray: 0.01 1.1;
+}
+
 .sewpic .sp-selvedge {
   fill: none;
   stroke: #1d1a17;

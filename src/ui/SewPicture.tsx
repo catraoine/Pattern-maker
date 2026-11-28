@@ -113,27 +113,31 @@ export function SewPicture({ picture, pieces, lays, flat, label, still }: { pict
     if (!lay) return <div className={`${cls} sewpic-flat`}>{flat}</div>;
     // The layout as on Print, turned so the fabric runs across: the fold along the top.
     const L = lay.length + 4;
-    const A = lay.across;
+    // Single layer: the folded layout opened out about its fold, each piece cut once on each side of it.
+    const open = picture.single && lay.folded;
+    const A = open ? lay.across * 2 : lay.across;
     const s = Math.min((W - 8) / L, (H - 16) / A);
     const ox = (W - L * s) / 2;
     const oy = 9;
-    const pts = (ps: P[]) => ps.map((q) => ({ x: ox + (q.y + 2) * s, y: oy + q.x * s }));
+    const pts = (ps: P[], flip = false) => ps.map((q) => ({ x: ox + (q.y + 2) * s, y: oy + (open ? lay.across + (flip ? -q.x : q.x) : q.x) * s }));
     return (
       <svg viewBox={`0 0 ${W} ${H}`} className={cls} role="img" aria-label={label ?? 'Cutting layout'}>
         <rect x={ox} y={oy} width={L * s} height={A * s} className="sp-fabric" />
-        <path d={`M${ox} ${oy}H${ox + L * s}`} className="sp-ghost" />
-        <text x={ox} y={oy - 2.5}>{lay.folded ? 'FOLD' : 'SELVEDGE'}</text>
-        <text x={ox} y={oy + A * s + 5}>SELVEDGES</text>
-        {lay.placements.map((pl, i) => {
-          const on = picture.names.includes(pl.name);
-          const d = line(pts(pl.pts)) + 'Z';
-          return (
-            <g key={i}>
-              <path d={d} className={on ? 'sp-cloth' : 'sp-faint'} />
-              {on && <path d={d} className="sp-sew" pathLength={1} style={{ animationDelay: `${(i % 4) * 0.25}s` }} />}
-            </g>
-          );
-        })}
+        {!open && <path d={`M${ox} ${oy}H${ox + L * s}`} className="sp-ghost" />}
+        <text x={ox} y={oy - 2.5}>{open ? 'SELVEDGE · SINGLE LAYER' : lay.folded ? 'FOLD' : 'SELVEDGE'}</text>
+        <text x={ox} y={oy + A * s + 5}>{open ? 'SELVEDGE' : 'SELVEDGES'}</text>
+        {(open ? [false, true] : [false]).flatMap((flip) =>
+          lay.placements.map((pl, i) => {
+            const on = picture.names.includes(pl.name);
+            const d = line(pts(pl.pts, flip)) + 'Z';
+            return (
+              <g key={`${flip}${i}`}>
+                <path d={d} className={on ? 'sp-cloth' : 'sp-faint'} />
+                {on && <path d={d} className="sp-sew" pathLength={1} style={{ animationDelay: `${(i % 4) * 0.25}s` }} />}
+              </g>
+            );
+          }),
+        )}
       </svg>
     );
   }
@@ -157,7 +161,19 @@ export function SewPicture({ picture, pieces, lays, flat, label, still }: { pict
   // The thick line only where something is sewn: interfacing, pressing and marking steps draw none.
   const sewn = picture.darts ? shown.some((pc) => pc.lines.some(isDart)) : false;
   const stitched = sewn || shown.some((pc, k) => picture.around?.includes(picture.pieces[k]) || runs(pc, picture.edgesOn?.[picture.pieces[k]] ?? picture.edges).length > 0);
-  const key = still ? [] : [...(stitched ? ['Thick line: sew this edge'] : []), ...(shown.some((pc) => pc.fold) ? ['Dashed line: the fold'] : [])];
+  // The step's own lines, each kind keyed in the words the step uses.
+  const drawn = picture.lines?.filter((ln) => picture.pieces.indexOf(ln.piece) >= 0 && picture.pieces.indexOf(ln.piece) < shown.length) ?? [];
+  const has = (as: string) => drawn.some((ln) => ln.as === as);
+  const key = still
+    ? []
+    : [
+        ...(stitched ? [picture.neaten ? 'Thick line: neaten this edge' : 'Thick line: sew this edge'] : []),
+        ...(has('fold') ? ['Solid line: fold here'] : []),
+        ...(has('place') ? ['Dotted line: bring the fold to here'] : []),
+        ...(has('stitch') ? ['Thick line: stitch down'] : []),
+        ...(has('press') ? ['Solid line: press the crease here'] : []),
+        ...(shown.some((pc) => pc.fold) ? ['Dashed line: the fold'] : []),
+      ];
   const pic = (
     <svg viewBox={`0 0 ${W} ${H}`} className={cls} role="img" aria-label={label ?? 'The pieces for this step'}>
       {placed.map((a, k) => {
@@ -168,12 +184,15 @@ export function SewPicture({ picture, pieces, lays, flat, label, still }: { pict
           <g key={k}>
             <path d={outline} className="sp-cloth" />
             {fold && <path d={fold} className="sp-ghost" />}
-            {!picture.darts && a.pc.lines.map((ln, j) => <path key={j} d={line(f(ln.points(8)))} className="sp-mark" />)}
+            {!picture.darts && !picture.lines && a.pc.lines.map((ln, j) => <path key={j} d={line(f(ln.points(8)))} className="sp-mark" />)}
             {picture.darts && a.pc.lines.map((ln, j) => (isDart(ln) ? <Stitch key={j} d={line(f(ln.points(8)))} delay={j * 0.2} /> : <path key={j} d={line(f(ln.points(8)))} className="sp-mark" />))}
             {picture.around?.includes(picture.pieces[k]) && <Stitch d={outline} delay={k * 0.3} />}
             {runs(a.pc, picture.edgesOn?.[picture.pieces[k]] ?? picture.edges).map((r, j) => (
               <Stitch key={j} d={line(f(r))} delay={k * 0.3} />
             ))}
+            {drawn
+              .filter((ln) => ln.piece === picture.pieces[k])
+              .map((ln, j) => (ln.as === 'stitch' ? <Stitch key={`l${j}`} d={line(f(ln.pts))} delay={0.6} /> : <path key={`l${j}`} d={line(f(ln.pts))} className={ln.as === 'place' ? 'sp-dot' : 'sp-edge'} />))}
             <text x={ox + (a.x + a.w / 2) * s} y={Math.min(H - 1.5 - (names[k].length - 1) * 4.2, oy + a.h * s + 5)} textAnchor="middle">
               {names[k].map((w, j) => (
                 <tspan key={j} x={ox + (a.x + a.w / 2) * s} dy={j ? 4.2 : 0}>
