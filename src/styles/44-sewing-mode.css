@@ -691,7 +691,10 @@ details.sew:not([open]) > .sew-summary > .sew-list-head::after {
   padding: 0;
   margin: 10px 0 0;
 }
+/* Nor do they count as steps: each drawing had moved the next step's number on by one, so the trousers' steps after the
+   welt pockets ran to 26 (cold read, Nov 27). */
 .sewsteps .sewframes-row li {
+  counter-increment: none;
   display: grid;
   grid-template-columns: none;
   gap: 4px;
@@ -703,4 +706,56 @@ details.sew:not([open]) > .sew-summary > .sew-list-head::after {
   width: 100%;
   height: auto;
   margin: 0;
+}
+
+/* The key under a drawing: what the dashed, grey and shaded lines mean (cold read, Nov 27). Small capitals in ink on
+   the chalk, one entry after another so a short key takes one line. */
+.dg-key {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+  padding: 0;
+  margin: 6px 0 0;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #1d1a17;
+}
+/* On Print's list it sits on the black page under the row, and the list's own round numbers are set back. */
+.sewsteps .dg-key {
+  grid-column: 2;
+  color: var(--muted);
+}
+.sewsteps .dg-key li {
+  counter-increment: none;
+  display: block;
+  padding: 0;
+}
+.sewsteps .dg-key li::before {
+  content: none;
+}
+/* With a key the drawing's window stacks the two: the drawing takes the room the key leaves, the key a line below. */
+.sewpic-diagram:has(> .dg-key) {
+  flex-direction: column;
+  align-items: stretch;
+}
+.sewpic-diagram:has(> .dg-key) svg.stepdg {
+  flex: 1 1 0;
+  min-height: 0;
+  height: auto;
+}
+.sewpic-diagram > .dg-key {
+  flex: none;
+}
+.sewpic-keyed {
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+  min-height: 0;
+}
+.sewpic-keyed > svg.sewpic {
+  flex: 0 1 auto;
+  min-height: 0;
 }

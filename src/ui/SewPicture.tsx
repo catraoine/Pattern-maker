@@ -3,7 +3,8 @@ import type { P } from '../engine/geometry';
 import type { Piece } from '../engine/piece';
 import type { Lay } from '../engine/layplan';
 import { type StepPicture, isDart } from '../engine/stepPictures';
-import { StepDiagram } from './StepDiagram';
+import { DIAGRAMS } from '../engine/diagrams';
+import { DiagramKey, StepDiagram } from './StepDiagram';
 
 // A sewing step's picture (Cat's C, Nov 21), on its own so Print can show one without loading the whole of Sewing mode.
 
@@ -75,7 +76,7 @@ export function SewPicture({ picture, pieces, lays, flat, label, still }: { pict
   const cls = still ? 'sewpic still' : 'sewpic';
   // A pattern with no flat drawing (one read from a file) shows its pieces instead.
   if (picture.kind === 'flat' && !flat) picture = { kind: 'sew', pieces: pieces.map((_, i) => i), edges: [], darts: false };
-  if (picture.kind === 'diagram') return <div className={`${cls} sewpic-diagram`}><StepDiagram id={picture.id} /></div>;
+  if (picture.kind === 'diagram') return <div className={`${cls} sewpic-diagram`}><StepDiagram id={picture.id} />{!still && <DiagramKey dgs={[DIAGRAMS[picture.id]]} />}</div>;
   if (picture.kind === 'flat') return <div className={`${cls} sewpic-flat`}>{flat}</div>;
   if (picture.kind === 'prep')
     return (
@@ -152,7 +153,12 @@ export function SewPicture({ picture, pieces, lays, flat, label, still }: { pict
   const ox = (W - wide * s) / 2;
   const oy = (H - extra - tall * s) / 2;
   const to = (a: Placed) => (ps: P[]) => ps.map((q) => ({ x: ox + (q.x + a.dx) * s, y: oy + (q.y + a.dy) * s }));
-  return (
+  // A key for the two lines a first-time reader can't name (cold read, Nov 27), left off the small pictures along the foot.
+  // The thick line only where something is sewn: interfacing, pressing and marking steps draw none.
+  const sewn = picture.darts ? shown.some((pc) => pc.lines.some(isDart)) : false;
+  const stitched = sewn || shown.some((pc, k) => picture.around?.includes(picture.pieces[k]) || runs(pc, picture.edgesOn?.[picture.pieces[k]] ?? picture.edges).length > 0);
+  const key = still ? [] : [...(stitched ? ['Thick line: sew this edge'] : []), ...(shown.some((pc) => pc.fold) ? ['Dashed line: the fold'] : [])];
+  const pic = (
     <svg viewBox={`0 0 ${W} ${H}`} className={cls} role="img" aria-label={label ?? 'The pieces for this step'}>
       {placed.map((a, k) => {
         const f = to(a);
@@ -179,5 +185,17 @@ export function SewPicture({ picture, pieces, lays, flat, label, still }: { pict
         );
       })}
     </svg>
+  );
+  if (!key.length) return pic;
+  // Drawing and key in one column that shrinks the drawing, so on a short laptop screen the key isn't cut off below it.
+  return (
+    <div className="sewpic-keyed">
+      {pic}
+      <ul className="dg-key">
+        {key.map((t) => (
+          <li key={t}>{t}</li>
+        ))}
+      </ul>
+    </div>
   );
 }

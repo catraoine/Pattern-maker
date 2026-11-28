@@ -46,6 +46,20 @@ export interface Diagram {
 const W = 40;
 const H = 24;
 
+/** What each kind of line means, in the order a key lists them. Only kinds a reader might misread are here: the cloth,
+ *  its edges, the arrows and the hand stitches (each stroke drawn, as the zip teeth are) read as themselves (cold read, Nov 27: "no key for the dashed and grey lines"). */
+const KEY: [PartKind, string][] = [
+  ['machine', 'Black dashes: machine stitching'],
+  ['thread', 'Long dashes: tacking'],
+  ['under', 'Grey dashes: underneath'],
+  ['chalk', 'Fine dots: chalked from the pattern'],
+  ['fold', 'Shaded: a second layer, or turned back'],
+];
+
+/** The key for a drawing, or a row of them: only the lines they have, so a short key stays short. */
+export const keyFor = (...dgs: Diagram[]): string[] => KEY.filter(([k]) => dgs.some((dg) => dg.parts.some((pt) => pt.kind === k))).map(([, t]) => t);
+
+
 export const rect = (x0: number, y0: number, x1: number, y1: number, kind: PartKind = 'cloth'): DiagramPart => ({
   pts: [p(x0, y0), p(x1, y0), p(x1, y1), p(x0, y1)],
   kind,

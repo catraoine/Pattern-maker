@@ -20,7 +20,7 @@ import type { Unit } from '../measurements';
 import { inCm, inInches } from '../units';
 import { type Lay, hideSqFt, layWords } from './layplan';
 import type { Flat } from './flat';
-import { DIAGRAMS, type Diagram, DiagramId } from './diagrams';
+import { DIAGRAMS, type Diagram, DiagramId, keyFor } from './diagrams';
 import { stepFrames } from './stepFrames';
 import { stepLines } from './stepLines';
 import { P } from './geometry';
@@ -72,6 +72,9 @@ function printable(text: string): string {
 }
 
 /** Text with letter spacing. `x` is the left edge, or the centre when `centre` is set. */
+/** The space between entries of a drawing's key in the booklet. */
+const KEY_GAP = 14;
+
 function drawText(
   page: PDFPage,
   text: string,
@@ -1097,13 +1100,15 @@ function addSewingPages(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', 
     for (let r = 0; r < frames.length; r += across) {
       const row = frames.slice(r, r + across);
       const tall = Math.max(...row.map((d) => d.h)) * k;
-      room(tall + 14);
+      // The last row keeps its key with it on the page.
+      room(tall + 14 + (r + across >= frames.length ? keyLines(frames).length * 10 + 10 : 0));
       row.forEach((d, j) => {
         const x = 2 * CM + 18 + j * (42 * k + gap);
         drawDiagramAt(d, x, st.y, k);
       });
       st.y -= tall + 12;
     }
+    drawKey(frames);
   }
 
   /** One drawing with its top left corner at (x, y), `k` points to a unit, its small capitals in the label face. */
@@ -1134,8 +1139,35 @@ function addSewingPages(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', 
   function drawDiagram(id: DiagramId) {
     const dg = DIAGRAMS[id];
     const k = 3.2; // points per unit: 40 units is about 4.5 cm
-    room(dg.h * k + 10);
+    room(dg.h * k + 10 + keyLines([dg]).length * 10);
     drawDiagramAt(dg, 2 * CM + 18, st.y, k);
     st.y -= dg.h * k + 12;
+    drawKey([dg]);
+  }
+
+  /** What the dashed, grey and shaded lines under a drawing mean, as on screen (cold read, Nov 27), as many to a line as
+   *  fit. */
+  function keyLines(dgs: Diagram[]): string[][] {
+    const lineW = (t: string) => fonts.label.widthOfTextAtSize(t, 7) + 0.1 * 7 * (t.length - 1);
+    const lines: string[][] = [];
+    for (const t of keyFor(...dgs).map((t) => t.toUpperCase())) {
+      const last = lines[lines.length - 1];
+      if (last && last.reduce((w, u) => w + lineW(u) + KEY_GAP, 0) + lineW(t) <= st.page.getWidth() - 4 * CM - 18) last.push(t);
+      else lines.push([t]);
+    }
+    return lines;
+  }
+
+  /** The key under the drawings, each line's baseline on st.y as the words are written, and a step's gap after so the
+   *  next heading clears it. */
+  function drawKey(dgs: Diagram[]) {
+    const lines = keyLines(dgs);
+    for (const ln of lines) {
+      room(10);
+      let x = 2 * CM + 18;
+      for (const t of ln) x += drawText(st.page, t, { x, y: st.y, size: 7, font: fonts.label, tracking: 0.1, grey: 0.4 }) + KEY_GAP;
+      st.y -= 10;
+    }
+    if (lines.length) st.y -= 10;
   }
 }

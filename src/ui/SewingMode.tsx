@@ -8,7 +8,7 @@ import { SewPicture } from './SewPicture';
 import { readAt, readTicks, saveAt, saveDone, saveTicks } from './sewPlace';
 import { isNote, stepLines } from '../engine/stepLines';
 import { framesFor } from '../engine/stepFrames';
-import { StepDiagram } from './StepDiagram';
+import { DiagramKey, StepDiagram } from './StepDiagram';
 
 // Sewing mode (Cat's C, Nov 21): the steps one at a time, each with a drawing of the garment's own pieces where the
 // edges being sewn draw themselves in, so it reads at arm's length beside the machine. The words are the steps' own.
@@ -137,6 +137,8 @@ export function SewingMode({ steps, pieces, lays, flat, title, keep, inCm, from,
           {frames ? (
             <div className="sewpic sewpic-diagram sewframe">
               <StepDiagram dg={frames[now]} />
+              {/* The key for the whole step, so it keeps one height and the drawing doesn't change size as you tick. */}
+              <DiagramKey dgs={frames} />
             </div>
           ) : (
             <SewPicture picture={pictures[at]} pieces={pieces} lays={lays} flat={flat} label={step.title} />
