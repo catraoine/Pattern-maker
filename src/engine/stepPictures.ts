@@ -221,7 +221,7 @@ export function stepPicture(step: SewStep, pieces: Piece[]): StepPicture {
   let edges = edgesIn(title);
   // A step that only says "sew" or "neaten" in its title names its edges in its words. Others (press the creases)
   // don't stitch anything, so their words aren't searched for seams.
-  if (!edges.length && !these.length && /^(sew|neaten|stitch|join|bind|stay|close|zigzag|overlock)\b/.test(title)) edges = edgesIn(all);
+  if (!edges.length && !these.length && /^(sew|neaten|stitch|join|bind|stay|staystitch|close|zigzag|overlock)\b/.test(title)) edges = edgesIn(all);
   // A step that sews onto the facings or the lining ("the upper collar to the facings") leaves the garment itself out.
   const inside = /\bto the (front |neck )?(facings?|lining)\b/.test(title);
   const carrying = inside ? [] : pieces.map((pc, i) => (isGarment(pc) && !later(pc) && edges.some((t) => tagsOf(pc).has(t)) ? i : -1)).filter((i) => i >= 0);

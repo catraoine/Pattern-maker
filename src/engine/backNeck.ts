@@ -57,7 +57,7 @@ export function withBackNeck(g: SewingGuide, back: BackNeck | undefined): Sewing
     const cut = at(/^Cut out$/);
     steps.splice(cut + 1, 0, {
       title: 'Stay the back neckline',
-      text: `A low back stretches as you handle it and then gapes. As soon as the backs are cut, stay-stitch the back neckline 1 cm in, from the centre back to the shoulder. Cut two strips of narrow stay tape (or the selvedge of a lightweight cotton) each 0.5 cm shorter than the back neckline, and pin one along each back neck seam line, easing the fabric in to fit. Stitch it on along the seam line, so the finished back lies close against your shoulder blades.`,
+      text: `A low back stretches as you handle it and then gapes. As soon as the backs are cut, staystitch the back neckline 1 cm in, from the centre back to the shoulder. Cut two strips of narrow stay tape (or the selvedge of a lightweight cotton) each 0.5 cm shorter than the back neckline, and pin one along each back neck seam line, easing the fabric in to fit. Stitch it on along the seam line, so the finished back lies close against your shoulder blades.`,
     });
     return { ...g, steps };
   }

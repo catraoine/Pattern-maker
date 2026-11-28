@@ -1,7 +1,8 @@
 // Measurement tables for the tech pack: each body measurement the draft used, the ease added and the
 // finished garment measurement.
 import { FACING_DEPTH, HIGH } from './skirtWaist';
-import { lowered, type Elastic, type SkirtDraft, type SkirtMeasurements } from './skirt';
+import { WAISTBAND_CM, lowered, type Elastic, type SkirtDraft, type SkirtMeasurements } from './skirt';
+import { curvedBandOf } from './finishing';
 import type { OuterDraft, OuterMeasurements } from './outerwear';
 import { girthBelowWaist, type BodiceDraft, type BodiceLength, type BodiceMeasurements } from './bodice';
 import type { SpecRow } from './techpack';
@@ -55,7 +56,8 @@ export function skirtSpec(m: SkirtMeasurements, d: SkirtDraft): SpecRow[] {
     ...(d.ruche ? [{ label: 'Ruched sides, below the waist', finished: `${d.ruche.from} to the hem` }, { label: 'Side seam cut longer by / elastic each side', finished: `${d.ruche.extra} / ${d.ruche.elastic}` }] : []),
     ...(d.pocket ? [row('In-seam pocket opening', undefined, d.pocket[1] - d.pocket[0])] : []),
     ...(d.frontPocket?.kind === 'patch' ? [{ label: 'Patch pockets, each front, wide x deep', finished: `${d.frontPocket.place.w} x ${d.frontPocket.place.h}, top ${Math.round(d.frontPocket.place.y)} below the waist` }] : []),
-    ...(d.frontPocket?.kind === 'slant' ? [{ label: 'Slant pockets', finished: `opening ${SLANT.in} in, ${SLANT.down} down` }] : []),
+    // (The one row that names its unit: "opening 4 in" read as 4 inches; fit audit, Nov 22.)
+    ...(d.frontPocket?.kind === 'slant' ? [{ label: 'Slant pockets', finished: `opening ${SLANT.in} cm in from the side seam, ${SLANT.down} cm down` }] : []),
     ...(d.slit ? [{ label: `Slit, ${d.slit.at === 'side' ? 'left side' : `centre ${d.slit.at}`}, above the hem`, finished: `${d.slit.cm}` }] : []),
     ...(d.yoke ? [row('Yoke, centre front, waist to seam', undefined, d.yoke.front[0].y - (d.closed?.[0].outline.start.y ?? 0)), row('Yoke, centre back, waist to seam', undefined, d.yoke.back[0].y - (d.closed?.[1].outline.start.y ?? 0))] : []),
     ...(d.buttons
@@ -74,7 +76,7 @@ export function skirtSpec(m: SkirtMeasurements, d: SkirtDraft): SpecRow[] {
             { label: `Waist facing, ${d.waistFinish === 'high' ? HIGH.rise : FACING_DEPTH} deep, interfaced`, finished: 'cut 1 front, 1 back' },
             { label: d.opening === 'left_side' ? 'Invisible zip, left side seam' : 'Invisible zip, centre back', finished: `${d.zipCm}` },
           ]
-        : waistRows(d, d.opening === 'left_side' ? 'Invisible zip, left side seam' : 'Invisible zip, centre back')),
+        : waistRows(d, d.opening === 'left_side' ? 'Invisible zip, left side seam' : 'Invisible zip, centre back', curvedBandOf(d))),
   ];
 }
 
@@ -87,7 +89,7 @@ function tieRows(t: { outer: number; inner: number; cutWidth: number; cut: { out
 }
 
 /** The waistband, and the zip or the elastic that closes it, or the ties of a wrap. */
-function waistRows(d: { waistband: { cutLength: number; cutWidth: number }; elastic?: Elastic; zipCm: number; wrap?: SkirtDraft['wrap'] }, zip = 'Invisible zip, centre back'): SpecRow[] {
+function waistRows(d: { waistband: { cutLength: number; cutWidth: number }; elastic?: Elastic; zipCm: number; wrap?: SkirtDraft['wrap'] }, zip = 'Invisible zip, centre back', curved = false): SpecRow[] {
   if (d.wrap?.ties) return [{ label: 'Waistband (finished width 3), ties sewn into its ends', finished: `cut ${d.waistband.cutLength} x ${d.waistband.cutWidth}` }, ...tieRows(d.wrap.ties)];
   return d.elastic
     ? [
@@ -95,7 +97,11 @@ function waistRows(d: { waistband: { cutLength: number; cutWidth: number }; elas
         { label: `Elastic, ${d.elastic.widthCm} cm wide`, finished: `cut ${d.elastic.cutCm} (${d.elastic.finishedCm} joined)` },
       ]
     : [
-        { label: 'Waistband (finished width 3)', finished: `cut ${d.waistband.cutLength} x ${d.waistband.cutWidth}` },
+        // A curved band is not folded: an outer band and a facing, each the finished width plus its two seam allowances. The
+        // row gave the folded straight band's width (9) where the printed piece is 6 wide (tester pattern review, Nov 13).
+        curved
+          ? { label: 'Waistband, curved (finished width 3)', finished: `cut 2, band and facing, each ${d.waistband.cutLength} at the waist seam x ${r1(d.waistband.cutWidth - WAISTBAND_CM)}` }
+          : { label: 'Waistband (finished width 3)', finished: `cut ${d.waistband.cutLength} x ${d.waistband.cutWidth}` },
         { label: zip, finished: `${d.zipCm}` },
       ];
 }
@@ -206,11 +212,11 @@ export function trousersSpec(m: TrousersMeasurements, d: TrousersDraft): SpecRow
     row(d.riseCm ? 'Outside leg, your waist to hem' : 'Outside leg, waist to hem', undefined, d.lengthCm),
     ...(d.shorts ? [] : [row('Knee, round', undefined, d.kneeCm)]),
     row('Hem, round', undefined, d.hemCm),
-    ...(d.pockets !== 'none' ? [{ label: d.pockets === 'slant' ? 'Slant pockets' : d.pocketSides === 'right' ? 'In-seam pocket, right side' : 'In-seam pockets', finished: d.pockets === 'slant' ? `opening ${SLANT.in} in, ${SLANT.down} down` : `opening ${INSEAM.opening}` }] : []),
+    ...(d.pockets !== 'none' ? [{ label: d.pockets === 'slant' ? 'Slant pockets' : d.pocketSides === 'right' ? 'In-seam pocket, right side' : 'In-seam pockets', finished: d.pockets === 'slant' ? `opening ${SLANT.in} cm in from the side seam, ${SLANT.down} cm down` : `opening ${INSEAM.opening}` }] : []),
     ...(d.pleats ? [{ label: `Front pleat${d.pleats.count > 1 ? 's' : ''}, each front`, finished: d.pleats.lines.map((l) => `${Math.round((l.place - l.fold) * 10) / 10} deep`).join(', ') }] : []),
     ...(d.loops ? [{ label: 'Belt loops', finished: `${d.loops}` }] : []),
     ...(d.backWelt ? [{ label: 'Back welt pockets, wide x deep', finished: `${weltWidth(d.backWelt)} x ${d.backWelt.depth}, ${BACK_WELT.below} below the waist` }] : []),
-    ...waistRows(d, d.closure === 'fly' ? 'Trouser zip, fly front' : 'Invisible zip, left side'),
+    ...waistRows(d, d.closure === 'fly' ? 'Trouser zip, fly front' : 'Invisible zip, left side', !!d.bandTop && d.closure !== 'none'),
   ];
 }
 

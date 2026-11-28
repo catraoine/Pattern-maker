@@ -107,11 +107,11 @@ describe('the bias-cut slip skirt', () => {
     expect(mini.lengthCm).toBeGreaterThanOrEqual(m.waist_to_hip + 12);
   });
 
-  it('is sewn with stay-stitching, French seams, a hang before levelling and a rolled hem', () => {
+  it('is sewn with staystitching, French seams, a hang before levelling and a rolled hem', () => {
     const d = draftSkirt(m, { silhouette: 'slip', length: 'midi', asymHem: 'high_low' });
     const g = sewingGuide(d, { silhouette: 'slip', length: 'midi' }, 1.7);
     const all = g.steps.map((s) => `${s.title} ${s.text}`).join(' ');
-    expect(all).toMatch(/Stay-stitch/);
+    expect(all).toMatch(/Staystitch/);
     expect(all).toMatch(/French seam/);
     expect(all).toMatch(/Hang the skirt up/);
     expect(all).toMatch(/rolled hem/i);

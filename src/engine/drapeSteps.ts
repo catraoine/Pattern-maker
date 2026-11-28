@@ -3,6 +3,7 @@
 // facing; and a peplum, made, hemmed narrowly and sewn to the waist. Step titles are kept where the
 // step is the same kind of work, so the couture route can still find them. Plain ASCII punctuation
 // (see instructions.ts).
+import { INVISIBLE_ZIP_LAY } from './stepWords';
 import { taggedLength } from './geometry';
 import { BALLOON_PEPLUM } from './drape';
 import type { BodiceDraft } from './bodice';
@@ -74,9 +75,9 @@ const UNEVEN_CUT =
   'Cut the bodice front first, from a single layer of fabric opened out right side up. It is a whole piece and its two sides differ: lay it printed side up, the side marked LEFT SIDE on your left as you wear it, and cut it once.';
 
 const COWL_STAY: SewStep = {
-  title: 'Stay-stitch the cowl front',
+  title: 'Staystitch the cowl front',
   diagram: 'staystitch',
-  text: "The front is on the bias and stretches easily, so handle it flat and as little as you can. Stay-stitch its shoulders, the facing's shoulders and the armholes 1 cm from the edge, sewing each from the shoulder down. Hang the front up by its shoulders for a day so the bias can drop, then lay it back on the pattern and trim the side edges to it if they have grown.",
+  text: "The front is on the bias and stretches easily, so handle it flat and as little as you can. Staystitch its shoulders, the facing's shoulders and the armholes 1 cm from the edge, sewing each from the shoulder down. Hang the front up by its shoulders for a day so the bias can drop, then lay it back on the pattern and trim the side edges to it if they have grown.",
 };
 
 const cowlFold = (seam: string): SewStep => ({
@@ -116,7 +117,7 @@ export function drapeBodiceSteps(g: SewingGuide, d: BodiceDraft, o: Opts): Sewin
     e.insertAt(lastDart >= 0 ? lastDart + 1 : e.steps.findIndex((s) => s.title === 'Neaten the edges') + 1, staySteps(d));
     e.set(
       'Put in the zip',
-      `Sew a ${d.zipCm} cm invisible zip into the right side seam, front and back, with the top of the teeth ${o.curve} below the top edge, ${below ? 'stopping at the ZIP ENDS notch at the waist' : 'down to the waist edge'}. A longer zip is shortened from the bottom: stitch across the teeth where it should stop and cut 2 cm below.`,
+      `Sew the ${d.zipCm} cm invisible zip into the right side seam, front and back, with the top of the teeth ${o.curve} below the top edge, ${below ? 'stopping at the ZIP ENDS notch at the waist' : 'down to the waist edge'}.${INVISIBLE_ZIP_LAY} A longer zip is shortened from the bottom: stitch across the teeth where it should stop and cut 2 cm below.`,
     );
     e.drop('Close the centre back');
     const shoulder = `Pin the front to the back at the left shoulder, right sides together. The back shoulder is 1 cm longer: ease it in so it fits without pleats. Sew ${o.seam} from the edge and press the seam open.`;
@@ -238,7 +239,7 @@ export function drapeBodiceSteps(g: SewingGuide, d: BodiceDraft, o: Opts): Sewin
     };
     const attach: SewStep = {
       title: 'Attach the peplum',
-      text: `Pin the peplum to the bodice's ${low ? `lower edge (PEPLUM SEAM), ${d.peplum.seamCm} cm below your waist (the bodice is fitted down to it, so the waist stays nipped in above the puff)` : 'waist edge'}, right sides together, matching the centre front and the seams, with its open edges at the zip. Pull up the waist gathering threads until it fits, and spread the gathers evenly. Sew ${o.seam} from the edge, with the gathers on top so they stay even, overlock or zigzag the edges together, and press the seam up toward the bodice.${
+      text: `Pin the peplum to the bodice's ${low ? 'lower edge (PEPLUM SEAM)' : 'waist edge'}, right sides together, matching the centre front and the seams, with its open edges at the zip.${low ? ` That seam sits ${d.peplum.seamCm} cm below your waist: the bodice is fitted down to it, so the waist stays nipped in above the puff.` : ''} Pull up the waist gathering threads until it fits, and spread the gathers evenly. Sew ${o.seam} from the edge, with the gathers on top so they stay even, overlock or zigzag the edges together, and press the seam up toward the bodice.${
         o.edges === 'lined' ? ` Turn the lining's ${low ? 'lower' : 'waist'} edge under and slip-stitch it over the seam inside.` : ''
       }`,
     };
@@ -256,14 +257,14 @@ export function drapeBodiceSteps(g: SewingGuide, d: BodiceDraft, o: Opts): Sewin
     const make: SewStep = {
       title: 'Make the peplum',
       text: `${oneShoulder ? `Sew the peplum's centre back seam and its left side seam` : 'Sew the peplum front to the peplum backs at the side seams'}, right sides together, ${o.seam} from the edge, matching the notches, and press the seams open. Leave the ${open} open: the peplum parts there below the zip.${
-        flared ? ' Hang the peplum up by its waist for a day, so the parts on the bias can drop, then trim the hem level if it has.' : ''
+        flared ? ' Hang the peplum up by its waist for a day, so the parts on the bias can drop, then trim the hem level if it has dropped.' : ''
       } Hem it narrowly: press up 0.5 cm and stitch close to the fold, trim close to the stitching, then turn up again and stitch over the first line. Hem the open edges the same way.${
         flared ? '' : ' Run two rows of long machine stitches along the waist edge, 0.5 cm and 1 cm from it, leaving long threads at each end.'
       }`,
     };
     const attach: SewStep = {
       title: 'Attach the peplum',
-      text: `Pin the peplum to the bodice's ${low ? `lower edge (PEPLUM SEAM), ${d.peplum.seamCm} cm below your waist (the bodice is fitted down to it, so the waist stays nipped in above the flare)` : 'waist edge'}, right sides together, matching the centre front and the seams, with its open edges at the zip.${
+      text: `Pin the peplum to the bodice's ${low ? 'lower edge (PEPLUM SEAM)' : 'waist edge'}, right sides together, matching the centre front and the seams, with its open edges at the zip.${low ? ` That seam sits ${d.peplum.seamCm} cm below your waist: the bodice is fitted down to it, so the waist stays nipped in above the flare.` : ''}${
         flared ? '' : ' Pull up the gathering threads until it fits, and spread the gathers evenly.'
       } Sew ${o.seam} from the edge${flared ? '' : ', with the gathers on top so they stay even'}, overlock or zigzag the edges together, and press the seam up toward the bodice.${
         o.edges === 'lined' ? ` Turn the lining's ${low ? 'lower' : 'waist'} edge under and slip-stitch it over the seam inside.` : ''
@@ -305,7 +306,7 @@ export function drapeDressSteps(g: SewingGuide, top: SewingGuide, d: DressDraft,
     );
     e.set(
       'Put in the zip',
-      `Sew a ${d.zipCm} cm invisible zip into the right side edges of the front and back, with the top of the teeth ${o.curve} below the top edge, across the waist seam, to the ZIP ENDS notch on the skirt. Sew one side, close the zip and mark where the waist seam crosses the other tape, so the waist meets exactly when you sew the second side.`,
+      `Sew the ${d.zipCm} cm invisible zip into the right side edges of the front and back, with the top of the teeth ${o.curve} below the top edge, across the waist seam, to the ZIP ENDS notch on the skirt.${INVISIBLE_ZIP_LAY} Sew one side, close the zip and mark where the waist seam crosses the other tape, so the waist meets exactly when you sew the second side.`,
     );
     e.drop('Close the centre back');
     e.set(

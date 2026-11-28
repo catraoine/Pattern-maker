@@ -38,6 +38,11 @@ interface SpecialInfo {
   lining?: string;
 }
 
+/** A cloth cut single layer comes before a cutting step written for folded fabric. This says how to read that step, as
+ *  two plain rules: it said "this takes the place of folding the fabric in the cutting step" before the reader
+ *  had met that step (sewing instructions review, Nov 28). */
+const SINGLE_LAYER = 'Where the cutting step puts a piece on the fold, trace the piece out whole first and cut it once. Where it cuts a pair through both layers, cut the piece twice, turning the pattern over for the second.';
+
 export const SPECIALS: Record<Special, SpecialInfo> = {
   denim: {
     label: 'Denim',
@@ -51,7 +56,7 @@ export const SPECIALS: Record<Special, SpecialInfo> = {
     added: 'Felled seams with two rows of topstitching, on the 1.5 cm allowance.',
     cut: 'Mark on the wrong side with chalk. Rigid denim only: stretch denim needs a pattern drafted for stretch.',
     need: 'A jeans needle 100/16, topstitch thread, a jeans button and rivets.',
-    sew: 'Topstitch at 3 to 3.5 mm. Tap thick seam crossings flat with a hammer before you sew over them.',
+    sew: 'Topstitch with a long stitch, 3 to 3.5 on the stitch length dial. Tap thick seam crossings flat with a hammer before you sew over them.',
   },
   leather: {
     label: 'Leather',
@@ -65,7 +70,7 @@ export const SPECIALS: Record<Special, SpecialInfo> = {
     press: 'No steam. Press on a low, dry setting through brown paper, or roll the seams flat with a seam roller.',
     added: '1 cm seams and a 3 cm hem, glued down. Darts are cut open and glued flat.',
     cut: 'Every pin and needle hole stays, so make a calico test first and fit that. Cut single layer from the right side of the hide, each piece once, then turn the pattern over for the other side. Hold the pattern down with weights, not pins.',
-    need: 'A leather needle 90/14, a non-stick or roller foot, clips instead of pins, leather glue and a 3.5 mm stitch.',
+    need: 'A leather needle 90/14, a non-stick or roller foot, clips instead of pins, leather glue and a long stitch, 3.5 on the stitch length dial.',
     sew: 'Do not backstitch: tie the threads off. Never unpick, the holes show.',
   },
   velvet: {
@@ -103,7 +108,7 @@ export const SPECIALS: Record<Special, SpecialInfo> = {
     prewash: 'Hand wash a small sample first, as for its fibre, and dry it flat.',
     press: 'Low heat, dry, through a press cloth.',
     added: 'French seams on the 1.5 cm allowance, and a 1 cm hem rolled narrow.',
-    cut: 'Lay it between sheets of tissue paper and cut through the paper too. Single layer, with fine pins in the seam allowance only. This takes the place of folding the fabric in the cutting step: where that step puts a piece on the fold, trace it out whole first and cut it once, and where it cuts a pair through both layers, cut it twice, turning the pattern over for the second.',
+    cut: `Cut it in a single layer, between sheets of tissue paper, cutting through the paper too. Use fine pins, in the seam allowance only. ${SINGLE_LAYER}`,
     need: 'A Microtex needle 60/8, fine thread, and a straight-stitch plate if you have one.',
     lining: 'A sheer needs a lining or an underlayer, unless you mean to wear it as a layer.',
   },
@@ -115,7 +120,7 @@ export const SPECIALS: Record<Special, SpecialInfo> = {
     nap: true,
     prewash: 'Hand wash a small sample first. If it keeps its sheen, hand wash the whole length cool and dry it flat; if not, keep it dry clean only.',
     press: 'Silk setting, dry, through a press cloth. Water drops can spot it.',
-    cut: 'Cut single layer on a cotton sheet, satin side down, every piece the same way up so the sheen matches. Pin inside the seam allowance only: pins leave marks.',
+    cut: `Cut it in a single layer, right side up, on a cotton sheet, which stops it sliding, with every piece the same way up so the sheen matches. Pin inside the seam allowance only: pins leave marks. ${SINGLE_LAYER}`,
     need: 'A Microtex needle 70/10 and fine thread. Test on a scrap first, since unpicking leaves holes.',
   },
   lace: {

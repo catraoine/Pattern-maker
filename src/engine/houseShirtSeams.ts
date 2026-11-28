@@ -6,7 +6,7 @@ import type { SewStep, SewingGuide } from './instructions';
 
 /** How a flat-felled seam is sewn, as a sentence on its own: `toward` is the piece the folded edge lies on. */
 const FELL = (seam: string, toward: string) =>
-  `Sew it as a flat-felled seam: sew with wrong sides together ${seam} from the edge, trim the allowance on the ${toward} side to 0.6 cm, fold the wider one over it, turn it under and press it flat onto the ${toward}, then edgestitch the fold 0.2 cm from its edge, so both raw edges are enclosed`;
+  `Sew it as a flat-felled seam: sew with wrong sides together ${seam} from the edge, trim the allowance on the ${toward} side to 0.6 cm, fold the wider one over it, turn it under and press it flat onto the ${toward}, then edge-stitch the fold 0.2 cm from its edge, so both raw edges are enclosed`;
 
 /** The sewing guide for the house shirt cut: flat-felled seams throughout, the sleeves set in flat. */
 export function withHouseShirtSeams(g: SewingGuide, seam: string): SewingGuide {
