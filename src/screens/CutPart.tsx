@@ -3,6 +3,7 @@ import { DropMenu } from '../ui/DropMenu';
 import { FABRIC_WIDTHS, type FabricWidth, Lay, layAmount, layWords } from '../engine/layplan';
 import { LayPlanView } from '../ui/LayPlanView';
 import { CLOTHS, seamFinish } from '../engine/couture';
+import { inCm } from '../units';
 import { FIBRES, Fibre, MyFabric, FabricStyle, adviceFor, checkFabric, clothFor, pickTag, printRepeat } from '../engine/fabrics';
 import { colourWords } from '../engine/houseColours';
 import { SPECIALS, Special, needsNap } from '../engine/specialFabrics';
@@ -175,8 +176,9 @@ export function CutPart({ made, title, garment, finish, onFinish, style, onEditF
               <>
                 <p className="eyebrow">Your fabric</p>
                 <ul>
+                  {/* In the sewist's words, as the steps are: "about 150 C" had no degree sign here (EM walk, Nov 28). */}
                   {guide.fabric.map((n) => (
-                    <li key={n}>{n}</li>
+                    <li key={n}>{inCm(n)}</li>
                   ))}
                 </ul>
               </>
@@ -185,7 +187,7 @@ export function CutPart({ made, title, garment, finish, onFinish, style, onEditF
             {guide.fabric?.length ? <p className="eyebrow">Notions</p> : null}
             <ul>
               {guide.notions.map((n) => (
-                <li key={n}>{n}</li>
+                <li key={n}>{inCm(n)}</li>
               ))}
             </ul>
           </div>
