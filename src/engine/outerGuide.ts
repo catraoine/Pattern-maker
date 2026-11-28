@@ -124,7 +124,9 @@ export function outerGuide(
       ? [
           {
             title: 'Make the welt pockets',
-            text: `Fold each welt in half lengthwise, right side out, and press. Lay it on the front below its box, raw edges up to the box's lower line, and stitch along that line from end to end. Lay a pocket facing, edge to the box's upper line, and stitch along it, stopping 0.5 cm short of each end. Cut through the front between the lines and into each corner in a small V, stopping just short of the stitching. Push the facing through, flip the welt up over the opening and press. Sew a pocket bag to the welt's seam allowance and another to the facing's, then sew the two bags together round their edges, catching the little triangles at the ends. Slip-stitch the welt's ends down by hand.`,
+            // The welt and facing are cut with 1 cm allowances and the box is 1.2 cm deep: their stitching lines go on the box's
+            // lines, raw edges inside the box (UX/UI's step diagrams and the Fit audit, Nov 27, findings row 162).
+            text: `Fold each welt in half lengthwise, right side out, and press. Lay it on the front below its box, raw edges toward the box, with its stitching line on the box's lower line, and stitch along that line from end to end. Lay a pocket facing above the box, raw edge toward it, with its stitching line on the box's upper line, and stitch along it, stopping 0.5 cm short of each end. Cut through the front between the lines and into each corner in a small V, stopping just short of the stitching. Push the facing through, flip the welt up over the opening and press. Sew a pocket bag to the welt's seam allowance and another to the facing's, then sew the two bags together round their edges, catching the little triangles at the ends. Slip-stitch the welt's ends down by hand.`,
           },
         ]
       : []),
@@ -140,7 +142,7 @@ export function outerGuide(
       ? [
           {
             title: 'Make the chest pocket',
-            text: `On the left front only. The box rises a little toward the side, as a chest pocket does: keep the welt on that slant. Fold the chest welt in half lengthwise, right side out, and press. Lay it below the box, raw edges up to the box's lower line, and stitch along that line. Lay the facing, edge to the upper line, and stitch along it, stopping 0.5 cm short of each end. Cut between the lines and into each corner, push the facing through, flip the welt up over the opening and press. Sew a bag to the welt's allowance and one to the facing's, sew the bags together, and slip-stitch the welt's ends down by hand.`,
+            text: `On the left front only. The box rises a little toward the side, as a chest pocket does: keep the welt on that slant. Fold the chest welt in half lengthwise, right side out, and press. Lay it below the box, raw edges toward the box, with its stitching line on the box's lower line, and stitch along that line. Lay the facing above the box, raw edge toward it, with its stitching line on the upper line, and stitch along it, stopping 0.5 cm short of each end. Cut between the lines and into each corner, push the facing through, flip the welt up over the opening and press. Sew a bag to the welt's allowance and one to the facing's, sew the bags together, and slip-stitch the welt's ends down by hand.`,
           },
         ]
       : []),
