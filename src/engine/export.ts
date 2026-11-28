@@ -1057,9 +1057,7 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
       ...footers.map((box) => ({ prim: { kind: 'text' as const, at: box.c, text: '', size: 0, rotate: 0, anchor: 'middle' as const }, box, rank: 0, minRank: 1, soft: true })),
     ];
     labs.push(...furniture);
-    // Nor onto a bullseye: the Ice Peplum's bust note, pushed up out of the page's footer, printed through its own mark
-    // (EL walk, Nov 27).
-    settle(labs, stitch, blockMarks);
+    settle(labs, stitch, marks);
     // A seam name left with no room is left off: the notches and the garment's own labels say it. One left across a
     // page's cut line stays (taped, it reads whole), and one on the grain arrow (better crossed than missing).
     for (const l of [...labs].reverse()) {

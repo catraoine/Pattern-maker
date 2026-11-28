@@ -30,8 +30,6 @@ function waistSeam(pc: Piece): number | undefined {
 
 /** How far in from the stitching line a seam's name reaches, in cm. */
 const EDGE_WORDS = 1;
-/** How far the words keep off the grain arrow's line, in cm. */
-const GRAIN_CLEAR = 0.9;
 
 /**
  * Where across the piece a mark at level y sits: the middle of the widest stretch that no dart, grain
@@ -49,9 +47,6 @@ function across(pc: Piece, y: number, band: [number, number]): { x: number; w: n
   for (let k = 0; k <= 6; k++) {
     const yy = y + band[0] + ((band[1] - band[0]) * k) / 6;
     for (const ln of lines) cuts.push(...crossings(ln.length === 2 ? [...ln, ...ln.slice().reverse()] : ln, yy));
-    // The grain arrow is drawn with its heads and its word beside it: the words keep a little way off its line, or a
-    // waist mark's words that fitted beside it by a hair printed over it (EL walk fix, Nov 27).
-    if (pc.grain) for (const x of crossings([...pc.grain, ...pc.grain.slice().reverse()], yy)) cuts.push(x - GRAIN_CLEAR, x + GRAIN_CLEAR);
     // The outline itself narrows or widens across the band.
     const e = crossings(pc.outline.points(), yy);
     if (e.length >= 2) cuts.push(e[0] + EDGE_WORDS, e[e.length - 1] - EDGE_WORDS);
@@ -126,14 +121,6 @@ export function withFinishedMarks(pieces: Piece[], spec: SpecRow[]): Piece[] {
       const ys = pc.outline.points().map((q) => q.y);
       const low = wy > (Math.min(...ys) + Math.max(...ys)) / 2;
       add(pc, low ? wy - 3 : wy + 3, 'WAIST', waist, low, low ? [0, -1.5, -3, -4.5] : [0, 1.5, 3, 4.5]);
-    } else {
-      // A top that runs on past the waist to a peplum seam is measured at the waist its draft marks, the words above:
-      // the booklet listed its waist ease with no mark on the paper to check it against (EL walk, Nov 27).
-      const level = (x: Piece) => x.draft?.points.find((d) => /^(Centre front|Side) waist\b/.test(d.note))?.at.y;
-      const at = [...(upper ? [upper] : []), ...fronts.filter((x) => x !== upper && !/peplum/i.test(x.name))].filter((x) => level(x) !== undefined);
-      // Only where the words fit whole, above the level or below it: squeezed in, they ran over the side front's grain
-      // arrow on a small body.
-      at.find((x) => add(x, level(x)!, 'WAIST', waist, true, [0, -1, -2, -3, -4], true) || add(x, level(x)!, 'WAIST', waist, false, [0, 1, 2, 3], true));
     }
   }
   const hip = row('Hip');
