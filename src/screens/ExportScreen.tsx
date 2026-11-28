@@ -17,9 +17,8 @@ import { FABRIC_WIDTHS, type FabricWidth, Lay, type LayFabric, fabricsOf, layAmo
 import { LayPlanView } from '../ui/LayPlanView';
 import type { Flat } from '../engine/flat';
 import { TechFlatView } from '../ui/TechFlatView';
-import { DIAGRAMS } from '../engine/diagrams';
 import { DiagramKey, StepDiagram } from '../ui/StepDiagram';
-import { stepFrames } from '../engine/stepFrames';
+import { guideDrawings, stepFrames } from '../engine/stepFrames';
 import { stepLines } from '../engine/stepLines';
 import { takeFabricReturn } from '../ui/printReturn';
 import { SewPicture } from '../ui/SewPicture';
@@ -211,6 +210,7 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
   const napFixed = needsNap(special) || printNap(print);
   const nap = finish.nap || napFixed;
   const guide = made?.guide;
+  const printKey = useMemo(() => (guide ? guideDrawings(guide.steps) : []), [guide]);
   const [sewing, setSewing] = useState(false);
   // Print's own picture for Sewing mode.
   // The first real sewing step, not the cutting layout again (clarity review A8, Nov 22: it repeated Cut it above).
@@ -899,6 +899,14 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
               ))}
             </ul>
             <p className="muted small">These steps are also in the instructions booklet.</p>
+            {/* One key for every drawing on the list, before the first of them: a key under each step came twice on one
+                laptop screen and only after the lines it explained (EL cold read, Nov 27). */}
+            {printKey.length > 0 && (
+              <>
+                <p className="eyebrow">Reading the drawings</p>
+                <DiagramKey dgs={printKey} />
+              </>
+            )}
           </div>
           <ol className="sewsteps">
             {guide.steps.map((st) => {
@@ -910,23 +918,15 @@ export function ExportScreen({ example, onSew, onMeasureMe, onEditMeasurements, 
                   <strong>{st.title}</strong>
                   <p>{inCm(st.text)}</p>
                   {frames.length > 0 ? (
-                    <>
-                      <ol className="sewframes-row" aria-label={`Drawings for ${st.title}`}>
-                        {frames.map((d, k) => (
-                          <li key={k}>
-                            <StepDiagram dg={d} />
-                          </li>
-                        ))}
-                      </ol>
-                      <DiagramKey dgs={frames} />
-                    </>
+                    <ol className="sewframes-row" aria-label={`Drawings for ${st.title}`}>
+                      {frames.map((d, k) => (
+                        <li key={k}>
+                          <StepDiagram dg={d} />
+                        </li>
+                      ))}
+                    </ol>
                   ) : (
-                    st.diagram && (
-                      <>
-                        <StepDiagram id={st.diagram} />
-                        <DiagramKey dgs={[DIAGRAMS[st.diagram]]} />
-                      </>
-                    )
+                    st.diagram && <StepDiagram id={st.diagram} />
                   )}
                 </li>
               );

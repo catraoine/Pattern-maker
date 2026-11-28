@@ -575,8 +575,10 @@ details.more[open] > summary h2::after {
 /* A line chalked from the pattern (a pocket box), and the small capitals naming the pattern's marks on a close-up. */
 .stepdg .dg-chalk {
   stroke: var(--ink);
-  stroke-width: 0.18;
-  stroke-dasharray: 0.35 0.45;
+  /* Round dots, not short dashes: as dashes they read as more machine stitching (EL cold read, Nov 27). */
+  stroke-width: 0.32;
+  stroke-dasharray: 0 0.6;
+  stroke-linecap: round;
 }
 .stepdg .dg-note {
   font-family: var(--mono);

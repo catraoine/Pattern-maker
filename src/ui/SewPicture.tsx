@@ -157,7 +157,9 @@ export function SewPicture({ picture, pieces, lays, flat, label, still }: { pict
   // The thick line only where something is sewn: interfacing, pressing and marking steps draw none.
   const sewn = picture.darts ? shown.some((pc) => pc.lines.some(isDart)) : false;
   const stitched = sewn || shown.some((pc, k) => picture.around?.includes(picture.pieces[k]) || runs(pc, picture.edgesOn?.[picture.pieces[k]] ?? picture.edges).length > 0);
-  const key = still ? [] : [...(stitched ? ['Thick line: sew this edge'] : []), ...(shown.some((pc) => pc.fold) ? ['Dashed line: the fold'] : [])];
+  // Worded for what the step does there (baste, ease or sew) and for the stitches drawn beside the line, and the fold as
+  // an edge, so it can't be read against the close-ups' 'black dashes: machine stitching' (EL cold read, Nov 27).
+  const key = still ? [] : [...(stitched ? ['Thick line and stitches: where this step sews'] : []), ...(shown.some((pc) => pc.fold) ? ['Dashed edge: cut on the fold'] : [])];
   const pic = (
     <svg viewBox={`0 0 ${W} ${H}`} className={cls} role="img" aria-label={label ?? 'The pieces for this step'}>
       {placed.map((a, k) => {

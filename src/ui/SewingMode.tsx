@@ -137,8 +137,7 @@ export function SewingMode({ steps, pieces, lays, flat, title, keep, inCm, from,
           {frames ? (
             <div className="sewpic sewpic-diagram sewframe">
               <StepDiagram dg={frames[now]} />
-              {/* The key for the whole step, so it keeps one height and the drawing doesn't change size as you tick. */}
-              <DiagramKey dgs={frames} />
+              <DiagramKey dgs={frames} now={frames[now]} />
             </div>
           ) : (
             <SewPicture picture={pictures[at]} pieces={pieces} lays={lays} flat={flat} label={step.title} />

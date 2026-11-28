@@ -3,6 +3,7 @@
 import {
   PDFDocument,
   PDFFont,
+  LineCapStyle,
   PDFPage,
   clip,
   concatTransformationMatrix,
@@ -21,7 +22,7 @@ import { inCm, inInches } from '../units';
 import { type Lay, hideSqFt, layWords } from './layplan';
 import type { Flat } from './flat';
 import { DIAGRAMS, type Diagram, DiagramId, keyFor } from './diagrams';
-import { stepFrames } from './stepFrames';
+import { guideDrawings, stepFrames } from './stepFrames';
 import { stepLines } from './stepLines';
 import { P } from './geometry';
 import { CODE_CARD_BOTTOM, Face, OVERLAP, PAGE_MARGIN, Paper, type Prim, STYLES, Sheet, joinMarks, pageName, pageSize, textCorners, tileGrid, usedTiles } from './export';
@@ -1079,7 +1080,12 @@ function addSewingPages(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', 
   label('YOU WILL NEED');
   guide.notions.forEach((n) => write(`-  ${n}`, 10, fonts.body, 0, 1));
   st.y -= 14;
+  // One key for every drawing below, before the first of them, as on Print's list (EL cold read, Nov 27). The heading,
+  // the key and the first step's heading and a row of drawings go over to a new page together.
+  const drawings = guideDrawings(guide.steps);
+  room(30 + keyLines(drawings).length * 10 + 10 + 11 * 1.35 + 24 * 5.3 + 14);
   label('STEPS');
+  drawKey(drawings);
   guide.steps.forEach((s, i) => {
     // A step's heading was left alone at the foot of a page (pretend-tester walk, Nov 17): its words, which never split,
     // had gone over to the next. The heading goes over with them.
@@ -1102,11 +1108,10 @@ function addSewingPages(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', 
     for (let r = 0; r < frames.length; r += across) {
       const row = frames.slice(r, r + across);
       const tall = Math.max(...row.map((d) => d.h)) * k;
-      // The last row keeps its key with it on the page.
       // A row that goes over to a new page takes its step's name with it: the Ice Peplum's page 9 opened on step 8's
       // drawings under no heading, read as step 9's (pretend tester EK walk, Nov 27).
       const was = st.page;
-      room(tall + 14 + (r + across >= frames.length ? keyLines(frames).length * 10 + 10 : 0));
+      room(tall + 14);
       if (st.page !== was) write(`${heading} (continued)`, 11, fonts.bodyMedium, 0, 6);
       row.forEach((d, j) => {
         const x = 2 * CM + 18 + j * (42 * k + gap);
@@ -1114,7 +1119,6 @@ function addSewingPages(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', 
       });
       st.y -= tall + 12;
     }
-    drawKey(frames);
   }
 
   /** One drawing with its top left corner at (x, y), `k` points to a unit, its small capitals in the label face. */
@@ -1122,15 +1126,17 @@ function addSewingPages(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', 
     for (const pt of dg.parts) {
       const d = pt.pts.map((q, j) => `${j ? 'L' : 'M'}${(q.x * k).toFixed(2)} ${(q.y * k).toFixed(2)}`).join(' ') + (pt.closed ? ' Z' : '');
       const fill = pt.kind === 'cloth' ? rgb(0.95, 0.95, 0.95) : pt.kind === 'fold' ? rgb(0.86, 0.86, 0.86) : undefined;
-      const dash = pt.kind === 'machine' ? [2, 1.2] : pt.kind === 'thread' ? [6, 3] : pt.kind === 'under' ? [1.5, 1.5] : pt.kind === 'chalk' ? [1, 1.4] : undefined;
+      const dash = pt.kind === 'machine' ? [2, 1.2] : pt.kind === 'thread' ? [6, 3] : pt.kind === 'under' ? [1.5, 1.5] : pt.kind === 'chalk' ? [0, 1.8] : undefined;
       const grey = pt.kind === 'under' ? 0.55 : 0;
       st.page.drawSvgPath(d, {
         x,
         y,
         color: pt.closed ? fill : undefined,
         borderColor: rgb(grey, grey, grey),
-        borderWidth: pt.kind === 'hand' || pt.kind === 'thread' ? 0.9 : pt.kind === 'cloth' || pt.kind === 'fold' ? 0.6 : pt.kind === 'chalk' ? 0.5 : 0.7,
+        borderWidth: pt.kind === 'hand' || pt.kind === 'thread' ? 0.9 : pt.kind === 'cloth' || pt.kind === 'fold' ? 0.6 : pt.kind === 'chalk' ? 0.9 : 0.7,
         borderDashArray: dash,
+        // Chalk as round dots: a zero-length dash with a round end.
+        borderLineCap: pt.kind === 'chalk' ? LineCapStyle.Round : undefined,
       });
     }
     for (const n of dg.notes ?? []) {
@@ -1145,14 +1151,13 @@ function addSewingPages(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', 
   function drawDiagram(id: DiagramId) {
     const dg = DIAGRAMS[id];
     const k = 3.2; // points per unit: 40 units is about 4.5 cm
-    room(dg.h * k + 10 + keyLines([dg]).length * 10);
+    room(dg.h * k + 10);
     drawDiagramAt(dg, 2 * CM + 18, st.y, k);
     st.y -= dg.h * k + 12;
-    drawKey([dg]);
   }
 
-  /** What the dashed, grey and shaded lines under a drawing mean, as on screen (cold read, Nov 27), as many to a line as
-   *  fit. */
+  /** What the dashed, grey, dotted and shaded lines in the drawings mean, as on screen (cold read, Nov 27), as many to a
+   *  line as fit. */
   function keyLines(dgs: Diagram[]): string[][] {
     const lineW = (t: string) => fonts.label.widthOfTextAtSize(t, 7) + 0.1 * 7 * (t.length - 1);
     const lines: string[][] = [];
@@ -1164,8 +1169,8 @@ function addSewingPages(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', 
     return lines;
   }
 
-  /** The key under the drawings, each line's baseline on st.y as the words are written, and a step's gap after so the
-   *  next heading clears it. */
+  /** The key for the drawings, each line's baseline on st.y as the words are written, and a step's gap after so the
+   *  first heading clears it. */
   function drawKey(dgs: Diagram[]) {
     const lines = keyLines(dgs);
     for (const ln of lines) {
