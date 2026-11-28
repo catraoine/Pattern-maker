@@ -1121,7 +1121,9 @@ export default function App() {
                     ? // Closed partway through a piece's own measurements: the landing page carries on with it, as Begin
                       // only led to a list of the first five, without the piece's ones already given (EJ walk, Nov 27).
                       {
-                        garment: vestOf(partwayPiece, saved) ? 'vest' : GARMENT_NAME[partwayPiece],
+                        // A look picked from the collection is called by its name here too, as once it's measured
+                        // ("Carry on with your top" for the Ice Peplum, EL walk, Nov 27).
+                        garment: (partwayPiece === garment && lookName) || (vestOf(partwayPiece, saved) ? 'vest' : GARMENT_NAME[partwayPiece]),
                         onResume: () => openSteps({ kind: 'resume' }),
                         onSaved: () => setStep('account'),
                         onNew: startNew,
