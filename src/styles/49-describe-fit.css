@@ -1,0 +1,36 @@
+/* The fitting page's "Describe it in your own words" box (Cat, Nov 28): the words, then what it found, as one block
+   above the list of problems, ruled like the list's own rows. */
+.describe-fit {
+  display: grid;
+  gap: 10px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+.describe-fit p {
+  margin: 0;
+}
+.describe-fit label .testing-tag {
+  margin-left: 8px;
+  vertical-align: middle;
+}
+.describe-fit > button.secondary {
+  justify-self: start;
+}
+.describe-fit-found {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--ink);
+}
+.describe-fit-found .check strong {
+  font-weight: var(--w-strong);
+}
+.describe-fit-found .check .muted {
+  text-transform: none;
+  letter-spacing: normal;
+}
+@media (max-width: 480px) {
+  .describe-fit > button.secondary {
+    justify-self: stretch;
+  }
+}

@@ -1678,6 +1678,7 @@ export default function App() {
               own={ownFitting}
               carried={carried.from}
               draftWith={draftWith}
+              testerCode={account.testerCode}
               hasBustDart={isLowerBody(garment) || isOuterGarment || (garment === 'dress' ? dress.bodice : saved.bodice).darts !== 'none'}
               onSave={(f, shown) => {
                 const next = saveVersion(ownFitting, f, new Date().toISOString().slice(0, 10), shown);

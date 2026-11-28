@@ -123,12 +123,13 @@ export const PRIVACY: LegalDoc = {
       body: [
         'How a photo is read.|When you choose a photo, the app shrinks it on your device and sends it to our server. Our server passes it to Claude, an AI model made by Anthropic, which describes the garment’s style (fit, shape, length, fullness, neckline, sleeves and details). We send back the style and the photo is discarded. If you ask the app to check its drawing against your photo, the photo and the app’s drawing are sent once more, in the same way. We don’t store your photo, and we never send your measurements or name with it.',
         'Describing an idea in words.|If you type what you’d like to make instead of choosing a photo, the words you type are sent to our server and on to Claude in the same way, and aren’t stored. Please don’t put your name or anyone else’s in them.',
+        'Describing your toile in words.|If you type what you see when you try on your toile, the words you type and which garment it is are sent to our server and on to Claude in the same way, so it can pick the matching problems from the fitting list. They aren’t stored, and we never send your measurements or name with them.',
         'Please only use photos you have the right to use. If a person appears in the photo, make sure they’re happy for it to be used this way. A garment laid flat works too.',
         'Daily photo limits.|Each visitor gets a set number of photo readings a day. To count them we turn your IP address into a scrambled code (a one-way hash) and keep a tally for that day. We don’t store the address itself.',
         {
           table: [
             ['Company', 'What it does', 'What it sees'],
-            ['Anthropic', 'Reads the style from your photo, or from the words you type to describe an idea', 'The photo (and, for a drawing check, the app’s drawing), or your typed description'],
+            ['Anthropic', 'Reads the style from your photo, or from the words you type to describe an idea, and picks the fitting problems that match the words you type about your toile', 'The photo (and, for a drawing check, the app’s drawing), or your typed description'],
             [
               'Netlify',
               'Hosts the site and runs our server code, including the daily counters, and stores fit notes, Help & feedback notes, crash reports, daily visit totals and sign-ups',
