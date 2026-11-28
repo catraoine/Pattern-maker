@@ -1085,7 +1085,7 @@ function addSewingPages(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', 
     // had gone over to the next. The heading goes over with them.
     // A step with close-ups keeps its words and their first row of drawings on one page.
     const frames = stepFrames(s.title, stepLines(s.text));
-    room(11 * 1.35 + 2 + wrap(s.text, 10, fonts.body).length * 10 * 1.35 + (frames.length ? 24 * 5.3 + 14 + keyLines(frames.slice(0, 2)).length * 10 + 10 : 0));
+    room(11 * 1.35 + 2 + wrap(s.text, 10, fonts.body).length * 10 * 1.35 + (frames.length ? 24 * 5.3 + 14 : 0));
     write(`${i + 1}. ${s.title}`, 11, fonts.bodyMedium, 0, 2);
     write(s.text, 10, fonts.body, 18, 8);
     // The close-ups take the place of the step's one small drawing.
@@ -1099,31 +1099,22 @@ function addSewingPages(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', 
     const k = 5.3;
     const gap = 10;
     const across = 2;
-    // The drawings on this page so far: each page keys its own, as the trousers' and the skirt's first page of
-    // drawings went without a key, theirs printed only after the last row, on the page after (EL walk, Nov 27).
-    let here: Diagram[] = [];
-    const keyRoom = (dgs: Diagram[]) => (keyLines(dgs).length ? keyLines(dgs).length * 10 + 10 : 0);
     for (let r = 0; r < frames.length; r += across) {
       const row = frames.slice(r, r + across);
       const tall = Math.max(...row.map((d) => d.h)) * k;
-      // Each row keeps room for the key under it, so a page's key always fits on it.
+      // The last row keeps its key with it on the page.
       // A row that goes over to a new page takes its step's name with it: the Ice Peplum's page 9 opened on step 8's
       // drawings under no heading, read as step 9's (pretend tester EK walk, Nov 27).
-      if (here.length && st.y - (tall + 14 + keyRoom([...here, ...row])) < 2 * CM) {
-        drawKey(here);
-        here = [];
-      }
       const was = st.page;
-      room(tall + 14 + keyRoom(row));
+      room(tall + 14 + (r + across >= frames.length ? keyLines(frames).length * 10 + 10 : 0));
       if (st.page !== was) write(`${heading} (continued)`, 11, fonts.bodyMedium, 0, 6);
       row.forEach((d, j) => {
         const x = 2 * CM + 18 + j * (42 * k + gap);
         drawDiagramAt(d, x, st.y, k);
       });
-      here.push(...row);
       st.y -= tall + 12;
     }
-    drawKey(here);
+    drawKey(frames);
   }
 
   /** One drawing with its top left corner at (x, y), `k` points to a unit, its small capitals in the label face. */

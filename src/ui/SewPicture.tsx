@@ -167,12 +167,12 @@ export function SewPicture({ picture, pieces, lays, flat, label, still }: { pict
   const key = still
     ? []
     : [
-        ...(stitched ? [picture.neaten ? 'Thick line: neaten this edge' : 'Thick line: sew this edge'] : []),
+        ...(stitched ? [picture.neaten ? 'Thick line and stitches: where this step neatens' : 'Thick line and stitches: where this step sews'] : []),
         ...(has('fold') ? ['Solid line: fold here'] : []),
-        ...(has('place') ? ['Dotted line: bring the fold to here'] : []),
-        ...(has('stitch') ? ['Thick line: stitch down'] : []),
+        ...(has('place') ? ['Fine dots: bring the fold to here'] : []),
+        ...(has('stitch') ? ['Thick line and stitches: stitch down here'] : []),
         ...(has('press') ? ['Solid line: press the crease here'] : []),
-        ...(shown.some((pc) => pc.fold) ? ['Dashed line: the fold'] : []),
+        ...(shown.some((pc) => pc.fold) ? ['Dashed edge: cut on the fold'] : []),
       ];
   const pic = (
     <svg viewBox={`0 0 ${W} ${H}`} className={cls} role="img" aria-label={label ?? 'The pieces for this step'}>

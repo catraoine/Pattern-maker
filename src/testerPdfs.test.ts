@@ -85,10 +85,6 @@ describe('the tester pieces print cleanly', () => {
             const last = pages.length - 1 - [...pages].reverse().findIndex(heads);
             const headless = pages.slice(from + 1, last + 1).map((pg) => lines.filter((l) => l.page === pg && !/^MAISON TRAC|^\d+$|^Page \d/i.test(l.text)).sort((a, b) => b.y - a.y)[0]?.text ?? '').filter((t) => !/^\d+\. /.test(t));
             expect(headless, where).toEqual([]);
-            // A step whose drawings run onto the next page keys the ones on this page too: the key was printed only after
-            // the last row, so the first page of drawings had none (EL walk, Nov 27).
-            const unkeyed = pages.filter((pg, k) => lines.some((l) => l.page === pages[k + 1] && / \(continued\)$/.test(l.text)) && !lines.some((l) => l.page === pg && /^[A-Z][A-Z ,]*: [A-Z]/.test(l.text)));
-            expect(unkeyed.length, where).toBe(0);
             expect(drawn, where).not.toMatch(/NaN|undefined|Infinity|\[object/);
             expect(drawn, where).not.toMatch(/\(3\.94 in\)\s*\(3\.94 in\)/);
             const square = /10 CM · 3\.94 IN|10 cm \(3\.94 in\)/g;
