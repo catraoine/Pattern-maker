@@ -701,7 +701,8 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
         // and the link sits in the sentence: "so your top also takes your armhole" read as nonsense, gave no numbers, and
         // its link on a line of its own pushed Finish later under a 360 phone's edge (cold read EJ, Nov 27).
         <p className="extra-intro">
-          Your high bust ({fmtMeasure('high_bust', values.high_bust!, unit)}) is {values.high_bust! > values.full_bust! ? 'more than' : 'the same as'} your bust ({fmtMeasure('full_bust', values.full_bust!, unit)}), so this {named(g as Garment)} needs your {page.added.map((m) => labelOf(m, form).toLowerCase()).join(' and ')} too, to fit across your upper body.{' '}
+          {/* The fit first and the numbers after, so it reads as help, not a telling-off (cold read EK, Nov 27). */}
+          To fit your shoulders well, this {named(g as Garment)} also uses your {page.added.map((m) => labelOf(m, form).toLowerCase()).join(' and ')}, as your high bust ({fmtMeasure('high_bust', values.high_bust!, unit)}) is {values.high_bust! > values.full_bust! ? 'more than' : 'the same as'} your bust ({fmtMeasure('full_bust', values.full_bust!, unit)}).{' '}
           <button type="button" className="link inline-link" onClick={changeHighBust}>
             Change your high bust
           </button>
