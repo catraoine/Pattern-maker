@@ -82,7 +82,7 @@ function StyleIntro({ name, onStart }: { name: string; onStart: () => void }) {
   return (
     <div className="style-intro">
       <h1 className="review-title">
-        <span className="eyebrow">Style · your {name}</span>
+        <span className="eyebrow">Style your {name}</span>
         How styling works
       </h1>
       <p className="style-intro-lead">The next screens take you through styling your {name}, one choice at a time.</p>
@@ -825,7 +825,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           .slice(0, 2)
           .map((el) => pickIn(el.querySelector<HTMLElement>('.fold-body') ?? el))
           .filter(Boolean)
-          .join(' · '),
+          .join(', '),
       ]),
     );
     if (JSON.stringify(picks) !== JSON.stringify(stepPicks)) setStepPicks(picks);
@@ -964,7 +964,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
         <div className="review-left">
         {/* A collection look is named for itself, so a tester sees the piece they were asked to sew (Cat, Nov 14). */}
         <h1 className="review-title">
-          <span className="eyebrow">{look ? 'Your look' : `Review · ${label}`}</span>
+          <span className="eyebrow">{look ? 'Your look' : `Review your ${label}`}</span>
           {look ?? Name}
         </h1>
         {/* A look that can't be drafted to these measurements showed only its title and a greyed Print, and the reason was

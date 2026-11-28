@@ -774,10 +774,10 @@ function PointEditor({ base, edits: saved, setEdits: save, undo }: PointEditing 
             </button>
           )}
           <button type="button" className="ghost" onClick={() => choose('spread')}>
-            Spread it open · flare
+            Spread it open (flare)
           </button>
           <button type="button" className="ghost" onClick={() => choose('fullness')}>
-            Add fullness · gathers or pleats
+            Add fullness (gathers or pleats)
           </button>
           <button type="button" className="ghost" onClick={() => choose('piece')}>
             Make a new piece

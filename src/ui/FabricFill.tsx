@@ -1,7 +1,7 @@
 // The style sketch drawn in the maker's fabric. The fabric lies flat and on the grain: corduroy ribs,
 // velvet pile and satin sheen run down the garment, and a waistband, cut lengthwise, has them running
 // along it. The tiles are drawn by scripts/fabric-textures.py.
-import { CSSProperties, ReactNode, useContext, useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
+import { CSSProperties, ReactNode, useContext, useEffect, useId, useRef, useState, useSyncExternalStore, useTransition } from 'react';
 import type { Finish } from '../savedWork';
 import { FIBRES, FIBRE_IDS, FabricGarment, MyFabric, clothFor, printRepeat } from '../engine/fabrics';
 import { PRINTS, printImage, printOf, printTileCm } from '../engine/prints';
@@ -21,10 +21,17 @@ import { fabricPhotoUrl, isHousePhoto, photoTurn, saveFabricPhoto, useFabricPhot
 
 /** One tile, in the sketch's own centimetres: larger than life, so ribs and twill read on a phone. */
 const TILE = 16;
+/** A lace's tile, the same size as its net-and-motif mask (ClothLook), so the two line up. */
+const LACE_TILE = 32;
 
 const SPECIAL_IDS = Object.keys(SPECIALS) as Special[];
 
 export const tileUrl = (id: string) => `${import.meta.env.BASE_URL}fabrics/flat/${id}.jpg`;
+
+/** The see-through cloths' cards are drawn over a dark and a light ground, so what is behind shows through them: a
+ *  close-up of the cloth alone read as flat pink for Sheer and as wallpaper for Lace (Cat, Nov 28). */
+const SEE_THROUGH = ['sheer', 'lace'];
+const CARD_ART: Partial<Record<string, string>> = { sheer: `${import.meta.env.BASE_URL}fabrics/card/sheer.svg`, lace: `${import.meta.env.BASE_URL}fabrics/card/lace.jpg` };
 
 /** The fabric the sketch shows: a shop fabric's own swatch, else a special cloth or a knit over the fibre it is made of. */
 export const flatId = (f: MyFabric | undefined): string | undefined => shopFabric(f?.shop)?.tile ?? f?.special ?? f?.knit ?? f?.fibre;
@@ -106,8 +113,8 @@ export function pickShopColour(finish: Finish, id: string, colour: string): Fini
   return withFabric(finish, { ...withShopFabric(finish.fabric ?? {}, f), colour });
 }
 
-/** Each cloth swatch's average lightness, 0 to 1, as greyed (public/fabrics/flat, measured Nov 14). */
-const SWATCH_LIGHT: Record<string, number> = { blend: 0.55, corduroy: 0.45, cotton: 0.7, default: 0.52, denim: 0.3, interlock: 0.8, jersey: 0.65, lace: 0.58, leather: 0.33, linen: 0.69, modal: 0.37, polyester: 0.34, ponte: 0.23, rib: 0.4, satin: 0.53, sequins: 0.69, sheer: 0.83, silk: 0.73, slub: 0.71, terry: 0.53, velvet: 0.29, viscose: 0.44, waffle: 0.79, wool: 0.42 };
+/** Each cloth swatch's average lightness, 0 to 1, as greyed (public/fabrics/flat, measured Nov 14; lace and sheer redrawn Nov 28). */
+const SWATCH_LIGHT: Record<string, number> = { blend: 0.55, corduroy: 0.45, cotton: 0.7, default: 0.52, denim: 0.3, interlock: 0.8, jersey: 0.65, lace: 0.57, leather: 0.33, linen: 0.69, modal: 0.37, polyester: 0.34, ponte: 0.23, rib: 0.4, satin: 0.53, sequins: 0.69, sheer: 0.91, silk: 0.73, slub: 0.71, terry: 0.53, velvet: 0.29, viscose: 0.44, waffle: 0.79, wool: 0.42 };
 /** How many lightness steps the tint table holds. */
 const TINT_STEPS = 11;
 
@@ -249,7 +256,8 @@ export function fabricPaint(fabric: MyFabric | undefined, base: string): FabricP
   const table = bodyKind ? (hex ? printTable(tone, ground) : undefined) : hex ? tintTable(hex, id, id === 'satin' ? 0.5 : 1) : undefined;
   const repeat = printRepeat(fabric);
   const stripes = !!fabric?.checks?.stripes;
-  const size = drawn ? printTileCm('checks', repeat, stripes) / 3 : bodyKind ? printTileCm(bodyKind, repeat, stripes) : TILE;
+  // A lace's flowers are drawn at twice the other cloths' scale: at 16 cm they came out as small dots (Nov 28).
+  const size = drawn ? printTileCm('checks', repeat, stripes) / 3 : bodyKind ? printTileCm(bodyKind, repeat, stripes) : id === 'lace' ? LACE_TILE : TILE;
   // Under a border print the cloth is the print's own ivory ground, unless a colour is chosen for it.
   const href = drawn ? undefined : bodyKind ? printImage(bodyKind, base, stripes) : id && (kind !== 'border' || hex) ? tileUrl(id) : undefined;
   return { href, table, size, drawn: drawn ? (stripes ? 'stripes' : 'checks') : undefined, tone, ground, half: mix(tone, ground, 0.5), plain: hex ?? IVORY, look };
@@ -385,6 +393,14 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
   // (denim sits under Cotton and under Denim), else the picked shop fabric's own fibre, else the plain type picked.
   const shop = shopFabric(fabric?.shop);
   const [tapped, setTapped] = useState<string>();
+  // Moving between fabric types lagged (Cat, Nov 28): every drawing on the screen redrew in the new cloth before the
+  // tapped card showed as picked, so the tap felt half a second late. The pick is shown at once and the redraw runs as
+  // a transition behind it; `picking` holds the card tapped (null for none) until the redraw is in.
+  const [picking, setPicking] = useState<string | null>();
+  const [redrawing, startPick] = useTransition();
+  useEffect(() => {
+    if (!redrawing) setPicking(undefined);
+  }, [redrawing]);
   const under = (f: ShopFabric, id: string | undefined) => !!id && (f.fibre === id || f.special === id);
   const type = shop ? (under(shop, tapped) ? tapped : shop.fibre) : chosen;
   const typeLabel = ids.find((s) => s.id === type)?.label;
@@ -404,6 +420,8 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
   const colours = coloursFor(fabric);
   const picked = isHex(fabric?.colour) ? fabric!.colour!.trim().toUpperCase() : undefined;
   const houseName = picked && colourWords(picked);
+  // A shop fabric's name often says its colour already ("Gold Metallic French Plain Lace"), so it isn't said again.
+  const named = !!colour && !!label && label.toLowerCase().includes(colour.toLowerCase());
   const [anyOpen, setAnyOpen] = useState(!!picked);
   // A photo of the maker's own fabric carries its own colour, so no colours are offered under it.
   const photoOn = !!fabric?.photo;
@@ -417,7 +435,10 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
             <em>{label}</em>
             {/* A house colour is stored as its code, and "Sheer · #9CC3E6" read as computer talk (cold read, Nov 22), so
                 it shows its name. A colour picked by its code in Any colour keeps the code, which is what was typed. */}
-            {colour && <span className="muted"> · {houseName ?? (picked ? <span className="hexname">{picked}</span> : colour)}</span>}
+            {colour && !named && <span className="muted">, {houseName ?? (picked ? <span className="hexname">{picked}</span> : colour)}</span>}
+            {/* Lace is In testing until its drawing is proven (src/launch.ts). Its tag sits here, by the name: squeezed onto
+                the narrow Lace card it spilled past the card's edge as a stray box (Cat, Nov 28). */}
+            {chosen === 'lace' && !photoOn && <TestingTag tool="lace" />}
           </>
         ) : (
           <span className="muted">See it in your fabric</span>
@@ -439,7 +460,7 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
         </button>
         <PhotoSwatch finish={finish} onFinish={onFinish} />
         {ids.map((s) => {
-          const on = type === s.id;
+          const on = picking !== undefined ? picking === s.id : type === s.id;
           return (
             <button
               key={s.id}
@@ -453,12 +474,13 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
                 // With a shop fabric picked, tapping a type it sits under just lists that type's fabrics.
                 if (shop && under(shop, s.id)) return setTapped(s.id);
                 setTapped(s.id);
-                onFinish(pickFabric(finish, s.id));
+                // The card shows picked at once; the drawings catch up after (startPick), so the tap never waits on them.
+                setPicking(chosen === s.id && !shop ? null : s.id);
+                startPick(() => onFinish(pickFabric(finish, s.id)));
               }}
             >
-              <span className="card-tex" style={{ backgroundImage: `url(${tileUrl(s.id)})` }} aria-hidden="true" />
+              <span className={CARD_ART[s.id] ? 'card-tex art' : 'card-tex'} style={{ backgroundImage: `url(${CARD_ART[s.id] ?? tileUrl(s.id)})` }} aria-hidden="true" />
               <span className="card-name" aria-hidden="true">{s.label}</span>
-              {s.id === 'lace' && <TestingTag tool="lace" />}
             </button>
           );
         })}
@@ -466,7 +488,8 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
       {allToBuy.length > 0 && typeLabel && (
         <div className="shopwrap">
           <p className="shopwrap-q">
-            {typeLabel} you can buy <span className="muted">· {allToBuy.length.toLocaleString('en-US')}</span>
+            {/* Just "Shop lace": the count beside it was noise (Cat, Nov 28). */}
+            Shop {typeLabel.toLowerCase()}
           </p>
           {allToBuy.length > SHOP_PAGE && (
             <input
@@ -492,9 +515,9 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
                 <span className={f.img ? 'shopfab-tile photo' : 'shopfab-tile'} style={{ backgroundImage: shopTile(f) }} aria-hidden="true" />
                 <span className="shopfab-text">
                   <b>{shopCardName(f)}</b>
-                  <span>
-                    {f.shop} · {f.price ? `$${f.price}/${f.yards ? 'yd' : 'm'}` : 'price at the shop'}
-                  </span>
+                  {/* The shop and its price each on their own line, not run together with a dot (Cat, Nov 28: dots read as AI). */}
+                  <span>{f.shop}</span>
+                  <span>{f.price ? `$${f.price}/${f.yards ? 'yd' : 'm'}` : 'Price at the shop'}</span>
                 </span>
               </button>
             ))}
@@ -516,7 +539,7 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
       )}
       {photoOn && <PhotoSize finish={finish} onFinish={onFinish} named={!!chosen} />}
       {chosen && !photoOn && (
-        <div className="colourdots" role="radiogroup" aria-label="Colour">
+        <div className={SEE_THROUGH.includes(chosen) ? `colourdots see-${chosen}` : 'colourdots'} role="radiogroup" aria-label="Colour">
           {colours.map((c) => {
             const on = colour?.toLowerCase() === c.name.toLowerCase();
             return (
@@ -531,7 +554,8 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
                 onClick={() => onFinish(pickColour(finish, c.name))}
               >
                 {/* The chosen fabric's weave over the colour, so each card reads as that cloth dyed. */}
-                <span className="card-tex" style={{ backgroundColor: c.hex, '--tex': `url(${tileUrl(chosen)})` } as CSSProperties} aria-hidden="true" />
+                {/* A sheer or lace colour card shows the colour over a dark and a light ground, as its type card does. */}
+                <span className="card-tex" style={SEE_THROUGH.includes(chosen) ? ({ '--c': c.hex, '--net': `url(${import.meta.env.BASE_URL}fabrics/flat/lace-net.png)` } as CSSProperties) : ({ backgroundColor: c.hex, '--tex': `url(${tileUrl(chosen)})` } as CSSProperties)} aria-hidden="true" />
                 <span className="card-name" aria-hidden="true">{c.name}</span>
               </button>
             );
@@ -671,18 +695,18 @@ function BuyStrip({ shop, colour, metres, garment }: { shop: ShopFabric; colour?
       <p className="buystrip-name">{shop.name}</p>
       <p className="small">
         {shop.shop}
-        {colour && !isHex(colour) ? ` · ${colour}` : ''}
+        {colour && !isHex(colour) ? `, ${colour}` : ''}
       </p>
       {amount && (
         <p className="small">
           {amount.qty} {amount.unit} for your {word}
           {cost ? (
             <>
-              {' · '}
+              {', '}
               <b>about ${cost}</b>
             </>
           ) : (
-            ' · price at the shop'
+            ', price at the shop'
           )}
         </p>
       )}
@@ -764,7 +788,7 @@ function ColourBars({ finish, onFinish, garment, type, onShop }: { finish: Finis
               <span className="colourmatch-text">
                 {/* A catalogue fabric's own name already says its colour ("Rust Handkerchief Linen"); its tagged colour is broader. */}
                 <b>{m.fabric.img ? shopCardName(m.fabric) : m.colour.name}</b>
-                <span className="muted small">{m.fabric.img ? m.fabric.shop : `${m.fabric.name} · ${m.fabric.shop}`}</span>
+                <span className="muted small">{m.fabric.img ? m.fabric.shop : `${m.fabric.name}, ${m.fabric.shop}`}</span>
               </span>
               <span className={`colourmatch-tag ${m.closeness}`}>{CLOSENESS[m.closeness]}</span>
             </button>

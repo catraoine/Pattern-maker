@@ -644,25 +644,97 @@
   white-space: normal;
 }
 
-/* "In testing" on a fabric card (Cat, Nov 11 sweep: under Lace it took the option chip's box and padding, spilled out
-   of it on a computer and pushed the next card out of line). A small tag on the card's own picture instead, so every
-   card stays the same size. */
+/* "In testing" for Lace sits by the fabric's name above the cards. On the Lace card itself it spilled past the card's
+   edge, a stray box with a "G" in it (Cat, Nov 28). */
 .swatch-row .swatch {
   position: relative;
 }
-.swatch-row .swatch .testing-tag.chip {
-  position: absolute;
-  top: 4px;
-  left: 4px;
-  margin: 0;
-  min-height: 0;
-  padding: 2px 4px;
-  border: 0;
-  border-radius: 0;
-  background: rgba(13, 12, 10, 0.78);
-  color: var(--ink);
-  font-size: 8px;
-  line-height: 1.2;
-  white-space: nowrap;
-  pointer-events: none;
+.fabric-now .testing-tag {
+  margin: 0 0 0 10px;
+  vertical-align: 3px;
+}
+
+/* Sheer and Lace (Cat, Nov 28: "need to look like sheer and lace"). Their type cards are pictures of the cloth over a
+   dark and a light ground (public/fabrics/card), drawn to fill the card rather than tiled. Their colour cards show the
+   colour the same way: a sheer is the colour laid thin over the form's charcoal and the chalk, with a fold where it
+   lies double; a lace is the colour cut to the lace's motifs and net (the drawings' own lace mask) over black. */
+.swatch-row .swatch .card-tex.art {
+  background-size: cover;
+  background-position: center top;
+}
+.colourdots.see-sheer .card-tex {
+  background:
+    linear-gradient(100deg, transparent 58%, color-mix(in srgb, var(--c) 30%, transparent) 58%),
+    linear-gradient(90deg, color-mix(in srgb, var(--c) 40%, transparent), color-mix(in srgb, var(--c) 62%, transparent) 30%, color-mix(in srgb, var(--c) 38%, transparent) 55%, color-mix(in srgb, var(--c) 60%, transparent)),
+    linear-gradient(75deg, #262320 0 46%, #dcd5c7 46%);
+}
+.colourdots.see-lace .card-tex {
+  background: radial-gradient(circle at 30% 25%, #2a2622, #0b0a09 80%);
+}
+.colourdots.see-lace .card-tex::before {
+  background: var(--c);
+  mask: var(--net) center / 56px 56px;
+  -webkit-mask: var(--net) center / 56px 56px;
+  mix-blend-mode: normal;
+  opacity: 1;
+}
+
+/* The fabric cards fill the panel's width (Cat, Nov 28: "why are fabrics not shown in the blank space?"). They wrapped
+   at a fixed width, so a phone fitted four type cards or two shop cards to a row and left the rest of the row empty.
+   They now share each row in even columns, as many as fit at about their old width, on a phone and a computer. */
+.style-panel .swatch-row .swatches,
+.style-panel .colourdots,
+.style-panel .shopfabs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--col, 72px), 1fr));
+  gap: 8px;
+  align-items: start;
+}
+.style-panel .colourdots {
+  --col: 66px;
+}
+.style-panel .shopfabs {
+  --col: 104px;
+}
+.style-panel .swatch-row .swatch,
+.style-panel .colourdots .colourdot,
+.style-panel .shopfab {
+  width: auto;
+  min-width: 0;
+}
+
+/* Every card the same size, picked or not, and every row in line (Cat, Nov 28: the picked card grew and knocked its
+   row out of line, and Your photo, whose name takes two lines, always sat out of line). The picked card is marked by
+   the champagne outline (design system: a picked choice is an outline, never a size), and each card's name strip
+   stretches to its row's tallest, so the pictures' tops and the strips' feet line up. */
+.style-panel .swatch-row .swatches,
+.style-panel .colourdots,
+.style-panel .shopfabs {
+  align-items: stretch;
+  padding: 4px;
+}
+.style-panel .swatch-row .swatch.on {
+  --tex-h: 96px;
+}
+.style-panel .colourdots .colourdot.on {
+  --tex-h: 48px;
+}
+.style-panel .shopfab.on {
+  --tex-h: 96px;
+}
+.style-panel :is(.swatch, .colourdot, .shopfab).on {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+.style-panel :is(.swatch, .colourdot, .shopfab) > :is(.card-name, .shopfab-text) {
+  flex: 1 0 auto;
+}
+.style-panel .on > .card-name,
+.style-panel .on > .shopfab-text {
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+.style-panel .colourdots .on > .card-name {
+  padding-top: 6px;
+  padding-bottom: 6px;
 }

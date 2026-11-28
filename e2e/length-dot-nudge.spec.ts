@@ -76,7 +76,7 @@ test('Set on an unchanged length box leaves the length as it was', async ({ page
   // On a named length (the arrow keys step to one), whose cm the box rounds to the half.
   await dot.focus();
   await page.keyboard.press('ArrowUp');
-  await expect(dot).toHaveAttribute('aria-valuetext', /^[A-Z][a-z ]+ · [\d.]+ cm$/);
+  await expect(dot).toHaveAttribute('aria-valuetext', /^[A-Z][a-z ]+, [\d.]+ cm$/);
   const was = await dot.getAttribute('aria-valuetext');
   await main.getByRole('button', { name: /^Type the trouser length$/i }).click();
   await page.getByRole('form').getByRole('button', { name: 'Set' }).click();

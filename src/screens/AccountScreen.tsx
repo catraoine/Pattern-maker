@@ -240,7 +240,7 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
           </div>
         </Fold>
 
-        <Fold id="settitle" title="Settings" summary={[unit, onMode ? (mode === 'simple' ? 'Simple mode' : 'All tools') : ''].filter(Boolean).join(' · ')}>
+        <Fold id="settitle" title="Settings" summary={[unit, onMode ? (mode === 'simple' ? 'Simple mode' : 'All tools') : ''].filter(Boolean).join(', ')}>
           <fieldset className="group">
             <legend>Units</legend>
             <div className="seg" role="group" aria-label="Units">
@@ -340,7 +340,7 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
               .filter((t) => t.where)
               .map((t) => (
                 <li key={t.name} title={`The tag comes off when ${t.proof}.`}>
-                  <b>{t.name}</b> · {/^(in|under|inside)\b/.test(t.where!) ? t.where : `in ${t.where}`}
+                  <b>{t.name}</b>, {/^(in|under|inside)\b/.test(t.where!) ? t.where : `in ${t.where}`}
                 </li>
               ))}
           </ul>
@@ -351,7 +351,7 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
           {founding ? (
             <div className="stack" data-testid="founding-member">
               <p>
-                <b>Founding Atelier · No. {founding.n}</b>
+                <b>Founding Atelier No. {founding.n}</b>
               </p>
               <ul className="muted small testing-list">
                 {foundingLines(founding).map((line) => (
@@ -389,36 +389,29 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
         <button type="button" className="inline-link help-link" onClick={() => onLegal('help')}>
           Help &amp; feedback
         </button>
-        {' · '}
         <button type="button" className="inline-link" onClick={() => onLegal('made')}>
           How your pattern is made
         </button>
-        {' · '}
         <button type="button" className="inline-link" onClick={() => onLegal('privacy')}>
           Privacy Policy
         </button>
-        {' · '}
         <button type="button" className="inline-link" onClick={() => onLegal('terms')}>
           Terms of Use
         </button>
         {/* Not offered to someone who already is one (pretend-tester walk, Nov 24). */}
         {!account.testerCode && (
           <>
-            {' · '}
-            <button type="button" className="inline-link" onClick={() => onLegal('tester')}>
+                <button type="button" className="inline-link" onClick={() => onLegal('tester')}>
               Be a fit tester
             </button>
           </>
         )}
-        {' · '}
         <button type="button" className="inline-link" onClick={() => onLegal('news')}>
           News
         </button>
-        {' · '}
         <button type="button" className="inline-link" onClick={() => onLegal('nights')}>
           Atelier Nights (sewing evenings)
         </button>
-        {' · '}
         <button type="button" className="inline-link" onClick={() => onLegal('brands')}>
           For brands
         </button>
@@ -503,16 +496,16 @@ function PatternRow({
           <strong>{pattern.name}</strong>
         )}
         <p className="muted small">
-          {whoFor ? `For ${whoFor} · ` : ''}
-          {pattern.name.toLowerCase() === detail.toLowerCase() ? '' : `${detail[0].toUpperCase()}${detail.slice(1)} · `}
+          {whoFor ? `For ${whoFor}, ` : ''}
+          {pattern.name.toLowerCase() === detail.toLowerCase() ? '' : `${detail[0].toUpperCase()}${detail.slice(1)}, `}
           {/* "Fitted fit" read twice (pretend tester EJ walk, Nov 27): a fit already ending in "fit" isn't followed by it. */}
-          {'fit' in pattern.choices ? `${pattern.choices.fit[0].toUpperCase() + pattern.choices.fit.slice(1)}${/fit/i.test(pattern.choices.fit) ? '' : ' fit'} · ` : ''}saved {dateFmt.format(new Date(pattern.savedAt))}
+          {'fit' in pattern.choices ? `${pattern.choices.fit[0].toUpperCase() + pattern.choices.fit.slice(1)}${/fit/i.test(pattern.choices.fit) ? '' : ' fit'}, ` : ''}saved {dateFmt.format(new Date(pattern.savedAt))}
         </p>
         {pattern.fit && !fitting && (
           <p className="small fitnote">
             {pattern.fit.made === 'toile' ? 'Toile' : 'Sewn'} {dateFmt.format(new Date(pattern.fit.at))}: {fitSummary(pattern.fit, pattern.choices)}
-            {pattern.fit.notes ? ` · “${pattern.fit.notes}”` : ''}
-            {pattern.fit.sentAt ? ' · sent to Maison Tracé' : ''}
+            {pattern.fit.notes ? `, “${pattern.fit.notes}”` : ''}
+            {pattern.fit.sentAt ? ', sent to Maison Tracé' : ''}
           </p>
         )}
         {sendMsg && !fitting && (
@@ -529,7 +522,7 @@ function PatternRow({
           {pattern.fit ? 'Fit notes' : 'How did it fit?'}
         </button>
         <button type="button" className="link more-btn" aria-label={`More for ${pattern.name}`} aria-expanded={more} onClick={() => setMore(!more)}>
-          ···
+          More
         </button>
       </div>
       {more && (

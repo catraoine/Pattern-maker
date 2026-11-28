@@ -18,7 +18,7 @@ import { HemChoice, HemMarks } from './HemMarks';
 import { useEnlarged } from './EnlargeSketch';
 import { SHADOW } from './palette';
 import { useLengthStep, useNarrow } from './StyleLayout';
-import { ClothDefs, ClothOverlay, throughOpacity, borderHems, useFabricLook } from './ClothLook';
+import { ClothDefs, ClothOverlay, SheerEdges, laceMask, throughOpacity, borderHems, useFabricLook } from './ClothLook';
 
 type Measures = { full_bust?: number; waist: number; full_hip?: number; waist_to_hip?: number; waist_to_knee?: number; waist_to_floor?: number };
 
@@ -1026,20 +1026,26 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
   /** How far below that the form's lines take to come in fully. */
   const FADE_CM = 5;
   const drawn = cloth ? Object.fromEntries(Object.entries(lines).filter(([id]) => !CLOTH_EDGES.includes(id as FormLine))) : lines;
-  /** One piece of cloth: the fabric, its light and shade, the edge turning away and its fine edge line. */
+  // A sheer's seams show through it as narrow double bands (SheerEdges).
+  const seamPaths = look?.special === 'sheer' ? Object.values(drawn).flatMap((runs) => (runs ?? []).map(at)) : [];
+  /** One piece of cloth: the fabric, its light and shade, the edge turning away and its fine edge line. A lace's cloth is
+   *  drawn through its net and motifs (laceMask), so the form shows between them. */
   const piece = (d: string, i: number, key: string) => (
     <g key={key}>
-      <path d={d} className="cloth-fill" strokeWidth={0.3} strokeLinejoin="round" fillOpacity={throughOpacity(look)} />
-      <ClothOverlay d={d} uid={uid} k={key} look={look} hemY={hems[i]} />
-      <path d={d} fill={`url(#${shade})`} stroke="none" opacity={look?.faint ? 0.9 : look?.sheer ? 0.6 : undefined} />
-      <path d={d} fill={`url(#down${uid})`} stroke="none" />
-      {body.head && (
-        <>
-          <path d={d} fill={`url(#bust${uid})`} stroke="none" />
-          <path d={d} fill={`url(#underbust${uid})`} stroke="none" />
-        </>
-      )}
-      {!crisp && <path d={d} fill={`url(#bands${uid})`} stroke="none" mask={`url(#bandmask${uid})`} />}
+      <g mask={laceMask(look, uid)}>
+        <path d={d} className="cloth-fill" strokeWidth={0.3} strokeLinejoin="round" fillOpacity={throughOpacity(look)} />
+        <ClothOverlay d={d} uid={uid} k={key} look={look} hemY={hems[i]} />
+        <path d={d} fill={`url(#${shade})`} stroke="none" opacity={look?.faint ? 0.9 : look?.sheer ? 0.6 : undefined} />
+        <path d={d} fill={`url(#down${uid})`} stroke="none" />
+        {body.head && (
+          <>
+            <path d={d} fill={`url(#bust${uid})`} stroke="none" />
+            <path d={d} fill={`url(#underbust${uid})`} stroke="none" />
+          </>
+        )}
+        {!crisp && <path d={d} fill={`url(#bands${uid})`} stroke="none" mask={`url(#bandmask${uid})`} />}
+      </g>
+      <SheerEdges d={d} uid={uid} k={key} look={look} seams={seamPaths} band={0.8} />
       <g clipPath={`url(#${clip})`}>
         {crisp ? (
           <path d={d} className="cloth-turn" fill="none" strokeWidth={0.45} opacity={0.5} />

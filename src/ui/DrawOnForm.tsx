@@ -500,7 +500,7 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
     <div className={big ? 'form-draw big' : 'form-draw'}>
       <div className="screen-head">
         <div>
-          <p className="eyebrow">Drape · Your form <TestingTag tool="draw_lines" /></p>
+          <p className="eyebrow">Drape on your form <TestingTag tool="draw_lines" /></p>
           <h1>Draw your lines</h1>
         </div>
         {big && enlarge}

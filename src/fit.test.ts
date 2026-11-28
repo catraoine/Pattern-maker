@@ -14,7 +14,7 @@ describe('fit feedback', () => {
 
   it('summarises only the areas that were off', () => {
     const fit = { ...emptyFit(), verdict: 'tweaks' as const, areas: { waist: -1 as const, hip: 0 as const, length: 1 as const } };
-    expect(fitSummary(fit, skirt)).toBe('Needs small changes · waist too tight, length too long');
+    expect(fitSummary(fit, skirt)).toBe('Needs small changes (waist too tight, length too long)');
     expect(fitSummary(emptyFit(), skirt)).toBe('Fits well');
   });
 

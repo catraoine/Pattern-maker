@@ -24,7 +24,7 @@ interface Props {
 type Shelf = 'house' | 'eras' | 'archive';
 
 // Each look carries its season, as a house's lookbook does (Cat, 2026-10-30).
-const lookNo = (n: number) => `${SEASON.code} · Look ${String(n).padStart(2, '0')}`;
+const lookNo = (n: number) => `${SEASON.code} Look ${String(n).padStart(2, '0')}`;
 
 /** The time now, ticking each second while a drop clock is on screen. */
 function useNow(ticking: boolean): Date {
@@ -58,14 +58,14 @@ function DropSlot({ values, onMake }: Pick<Props, 'values' | 'onMake'>) {
       <p className="drop-strip">
         <span>
           {dropNo(drop)}
-          {state.kind === 'live' ? ' · Live' : ''}
+          {state.kind === 'live' ? ', live' : ''}
         </span>
         <span>{strip}</span>
       </p>
       {look && state.kind !== 'announced' ? (
         <div className="house-look">
           <p className="eyebrow">
-            {drop.editions} numbered copies{drop.designer ? ` · ${drop.designer}${drop.city ? `, ${drop.city}` : ''}` : ''}
+            {drop.editions} numbered copies{drop.designer ? `, by ${drop.designer}${drop.city ? ` in ${drop.city}` : ''}` : ''}
           </p>
           <div className="house-flat">
             <Flat look={look} values={values} />
@@ -184,7 +184,7 @@ export function CollectionScreen({ values, onMake }: Props) {
           <TestingTag tool="collection" />
         </p>
         <h1 id="ctitle">The collection</h1>
-        {shelf === 'house' && <p className="season-name">{SEASON.code} · {SEASON.name}</p>}
+        {shelf === 'house' && <p className="season-name">{SEASON.code}, {SEASON.name}</p>}
         <p className="muted">
           {shelf === 'house'
             ? 'This season\u2019s house looks, in its colours, each drafted to your measurements. Make one, then change any detail you like.'

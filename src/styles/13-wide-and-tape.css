@@ -733,6 +733,12 @@ button.later.garment-change {
 .fineprint.plain .inline-link:hover {
   color: var(--ink);
 }
+/* The account's footer links sit apart by a gap, not a dot between each (Cat, Nov 28: the dots read as AI). */
+.fineprint.plain {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+}
 .yourfabric button.later {
   justify-self: start;
   padding-left: 0;

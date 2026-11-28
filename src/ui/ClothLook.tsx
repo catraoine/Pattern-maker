@@ -22,12 +22,23 @@ export interface FabricLook {
 export const FabricLookContext = createContext<FabricLook | undefined>(undefined);
 export const useFabricLook = () => useContext(FabricLookContext);
 
-/** How much of the cloth's colour a sheer piece shows. */
-const SHEER_OPACITY = 0.5;
+/** How much of the cloth's colour a sheer piece shows: at half, the form barely showed and Sheer read as flat pink (Cat,
+ *  Nov 28), so it is laid thinner, and its doubled edges and seams (SheerEdges) say it is cloth. */
+const SHEER_OPACITY = 0.32;
 /** And a cloth that is only faintly see-through. */
 export const FAINT_OPACITY = 0.85;
-/** How solid a see-through cloth's fill is drawn, or undefined for a solid cloth. */
-export const throughOpacity = (look: FabricLook | undefined) => (look?.faint ? FAINT_OPACITY : look?.sheer ? SHEER_OPACITY : undefined);
+/** How solid a see-through cloth's fill is drawn, or undefined for a solid cloth. A lace is cut to its net and motifs by
+ *  its mask (laceMask) instead, so its fill is laid solid. */
+export const throughOpacity = (look: FabricLook | undefined) => (look?.special === 'lace' ? undefined : look?.faint ? FAINT_OPACITY : look?.sheer ? SHEER_OPACITY : undefined);
+
+/** The lace's net and motifs as a mask, one 32 cm tile, the same size and place as the cloth's own tile (FabricFill's
+ *  LACE_TILE), so the motifs of the colour tile land on the motifs of the mask: white where the motifs are solid cloth, a low
+ *  grey where the net lets the form show through, clear in the eyelets. */
+const LACE_NET = `${import.meta.env.BASE_URL}fabrics/flat/lace-net.png`;
+const LACE_TILE = 32;
+
+/** The mask a lace piece's cloth is drawn through, or undefined for any other cloth. */
+export const laceMask = (look: FabricLook | undefined, uid: string) => (look?.special === 'lace' ? `url(#lacemask${uid})` : undefined);
 
 const f = (n: number) => n.toFixed(2);
 
@@ -105,20 +116,14 @@ export function ClothDefs({ uid, x1, x2, look, flat }: { uid: string; x1: number
         </pattern>
       )}
       {s === 'lace' && (
-        <pattern id={`weave${uid}`} patternUnits="userSpaceOnUse" width="2.4" height="2.4">
-          <circle cx="1.2" cy="1.2" r="0.95" fill="none" stroke="#fff" strokeOpacity="0.5" strokeWidth="0.16" />
-          <circle cx="1.2" cy="1.2" r="0.4" fill="#fff" fillOpacity="0.4" />
-          <circle cx="0" cy="0" r="0.3" fill="#fff" fillOpacity="0.35" />
-          <circle cx="2.4" cy="0" r="0.3" fill="#fff" fillOpacity="0.35" />
-          <circle cx="0" cy="2.4" r="0.3" fill="#fff" fillOpacity="0.35" />
-          <circle cx="2.4" cy="2.4" r="0.3" fill="#fff" fillOpacity="0.35" />
-        </pattern>
-      )}
-      {s === 'sheer' && (
-        <pattern id={`weave${uid}`} patternUnits="userSpaceOnUse" width="0.6" height="0.6">
-          <rect x="0" y="0" width="0.6" height="0.12" fill="#fff" fillOpacity="0.1" />
-          <rect x="0" y="0" width="0.12" height="0.6" fill="#fff" fillOpacity="0.1" />
-        </pattern>
+        <>
+          <pattern id={`lacenet${uid}`} patternUnits="userSpaceOnUse" width={LACE_TILE} height={LACE_TILE}>
+            <image href={LACE_NET} width={LACE_TILE} height={LACE_TILE} preserveAspectRatio="none" />
+          </pattern>
+          <mask id={`lacemask${uid}`} maskUnits="userSpaceOnUse" x="-1000" y="-1000" width="3000" height="3000">
+            <rect x="-1000" y="-1000" width="3000" height="3000" fill={`url(#lacenet${uid})`} />
+          </mask>
+        </>
       )}
     </defs>
   );
@@ -130,7 +135,8 @@ export function ClothOverlay({ d, uid, look, hemY, k }: { d: string; uid: string
   const s = look.special;
   const soft = !s && look.sheen === 'soft';
   const sheen = s === 'leather' || s === 'satin' || s === 'velvet' || soft;
-  const weave = s === 'corduroy' || s === 'denim' || s === 'sequins' || s === 'lace' || s === 'sheer';
+  // (A sheer has no weave drawn: its fine grid of light read as a check. A lace's net is its mask.)
+  const weave = s === 'corduroy' || s === 'denim' || s === 'sequins';
   const B = look.border;
   return (
     <>
@@ -148,8 +154,31 @@ export function ClothOverlay({ d, uid, look, hemY, k }: { d: string; uid: string
         </>
       )}
       {/* Fills are set by style: the flat's own rule (.techflat path) switches off a fill attribute, which left flats without shine or weave. */}
-      {weave && <path d={d} style={{ fill: `url(#weave${uid})` }} stroke="none" fillOpacity={look.sheer ? 0.6 : 1} />}
+      {weave && <path d={d} style={{ fill: `url(#weave${uid})` }} stroke="none" />}
       {sheen && <path d={d} style={{ fill: `url(#sheen${uid})` }} stroke="none" />}
+    </>
+  );
+}
+
+/** A sheer's edges and seams lie double, so in a real chiffon they show as narrow, more solid bands: the rolled hem,
+ *  the bound neck, the seam allowances seen through the cloth. Drawn just inside each piece's edge (and along any seams
+ *  given), they are what makes a thin colour read as sheer cloth and not a pale wash (Cat, Nov 28). */
+export function SheerEdges({ d, uid, k, look, seams = [], band = 1.1 }: { d: string; uid: string; k: string; look: FabricLook | undefined; seams?: string[]; band?: number }) {
+  if (look?.special !== 'sheer') return null;
+  const clip = `sheeredge${uid}${k}`;
+  return (
+    <>
+      <defs>
+        <clipPath id={clip}>
+          <path d={d} />
+        </clipPath>
+      </defs>
+      <g clipPath={`url(#${clip})`} style={{ stroke: 'var(--garment)' }} fill="none" strokeLinejoin="round">
+        <path d={d} strokeWidth={band * 2} strokeOpacity={0.75} />
+        {seams.map((sd, i) => (
+          <path key={i} d={sd} strokeWidth={band * 0.9} strokeOpacity={0.5} strokeLinecap="round" />
+        ))}
+      </g>
     </>
   );
 }

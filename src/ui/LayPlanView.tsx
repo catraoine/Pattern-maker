@@ -67,7 +67,7 @@ export function LayPlanView({ lay, cloth = 'default', tint, print, size: showSiz
       </text>
       {showSize && (
         <text x={L} y={H + size * 1.6} fontSize={size} textAnchor="end" className="lay-note">
-          {`${lay.metres.toFixed(1)} M  ·  ${lay.width} CM WIDE`}
+          {`${lay.metres.toFixed(1)} M OF ${lay.width} CM WIDE`}
         </text>
       )}
       {lay.placements.map((pl, i) => {

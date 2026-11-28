@@ -44,7 +44,7 @@ export function UnlockGarment({ garment, onPlans, onBack }: { garment: Garment; 
         </div>
       </dl>
       <div className="stack">
-        <BuyButton label={`Unlock the ${name} · ${PRICES.pack}`} primary />
+        <BuyButton label={`Unlock the ${name}, ${PRICES.pack}`} primary />
         <button type="button" className="secondary" onClick={onPlans}>
           See Premium
         </button>

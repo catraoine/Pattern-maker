@@ -143,7 +143,7 @@ export function FormScreen({ values, measured: taken, unit, profile, onPrint, on
         <div className="formcheck">
           {(['full_bust', 'waist', 'full_hip'] as PadId[]).map((id) => (
             <label key={id}>
-              <span className="eyebrow">{NAMES[id]} · {unit}</span>
+              <span className="eyebrow">{NAMES[id]} in {unit}</span>
               <input
                 id={`formcheck-${id}`}
                 inputMode="decimal"

@@ -37,17 +37,17 @@ test('a shop catalogue lists its fabrics, searchable, and a pick goes to the sho
   await main.getByRole('radiogroup', { name: 'Fabric for the sketch' }).getByRole('radio', { name: 'Cotton' }).click();
   const toBuy = main.getByRole('radiogroup', { name: 'Cotton you can buy' });
   // The hand-picked cottons first, then the catalogue, a page at a time with a More card.
-  await expect(main.locator('.shopwrap-q')).toContainText('Cotton you can buy');
+  await expect(main.locator('.shopwrap-q')).toContainText('Shop cotton');
   await expect(main.locator('.shopfab.more')).toBeVisible();
   await expect(toBuy.locator('.shopfab-tile.photo').first()).toHaveAttribute('style', /swatch-0\.jpg\?width=160/);
   // A shop that lists a quarter yard says to see the price at the shop.
-  await expect(toBuy.getByRole('radio', { name: /Cotton twill 1, Navy/ })).toContainText('price at the shop');
+  await expect(toBuy.getByRole('radio', { name: /Cotton twill 1, Navy/ })).toContainText('Price at the shop');
   await main.getByRole('searchbox', { name: 'Search cotton you can buy' }).fill('saffron');
   await expect(toBuy.getByRole('radio')).toHaveCount(1);
   await toBuy.getByRole('radio', { name: /Cotton lawn, Saffron/ }).click();
   const strip = main.locator('.buystrip');
-  await expect(strip).toContainText('NY Designer Fabrics · Saffron');
-  await expect(strip).toContainText(/\d+ yd for your skirt · about \$\d+/);
+  await expect(strip).toContainText('NY Designer Fabrics, Saffron');
+  await expect(strip).toContainText(/\d+ yd for your skirt, about \$\d+/);
   // Buy puts the yards in the shop's cart; not yet approved by its affiliate programme, so the link is plain.
   await expect(strip.getByRole('link', { name: /Buy \d+ yd at NY Designer/ })).toHaveAttribute('href', /^https:\/\/shop\.example\/cart\/add\?id=0&quantity=\d+$/);
   // Saved work keeps the pick on a later visit, before the catalogue loads again.

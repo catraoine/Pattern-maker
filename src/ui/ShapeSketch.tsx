@@ -279,7 +279,7 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
 
   // A named length says its length too, as the dress's and trousers' do ("Knee · 59 cm"): the skirt's "Knee" alone
   // read as a 9 cm jump with no number to check it by (pretend tester DI walk, Nov 19).
-  const lengthLabel = choices.lengthCm || choices.kneeShare || choices.floorClear ? `${Math.round(draft.lengthCm * 10) / 10} cm` : `${lengthName(choices.length)} · ${Math.round(draft.lengthCm * 10) / 10} cm`;
+  const lengthLabel = choices.lengthCm || choices.kneeShare || choices.floorClear ? `${Math.round(draft.lengthCm * 10) / 10} cm` : `${lengthName(choices.length)}, ${Math.round(draft.lengthCm * 10) / 10} cm`;
   const flareLabel = choices.flareCm !== undefined ? `${choices.flareCm > 0 ? '+' : ''}${choices.flareCm} cm` : silName(choices.silhouette);
   const guide = (y: number, text: string) => (
     <g className="guide">
@@ -304,7 +304,7 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
     // legs, with the arrow alone saying width ("↔ +10 cm") so it stays clear of the length's dot; above only when the
     // hem leaves no room under it.
     const right = shown.width ? shown.left! + shown.width : 2 * cx + MARGIN * k;
-    const full = kind === 'hem' ? (text.includes(' · ') ? `↕ ${text}` : `↕ Length · ${text}`) : `↔ Width · ${text}`;
+    const full = kind === 'hem' ? (text.includes(', ') ? `↕ ${text}` : `↕ Length ${text}`) : `↔ Width ${text}`;
     const moved = kind === 'side' && at.x + r + 3.2 * k + full.length * 2.6 * k * 0.85 > right;
     const below = moved && at.y + r + 4.4 * k < shown.bottom;
     const above = moved && !below;
