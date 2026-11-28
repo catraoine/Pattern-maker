@@ -50,7 +50,7 @@ import { preloadScreens, screen } from './screens/load';
 import { FABRIC, StartOver, openLookNext, openTabNext } from './ui/StyleLayout';
 import { leavePrintForFabric } from './ui/printReturn';
 import { KeptCount } from './ui/SaveControl';
-import { GARMENT_NAME, baseDone, leftPartway } from './measureFlow';
+import { GARMENT_NAME, baseDone, forgetMeasuringFor, leftPartway } from './measureFlow';
 import { namesToHide } from './help/pin';
 import type { AfterMeasuring, PageKind, StepsStart } from './screens/MeasureStepsScreen';
 import { mergeBackups } from './cloud/merge';
@@ -261,6 +261,10 @@ export default function App() {
   // carry over to the next garment's Style.
   useEffect(() => {
     if (step !== 'style' && step !== 'steps' && step !== 'collection') openLookNext(false);
+  }, [step]);
+  // A piece being measured for is done with, or left for another, once a garment's Style, Print or Sew opens.
+  useEffect(() => {
+    if (step === 'style' || step === 'export' || step === 'sew') forgetMeasuringFor();
   }, [step]);
   // Signing in on a device another account used asks a question in Your account: open it there, wherever the sign-in
   // came back to (Google's page returns to the start).
