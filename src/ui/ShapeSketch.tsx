@@ -7,7 +7,7 @@ import { useEnlarged } from './EnlargeSketch';
 import type { Choices } from '../savedWork';
 import { skirtFlat, wornLines, wornShapes } from '../engine/flat';
 import type { P } from '../engine/geometry';
-import { HEM_SAMPLES, HemShape, flatHem, isShaped, offsetAt } from '../engine/hem';
+import { HEM_SAMPLES, HemShape, flatHem, isShaped, matchSides, offsetAt } from '../engine/hem';
 import { LengthTap, useSaid } from './LengthEntry';
 import { LENGTHS, Length, Silhouette, SkirtDraft, SkirtMeasurements, flareRange, isCircle, draftedMeasures, lengthRange, presetFlare } from '../engine/skirt';
 import { GROUPS } from '../skirtChoices';
@@ -268,7 +268,8 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
       if (stroke.length > 2) {
         const current: HemShape = draft.hem ?? { front: flatHem(), back: flatHem() };
         const pts = stroke.map((q) => ({ x: (q.x - cx) / SQUEEZE, y: q.y }));
-        const hem = { ...current, [side]: strokeToHem(pts, w.hem, current[side]) };
+        // The side drawn sets where the hem meets the side seams; the other side comes to it.
+        const hem = matchSides({ ...current, [side]: strokeToHem(pts, w.hem, current[side]) }, undefined, side);
         // A drawn hem replaces a high-low or diagonal one.
         const { look: _look, asymHem: _asym, ...rest } = choices;
         onDone(choices, isShaped(hem) ? { ...rest, hem } : { ...rest, hem: undefined });
