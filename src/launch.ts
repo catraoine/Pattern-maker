@@ -79,6 +79,7 @@ export type TestingTool =
   | 'flap_pockets'
   | 'chest_pocket'
   | 'pattern_tools'
+  | 'describe_fit'
   | 'menswear';
 
 export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; proof: string }> = {
@@ -152,6 +153,8 @@ export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; p
   // Shown but not pickable while this fit round tests womenswear only (Cat, Nov 14); see menswearOpen below.
   menswear: { name: 'Menswear form', where: 'the form choice on the first measuring page and Your form', proof: 'a menswear fit round is run and two testers sew a menswear toile that fits' },
   pattern_tools: { name: 'Draw a line on the pattern', where: 'Style, Pattern, Move points: a line drawn across a piece to spread it, add fullness or make a new piece', proof: 'two testers spread or cut a piece with a drawn line and sew it as edited, and it hangs as the edited pattern shows' },
+  // Cat, 2026-11-28: "Yes I want that", a box at the top of the fitting page that reads what someone sees on their toile.
+  describe_fit: { name: 'Describe your toile', where: 'the box at the top of What do you see?, after your toile', proof: 'five testers describe their toile in their own words and the problems it ticks are the ones a pattern cutter would pick' },
   belt_loops: { name: 'Belt loops on trousers', where: 'the Belt loops chips on trousers', proof: 'two testers sew the five loops and a belt sits level in them, the loops clear of the pockets and the fly' },
   // And for the flared lilac blazer from Cat's plaid-blazer picture (2026-10-31).
   flared_jacket: { name: 'Flared jacket and coat hem', where: 'the Flared chip below the waist on a jacket or coat', proof: 'two testers sew a flared jacket and it stays close at the waist, kicking out evenly over the hips with a level hem' },

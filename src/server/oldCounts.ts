@@ -4,7 +4,7 @@
 // today's counters, and the clearing runs just after the day turns.
 
 /** Every store that keeps daily counters (the names the functions pass to blobCounts). */
-export const COUNT_STORES = ['photo-limits', 'check-limits', 'describe-limits', 'tester-check-limits', 'founding-limits', 'email-limits', 'note-limits', 'fit-feedback-limits', 'body-scan-code-limits', 'body-scan-limits', 'signup-limits', 'tester-mail-limits', 'crash-alerts'] as const;
+export const COUNT_STORES = ['photo-limits', 'check-limits', 'describe-limits', 'fit-words-limits', 'tester-check-limits', 'founding-limits', 'email-limits', 'note-limits', 'fit-feedback-limits', 'body-scan-code-limits', 'body-scan-limits', 'signup-limits', 'tester-mail-limits', 'crash-alerts'] as const;
 
 const DAY_KEY = /^(\d{4}-\d{2}-\d{2})\//;
 

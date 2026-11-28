@@ -2,9 +2,11 @@ import { useMemo, useState } from 'react';
 import type { P } from '../engine/geometry';
 import type { Piece } from '../engine/piece';
 import type { Side } from '../engine/skirt';
-import { Carried, FIT_ISSUES, FitTarget, FitIssue, appliesTo, Fitting, NO_FITTING, describeFitting, setAmount, toggleIssue, versionsOf } from '../engine/fitting';
+import { Carried, FitTarget, FitIssue, Fitting, NO_FITTING, describeFitting, setAmount, toggleIssue, versionsOf } from '../engine/fitting';
 import { PieceChange, changeLabel, changeWords, compareEdges } from '../engine/compare';
 import { DemoButton } from '../ui/DemoButton';
+import { DescribeFit } from '../ui/DescribeFit';
+import { fitIssuesFor } from '../fitWords';
 
 interface Props {
   /** A dress is fitted as one toile, with the bodice's and the skirt's corrections together. */
@@ -21,13 +23,15 @@ interface Props {
   hasBustDart: boolean;
   /** Save the corrections; `shown` lists those carried in, so one unticked here is cleared for good. */
   onSave: (f: Fitting, shown: string[]) => void;
+  /** A fit tester's code, so describing a toile counts in the testers' larger allowance. */
+  testerCode?: string;
 }
 
 /**
  * After the toile: the person ticks what they see when they try it on, and each correction goes into
  * the pattern the way a pattern cutter would make it. The drawing shows the pattern before and after.
  */
-export function FittingScreen({ garment, fitting, own, carried = [], draftWith, hasBustDart, onSave }: Props) {
+export function FittingScreen({ garment, fitting, own, carried = [], draftWith, hasBustDart, onSave, testerCode }: Props) {
   const saved = fitting ?? NO_FITTING;
   const [f, setF] = useState<Fitting>(saved);
   /** The corrections as they were before Clear every correction, to put back (Cat, Nov 12: an undo wherever an edit
@@ -37,7 +41,7 @@ export function FittingScreen({ garment, fitting, own, carried = [], draftWith, 
     setCleared(undefined);
     setF(next);
   };
-  const issues = FIT_ISSUES.filter((i) => appliesTo(i, garment) && (hasBustDart || !i.needsBustDart));
+  const issues = fitIssuesFor(garment, hasBustDart);
   const areaOf = (i: FitIssue) => (garment === 'dress' ? `${i.garment === 'skirt' ? 'Skirt' : 'Bodice'}: ${i.area.toLowerCase()}` : i.area);
   const areas = [...new Set(issues.map(areaOf))];
   const before = useMemo(() => draftWith(saved), [draftWith, saved]);
@@ -59,6 +63,7 @@ export function FittingScreen({ garment, fitting, own, carried = [], draftWith, 
             see and the pattern is corrected the way a pattern cutter would. Couture seam allowances leave room to let a toile out.
           </p>
         </div>
+        {issues.length > 0 && <DescribeFit garment={garment} hasBustDart={hasBustDart} issues={issues} f={f} onChange={change} testerCode={testerCode} />}
         {areas.map((area) => (
           <fieldset key={area} className="group">
             <legend>{area}</legend>

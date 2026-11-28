@@ -512,6 +512,13 @@ Cat applied all seven fixes from the app journey review ("Do all fixes"), plus E
 
 ## Fixing problems
 
+- **Describe your toile** (Cat, Nov 28: "Yes I want that"; In testing): at the top of What do you see?, the person types
+  what they see on their toile in their own words. Claude picks only from that garment's fitting list (FIT_ISSUES); the
+  person unticks any that are wrong and confirms, and only then are they ticked in the list, at their starting amounts,
+  for the person to set. Nothing is saved until they save. What the list can't correct (sleeves, trouser legs) is named
+  plainly. Its own daily caps (`fit-words-limits`, same numbers as ideas), failing closed. Sleeves, crotch and leg, and
+  knit corrections are not approved yet. `src/fitWords.ts`, `src/ui/DescribeFit.tsx`, `netlify/functions/describe-fit.mts`.
+
 - **Auto-fix rule** (Oct 18): never point out problems the user's own edits cause (uneven seams,
   hems). True them silently where pieces join; never change the drawn design shape.
 - Show finished measurements and ease up front (Review table + paper marks, live).
