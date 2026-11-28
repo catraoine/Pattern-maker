@@ -89,3 +89,94 @@ describe('an app left open on screen picks up a new release', () => {
     }
   });
 });
+
+// A Firefox private tab has no service worker, so only the site can say a release went out. On Nov 26 one such page,
+// open since Nov 13, crashed on the steps screen with a fault the app had lost on Nov 14.
+describe('an app with no service worker picks up a new release from the site', () => {
+  beforeEach(() => vi.resetModules());
+  afterEach(() => vi.unstubAllGlobals());
+
+  function bare(live: string, controlled = false) {
+    const doc = new EventTarget() as EventTarget & { visibilityState: string; querySelectorAll: () => { getAttribute: () => string }[] };
+    doc.visibilityState = 'visible';
+    doc.querySelectorAll = () => [{ getAttribute: () => '/assets/index-OLD123.js' }];
+    const counts = { reloads: 0, fetches: 0 };
+    const store = new Map<string, string>();
+    vi.stubGlobal('navigator', controlled ? { serviceWorker: Object.assign(new EventTarget(), { controller: {}, getRegistration: () => Promise.resolve(undefined) }) } : {});
+    vi.stubGlobal('document', doc);
+    vi.stubGlobal('window', { location: { reload: () => counts.reloads++ } });
+    vi.stubGlobal('sessionStorage', { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v) });
+    vi.stubGlobal('fetch', () => (counts.fetches++, Promise.resolve({ ok: true, text: () => Promise.resolve(`<script type="module" src="${live}"></script>`) })));
+    return { doc, counts, store };
+  }
+
+  it('shows a newer release at the next screen a reload reopens', async () => {
+    vi.useFakeTimers();
+    try {
+      const { counts } = bare('/assets/index-NEW456.js');
+      const { keepUpToDate, atNewScreen } = await import('./swUpdate');
+      keepUpToDate();
+      await vi.advanceTimersByTimeAsync(6 * 60 * 1000);
+      atNewScreen(true);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(counts.fetches).toBe(1);
+      expect(counts.reloads).toBe(0);
+      atNewScreen(false);
+      expect(counts.reloads).toBe(0);
+      atNewScreen(true);
+      expect(counts.reloads).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('stays put when the site has the same release', async () => {
+    vi.useFakeTimers();
+    try {
+      const { counts } = bare('/assets/index-OLD123.js');
+      const { keepUpToDate, atNewScreen } = await import('./swUpdate');
+      keepUpToDate();
+      await vi.advanceTimersByTimeAsync(6 * 60 * 1000);
+      atNewScreen(true);
+      await vi.advanceTimersByTimeAsync(0);
+      atNewScreen(true);
+      expect(counts.fetches).toBe(1);
+      expect(counts.reloads).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('reloads only once for a release, should the reload still open the old page', async () => {
+    vi.useFakeTimers();
+    try {
+      const { counts, store } = bare('/assets/index-NEW456.js');
+      store.set('pattern-maker:reloaded-for-release', '/assets/index-NEW456.js');
+      const { keepUpToDate, atNewScreen } = await import('./swUpdate');
+      keepUpToDate();
+      await vi.advanceTimersByTimeAsync(6 * 60 * 1000);
+      atNewScreen(true);
+      await vi.advanceTimersByTimeAsync(0);
+      atNewScreen(true);
+      expect(counts.fetches).toBe(1);
+      expect(counts.reloads).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('leaves a page its service worker looks after to the worker', async () => {
+    vi.useFakeTimers();
+    try {
+      const { counts } = bare('/assets/index-NEW456.js', true);
+      const { keepUpToDate, atNewScreen } = await import('./swUpdate');
+      keepUpToDate();
+      await vi.advanceTimersByTimeAsync(6 * 60 * 1000);
+      atNewScreen(true);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(counts.fetches).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
