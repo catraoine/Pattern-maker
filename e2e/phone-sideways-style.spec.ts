@@ -22,10 +22,10 @@ test('turned sideways, the corner words and the view bar stay with the drawing',
       expect(b.y, `${view}: ${name}`).toBeGreaterThanOrEqual(box.y);
       expect(b.x, `${view}: ${name}`).toBeGreaterThanOrEqual(box.x);
     }
-    // The words don't overlap one another.
+    // The words don't overlap one another: Demo at the left, the tool words just left of Enlarge at the right (Cat, Nov 28).
     const [enlarge, tool, demo] = await Promise.all([/^Enlarge/, view === 'pattern' ? /^Move points/ : /^Draw/, /^Demo/].map(async (name) => (await page.locator('.preview-corner').getByRole('button', { name }).first().boundingBox())!));
-    expect(enlarge.x + enlarge.width).toBeLessThanOrEqual(tool.x + 1);
-    expect(tool.x + tool.width).toBeLessThanOrEqual(demo.x + 1);
+    expect(tool.x + tool.width).toBeLessThanOrEqual(enlarge.x + 1);
+    expect(demo.x + demo.width).toBeLessThanOrEqual(tool.x + 1);
     // The dark track sits on the view bar's line, under the drawing, not across it.
     const track = await page.locator('.style-pin > section > .row.between.wrap').first().evaluate((e) => {
       const r = e.getBoundingClientRect();
